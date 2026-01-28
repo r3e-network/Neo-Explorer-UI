@@ -9,6 +9,11 @@ export const blockService = {
     return rpc("GetBlockCount");
   },
 
+  // Get best block hash
+  async getBestHash() {
+    return rpc("GetBestBlockHash");
+  },
+
   // Get block list with pagination
   async getList(limit = 20, skip = 0) {
     return rpc("GetBlockInfoList", { Limit: limit, Skip: skip });
@@ -27,6 +32,16 @@ export const blockService = {
   // Get block info by hash
   async getInfoByHash(hash) {
     return rpc("GetBlockInfoByBlockHash", { BlockHash: hash });
+  },
+
+  // Get block header by hash
+  async getHeaderByHash(hash) {
+    return rpc("GetBlockHeaderByBlockHash", { BlockHash: hash });
+  },
+
+  // Get block header by height
+  async getHeaderByHeight(height) {
+    return rpc("GetBlockHeaderByBlockHeight", { BlockHeight: height });
   },
 };
 

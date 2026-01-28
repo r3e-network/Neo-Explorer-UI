@@ -27,6 +27,19 @@ export const contractService = {
       Skip: skip,
     });
   },
+
+  // Get verified contract source code
+  async getVerifiedByHash(hash, updateCounter = 0) {
+    return rpc("GetVerifiedContractByContractHash", {
+      ContractHash: hash,
+      UpdateCounter: updateCounter,
+    });
+  },
+
+  // Get list of verified contracts
+  async getVerifiedList(limit = 20, skip = 0) {
+    return rpc("GetVerifiedContracts", { Limit: limit, Skip: skip });
+  },
 };
 
 export default contractService;
