@@ -82,7 +82,7 @@
             </button>
           </div>
           <div
-            v-for="(item, index) in searchHistory.slice(0, 5)"
+            v-for="(item, index) in searchHistory.slice(0, 5)" :key="index"
             :key="'h-' + index"
             :class="[
               'history-item px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors',

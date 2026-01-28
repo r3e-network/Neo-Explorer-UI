@@ -14,7 +14,7 @@
       class="page-item"
       :class="{ active: value === item }"
       :key="item"
-      v-for="item in range(minPage, maxPage)"
+      v-for="item in range(minPage, maxPage)" :key="item"
     >
       <a class="page-link" @click="changePage(item)">{{ item }}</a>
     </li>

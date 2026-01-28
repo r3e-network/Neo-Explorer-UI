@@ -8,7 +8,7 @@
     <div class="virtual-list-phantom" :style="{ height: totalHeight + 'px' }"></div>
     <div class="virtual-list-content" :style="{ transform: `translateY(${offset}px)` }">
       <div
-        v-for="item in visibleItems"
+        v-for="item in visibleItems" :key="item._virtualIndex"
         :key="item._virtualIndex"
         class="virtual-list-item"
         :style="{ height: itemHeight + 'px' }"
