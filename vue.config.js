@@ -7,36 +7,26 @@ module.exports = {
     proxy: {
       "/api": {
         changeOrigin: true,
-        // target: "http://127.0.0.1:1926",
-        // target: "https://testneofura.ngd.network:444",
-        // 主网
-        target:
-          process.env.VUE_APP_DEV_ENV === "TestT5"
-            ? "https://testmagnet.ngd.network"
-            : "https://neofura.ngd.network",
-        // t5
-        // target:"https://testmagnet.ngd.network",
-        // target: "http://106.14.204.151:1926",
-        // target: "http://192.168.1.89:1926"
+        // 本地 neo3fura
+        target: "http://127.0.0.1:1926",
+        // 远程备选:
+        // target: "https://neofura.ngd.network",
+        // target: "https://testmagnet.ngd.network",
       },
       "/bpi": {
         changeOrigin: true,
-        // target: "http://127.0.0.1:1926",
-        // target: "https://testneofura.ngd.network:444",
-        target: "https://neofura.ngd.network:1927",
-        // target: "http://106.14.204.151:1926",
-        // target: "http://192.168.1.89:1926"
-      },
-      "/hahaha": {
-        changeOrigin: true,
+        // 本地 neo3fura
         target: "http://127.0.0.1:1926",
-        // target: "https://testneofura.ngd.network:444",
-        // target: "http://127.0.0.1:1926/upload",
-        // target: "http://106.14.204.151:1926",
-        // target: "http://192.168.1.89:1926"
+        // 远程备选:
+        // target: "https://neofura.ngd.network:1927",
+      },
+      "/ws": {
+        changeOrigin: true,
+        ws: true,
+        // 本地 neo3fura WebSocket
+        target: "ws://127.0.0.1:2026",
       },
     },
-    // proxy
   },
   configureWebpack: {
     // Set up all the aliases we use in our app.

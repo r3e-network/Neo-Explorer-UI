@@ -34,7 +34,7 @@ export const searchService = {
       }
 
       // Try transaction
-      const tx = await rpc("GetRawTransactionByTxHash", { TxHash: hash });
+      const tx = await rpc("GetRawTransactionByTransactionHash", { TransactionHash: hash });
       if (tx) {
         results.type = "transaction";
         results.data = tx;

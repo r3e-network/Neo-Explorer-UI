@@ -6,22 +6,22 @@ import { rpc } from "./api";
 export const tokenService = {
   // Get NEP17 token list
   async getNep17List(limit = 20, skip = 0) {
-    return rpc("GetNep17TokenList", { Limit: limit, Skip: skip });
+    return rpc("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP17" });
   },
 
   // Get NEP11 (NFT) token list
   async getNep11List(limit = 20, skip = 0) {
-    return rpc("GetNep11TokenList", { Limit: limit, Skip: skip });
+    return rpc("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP11" });
   },
 
   // Get token by hash
   async getByHash(hash) {
-    return rpc("GetContractByContractHash", { ContractHash: hash });
+    return rpc("GetAssetInfoByContractHash", { ContractHash: hash });
   },
 
   // Get token holders
   async getHolders(hash, limit = 20, skip = 0) {
-    return rpc("GetNep17Holders", {
+    return rpc("GetAssetHoldersByContractHash", {
       ContractHash: hash,
       Limit: limit,
       Skip: skip,

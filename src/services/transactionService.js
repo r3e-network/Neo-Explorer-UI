@@ -16,7 +16,7 @@ export const transactionService = {
 
   // Get transaction by hash
   async getByHash(hash) {
-    return rpc("GetRawTransactionByTxHash", { TxHash: hash });
+    return rpc("GetRawTransactionByTransactionHash", { TransactionHash: hash });
   },
 
   // Get transaction count by address
@@ -26,7 +26,7 @@ export const transactionService = {
 
   // Get transactions by address
   async getByAddress(address, limit = 20, skip = 0) {
-    return rpc("GetTransactionByAddress", {
+    return rpc("GetRawTransactionByAddress", {
       Address: address,
       Limit: limit,
       Skip: skip,

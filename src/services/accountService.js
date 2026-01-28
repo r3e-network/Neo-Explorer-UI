@@ -14,14 +14,14 @@ export const accountService = {
     return rpc("GetAddressByAddress", { Address: address });
   },
 
-  // Get account balance
-  async getBalance(address) {
-    return rpc("GetBalanceByAddress", { Address: address });
+  // Get account assets (includes balance info)
+  async getAssets(address) {
+    return rpc("GetAssetsHeldByAddress", { Address: address });
   },
 
-  // Get account assets
-  async getAssets(address) {
-    return rpc("GetAssetByAddress", { Address: address });
+  // Get account balance (alias for getAssets)
+  async getBalance(address) {
+    return rpc("GetAssetsHeldByAddress", { Address: address });
   },
 };
 

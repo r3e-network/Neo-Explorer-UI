@@ -39,19 +39,19 @@ export const statsService = {
   // Get network activity for charts
   async getNetworkActivity(days = 14) {
     try {
-      return await rpc("GetDailyTransactionCount", { Days: days });
+      return await rpc("GetDailyTransactions", { Days: days });
     } catch (error) {
       console.error("Failed to get network activity:", error);
       return [];
     }
   },
 
-  // Get TPS (transactions per second)
-  async getTPS() {
+  // Get hourly transactions
+  async getHourlyTransactions(hours = 24) {
     try {
-      return await rpc("GetTPS");
+      return await rpc("GetHourlyTransactions", { Hours: hours });
     } catch (error) {
-      return 0;
+      return [];
     }
   },
 };
