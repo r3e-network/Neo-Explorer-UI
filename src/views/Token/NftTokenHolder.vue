@@ -226,9 +226,9 @@ export default {
         },
       }).then((res) => {
         this.NEP17TxList = res["data"]["result"]["result"];
-        console.log(this.NEP17TxList);
+        // console.log(this.NEP17TxList);
         this.totalCount = res["data"]["result"]["totalCount"];
-        console.log(this.totalCount);
+        // console.log(this.totalCount);
         this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
         this.isLoading = false;
       });

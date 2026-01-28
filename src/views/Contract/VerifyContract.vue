@@ -356,7 +356,7 @@ export default {
   methods: {
     uploadFilesAndParams() {
       this.isLoading = true;
-      console.log(this.fileList);
+      // console.log(this.fileList);
       let formData = new FormData();
       this.fileList.forEach((item) => {
         formData.append("file", item.raw);
@@ -413,7 +413,7 @@ export default {
       }
       // node = "https://neofura.ngd.network:3027/upload"
       axios.post(node, formData, config).then((res) => {
-        console.log(res);
+        // console.log(res);
         if (res.data.Code === 2) {
           if (
             this.form.version === "Neo.Compiler.CSharp 3.0.0" ||
@@ -494,7 +494,7 @@ export default {
             message: "Server error, please try it later!",
           });
           this.isLoading = false;
-          console.log(res.data.Code);
+          // console.log(res.data.Code);
         } else if (res.data.Code === 4) {
           ElMessage({
             showClose: true,
@@ -555,12 +555,13 @@ export default {
         }
       });
     },
+    // eslint-disable-next-line no-unused-vars
     onBeforeUpload(file) {
-      console.log(file.type);
+      // File validation placeholder
     },
     onSubmit() {
-      console.log(this.form.version);
-      console.log(this.form.hash);
+      // console.log(this.form.version);
+      // console.log(this.form.hash);
     },
   },
 };

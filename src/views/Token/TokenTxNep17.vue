@@ -331,7 +331,7 @@ export default {
         },
       }).then((res) => {
         this.NEP17TxList = res["data"]["result"]["result"];
-        console.log(this.NEP17TxList);
+        // console.log(this.NEP17TxList);
         this.totalCount = res["data"]["result"]["totalCount"];
         this.countPage =
           this.totalCount === 0

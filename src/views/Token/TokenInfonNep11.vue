@@ -502,7 +502,7 @@ export default {
       }).then((res) => {
         const raw = res["data"]["result"];
         this.updateCounter = raw["updatecounter"];
-        console.log(raw);
+        // console.log(raw);
       });
     },
     onQuery(index) {

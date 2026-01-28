@@ -182,7 +182,7 @@ export default {
         },
       }).then((res) => {
         this.sourceCodeList = res["data"]["result"]["result"];
-        console.log(this.sourceCodeList);
+        // console.log(this.sourceCodeList);
         this.totalCount = res["data"]["result"]["totalCount"];
         this.isLoading = false;
       });
