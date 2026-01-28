@@ -40,6 +40,11 @@ module.exports = {
   },
   configureWebpack: {
     // Set up all the aliases we use in our app.
+    resolve: {
+      alias: {
+        'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
+      },
+    },
     externals: {
       // vue: "Vue",
       // axios: "axios",
@@ -54,7 +59,6 @@ module.exports = {
       }),
       new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 5,
-        minChunkSize: 100,
       }),
     ],
   },
