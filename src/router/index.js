@@ -16,7 +16,7 @@ const CandidatesNew = () => import("../views/Candidate/CandidatesNew");
 
 // Legacy components (still in use)
 const TokenInfoNep11 = () => import("../views/Token/TokenInfonNep11");
-const NFTInfo = () => import("../views/Token/NFTInfo");
+const NFTInfoNew = () => import("../views/Token/NFTInfoNew");
 const VerifyContract = () => import("../views/Contract/VerifyContract");
 const Search = () => import("../views/NotFound/SearchNotFound");
 const PageNotFound = () => import("../views/NotFound/PageNotFound");
@@ -137,7 +137,7 @@ const routes = [
       {
         path: "/NFTinfo/:contractHash/:address/:tokenId",
         name: "NftInfo",
-        component: NFTInfo,
+        component: NFTInfoNew,
         meta: { showSearch: true, showBot: true, showNet: false }
       },
       {
