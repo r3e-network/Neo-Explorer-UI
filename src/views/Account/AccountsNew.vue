@@ -27,6 +27,20 @@
             </div>
           </div>
 
+          <!-- Error State -->
+          <div v-else-if="error" class="text-center py-12">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p class="text-gray-700 dark:text-gray-300 font-semibold mb-1">Failed to load accounts</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ error }}</p>
+            <button @click="loadAccounts" class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors">
+              Try Again
+            </button>
+          </div>
+
           <!-- Empty State -->
           <div v-else-if="accounts.length === 0" class="text-center py-12">
             <p class="text-gray-500 dark:text-gray-400">No accounts found</p>
@@ -117,6 +131,7 @@ export default {
   data() {
     return {
       loading: true,
+      error: null,
       accounts: [],
       currentPage: 1,
       totalPages: 1,
@@ -139,6 +154,7 @@ export default {
   methods: {
     async loadAccounts() {
       this.loading = true;
+      this.error = null;
       try {
         const offset = (this.currentPage - 1) * this.pageSize;
         const response = await accountService.getList(this.pageSize, offset);
@@ -147,6 +163,7 @@ export default {
           Math.ceil((response?.totalCount || 0) / this.pageSize) || 1;
       } catch (error) {
         console.error("Failed to load accounts:", error);
+        this.error = "Failed to load accounts. Please try again.";
         this.accounts = [];
       } finally {
         this.loading = false;
