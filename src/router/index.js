@@ -1,28 +1,40 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-// New Etherscan-style components
-const HomePageNew = () => import("../views/Home/HomePageNew");
-const BlocksNew = () => import("../views/Block/BlocksNew");
-const BlockDetailNew = () => import("../views/Block/BlockDetailNew");
-const TransactionsNew = () => import("../views/Transaction/TransactionsNew");
-const TxDetailNew = () => import("../views/Transaction/TxDetailNew");
-const TokensNew = () => import("../views/Token/TokensNew");
-const TokenDetailNew = () => import("../views/Token/TokenDetailNew");
-const ContractsNew = () => import("../views/Contract/ContractsNew");
-const ContractDetailNew = () => import("../views/Contract/ContractDetailNew");
-const AccountsNew = () => import("../views/Account/AccountsNew");
-const AddressDetailNew = () => import("../views/Account/AddressDetailNew");
-const CandidatesNew = () => import("../views/Candidate/CandidatesNew");
+// Core pages - lazy loaded with named chunks
+const HomePageNew = () => import(/* webpackChunkName: "home" */ "../views/Home/HomePageNew");
 
-// Legacy components (still in use)
-const TokenInfoNep11 = () => import("../views/Token/TokenInfonNep11");
-const NFTInfoNew = () => import("../views/Token/NFTInfoNew");
-const VerifyContract = () => import("../views/Contract/VerifyContract");
-const Search = () => import("../views/NotFound/SearchNotFound");
-const PageNotFound = () => import("../views/NotFound/PageNotFound");
-const BurnFee = () => import("../views/BurnGas/BurnFee");
-const importEcharts = () => import("../views/BurnGas/DailyTransaction");
-const SourceCode = () => import("../views/Contract/SourceCode");
+// Block module
+const BlocksNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlocksNew");
+const BlockDetailNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlockDetailNew");
+
+// Transaction module
+const TransactionsNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TransactionsNew");
+const TxDetailNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxDetailNew");
+
+// Token module
+const TokensNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokensNew");
+const TokenDetailNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenDetailNew");
+const TokenInfoNep11 = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenInfonNep11");
+const NFTInfoNew = () => import(/* webpackChunkName: "token" */ "../views/Token/NFTInfoNew");
+
+// Contract module
+const ContractsNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractsNew");
+const ContractDetailNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractDetailNew");
+const VerifyContract = () => import(/* webpackChunkName: "contract" */ "../views/Contract/VerifyContract");
+const SourceCode = () => import(/* webpackChunkName: "contract" */ "../views/Contract/SourceCode");
+
+// Account module
+const AccountsNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AccountsNew");
+const AddressDetailNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AddressDetailNew");
+
+// Other pages
+const CandidatesNew = () => import(/* webpackChunkName: "candidate" */ "../views/Candidate/CandidatesNew");
+const BurnFee = () => import(/* webpackChunkName: "burn" */ "../views/BurnGas/BurnFee");
+const importEcharts = () => import(/* webpackChunkName: "charts" */ "../views/BurnGas/DailyTransaction");
+
+// Error pages
+const Search = () => import(/* webpackChunkName: "error" */ "../views/NotFound/SearchNotFound");
+const PageNotFound = () => import(/* webpackChunkName: "error" */ "../views/NotFound/PageNotFound");
 
 import AuthLayout from "../layout/AuthLayout";
 

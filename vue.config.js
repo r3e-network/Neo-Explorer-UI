@@ -2,6 +2,8 @@ const webpack = require("webpack");
 const CompressionWebpackPlugin = require("compression-webpack-plugin");
 const productionGzipExtensions = ["js", "css"];
 
+const isProduction = process.env.NODE_ENV === "production";
+
 module.exports = {
   devServer: {
     proxy: {
@@ -35,11 +37,11 @@ module.exports = {
         'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
       },
     },
-    externals: {
+    externals: isProduction ? {
+      // CDN externals for production (optional)
       // vue: "Vue",
       // axios: "axios",
-      // "element-plus": "ElementPlus",
-    },
+    } : {},
     plugins: [
       new CompressionWebpackPlugin({
         algorithm: "gzip",
@@ -47,10 +49,45 @@ module.exports = {
         threshold: 10240,
         minRatio: 0.8,
       }),
-      new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 5,
-      }),
+      // Remove LimitChunkCountPlugin to allow better code splitting
     ],
+    optimization: {
+      splitChunks: {
+        chunks: "all",
+        minSize: 20000,
+        maxSize: 250000,
+        cacheGroups: {
+          // Vendor chunks
+          elementPlus: {
+            name: "chunk-element-plus",
+            test: /[\\/]node_modules[\\/]element-plus/,
+            priority: 30,
+          },
+          echarts: {
+            name: "chunk-echarts",
+            test: /[\\/]node_modules[\\/](echarts|zrender)/,
+            priority: 25,
+          },
+          neonJs: {
+            name: "chunk-neon-js",
+            test: /[\\/]node_modules[\\/]@cityofzion/,
+            priority: 20,
+          },
+          vendors: {
+            name: "chunk-vendors",
+            test: /[\\/]node_modules[\\/]/,
+            priority: 10,
+            chunks: "initial",
+          },
+          common: {
+            name: "chunk-common",
+            minChunks: 2,
+            priority: 5,
+            reuseExistingChunk: true,
+          },
+        },
+      },
+    },
   },
   pwa: {
     name: "Vue Argon Design",
