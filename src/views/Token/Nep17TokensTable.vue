@@ -184,7 +184,7 @@
   </div>
 </template>
 <script>
-import axios from "axios";
+import { tokenService } from "@/services";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/vue-loading.css";
 import net from "../../store/store";
@@ -237,25 +237,13 @@ export default {
       }
     },
     getTokenList(skip, type) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: { Limit: this.resultsPerPage, Skip: skip, Standard: type },
-          method: "GetAssetInfos",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.tokenList = res["data"]["result"]["result"];
-        // console.log(this.tokenList)
-        this.totalCount = res["data"]["result"]["totalCount"];
+      tokenService.getNep17List(this.resultsPerPage, skip).then((res) => {
+        this.tokenList = res?.result || [];
+        this.totalCount = res?.totalCount || 0;
         this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+        this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to load tokens:", err);
         this.isLoading = false;
       });
     },
@@ -269,30 +257,13 @@ export default {
       }
     },
     getTokenListByName(name, skip, type) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            Name: this.name,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-            Standard: type,
-          },
-          method: "GetAssetInfosByName",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.tokenList = res["data"]["result"]["result"];
-        // console.log(this.tokenList)
-        this.totalCount = res["data"]["result"]["totalCount"];
+      tokenService.searchNep17ByName(this.name, this.resultsPerPage, skip).then((res) => {
+        this.tokenList = res?.result || [];
+        this.totalCount = res?.totalCount || 0;
         this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+        this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to search tokens:", err);
         this.isLoading = false;
       });
     },

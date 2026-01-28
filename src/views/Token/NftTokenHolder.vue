@@ -142,7 +142,7 @@
   </div>
 </template>
 <script>
-import axios from "axios";
+import { tokenService } from "@/services";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/vue-loading.css";
 import {
@@ -206,32 +206,16 @@ export default {
       });
     },
     getTokenList(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-          },
-          method: "GetAssetHoldersByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.NEP17TxList = res["data"]["result"]["result"];
-        // console.log(this.NEP17TxList);
-        this.totalCount = res["data"]["result"]["totalCount"];
-        // console.log(this.totalCount);
+      tokenService.getHolders(this.contractHash, this.resultsPerPage, skip).then((res) => {
+        this.NEP17TxList = res?.result || [];
+        this.totalCount = res?.totalCount || 0;
         this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
         this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to load NFT holders:", err);
+        this.isLoading = false;
       });
+    },
     },
   },
 };

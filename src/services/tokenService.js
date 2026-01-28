@@ -27,6 +27,54 @@ export const tokenService = {
       Skip: skip,
     });
   },
+
+  // Search tokens by name (NEP17)
+  async searchNep17ByName(name, limit = 20, skip = 0) {
+    return rpc("GetAssetInfosByName", {
+      Name: name,
+      Limit: limit,
+      Skip: skip,
+      Standard: "NEP17",
+    });
+  },
+
+  // Search tokens by name (NEP11)
+  async searchNep11ByName(name, limit = 20, skip = 0) {
+    return rpc("GetAssetInfosByName", {
+      Name: name,
+      Limit: limit,
+      Skip: skip,
+      Standard: "NEP11",
+    });
+  },
+
+  // Get NEP17 transfers by contract hash
+  async getNep17Transfers(hash, limit = 20, skip = 0) {
+    return rpc("GetNep17TransferByContractHash", {
+      ContractHash: hash,
+      Limit: limit,
+      Skip: skip,
+    });
+  },
+
+  // Get NEP11 transfers by contract hash
+  async getNep11Transfers(hash, limit = 20, skip = 0) {
+    return rpc("GetNep11TransferByContractHash", {
+      ContractHash: hash,
+      Limit: limit,
+      Skip: skip,
+    });
+  },
+
+  // Get NEP11 transfers by contract hash and token ID
+  async getNep11TransfersByTokenId(hash, tokenId, limit = 20, skip = 0) {
+    return rpc("GetNep11TransferByContractHashTokenId", {
+      ContractHash: hash,
+      tokenId: tokenId,
+      Limit: limit,
+      Skip: skip,
+    });
+  },
 };
 
 export default tokenService;

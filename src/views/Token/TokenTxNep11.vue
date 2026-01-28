@@ -210,7 +210,7 @@
   </div>
 </template>
 <script>
-import axios from "axios";
+import { tokenService } from "@/services";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/vue-loading.css";
 import {
@@ -284,33 +284,21 @@ export default {
       return res;
     },
     getTokenList(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            tokenId: this.hashToBase64(this.tokenId),
-            Limit: this.resultsPerPage,
-            Skip: skip,
-          },
-          method: "GetNep11TransferByContractHashTokenId",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.NEP11TxList = res["data"]["result"]["result"];
-        // console.log(this.NEP11TxList)
-        this.totalCount = res["data"]["result"]["totalCount"];
+      tokenService.getNep11TransfersByTokenId(
+        this.contractHash,
+        this.hashToBase64(this.tokenId),
+        this.resultsPerPage,
+        skip
+      ).then((res) => {
+        this.NEP11TxList = res?.result || [];
+        this.totalCount = res?.totalCount || 0;
         this.countPage =
           this.totalCount === 0
             ? 1
             : Math.ceil(this.totalCount / this.resultsPerPage);
+        this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to load NEP11 transfers:", err);
         this.isLoading = false;
       });
     },

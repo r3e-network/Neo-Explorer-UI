@@ -244,7 +244,7 @@
   <card shadow v-else class="text-center">{{ $t("tokenTx.nullPrompt") }}</card>
 </template>
 <script>
-import axios from "axios";
+import { tokenService } from "@/services";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/vue-loading.css";
 import {
@@ -311,32 +311,16 @@ export default {
       this.getTokenList(skip);
     },
     getTokenList(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-          },
-          method: "GetNep17TransferByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.NEP17TxList = res["data"]["result"]["result"];
-        // console.log(this.NEP17TxList);
-        this.totalCount = res["data"]["result"]["totalCount"];
+      tokenService.getNep17Transfers(this.contractHash, this.resultsPerPage, skip).then((res) => {
+        this.NEP17TxList = res?.result || [];
+        this.totalCount = res?.totalCount || 0;
         this.countPage =
           this.totalCount === 0
             ? 1
             : Math.ceil(this.totalCount / this.resultsPerPage);
+        this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to load NEP17 transfers:", err);
         this.isLoading = false;
       });
     },

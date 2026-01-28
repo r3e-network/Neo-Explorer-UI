@@ -389,7 +389,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import { tokenService, contractService } from "@/services";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/vue-loading.css";
 import ContractJsonView from "../Contract/ContractJsonView";
@@ -461,26 +461,14 @@ export default {
       this.$router.push(`/contractinfo/${hash}`);
     },
     getToken(token_id) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: { ContractHash: token_id },
-          method: "GetAssetInfoByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        let raw = res["data"]["result"];
-        // console.log(raw)
-        this.standard = raw["type"] === "NEP17" ? 1 : 2;
-        this.decimal = raw["decimals"];
+      tokenService.getByHash(token_id).then((res) => {
+        let raw = res;
+        this.standard = raw?.type === "NEP17" ? 1 : 2;
+        this.decimal = raw?.decimals;
         this.token_info = raw;
+        this.isLoading = false;
+      }).catch((err) => {
+        console.error("Failed to load token info:", err);
         this.isLoading = false;
       });
     },
