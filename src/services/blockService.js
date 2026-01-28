@@ -1,23 +1,39 @@
 import { rpc, safeRpc, formatListResponse } from "./api";
 
 /**
- * Block Service - All block-related API calls
+ * Block Service - Neo3 区块相关 API 调用
+ * @module services/blockService
+ * @description 通过 neo3fura 后端获取区块数据
  */
 export const blockService = {
-  // Get total block count
+  /**
+   * 获取区块总数
+   * @returns {Promise<number>} 区块高度
+   */
   async getCount() {
     return safeRpc("GetBlockCount", {}, 0);
   },
 
-  // Get best block hash
+  /**
+   * 获取最新区块哈希
+   * @returns {Promise<string|null>} 区块哈希
+   */
   async getBestHash() {
     return safeRpc("GetBestBlockHash", {}, null);
   },
 
-  // Get block list with pagination
+  /**
+   * 获取区块列表（分页）
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 区块列表
+   */
   async getList(limit = 20, skip = 0) {
     try {
-      const result = await rpc("GetBlockInfoList", { Limit: limit, Skip: skip });
+      const result = await rpc("GetBlockInfoList", {
+        Limit: limit,
+        Skip: skip,
+      });
       return formatListResponse(result);
     } catch (error) {
       console.error("Failed to get block list:", error.message);
@@ -25,29 +41,53 @@ export const blockService = {
     }
   },
 
-  // Get block by hash
+  /**
+   * 根据哈希获取区块
+   * @param {string} hash - 区块哈希
+   * @returns {Promise<Object|null>} 区块数据
+   */
   async getByHash(hash) {
     return safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null);
   },
 
-  // Get block by height
+  /**
+   * 根据高度获取区块
+   * @param {number} height - 区块高度
+   * @returns {Promise<Object|null>} 区块数据
+   */
   async getByHeight(height) {
     return safeRpc("GetBlockByBlockHeight", { BlockHeight: height }, null);
   },
 
-  // Get block info by hash
+  /**
+   * 根据哈希获取区块信息
+   * @param {string} hash - 区块哈希
+   * @returns {Promise<Object|null>} 区块信息
+   */
   async getInfoByHash(hash) {
     return safeRpc("GetBlockInfoByBlockHash", { BlockHash: hash }, null);
   },
 
-  // Get block header by hash
+  /**
+   * 根据哈希获取区块头
+   * @param {string} hash - 区块哈希
+   * @returns {Promise<Object|null>} 区块头数据
+   */
   async getHeaderByHash(hash) {
     return safeRpc("GetBlockHeaderByBlockHash", { BlockHash: hash }, null);
   },
 
-  // Get block header by height
+  /**
+   * 根据高度获取区块头
+   * @param {number} height - 区块高度
+   * @returns {Promise<Object|null>} 区块头数据
+   */
   async getHeaderByHeight(height) {
-    return safeRpc("GetBlockHeaderByBlockHeight", { BlockHeight: height }, null);
+    return safeRpc(
+      "GetBlockHeaderByBlockHeight",
+      { BlockHeight: height },
+      null
+    );
   },
 };
 

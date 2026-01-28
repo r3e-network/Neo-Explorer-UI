@@ -62,12 +62,12 @@ export const safeRpc = async (method, params = {}, defaultValue = null) => {
  */
 export const formatListResponse = (result) => {
   if (!result) return { result: [], totalCount: 0 };
-  
+
   // Handle array response
   if (Array.isArray(result)) {
     return { result, totalCount: result.length };
   }
-  
+
   // Handle object with result/totalCount
   if (result.result !== undefined) {
     return {
@@ -75,7 +75,7 @@ export const formatListResponse = (result) => {
       totalCount: result.totalCount || 0,
     };
   }
-  
+
   return { result: [], totalCount: 0 };
 };
 

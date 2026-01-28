@@ -28,6 +28,58 @@ A modern blockchain explorer for the Neo ecosystem. Visualize Neo chain data fro
 | Build | Vue CLI 5 + Webpack |
 | Testing | Vitest + Vue Test Utils |
 
+## 🔌 Backend Integration (neo3fura)
+
+This explorer uses [neo3fura](https://github.com/neo-ngd/neo3fura) as its backend data provider.
+
+### What is neo3fura?
+
+neo3fura is a high-performance Neo N3 blockchain data indexer that provides:
+- JSON-RPC API for querying blockchain data
+- Real-time WebSocket subscriptions
+- Indexed data for blocks, transactions, addresses, tokens, and contracts
+
+### Configuration
+
+The frontend connects to neo3fura via proxy configuration in `vue.config.js`:
+
+```javascript
+devServer: {
+  proxy: {
+    "/api": {
+      target: "http://127.0.0.1:1926",  // neo3fura RPC
+    },
+    "/ws": {
+      target: "ws://127.0.0.1:2026",    // neo3fura WebSocket
+      ws: true,
+    },
+  },
+}
+```
+
+### Switching Networks
+
+| Network | RPC Endpoint | WebSocket |
+|---------|--------------|-----------|
+| Local | `http://127.0.0.1:1926` | `ws://127.0.0.1:2026` |
+| Mainnet | `https://neofura.ngd.network` | - |
+| Testnet | `https://testmagnet.ngd.network` | - |
+
+### Service Layer
+
+All neo3fura API calls are encapsulated in `src/services/`:
+
+| Service | Description |
+|---------|-------------|
+| `blockService` | Block queries and pagination |
+| `transactionService` | Transaction lookups |
+| `accountService` | Address and balance info |
+| `contractService` | Smart contract data |
+| `tokenService` | NEP-17/NEP-11 tokens |
+| `candidateService` | Consensus candidates |
+| `statsService` | Dashboard statistics |
+| `searchService` | Global search |
+
 ## 🚀 Quick Start
 
 ### Prerequisites
