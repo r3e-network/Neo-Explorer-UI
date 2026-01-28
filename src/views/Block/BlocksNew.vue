@@ -133,6 +133,13 @@ export default {
 
 <style scoped>
 .btn-secondary {
-  @apply px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply px-4 py-2 bg-gray-100 text-gray-700 rounded;
+}
+.btn-secondary:hover {
+  @apply bg-gray-200;
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

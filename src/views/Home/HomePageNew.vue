@@ -511,6 +511,9 @@ export default {
 
 <style scoped>
 .stat-item {
-  @apply p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors;
+  @apply p-2 rounded-lg transition-colors;
+}
+.stat-item:hover {
+  background-color: rgba(249, 250, 251, 1);
 }
 </style>

@@ -1,4 +1,20 @@
 import { createRouter, createWebHistory } from "vue-router";
+
+// New Etherscan-style components
+const HomePageNew = () => import("../views/Home/HomePageNew");
+const BlocksNew = () => import("../views/Block/BlocksNew");
+const BlockDetailNew = () => import("../views/Block/BlockDetailNew");
+const TransactionsNew = () => import("../views/Transaction/TransactionsNew");
+const TxDetailNew = () => import("../views/Transaction/TxDetailNew");
+const TokensNew = () => import("../views/Token/TokensNew");
+const TokenDetailNew = () => import("../views/Token/TokenDetailNew");
+const ContractsNew = () => import("../views/Contract/ContractsNew");
+const ContractDetailNew = () => import("../views/Contract/ContractDetailNew");
+const AccountsNew = () => import("../views/Account/AccountsNew");
+const AddressDetailNew = () => import("../views/Account/AddressDetailNew");
+const CandidatesNew = () => import("../views/Candidate/CandidatesNew");
+
+// Legacy components (fallback)
 const Contracts = () => import("../views/Contract/Contracts");
 const ContractInfo = () => import("../views/Contract/ContractInfo");
 const TokenInfoNep17 = () => import("../views/Token/TokenInfonNep17");
@@ -19,6 +35,7 @@ const BurnFee = () => import("../views/BurnGas/BurnFee");
 const importEcharts = () => import("../views/BurnGas/DailyTransaction");
 const TransactionInfo = () => import("../views/Transaction/TransactionInfo");
 const SourceCode = () => import("../views/Contract/SourceCode");
+
 import AuthLayout from "../layout/AuthLayout";
 
 const routes = [
@@ -27,27 +44,152 @@ const routes = [
     redirect: "homepage",
     component: AuthLayout,
     children: [
+      // Homepage - New Etherscan style
       {
-        path: "/:pathMatch(.*)",
-        name: "404",
-        component: PageNotFound,
+        path: "/homepage",
+        name: "homepage",
+        component: HomePageNew,
         meta: {
           showSearch: false,
-          showBot: false,
+          HomePage: true,
+          showBot: true,
           showNet: true,
         },
       },
-
+      
+      // Blocks
       {
-        path: "/tokens/:tab/:page",
-        name: "tokens",
-        component: Tokens,
+        path: "/blocks/:page",
+        name: "blocks",
+        component: BlocksNew,
         meta: {
           showSearch: true,
           showBot: true,
           showNet: true,
         },
       },
+      {
+        path: "/blockinfo/:hash",
+        name: "blockinfo",
+        component: BlockDetailNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      
+      // Transactions
+      {
+        path: "/Transactions/:page",
+        name: "transactions",
+        component: TransactionsNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: true,
+        },
+      },
+      {
+        path: "/transactionInfo/:txhash",
+        name: "transactionInfo",
+        component: TxDetailNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      
+      // Contracts
+      {
+        path: "/contracts/:page",
+        name: "contracts",
+        component: ContractsNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: true,
+        },
+      },
+      {
+        path: "/contractinfo/:hash",
+        name: "contractinfo",
+        component: ContractDetailNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      
+      // Accounts/Addresses
+      {
+        path: "/account/:page",
+        name: "Accounts",
+        component: AccountsNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: true,
+        },
+      },
+      {
+        path: "/accountprofile/:accountAddress",
+        name: "AccountProfile",
+        component: AddressDetailNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      
+      // Tokens
+      {
+        path: "/tokens/:tab/:page",
+        name: "tokens",
+        component: TokensNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: true,
+        },
+      },
+      {
+        path: "/NEP17tokeninfo/:hash",
+        name: "NEP17tokeninfo",
+        component: TokenDetailNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      {
+        path: "/NFTtokeninfo/:hash",
+        name: "NFTtokeninfo",
+        component: TokenInfoNep11,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: false,
+        },
+      },
+      
+      // Candidates
+      {
+        path: "/candidates/:page",
+        name: "Candidates",
+        component: CandidatesNew,
+        meta: {
+          showSearch: true,
+          showBot: true,
+          showNet: true,
+        },
+      },
+      
+      // Other pages (legacy)
       {
         path: "/burn",
         name: "burn",
@@ -89,56 +231,6 @@ const routes = [
         },
       },
       {
-        path: "/blocks/:page",
-        name: "blocks",
-        component: Blocks,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
-        path: "/NEP17tokeninfo/:hash",
-        name: "NEP17tokeninfo",
-        component: TokenInfoNep17,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
-        path: "/NFTtokeninfo/:hash",
-        name: "NFTtokeninfo",
-        component: TokenInfoNep11,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
-        path: "/blockinfo/:hash",
-        name: "blockinfo",
-        component: BlockInfo,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
-        path: "/contracts/:page",
-        name: "contracts",
-        component: Contracts,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
         path: "/NFTinfo/:contractHash/:address/:tokenId",
         name: "NftInfo",
         component: NFTInfo,
@@ -149,80 +241,21 @@ const routes = [
         },
       },
       {
-        path: "/contractinfo/:hash",
-        name: "contractinfo",
-        component: ContractInfo,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
-        path: "/candidates/:page",
-        name: "Candidates",
-        component: CandiateList,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
-        path: "/account/:page",
-        name: "Accounts",
-        component: Account,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
-        path: "/accountprofile/:accountAddress",
-        name: "AccountProfile",
-        component: AccountProfile,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
-        path: "/Transactions/:page",
-        name: "transactions",
-        component: TransactionList,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
-        path: "/homepage",
-        name: "homepage",
-        component: HomePage,
-        meta: {
-          showSearch: false,
-          HomePage: true,
-          showBot: true,
-          showNet: true,
-        },
-      },
-      {
-        path: "/transactionInfo/:txhash",
-        name: "transactionInfo",
-        component: TransactionInfo,
-        meta: {
-          showSearch: true,
-          showBot: true,
-          showNet: false,
-        },
-      },
-      {
         path: "search",
         name: "search",
         component: Search,
+        meta: {
+          showSearch: false,
+          showBot: false,
+          showNet: true,
+        },
+      },
+      
+      // 404 - must be last
+      {
+        path: "/:pathMatch(.*)",
+        name: "404",
+        component: PageNotFound,
         meta: {
           showSearch: false,
           showBot: false,
