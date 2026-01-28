@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { randomString } from '@/components/stringUtils'
+import { randomString } from '@/utils/stringUtils'
 
 describe('stringUtils.js', () => {
   describe('randomString', () => {
