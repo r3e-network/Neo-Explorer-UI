@@ -234,6 +234,13 @@
                   <Skeleton class="h-16" />
                 </div>
               </template>
+              <template v-else-if="blocksError">
+                <ErrorState 
+                  title="Failed to load blocks" 
+                  message="Unable to fetch latest blocks" 
+                  @retry="loadLatestData" 
+                />
+              </template>
               <template v-else-if="latestBlocks.length === 0">
                 <EmptyState message="No blocks found" icon="block" />
               </template>
@@ -281,6 +288,13 @@
                 <div v-for="i in 6" :key="i" class="p-4">
                   <Skeleton class="h-16" />
                 </div>
+              </template>
+              <template v-else-if="txsError">
+                <ErrorState 
+                  title="Failed to load transactions" 
+                  message="Unable to fetch latest transactions" 
+                  @retry="loadLatestData" 
+                />
               </template>
               <template v-else-if="latestTxs.length === 0">
                 <EmptyState message="No transactions found" icon="transaction" />
@@ -341,6 +355,7 @@ import BlockListItem from '@/components/common/BlockListItem.vue'
 import TxListItem from '@/components/common/TxListItem.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import ErrorState from '@/components/common/ErrorState.vue'
 import NetworkChart from '@/components/charts/NetworkChart.vue'
 import { statsService, blockService, transactionService, searchService } from '@/services'
 
@@ -353,6 +368,7 @@ export default {
     TxListItem, 
     Skeleton,
     EmptyState,
+    ErrorState,
     NetworkChart
   },
   
@@ -360,6 +376,9 @@ export default {
     return {
       loading: true,
       searchLoading: false,
+      error: null,
+      blocksError: false,
+      txsError: false,
       blockCount: 0,
       txCount: 0,
       contractCount: 0,
@@ -471,12 +490,16 @@ export default {
 
     async loadLatestData() {
       try {
+        this.blocksError = false
+        this.txsError = false
+        
         const [blocksRes, txsRes] = await Promise.all([
-          blockService.getList(6, 0),
-          transactionService.getList(6, 0)
+          blockService.getList(6, 0).catch(e => { this.blocksError = true; return null }),
+          transactionService.getList(6, 0).catch(e => { this.txsError = true; return null })
         ])
-        this.latestBlocks = blocksRes?.result || []
-        this.latestTxs = txsRes?.result || []
+        
+        if (blocksRes) this.latestBlocks = blocksRes?.result || []
+        if (txsRes) this.latestTxs = txsRes?.result || []
         
         // Calculate TPS from latest blocks
         if (this.latestBlocks.length >= 2) {
