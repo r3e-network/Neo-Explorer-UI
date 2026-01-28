@@ -473,24 +473,10 @@ export default {
       });
     },
     getContractUpdateCounter(contract_id) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: { ContractHash: contract_id },
-          method: "GetContractByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        const raw = res["data"]["result"];
-        this.updateCounter = raw["updatecounter"];
-        // console.log(raw);
+      contractService.getByHash(contract_id).then((res) => {
+        this.updateCounter = res?.updatecounter || 0;
+      }).catch((err) => {
+        console.error("Failed to get contract update counter:", err);
       });
     },
     onQuery(index) {
@@ -537,22 +523,10 @@ export default {
         });
     },
     getContractManifest(token_id) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: { ContractHash: token_id },
-          method: "GetContractByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.manifest = JSON.parse(res["data"]["result"]["manifest"]);
+      contractService.getByHash(token_id).then((res) => {
+        this.manifest = JSON.parse(res?.manifest || "{}");
+      }).catch((err) => {
+        console.error("Failed to get contract manifest:", err);
       });
     },
   },
