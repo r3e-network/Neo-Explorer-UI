@@ -2,68 +2,104 @@
   <div class="home-page min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Hero Section with Search -->
     <section class="hero-section relative overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900"></div>
-      <div class="absolute inset-0 opacity-10">
-        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.4&quot;%3E%3Cpath d=&quot;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+      <!-- Animated Background -->
+      <div class="absolute inset-0 bg-gradient-to-br from-neo-green via-primary-700 to-primary-900"></div>
+      <div class="absolute inset-0 opacity-20">
+        <div class="absolute inset-0 bg-grid-pattern"></div>
+      </div>
+      <!-- Floating particles effect -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
       </div>
       
-      <div class="container mx-auto px-4 py-12 md:py-16 relative z-10">
-        <div class="text-center mb-8">
-          <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3">
+      <div class="container mx-auto px-4 py-16 md:py-24 relative z-10">
+        <div class="text-center mb-10">
+          <!-- Logo -->
+          <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-6">
+            <svg class="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.18l6.26 3.48L12 11.14 5.74 7.66 12 4.18zM5 8.82l6 3.33v6.52l-6-3.33V8.82zm8 9.85v-6.52l6-3.33v6.52l-6 3.33z"/>
+            </svg>
+          </div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
             Neo N3 Explorer
           </h1>
-          <p class="text-primary-100 text-base md:text-lg max-w-2xl mx-auto">
-            {{ $t('home.subtitle') || 'The Neo Smart Economy Blockchain Explorer' }}
+          <p class="text-primary-100 text-lg md:text-xl max-w-2xl mx-auto opacity-90">
+            {{ $t('home.subtitle') || 'Explore the Neo Smart Economy Blockchain' }}
           </p>
         </div>
         
-        <!-- Search Box -->
-        <div class="max-w-3xl mx-auto">
+        <!-- Large Search Box -->
+        <div class="max-w-4xl mx-auto">
           <SearchBox 
             @search="handleSearch" 
             :placeholder="$t('search.placeholder') || 'Search by Address / Txn Hash / Block / Token / Contract'"
             :loading="searchLoading"
           />
+          <!-- Quick Links -->
+          <div class="flex flex-wrap justify-center gap-3 mt-6">
+            <router-link to="/blocks/1" 
+                         class="quick-link px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 
+                                text-white text-sm font-medium transition-all backdrop-blur-sm">
+              📦 Blocks
+            </router-link>
+            <router-link to="/Transactions/1" 
+                         class="quick-link px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 
+                                text-white text-sm font-medium transition-all backdrop-blur-sm">
+              💸 Transactions
+            </router-link>
+            <router-link to="/tokens/nep17/1" 
+                         class="quick-link px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 
+                                text-white text-sm font-medium transition-all backdrop-blur-sm">
+              🪙 Tokens
+            </router-link>
+            <router-link to="/contracts/1" 
+                         class="quick-link px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 
+                                text-white text-sm font-medium transition-all backdrop-blur-sm">
+              📜 Contracts
+            </router-link>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Price & Stats Banner -->
-    <section class="stats-banner py-6 -mt-6 relative z-20">
+    <section class="stats-banner py-6 -mt-8 relative z-20">
       <div class="container mx-auto px-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-4 md:p-6">
-          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-5 md:p-6">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             <!-- NEO Price -->
-            <div class="stat-item">
-              <div class="flex items-center gap-2 mb-1">
-                <div class="w-6 h-6 rounded-full bg-neo-green/20 flex items-center justify-center">
-                  <span class="text-neo-green text-xs font-bold">N</span>
+            <div class="stat-item group cursor-pointer" @click="$router.push('/NEP17tokeninfo/0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5')">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-neo-green to-green-600 flex items-center justify-center shadow-sm">
+                  <span class="text-white text-sm font-bold">N</span>
                 </div>
-                <span class="text-gray-500 dark:text-gray-400 text-sm">NEO Price</span>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">NEO</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                <span class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white group-hover:text-primary-500 transition-colors">
                   ${{ formatPrice(neoPrice) }}
                 </span>
-                <span :class="priceChangeClass(neoPriceChange)" class="text-xs font-medium">
+                <span :class="priceChangeClass(neoPriceChange)" class="text-xs font-semibold px-1.5 py-0.5 rounded">
                   {{ formatPriceChange(neoPriceChange) }}
                 </span>
               </div>
             </div>
 
             <!-- GAS Price -->
-            <div class="stat-item">
-              <div class="flex items-center gap-2 mb-1">
-                <div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <span class="text-green-500 text-xs font-bold">G</span>
+            <div class="stat-item group cursor-pointer" @click="$router.push('/NEP17tokeninfo/0xd2a4cff31913016155e38e474a2c06d08be276cf')">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-sm">
+                  <span class="text-white text-sm font-bold">G</span>
                 </div>
-                <span class="text-gray-500 dark:text-gray-400 text-sm">GAS Price</span>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">GAS</span>
               </div>
               <div class="flex items-baseline gap-2">
-                <span class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                <span class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white group-hover:text-primary-500 transition-colors">
                   ${{ formatPrice(gasPrice) }}
                 </span>
-                <span :class="priceChangeClass(gasPriceChange)" class="text-xs font-medium">
+                <span :class="priceChangeClass(gasPriceChange)" class="text-xs font-semibold px-1.5 py-0.5 rounded">
                   {{ formatPriceChange(gasPriceChange) }}
                 </span>
               </div>
@@ -71,36 +107,67 @@
 
             <!-- Market Cap -->
             <div class="stat-item hidden md:block">
-              <div class="text-gray-500 dark:text-gray-400 text-sm mb-1">Market Cap</div>
-              <div class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4z"/>
+                  </svg>
+                </div>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Market Cap</span>
+              </div>
+              <div class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
                 ${{ formatLargeNumber(marketCap) }}
               </div>
             </div>
 
             <!-- Block Height -->
-            <div class="stat-item">
-              <div class="text-gray-500 dark:text-gray-400 text-sm mb-1">Block Height</div>
-              <div class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+            <div class="stat-item group cursor-pointer" @click="$router.push('/blocks/1')">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2L3 7v6l7 5 7-5V7l-7-5z"/>
+                  </svg>
+                </div>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Block Height</span>
+              </div>
+              <div class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white group-hover:text-primary-500 transition-colors">
                 {{ formatNumber(blockCount) }}
               </div>
             </div>
 
             <!-- Transactions -->
-            <div class="stat-item hidden lg:block">
-              <div class="text-gray-500 dark:text-gray-400 text-sm mb-1">Transactions</div>
-              <div class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+            <div class="stat-item hidden lg:block group cursor-pointer" @click="$router.push('/Transactions/1')">
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">Transactions</span>
+              </div>
+              <div class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white group-hover:text-primary-500 transition-colors">
                 {{ formatNumber(txCount) }}
               </div>
             </div>
 
             <!-- TPS -->
             <div class="stat-item hidden lg:block">
-              <div class="text-gray-500 dark:text-gray-400 text-sm mb-1">TPS</div>
+              <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">TPS</span>
+              </div>
               <div class="flex items-center gap-2">
-                <span class="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
+                <span class="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
                   {{ tps.toFixed(2) }}
                 </span>
-                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                </span>
               </div>
             </div>
           </div>
@@ -109,9 +176,9 @@
     </section>
 
     <!-- Network Stats Cards -->
-    <section class="network-stats py-6">
+    <section class="network-stats py-8">
       <div class="container mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <StatCard 
             v-for="stat in networkStats" 
             :key="stat.key"
@@ -121,6 +188,7 @@
             :color="stat.color"
             :loading="loading"
             :route="stat.route"
+            :trend="stat.trend"
             @click="navigateTo(stat.route)"
           />
         </div>
@@ -128,25 +196,30 @@
     </section>
 
     <!-- Latest Data Section -->
-    <section class="latest-section py-6">
+    <section class="latest-section py-8">
       <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Latest Blocks -->
-          <div class="card bg-white dark:bg-gray-800 rounded-2xl shadow-card overflow-hidden">
-            <div class="card-header flex justify-between items-center p-4 md:p-5 border-b border-gray-100 dark:border-gray-700">
+          <div class="card bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="card-header flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                  <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                <div class="w-11 h-11 rounded-xl bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                  <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 2L3 7v6l7 5 7-5V7l-7-5z"/>
                   </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                  {{ $t('homePage.recentBlocks') || 'Latest Blocks' }}
-                </h3>
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                    {{ $t('homePage.recentBlocks') || 'Latest Blocks' }}
+                  </h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Real-time block updates</p>
+                </div>
               </div>
               <router-link 
                 to="/blocks/1" 
-                class="text-primary-500 hover:text-primary-600 text-sm font-medium flex items-center gap-1"
+                class="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary-50 dark:bg-primary-900/30 
+                       text-primary-600 dark:text-primary-400 text-sm font-medium 
+                       hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
               >
                 {{ $t('homePage.seeAll') || 'View All' }}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,8 +231,11 @@
             <div class="divide-y divide-gray-100 dark:divide-gray-700">
               <template v-if="loading">
                 <div v-for="i in 6" :key="i" class="p-4">
-                  <Skeleton class="h-14" />
+                  <Skeleton class="h-16" />
                 </div>
+              </template>
+              <template v-else-if="latestBlocks.length === 0">
+                <EmptyState message="No blocks found" icon="block" />
               </template>
               <template v-else>
                 <BlockListItem 
@@ -172,21 +248,26 @@
           </div>
 
           <!-- Latest Transactions -->
-          <div class="card bg-white dark:bg-gray-800 rounded-2xl shadow-card overflow-hidden">
-            <div class="card-header flex justify-between items-center p-4 md:p-5 border-b border-gray-100 dark:border-gray-700">
+          <div class="card bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="card-header flex justify-between items-center p-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-green-50 to-transparent dark:from-green-900/20">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <div class="w-11 h-11 rounded-xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                  <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                   </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                  {{ $t('homePage.recentTxs') || 'Latest Transactions' }}
-                </h3>
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                    {{ $t('homePage.recentTxs') || 'Latest Transactions' }}
+                  </h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Real-time transaction updates</p>
+                </div>
               </div>
               <router-link 
                 to="/Transactions/1" 
-                class="text-primary-500 hover:text-primary-600 text-sm font-medium flex items-center gap-1"
+                class="flex items-center gap-1 px-4 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 
+                       text-green-600 dark:text-green-400 text-sm font-medium 
+                       hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
               >
                 {{ $t('homePage.seeAll') || 'View All' }}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,8 +279,11 @@
             <div class="divide-y divide-gray-100 dark:divide-gray-700">
               <template v-if="loading">
                 <div v-for="i in 6" :key="i" class="p-4">
-                  <Skeleton class="h-14" />
+                  <Skeleton class="h-16" />
                 </div>
+              </template>
+              <template v-else-if="latestTxs.length === 0">
+                <EmptyState message="No transactions found" icon="transaction" />
               </template>
               <template v-else>
                 <TxListItem 
@@ -215,22 +299,25 @@
     </section>
 
     <!-- Network Activity Chart -->
-    <section class="chart-section py-6">
+    <section class="chart-section py-8 pb-12">
       <div class="container mx-auto px-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-4 md:p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 md:p-6">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 md:mb-0">
-              Network Activity (14 Days)
-            </h3>
-            <div class="flex gap-2">
+            <div>
+              <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                Network Activity
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Last 14 days transaction history</p>
+            </div>
+            <div class="flex gap-2 mt-4 md:mt-0">
               <button 
                 v-for="type in chartTypes" 
                 :key="type.key"
                 @click="activeChartType = type.key"
                 :class="[
-                  'px-3 py-1.5 text-sm rounded-lg transition-colors',
+                  'px-4 py-2 text-sm rounded-lg font-medium transition-all',
                   activeChartType === type.key 
-                    ? 'bg-primary-500 text-white' 
+                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30' 
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 ]"
               >
@@ -238,7 +325,7 @@
               </button>
             </div>
           </div>
-          <div class="h-64 md:h-80">
+          <div class="h-72 md:h-80">
             <NetworkChart :type="activeChartType" :data="chartData" />
           </div>
         </div>
@@ -253,6 +340,7 @@ import StatCard from '@/components/common/StatCard.vue'
 import BlockListItem from '@/components/common/BlockListItem.vue'
 import TxListItem from '@/components/common/TxListItem.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import NetworkChart from '@/components/charts/NetworkChart.vue'
 import { statsService, blockService, transactionService, searchService } from '@/services'
 
@@ -264,6 +352,7 @@ export default {
     BlockListItem, 
     TxListItem, 
     Skeleton,
+    EmptyState,
     NetworkChart
   },
   
@@ -511,9 +600,60 @@ export default {
 
 <style scoped>
 .stat-item {
-  @apply p-2 rounded-lg transition-colors;
+  @apply p-3 rounded-xl transition-all duration-200;
 }
 .stat-item:hover {
-  background-color: rgba(249, 250, 251, 1);
+  @apply bg-gray-50 dark:bg-gray-700/50;
+}
+
+/* Grid pattern background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Floating particles */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  animation: float 20s infinite ease-in-out;
+}
+.particle-1 {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  right: -100px;
+  animation-delay: 0s;
+}
+.particle-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -50px;
+  left: 10%;
+  animation-delay: -5s;
+}
+.particle-3 {
+  width: 150px;
+  height: 150px;
+  top: 50%;
+  right: 20%;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+}
+
+/* Quick links hover effect */
+.quick-link {
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.quick-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 </style>
