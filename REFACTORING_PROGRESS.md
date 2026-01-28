@@ -2,6 +2,10 @@
 
 ## Build Status: ✅ PASSING
 
+## Node.js Compatibility
+- Node.js 24 requires: `NODE_OPTIONS=--openssl-legacy-provider`
+- Reason: webpack 4 uses legacy OpenSSL algorithms
+
 ## Project Stats
 - Views: 72 components
 - Components: 70 reusable
