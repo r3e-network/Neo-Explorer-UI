@@ -1,4 +1,4 @@
-import { rpc } from "./api";
+import { rpc, safeRpc, formatListResponse } from "./api";
 
 /**
  * Block Service - All block-related API calls
@@ -6,42 +6,48 @@ import { rpc } from "./api";
 export const blockService = {
   // Get total block count
   async getCount() {
-    return rpc("GetBlockCount");
+    return safeRpc("GetBlockCount", {}, 0);
   },
 
   // Get best block hash
   async getBestHash() {
-    return rpc("GetBestBlockHash");
+    return safeRpc("GetBestBlockHash", {}, null);
   },
 
   // Get block list with pagination
   async getList(limit = 20, skip = 0) {
-    return rpc("GetBlockInfoList", { Limit: limit, Skip: skip });
+    try {
+      const result = await rpc("GetBlockInfoList", { Limit: limit, Skip: skip });
+      return formatListResponse(result);
+    } catch (error) {
+      console.error("Failed to get block list:", error.message);
+      return { result: [], totalCount: 0 };
+    }
   },
 
   // Get block by hash
   async getByHash(hash) {
-    return rpc("GetBlockByBlockHash", { BlockHash: hash });
+    return safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null);
   },
 
   // Get block by height
   async getByHeight(height) {
-    return rpc("GetBlockByBlockHeight", { BlockHeight: height });
+    return safeRpc("GetBlockByBlockHeight", { BlockHeight: height }, null);
   },
 
   // Get block info by hash
   async getInfoByHash(hash) {
-    return rpc("GetBlockInfoByBlockHash", { BlockHash: hash });
+    return safeRpc("GetBlockInfoByBlockHash", { BlockHash: hash }, null);
   },
 
   // Get block header by hash
   async getHeaderByHash(hash) {
-    return rpc("GetBlockHeaderByBlockHash", { BlockHash: hash });
+    return safeRpc("GetBlockHeaderByBlockHash", { BlockHash: hash }, null);
   },
 
   // Get block header by height
   async getHeaderByHeight(height) {
-    return rpc("GetBlockHeaderByBlockHeight", { BlockHeight: height });
+    return safeRpc("GetBlockHeaderByBlockHeight", { BlockHeight: height }, null);
   },
 };
 
