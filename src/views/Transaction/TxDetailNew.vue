@@ -13,9 +13,9 @@
       <!-- Page Header -->
       <div class="flex items-center gap-3 mb-6">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="statusBgClass">
-          <svg class="w-6 h-6" :class="statusIconClass" fill="currentColor" viewBox="0 0 24 24">
-            <path v-if="isSuccess" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            <path v-else d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <svg class="w-6 h-6" :class="statusIconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path v-if="isSuccess" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
         <div>
@@ -29,33 +29,75 @@
       <!-- Loading State -->
       <div v-if="loading" class="space-y-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-6">
-          <Skeleton class="h-4 w-full mb-3" v-for="i in 6" :key="i" />
+          <div class="animate-pulse space-y-3">
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" v-for="i in 6" :key="i"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Transaction Overview -->
+      <!-- Transaction Content -->
       <div v-else class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card">
+        <!-- Overview Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
           <div class="p-4 border-b border-gray-100 dark:border-gray-700">
             <h2 class="font-semibold text-gray-800 dark:text-white">Overview</h2>
           </div>
           <div class="p-4 md:p-6 space-y-4">
-            <InfoRow label="Transaction Hash">
-              <HashLink :hash="tx.hash" type="tx" :truncate="false" />
-            </InfoRow>
-            <InfoRow label="Status">
-              <span :class="statusBadgeClass" class="px-2 py-1 rounded text-sm">
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Transaction Hash:</span>
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <span class="font-mono text-sm break-all">{{ tx.hash }}</span>
+                <button @click="copyHash" class="text-gray-400 hover:text-primary-500">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Status:</span>
+              <span :class="statusBadgeClass" class="px-2 py-1 rounded text-sm w-fit">
                 {{ tx.vmstate || 'HALT' }}
               </span>
-            </InfoRow>
-            <InfoRow label="Block">
-              <router-link :to="`/blockinfo/${tx.blockhash}`" class="text-primary-500">
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Block:</span>
+              <router-link :to="`/blockinfo/${tx.blockhash}`" class="text-primary-500 hover:underline">
                 #{{ tx.blockindex }}
               </router-link>
-            </InfoRow>
-            <InfoRow label="Timestamp">
-              {{ formatTime(tx.blocktime) }}
-            </InfoRow>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Timestamp:</span>
+              <span>{{ formatTime(tx.blocktime) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sender & Fees Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+          <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-800 dark:text-white">Transaction Action</h2>
+          </div>
+          <div class="p-4 md:p-6 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">From:</span>
+              <router-link v-if="tx.sender" :to="`/accountprofile/${tx.sender}`" class="text-primary-500 font-mono text-sm hover:underline">
+                {{ tx.sender }}
+              </router-link>
+              <span v-else class="text-gray-400">-</span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Network Fee:</span>
+              <span>{{ formatGas(tx.netfee) }} GAS</span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2 border-b border-gray-50 dark:border-gray-700">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">System Fee:</span>
+              <span>{{ formatGas(tx.sysfee) }} GAS</span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-center py-2">
+              <span class="text-gray-500 w-40 mb-1 md:mb-0">Size:</span>
+              <span>{{ tx.size || 0 }} bytes</span>
+            </div>
           </div>
         </div>
       </div>
@@ -65,13 +107,9 @@
 
 <script>
 import { transactionService } from '@/services'
-import InfoRow from '@/components/common/InfoRow.vue'
-import HashLink from '@/components/common/HashLink.vue'
-import Skeleton from '@/components/common/Skeleton.vue'
 
 export default {
   name: 'TxDetailNew',
-  components: { InfoRow, HashLink, Skeleton },
   data() {
     return { tx: {}, loading: false }
   },
@@ -85,8 +123,8 @@ export default {
     },
     statusBgClass() {
       return this.isSuccess 
-        ? 'bg-green-100 dark:bg-green-900/30' 
-        : 'bg-red-100 dark:bg-red-900/30'
+        ? 'bg-green-100 dark:bg-green-900' 
+        : 'bg-red-100 dark:bg-red-900'
     },
     statusIconClass() {
       return this.isSuccess ? 'text-green-500' : 'text-red-500'
@@ -115,7 +153,16 @@ export default {
       }
     },
     formatTime(ts) {
-      return ts ? new Date(ts * 1000).toLocaleString() : ''
+      return ts ? new Date(ts * 1000).toLocaleString() : '-'
+    },
+    formatGas(value) {
+      if (!value) return '0'
+      return (value / 100000000).toFixed(8)
+    },
+    copyHash() {
+      if (this.tx?.hash) {
+        navigator.clipboard.writeText(this.tx.hash)
+      }
     }
   }
 }
