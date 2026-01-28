@@ -537,6 +537,7 @@ import {
   transactionService,
   searchService,
 } from "@/services";
+import { usePriceCache } from "@/composables/usePriceCache";
 
 export default {
   name: "HomePageNew",
@@ -549,6 +550,11 @@ export default {
     EmptyState,
     ErrorState,
     NetworkChart,
+  },
+
+  setup() {
+    const { prices, fetchPrices } = usePriceCache();
+    return { priceCache: prices, fetchPrices };
   },
 
   data() {
@@ -703,26 +709,13 @@ export default {
     },
 
     async loadPrices() {
-      try {
-        // Fetch prices from CoinGecko or similar API
-        const response = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true"
-        );
-        const data = await response.json();
-
-        this.neoPrice = data.neo?.usd || 0;
-        this.neoPriceChange = data.neo?.usd_24h_change || 0;
-        this.gasPrice = data.gas?.usd || 0;
-        this.gasPriceChange = data.gas?.usd_24h_change || 0;
-
-        // Calculate market cap (100M NEO total supply)
-        this.marketCap = this.neoPrice * 100000000;
-      } catch (error) {
-        console.error("Failed to load prices:", error);
-        // Use fallback values
-        this.neoPrice = 12.5;
-        this.gasPrice = 4.2;
-      }
+      // 使用全局价格缓存
+      const data = await this.fetchPrices();
+      this.neoPrice = data.neo;
+      this.gasPrice = data.gas;
+      this.neoPriceChange = data.neoChange;
+      this.gasPriceChange = data.gasChange;
+      this.marketCap = data.marketCap;
     },
 
     async loadChartData() {

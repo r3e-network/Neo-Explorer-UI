@@ -1,4 +1,5 @@
 import { safeRpc, safeRpcList } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 
 /**
  * Block Service - Neo3 区块相关 API 调用
@@ -23,26 +24,28 @@ export const blockService = {
   },
 
   /**
-   * 获取区块列表（分页）
+   * 获取区块列表（分页，带缓存）
    * @param {number} [limit=20] - 每页数量
    * @param {number} [skip=0] - 跳过数量
    * @returns {Promise<{result: Array, totalCount: number}>} 区块列表
    */
   async getList(limit = 20, skip = 0) {
-    return safeRpcList(
+    const key = getCacheKey("block_list", { limit, skip });
+    return cachedRequest(key, () => safeRpcList(
       "GetBlockInfoList",
       { Limit: limit, Skip: skip },
       "get block list"
-    );
+    ), CACHE_TTL.list);
   },
 
   /**
-   * 根据哈希获取区块
+   * 根据哈希获取区块（带缓存）
    * @param {string} hash - 区块哈希
    * @returns {Promise<Object|null>} 区块数据
    */
   async getByHash(hash) {
-    return safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null);
+    const key = getCacheKey("block_hash", { hash });
+    return cachedRequest(key, () => safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null), CACHE_TTL.detail);
   },
 
   /**

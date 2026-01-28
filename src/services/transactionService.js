@@ -1,4 +1,5 @@
 import { safeRpc, safeRpcList } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 
 /**
  * Transaction Service - Neo3 交易相关 API 调用
@@ -15,30 +16,32 @@ export const transactionService = {
   },
 
   /**
-   * 获取交易列表（分页）
+   * 获取交易列表（分页，带缓存）
    * @param {number} [limit=20] - 每页数量
    * @param {number} [skip=0] - 跳过数量
    * @returns {Promise<{result: Array, totalCount: number}>} 交易列表
    */
   async getList(limit = 20, skip = 0) {
-    return safeRpcList(
+    const key = getCacheKey("tx_list", { limit, skip });
+    return cachedRequest(key, () => safeRpcList(
       "GetTransactionList",
       { Limit: limit, Skip: skip },
       "get transaction list"
-    );
+    ), CACHE_TTL.list);
   },
 
   /**
-   * 根据哈希获取交易
+   * 根据哈希获取交易（带缓存）
    * @param {string} hash - 交易哈希
    * @returns {Promise<Object|null>} 交易数据
    */
   async getByHash(hash) {
-    return safeRpc(
+    const key = getCacheKey("tx_hash", { hash });
+    return cachedRequest(key, () => safeRpc(
       "GetRawTransactionByTransactionHash",
       { TransactionHash: hash },
       null
-    );
+    ), CACHE_TTL.detail);
   },
 
   /**

@@ -8,3 +8,4 @@ export { tokenService } from "./tokenService";
 export { candidateService } from "./candidateService";
 export { statsService } from "./statsService";
 export { searchService } from "./searchService";
+export * from "./cache";
