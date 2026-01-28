@@ -1,5 +1,5 @@
 // Services index - Export all API services
-export { rpc } from "./api";
+export { rpc, safeRpc, safeRpcList, formatListResponse } from "./api";
 export { blockService } from "./blockService";
 export { transactionService } from "./transactionService";
 export { contractService } from "./contractService";

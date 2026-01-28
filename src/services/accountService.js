@@ -1,4 +1,4 @@
-import { rpc, safeRpc, formatListResponse } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -7,19 +7,25 @@ import { rpc, safeRpc, formatListResponse } from "./api";
  */
 export const accountService = {
   /**
+   * 获取账户总数
+   * @returns {Promise<number>} 账户数量
+   */
+  async getCount() {
+    return safeRpc("GetAddressCount", {}, 0);
+  },
+
+  /**
    * 获取账户列表（分页）
    * @param {number} [limit=20] - 每页数量
    * @param {number} [skip=0] - 跳过数量
    * @returns {Promise<{result: Array, totalCount: number}>} 账户列表
    */
   async getList(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAddressList", { Limit: limit, Skip: skip });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get account list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAddressList",
+      { Limit: limit, Skip: skip },
+      "get account list"
+    );
   },
 
   /**

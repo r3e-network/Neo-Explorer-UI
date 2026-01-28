@@ -1,4 +1,4 @@
-import { rpc, safeRpc, formatListResponse } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 
 /**
  * Transaction Service - Neo3 交易相关 API 调用
@@ -21,16 +21,11 @@ export const transactionService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 交易列表
    */
   async getList(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetTransactionList", {
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get transaction list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetTransactionList",
+      { Limit: limit, Skip: skip },
+      "get transaction list"
+    );
   },
 
   /**
@@ -63,17 +58,11 @@ export const transactionService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 交易列表
    */
   async getByAddress(address, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetRawTransactionByAddress", {
-        Address: address,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get transactions by address:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetRawTransactionByAddress",
+      { Address: address, Limit: limit, Skip: skip },
+      "get transactions by address"
+    );
   },
 };
 

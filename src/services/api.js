@@ -79,4 +79,21 @@ export const formatListResponse = (result) => {
   return { result: [], totalCount: 0 };
 };
 
+/**
+ * Safe RPC wrapper for list endpoints with error handling
+ * @param {string} method - RPC method name
+ * @param {object} params - RPC parameters
+ * @param {string} errorMsg - Error message prefix
+ * @returns {Promise<{result: Array, totalCount: number}>}
+ */
+export const safeRpcList = async (method, params = {}, errorMsg = "API call") => {
+  try {
+    const result = await rpc(method, params);
+    return formatListResponse(result);
+  } catch (error) {
+    console.error(`Failed to ${errorMsg}:`, error.message);
+    return { result: [], totalCount: 0 };
+  }
+};
+
 export default api;

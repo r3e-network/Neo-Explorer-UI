@@ -58,6 +58,7 @@ export const statsService = {
     try {
       return await rpc("GetHourlyTransactions", { Hours: hours });
     } catch (error) {
+      console.error("Failed to get hourly transactions:", error.message);
       return [];
     }
   },

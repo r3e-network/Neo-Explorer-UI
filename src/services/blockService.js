@@ -1,4 +1,4 @@
-import { rpc, safeRpc, formatListResponse } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 
 /**
  * Block Service - Neo3 区块相关 API 调用
@@ -29,16 +29,11 @@ export const blockService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 区块列表
    */
   async getList(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetBlockInfoList", {
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get block list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetBlockInfoList",
+      { Limit: limit, Skip: skip },
+      "get block list"
+    );
   },
 
   /**

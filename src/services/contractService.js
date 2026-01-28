@@ -1,4 +1,4 @@
-import { rpc, safeRpc, formatListResponse } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 
 /**
  * Contract Service - Neo3 合约相关 API 调用
@@ -21,13 +21,11 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 合约列表
    */
   async getList(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetContractList", { Limit: limit, Skip: skip });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get contract list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetContractList",
+      { Limit: limit, Skip: skip },
+      "get contract list"
+    );
   },
 
   /**
@@ -47,17 +45,11 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
    */
   async searchByName(name, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetContractListByName", {
-        Name: name,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to search contracts:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetContractListByName",
+      { Name: name, Limit: limit, Skip: skip },
+      "search contracts"
+    );
   },
 
   /**
@@ -84,16 +76,11 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 验证合约列表
    */
   async getVerifiedList(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetVerifiedContracts", {
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get verified contracts:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetVerifiedContracts",
+      { Limit: limit, Skip: skip },
+      "get verified contracts"
+    );
   },
 };
 

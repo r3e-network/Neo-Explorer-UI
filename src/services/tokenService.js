@@ -1,4 +1,4 @@
-import { rpc, safeRpc, formatListResponse } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 
 /**
  * Token Service - Neo3 代币相关 API 调用
@@ -13,17 +13,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 代币列表
    */
   async getNep17List(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAssetInfos", {
-        Limit: limit,
-        Skip: skip,
-        Type: "NEP17",
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get NEP17 list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAssetInfos",
+      { Limit: limit, Skip: skip, Type: "NEP17" },
+      "get NEP17 list"
+    );
   },
 
   /**
@@ -33,17 +27,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} NFT 列表
    */
   async getNep11List(limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAssetInfos", {
-        Limit: limit,
-        Skip: skip,
-        Type: "NEP11",
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get NEP11 list:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAssetInfos",
+      { Limit: limit, Skip: skip, Type: "NEP11" },
+      "get NEP11 list"
+    );
   },
 
   /**
@@ -63,17 +51,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 持有者列表
    */
   async getHolders(hash, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAssetHoldersByContractHash", {
-        ContractHash: hash,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get token holders:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAssetHoldersByContractHash",
+      { ContractHash: hash, Limit: limit, Skip: skip },
+      "get token holders"
+    );
   },
 
   /**
@@ -84,18 +66,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
    */
   async searchNep17ByName(name, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAssetInfosByName", {
-        Name: name,
-        Limit: limit,
-        Skip: skip,
-        Standard: "NEP17",
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to search NEP17:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAssetInfosByName",
+      { Name: name, Limit: limit, Skip: skip, Standard: "NEP17" },
+      "search NEP17"
+    );
   },
 
   /**
@@ -106,18 +81,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
    */
   async searchNep11ByName(name, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetAssetInfosByName", {
-        Name: name,
-        Limit: limit,
-        Skip: skip,
-        Standard: "NEP11",
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to search NEP11:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetAssetInfosByName",
+      { Name: name, Limit: limit, Skip: skip, Standard: "NEP11" },
+      "search NEP11"
+    );
   },
 
   /**
@@ -128,17 +96,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
   async getNep17Transfers(hash, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetNep17TransferByContractHash", {
-        ContractHash: hash,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get NEP17 transfers:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetNep17TransferByContractHash",
+      { ContractHash: hash, Limit: limit, Skip: skip },
+      "get NEP17 transfers"
+    );
   },
 
   /**
@@ -149,17 +111,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
   async getNep11Transfers(hash, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetNep11TransferByContractHash", {
-        ContractHash: hash,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get NEP11 transfers:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetNep11TransferByContractHash",
+      { ContractHash: hash, Limit: limit, Skip: skip },
+      "get NEP11 transfers"
+    );
   },
 
   /**
@@ -171,18 +127,11 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
   async getNep11TransfersByTokenId(hash, tokenId, limit = 20, skip = 0) {
-    try {
-      const result = await rpc("GetNep11TransferByContractHashTokenId", {
-        ContractHash: hash,
-        tokenId: tokenId,
-        Limit: limit,
-        Skip: skip,
-      });
-      return formatListResponse(result);
-    } catch (error) {
-      console.error("Failed to get NEP11 transfers by token:", error.message);
-      return { result: [], totalCount: 0 };
-    }
+    return safeRpcList(
+      "GetNep11TransferByContractHashTokenId",
+      { ContractHash: hash, tokenId: tokenId, Limit: limit, Skip: skip },
+      "get NEP11 transfers by token"
+    );
   },
 };
 
