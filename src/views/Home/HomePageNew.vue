@@ -600,13 +600,17 @@ export default {
 
 <style scoped>
 .stat-item {
-  @apply p-3 rounded-xl transition-all duration-200;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
 }
 .stat-item:hover {
-  @apply bg-gray-50 dark:bg-gray-700/50;
+  background-color: rgba(249, 250, 251, 1);
+}
+.dark .stat-item:hover {
+  background-color: rgba(55, 65, 81, 0.5);
 }
 
-/* Grid pattern background */
 .bg-grid-pattern {
   background-image: 
     linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
@@ -614,7 +618,6 @@ export default {
   background-size: 40px 40px;
 }
 
-/* Floating particles */
 .particle {
   position: absolute;
   border-radius: 50%;
@@ -648,7 +651,6 @@ export default {
   50% { transform: translateY(-20px) rotate(5deg); }
 }
 
-/* Quick links hover effect */
 .quick-link {
   border: 1px solid rgba(255,255,255,0.2);
 }
