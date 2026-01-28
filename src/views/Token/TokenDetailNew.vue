@@ -12,8 +12,8 @@
 
       <!-- Page Header -->
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-          <span class="text-blue-600 font-bold">{{ token.symbol?.charAt(0) }}</span>
+        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <span class="text-blue-600 font-bold text-lg">{{ token.symbol?.charAt(0) }}</span>
         </div>
         <div>
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
@@ -25,21 +25,58 @@
 
       <!-- Token Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p class="text-sm text-gray-500 mb-1">Total Supply</p>
           <p class="text-lg font-bold text-gray-800 dark:text-white">{{ formatSupply }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p class="text-sm text-gray-500 mb-1">Holders</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">{{ token.holders || 0 }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-white">{{ formatNumber(token.holders) }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p class="text-sm text-gray-500 mb-1">Transfers</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">{{ token.transfers || 0 }}</p>
+          <p class="text-lg font-bold text-gray-800 dark:text-white">{{ formatNumber(token.transfers) }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-card">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p class="text-sm text-gray-500 mb-1">Decimals</p>
           <p class="text-lg font-bold text-gray-800 dark:text-white">{{ token.decimals }}</p>
+        </div>
+      </div>
+
+      <!-- Contract Info -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-6 p-4">
+        <div class="flex flex-col md:flex-row md:items-center gap-2">
+          <span class="text-gray-500 text-sm">Contract:</span>
+          <span class="font-mono text-sm break-all">{{ token.hash }}</span>
+          <button @click="copyHash" class="text-gray-400 hover:text-primary-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+          <nav class="flex -mb-px">
+            <button v-for="tab in tabs" :key="tab.key"
+              @click="activeTab = tab.key"
+              :class="['px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                activeTab === tab.key
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700']">
+              {{ tab.label }}
+            </button>
+          </nav>
+        </div>
+        <div class="p-4">
+          <div v-if="activeTab === 'transfers'" class="text-gray-500 text-center py-8">
+            Token transfers coming soon...
+          </div>
+          <div v-else class="text-gray-500 text-center py-8">
+            Token holders coming soon...
+          </div>
         </div>
       </div>
     </div>
@@ -52,7 +89,15 @@ import { tokenService } from '@/services'
 export default {
   name: 'TokenDetailNew',
   data() {
-    return { token: {}, loading: false }
+    return {
+      token: {},
+      loading: false,
+      activeTab: 'transfers',
+      tabs: [
+        { key: 'transfers', label: 'Transfers' },
+        { key: 'holders', label: 'Holders' }
+      ]
+    }
   },
   computed: {
     formatSupply() {
@@ -78,6 +123,12 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    copyHash() {
+      if (this.token?.hash) navigator.clipboard.writeText(this.token.hash)
+    },
+    formatNumber(n) {
+      return n ? n.toLocaleString() : '0'
     }
   }
 }
