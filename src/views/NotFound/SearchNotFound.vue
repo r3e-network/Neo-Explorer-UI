@@ -1,68 +1,41 @@
 <template>
-  <div class="page-content" style="background-color: #f7f8fa">
-    <div class="searchNotFound">
-      <div class="row">
-        <div class="col-4">
-          <span style="font-size: 200px">&#128575;</span>
-        </div>
-        <div class="col-8">
-          <div class="h2 font-weight-bold mb-0">
-            {{ $t("search.information") }}
-          </div>
-          <div class="row mt-3"></div>
-          <div class="h2 font-weight-bold mb-0">
-            {{ $t("search.dataSupport") }}
-          </div>
-          <p class="text-muted font-weight-bold mb-0">
-            {{ $t("search.block") }}
-          </p>
-          <p class="text-muted font-weight-bold mb-0">
-            {{ $t("search.transaction") }}
-          </p>
-          <p class="text-muted font-weight-bold mb-0">
-            {{ $t("search.account") }}
-          </p>
-          <p class="text-muted font-weight-bold mb-0">
-            {{ $t("search.token") }}
-          </p>
-          <div class="row mt-3"></div>
-          <div>
-            <base-button type="primary" @click="toHomePage()">{{
-              $t("search.button")
-            }}</base-button>
-          </div>
-        </div>
+  <div class="search-not-found min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+    <div class="text-center px-4">
+      <div class="text-8xl mb-6">🔍</div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Results Found</h1>
+      <p class="text-gray-500 mb-6 max-w-md mx-auto">
+        We couldn't find what you're looking for. Try searching for:
+      </p>
+      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6 text-left max-w-sm mx-auto">
+        <ul class="space-y-2 text-gray-600 dark:text-gray-400">
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
+            Block height or hash
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+            Transaction hash
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+            Neo address (N...)
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+            Contract hash
+          </li>
+        </ul>
       </div>
+      <router-link to="/" 
+        class="inline-block px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors">
+        Back to Home
+      </router-link>
     </div>
   </div>
 </template>
 
 <script>
-import BaseButton from "../../components/BaseButton";
 export default {
-  name: "Home",
-  components: { BaseButton },
-  data() {},
-  methods: {
-    toHomePage() {
-      this.$router.push({
-        path: `/homepage`,
-      });
-    },
-  },
-};
-</script>
-<style>
-.searchNotFound {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  background: #f7f8fa;
-  border-radius: 4px;
-  color: #282828;
-  width: 100%;
-  margin-top: 1%;
+  name: 'SearchNotFound'
 }
-</style>
+</script>
