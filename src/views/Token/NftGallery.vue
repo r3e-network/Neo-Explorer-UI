@@ -53,7 +53,7 @@
           <div class="aspect-square bg-gray-100 dark:bg-gray-700">
             <img
               v-if="nft.image"
-              :src="nft.image"
+              v-lazy-image="nft.image"
               :alt="nft.name"
               class="w-full h-full object-cover"
             />

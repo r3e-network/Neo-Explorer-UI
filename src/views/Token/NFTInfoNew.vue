@@ -25,7 +25,7 @@
             >
               <img
                 v-if="image"
-                :src="image"
+                v-lazy-image="image"
                 :alt="nftName"
                 class="w-full h-full object-cover"
               />

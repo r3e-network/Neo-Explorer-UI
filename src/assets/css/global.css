@@ -393,3 +393,25 @@
 ::placeholder{
     color: rgba(40, 43, 52, 0.3)
 }
+
+/* Lazy Loading Styles */
+.lazy-loading {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: lazy-shimmer 1.5s infinite;
+}
+
+.lazy-loaded {
+  animation: lazy-fade-in 0.3s ease-in;
+}
+
+@keyframes lazy-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes lazy-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+

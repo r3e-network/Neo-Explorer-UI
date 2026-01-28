@@ -1,6 +1,6 @@
 <template>
   <div class="token-icon">
-    <img v-if="src" :src="src" :alt="symbol" @error="onError" />
+    <img v-if="src" v-lazy-image="src" :alt="symbol" @error="onError" />
     <span v-else>{{ symbol?.charAt(0) }}</span>
   </div>
 </template>
