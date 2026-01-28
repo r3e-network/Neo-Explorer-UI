@@ -1,14 +1,34 @@
 <template>
   <div class="pagination">
     <button :disabled="page <= 1" @click="$emit('change', page - 1)">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"
+        />
       </svg>
     </button>
     <span class="page-info">{{ page }} / {{ total }}</span>
     <button :disabled="page >= total" @click="$emit('change', page + 1)">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 5l7 7-7 7"
+        />
       </svg>
     </button>
   </div>
@@ -16,10 +36,10 @@
 
 <script>
 export default {
-  name: 'Pagination',
+  name: "Pagination",
   props: { page: Number, total: Number },
-  emits: ['change']
-}
+  emits: ["change"],
+};
 </script>
 
 <style scoped>

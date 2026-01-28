@@ -10,9 +10,9 @@
 
 <script>
 export default {
-  name: 'Breadcrumb',
-  props: { items: Array }
-}
+  name: "Breadcrumb",
+  props: { items: Array },
+};
 </script>
 
 <style scoped>
@@ -22,5 +22,7 @@ export default {
 .breadcrumb a {
   @apply hover:text-primary-500;
 }
-.sep { @apply text-gray-300; }
+.sep {
+  @apply text-gray-300;
+}
 </style>

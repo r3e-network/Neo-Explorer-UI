@@ -7,10 +7,10 @@
 
 <script>
 export default {
-  name: 'LineChart',
+  name: "LineChart",
   props: {
     title: String,
-    data: Array
-  }
-}
+    data: Array,
+  },
+};
 </script>

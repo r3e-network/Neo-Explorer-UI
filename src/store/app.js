@@ -1,23 +1,23 @@
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 
-export const useAppStore = defineStore('app', {
+export const useAppStore = defineStore("app", {
   state: () => ({
-    network: localStorage.getItem('net') || 'mainnet',
-    theme: localStorage.getItem('theme') || 'light',
-    loading: false
+    network: localStorage.getItem("net") || "mainnet",
+    theme: localStorage.getItem("theme") || "light",
+    loading: false,
   }),
-  
+
   actions: {
     setNetwork(net) {
-      this.network = net
-      localStorage.setItem('net', net)
+      this.network = net;
+      localStorage.setItem("net", net);
     },
     setTheme(theme) {
-      this.theme = theme
-      localStorage.setItem('theme', theme)
+      this.theme = theme;
+      localStorage.setItem("theme", theme);
     },
     setLoading(val) {
-      this.loading = val
-    }
-  }
-})
+      this.loading = val;
+    },
+  },
+});

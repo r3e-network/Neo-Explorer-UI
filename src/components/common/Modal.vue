@@ -8,9 +8,9 @@
 
 <script>
 export default {
-  name: 'Modal',
-  emits: ['close']
-}
+  name: "Modal",
+  emits: ["close"],
+};
 </script>
 
 <style scoped>

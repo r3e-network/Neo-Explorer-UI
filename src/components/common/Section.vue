@@ -5,9 +5,11 @@
 </template>
 
 <script>
-export default { name: 'Section' }
+export default { name: "Section" };
 </script>
 
 <style scoped>
-.section { @apply py-8; }
+.section {
+  @apply py-8;
+}
 </style>

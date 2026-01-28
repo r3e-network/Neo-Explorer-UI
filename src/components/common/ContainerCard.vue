@@ -5,5 +5,5 @@
 </template>
 
 <script>
-export default { name: 'ContainerCard' }
+export default { name: "ContainerCard" };
 </script>

@@ -6,9 +6,9 @@
 
 <script>
 export default {
-  name: 'HexView',
-  props: { data: String }
-}
+  name: "HexView",
+  props: { data: String },
+};
 </script>
 
 <style scoped>

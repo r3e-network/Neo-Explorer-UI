@@ -4,9 +4,9 @@
 
 <script>
 export default {
-  name: 'CodeBlock',
-  props: { code: String }
-}
+  name: "CodeBlock",
+  props: { code: String },
+};
 </script>
 
 <style scoped>

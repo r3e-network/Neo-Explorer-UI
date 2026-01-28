@@ -11,14 +11,16 @@
 
 <script>
 export default {
-  name: 'Dropdown',
+  name: "Dropdown",
   props: { label: String },
-  data: () => ({ open: false })
-}
+  data: () => ({ open: false }),
+};
 </script>
 
 <style scoped>
-.dropdown { @apply relative; }
+.dropdown {
+  @apply relative;
+}
 .dropdown-menu {
   @apply absolute top-full right-0 mt-1 bg-white rounded-lg shadow-dropdown 
          min-w-[160px] py-1 z-50;

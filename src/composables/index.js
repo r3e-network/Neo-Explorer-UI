@@ -1,2 +1,2 @@
 // Composables index
-export { useTheme } from './useTheme'
+export { useTheme } from "./useTheme";

@@ -8,15 +8,15 @@
 
 <script>
 export default {
-  name: 'AddressLink',
+  name: "AddressLink",
   props: { address: String },
   computed: {
     short() {
-      if (!this.address) return ''
-      return `${this.address.slice(0, 6)}...${this.address.slice(-4)}`
-    }
-  }
-}
+      if (!this.address) return "";
+      return `${this.address.slice(0, 6)}...${this.address.slice(-4)}`;
+    },
+  },
+};
 </script>
 
 <style scoped>

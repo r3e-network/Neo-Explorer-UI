@@ -1,9 +1,9 @@
 <template>
   <div class="latest-txs card">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="font-semibold">{{ $t('homePage.recentTxs') }}</h3>
+      <h3 class="font-semibold">{{ $t("homePage.recentTxs") }}</h3>
       <router-link to="/transactions/1" class="text-sm text-primary-500">
-        {{ $t('homePage.seeAll') }} →
+        {{ $t("homePage.seeAll") }} →
       </router-link>
     </div>
     <div class="space-y-2">
@@ -13,10 +13,10 @@
 </template>
 
 <script>
-import TxListItem from './TxListItem.vue'
+import TxListItem from "./TxListItem.vue";
 export default {
-  name: 'LatestTxs',
+  name: "LatestTxs",
   components: { TxListItem },
-  props: { txs: Array }
-}
+  props: { txs: Array },
+};
 </script>

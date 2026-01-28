@@ -4,9 +4,9 @@
 
 <script>
 export default {
-  name: 'Tag',
-  props: { text: String }
-}
+  name: "Tag",
+  props: { text: String },
+};
 </script>
 
 <style scoped>

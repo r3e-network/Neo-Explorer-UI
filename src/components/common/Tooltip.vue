@@ -7,9 +7,9 @@
 
 <script>
 export default {
-  name: 'Tooltip',
-  props: { text: String }
-}
+  name: "Tooltip",
+  props: { text: String },
+};
 </script>
 
 <style scoped>

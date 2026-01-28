@@ -1,8 +1,8 @@
 <template>
   <div class="tabs">
     <div class="tab-list">
-      <button 
-        v-for="tab in tabs" 
+      <button
+        v-for="tab in tabs"
         :key="tab.key"
         :class="['tab', { active: active === tab.key }]"
         @click="$emit('change', tab.key)"
@@ -18,13 +18,13 @@
 
 <script>
 export default {
-  name: 'Tabs',
+  name: "Tabs",
   props: {
     tabs: Array,
-    active: String
+    active: String,
   },
-  emits: ['change']
-}
+  emits: ["change"],
+};
 </script>
 
 <style scoped>

@@ -1,15 +1,19 @@
 <template>
-  <select :value="modelValue" @change="$emit('update:modelValue', $event.target.value)" class="select-field">
+  <select
+    :value="modelValue"
+    @change="$emit('update:modelValue', $event.target.value)"
+    class="select-field"
+  >
     <slot></slot>
   </select>
 </template>
 
 <script>
 export default {
-  name: 'Select',
-  props: ['modelValue'],
-  emits: ['update:modelValue']
-}
+  name: "Select",
+  props: ["modelValue"],
+  emits: ["update:modelValue"],
+};
 </script>
 
 <style scoped>

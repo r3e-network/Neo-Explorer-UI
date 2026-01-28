@@ -6,9 +6,9 @@
 
 <script>
 export default {
-  name: 'ProgressBar',
-  props: { percent: { type: Number, default: 0 } }
-}
+  name: "ProgressBar",
+  props: { percent: { type: Number, default: 0 } },
+};
 </script>
 
 <style scoped>

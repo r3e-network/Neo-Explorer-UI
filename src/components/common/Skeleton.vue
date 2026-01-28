@@ -4,42 +4,43 @@
 
 <script>
 export default {
-  name: 'Skeleton',
+  name: "Skeleton",
   props: {
-    width: { type: String, default: '100%' },
-    height: { type: String, default: '20px' },
-    variant: { 
-      type: String, 
-      default: 'text',
-      validator: v => ['text', 'circular', 'rectangular', 'rounded'].includes(v)
+    width: { type: String, default: "100%" },
+    height: { type: String, default: "20px" },
+    variant: {
+      type: String,
+      default: "text",
+      validator: (v) =>
+        ["text", "circular", "rectangular", "rounded"].includes(v),
     },
     animation: {
       type: String,
-      default: 'pulse',
-      validator: v => ['pulse', 'wave', 'none'].includes(v)
-    }
+      default: "pulse",
+      validator: (v) => ["pulse", "wave", "none"].includes(v),
+    },
   },
   computed: {
     skeletonClass() {
-      const base = 'skeleton bg-gray-200 dark:bg-gray-700'
+      const base = "skeleton bg-gray-200 dark:bg-gray-700";
       const variants = {
-        text: 'rounded',
-        circular: 'rounded-full',
-        rectangular: 'rounded-none',
-        rounded: 'rounded-lg'
-      }
+        text: "rounded",
+        circular: "rounded-full",
+        rectangular: "rounded-none",
+        rounded: "rounded-lg",
+      };
       const animations = {
-        pulse: 'animate-pulse',
-        wave: 'skeleton-wave',
-        none: ''
-      }
-      return `${base} ${variants[this.variant]} ${animations[this.animation]}`
+        pulse: "animate-pulse",
+        wave: "skeleton-wave",
+        none: "",
+      };
+      return `${base} ${variants[this.variant]} ${animations[this.animation]}`;
     },
     customStyle() {
-      return { width: this.width, height: this.height }
-    }
-  }
-}
+      return { width: this.width, height: this.height };
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -48,7 +49,7 @@ export default {
   overflow: hidden;
 }
 .skeleton-wave::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
@@ -64,6 +65,8 @@ export default {
   animation: wave 1.5s infinite;
 }
 @keyframes wave {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 </style>

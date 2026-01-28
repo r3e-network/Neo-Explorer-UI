@@ -6,16 +6,22 @@
 
 <script>
 export default {
-  name: 'FlexRow',
+  name: "FlexRow",
   props: {
-    justify: { type: String, default: 'between' },
-    align: { type: String, default: 'center' }
-  }
-}
+    justify: { type: String, default: "between" },
+    align: { type: String, default: "center" },
+  },
+};
 </script>
 
 <style scoped>
-.flex-row { @apply flex gap-4; }
-.between { @apply justify-between; }
-.center { @apply items-center; }
+.flex-row {
+  @apply flex gap-4;
+}
+.between {
+  @apply justify-between;
+}
+.center {
+  @apply items-center;
+}
 </style>

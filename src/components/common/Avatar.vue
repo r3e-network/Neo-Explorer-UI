@@ -6,16 +6,18 @@
 
 <script>
 export default {
-  name: 'Avatar',
+  name: "Avatar",
   props: { name: String },
   computed: {
-    initial() { return this.name?.charAt(0).toUpperCase() || '?' },
+    initial() {
+      return this.name?.charAt(0).toUpperCase() || "?";
+    },
     color() {
-      const h = this.name?.charCodeAt(0) * 137 % 360 || 0
-      return `hsl(${h}, 60%, 70%)`
-    }
-  }
-}
+      const h = (this.name?.charCodeAt(0) * 137) % 360 || 0;
+      return `hsl(${h}, 60%, 70%)`;
+    },
+  },
+};
 </script>
 
 <style scoped>

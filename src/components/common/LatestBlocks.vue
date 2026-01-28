@@ -1,9 +1,9 @@
 <template>
   <div class="latest-blocks card">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="font-semibold">{{ $t('homePage.recentBlocks') }}</h3>
+      <h3 class="font-semibold">{{ $t("homePage.recentBlocks") }}</h3>
       <router-link to="/blocks/1" class="text-sm text-primary-500">
-        {{ $t('homePage.seeAll') }} →
+        {{ $t("homePage.seeAll") }} →
       </router-link>
     </div>
     <div class="space-y-2">
@@ -13,10 +13,10 @@
 </template>
 
 <script>
-import BlockListItem from './BlockListItem.vue'
+import BlockListItem from "./BlockListItem.vue";
 export default {
-  name: 'LatestBlocks',
+  name: "LatestBlocks",
   components: { BlockListItem },
-  props: { blocks: Array }
-}
+  props: { blocks: Array },
+};
 </script>

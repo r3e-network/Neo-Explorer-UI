@@ -7,14 +7,16 @@
 
 <script>
 export default {
-  name: 'CardHeader',
-  props: { title: String }
-}
+  name: "CardHeader",
+  props: { title: String },
+};
 </script>
 
 <style scoped>
 .card-header {
   @apply flex justify-between items-center mb-4;
 }
-.title { @apply font-semibold text-lg; }
+.title {
+  @apply font-semibold text-lg;
+}
 </style>

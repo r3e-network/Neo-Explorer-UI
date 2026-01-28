@@ -6,14 +6,14 @@
 
 <script>
 export default {
-  name: 'JsonView',
+  name: "JsonView",
   props: { data: [Object, Array] },
   computed: {
     formatted() {
-      return JSON.stringify(this.data, null, 2)
-    }
-  }
-}
+      return JSON.stringify(this.data, null, 2);
+    },
+  },
+};
 </script>
 
 <style scoped>

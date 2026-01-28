@@ -11,12 +11,12 @@
 
 <script>
 export default {
-  name: 'LoadingOverlay',
+  name: "LoadingOverlay",
   props: {
     show: { type: Boolean, default: false },
-    message: { type: String, default: '' }
-  }
-}
+    message: { type: String, default: "" },
+  },
+};
 </script>
 
 <style scoped>
@@ -40,13 +40,17 @@ export default {
 .loading-message {
   @apply text-gray-600 dark:text-gray-300 font-medium;
 }
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

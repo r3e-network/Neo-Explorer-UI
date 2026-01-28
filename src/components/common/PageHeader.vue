@@ -6,15 +6,19 @@
 </template>
 
 <script>
-import Breadcrumb from './Breadcrumb.vue'
+import Breadcrumb from "./Breadcrumb.vue";
 export default {
-  name: 'PageHeader',
+  name: "PageHeader",
   components: { Breadcrumb },
-  props: { title: String, breadcrumbs: Array }
-}
+  props: { title: String, breadcrumbs: Array },
+};
 </script>
 
 <style scoped>
-.page-header { @apply mb-6; }
-.page-title { @apply text-2xl font-bold mt-2; }
+.page-header {
+  @apply mb-6;
+}
+.page-title {
+  @apply text-2xl font-bold mt-2;
+}
 </style>

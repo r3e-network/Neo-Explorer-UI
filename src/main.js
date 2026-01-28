@@ -7,7 +7,7 @@ import ElementPlus from "element-plus";
 
 import "element-plus/lib/theme-chalk/index.css";
 import "./assets/css/global.css";
-import './styles/tailwind.css';
+import "./styles/tailwind.css";
 
 const appInstance = createApp(App);
 appInstance.config.devtools = true;

@@ -19,10 +19,10 @@
 
 <script>
 export default {
-  name: 'DataTable',
+  name: "DataTable",
   props: {
     columns: Array,
-    data: Array
-  }
-}
+    data: Array,
+  },
+};
 </script>
