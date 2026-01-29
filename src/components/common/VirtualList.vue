@@ -1,14 +1,20 @@
 <template>
-  <div 
-    ref="container" 
-    class="virtual-list-container" 
+  <div
+    ref="container"
+    class="virtual-list-container"
     :style="{ height: containerHeight + 'px' }"
     @scroll="onScroll"
   >
-    <div class="virtual-list-phantom" :style="{ height: totalHeight + 'px' }"></div>
-    <div class="virtual-list-content" :style="{ transform: `translateY(${offset}px)` }">
+    <div
+      class="virtual-list-phantom"
+      :style="{ height: totalHeight + 'px' }"
+    ></div>
+    <div
+      class="virtual-list-content"
+      :style="{ transform: `translateY(${offset}px)` }"
+    >
       <div
-        v-for="item in visibleItems" :key="item._virtualIndex"
+        v-for="item in visibleItems"
         :key="item._virtualIndex"
         class="virtual-list-item"
         :style="{ height: itemHeight + 'px' }"
@@ -20,36 +26,37 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed } from "vue";
 
 export default {
-  name: 'VirtualList',
+  name: "VirtualList",
   props: {
     items: { type: Array, required: true },
     itemHeight: { type: Number, default: 50 },
     containerHeight: { type: Number, default: 400 },
-    buffer: { type: Number, default: 5 }
+    buffer: { type: Number, default: 5 },
   },
   setup(props) {
     const container = ref(null);
     const scrollTop = ref(0);
 
-    const visibleCount = computed(() => 
-      Math.ceil(props.containerHeight / props.itemHeight) + props.buffer * 2
+    const visibleCount = computed(
+      () =>
+        Math.ceil(props.containerHeight / props.itemHeight) + props.buffer * 2
     );
 
-    const startIndex = computed(() => 
+    const startIndex = computed(() =>
       Math.max(0, Math.floor(scrollTop.value / props.itemHeight) - props.buffer)
     );
 
-    const endIndex = computed(() => 
+    const endIndex = computed(() =>
       Math.min(props.items.length, startIndex.value + visibleCount.value)
     );
 
-    const visibleItems = computed(() => 
+    const visibleItems = computed(() =>
       props.items.slice(startIndex.value, endIndex.value).map((item, i) => ({
         ...item,
-        _virtualIndex: startIndex.value + i
+        _virtualIndex: startIndex.value + i,
       }))
     );
 
@@ -65,9 +72,9 @@ export default {
       visibleItems,
       totalHeight,
       offset,
-      onScroll
+      onScroll,
     };
-  }
+  },
 };
 </script>
 

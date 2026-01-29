@@ -14,18 +14,24 @@ export const statsService = {
    */
   async getDashboardStats(forceRefresh = false) {
     const key = getCacheKey("dashboard_stats", {});
-    
+
     const fetchFn = async () => {
       try {
-        const [blocks, txs, contracts, candidates, addresses, tokens] =
-          await Promise.all([
-            rpc("GetBlockCount").catch(() => 0),
-            rpc("GetTransactionCount").catch(() => 0),
-            rpc("GetContractCount").catch(() => 0),
-            rpc("GetCandidateCount").catch(() => 0),
-            rpc("GetAddressCount").catch(() => 0),
-            rpc("GetAssetCount").catch(() => 0),
-          ]);
+        const [
+          blocks,
+          txs,
+          contracts,
+          candidates,
+          addresses,
+          tokens,
+        ] = await Promise.all([
+          rpc("GetBlockCount").catch(() => 0),
+          rpc("GetTransactionCount").catch(() => 0),
+          rpc("GetContractCount").catch(() => 0),
+          rpc("GetCandidateCount").catch(() => 0),
+          rpc("GetAddressCount").catch(() => 0),
+          rpc("GetAssetCount").catch(() => 0),
+        ]);
         return { blocks, txs, contracts, candidates, addresses, tokens };
       } catch (error) {
         console.error("Failed to get dashboard stats:", error);
@@ -44,7 +50,7 @@ export const statsService = {
       const data = await fetchFn();
       return data;
     }
-    
+
     return cachedRequest(key, fetchFn, CACHE_TTL.stats);
   },
 
@@ -55,15 +61,19 @@ export const statsService = {
    */
   async getNetworkActivity(days = 14) {
     const key = getCacheKey("network_activity", { days });
-    
-    return cachedRequest(key, async () => {
-      try {
-        return await rpc("GetDailyTransactions", { Days: days });
-      } catch (error) {
-        console.error("Failed to get network activity:", error);
-        return [];
-      }
-    }, CACHE_TTL.chart);
+
+    return cachedRequest(
+      key,
+      async () => {
+        try {
+          return await rpc("GetDailyTransactions", { Days: days });
+        } catch (error) {
+          console.error("Failed to get network activity:", error);
+          return [];
+        }
+      },
+      CACHE_TTL.chart
+    );
   },
 
   /**

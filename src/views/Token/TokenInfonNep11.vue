@@ -461,23 +461,29 @@ export default {
       this.$router.push(`/contractinfo/${hash}`);
     },
     getToken(token_id) {
-      tokenService.getByHash(token_id).then((res) => {
-        let raw = res;
-        this.standard = raw?.type === "NEP17" ? 1 : 2;
-        this.decimal = raw?.decimals;
-        this.token_info = raw;
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load token info:", err);
-        this.isLoading = false;
-      });
+      tokenService
+        .getByHash(token_id)
+        .then((res) => {
+          let raw = res;
+          this.standard = raw?.type === "NEP17" ? 1 : 2;
+          this.decimal = raw?.decimals;
+          this.token_info = raw;
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load token info:", err);
+          this.isLoading = false;
+        });
     },
     getContractUpdateCounter(contract_id) {
-      contractService.getByHash(contract_id).then((res) => {
-        this.updateCounter = res?.updatecounter || 0;
-      }).catch((err) => {
-        console.error("Failed to get contract update counter:", err);
-      });
+      contractService
+        .getByHash(contract_id)
+        .then((res) => {
+          this.updateCounter = res?.updatecounter || 0;
+        })
+        .catch((err) => {
+          console.error("Failed to get contract update counter:", err);
+        });
     },
     onQuery(index) {
       this.manifest["abi"]["methods"][index]["result"] = "";
@@ -523,11 +529,14 @@ export default {
         });
     },
     getContractManifest(token_id) {
-      contractService.getByHash(token_id).then((res) => {
-        this.manifest = JSON.parse(res?.manifest || "{}");
-      }).catch((err) => {
-        console.error("Failed to get contract manifest:", err);
-      });
+      contractService
+        .getByHash(token_id)
+        .then((res) => {
+          this.manifest = JSON.parse(res?.manifest || "{}");
+        })
+        .catch((err) => {
+          console.error("Failed to get contract manifest:", err);
+        });
     },
   },
 };

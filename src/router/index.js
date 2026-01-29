@@ -1,40 +1,68 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 // Core pages - lazy loaded with named chunks
-const HomePageNew = () => import(/* webpackChunkName: "home" */ "../views/Home/HomePageNew");
+const HomePageNew = () =>
+  import(/* webpackChunkName: "home" */ "../views/Home/HomePageNew");
 
 // Block module
-const BlocksNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlocksNew");
-const BlockDetailNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlockDetailNew");
+const BlocksNew = () =>
+  import(/* webpackChunkName: "block" */ "../views/Block/BlocksNew");
+const BlockDetailNew = () =>
+  import(/* webpackChunkName: "block" */ "../views/Block/BlockDetailNew");
 
 // Transaction module
-const TransactionsNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TransactionsNew");
-const TxDetailNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxDetailNew");
+const TransactionsNew = () =>
+  import(
+    /* webpackChunkName: "transaction" */ "../views/Transaction/TransactionsNew"
+  );
+const TxDetailNew = () =>
+  import(
+    /* webpackChunkName: "transaction" */ "../views/Transaction/TxDetailNew"
+  );
 
 // Token module
-const TokensNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokensNew");
-const TokenDetailNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenDetailNew");
-const TokenInfoNep11 = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenInfonNep11");
-const NFTInfoNew = () => import(/* webpackChunkName: "token" */ "../views/Token/NFTInfoNew");
+const TokensNew = () =>
+  import(/* webpackChunkName: "token" */ "../views/Token/TokensNew");
+const TokenDetailNew = () =>
+  import(/* webpackChunkName: "token" */ "../views/Token/TokenDetailNew");
+const TokenInfoNep11 = () =>
+  import(/* webpackChunkName: "token" */ "../views/Token/TokenInfonNep11");
+const NFTInfoNew = () =>
+  import(/* webpackChunkName: "token" */ "../views/Token/NFTInfoNew");
 
 // Contract module
-const ContractsNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractsNew");
-const ContractDetailNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractDetailNew");
-const VerifyContract = () => import(/* webpackChunkName: "contract" */ "../views/Contract/VerifyContract");
-const SourceCode = () => import(/* webpackChunkName: "contract" */ "../views/Contract/SourceCode");
+const ContractsNew = () =>
+  import(/* webpackChunkName: "contract" */ "../views/Contract/ContractsNew");
+const ContractDetailNew = () =>
+  import(
+    /* webpackChunkName: "contract" */ "../views/Contract/ContractDetailNew"
+  );
+const VerifyContract = () =>
+  import(/* webpackChunkName: "contract" */ "../views/Contract/VerifyContract");
+const SourceCode = () =>
+  import(/* webpackChunkName: "contract" */ "../views/Contract/SourceCode");
 
 // Account module
-const AccountsNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AccountsNew");
-const AddressDetailNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AddressDetailNew");
+const AccountsNew = () =>
+  import(/* webpackChunkName: "account" */ "../views/Account/AccountsNew");
+const AddressDetailNew = () =>
+  import(/* webpackChunkName: "account" */ "../views/Account/AddressDetailNew");
 
 // Other pages
-const CandidatesNew = () => import(/* webpackChunkName: "candidate" */ "../views/Candidate/CandidatesNew");
-const BurnFee = () => import(/* webpackChunkName: "burn" */ "../views/BurnGas/BurnFee");
-const importEcharts = () => import(/* webpackChunkName: "charts" */ "../views/BurnGas/DailyTransaction");
+const CandidatesNew = () =>
+  import(
+    /* webpackChunkName: "candidate" */ "../views/Candidate/CandidatesNew"
+  );
+const BurnFee = () =>
+  import(/* webpackChunkName: "burn" */ "../views/BurnGas/BurnFee");
+const importEcharts = () =>
+  import(/* webpackChunkName: "charts" */ "../views/BurnGas/DailyTransaction");
 
 // Error pages
-const Search = () => import(/* webpackChunkName: "error" */ "../views/NotFound/SearchNotFound");
-const PageNotFound = () => import(/* webpackChunkName: "error" */ "../views/NotFound/PageNotFound");
+const Search = () =>
+  import(/* webpackChunkName: "error" */ "../views/NotFound/SearchNotFound");
+const PageNotFound = () =>
+  import(/* webpackChunkName: "error" */ "../views/NotFound/PageNotFound");
 
 import AuthLayout from "../layout/AuthLayout";
 

@@ -236,16 +236,19 @@ export default {
         });
       }
     },
-    getTokenList(skip, type) {
-      tokenService.getNep17List(this.resultsPerPage, skip).then((res) => {
-        this.tokenList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load tokens:", err);
-        this.isLoading = false;
-      });
+    getTokenList(skip, _type) {
+      tokenService
+        .getNep17List(this.resultsPerPage, skip)
+        .then((res) => {
+          this.tokenList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load tokens:", err);
+          this.isLoading = false;
+        });
     },
     watchrouter() {
       //如果路由有变化，执行的对应的动作
@@ -256,16 +259,19 @@ export default {
         this.getTokenList((this.pagination - 1) * this.resultsPerPage, "NEP17");
       }
     },
-    getTokenListByName(name, skip, type) {
-      tokenService.searchNep17ByName(this.name, this.resultsPerPage, skip).then((res) => {
-        this.tokenList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to search tokens:", err);
-        this.isLoading = false;
-      });
+    getTokenListByName(name, skip, _type) {
+      tokenService
+        .searchNep17ByName(this.name, this.resultsPerPage, skip)
+        .then((res) => {
+          this.tokenList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to search tokens:", err);
+          this.isLoading = false;
+        });
     },
     search() {
       this.isLoading = true;

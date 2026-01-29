@@ -284,23 +284,26 @@ export default {
       return res;
     },
     getTokenList(skip) {
-      tokenService.getNep11TransfersByTokenId(
-        this.contractHash,
-        this.hashToBase64(this.tokenId),
-        this.resultsPerPage,
-        skip
-      ).then((res) => {
-        this.NEP11TxList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage =
-          this.totalCount === 0
-            ? 1
-            : Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load NEP11 transfers:", err);
-        this.isLoading = false;
-      });
+      tokenService
+        .getNep11TransfersByTokenId(
+          this.contractHash,
+          this.hashToBase64(this.tokenId),
+          this.resultsPerPage,
+          skip
+        )
+        .then((res) => {
+          this.NEP11TxList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage =
+            this.totalCount === 0
+              ? 1
+              : Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load NEP11 transfers:", err);
+          this.isLoading = false;
+        });
     },
   },
 };

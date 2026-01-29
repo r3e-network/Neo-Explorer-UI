@@ -5,6 +5,7 @@ import * as api from "../../src/services/api.js";
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
   safeRpc: vi.fn(),
+  safeRpcList: vi.fn(),
   formatListResponse: vi.fn((r) => r),
 }));
 
@@ -16,15 +17,18 @@ describe("accountService", () => {
   describe("getList", () => {
     it("calls rpc with pagination", async () => {
       const mockData = { result: [], totalCount: 0 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await accountService.getList(10, 5);
-      expect(api.rpc).toHaveBeenCalledWith("GetAddressList", { Limit: 10, Skip: 5 });
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetAddressList",
+        { Limit: 10, Skip: 5 },
+        "get account list"
+      );
     });
 
     it("returns empty on error", async () => {
-      api.rpc.mockRejectedValueOnce(new Error("fail"));
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
       const result = await accountService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });

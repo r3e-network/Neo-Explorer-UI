@@ -31,11 +31,16 @@ export const blockService = {
    */
   async getList(limit = 20, skip = 0) {
     const key = getCacheKey("block_list", { limit, skip });
-    return cachedRequest(key, () => safeRpcList(
-      "GetBlockInfoList",
-      { Limit: limit, Skip: skip },
-      "get block list"
-    ), CACHE_TTL.list);
+    return cachedRequest(
+      key,
+      () =>
+        safeRpcList(
+          "GetBlockInfoList",
+          { Limit: limit, Skip: skip },
+          "get block list"
+        ),
+      CACHE_TTL.list
+    );
   },
 
   /**
@@ -45,7 +50,11 @@ export const blockService = {
    */
   async getByHash(hash) {
     const key = getCacheKey("block_hash", { hash });
-    return cachedRequest(key, () => safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null), CACHE_TTL.detail);
+    return cachedRequest(
+      key,
+      () => safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
+      CACHE_TTL.detail
+    );
   },
 
   /**

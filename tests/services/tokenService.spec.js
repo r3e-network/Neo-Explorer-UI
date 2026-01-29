@@ -5,6 +5,7 @@ import * as api from "../../src/services/api.js";
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
   safeRpc: vi.fn(),
+  safeRpcList: vi.fn(),
   formatListResponse: vi.fn((r) => r),
 }));
 
@@ -16,15 +17,18 @@ describe("tokenService", () => {
   describe("getNep17List", () => {
     it("calls rpc with NEP17 type", async () => {
       const mockData = { result: [], totalCount: 0 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await tokenService.getNep17List(10, 5);
-      expect(api.rpc).toHaveBeenCalledWith("GetAssetInfos", { Limit: 10, Skip: 5, Type: "NEP17" });
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetAssetInfos",
+        { Limit: 10, Skip: 5, Type: "NEP17" },
+        "get NEP17 list"
+      );
     });
 
     it("returns empty on error", async () => {
-      api.rpc.mockRejectedValueOnce(new Error("fail"));
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
       const result = await tokenService.getNep17List();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
@@ -33,11 +37,14 @@ describe("tokenService", () => {
   describe("getNep11List", () => {
     it("calls rpc with NEP11 type", async () => {
       const mockData = { result: [], totalCount: 0 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await tokenService.getNep11List(10, 5);
-      expect(api.rpc).toHaveBeenCalledWith("GetAssetInfos", { Limit: 10, Skip: 5, Type: "NEP11" });
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetAssetInfos",
+        { Limit: 10, Skip: 5, Type: "NEP11" },
+        "get NEP11 list"
+      );
     });
   });
 
@@ -52,15 +59,14 @@ describe("tokenService", () => {
   describe("getHolders", () => {
     it("calls rpc with hash and pagination", async () => {
       const mockData = { result: [], totalCount: 0 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await tokenService.getHolders("0xhash", 10, 5);
-      expect(api.rpc).toHaveBeenCalledWith("GetAssetHoldersByContractHash", {
-        ContractHash: "0xhash",
-        Limit: 10,
-        Skip: 5,
-      });
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetAssetHoldersByContractHash",
+        { ContractHash: "0xhash", Limit: 10, Skip: 5 },
+        "get token holders"
+      );
     });
   });
 });

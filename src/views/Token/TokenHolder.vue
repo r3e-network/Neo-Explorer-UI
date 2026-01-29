@@ -214,15 +214,18 @@ export default {
       });
     },
     getTokenList(skip) {
-      tokenService.getHolders(this.contractHash, this.resultsPerPage, skip).then((res) => {
-        this.NEP17TxList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load token holders:", err);
-        this.isLoading = false;
-      });
+      tokenService
+        .getHolders(this.contractHash, this.resultsPerPage, skip)
+        .then((res) => {
+          this.NEP17TxList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load token holders:", err);
+          this.isLoading = false;
+        });
     },
   },
 };

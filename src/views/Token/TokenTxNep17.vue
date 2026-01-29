@@ -311,18 +311,21 @@ export default {
       this.getTokenList(skip);
     },
     getTokenList(skip) {
-      tokenService.getNep17Transfers(this.contractHash, this.resultsPerPage, skip).then((res) => {
-        this.NEP17TxList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage =
-          this.totalCount === 0
-            ? 1
-            : Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load NEP17 transfers:", err);
-        this.isLoading = false;
-      });
+      tokenService
+        .getNep17Transfers(this.contractHash, this.resultsPerPage, skip)
+        .then((res) => {
+          this.NEP17TxList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage =
+            this.totalCount === 0
+              ? 1
+              : Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load NEP17 transfers:", err);
+          this.isLoading = false;
+        });
     },
     getAddress(accountAddress) {
       this.$router.push({

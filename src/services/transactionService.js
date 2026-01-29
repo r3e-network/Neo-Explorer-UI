@@ -23,11 +23,16 @@ export const transactionService = {
    */
   async getList(limit = 20, skip = 0) {
     const key = getCacheKey("tx_list", { limit, skip });
-    return cachedRequest(key, () => safeRpcList(
-      "GetTransactionList",
-      { Limit: limit, Skip: skip },
-      "get transaction list"
-    ), CACHE_TTL.list);
+    return cachedRequest(
+      key,
+      () =>
+        safeRpcList(
+          "GetTransactionList",
+          { Limit: limit, Skip: skip },
+          "get transaction list"
+        ),
+      CACHE_TTL.list
+    );
   },
 
   /**
@@ -37,11 +42,16 @@ export const transactionService = {
    */
   async getByHash(hash) {
     const key = getCacheKey("tx_hash", { hash });
-    return cachedRequest(key, () => safeRpc(
-      "GetRawTransactionByTransactionHash",
-      { TransactionHash: hash },
-      null
-    ), CACHE_TTL.detail);
+    return cachedRequest(
+      key,
+      () =>
+        safeRpc(
+          "GetRawTransactionByTransactionHash",
+          { TransactionHash: hash },
+          null
+        ),
+      CACHE_TTL.detail
+    );
   },
 
   /**

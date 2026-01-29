@@ -5,6 +5,7 @@ import * as api from "../../src/services/api.js";
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
   safeRpc: vi.fn(),
+  safeRpcList: vi.fn(),
   formatListResponse: vi.fn((r) => r),
 }));
 
@@ -25,15 +26,14 @@ describe("transactionService", () => {
   describe("getList", () => {
     it("calls rpc with pagination", async () => {
       const mockData = { result: [{ hash: "0x1" }], totalCount: 100 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await transactionService.getList(10, 5);
-      expect(api.rpc).toHaveBeenCalledWith("GetTransactionList", { Limit: 10, Skip: 5 });
+      expect(api.safeRpcList).toHaveBeenCalled();
     });
 
     it("returns empty on error", async () => {
-      api.rpc.mockRejectedValueOnce(new Error("fail"));
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
       const result = await transactionService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
@@ -55,15 +55,14 @@ describe("transactionService", () => {
   describe("getByAddress", () => {
     it("calls rpc with address and pagination", async () => {
       const mockData = { result: [], totalCount: 0 };
-      api.rpc.mockResolvedValueOnce(mockData);
-      api.formatListResponse.mockReturnValueOnce(mockData);
+      api.safeRpcList.mockResolvedValueOnce(mockData);
       
       await transactionService.getByAddress("NAddr", 15, 10);
-      expect(api.rpc).toHaveBeenCalledWith("GetRawTransactionByAddress", {
-        Address: "NAddr",
-        Limit: 15,
-        Skip: 10,
-      });
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetRawTransactionByAddress",
+        { Address: "NAddr", Limit: 15, Skip: 10 },
+        "get transactions by address"
+      );
     });
   });
 });

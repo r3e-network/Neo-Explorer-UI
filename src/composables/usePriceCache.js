@@ -24,15 +24,15 @@ const CACHE_TTL = 60 * 1000; // 60秒缓存
  */
 async function fetchPrices(force = false) {
   const now = Date.now();
-  
+
   // 检查缓存是否有效
   if (!force && lastFetch.value && now - lastFetch.value < CACHE_TTL) {
     return prices.value;
   }
-  
+
   // 防止重复请求
   if (loading.value) return prices.value;
-  
+
   loading.value = true;
   try {
     const response = await fetch(
@@ -40,7 +40,7 @@ async function fetchPrices(force = false) {
       { signal: AbortSignal.timeout(5000) }
     );
     const data = await response.json();
-    
+
     prices.value = {
       neo: data.neo?.usd || 0,
       gas: data.gas?.usd || 0,
@@ -64,7 +64,7 @@ async function fetchPrices(force = false) {
   } finally {
     loading.value = false;
   }
-  
+
   return prices.value;
 }
 

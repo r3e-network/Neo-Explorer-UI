@@ -226,27 +226,33 @@ export default {
         this.getTokenList((this.pagination - 1) * this.resultsPerPage, "NEP11");
       }
     },
-    getTokenList(skip, type) {
-      tokenService.getNep11List(this.resultsPerPage, skip).then((res) => {
-        this.tokenList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load NFT tokens:", err);
-        this.isLoading = false;
-      });
+    getTokenList(skip, _type) {
+      tokenService
+        .getNep11List(this.resultsPerPage, skip)
+        .then((res) => {
+          this.tokenList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load NFT tokens:", err);
+          this.isLoading = false;
+        });
     },
-    getTokenListByName(name, skip, type) {
-      tokenService.searchNep11ByName(this.name, this.resultsPerPage, skip).then((res) => {
-        this.tokenList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to search NFT tokens:", err);
-        this.isLoading = false;
-      });
+    getTokenListByName(name, skip, _type) {
+      tokenService
+        .searchNep11ByName(this.name, this.resultsPerPage, skip)
+        .then((res) => {
+          this.tokenList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to search NFT tokens:", err);
+          this.isLoading = false;
+        });
     },
     search() {
       this.isLoading = true;

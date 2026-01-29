@@ -249,16 +249,19 @@ export default {
         path: `/accountprofile/${accountAddress}`,
       });
     },
-    getTokenListByName(name, skip, type) {
-      tokenService.searchNep17ByName(this.name, this.resultsPerPage, skip).then((res) => {
-        this.tokenList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to search tokens:", err);
-        this.isLoading = false;
-      });
+    getTokenListByName(name, skip, _type) {
+      tokenService
+        .searchNep17ByName(this.name, this.resultsPerPage, skip)
+        .then((res) => {
+          this.tokenList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to search tokens:", err);
+          this.isLoading = false;
+        });
     },
     search() {
       this.isLoading = true;
@@ -276,15 +279,18 @@ export default {
       window.location.replace(window.location.href);
     },
     getTokenList(skip) {
-      tokenService.getHolders(this.contractHash, this.resultsPerPage, skip).then((res) => {
-        this.NEP17TxList = res?.result || [];
-        this.totalCount = res?.totalCount || 0;
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      }).catch((err) => {
-        console.error("Failed to load bNEO holders:", err);
-        this.isLoading = false;
-      });
+      tokenService
+        .getHolders(this.contractHash, this.resultsPerPage, skip)
+        .then((res) => {
+          this.NEP17TxList = res?.result || [];
+          this.totalCount = res?.totalCount || 0;
+          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.isLoading = false;
+        })
+        .catch((err) => {
+          console.error("Failed to load bNEO holders:", err);
+          this.isLoading = false;
+        });
     },
   },
 };
