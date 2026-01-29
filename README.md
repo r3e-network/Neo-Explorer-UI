@@ -1,7 +1,7 @@
 # Neo Explorer UI
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/RookieCoderrr/Neo-Explorer-UI)
-[![Vue](https://img.shields.io/badge/Vue-3.0-4FC08D?logo=vue.js)](https://vuejs.org/)
+[![Vue](https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vue.js)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 A modern blockchain explorer for the Neo ecosystem. Visualize Neo chain data from testnet, mainnet, or private networks with an Etherscan-inspired interface.
@@ -21,7 +21,7 @@ A modern blockchain explorer for the Neo ecosystem. Visualize Neo chain data fro
 
 | Category | Technology |
 |----------|------------|
-| Framework | Vue 3 + Vue Router 4 + Vuex 4 |
+| Framework | Vue 3.4 + Vue Router 4 + Pinia |
 | UI | Element Plus + Bootstrap Vue + Tailwind CSS |
 | Blockchain | @cityofzion/neon-js |
 | Charts | ECharts + Chart.js |
@@ -91,7 +91,7 @@ All neo3fura API calls are encapsulated in `src/services/`:
 
 ```bash
 # Clone the repository
-git clone https://github.com/RookieCoderrr/Neo-Explorer-UI.git
+git clone https://github.com/r3e-network/Neo-Explorer-UI.git
 cd Neo-Explorer-UI
 
 # Install dependencies
