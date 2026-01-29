@@ -5,8 +5,7 @@
 </template>
 
 <script>
-import { Chart, registerables } from "chart.js";
-Chart.register(...registerables);
+import Chart from "chart.js";
 
 export default {
   name: "NetworkChart",
@@ -90,7 +89,7 @@ export default {
             backgroundColor: color.bg,
             borderColor: color.border,
             borderWidth: 2,
-            tension: 0.4,
+            lineTension: 0.4,
             pointRadius: 4,
             pointHoverRadius: 6,
             pointBackgroundColor: color.border,
@@ -108,39 +107,40 @@ export default {
       return {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
+        tooltips: {
           mode: "index",
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: isDark ? "#1F2937" : "#fff",
-            titleColor: isDark ? "#fff" : "#111827",
-            bodyColor: isDark ? "#D1D5DB" : "#4B5563",
-            borderColor: isDark ? "#374151" : "#E5E7EB",
-            borderWidth: 1,
-            padding: 12,
-            displayColors: false,
-            callbacks: {
-              label: (ctx) =>
-                `${this.getLabel()}: ${ctx.parsed.y.toLocaleString()}`,
-            },
+          intersect: false,
+          backgroundColor: isDark ? "#1F2937" : "#fff",
+          titleFontColor: isDark ? "#fff" : "#111827",
+          bodyFontColor: isDark ? "#D1D5DB" : "#4B5563",
+          borderColor: isDark ? "#374151" : "#E5E7EB",
+          borderWidth: 1,
+          xPadding: 12,
+          yPadding: 12,
+          displayColors: false,
+          callbacks: {
+            label: (tooltipItem) =>
+              `${this.getLabel()}: ${tooltipItem.yLabel.toLocaleString()}`,
           },
         },
+        legend: { display: false },
         scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: textColor, font: { size: 11 } },
-          },
-          y: {
-            grid: { color: gridColor },
-            ticks: {
-              color: textColor,
-              font: { size: 11 },
-              callback: (value) => this.formatYAxis(value),
+          xAxes: [
+            {
+              gridLines: { display: false },
+              ticks: { fontColor: textColor, fontSize: 11 },
             },
-          },
+          ],
+          yAxes: [
+            {
+              gridLines: { color: gridColor },
+              ticks: {
+                fontColor: textColor,
+                fontSize: 11,
+                callback: (value) => this.formatYAxis(value),
+              },
+            },
+          ],
         },
       };
     },

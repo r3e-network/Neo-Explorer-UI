@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
+  // Use 'purge' for Tailwind CSS v2.x compatibility
+  purge: {
+    enabled: process.env.NODE_ENV === "production",
+    content: ["./index.html", "./public/**/*.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
+  },
   darkMode: "class",
   theme: {
     extend: {

@@ -84,6 +84,9 @@ export default {
 
   computed: {
     formattedValue() {
+      if (this.value === null || this.value === undefined || this.value === "") {
+        return "0";
+      }
       if (this.format === "number" && typeof this.value === "number") {
         return this.value.toLocaleString();
       }

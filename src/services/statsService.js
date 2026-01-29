@@ -18,20 +18,29 @@ export const statsService = {
     const fetchFn = async () => {
       try {
         const [
-          blocks,
-          txs,
-          contracts,
-          candidates,
-          addresses,
-          tokens,
+          blocksRes,
+          txsRes,
+          contractsRes,
+          candidatesRes,
+          addressesRes,
+          tokensRes,
         ] = await Promise.all([
-          rpc("GetBlockCount").catch(() => 0),
-          rpc("GetTransactionCount").catch(() => 0),
-          rpc("GetContractCount").catch(() => 0),
-          rpc("GetCandidateCount").catch(() => 0),
-          rpc("GetAddressCount").catch(() => 0),
-          rpc("GetAssetCount").catch(() => 0),
+          rpc("GetBlockCount").catch(() => null),
+          rpc("GetTransactionCount").catch(() => null),
+          rpc("GetContractCount").catch(() => null),
+          rpc("GetCandidateCount").catch(() => null),
+          rpc("GetAddressCount").catch(() => null),
+          rpc("GetAssetCount").catch(() => null),
         ]);
+        
+        // Extract values from different API response formats
+        const blocks = blocksRes?.index || blocksRes?.["total counts"] || blocksRes?.total || 0;
+        const txs = txsRes?.["total counts"] || txsRes?.total || txsRes?.index || 0;
+        const contracts = contractsRes?.total || contractsRes?.["total counts"] || 0;
+        const candidates = candidatesRes?.total || candidatesRes?.["total counts"] || 0;
+        const addresses = addressesRes?.["total counts"] || addressesRes?.total || 0;
+        const tokens = tokensRes?.total || tokensRes?.["total counts"] || 0;
+        
         return { blocks, txs, contracts, candidates, addresses, tokens };
       } catch (error) {
         console.error("Failed to get dashboard stats:", error);

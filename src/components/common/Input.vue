@@ -9,7 +9,7 @@
 
 <script>
 export default {
-  name: "Input",
+  name: "NeoInput",
   props: ["modelValue"],
   emits: ["update:modelValue"],
 };

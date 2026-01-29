@@ -1,4 +1,3 @@
-const webpack = require("webpack");
 const CompressionWebpackPlugin = require("compression-webpack-plugin");
 const productionGzipExtensions = ["js", "css"];
 
@@ -20,7 +19,7 @@ module.exports = {
         changeOrigin: true,
         ws: true,
         // 本地 neo3fura WebSocket
-        target: "ws://127.0.0.1:2026",
+        target: "ws://127.0.0.1:1926",
       },
     },
   },

@@ -1,5 +1,8 @@
 const en = {
-  home: "Welcome To OneGate Explorer",
+  home: {
+    subtitle: "Explore the Neo Smart Economy Blockchain"
+  },
+  homeTitle: "Welcome To OneGate Explorer",
   na: "Not Available",
   blockReward: "Block Reward",
   networkFeeReward: "Network Fee Reward",

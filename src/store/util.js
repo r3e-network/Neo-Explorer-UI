@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import {format} from "timeago.js";
 import Neon from "@cityofzion/neon-js";
 

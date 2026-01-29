@@ -7,7 +7,7 @@
 
 <script>
 export default {
-  name: "Button",
+  name: "NeoButton",
   props: {
     variant: { type: String, default: "primary" },
     size: { type: String, default: "md" },

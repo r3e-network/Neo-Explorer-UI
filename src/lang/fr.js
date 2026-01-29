@@ -1,5 +1,8 @@
 const fr = {
-  home: "Bienvenue sur OneGate Explorer",
+  home: {
+    subtitle: "Explorez la blockchain Neo Smart Economy"
+  },
+  homeTitle: "Bienvenue sur OneGate Explorer",
   na: "non disponible",
   blockReward: " Bloc Récompense",
   networkFeeReward: "Récompense de frais de système",

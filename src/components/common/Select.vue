@@ -10,7 +10,7 @@
 
 <script>
 export default {
-  name: "Select",
+  name: "NeoSelect",
   props: ["modelValue"],
   emits: ["update:modelValue"],
 };

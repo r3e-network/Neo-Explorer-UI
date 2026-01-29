@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import { formatListResponse, safeRpc, rpc } from "../../src/services/api.js";
+import { formatListResponse, safeRpc } from "../../src/services/api.js";
 
 // Mock axios
 vi.mock("axios", () => {

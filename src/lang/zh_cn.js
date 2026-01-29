@@ -1,5 +1,8 @@
 const zh = {
-  home: "欢迎使用OneGate Explorer",
+  home: {
+    subtitle: "探索 Neo 智能经济区块链"
+  },
+  homeTitle: "欢迎使用OneGate Explorer",
   na: "不适用",
   blockReward: "区块奖励",
   networkFeeReward: "网络费奖励",

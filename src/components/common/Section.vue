@@ -5,7 +5,7 @@
 </template>
 
 <script>
-export default { name: "Section" };
+export default { name: "NeoSection" };
 </script>
 
 <style scoped>
