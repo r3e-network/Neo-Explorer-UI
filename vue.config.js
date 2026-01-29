@@ -9,18 +9,12 @@ module.exports = {
     proxy: {
       "/api": {
         changeOrigin: true,
-        // 本地 neo3fura
-        target: "http://127.0.0.1:1926",
-        // 远程备选:
-        // target: "https://neofura.ngd.network",
-        // target: "https://testmagnet.ngd.network",
+        // 使用 NGD 官方 neo3fura
+        target: "https://neofura.ngd.network",
       },
       "/bpi": {
         changeOrigin: true,
-        // 本地 neo3fura
-        target: "http://127.0.0.1:1926",
-        // 远程备选:
-        // target: "https://neofura.ngd.network:1927",
+        target: "https://neofura.ngd.network",
       },
       "/ws": {
         changeOrigin: true,

@@ -1,12 +1,11 @@
-import clickOutside from "../directives/click-ouside.js";
-
 /**
- * You can register global directives here and use them as a plugin in your main Vue instance
+ * Global directives plugin
+ * Note: click-outside directive is now registered in src/directives/index.js
  */
 
 const GlobalDirectives = {
-  install(Vue) {
-    Vue.directive("click-outside", clickOutside);
+  install(_Vue) {
+    // Directives are now registered in src/directives/index.js
   },
 };
 
