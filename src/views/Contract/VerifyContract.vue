@@ -1,585 +1,322 @@
-=
 <template>
-  <div class="container-fluid mt--7" style="background-color: #f7f8fa">
-    <div class="row">
-      <div class="col">
-        <loading
-          :is-full-page="true"
-          :opacity="0.9"
-          :active="isLoading"
-        ></loading>
-        <div class="text-center mb-3">
-          <div class="verifyTile">Verify & Publish Contract Source Code</div>
-          <p style="width: 60%; margin-left: 20%">
-            By uploading the source code, OneGate Explorer will match the
-            compiled code with that on the blockchain. Please make sure your
-            source code and compiler version is exactly the same as the one when
-            you generate the .nef file and deploy it to the chain. If your
-            contract has been updated, please upload the source code in the
-            latest version. If your contract code has been preprocessed, please
-            upload the processed source code.
-          </p>
-        </div>
-        <hr />
-        <div style="margin-left: 20%; width: 60%; display: flex">
-          <el-form
-            ref="form"
-            :model="form"
-            :rules="rules"
-            label-width="auto"
-            style="margin: auto"
-          >
-            <el-form-item label="Contract hash" prop="hash">
-              <el-input
-                class="contractInput"
-                v-model="form.hash"
-                style="width: 400px"
-              ></el-input>
-            </el-form-item>
-            <el-form-item label="Compiler version" prop="version">
-              <el-select
-                class="contractInput"
-                v-model="form.version"
-                placeholder="please select your compiler version"
-                style="width: 400px"
-              >
-                <el-option
-                  label="Neo.Compiler.CSharp 3.0.0"
-                  value="Neo.Compiler.CSharp 3.0.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.0.2"
-                  value="Neo.Compiler.CSharp 3.0.2"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.0.3"
-                  value="Neo.Compiler.CSharp 3.0.3"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.1.0"
-                  value="Neo.Compiler.CSharp 3.1.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.3.0"
-                  value="Neo.Compiler.CSharp 3.3.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.4.0"
-                  value="Neo.Compiler.CSharp 3.4.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.5.0"
-                  value="Neo.Compiler.CSharp 3.5.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.6.0"
-                  value="Neo.Compiler.CSharp 3.6.0"
-                ></el-option>
-                <el-option
-                  label="Neo.Compiler.CSharp 3.6.2"
-                  value="Neo.Compiler.CSharp 3.6.2"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 1.0.1"
-                  value="neo3-boa 1.0.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.14.0"
-                  value="neo3-boa 0.14.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.13.1"
-                  value="neo3-boa 0.13.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.13.0"
-                  value="neo3-boa 0.13.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.12.3"
-                  value="neo3-boa 0.12.3"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.12.2"
-                  value="neo3-boa 0.12.2"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.12.1"
-                  value="neo3-boa 0.12.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.12.0"
-                  value="neo3-boa 0.12.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.11.4"
-                  value="neo3-boa 0.11.4"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.11.3"
-                  value="neo3-boa 0.11.3"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.11.2"
-                  value="neo3-boa 0.11.2"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.11.1"
-                  value="neo3-boa 0.11.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.11.0"
-                  value="neo3-boa 0.11.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.10.1"
-                  value="neo3-boa 0.10.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.10.0"
-                  value="neo3-boa 0.10.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.9.0"
-                  value="neo3-boa 0.9.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.8.3"
-                  value="neo3-boa 0.8.3"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.8.2"
-                  value="neo3-boa 0.8.2"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.8.1"
-                  value="neo3-boa 0.8.1"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.8.0"
-                  value="neo3-boa 0.8.0"
-                ></el-option>
-                <el-option
-                  label="Neo3-boa 0.7.0"
-                  value="neo3-boa 0.7.0"
-                ></el-option>
-                <el-option label="Neow3j (java)" value="neow3j"></el-option>
-                <el-option label="Neo-go (go)" value="neo-go"></el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item
-              v-if="
-                this.form.version === 'Neo.Compiler.CSharp 3.0.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.0.2' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.0.3' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.1.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.3.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.4.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.5.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.6.0' ||
-                this.form.version === 'Neo.Compiler.CSharp 3.6.2'
-              "
-              label="Compile Command"
-              prop="command"
-            >
-              <el-select
-                class="contractInput"
-                v-model="form.command"
-                placeholder="please select your compile command"
-                style="width: 400px"
-              >
-                <el-option label="nccs" value="nccs"></el-option>
-                <el-option
-                  label="dotnet build (nccs --debug --no-optimize)"
-                  value="nccs --no-optimize"
-                ></el-option>
-              </el-select>
-            </el-form-item>
-            <el-form-item label="Source code" required="true">
-              <el-upload
-                ref="upload"
-                class="upload-demo"
-                action="http://127.0.0.1:8080/upload"
-                :before-upload="onBeforeUpload"
-                :auto-upload="false"
-                :file-list="fileList"
-                :accept="accept"
-                :on-change="change"
-                :on-remove="remove"
-                :headers="headers"
-              >
-                <template #trigger>
-                  <el-button type="primary" size="medium"
-                    >Select file</el-button
-                  >
-                </template>
-                <el-button
-                  style="margin-left: 10px"
-                  size="medium"
-                  type="primary"
-                  @click="uploadFilesAndParams"
-                  :disabled="
-                    form.hash === '' ||
-                    form.version === '' ||
-                    fileList.length < 1
-                  "
-                  >Upload</el-button
-                >
-              </el-upload>
-            </el-form-item>
-            <div class="mb-3">
-              <div v-if="this.form.version === 'neow3j'" class="el-upload__tip">
-                Please upload your source contract file with
-                <span style="color: red">.java </span>extension and the
-                <span style="color: red">build.gradle </span> file in your
-                project.
-                <div class="mt-1">
-                  The className property of neow3jCompiler in the build.gradle
-                  file should be be consistent with your contract's fully
-                  qualified name which is indicated in the first line in your
-                  java file.
-                </div>
-              </div>
-              <div
-                v-else-if="
-                  this.form.version === 'neo3-boa 1.0.1' ||
-                  this.form.version === 'neo3-boa 0.14.0' ||
-                  this.form.version === 'neo3-boa 0.13.1' ||
-                  this.form.version === 'neo3-boa 0.13.0' ||
-                  this.form.version === 'neo3-boa 0.12.3' ||
-                  this.form.version === 'neo3-boa 0.12.2' ||
-                  this.form.version === 'neo3-boa 0.12.1' ||
-                  this.form.version === 'neo3-boa 0.12.0' ||
-                  this.form.version === 'neo3-boa 0.11.4' ||
-                  this.form.version === 'neo3-boa 0.11.3' ||
-                  this.form.version === 'neo3-boa 0.11.2' ||
-                  this.form.version === 'neo3-boa 0.11.1' ||
-                  this.form.version === 'neo3-boa 0.11.0' ||
-                  this.form.version === 'neo3-boa 0.10.1' ||
-                  this.form.version === 'neo3-boa 0.10.0' ||
-                  this.form.version === 'neo3-boa 0.9.0' ||
-                  this.form.version === 'neo3-boa 0.8.3' ||
-                  this.form.version === 'neo3-boa 0.8.2' ||
-                  this.form.version === 'neo3-boa 0.8.1' ||
-                  this.form.version === 'neo3-boa 0.8.0' ||
-                  this.form.version === 'neo3-boa 0.7.0'
-                "
-                class="el-upload__tip"
-              >
-                Please upload your source contract file with
-                <span style="color: red">.py </span>extension in your project.
-              </div>
-              <div
-                v-else-if="this.form.version === 'neo-go'"
-                class="el-upload__tip"
-              >
-                Please upload your source contract file with
-                <span style="color: red">.go </span>extension in your project.
-              </div>
-              <div
-                v-else-if="
-                  this.form.version === 'Neo.Compiler.CSharp 3.0.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.0.2' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.0.3' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.1.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.3.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.4.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.5.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.6.0' ||
-                  this.form.version === 'Neo.Compiler.CSharp 3.6.2'
-                "
-                class="el-upload__tip"
-              >
-                Please upload your source contract file with
-                <span style="color: red">.cs </span> and
-                <span style="color: red">.csproj </span> extension in your
-                project.
-              </div>
-            </div>
-          </el-form>
-        </div>
+  <div class="verify-contract-page">
+    <!-- Loading overlay -->
+    <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="flex flex-col items-center rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+        <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+        <p class="mt-3 text-sm text-text-secondary dark:text-gray-400">Verifying contract...</p>
       </div>
     </div>
+
+    <!-- Toast notification -->
+    <Transition name="slide-in">
+      <div v-if="notification" class="fixed right-4 top-4 z-50 max-w-md">
+        <div class="flex items-start gap-3 rounded-lg border p-4 shadow-lg" :class="notificationClass">
+          <p class="flex-1 text-sm">{{ notification.message }}</p>
+          <button class="text-current opacity-60 hover:opacity-100" @click="notification = null">&times;</button>
+        </div>
+      </div>
+    </Transition>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
+        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
+        <span class="mx-2">/</span>
+        <router-link to="/contracts/1" class="hover:text-primary-500">Contracts</router-link>
+        <span class="mx-2">/</span>
+        <span class="text-text-primary dark:text-gray-300">Verify</span>
+      </nav>
+
+      <div class="etherscan-card">
+        <header class="border-b border-card-border p-5 dark:border-card-border-dark md:p-6">
+          <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100 md:text-2xl">
+            Verify & Publish Contract Source Code
+          </h1>
+          <p class="mt-2 text-sm text-text-secondary dark:text-gray-400">
+            Upload the exact source files used at deployment time. The explorer recompiles and matches the generated
+            bytecode with the deployed contract.
+          </p>
+        </header>
+
+        <div class="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]">
+          <form @submit.prevent="uploadFilesAndParams" class="space-y-5">
+            <div>
+              <label class="form-label">Contract Hash <span class="text-red-500">*</span></label>
+              <input v-model="form.hash" type="text" placeholder="0x..." class="form-input" />
+              <p v-if="errors.hash" class="form-error">{{ errors.hash }}</p>
+            </div>
+
+            <div>
+              <label class="form-label">Compiler Version <span class="text-red-500">*</span></label>
+              <select v-model="form.version" class="form-input">
+                <option value="" disabled>Select your compiler version</option>
+                <option v-for="option in compilerVersionOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <p v-if="errors.version" class="form-error">{{ errors.version }}</p>
+            </div>
+
+            <div v-if="showCompileCommand">
+              <label class="form-label">Compile Command <span class="text-red-500">*</span></label>
+              <select v-model="form.command" class="form-input">
+                <option value="" disabled>Select your compile command</option>
+                <option v-for="option in compileCommandOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <p v-if="errors.command" class="form-error">{{ errors.command }}</p>
+            </div>
+
+            <div>
+              <label class="form-label">Source Code Files <span class="text-red-500">*</span></label>
+              <div class="flex flex-wrap items-center gap-3">
+                <label
+                  class="inline-flex items-center rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 hover:text-primary-500 transition-colors dark:border-card-border-dark dark:hover:bg-gray-800 cursor-pointer"
+                >
+                  Select Files
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    :accept="accept"
+                    multiple
+                    class="hidden"
+                    @change="onFilesSelected"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  :disabled="!canUpload"
+                  class="inline-flex items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Upload &amp; Verify
+                </button>
+              </div>
+              <div v-if="fileList.length" class="mt-3 space-y-1">
+                <div
+                  v-for="(file, idx) in fileList"
+                  :key="idx"
+                  class="flex items-center gap-2 text-sm text-text-primary dark:text-gray-300"
+                >
+                  <svg class="h-4 w-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <span>{{ file.name }}</span>
+                  <button type="button" @click="removeFile(idx)" class="text-red-400 hover:text-red-600">
+                    &times;
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <aside
+            class="rounded-lg border border-card-border bg-gray-50 p-4 text-sm dark:border-card-border-dark dark:bg-gray-900/40"
+          >
+            <h2 class="mb-3 font-semibold text-text-primary dark:text-gray-100">Submission Tips</h2>
+            <ul class="space-y-2 text-text-secondary dark:text-gray-300">
+              <li>{{ compilerUploadHint }}</li>
+              <li>Contract hash must be a 40-character hex string.</li>
+              <li>
+                Keep source files unchanged from deployment build. Any source or compiler mismatch causes verification
+                failure.
+              </li>
+            </ul>
+
+            <div
+              v-if="form.version === javaCompilerVersion"
+              class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-200"
+            >
+              The <span class="font-semibold">className</span> property in
+              <span class="font-semibold">build.gradle</span> must match the contract's fully-qualified Java class name.
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
-<script scope>
-import axios from "axios";
-import { ElMessage } from "element-plus";
-import Loading from "vue-loading-overlay";
+
+<script>
+import { contractService } from "@/services";
+import {
+  COMPILER_VERSION_OPTIONS,
+  COMPILE_COMMAND_OPTIONS,
+  JAVA_COMPILER_VERSION,
+  requiresCompileCommand,
+  resolveUploadNode,
+  getCompilerUploadHint,
+  getCompilationFailureMessage,
+} from "@/utils/contractVerification";
+
 export default {
-  components: {
-    Loading,
-  },
-  created() {
-    window.scroll(0, 0);
-  },
+  name: "VerifyContract",
   data() {
     return {
       isLoading: false,
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
       fileList: [],
+      notification: null,
+      errors: {},
       accept: ".cs,.csproj,.py,.java,.gradle,.go",
       form: {
-        hash: this.$route.params.contractHash,
+        hash: "",
         version: "",
         command: "",
       },
-      rules: {
-        hash: [
-          {
-            required: true,
-            message: "Please input contract hash",
-            trigger: "blur",
-          },
-        ],
-        version: [
-          {
-            required: true,
-            message: "Please select compiler version",
-            trigger: "blur",
-          },
-        ],
-        command: [
-          {
-            required: true,
-            message: "Please select compile command",
-            trigger: "blur",
-          },
-        ],
-      },
+      javaPackage: "io.examples.HelloWorld",
       isContractPattern: /^((0x)?)([0-9a-f]{40})$/,
+      compilerVersionOptions: COMPILER_VERSION_OPTIONS,
+      compileCommandOptions: COMPILE_COMMAND_OPTIONS,
+      javaCompilerVersion: JAVA_COMPILER_VERSION,
     };
   },
+  created() {
+    this.form.hash = this.$route.params.contractHash || "";
+  },
+  computed: {
+    showCompileCommand() {
+      return requiresCompileCommand(this.form.version);
+    },
+    canUpload() {
+      const baseReady = Boolean(this.form.hash && this.form.version && this.fileList.length);
+      if (!baseReady) {
+        return false;
+      }
 
+      if (this.showCompileCommand && !this.form.command) {
+        return false;
+      }
+
+      return true;
+    },
+    compilerUploadHint() {
+      return getCompilerUploadHint(this.form.version);
+    },
+    notificationClass() {
+      const type = this.notification?.type || "error";
+      const map = {
+        success:
+          "border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/40 dark:text-green-200",
+        warning:
+          "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
+        error: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
+      };
+      return map[type] || map.error;
+    },
+  },
+  watch: {
+    "form.version"(nextVersion) {
+      if (!requiresCompileCommand(nextVersion)) {
+        this.form.command = "";
+      }
+    },
+  },
   methods: {
-    uploadFilesAndParams() {
-      this.isLoading = true;
-      // console.log(this.fileList);
-      let formData = new FormData();
-      this.fileList.forEach((item) => {
-        formData.append("file", item.raw);
-      });
-      formData.append("Contract", this.form.hash);
+    showNotification(type, message) {
+      this.notification = { type, message };
+    },
+
+    async uploadFilesAndParams() {
+      if (!this.canUpload) return;
+
+      this.errors = {};
       if (!this.isContractPattern.test(this.form.hash)) {
-        ElMessage({
-          showClose: true,
-          duration: 0,
-          type: "error",
-          message:
-            "Contract hash format error, please check you contract hash! ",
-        });
-        this.isLoading = false;
+        this.errors.hash = "Invalid format. Must be a 40-character hex string.";
         return;
       }
 
+      const node = resolveUploadNode(this.form.version);
+      if (!node) {
+        this.showNotification("error", "Unsupported host for contract verification endpoint.");
+        return;
+      }
+
+      const formData = new FormData();
+      this.fileList.forEach((file) => formData.append("file", file));
+      formData.append("Contract", this.form.hash);
       formData.append("Version", this.form.version);
-      if (this.form.command !== "") {
+
+      if (this.showCompileCommand && this.form.command) {
         formData.append("CompileCommand", this.form.command);
       }
-      if (this.form.version === "neow3j") {
-        formData.append("JavaPackage", "io.examples.HelloWorld");
+      if (this.form.version === this.javaCompilerVersion) {
+        formData.append("JavaPackage", this.javaPackage);
       }
-      let config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      };
-      let node = "";
 
-      if (`${location.hostname}` === "explorer.onegate.space") {
-        if (
-          this.form.version === "Neo.Compiler.CSharp 3.0.0" ||
-          this.form.version === "Neo.Compiler.CSharp 3.0.2" ||
-          this.form.version === "Neo.Compiler.CSharp 3.0.3"
-        ) {
-          node = "https://neofura.ngd.network/upload";
-        } else {
-          node = "https://mainnet.n3magnet.xyz:3027/upload";
-        }
-      } else if (
-        `${location.hostname}` === "testmagnet.explorer.onegate.space"
-      ) {
-        if (
-          this.form.version === "Neo.Compiler.CSharp 3.0.0" ||
-          this.form.version === "Neo.Compiler.CSharp 3.0.2" ||
-          this.form.version === "Neo.Compiler.CSharp 3.0.3"
-        ) {
-          node = "https://testmagnet.ngd.network/upload";
-        } else {
-          node = "https://n3t5.n3magnet.xyz:3028/upload";
-        }
+      this.isLoading = true;
+      try {
+        const data = await contractService.uploadVerification(node, formData);
+        this.handleUploadResult(data);
+      } catch {
+        this.showNotification("error", "Server error, please try again later.");
+      } finally {
+        this.isLoading = false;
       }
-      // node = "https://neofura.ngd.network:3027/upload"
-      axios.post(node, formData, config).then((res) => {
-        // console.log(res);
-        if (res.data.Code === 2) {
-          if (
-            this.form.version === "Neo.Compiler.CSharp 3.0.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.0.2" ||
-            this.form.version === "Neo.Compiler.CSharp 3.0.3" ||
-            this.form.version === "Neo.Compiler.CSharp 3.1.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.3.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.4.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.5.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.6.0" ||
-            this.form.version === "Neo.Compiler.CSharp 3.6.2"
-          ) {
-            ElMessage({
-              showClose: true,
-              duration: 0,
-              type: "error",
-              message:
-                "Compilation failed! We can not generate a .nef file based on the files you uploaded, please check if you have uploaded all files with .cs and .csproj extension in your project.",
-            });
-          } else if (
-            this.form.version === "neo3-boa 1.0.1" ||
-            this.form.version === "neo3-boa 0.14.0" ||
-            this.form.version === "neo3-boa 0.13.1" ||
-            this.form.version === "neo3-boa 0.13.0" ||
-            this.form.version === "neo3-boa 0.12.3" ||
-            this.form.version === "neo3-boa 0.12.2" ||
-            this.form.version === "neo3-boa 0.12.1" ||
-            this.form.version === "neo3-boa 0.12.0" ||
-            this.form.version === "neo3-boa 0.11.4" ||
-            this.form.version === "neo3-boa 0.11.3" ||
-            this.form.version === "neo3-boa 0.11.2" ||
-            this.form.version === "neo3-boa 0.11.1" ||
-            this.form.version === "neo3-boa 0.11.0" ||
-            this.form.version === "neo3-boa 0.10.1" ||
-            this.form.version === "neo3-boa 0.10.0" ||
-            this.form.version === "neo3-boa 0.9.0" ||
-            this.form.version === "neo3-boa 0.8.3" ||
-            this.form.version === "neo3-boa 0.8.2" ||
-            this.form.version === "neo3-boa 0.8.1" ||
-            this.form.version === "neo3-boa 0.8.0" ||
-            this.form.version === "neo3-boa 0.7.0"
-          ) {
-            ElMessage({
-              showClose: true,
-              duration: 0,
-              type: "error",
-              message:
-                "Compilation failed! We can not generate a .nef file based on the files you uploaded, please check if you have uploaded all files with .py extension in your project.",
-            });
-          } else if (this.form.version === "neow3j") {
-            ElMessage({
-              showClose: true,
-              duration: 0,
-              type: "error",
-              message:
-                "Compilation failed! We can not generate a .nef file based on the files you uploaded, please check if you have uploaded all files with .java and .gradle extension in your project.",
-            });
-          } else {
-            ElMessage({
-              showClose: true,
-              duration: 0,
-              type: "error",
-              message:
-                "Compilation failed! We can not generate a .nef file based on the files you uploaded, please check if you have uploaded all files with .go extension in your project.",
-            });
-          }
-
-          this.isLoading = false;
-        } else if (
-          res.data.Code === 0 ||
-          res.data.Code === 1 ||
-          res.data.Code === 3
-        ) {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            type: "error",
-            message: "Server error, please try it later!",
-          });
-          this.isLoading = false;
-          // console.log(res.data.Code);
-        } else if (res.data.Code === 4) {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            type: "error",
-            message:
-              "Failed in querying contract info on blockChain! " + res.data.Msg,
-          });
-          this.isLoading = false;
-        } else if (res.data.Code === 5) {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            type: "success",
-            message: "Contract verification succeeded!",
-          });
-          this.isLoading = false;
-          this.$router.push({
-            path: `/contractinfo/${this.form.hash}`,
-          });
-        } else if (res.data.Code === 6) {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            message:
-              "This contract has already been verified, please refresh this page!",
-          });
-          this.isLoading = false;
-        } else if (res.data.Code === 7) {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            type: "error",
-            message: res.data.Msg,
-          });
-          this.isLoading = false;
-        } else {
-          ElMessage({
-            showClose: true,
-            duration: 0,
-            type: "error",
-            message:
-              " Verification failed! Your contract source code doesn't match that on the blockchain! please check if you have changed your source code since the deployment !",
-          });
-          this.isLoading = false;
-        }
-      });
     },
 
-    change(file) {
-      this.fileList.push(file);
+    handleUploadResult(result) {
+      const code = result?.Code;
+
+      if (code === 2) {
+        this.showNotification("error", getCompilationFailureMessage(this.form.version));
+        return;
+      }
+      if (code === 0 || code === 1 || code === 3) {
+        this.showNotification("error", "Server error, please try again later.");
+        return;
+      }
+      if (code === 4) {
+        this.showNotification("error", `Failed in querying contract info on blockChain. ${result?.Msg || ""}`);
+        return;
+      }
+      if (code === 5) {
+        this.showNotification("success", "Contract verification succeeded!");
+        this.$router.push(`/contractinfo/${this.form.hash}`);
+        return;
+      }
+      if (code === 6) {
+        this.showNotification("warning", "This contract has already been verified.");
+        return;
+      }
+      if (code === 7) {
+        this.showNotification("error", result?.Msg || "Verification failed.");
+        return;
+      }
+
+      this.showNotification("error", "Verification failed. Source code does not match deployed bytecode.");
     },
 
-    remove(file) {
-      this.fileList.forEach((item, index) => {
-        if (item.name == file.name) {
-          this.fileList.splice(index, 1);
-        }
-      });
+    onFilesSelected(event) {
+      const files = Array.from(event.target.files || []);
+      this.fileList = [...this.fileList, ...files];
+      if (this.$refs.fileInput) this.$refs.fileInput.value = "";
     },
-    // eslint-disable-next-line no-unused-vars
-    onBeforeUpload(file) {
-      // File validation placeholder
-    },
-    onSubmit() {
-      // console.log(this.form.version);
-      // console.log(this.form.hash);
+
+    removeFile(index) {
+      this.fileList.splice(index, 1);
     },
   },
 };
 </script>
-<style>
-.verifyTile {
-  font-family: Inter;
-  font-style: normal;
-  font-weight: bold !important;
-  font-size: 30px !important;
-  line-height: 58px;
-  text-align: center;
-  /* identical to box height */
-  color: black;
+
+<style scoped>
+.slide-in-enter-active,
+.slide-in-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
-@media screen and (max-width: 992px) {
-  .contractInput {
-    width: 100px !important;
-  }
+
+.slide-in-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.slide-in-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
 }
 </style>

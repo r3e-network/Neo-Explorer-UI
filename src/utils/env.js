@@ -11,9 +11,7 @@ export const APP_URL = {
 export const inProduction = process.env.NODE_ENV === "production";
 
 export const getCurrentEnv = () => {
-  const hostname = inProduction
-    ? location.hostname
-    : APP_URL[process.env.VUE_APP_DEV_ENV];
+  const hostname = inProduction ? location.hostname : APP_URL[process.env.VUE_APP_DEV_ENV];
 
   const env = {
     [APP_URL[NET_ENV.Mainnet]]: NET_ENV.Mainnet,
@@ -29,17 +27,11 @@ export const AI_API = {
   METHOD: "gettxdetail",
 };
 
-// RPC Node URLs
+// RPC Node URLs (neofura endpoints used by Neon RPC client)
 export const RPC_URLS = {
-  [NET_ENV.Mainnet]: "http://seed1.neo.org:10332",
-  [NET_ENV.TestT5]: "http://seed1.neo.org:20332",
+  [NET_ENV.Mainnet]: "https://neofura.ngd.network",
+  [NET_ENV.TestT5]: "https://testmagnet.ngd.network",
 };
 
-// Get RPC URL based on current environment
-export const getRpcUrl = () => {
-  const currentEnv =
-    process.env.VUE_APP_DEV_ENV === NET_ENV.TestT5
-      ? NET_ENV.TestT5
-      : NET_ENV.Mainnet;
-  return RPC_URLS[currentEnv];
-};
+// Get RPC URL based on current environment (hostname-aware)
+export const getRpcUrl = () => RPC_URLS[getCurrentEnv()];

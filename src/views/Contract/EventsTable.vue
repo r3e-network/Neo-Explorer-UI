@@ -1,194 +1,136 @@
 <template>
-  <div
-    v-if="totalCount != 0"
-    class="card shadow"
-    :class="type === 'dark' ? 'bg-default' : ''"
-  >
-    <div class="table-responsive">
-      <loading
-        :is-full-page="false"
-        :opacity="0.9"
-        :active="isLoading"
-      ></loading>
-      <base-table
-        class="table align-items-center table-hover"
-        :class="type === 'dark' ? 'table-dark' : ''"
-        :thead-classes="type === 'dark' ? 'thead-dark' : 'thead-light'"
-        tbody-classes="list"
-        :data="contractList"
-      >
-        <template v-slot:columns>
-          <th class="tableHeader">{{ $t("contract.txID") }}</th>
-          <th class="tableHeader">{{ $t("contract.eventName") }}</th>
-          <th class="tableHeader">{{ $t("contract.vmState") }}</th>
-          <th class="tableHeader">{{ $t("contract.index") }}</th>
-          <th class="tableHeader">
-            {{ $t("contract.time") }}
-            <el-button
-              type="info"
-              :plain="true"
-              size="small"
-              style="height: 19px; margin-left: 4px"
-              @click="switchTime(time)"
-            >
-              Format</el-button
-            >
-          </th>
-        </template>
-
-        <template v-slot:default="row">
-          <th scope="row">
-            <div class="media align-items-center">
-              <div class="media-body short">
-                <span
-                  class="text-muted"
-                  v-if="
-                    row.item.txid ===
-                    '0x0000000000000000000000000000000000000000000000000000000000000000'
-                  "
-                  >{{ $t("na") }}
-                </span>
-                <router-link
-                  class="mb-0 table-list-item-blue"
-                  v-else
-                  style="cursor: pointer"
-                  :to="'/transactionInfo/' + row.item.txid"
-                  >{{ row.item.txid }}</router-link
-                >
-              </div>
-            </div>
-          </th>
-          <td class="table-list-item">
-            {{ row.item.eventname }}
-          </td>
-          <td class="table-list-item">
-            {{ row.item.Vmstate }}
-          </td>
-          <td class="table-list-item">
-            {{ row.item.index }}
-          </td>
-          <td class="table-list-item">
-            {{
-              time.state
-                ? this.convertTime(row.item.timestamp, this.$i18n.locale)
-                : this.convertISOTime(row.item.timestamp)
-            }}
-          </td>
-        </template>
-      </base-table>
+  <div class="etherscan-card overflow-hidden">
+    <div v-if="isLoading" class="space-y-2 p-4">
+      <Skeleton v-for="i in 5" :key="i" height="40px" />
     </div>
 
-    <div
-      v-if="totalCount >= 10"
-      class="card-footer d-flex justify-content-end"
-      :class="type === 'dark' ? 'bg-transparent' : ''"
-      style="height: 70px"
-    >
-      <el-pagination
-        v-if="windowWidth > 552"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        :page-size="10"
-        layout="jumper, prev, pager, next"
+    <template v-else>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[750px]">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Event Name</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">VM State</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Index</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+                Time
+                <button class="btn-mini ml-1" @click="switchTime(time)">Format</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tr
+              v-for="item in contractList"
+              :key="item.txid + item.eventname"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            >
+              <td class="px-4 py-3">
+                <div class="max-w-[200px] truncate">
+                  <span
+                    v-if="item.txid === '0x0000000000000000000000000000000000000000000000000000000000000000'"
+                    class="text-sm text-text-muted"
+                  >
+                    Null Transaction
+                  </span>
+                  <router-link v-else :to="'/transactionInfo/' + item.txid" class="font-hash text-sm etherscan-link">
+                    {{ item.txid }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.eventname }}
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.Vmstate }}
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.index }}
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ time.state ? convertTime(item.timestamp) : convertISOTime(item.timestamp) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="contractList.length === 0" class="p-4">
+        <EmptyState title="No events found" />
+      </div>
+    </template>
+
+    <div v-if="totalCount > resultsPerPage" class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+      <EtherscanPagination
+        :page="parseInt(pagination)"
+        :total-pages="countPage"
+        :page-size="resultsPerPage"
         :total="totalCount"
-      >
-      </el-pagination>
-      <el-pagination
-        v-if="windowWidth < 552"
-        small="true"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        layout="prev,pager,next"
-        :total="totalCount"
-      >
-      </el-pagination>
+        :show-page-size="false"
+        @update:page="handleCurrentChange"
+      />
     </div>
   </div>
-  <card shadow v-else class="text-center">{{ $t("contract.noEvent") }}</card>
 </template>
+
 <script>
-import axios from "axios";
-import Loading from "vue-loading-overlay";
-import "vue-loading-overlay/dist/vue-loading.css";
-import { convertTime, convertISOTime, switchTime } from "../../store/util";
-import net from "../../store/store";
+import { contractService } from "@/services";
+import { convertTime, convertISOTime, switchTime } from "@/store/util";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 
 export default {
   name: "events-table",
   props: {
-    type: {
-      type: String,
-    },
     contractHash: String,
   },
   components: {
-    Loading,
+    EtherscanPagination,
+    Skeleton,
+    EmptyState,
   },
   data() {
     return {
       time: { state: true },
-      network: net.url,
       contractList: [],
       totalCount: 0,
       resultsPerPage: 10,
       pagination: 1,
       isLoading: true,
       countPage: 0,
-      windowWidth: window.innerWidth,
     };
   },
   created() {
     this.getContractList(0);
   },
+  watch: {
+    contractHash: "watchcontract",
+  },
   methods: {
     convertISOTime,
     switchTime,
     convertTime,
+    watchcontract() {
+      this.getContractList(0);
+    },
     handleCurrentChange(val) {
       this.isLoading = true;
       this.pagination = val;
       const skip = (val - 1) * this.resultsPerPage;
       this.getContractList(skip);
     },
-    getContract(hash) {
-      this.$router.push(`/contractinfo/${hash}`);
-    },
-    getTransaction(txhash) {
-      this.$router.push({
-        path: `/transactionInfo/${txhash}`,
-      });
-    },
-    getContractList(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-          },
-          method: "GetNotificationByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.contractList = res["data"]["result"]["result"];
-        this.totalCount = res["data"]["result"]["totalCount"];
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      });
+    async getContractList(skip) {
+      const { result, totalCount } = await contractService.getNotifications(
+        this.contractHash,
+        this.resultsPerPage,
+        skip
+      );
+      this.contractList = result;
+      this.totalCount = totalCount;
+      this.countPage = totalCount === 0 ? 1 : Math.ceil(totalCount / this.resultsPerPage);
+      this.isLoading = false;
     },
   },
 };
 </script>
-<style></style>

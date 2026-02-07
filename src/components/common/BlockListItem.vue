@@ -1,86 +1,62 @@
 <template>
   <div
-    class="block-list-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+    class="block-list-item border-b border-card-border px-4 py-3 transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800/60"
   >
     <div class="flex items-center justify-between gap-4">
-      <!-- Left: Block Icon & Info -->
-      <div class="flex items-center gap-3 min-w-0">
+      <div class="flex min-w-0 items-center gap-3">
+        <!-- Etherscan "Bk" circle icon -->
         <div
-          class="block-icon w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0"
+          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-text-secondary dark:bg-gray-800 dark:text-gray-400"
         >
-          <svg
-            class="w-5 h-5 text-primary-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-          </svg>
+          Bk
         </div>
         <div class="min-w-0">
-          <router-link
-            :to="`/blockinfo/${block.hash}`"
-            class="font-semibold text-primary-500 hover:text-primary-600 transition-colors"
-          >
-            {{ formatBlockIndex(block.index) }}
+          <router-link :to="`/blockinfo/${block.hash}`" :title="block.hash" class="font-medium etherscan-link">
+            #{{ block.index || 0 }}
           </router-link>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            {{ timeAgo }}
+          <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">
+            {{ formatAge(block.timestamp) }}
           </p>
         </div>
       </div>
 
-      <!-- Middle: Validator/Speaker -->
-      <div class="hidden md:block flex-1 min-w-0 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Validated by</p>
+      <div class="hidden min-w-0 flex-1 text-center md:block">
+        <p class="text-xs text-text-secondary dark:text-gray-400">Fee Recipient</p>
         <router-link
           v-if="block.speaker"
           :to="`/accountprofile/${block.speaker}`"
-          class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-500 truncate block"
+          :title="block.speaker"
+          class="block truncate font-hash text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
         >
-          {{ truncateAddress(block.speaker) }}
+          {{ truncateHash(block.speaker, 8, 6) }}
         </router-link>
-        <span v-else class="text-sm text-gray-400">-</span>
+        <span v-else class="text-sm text-text-muted">-</span>
       </div>
 
-      <!-- Right: Txns & Size -->
-      <div class="text-right flex-shrink-0">
-        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          <span class="text-primary-500">{{ block.txcount || 0 }}</span> txns
+      <div class="flex-shrink-0 text-right">
+        <p class="text-sm text-text-primary dark:text-gray-300">
+          <span class="font-medium etherscan-link">{{ block.txcount || 0 }}</span>
+          txns
         </p>
-        <p class="text-xs text-gray-400 mt-0.5">{{ formatSize(block.size) }}</p>
+        <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">{{ formatGas(block.netfee) }} GAS</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { truncateHash, formatAge } from "@/utils/explorerFormat";
+
 export default {
   name: "BlockListItem",
   props: {
     block: { type: Object, default: () => ({}) },
   },
-  computed: {
-    timeAgo() {
-      if (!this.block?.timestamp) return "";
-      const secs = Math.floor(Date.now() / 1000 - this.block.timestamp);
-      if (secs < 60) return `${secs} secs ago`;
-      if (secs < 3600) return `${Math.floor(secs / 60)} mins ago`;
-      if (secs < 86400) return `${Math.floor(secs / 3600)} hrs ago`;
-      return `${Math.floor(secs / 86400)} days ago`;
-    },
-  },
   methods: {
-    formatBlockIndex(index) {
-      return index !== undefined ? `#${index.toLocaleString()}` : "#-";
-    },
-    formatSize(size) {
-      if (!size) return "0 bytes";
-      if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
-      return `${size} bytes`;
-    },
-    truncateAddress(addr) {
-      if (!addr) return "";
-      return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+    truncateHash,
+    formatAge,
+    formatGas(v) {
+      return v ? (v / 1e8).toFixed(4) : "0";
     },
   },
 };

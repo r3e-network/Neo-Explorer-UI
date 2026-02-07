@@ -1,28 +1,91 @@
-/* Component styles */
+/* Etherscan-style component classes */
 @layer components {
-  /* Card styles */
-  .card {
-    @apply bg-white rounded-xl shadow-card p-6 transition-all duration-300;
+  /* ── Card ── */
+  .etherscan-card {
+    @apply bg-white border border-card-border rounded-lg shadow-card;
   }
-  
+  .dark .etherscan-card {
+    @apply bg-gray-800 border-card-border-dark;
+  }
+
+  /* Legacy .card alias */
+  .card {
+    @apply etherscan-card p-6 transition-shadow duration-200;
+  }
   .card:hover {
     @apply shadow-card-hover;
   }
-  
-  .dark .card {
-    @apply bg-gray-800 border border-gray-700;
+
+  /* ── Links ── */
+  .etherscan-link {
+    @apply text-primary-500 hover:text-primary-600 hover:underline transition-colors duration-150;
   }
-  
-  /* Button styles */
-  .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  .dark .etherscan-link {
+    @apply text-primary-400 hover:text-primary-300;
   }
-  
-  .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600;
+
+  /* ── Buttons ── */
+  .btn-outline {
+    @apply bg-transparent text-primary-500 border border-primary-500 hover:bg-primary-50;
   }
-  
-  .btn-secondary {
-    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+  .dark .btn-outline {
+    @apply hover:bg-primary-900/30;
+  }
+  .btn-mini {
+    @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium text-primary-500 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 transition-colors cursor-pointer;
+  }
+
+  /* ── Form Controls ── */
+  .form-label {
+    @apply mb-1.5 block text-sm font-medium text-text-primary;
+  }
+  .dark .form-label {
+    @apply text-gray-300;
+  }
+  .form-input {
+    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
+    @apply focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
+  }
+  .dark .form-input {
+    @apply border-gray-600 bg-gray-900 text-gray-200 placeholder-gray-500;
+  }
+  .form-error {
+    @apply mt-1 text-xs text-red-500;
+  }
+
+  /* ── Info Row (detail pages) ── */
+  .info-row {
+    @apply flex flex-col sm:flex-row border-b border-gray-100 py-3;
+  }
+  .dark .info-row {
+    @apply border-gray-800;
+  }
+  .info-row-label {
+    @apply sm:w-1/4 text-text-secondary text-sm mb-1 sm:mb-0;
+  }
+  .info-row-value {
+    @apply sm:w-3/4 text-sm text-gray-800 break-all;
+  }
+  .dark .info-row-value {
+    @apply text-gray-200;
+  }
+
+  /* ── Page Header ── */
+  .page-title {
+    @apply text-xl font-semibold text-text-primary;
+  }
+  .dark .page-title {
+    @apply text-gray-100;
+  }
+  .page-subtitle {
+    @apply text-sm text-text-secondary mt-0.5;
+  }
+
+  /* ── Footer link ── */
+  .footer-link {
+    @apply text-gray-500 hover:text-primary-500 transition-colors duration-150 no-underline hover:no-underline;
+  }
+  .dark .footer-link {
+    @apply text-gray-400 hover:text-primary-400;
   }
 }

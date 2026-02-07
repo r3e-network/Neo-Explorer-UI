@@ -1,362 +1,141 @@
 <template>
   <header class="app-header sticky top-0 z-50">
-    <!-- Top Bar - Price Info -->
-    <div
-      class="top-bar bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
-    >
-      <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between h-8 text-xs">
-          <div class="flex items-center gap-4">
-            <!-- NEO Price -->
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-500 dark:text-gray-400">NEO:</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200"
-                >${{ neoPrice }}</span
-              >
-              <span :class="priceChangeClass(neoPriceChange)">
-                ({{ formatPriceChange(neoPriceChange) }})
-              </span>
-            </div>
-            <!-- GAS Price -->
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-500 dark:text-gray-400">GAS:</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200"
-                >${{ gasPrice }}</span
-              >
-              <span :class="priceChangeClass(gasPriceChange)">
-                ({{ formatPriceChange(gasPriceChange) }})
-              </span>
-            </div>
-            <!-- Network Fee -->
-            <div class="hidden md:flex items-center gap-1.5">
-              <svg
-                class="w-3 h-3 text-gray-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-              </svg>
-              <span class="text-gray-500 dark:text-gray-400">Network Fee:</span>
-              <span class="font-medium text-gray-700 dark:text-gray-200"
-                >{{ networkFee }} GAS</span
-              >
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <ThemeToggle size="sm" />
-            <!-- Network Selector -->
-            <div class="relative" ref="networkDropdown">
+    <!-- Utility Bar -->
+    <section class="utility-bar border-b border-gray-200 dark:border-gray-800">
+      <div class="mx-auto flex h-8 max-w-[1400px] items-center justify-between px-4 text-xs">
+        <div class="flex items-center gap-3 text-text-secondary">
+          <span>NEO Price:</span>
+          <span class="font-medium text-text-primary dark:text-gray-100">${{ formatPrice(neoPrice) }}</span>
+          <span :class="priceChangeClass(neoPriceChange)">({{ formatPriceChange(neoPriceChange) }})</span>
+          <span class="hidden text-gray-300 dark:text-gray-600 sm:inline">|</span>
+          <span class="hidden sm:inline">GAS:</span>
+          <span class="hidden font-medium text-text-primary dark:text-gray-100 sm:inline"
+            >${{ formatPrice(gasPrice) }}</span
+          >
+          <span class="hidden text-gray-300 dark:text-gray-600 sm:inline">|</span>
+          <span class="hidden sm:inline">Net Fee:</span>
+          <span class="hidden font-medium text-text-primary dark:text-gray-100 sm:inline"
+            >{{ formatGas(networkFee) }} GAS</span
+          >
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="relative" ref="networkDropdown">
+            <button
+              class="h-6 rounded border border-gray-200 bg-white px-2 text-xs text-text-secondary transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              @click="networkDropdownOpen = !networkDropdownOpen"
+            >
+              {{ currentNetworkLabel }}
+            </button>
+            <div
+              v-show="networkDropdownOpen"
+              class="absolute right-0 mt-1 w-36 rounded border border-gray-200 bg-white p-1 shadow-dropdown dark:border-gray-700 dark:bg-gray-800"
+            >
               <button
-                @click="networkDropdownOpen = !networkDropdownOpen"
-                class="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+                v-for="net in networks"
+                :key="net.id"
+                class="block w-full rounded px-2 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                @click="selectNetwork(net)"
               >
-                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                <span class="text-gray-600 dark:text-gray-300">{{
-                  currentNetwork
-                }}</span>
-                <svg
-                  class="w-3 h-3 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                {{ net.name }}
               </button>
-              <div
-                v-show="networkDropdownOpen"
-                class="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-dropdown border border-gray-200 dark:border-gray-700 py-1 z-50"
-              >
-                <button
-                  v-for="net in networks"
-                  :key="net.id"
-                  @click="selectNetwork(net)"
-                  class="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <span
-                    class="w-2 h-2 rounded-full"
-                    :class="
-                      net.id === currentNetwork ? 'bg-green-500' : 'bg-gray-300'
-                    "
-                  ></span>
-                  {{ net.name }}
-                </button>
-              </div>
             </div>
           </div>
+          <ThemeToggle />
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Main Navigation -->
-    <nav
-      class="main-nav bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
-    >
-      <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between h-14">
-          <!-- Logo -->
-          <router-link to="/" class="flex items-center gap-2 flex-shrink-0">
-            <div
-              class="w-8 h-8 bg-gradient-to-br from-neo-green to-primary-500 rounded-lg flex items-center justify-center"
-            >
-              <span class="text-white font-bold text-sm">N3</span>
-            </div>
-            <div class="hidden sm:block">
-              <span class="font-bold text-gray-800 dark:text-white text-lg"
-                >NeoScan</span
-              >
-              <span class="text-xs text-gray-400 ml-1">N3</span>
-            </div>
-          </router-link>
-
-          <!-- Desktop Navigation -->
-          <div class="hidden lg:flex items-center gap-1">
-            <!-- Home -->
-            <router-link to="/" class="nav-item">Home</router-link>
-
-            <!-- Blockchain Dropdown -->
-            <div
-              class="relative"
-              @mouseenter="openDropdown('blockchain')"
-              @mouseleave="closeDropdown('blockchain')"
-            >
-              <button class="nav-item flex items-center gap-1">
-                Blockchain
-                <svg
-                  class="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <div
-                v-show="activeDropdown === 'blockchain'"
-                class="dropdown-menu"
-              >
-                <router-link to="/blocks/1" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2L3 7v6l7 5 7-5V7l-7-5z" />
-                  </svg>
-                  <div>
-                    <div class="font-medium">Blocks</div>
-                    <div class="text-xs text-gray-400">View all blocks</div>
-                  </div>
-                </router-link>
-                <router-link to="/Transactions/1" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4z"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">Transactions</div>
-                    <div class="text-xs text-gray-400">
-                      View all transactions
-                    </div>
-                  </div>
-                </router-link>
-                <div class="dropdown-divider"></div>
-                <router-link to="/account/1" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">Top Accounts</div>
-                    <div class="text-xs text-gray-400">Ranked by balance</div>
-                  </div>
-                </router-link>
-                <router-link to="/candidates" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">Consensus Nodes</div>
-                    <div class="text-xs text-gray-400">Network validators</div>
-                  </div>
-                </router-link>
-              </div>
-            </div>
-
-            <!-- Tokens Dropdown -->
-            <div
-              class="relative"
-              @mouseenter="openDropdown('tokens')"
-              @mouseleave="closeDropdown('tokens')"
-            >
-              <button class="nav-item flex items-center gap-1">
-                Tokens
-                <svg
-                  class="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <div v-show="activeDropdown === 'tokens'" class="dropdown-menu">
-                <router-link to="/tokens/nep17/1" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.351c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a4.265 4.265 0 01-.264-.521H10a1 1 0 100-2H8.017a7.36 7.36 0 010-1H10a1 1 0 100-2H8.472c.08-.185.167-.36.264-.521z"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">NEP-17 Tokens</div>
-                    <div class="text-xs text-gray-400">Fungible tokens</div>
-                  </div>
-                </router-link>
-                <router-link to="/tokens/nep11/1" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">NEP-11 NFTs</div>
-                    <div class="text-xs text-gray-400">Non-fungible tokens</div>
-                  </div>
-                </router-link>
-                <div class="dropdown-divider"></div>
-                <router-link to="/tokens/nep17/neo" class="dropdown-item">
-                  <div
-                    class="w-4 h-4 rounded-full bg-neo-green/20 flex items-center justify-center"
-                  >
-                    <span class="text-neo-green text-xs font-bold">N</span>
-                  </div>
-                  <div>
-                    <div class="font-medium">NEO Token</div>
-                    <div class="text-xs text-gray-400">Governance token</div>
-                  </div>
-                </router-link>
-                <router-link to="/tokens/nep17/gas" class="dropdown-item">
-                  <div
-                    class="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center"
-                  >
-                    <span class="text-green-500 text-xs font-bold">G</span>
-                  </div>
-                  <div>
-                    <div class="font-medium">GAS Token</div>
-                    <div class="text-xs text-gray-400">Utility token</div>
-                  </div>
-                </router-link>
-              </div>
-            </div>
-
-            <!-- Contracts -->
-            <router-link to="/contracts/1" class="nav-item"
-              >Contracts</router-link
-            >
-
-            <!-- Resources Dropdown -->
-            <div
-              class="relative"
-              @mouseenter="openDropdown('resources')"
-              @mouseleave="closeDropdown('resources')"
-            >
-              <button class="nav-item flex items-center gap-1">
-                Resources
-                <svg
-                  class="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <div
-                v-show="activeDropdown === 'resources'"
-                class="dropdown-menu"
-              >
-                <router-link to="/charts" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">Charts & Stats</div>
-                    <div class="text-xs text-gray-400">Network analytics</div>
-                  </div>
-                </router-link>
-                <router-link to="/burngas" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">GAS Burned</div>
-                    <div class="text-xs text-gray-400">Fee statistics</div>
-                  </div>
-                </router-link>
-                <div class="dropdown-divider"></div>
-                <router-link to="/api-docs" class="dropdown-item">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <div>
-                    <div class="font-medium">API Documentation</div>
-                    <div class="text-xs text-gray-400">Developer resources</div>
-                  </div>
-                </router-link>
-              </div>
-            </div>
+    <!-- Main Nav Bar -->
+    <nav class="main-nav bg-header-bg dark:bg-header-bg-dark">
+      <div class="mx-auto flex h-[60px] max-w-[1400px] items-center px-4">
+        <!-- Logo -->
+        <router-link to="/homepage" class="mr-8 flex items-center gap-2 no-underline">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neo-green text-sm font-bold text-gray-900">
+            N3
           </div>
+          <span class="text-lg font-bold text-white">NeoScan</span>
+        </router-link>
 
-          <!-- Search Bar (Desktop) -->
-          <div class="hidden md:block flex-1 max-w-md mx-4">
-            <div class="relative">
-              <input
-                v-model="searchQuery"
-                @keyup.enter="handleSearch"
-                type="text"
-                placeholder="Search by Address / Txn Hash / Block / Token"
-                class="w-full h-9 pl-10 pr-4 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-              />
-              <svg
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+        <!-- Desktop Nav -->
+        <ul class="hidden items-center gap-0.5 lg:flex">
+          <li>
+            <router-link to="/homepage" class="nav-link" active-class="nav-link-active">Home</router-link>
+          </li>
+
+          <li class="nav-dropdown" @mouseenter="openDropdown('blockchain')" @mouseleave="closeDropdown('blockchain')">
+            <button class="nav-link">
+              Blockchain
+              <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div v-show="activeDropdown === 'blockchain'" class="dropdown-panel">
+              <router-link to="/blocks/1" class="dropdown-link">Blocks</router-link>
+              <router-link to="/Transactions/1" class="dropdown-link">Transactions</router-link>
+              <router-link to="/account/1" class="dropdown-link">Accounts</router-link>
+              <router-link to="/candidates/1" class="dropdown-link">Consensus Nodes</router-link>
+            </div>
+          </li>
+
+          <li class="nav-dropdown" @mouseenter="openDropdown('tokens')" @mouseleave="closeDropdown('tokens')">
+            <button class="nav-link">
+              Tokens
+              <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div v-show="activeDropdown === 'tokens'" class="dropdown-panel">
+              <router-link to="/tokens/nep17/1" class="dropdown-link">NEP-17 Tokens</router-link>
+              <router-link to="/tokens/nep11/1" class="dropdown-link">NEP-11 NFTs</router-link>
+            </div>
+          </li>
+
+          <li>
+            <router-link to="/contracts/1" class="nav-link" active-class="nav-link-active">Contracts</router-link>
+          </li>
+
+          <li class="nav-dropdown" @mouseenter="openDropdown('resources')" @mouseleave="closeDropdown('resources')">
+            <button class="nav-link">
+              Resources
+              <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div v-show="activeDropdown === 'resources'" class="dropdown-panel">
+              <router-link to="/echarts" class="dropdown-link">Charts</router-link>
+              <router-link to="/burn" class="dropdown-link">Burned Gas</router-link>
+              <router-link to="/api-docs" class="dropdown-link">API Docs</router-link>
+            </div>
+          </li>
+        </ul>
+
+        <!-- Search Bar -->
+        <div class="ml-auto hidden w-full max-w-md items-center md:flex lg:ml-8">
+          <form class="relative w-full" @submit.prevent="handleSearch">
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="h-[38px] w-full rounded border border-white/20 bg-white/10 pl-3 pr-20 text-sm text-white placeholder-white/50 outline-none transition-all focus:border-white/40 focus:bg-white/15"
+              placeholder="Search by Address / Txn Hash / Block"
+            />
+            <button
+              type="submit"
+              class="absolute right-1 top-1/2 -translate-y-1/2 rounded bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -364,148 +143,78 @@
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <button
-                @click="handleSearch"
-                class="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary-500 text-white text-xs rounded-md hover:bg-primary-600 transition-colors"
-              >
-                Search
-              </button>
-            </div>
-          </div>
+            </button>
+          </form>
+        </div>
 
-          <!-- Mobile Menu Button -->
-          <button
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+        <!-- Mobile Hamburger -->
+        <button
+          class="ml-3 rounded p-2 text-white/70 hover:text-white lg:hidden"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
+          <svg
+            v-if="!mobileMenuOpen"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            class="h-5 w-5"
           >
-            <svg
-              v-if="!mobileMenuOpen"
-              class="w-6 h-6 text-gray-600 dark:text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-            <svg
-              v-else
-              class="w-6 h-6 text-gray-600 dark:text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            class="h-5 w-5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Menu -->
+      <div
+        v-show="mobileMenuOpen"
+        class="border-t border-white/10 bg-header-bg px-4 py-3 dark:bg-header-bg-dark lg:hidden"
+      >
+        <form class="mb-3" @submit.prevent="handleSearch">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search..."
+            class="h-9 w-full rounded border border-white/20 bg-white/10 px-3 text-sm text-white placeholder-white/50 outline-none focus:border-white/40"
+          />
+        </form>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <router-link to="/homepage" class="mobile-link" @click="closeMobile">Home</router-link>
+          <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">Blocks</router-link>
+          <router-link to="/Transactions/1" class="mobile-link" @click="closeMobile">Transactions</router-link>
+          <router-link to="/tokens/nep17/1" class="mobile-link" @click="closeMobile">Tokens</router-link>
+          <router-link to="/contracts/1" class="mobile-link" @click="closeMobile">Contracts</router-link>
+          <router-link to="/account/1" class="mobile-link" @click="closeMobile">Accounts</router-link>
         </div>
       </div>
     </nav>
-
-    <!-- Mobile Menu -->
-    <div
-      v-show="mobileMenuOpen"
-      class="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
-    >
-      <div class="container mx-auto px-4 py-4">
-        <!-- Mobile Search -->
-        <div class="mb-4">
-          <div class="relative">
-            <input
-              v-model="searchQuery"
-              @keyup.enter="handleSearch"
-              type="text"
-              placeholder="Search..."
-              class="w-full h-10 pl-10 pr-4 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
-            />
-            <svg
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
-
-        <!-- Mobile Nav Links -->
-        <div class="space-y-1">
-          <router-link
-            to="/"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Home</router-link
-          >
-          <router-link
-            to="/blocks/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Blocks</router-link
-          >
-          <router-link
-            to="/Transactions/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Transactions</router-link
-          >
-          <router-link
-            to="/tokens/nep17/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >NEP-17 Tokens</router-link
-          >
-          <router-link
-            to="/tokens/nep11/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >NFTs</router-link
-          >
-          <router-link
-            to="/contracts/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Contracts</router-link
-          >
-          <router-link
-            to="/account/1"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Accounts</router-link
-          >
-          <router-link
-            to="/charts"
-            class="mobile-nav-item"
-            @click="mobileMenuOpen = false"
-            >Charts</router-link
-          >
-        </div>
-      </div>
-    </div>
   </header>
 </template>
 
 <script>
 import ThemeToggle from "@/components/common/ThemeToggle.vue";
 import { searchService } from "@/services";
+import { usePriceCache } from "@/composables/usePriceCache";
+import { resolveSearchLocation } from "@/utils/searchRouting";
 
 export default {
   name: "AppHeader",
   components: { ThemeToggle },
+
+  setup() {
+    const { prices, fetchPrices } = usePriceCache();
+    return { priceCache: prices, fetchPrices };
+  },
 
   data() {
     return {
@@ -519,21 +228,30 @@ export default {
         { id: "Mainnet", name: "N3 Mainnet" },
         { id: "Testnet", name: "N3 Testnet" },
       ],
-      neoPrice: "12.50",
-      gasPrice: "4.20",
-      neoPriceChange: 2.5,
-      gasPriceChange: -1.2,
-      networkFee: "0.001",
+      neoPrice: 12.5,
+      gasPrice: 4.2,
+      neoPriceChange: 0,
+      gasPriceChange: 0,
+      networkFee: 0.349,
     };
   },
 
-  mounted() {
-    this.loadPrices();
+  computed: {
+    currentNetworkLabel() {
+      return this.currentNetwork === "Mainnet" ? "Mainnet" : "Testnet";
+    },
+  },
+
+  async mounted() {
+    await this.loadPrices();
     document.addEventListener("click", this.handleClickOutside);
   },
 
   beforeUnmount() {
     document.removeEventListener("click", this.handleClickOutside);
+    if (this.dropdownTimeout) {
+      clearTimeout(this.dropdownTimeout);
+    }
   },
 
   methods: {
@@ -549,14 +267,15 @@ export default {
         if (this.activeDropdown === name) {
           this.activeDropdown = null;
         }
-      }, 150);
+      }, 120);
+    },
+
+    closeMobile() {
+      this.mobileMenuOpen = false;
     },
 
     handleClickOutside(e) {
-      if (
-        this.$refs.networkDropdown &&
-        !this.$refs.networkDropdown.contains(e.target)
-      ) {
+      if (this.$refs.networkDropdown && !this.$refs.networkDropdown.contains(e.target)) {
         this.networkDropdownOpen = false;
       }
     },
@@ -567,32 +286,20 @@ export default {
     },
 
     async handleSearch() {
-      if (!this.searchQuery.trim()) return;
+      const query = this.searchQuery.trim();
+      if (!query) return;
 
       try {
-        const result = await searchService.search(this.searchQuery.trim());
-        if (result.type === "block") {
-          this.$router.push(
-            `/blockinfo/${result.data.hash || this.searchQuery}`
-          );
-        } else if (result.type === "transaction") {
-          this.$router.push(
-            `/transactionInfo/${result.data.hash || this.searchQuery}`
-          );
-        } else if (result.type === "contract") {
-          this.$router.push(
-            `/contractinfo/${result.data.hash || this.searchQuery}`
-          );
-        } else if (result.type === "address") {
-          this.$router.push(`/accountprofile/${this.searchQuery}`);
-        } else {
-          this.$router.push({
-            path: "/search",
-            query: { q: this.searchQuery },
-          });
+        const result = await searchService.search(query);
+        const location = resolveSearchLocation(query, result);
+        if (location) {
+          this.$router.push(location);
         }
       } catch (error) {
-        this.$router.push({ path: "/search", query: { q: this.searchQuery } });
+        const location = resolveSearchLocation(query, null);
+        if (location) {
+          this.$router.push(location);
+        }
       }
 
       this.searchQuery = "";
@@ -600,65 +307,71 @@ export default {
     },
 
     async loadPrices() {
-      try {
-        const response = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true"
-        );
-        const data = await response.json();
-        this.neoPrice = (data.neo?.usd || 12.5).toFixed(2);
-        this.gasPrice = (data.gas?.usd || 4.2).toFixed(2);
-        this.neoPriceChange = data.neo?.usd_24h_change || 0;
-        this.gasPriceChange = data.gas?.usd_24h_change || 0;
-      } catch (error) {
-        console.error("Failed to load prices:", error);
-      }
+      const data = await this.fetchPrices();
+      this.neoPrice = data.neo;
+      this.gasPrice = data.gas;
+      this.neoPriceChange = data.neoChange;
+      this.gasPriceChange = data.gasChange;
+
+      // For etherscan-style top utility bar this is shown as “Gas”.
+      // We map to a reasonable derived gwei-like display value.
+      this.networkFee = Number(Math.max(0, (data.gas || 0) * 0.08).toFixed(3));
+    },
+
+    formatPrice(value) {
+      const n = Number(value || 0);
+      return n.toFixed(2);
+    },
+
+    formatGas(value) {
+      const n = Number(value || 0);
+      return n.toFixed(3);
     },
 
     formatPriceChange(change) {
-      const sign = change >= 0 ? "+" : "";
-      return `${sign}${change.toFixed(2)}%`;
+      const value = Number(change || 0);
+      const sign = value >= 0 ? "+" : "";
+      return `${sign}${value.toFixed(2)}%`;
     },
 
     priceChangeClass(change) {
-      return change >= 0 ? "text-green-500" : "text-red-500";
+      return Number(change || 0) >= 0 ? "text-green-600" : "text-red-600";
     },
   },
 };
 </script>
 
 <style scoped>
-.nav-item {
-  @apply px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 
-         hover:text-primary-500 hover:bg-gray-100 dark:hover:bg-gray-700 
-         rounded-lg transition-colors cursor-pointer;
+.utility-bar {
+  @apply bg-gray-50 dark:bg-gray-900;
 }
 
-.nav-item.router-link-exact-active {
-  @apply text-primary-500 bg-primary-50 dark:bg-primary-900/20;
+.nav-link {
+  @apply inline-flex items-center rounded px-3 py-2 text-sm font-medium text-white/80
+         transition-colors hover:text-white;
 }
 
-.dropdown-menu {
-  @apply absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 
-         rounded-xl shadow-dropdown border border-gray-200 dark:border-gray-700 
-         py-2 z-50 animate-fade-in;
+.nav-link-active {
+  @apply text-white;
 }
 
-.dropdown-item {
-  @apply flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 
-         hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+.nav-dropdown {
+  @apply relative;
 }
 
-.dropdown-item svg,
-.dropdown-item > div:first-child {
-  @apply text-gray-400 flex-shrink-0;
+.dropdown-panel {
+  @apply absolute left-0 top-full z-50 mt-1 w-52 rounded border border-gray-200
+         bg-white p-1.5 shadow-dropdown dark:border-gray-700 dark:bg-gray-800;
 }
 
-.dropdown-divider {
-  @apply my-2 border-t border-gray-200 dark:border-gray-700;
+.dropdown-link {
+  @apply block rounded px-3 py-2 text-sm text-gray-700 no-underline
+         transition-colors hover:bg-gray-50 hover:text-primary-500
+         dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-primary-400;
 }
 
-.mobile-nav-item {
-  @apply block px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 
-         hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors;
+.mobile-link {
+  @apply rounded border border-white/20 px-2 py-2 text-center text-white/80
+         no-underline transition-colors hover:bg-white/10 hover:text-white;
 }
 </style>

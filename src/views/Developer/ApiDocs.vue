@@ -1,62 +1,56 @@
 <template>
-  <div class="api-docs min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="container mx-auto px-4 py-6">
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-          API Documentation
-        </h1>
-        <p class="text-gray-500">Neo Explorer API reference</p>
-      </div>
+  <div class="api-docs">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <header class="mb-5 flex flex-col gap-1">
+        <h1 class="text-2xl font-semibold text-text-primary dark:text-gray-100">API Documentation</h1>
+        <p class="text-sm text-text-secondary dark:text-gray-400">Neo Explorer API reference grouped by domain</p>
+      </header>
 
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Sidebar -->
-        <div class="lg:col-span-1">
-          <div
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sticky top-4"
-          >
-            <h3 class="font-semibold text-gray-800 dark:text-white mb-3">
-              Categories
-            </h3>
-            <nav class="space-y-1">
-              <a
-                v-for="cat in categories"
-                :key="cat.key"
-                @click="activeCategory = cat.key"
-                :class="[
-                  'block px-3 py-2 rounded-lg cursor-pointer transition-colors',
-                  activeCategory === cat.key
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700',
-                ]"
-              >
-                {{ cat.label }}
-              </a>
-            </nav>
-          </div>
-        </div>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <aside class="etherscan-card p-4">
+          <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
+            Categories
+          </h2>
+          <nav class="space-y-1">
+            <button
+              v-for="category in categories"
+              :key="category.key"
+              class="w-full rounded px-3 py-2 text-left text-sm transition-colors"
+              :class="
+                activeCategory === category.key
+                  ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'text-text-secondary hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+              "
+              @click="activeCategory = category.key"
+            >
+              {{ category.label }}
+            </button>
+          </nav>
+        </aside>
 
-        <!-- Content -->
-        <div class="lg:col-span-3 space-y-4">
-          <div
-            v-for="method in filteredMethods"
-            :key="method.name"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6"
-          >
-            <div class="flex items-center gap-2 mb-2">
+        <main class="space-y-3 lg:col-span-3">
+          <article v-for="method in filteredMethods" :key="method.name" class="etherscan-card p-5">
+            <div class="mb-2 flex items-center gap-2">
               <span
-                class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded"
-                >GET</span
+                class="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                >RPC</span
               >
-              <h3 class="font-mono font-semibold">{{ method.name }}</h3>
+              <h3 class="font-mono text-sm font-semibold text-text-primary dark:text-gray-100">
+                {{ method.name }}
+              </h3>
             </div>
-            <p class="text-gray-500 text-sm mb-4">{{ method.desc }}</p>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-              <code class="text-sm font-mono">/api/{{ method.endpoint }}</code>
+            <p class="mb-3 text-sm text-text-secondary dark:text-gray-400">
+              {{ method.desc }}
+            </p>
+            <div
+              class="rounded border border-card-border bg-gray-50 p-3 font-mono text-sm text-text-primary dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+            >
+              /api/{{ method.endpoint }}
             </div>
-          </div>
-        </div>
+          </article>
+        </main>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -114,7 +108,7 @@ export default {
   },
   computed: {
     filteredMethods() {
-      return this.methods.filter((m) => m.category === this.activeCategory);
+      return this.methods.filter((method) => method.category === this.activeCategory);
     },
   },
 };

@@ -1,52 +1,47 @@
 <template>
-  <div class="contract-detail-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="container mx-auto px-4 py-6">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-500 mb-4">
-        <router-link to="/" class="hover:text-primary-500">Home</router-link>
+  <div class="contract-detail-page">
+    <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
+        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
         <span class="mx-2">/</span>
-        <router-link to="/contracts/1" class="hover:text-primary-500"
-          >Contracts</router-link
-        >
+        <router-link to="/contracts/1" class="hover:text-primary-500">Contracts</router-link>
         <span class="mx-2">/</span>
-        <span class="text-gray-700 dark:text-gray-300">{{
-          contract.name || "Contract"
-        }}</span>
+        <span class="text-text-primary dark:text-gray-300">{{ contract.name || "Contract" }}</span>
       </nav>
 
-      <!-- Page Header -->
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center"
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
         >
-          <svg
-            class="w-6 h-6 text-purple-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"
-            />
+          <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ contract.name }}
-          </h1>
           <div class="flex items-center gap-2">
-            <span class="font-mono text-sm text-gray-500">{{
-              truncateHash
-            }}</span>
-            <button
-              @click="copyHash"
-              class="text-gray-400 hover:text-primary-500"
+            <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100">
+              {{ contract.name || "Unknown Contract" }}
+            </h1>
+            <span
+              v-if="isVerified"
+              class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-success dark:border-emerald-800 dark:bg-emerald-900/30"
             >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Verified
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-sm text-text-secondary dark:text-gray-400">{{
+              truncateHash(contract.hash, 12, 8)
+            }}</span>
+            <button @click="copyHash" class="text-gray-400 hover:text-primary-500">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -59,99 +54,136 @@
         </div>
       </div>
 
-      <!-- Overview Card -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-6">
-        <div class="p-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 class="font-semibold text-gray-800 dark:text-white">Overview</h2>
+      <div class="mb-6 etherscan-card">
+        <div class="border-b border-card-border p-4 dark:border-card-border-dark">
+          <h2 class="font-semibold text-text-primary dark:text-gray-100">Overview</h2>
         </div>
-        <div class="p-4 md:p-6 grid md:grid-cols-2 gap-4">
-          <div>
-            <span class="text-gray-500 text-sm">Contract Hash</span>
-            <p class="font-mono text-sm break-all">{{ contract.hash }}</p>
-          </div>
-          <div>
-            <span class="text-gray-500 text-sm">Name</span>
-            <p class="font-medium">{{ contract.name || "-" }}</p>
-          </div>
-          <div>
-            <span class="text-gray-500 text-sm">Creator</span>
+        <div class="divide-y divide-card-border dark:divide-card-border-dark">
+          <InfoRow
+            label="Contract Hash"
+            tooltip="The unique identifier for this smart contract"
+            :value="contract.hash || '-'"
+            :copyable="!!contract.hash"
+            :copy-value="contract.hash"
+          />
+          <InfoRow label="Name" :value="contract.name || '-'" />
+          <InfoRow label="Creator" tooltip="The address that deployed this contract">
             <router-link
               v-if="contract.creator"
               :to="`/accountprofile/${contract.creator}`"
-              class="text-primary-500 font-mono text-sm block"
-              >{{ contract.creator }}</router-link
+              class="break-all font-mono text-sm etherscan-link"
             >
-            <span v-else>-</span>
-          </div>
-          <div>
-            <span class="text-gray-500 text-sm">Invocations</span>
-            <p class="font-medium">{{ formatNumber(contract.invocations) }}</p>
-          </div>
+              {{ contract.creator }}
+            </router-link>
+            <span v-else class="text-text-secondary">-</span>
+          </InfoRow>
+          <InfoRow label="Invocations" :value="formatNumber(contract.invocations)" />
+          <InfoRow label="Verified">
+            <span v-if="isVerified" class="inline-flex items-center gap-1 text-sm text-success">
+              <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Yes
+            </span>
+            <span v-else class="text-sm text-text-secondary">No</span>
+          </InfoRow>
         </div>
       </div>
 
-      <!-- Tabs -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="flex -mb-px">
+      <div class="etherscan-card">
+        <div class="border-b border-card-border dark:border-card-border-dark">
+          <nav class="flex flex-wrap">
             <button
               v-for="tab in tabs"
               :key="tab.key"
-              @click="activeTab = tab.key"
-              :class="[
-                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+              class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+              :class="
                 activeTab === tab.key
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700',
-              ]"
+                  ? 'border-primary-500 text-primary-500 dark:text-primary-400'
+                  : 'border-transparent text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-gray-200'
+              "
+              @click="activeTab = tab.key"
             >
               {{ tab.label }}
             </button>
           </nav>
         </div>
-        <div class="p-4">
-          <div
-            v-if="activeTab === 'transactions'"
-            class="text-gray-500 text-center py-8"
-          >
-            Contract transactions coming soon...
+
+        <div class="p-4 md:p-5">
+          <div v-if="!contract.hash" class="py-8 text-center text-text-secondary dark:text-gray-400">
+            Loading contract details...
           </div>
-          <div
-            v-else-if="activeTab === 'code'"
-            class="text-gray-500 text-center py-8"
-          >
-            Contract code coming soon...
+
+          <div v-else-if="activeTab === 'transactions'">
+            <ScCallTable :key="`sc-${contract.hash}`" :contract-hash="contract.hash" />
           </div>
-          <div v-else class="text-gray-500 text-center py-8">
-            Contract events coming soon...
+
+          <div v-else-if="activeTab === 'code'" class="space-y-4">
+            <div
+              class="flex flex-col gap-3 rounded-md border border-card-border bg-gray-50 p-3 dark:border-card-border-dark dark:bg-gray-800/40 md:flex-row md:items-center md:justify-between"
+            >
+              <p class="text-sm text-text-secondary dark:text-gray-300">
+                Verified source files and contract artifacts.
+              </p>
+              <router-link
+                :to="sourceCodeLocation"
+                class="inline-flex items-center justify-center rounded border border-card-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-gray-100 dark:border-card-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Open Full Source Page
+              </router-link>
+            </div>
+
+            <ContractSourceCodePanel
+              :key="`source-${contract.hash}-${contract.updatecounter || 0}`"
+              :contract-hash="contract.hash"
+              :updatecounter="contract.updatecounter || 0"
+              :show-toolbar="true"
+              :compact="true"
+            />
+          </div>
+
+          <div v-else>
+            <EventsTable :key="`events-${contract.hash}`" :contract-hash="contract.hash" />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script>
 import { contractService } from "@/services";
+import { truncateHash } from "@/utils/explorerFormat";
+import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
+import InfoRow from "@/components/common/InfoRow.vue";
+import ScCallTable from "@/views/Contract/ScCallTable.vue";
+import EventsTable from "@/views/Contract/EventsTable.vue";
+import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
 
 export default {
   name: "ContractDetailNew",
+  components: {
+    InfoRow,
+    ScCallTable,
+    EventsTable,
+    ContractSourceCodePanel,
+  },
   data() {
     return {
       contract: {},
       loading: false,
       activeTab: "transactions",
-      tabs: [
-        { key: "transactions", label: "Transactions" },
-        { key: "code", label: "Code" },
-        { key: "events", label: "Events" },
-      ],
+      tabs: getContractDetailTabs(),
+      isVerified: false,
     };
   },
   computed: {
-    truncateHash() {
-      const h = this.contract?.hash;
-      return h ? `${h.slice(0, 10)}...${h.slice(-6)}` : "";
+    sourceCodeLocation() {
+      return buildSourceCodeLocation(this.contract.hash, this.contract.updatecounter || 0);
     },
   },
   watch: {
@@ -167,18 +199,26 @@ export default {
       this.loading = true;
       try {
         this.contract = (await contractService.getByHash(hash)) || {};
-      } catch (e) {
-        console.error("Failed to load contract:", e);
+
+        // Check verification status
+        try {
+          const verified = await contractService.getVerifiedByHash(hash, this.contract.updatecounter || 0);
+          this.isVerified = !!(verified && verified.hash);
+        } catch {
+          this.isVerified = false;
+        }
+      } catch {
+        // Service layer handles error logging
       } finally {
         this.loading = false;
       }
     },
     copyHash() {
-      if (this.contract?.hash)
-        navigator.clipboard.writeText(this.contract.hash);
+      if (this.contract?.hash) navigator.clipboard.writeText(this.contract.hash);
     },
-    formatNumber(n) {
-      return n ? n.toLocaleString() : "0";
+    truncateHash,
+    formatNumber(value) {
+      return Number(value || 0).toLocaleString();
     },
   },
 };

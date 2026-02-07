@@ -1,93 +1,70 @@
 <template>
-  <div class="nft-info min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="container mx-auto px-4 py-6">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-500 mb-4">
-        <router-link to="/" class="hover:text-primary-500">Home</router-link>
+  <div class="nft-info">
+    <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
+        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
         <span class="mx-2">/</span>
-        <span class="text-gray-700 dark:text-gray-300">NFT Detail</span>
+        <span class="text-text-primary dark:text-gray-300">NFT Detail</span>
       </nav>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex justify-center py-12">
-        <div
-          class="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full"
-        ></div>
+      <div v-if="loading" class="space-y-2">
+        <Skeleton v-for="index in 6" :key="index" height="44px" />
       </div>
 
-      <!-- Content -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- NFT Image -->
+      <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-1">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-            <div
-              class="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
-            >
-              <img
-                v-if="image"
-                v-lazy-image="image"
-                :alt="nftName"
-                class="w-full h-full object-cover"
-              />
+          <div class="etherscan-card p-4">
+            <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+              <img v-if="image" v-lazy-image="image" :alt="nftName" class="h-full w-full object-cover" />
+              <div v-else class="flex h-full items-center justify-center text-gray-400">No image</div>
             </div>
           </div>
         </div>
 
-        <!-- NFT Details -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        <div class="space-y-6 lg:col-span-2">
+          <div class="etherscan-card p-6">
+            <h1 class="mb-4 text-2xl font-semibold text-text-primary dark:text-gray-100">
               {{ nftName }}
             </h1>
 
             <div class="space-y-4">
-              <div
-                class="flex flex-col md:flex-row py-2 border-b border-gray-100 dark:border-gray-700"
-              >
-                <span class="text-gray-500 w-32 mb-1 md:mb-0">Token ID</span>
-                <span class="font-mono text-sm break-all">{{ tokenId }}</span>
+              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
+                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Token ID</span>
+                <span class="break-all font-mono text-sm text-text-primary dark:text-gray-300">{{ tokenId }}</span>
               </div>
-              <div
-                class="flex flex-col md:flex-row py-2 border-b border-gray-100 dark:border-gray-700"
-              >
-                <span class="text-gray-500 w-32 mb-1 md:mb-0">Contract</span>
-                <router-link
-                  :to="`/contractinfo/${contractHash}`"
-                  class="text-primary-500 font-mono text-sm"
-                >
+              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
+                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Contract</span>
+                <router-link :to="`/contractinfo/${contractHash}`" class="break-all font-mono text-sm etherscan-link">
                   {{ contractHash }}
                 </router-link>
               </div>
-              <div
-                class="flex flex-col md:flex-row py-2 border-b border-gray-100 dark:border-gray-700"
-              >
-                <span class="text-gray-500 w-32 mb-1 md:mb-0">Owner</span>
-                <router-link
-                  :to="`/accountprofile/${address}`"
-                  class="text-primary-500 font-mono text-sm"
-                >
+              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
+                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Owner</span>
+                <router-link :to="`/accountprofile/${address}`" class="break-all font-mono text-sm etherscan-link">
                   {{ address }}
                 </router-link>
               </div>
               <div v-if="description" class="flex flex-col py-2">
-                <span class="text-gray-500 mb-1">Description</span>
-                <p class="text-gray-700 dark:text-gray-300">
-                  {{ description }}
-                </p>
+                <span class="mb-1 text-sm text-text-secondary dark:text-gray-400">Description</span>
+                <p class="text-text-primary dark:text-gray-300">{{ description }}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script>
-import axios from "axios";
+import { tokenService } from "@/services";
+import Skeleton from "@/components/common/Skeleton.vue";
 
 export default {
   name: "NFTInfoNew",
+  components: {
+    Skeleton,
+  },
   data() {
     return {
       loading: true,
@@ -107,28 +84,27 @@ export default {
       return this.$route.params.address;
     },
   },
-  created() {
-    this.loadNFT();
+  watch: {
+    tokenId: {
+      immediate: true,
+      handler() {
+        this.loadNFT();
+      },
+    },
   },
   methods: {
     async loadNFT() {
       this.loading = true;
       try {
-        const res = await axios.post("/api", {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "GetNep11PropertiesByContractHashTokenId",
-          params: { ContractHash: this.contractHash, tokenIds: [this.tokenId] },
-        });
-        const data = res.data?.result?.result?.[0];
+        const result = await tokenService.getNep11Properties(this.contractHash, [this.tokenId]);
+        const data = result?.result?.[0];
         if (data) {
           this.nftName = data.name || "Unknown NFT";
-          this.image =
-            data.image?.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/") || "";
+          this.image = data.image?.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/") || "";
           this.description = data.description || "";
         }
-      } catch (e) {
-        console.error("Failed to load NFT:", e);
+      } catch {
+        // Service layer handles error logging
       } finally {
         this.loading = false;
       }

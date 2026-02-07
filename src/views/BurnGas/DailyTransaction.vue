@@ -1,437 +1,141 @@
 <template>
-  <div class="map">
-    <div id="main" style="width: 100%; height: 400px; background: white"></div>
+  <div class="daily-transaction-page">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <header class="mb-5 flex flex-col gap-1">
+        <h1 class="text-2xl font-semibold text-text-primary dark:text-gray-100">Daily Transactions</h1>
+        <p class="text-sm text-text-secondary dark:text-gray-400">Network activity trend for Neo N3</p>
+      </header>
+
+      <div class="etherscan-card p-4">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex gap-2">
+            <button
+              v-for="option in dayOptions"
+              :key="option"
+              class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              :class="
+                selectedDays === option
+                  ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400'
+                  : 'bg-gray-100 text-text-secondary hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              "
+              @click="selectedDays = option"
+            >
+              {{ option }} days
+            </button>
+          </div>
+
+          <div class="text-sm text-text-secondary dark:text-gray-400">
+            Average / day:
+            <span class="font-medium text-text-primary dark:text-gray-200">{{ formatNumber(avgTx) }}</span>
+          </div>
+        </div>
+
+        <div v-if="loading" class="space-y-2">
+          <Skeleton v-for="index in 5" :key="index" height="44px" />
+        </div>
+
+        <div v-else-if="error" class="py-2">
+          <ErrorState title="Failed to load transaction chart" :message="error" @retry="loadData" />
+        </div>
+
+        <div v-else>
+          <div class="h-[360px]">
+            <NetworkChart type="transactions" :data="chartData" />
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script>
-import * as echarts from "echarts";
-import { onMounted } from "vue";
-import axios from "axios";
+import { statsService } from "@/services";
+import NetworkChart from "@/components/charts/NetworkChart.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+
+function formatDayOffset(offset) {
+  const date = new Date(Date.now() - offset * 24 * 60 * 60 * 1000);
+  return date.toISOString().split("T")[0];
+}
 
 export default {
-  created() {
-    this.setup();
+  name: "DailyTransaction",
+  components: {
+    NetworkChart,
+    Skeleton,
+    ErrorState,
   },
-
+  data() {
+    return {
+      loading: true,
+      error: null,
+      selectedDays: 14,
+      dayOptions: [14, 30],
+      chartData: [],
+    };
+  },
+  computed: {
+    avgTx() {
+      if (!this.chartData.length) return 0;
+      const total = this.chartData.reduce((sum, item) => sum + (item.transactions || 0), 0);
+      return Math.round(total / this.chartData.length);
+    },
+  },
+  watch: {
+    selectedDays() {
+      this.loadData();
+    },
+  },
+  created() {
+    this.loadData();
+  },
   methods: {
-    setup() {
-      //methods
-      const echartInit = () => {
-        var myTransactionChart = echarts.init(document.getElementById("main"));
+    async loadData() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const raw = await statsService.getNetworkActivity(this.selectedDays);
+        this.chartData = this.normalizeChartData(raw, this.selectedDays);
+      } catch {
+        this.error = "Failed to load chart data.";
+      } finally {
+        this.loading = false;
+      }
+    },
+    normalizeChartData(raw, days) {
+      const list = Array.isArray(raw) ? raw : [];
+      if (!list.length) {
+        return Array.from({ length: days }, (_, index) => ({
+          date: formatDayOffset(days - index - 1),
+          transactions: 0,
+          addresses: 0,
+          gas: 0,
+        }));
+      }
 
-        var xdata14 = [];
+      const mapped = list.map((entry, index) => {
+        const date = entry?.date || entry?.Date || entry?.day || entry?.Day || formatDayOffset(list.length - index - 1);
 
-        var xdata30 = [];
-
-        var sdata14 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-        var sdata30 = [
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ];
-
-        getDailyTransactions(14);
-
-        getDailyTransactions(30);
-
-        for (var k = -13; k <= 0; k++) {
-          xdata14.push(getDay(k));
-        }
-        for (var n = -29; n <= 0; n++) {
-          xdata30.push(getDay(n));
-        }
-        function getDay(day) {
-          var today = new Date();
-          var todayMilliseconds = today.getTime() + 1000 * 60 * 60 * 24 * day;
-          today.setTime(todayMilliseconds);
-          var tMonth = today.toDateString().split(" ")[1];
-          var tDate = today.toDateString().split(" ")[2];
-          tMonth = doHandleMonth(tMonth);
-          tDate = doHandleMonth(tDate);
-          return tMonth + " " + tDate;
-        }
-
-        function doHandleMonth(month) {
-          var m = month;
-          if (month.toString().length == 1) {
-            m = "0" + month;
-          }
-          return m;
-        }
-        function refreshData(Data, index) {
-          var option = myTransactionChart.getOption();
-          option.series[index].data = Data;
-          myTransactionChart.setOption(option);
-        }
-
-        function getDailyTransactions(day) {
-          axios({
-            method: "post",
-            url: "/api",
-            data: {
-              params: { days: day },
-              jsonrpc: "2.0",
-              id: 1,
-              method: "GetDailyTransactions",
-            },
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }).then((res) => {
-            if (day === 14) {
-              for (var j = 0; j < res["data"]["result"].length; j++) {
-                sdata14[13 - j] = res["data"]["result"][j]["DailyTransactions"];
-              }
-              refreshData(sdata14, 0);
-              //console.log("this is 14 days ")
-              // console.log(sdata14)
-            } else {
-              for (var m = 0; m < res["data"]["result"].length; m++) {
-                sdata30[29 - m] = res["data"]["result"][m]["DailyTransactions"];
-              }
-              refreshData(sdata30, 1);
-              // console.log("this is 30 days")
-              // console.log(sdata30)
-            }
-          });
-        }
-
-        // 指定图表的配置项和数据
-        var option = {
-          color: ["#0060FF99", "#0060FF99"],
-          title: [
-            {
-              left: "6%",
-              text: "Daily Transaction",
-              top: "4%",
-              textStyle: {
-                color: "#1D2129",
-                fontSize: 18,
-              },
-            },
-          ],
-          tooltip: {
-            trigger: "axis",
-          },
-          legend: {
-            icon: "circle",
-            data: ["Recent 14 days", "Recent 30 days"],
-            selected: { "Recent 30 days": false, "Recent 14 days": true },
-            top: "4%",
-            right: "2%",
-            orient: "vertical",
-            textStyle: {
-              color: "#4E5969",
-              fontSize: 14,
-            },
-          },
-          xAxis: {
-            type: "category",
-            data: xdata14,
-            axisLabel: {
-              color: "#86909C",
-              fontSize: 12,
-            },
-            axisLine: {
-              lineStyle: {
-                color: "#E5E6EB", //更改坐标轴颜色
-              },
-            },
-            splitLine: {
-              show: false,
-            },
-            axisTick: {
-              show: false,
-            },
-          },
-          yAxis: {
-            type: "value",
-            splitLine: {
-              show: false,
-            },
-            axisLabel: {
-              color: "#86909C",
-              fontSize: 12,
-            },
-          },
-          grid: {
-            left: "6%",
-            containLabel: true,
-            bottom: "6%",
-          },
-          series: [
-            {
-              name: "Recent 14 days",
-              type: "line",
-              data: sdata14,
-              smooth: true,
-              areaStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  {
-                    offset: 0,
-                    color: "#e6effe",
-                  },
-                  {
-                    offset: 1,
-                    color: "rgb(255,255,255)",
-                  },
-                ]),
-              },
-            },
-            {
-              name: "Recent 30 days",
-              type: "line",
-              data: sdata30,
-              smooth: true,
-              areaStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  {
-                    offset: 0,
-                    color: "#e6effe",
-                  },
-                  {
-                    offset: 1,
-                    color: "rgb(255,255,255)",
-                  },
-                ]),
-              },
-            },
-          ],
+        return {
+          date,
+          transactions: Number(
+            entry?.transactions ?? entry?.DailyTransactions ?? entry?.dailyTransactions ?? entry?.txs ?? 0
+          ),
+          addresses: Number(entry?.addresses ?? entry?.activeAddresses ?? 0),
+          gas: Number(entry?.gas ?? entry?.gasUsed ?? 0),
         };
-        var option2 = {
-          color: ["#0060FF99", "#0060FF99"],
-          title: [
-            {
-              left: "center",
-              text: "Daily Transaction",
-              top: "4%",
-              textStyle: {
-                color: "#1D2129",
-                fontSize: 18,
-              },
-            },
-          ],
-          tooltip: {
-            trigger: "axis",
-          },
-          legend: {
-            icon: "circle",
-            data: ["Recent 14 days", "Recent 30 days"],
-            selected: { "Recent 30 days": false, "Recent 14 days": true },
-            top: "12%",
-            left: "center",
-            orient: "vertical",
-            textStyle: {
-              color: "#4E5969",
-              fontSize: 14,
-            },
-          },
-          xAxis: {
-            type: "category",
-            data: xdata14,
-            axisLabel: {
-              show: true,
-
-              color: "#86909C",
-              fontSize: 12,
-            },
-            axisLine: {
-              lineStyle: {
-                color: "#E5E6EB", //更改坐标轴颜色
-              },
-            },
-            splitLine: {
-              show: false,
-            },
-            axisTick: {
-              show: false,
-            },
-          },
-          yAxis: {
-            type: "value",
-            splitLine: {
-              show: false,
-            },
-            axisLabel: {
-              color: "#86909C",
-              fontSize: 12,
-            },
-          },
-          grid: {
-            left: "6%",
-            containLabel: true,
-            bottom: "6%",
-            top: "25%",
-          },
-          series: [
-            {
-              name: "Recent 14 days",
-              type: "line",
-              data: sdata14,
-              smooth: true,
-              areaStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  {
-                    offset: 0,
-                    color: "#e6effe",
-                  },
-                  {
-                    offset: 1,
-                    color: "rgb(255,255,255)",
-                  },
-                ]),
-              },
-            },
-            {
-              name: "Recent 30 days",
-              type: "line",
-              data: sdata30,
-              smooth: true,
-              areaStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  {
-                    offset: 0,
-                    color: "#e6effe",
-                  },
-                  {
-                    offset: 1,
-                    color: "rgb(255,255,255)",
-                  },
-                ]),
-              },
-            },
-          ],
-        };
-        // 使用刚指定的配置项和数据显示图表。
-        if (window.innerWidth > 552) {
-          myTransactionChart.setOption(option);
-        } else {
-          myTransactionChart.setOption(option2);
-        }
-        window.addEventListener("resize", function () {
-          myTransactionChart.resize();
-          var windowWidth = window.innerWidth;
-          if (windowWidth < 552) {
-            myTransactionChart.setOption(option2);
-          }
-          if (windowWidth > 552) {
-            myTransactionChart.setOption(option);
-          }
-        });
-        myTransactionChart.on("legendselectchanged", function (params) {
-          let legend = params.name;
-          let selected = params.selected;
-          if (selected !== undefined) {
-            if (legend === "Recent 14 days") {
-              if (
-                selected["Recent 14 days"] === true &&
-                selected["Recent 30 days"] === true
-              ) {
-                myTransactionChart.setOption({
-                  legend: {
-                    selected: {
-                      [legend]: true,
-                      ["Recent 30 days"]: false,
-                    },
-                  },
-                  xAxis: {
-                    data: xdata14,
-                  },
-                });
-              }
-              if (
-                selected["Recent 14 days"] === false &&
-                selected["Recent 30 days"] === false
-              ) {
-                myTransactionChart.setOption({
-                  legend: {
-                    selected: {
-                      [legend]: false,
-                      ["Recent 30 days"]: true,
-                    },
-                  },
-                  xAxis: {
-                    data: xdata30,
-                  },
-                });
-              }
-            } else {
-              if (
-                selected["Recent 30 days"] == false &&
-                selected["Recent 14 days"] == false
-              ) {
-                myTransactionChart.setOption({
-                  legend: {
-                    selected: {
-                      [legend]: false,
-                      ["Recent 14 days"]: true,
-                    },
-                  },
-                  xAxis: {
-                    data: xdata14,
-                  },
-                });
-              }
-              if (
-                selected["Recent 30 days"] == true &&
-                selected["Recent 14 days"] == true
-              ) {
-                myTransactionChart.setOption({
-                  legend: {
-                    selected: {
-                      [legend]: true,
-                      ["Recent 14 days"]: false,
-                    },
-                  },
-                  xAxis: {
-                    data: xdata30,
-                  },
-                });
-              }
-            }
-          }
-        });
-      };
-      //onMounted
-      onMounted(() => {
-        echartInit();
       });
-      //return
-      return {
-        echartInit,
-      };
+
+      if (mapped.length > 1 && mapped[0].date > mapped[mapped.length - 1].date) {
+        mapped.reverse();
+      }
+
+      return mapped;
+    },
+    formatNumber(value) {
+      return Number(value || 0).toLocaleString();
     },
   },
 };
 </script>
-
-<style></style>

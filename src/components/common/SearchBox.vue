@@ -15,12 +15,7 @@
         autocomplete="off"
       />
       <div class="absolute left-4 top-1/2 -translate-y-1/2">
-        <svg
-          class="w-5 h-5 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -34,27 +29,11 @@
         :disabled="loading || !query.trim()"
         class="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg font-medium text-sm transition-colors duration-200 flex items-center gap-2"
       >
-        <svg
-          v-if="loading"
-          class="w-4 h-4 animate-spin"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          />
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          />
+        <svg v-if="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <span>{{ $t("search.button") || "Search" }}</span>
+        <span>Search</span>
       </button>
     </div>
 
@@ -66,18 +45,11 @@
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0" class="history-section">
-          <div
-            class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50"
-          >
-            <span
-              class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
-            >
+          <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Recent Searches
             </span>
-            <button
-              @click.stop="clearHistory"
-              class="text-xs text-gray-400 hover:text-red-500 transition-colors"
-            >
+            <button @click.stop="clearHistory" class="text-xs text-gray-400 hover:text-red-500 transition-colors">
               Clear
             </button>
           </div>
@@ -92,12 +64,7 @@
             ]"
             @click="selectHistoryItem(item)"
           >
-            <svg
-              class="w-4 h-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -105,14 +72,8 @@
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span
-              class="text-sm text-gray-700 dark:text-gray-300 truncate flex-1"
-              >{{ item.query }}</span
-            >
-            <span
-              :class="getTypeBadgeClass(item.type)"
-              class="text-xs px-2 py-0.5 rounded-full"
-            >
+            <span class="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">{{ item.query }}</span>
+            <span :class="getTypeBadgeClass(item.type)" class="text-xs px-2 py-0.5 rounded-full">
               {{ item.type }}
             </span>
           </div>
@@ -121,9 +82,7 @@
         <!-- Search Suggestions -->
         <div v-if="query && suggestions.length > 0" class="suggestions-section">
           <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
-            <span
-              class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
-            >
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Suggestions
             </span>
           </div>
@@ -145,94 +104,49 @@
               {{ getTypeIcon(item.type) }}
             </span>
             <div class="flex-1 min-w-0">
-              <p
-                class="text-sm font-medium text-gray-800 dark:text-white truncate"
-              >
+              <p class="text-sm font-medium text-gray-800 dark:text-white truncate">
                 {{ item.label }}
               </p>
-              <p
-                class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono"
-              >
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">
                 {{ item.value }}
               </p>
             </div>
-            <svg
-              class="w-4 h-4 text-gray-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
+            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </div>
         </div>
 
         <!-- Quick Search Tips -->
-        <div
-          v-if="!query && searchHistory.length === 0"
-          class="tips-section p-4"
-        >
-          <p
-            class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3"
-          >
-            Search Tips
-          </p>
+        <div v-if="!query && searchHistory.length === 0" class="tips-section p-4">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Search Tips</p>
           <div class="space-y-2">
-            <div
-              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-            >
+            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span
                 class="w-6 h-6 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-500 flex items-center justify-center text-xs"
                 >Bk</span
               >
-              <span
-                >Block height:
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >12345678</code
-                ></span
-              >
+              <span>Block height: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">12345678</code></span>
             </div>
-            <div
-              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-            >
+            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span
                 class="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center text-xs"
                 >Tx</span
               >
-              <span
-                >Transaction hash:
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >0x...</code
-                ></span
-              >
+              <span>Transaction hash: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">0x...</code></span>
             </div>
-            <div
-              class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-            >
+            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span
                 class="w-6 h-6 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center text-xs"
                 >Ad</span
               >
-              <span
-                >Address:
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >N...</code
-                ></span
-              >
+              <span>Address: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">N...</code></span>
             </div>
           </div>
         </div>
 
         <!-- No Results -->
-        <div
-          v-if="query && suggestions.length === 0 && !isSearching"
-          class="no-results p-4 text-center"
-        >
+        <div v-if="query && suggestions.length === 0 && !isSearching" class="no-results p-4 text-center">
           <svg
             class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2"
             fill="none"
@@ -246,9 +160,7 @@
               d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Press Enter to search
-          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Press Enter to search</p>
         </div>
       </div>
     </transition>
@@ -327,18 +239,13 @@ export default {
     },
 
     handleClickOutside(e) {
-      if (
-        this.$refs.searchContainer &&
-        !this.$refs.searchContainer.contains(e.target)
-      ) {
+      if (this.$refs.searchContainer && !this.$refs.searchContainer.contains(e.target)) {
         this.closeSuggestions();
       }
     },
 
     navigateSuggestion(direction) {
-      const items = this.query
-        ? this.suggestions
-        : this.searchHistory.slice(0, 5);
+      const items = this.query ? this.suggestions : this.searchHistory.slice(0, 5);
       if (items.length === 0) return;
 
       this.selectedIndex += direction;
@@ -409,10 +316,7 @@ export default {
 
     addToHistory(query, type = "unknown") {
       const item = { query, type, timestamp: Date.now() };
-      this.searchHistory = [
-        item,
-        ...this.searchHistory.filter((h) => h.query !== query),
-      ].slice(0, 10);
+      this.searchHistory = [item, ...this.searchHistory.filter((h) => h.query !== query)].slice(0, 10);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(this.searchHistory));
     },
 
@@ -446,16 +350,11 @@ export default {
 
     getTypeBadgeClass(type) {
       const classes = {
-        block:
-          "bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400",
-        transaction:
-          "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-        address:
-          "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-        contract:
-          "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-        token:
-          "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+        block: "bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400",
+        transaction: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+        address: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+        contract: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
+        token: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
       };
       return classes[type] || "bg-gray-100 text-gray-600";
     },

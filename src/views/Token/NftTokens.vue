@@ -1,165 +1,123 @@
 <template>
-  <div class="card shadow" :class="type === 'dark' ? 'bg-default' : ''">
-    <div class="table-responsive">
-      <loading
-        :is-full-page="false"
-        :opacity="0.9"
-        :active="isLoading"
-      ></loading>
-      <base-table
-        class="table align-items-center table-hover"
-        :class="type === 'dark' ? 'table-dark' : ''"
-        :thead-classes="type === 'dark' ? 'thead-dark' : 'thead-light'"
-        tbody-classes="list"
-        :data="tableData"
-      >
-        <template v-slot:columns>
-          <th class="tableHeader">#</th>
-          <!--          <th class="tableHeader">{{ $t("nftToken.name") }}</th>-->
-          <th class="tableHeader">{{ $t("nftToken.name") }}</th>
-          <th class="tableHeader">{{ $t("nftToken.tokenId") }}</th>
-          <!--          <th>Last Transferred</th>-->
-          <th class="tableHeader">
-            {{ $t("nftToken.holder") }}
-            <el-button
-              type="info"
-              :plain="true"
-              size="small"
-              style="height: 21px; margin-left: 4px"
-              @click="changeFormat(button)"
-            >
-              {{ this.button.buttonName }}</el-button
-            >
-          </th>
-          <th class="tableHeader">{{ $t("nftInfo.description") }}</th>
-        </template>
-
-        <template v-slot:default="row">
-          <td>
-            <el-image
-              style="width: 100px"
-              :src="row.item.image"
-              :preview-src-list="row.item.imageList"
-              :hide-on-click-modal="true"
-            >
-              <template #error>
-                <div class="image-slot">
-                  <i class="ni ni-image"> </i>
-                </div>
-              </template>
-            </el-image>
-          </td>
-          <td>
-            {{ row.item.nftname }}
-          </td>
-          <!--          <td class="table-list-item">-->
-          <!--            {{base64ToString(row.item.tokenid)}}-->
-          <!--          </td>-->
-          <!--          <td class="firstused">-->
-          <!--            {{ convertTime(row.item.lasttx.timestamp) }}-->
-          <!--          </td>-->
-          <td class="table-list-item">
-            <div class="short">
-              <router-link
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="
-                  '/NFTinfo/' +
-                  row.item.asset +
-                  '/' +
-                  row.item.address +
-                  '/' +
-                  base64ToHash(row.item.tokenid)
-                "
-                >{{ row.item.tokenid }}</router-link
-              >
-            </div>
-          </td>
-          <td class="Address">
-            <div class="short">
-              <router-link
-                v-if="button.state"
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.address"
-                >{{ scriptHashToAddress(row.item.address) }}</router-link
-              >
-              <router-link
-                v-else
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.address"
-                >{{ row.item.address }}
-              </router-link>
-              <span
-                v-if="
-                  row.item.address ===
-                  '0x0000000000000000000000000000000000000000'
-                "
-                >（Null Address)
-              </span>
-            </div>
-          </td>
-          <td>
-            {{ row.item.description }}
-          </td>
-        </template>
-      </base-table>
+  <div class="etherscan-card overflow-hidden">
+    <div v-if="isLoading" class="space-y-2 p-4">
+      <Skeleton v-for="i in 5" :key="i" height="40px" />
     </div>
 
-    <div
-      v-if="totalCount >= 10"
-      class="card-footer d-flex justify-content-end"
-      :class="type === 'dark' ? 'bg-transparent' : ''"
-      style="height: 70px"
-    >
-      <el-pagination
-        v-if="windowWidth > 552"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        :page-size="10"
-        layout="jumper, prev, pager, next"
+    <template v-else>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[800px]">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Image</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Name</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Token ID</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+                Holder
+                <button class="btn-mini ml-1" @click="changeFormat(button)">
+                  {{ button.buttonName }}
+                </button>
+              </th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tr
+              v-for="(item, index) in tableData"
+              :key="item.tokenid + index"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            >
+              <!-- Image -->
+              <td class="px-4 py-3">
+                <img
+                  v-if="item.image"
+                  :src="item.image"
+                  alt="NFT"
+                  class="h-16 w-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-700"
+                  loading="lazy"
+                  @error="$event.target.style.display = 'none'"
+                />
+                <div
+                  v-else
+                  class="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-xs text-text-muted dark:bg-gray-700"
+                >
+                  No Image
+                </div>
+              </td>
+              <!-- Name -->
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.nftname || "—" }}
+              </td>
+              <!-- Token ID -->
+              <td class="px-4 py-3">
+                <div class="max-w-[140px] truncate">
+                  <router-link
+                    :to="'/NFTinfo/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
+                    class="font-hash text-sm etherscan-link"
+                  >
+                    {{ item.tokenid }}
+                  </router-link>
+                </div>
+              </td>
+              <!-- Holder -->
+              <td class="px-4 py-3">
+                <div class="max-w-[180px] truncate">
+                  <span
+                    v-if="item.address === '0x0000000000000000000000000000000000000000'"
+                    class="text-sm text-text-muted"
+                  >
+                    Null Address
+                  </span>
+                  <router-link v-else :to="'/accountprofile/' + item.address" class="font-hash text-sm etherscan-link">
+                    {{ button.state ? scriptHashToAddress(item.address) : item.address }}
+                  </router-link>
+                </div>
+              </td>
+              <!-- Description -->
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                <div class="max-w-[200px] truncate">{{ item.description || "No description" }}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="tableData.length === 0" class="p-4">
+        <EmptyState title="No NFT tokens found" />
+      </div>
+    </template>
+
+    <div v-if="totalCount > resultsPerPage" class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+      <EtherscanPagination
+        :page="parseInt(pagination)"
+        :total-pages="countPage"
+        :page-size="resultsPerPage"
         :total="totalCount"
-      >
-      </el-pagination>
-      <el-pagination
-        v-if="windowWidth < 552"
-        small="true"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        layout="prev,pager,next"
-        :total="totalCount"
-      >
-      </el-pagination>
+        :show-page-size="false"
+        @update:page="handleCurrentChange"
+      />
     </div>
   </div>
 </template>
+
 <script>
-import axios from "axios";
-import Loading from "vue-loading-overlay";
-import "vue-loading-overlay/dist/vue-loading.css";
-import {
-  convertToken,
-  scriptHashToAddress,
-  changeFormat,
-} from "../../store/util";
+import { tokenService } from "@/services";
+import { scriptHashToAddress, changeFormat } from "@/store/util";
 import Neon from "@cityofzion/neon-js";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 
 export default {
   name: "nft-token",
   props: {
-    type: {
-      type: String,
-    },
     contractHash: String,
     decimal: Number,
   },
   components: {
-    Loading,
+    EtherscanPagination,
+    Skeleton,
+    EmptyState,
   },
   data() {
     return {
@@ -170,8 +128,6 @@ export default {
       isLoading: true,
       countPage: 0,
       button: { state: true, buttonName: "Hash" },
-      windowWidth: window.innerWidth,
-      properties: 1,
     };
   },
   created() {
@@ -182,7 +138,6 @@ export default {
   },
   methods: {
     changeFormat,
-    convertToken,
     scriptHashToAddress,
     watchcontract() {
       this.GetAssetHoldersByContractHash(0);
@@ -190,106 +145,55 @@ export default {
     handleCurrentChange(val) {
       this.isLoading = true;
       this.pagination = val;
-      const skip = (val - 1) * this.resultsPerPage;
-      this.GetAssetHoldersByContractHash(skip);
-    },
-    toPercentage(num) {
-      let s = Number(num * 100).toFixed(2);
-      s += "%";
-      return s;
-    },
-    getAddress(accountAddress) {
-      this.$router.push({
-        path: `/accountprofile/${accountAddress}`,
-      });
-    },
-    base64ToString(base) {
-      var tmp = Neon.u.base642hex(base);
-      var res = Neon.u.hexstring2str(tmp);
-
-      return res;
+      this.GetAssetHoldersByContractHash((val - 1) * this.resultsPerPage);
     },
     base64ToHash(base) {
-      var res = Neon.u.base642hex(base);
-
-      return res;
+      return Neon.u.base642hex(base);
     },
-
-    GetAssetHoldersByContractHash(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-            balance: 1,
-          },
-          method: "GetAssetHoldersListByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.tableData = res["data"]["result"]["result"];
-        // console.log(this.tableData)
-        this.totalCount = res["data"]["result"]["totalCount"];
-        this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
-        for (let k = 0; k < this.tableData.length; k++) {
-          axios({
-            method: "post",
-            url: "/api",
-            data: {
-              jsonrpc: "2.0",
-              id: 1,
-              params: {
-                ContractHash: this.tableData[k]["asset"],
-                tokenIds: [this.tableData[k]["tokenid"]],
-              },
-              method: "GetNep11PropertiesByContractHashTokenId",
-            },
-            headers: {
-              "Content-Type": "application/json",
-              withCredentials: " true",
-              crossDomain: "true",
-            },
-          }).then((res) => {
-            // console.log(res)
-            // console.log(this.tableData)
-            var value = res["data"]["result"]["result"][0];
-            // console.log(value["asset"])
-            // console.log(value["properties"])
-            this.tableData[k]["nftname"] = "——";
-
-            this.tableData[k]["description"] = "No description";
-            if (value["name"]) {
-              this.tableData[k]["nftname"] = value["name"];
-              // console.log(this.tableData[k]["nftname"])
+    async GetAssetHoldersByContractHash(skip) {
+      try {
+        const { result, totalCount } = await tokenService.getNftHoldersList(
+          this.contractHash,
+          this.resultsPerPage,
+          skip
+        );
+        this.tableData = result;
+        this.totalCount = totalCount;
+        this.countPage = totalCount === 0 ? 1 : Math.ceil(totalCount / this.resultsPerPage);
+        this.fetchNftProperties();
+      } catch {
+        this.isLoading = false;
+      }
+    },
+    fetchNftProperties() {
+      if (this.tableData.length === 0) {
+        this.isLoading = false;
+        return;
+      }
+      let pending = this.tableData.length;
+      for (let k = 0; k < this.tableData.length; k++) {
+        tokenService
+          .getNep11Properties(this.tableData[k]["asset"], [this.tableData[k]["tokenid"]])
+          .then((result) => {
+            const value = result?.result?.[0];
+            if (value) {
+              this.tableData[k]["nftname"] = value["name"] || "—";
+              if (value["image"]) {
+                this.tableData[k]["image"] = value["image"].startsWith("ipfs")
+                  ? value["image"].replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.infura.io/ipfs/")
+                  : value["image"];
+              }
+              if (value["description"]) {
+                this.tableData[k]["description"] = value["description"];
+              }
             }
-            if (value["image"]) {
-              this.tableData[k]["image"] = value["image"].startsWith("ipfs")
-                ? value["image"].replace(
-                    /^(ipfs:\/\/)|^(ipfs-video:\/\/)/,
-                    "https://ipfs.infura.io/ipfs/"
-                  )
-                : value["image"];
-              this.tableData[k]["imageList"] = [this.tableData[k]["image"]];
-              // console.log( this.tableData[k]["image"])
-            }
-            if (value["description"]) {
-              this.tableData[k]["description"] = value["description"];
-            }
-            this.isLoading = false;
+          })
+          .finally(() => {
+            pending--;
+            if (pending === 0) this.isLoading = false;
           });
-        }
-      });
+      }
     },
   },
 };
 </script>
-<style></style>

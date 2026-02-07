@@ -1,174 +1,124 @@
 <template>
-  <div class="accounts-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Page Header -->
-    <div
-      class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
-    >
-      <div class="container mx-auto px-4 py-6">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
-          {{ $t("accounts.title") || "Top Accounts" }}
-        </h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">
-          {{ $t("accounts.subtitle") || "Addresses ranked by NEO/GAS balance" }}
-        </p>
-      </div>
-    </div>
+  <div class="accounts-page">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <header class="mb-5 flex flex-col gap-1">
+        <h1 class="page-title">Top Accounts</h1>
+        <p class="page-subtitle">Addresses ranked by NEO/GAS balance</p>
+      </header>
 
-    <!-- Account List -->
-    <div class="container mx-auto px-4 py-6">
-      <div
-        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
-      >
-        <div class="p-4">
-          <!-- Loading State -->
-          <div v-if="loading" class="space-y-4">
-            <div v-for="i in 10" :key="i" class="animate-pulse">
-              <div class="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            </div>
-          </div>
+      <div class="etherscan-card overflow-hidden">
+        <div
+          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+        >
+          <p class="text-sm text-text-secondary dark:text-gray-300">Rich list ranking</p>
+          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
+        </div>
 
-          <!-- Error State -->
-          <div v-else-if="error" class="text-center py-12">
-            <div
-              class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[880px]">
+            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Address</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">NEO Balance</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">GAS Balance</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Txn Count</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+              <tr
+                v-for="(account, index) in accounts"
+                :key="account.address"
+                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-            </div>
-            <p class="text-gray-700 dark:text-gray-300 font-semibold mb-1">
-              Failed to load accounts
-            </p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {{ error }}
-            </p>
-            <button
-              @click="loadAccounts"
-              class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
+                <td class="px-4 py-3 text-sm text-text-muted">
+                  {{ (currentPage - 1) * pageSize + index + 1 }}
+                </td>
+                <td class="px-4 py-3">
+                  <router-link
+                    :to="`/accountprofile/${account.address}`"
+                    :title="account.address"
+                    class="font-hash text-sm etherscan-link"
+                  >
+                    {{ convertAddress(account.address) }}
+                  </router-link>
+                </td>
+                <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-300">
+                  {{ formatBalance(account.neobalance) }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-300">
+                  {{ formatGasBalance(account.gasbalance) }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                  {{ formatNumber((account.nep17TransferCount || 0) + (account.nep11TransferCount || 0)) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-          <!-- Empty State -->
-          <div v-else-if="accounts.length === 0" class="text-center py-12">
-            <p class="text-gray-500 dark:text-gray-400">No accounts found</p>
-          </div>
+        <div v-if="loading" class="space-y-2 p-4">
+          <Skeleton v-for="index in 10" :key="index" height="44px" />
+        </div>
 
-          <!-- Account Table -->
-          <div v-else class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="text-left text-gray-500 dark:text-gray-400 text-sm">
-                  <th class="pb-4 font-medium">Rank</th>
-                  <th class="pb-4 font-medium">Address</th>
-                  <th class="pb-4 font-medium text-right">NEO Balance</th>
-                  <th class="pb-4 font-medium text-right">GAS Balance</th>
-                  <th class="pb-4 font-medium text-right">Txn Count</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                <tr
-                  v-for="(account, index) in accounts"
-                  :key="account.address"
-                  class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                >
-                  <td class="py-4 text-gray-500">
-                    {{ (currentPage - 1) * pageSize + index + 1 }}
-                  </td>
-                  <td class="py-4">
-                    <router-link
-                      :to="`/accountprofile/${account.address}`"
-                      class="text-primary-500 hover:text-primary-600 font-mono text-sm"
-                    >
-                      {{ account.address }}
-                    </router-link>
-                  </td>
-                  <td class="py-4 text-right">
-                    <span class="text-gray-800 dark:text-white font-medium">
-                      {{ formatBalance(account.neo) }}
-                    </span>
-                    <span class="text-gray-500 ml-1">NEO</span>
-                  </td>
-                  <td class="py-4 text-right">
-                    <span class="text-gray-800 dark:text-white font-medium">
-                      {{ formatBalance(account.gas) }}
-                    </span>
-                    <span class="text-gray-500 ml-1">GAS</span>
-                  </td>
-                  <td class="py-4 text-right text-gray-600 dark:text-gray-300">
-                    {{ formatNumber(account.txcount || 0) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div v-else-if="error" class="p-4">
+          <ErrorState title="Failed to load accounts" :message="error" @retry="loadAccounts" />
+        </div>
 
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="mt-6 flex justify-center">
-            <nav class="flex items-center gap-2">
-              <button
-                @click="goToPage(currentPage - 1)"
-                :disabled="currentPage === 1"
-                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                Previous
-              </button>
-              <span class="px-4 py-2 text-gray-600 dark:text-gray-300">
-                Page {{ currentPage }} of {{ totalPages }}
-              </span>
-              <button
-                @click="goToPage(currentPage + 1)"
-                :disabled="currentPage === totalPages"
-                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
+        <div v-else-if="accounts.length === 0" class="p-4">
+          <EmptyState title="No accounts found" />
+        </div>
+
+        <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+          <EtherscanPagination
+            :page="currentPage"
+            :total-pages="totalPages"
+            :page-size="pageSize"
+            :total="total"
+            @update:page="goToPage"
+            @update:page-size="changePageSize"
+          />
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script>
 import { accountService } from "@/services";
+import { scriptHashToAddress } from "@/store/util";
+import EmptyState from "@/components/common/EmptyState.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 export default {
   name: "AccountsNew",
+  components: {
+    EmptyState,
+    ErrorState,
+    Skeleton,
+    EtherscanPagination,
+  },
   data() {
     return {
       loading: true,
       error: null,
       accounts: [],
+      total: 0,
       currentPage: 1,
       totalPages: 1,
       pageSize: 25,
     };
   },
   watch: {
-    "$route.params.page"(page) {
-      if (page) {
+    "$route.params.page": {
+      immediate: true,
+      handler(page) {
         this.currentPage = parseInt(page) || 1;
         this.loadAccounts();
-      }
+      },
     },
-  },
-  created() {
-    const { page } = this.$route.params;
-    if (page) this.currentPage = parseInt(page) || 1;
-    this.loadAccounts();
   },
   methods: {
     async loadAccounts() {
@@ -178,10 +128,9 @@ export default {
         const offset = (this.currentPage - 1) * this.pageSize;
         const response = await accountService.getList(this.pageSize, offset);
         this.accounts = response?.result || [];
-        this.totalPages =
-          Math.ceil((response?.totalCount || 0) / this.pageSize) || 1;
-      } catch (error) {
-        console.error("Failed to load accounts:", error);
+        this.total = response?.totalCount || 0;
+        this.totalPages = Math.ceil(this.total / this.pageSize) || 1;
+      } catch {
         this.error = "Failed to load accounts. Please try again.";
         this.accounts = [];
       } finally {
@@ -190,19 +139,35 @@ export default {
     },
     goToPage(page) {
       if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
         this.$router.push(`/account/${page}`);
-        this.loadAccounts();
       }
+    },
+    changePageSize(size) {
+      this.pageSize = size;
+      this.$router.push("/account/1");
     },
     formatBalance(balance) {
       if (!balance) return "0";
       const num = parseFloat(balance);
       return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
     },
+    formatGasBalance(balance) {
+      if (!balance) return "0";
+      // gasbalance from neo3fura is in smallest unit (10^-8)
+      const num = parseFloat(balance) / 1e8;
+      return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    },
     formatNumber(num) {
       if (!num) return "0";
       return num.toLocaleString();
+    },
+    convertAddress(hash) {
+      if (!hash) return "-";
+      try {
+        return scriptHashToAddress(hash);
+      } catch {
+        return hash;
+      }
     },
   },
 };

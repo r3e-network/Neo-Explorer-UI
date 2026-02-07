@@ -13,11 +13,7 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 代币列表
    */
   async getNep17List(limit = 20, skip = 0) {
-    return safeRpcList(
-      "GetAssetInfos",
-      { Limit: limit, Skip: skip, Type: "NEP17" },
-      "get NEP17 list"
-    );
+    return safeRpcList("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP17" }, "get NEP17 list");
   },
 
   /**
@@ -27,11 +23,7 @@ export const tokenService = {
    * @returns {Promise<{result: Array, totalCount: number}>} NFT 列表
    */
   async getNep11List(limit = 20, skip = 0) {
-    return safeRpcList(
-      "GetAssetInfos",
-      { Limit: limit, Skip: skip, Type: "NEP11" },
-      "get NEP11 list"
-    );
+    return safeRpcList("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP11" }, "get NEP11 list");
   },
 
   /**
@@ -132,6 +124,31 @@ export const tokenService = {
       { ContractHash: hash, tokenId: tokenId, Limit: limit, Skip: skip },
       "get NEP11 transfers by token"
     );
+  },
+
+  /**
+   * 获取 NFT 资产持有者列表（含余额）
+   * @param {string} hash - 合约哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 持有者列表
+   */
+  async getNftHoldersList(hash, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetAssetHoldersListByContractHash",
+      { ContractHash: hash, Limit: limit, Skip: skip, balance: 1 },
+      "get NFT holders list"
+    );
+  },
+
+  /**
+   * 获取 NEP11 NFT 属性（名称、图片、描述等）
+   * @param {string} hash - 合约哈希
+   * @param {string[]} tokenIds - Token ID 数组
+   * @returns {Promise<Object|null>} NFT 属性数据
+   */
+  async getNep11Properties(hash, tokenIds) {
+    return safeRpc("GetNep11PropertiesByContractHashTokenId", { ContractHash: hash, tokenIds }, null);
   },
 };
 

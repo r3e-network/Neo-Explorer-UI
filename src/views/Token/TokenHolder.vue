@@ -1,180 +1,103 @@
 <template>
-  <div
-    v-if="this.totalCount != 0"
-    class="card shadow"
-    :class="type === 'dark' ? 'bg-default' : ''"
-  >
-    <div class="table-responsive">
-      <loading
-        :is-full-page="false"
-        :opacity="0.9"
-        :active="isLoading"
-      ></loading>
-      <base-table
-        class="table align-items-center table-hover"
-        :class="type === 'dark' ? 'table-dark' : ''"
-        :thead-classes="type === 'dark' ? 'thead-dark' : 'thead-light'"
-        tbody-classes="list"
-        :data="NEP17TxList"
-      >
-        <template v-slot:columns>
-          <th class="tableHeader">{{ $t("tokenHolder.ranking") }}</th>
-          <th class="tableHeader">
-            {{ $t("tokenHolder.address") }}
-            <el-button
-              type="info"
-              :plain="true"
-              size="small"
-              style="height: 21px; margin-left: 4px"
-              @click="changeFormat(button)"
-            >
-              {{ this.button.buttonName }}</el-button
-            >
-          </th>
-          <th class="tableHeader">{{ $t("tokenHolder.balance") }}</th>
-          <th class="tableHeader" style="text-align: right">
-            {{ $t("tokenHolder.percentage") }}
-          </th>
-        </template>
-
-        <template v-slot:default="row">
-          <th scope="row">
-            <div class="media align-items-center">
-              <div class="media-body">
-                <div
-                  v-if="
-                    row.index + (pagination - 1) * this.resultsPerPage === 0
-                  "
-                >
-                  {{
-                    row.index + (this.pagination - 1) * this.resultsPerPage + 1
-                  }}
-                  &#129351;
-                </div>
-                <div
-                  v-else-if="
-                    row.index + (pagination - 1) * this.resultsPerPage === 1
-                  "
-                >
-                  {{
-                    row.index + (this.pagination - 1) * this.resultsPerPage + 1
-                  }}
-                  &#129352;
-                </div>
-                <div
-                  v-else-if="
-                    row.index + (pagination - 1) * this.resultsPerPage === 2
-                  "
-                >
-                  {{
-                    row.index + (this.pagination - 1) * this.resultsPerPage + 1
-                  }}
-                  &#129353;
-                </div>
-                <div v-else>
-                  {{ row.index + (pagination - 1) * this.resultsPerPage + 1 }}
-                </div>
-              </div>
-            </div>
-          </th>
-          <td class="Address">
-            <div class="short">
-              <router-link
-                v-if="button.state"
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.address"
-                >{{ scriptHashToAddress(row.item.address) }}</router-link
-              >
-              <router-link
-                v-else
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.address"
-                >{{ row.item.address }}
-              </router-link>
-              <span
-                v-if="
-                  row.item.address ===
-                  '0x0000000000000000000000000000000000000000'
-                "
-                >（Null Address)
-              </span>
-            </div>
-          </td>
-          <td class="table-list-item">
-            {{ convertToken(row.item.balance, this.decimal) }}
-          </td>
-          <!--          <td class="firstused">-->
-          <!--            {{ convertTime(row.item.lasttx.timestamp) }}-->
-          <!--          </td>-->
-          <td class="table-list-item" style="text-align: right">
-            {{ toPercentage(row.item.percentage) }}
-          </td>
-        </template>
-      </base-table>
+  <div class="etherscan-card overflow-hidden">
+    <div v-if="isLoading" class="space-y-2 p-4">
+      <Skeleton v-for="i in 5" :key="i" height="40px" />
     </div>
 
-    <div
-      v-if="totalCount >= 10"
-      class="card-footer d-flex justify-content-end"
-      :class="type === 'dark' ? 'bg-transparent' : ''"
-      style="height: 70px"
-    >
-      <el-pagination
-        v-if="windowWidth > 552"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        :page-size="10"
-        layout="jumper, prev, pager, next"
+    <template v-else>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+                Address
+                <button class="btn-mini ml-1" @click="changeFormat(button)">
+                  {{ button.buttonName }}
+                </button>
+              </th>
+              <th class="px-4 py-3 text-right font-medium text-text-secondary">Balance</th>
+              <th class="px-4 py-3 text-right font-medium text-text-secondary">Percentage</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tr
+              v-for="(item, index) in NEP17TxList"
+              :key="item.address"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            >
+              <td class="px-4 py-3 text-sm text-text-muted">
+                <span v-if="rankIndex(index) <= 3" class="font-medium">
+                  {{ rankIndex(index) }}
+                  <span v-if="rankIndex(index) === 1">&#129351;</span>
+                  <span v-else-if="rankIndex(index) === 2">&#129352;</span>
+                  <span v-else>&#129353;</span>
+                </span>
+                <span v-else>{{ rankIndex(index) }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="max-w-[220px] truncate">
+                  <span
+                    v-if="item.address === '0x0000000000000000000000000000000000000000'"
+                    class="text-sm text-text-muted"
+                  >
+                    Null Address
+                  </span>
+                  <router-link v-else :to="'/accountprofile/' + item.address" class="font-hash text-sm etherscan-link">
+                    {{ button.state ? scriptHashToAddress(item.address) : item.address }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                {{ formatBalance ? convertToken(item.balance, decimal) : item.balance }}
+              </td>
+              <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                {{ toPercentage(item.percentage) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="NEP17TxList.length === 0" class="p-4">
+        <EmptyState title="No holders found" />
+      </div>
+    </template>
+
+    <div v-if="totalCount > resultsPerPage" class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+      <EtherscanPagination
+        :page="parseInt(pagination)"
+        :total-pages="countPage"
+        :page-size="resultsPerPage"
         :total="totalCount"
-      >
-      </el-pagination>
-      <el-pagination
-        v-if="windowWidth < 552"
-        small="true"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        layout="prev,pager,next"
-        :total="totalCount"
-      >
-      </el-pagination>
+        :show-page-size="false"
+        @update:page="handleCurrentChange"
+      />
     </div>
   </div>
-  <card shadow v-else class="text-center">{{
-    $t("tokenHolder.nullPrompt")
-  }}</card>
 </template>
+
 <script>
 import { tokenService } from "@/services";
-import Loading from "vue-loading-overlay";
-import "vue-loading-overlay/dist/vue-loading.css";
-import {
-  convertToken,
-  scriptHashToAddress,
-  changeFormat,
-} from "../../store/util";
-import net from "../../store/store";
+import { convertToken, scriptHashToAddress, changeFormat } from "@/store/util";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 
 export default {
   name: "token-holder",
   props: {
-    type: {
-      type: String,
-    },
     contractHash: String,
     decimal: Number,
+    formatBalance: { type: Boolean, default: true },
   },
   components: {
-    Loading,
+    EtherscanPagination,
+    Skeleton,
+    EmptyState,
   },
   data() {
     return {
-      network: net.url,
       NEP17TxList: [],
       totalCount: 0,
       resultsPerPage: 10,
@@ -182,7 +105,6 @@ export default {
       isLoading: true,
       countPage: 0,
       button: { state: true, buttonName: "Hash" },
-      windowWidth: window.innerWidth,
     };
   },
   created() {
@@ -198,20 +120,16 @@ export default {
     watchcontract() {
       this.getTokenList(0);
     },
+    rankIndex(index) {
+      return index + (this.pagination - 1) * this.resultsPerPage + 1;
+    },
     handleCurrentChange(val) {
       this.isLoading = true;
       this.pagination = val;
       this.getTokenList((this.pagination - 1) * this.resultsPerPage);
     },
     toPercentage(num) {
-      let s = Number(num * 100).toFixed(2);
-      s += "%";
-      return s;
-    },
-    getAddress(accountAddress) {
-      this.$router.push({
-        path: `/accountprofile/${accountAddress}`,
-      });
+      return Number(num * 100).toFixed(2) + "%";
     },
     getTokenList(skip) {
       tokenService
@@ -219,15 +137,13 @@ export default {
         .then((res) => {
           this.NEP17TxList = res?.result || [];
           this.totalCount = res?.totalCount || 0;
-          this.countPage = Math.ceil(this.totalCount / this.resultsPerPage);
+          this.countPage = this.totalCount === 0 ? 1 : Math.ceil(this.totalCount / this.resultsPerPage);
           this.isLoading = false;
         })
-        .catch((err) => {
-          console.error("Failed to load token holders:", err);
+        .catch(() => {
           this.isLoading = false;
         });
     },
   },
 };
 </script>
-<style></style>

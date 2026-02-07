@@ -56,6 +56,27 @@ export const safeRpc = async (method, params = {}, defaultValue = null) => {
 };
 
 /**
+ * Normalize neo3fura field names to the format our components expect.
+ * Keeps the original fields intact and adds aliases.
+ */
+const normalizeItem = (item) => {
+  if (!item || typeof item !== "object") return item;
+  const out = { ...item };
+
+  // Block fields: transactioncount → txcount
+  if ("transactioncount" in out && !("txcount" in out)) {
+    out.txcount = out.transactioncount;
+  }
+
+  // Block fields: nextconsensus → speaker (fee recipient)
+  if ("nextconsensus" in out && !("speaker" in out)) {
+    out.speaker = out.nextconsensus;
+  }
+
+  return out;
+};
+
+/**
  * Format neo3fura list response to standard format
  * @param {any} result - Raw API result
  * @returns {{ result: Array, totalCount: number }}
@@ -65,13 +86,14 @@ export const formatListResponse = (result) => {
 
   // Handle array response
   if (Array.isArray(result)) {
-    return { result, totalCount: result.length };
+    return { result: result.map(normalizeItem), totalCount: result.length };
   }
 
   // Handle object with result/totalCount
   if (result.result !== undefined) {
+    const items = Array.isArray(result.result) ? result.result : [];
     return {
-      result: Array.isArray(result.result) ? result.result : [],
+      result: items.map(normalizeItem),
       totalCount: result.totalCount || 0,
     };
   }
@@ -86,11 +108,7 @@ export const formatListResponse = (result) => {
  * @param {string} errorMsg - Error message prefix
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
-export const safeRpcList = async (
-  method,
-  params = {},
-  errorMsg = "API call"
-) => {
+export const safeRpcList = async (method, params = {}, errorMsg = "API call") => {
   try {
     const result = await rpc(method, params);
     return formatListResponse(result);

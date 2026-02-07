@@ -1,145 +1,138 @@
 <template>
-  <div class="token-detail-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="container mx-auto px-4 py-6">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-500 mb-4">
-        <router-link to="/" class="hover:text-primary-500">Home</router-link>
+  <div class="token-detail-page">
+    <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
+        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
         <span class="mx-2">/</span>
-        <router-link to="/tokens/nep17/1" class="hover:text-primary-500"
-          >Tokens</router-link
-        >
+        <router-link to="/tokens/nep17/1" class="hover:text-primary-500">Tokens</router-link>
         <span class="mx-2">/</span>
-        <span class="text-gray-700 dark:text-gray-300">{{ token.symbol }}</span>
+        <span class="text-text-primary dark:text-gray-300">{{ token.symbol || "-" }}</span>
       </nav>
 
-      <!-- Page Header -->
-      <div class="flex items-center gap-3 mb-6">
+      <div class="mb-6 flex items-center gap-3">
         <div
-          class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center"
+          class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400"
         >
-          <span class="text-blue-600 font-bold text-lg">{{
-            token.symbol?.charAt(0)
-          }}</span>
+          <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ token.name }} ({{ token.symbol }})
+          <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100">
+            {{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})
           </h1>
-          <span class="text-sm text-gray-500">NEP-17 Token</span>
+          <p class="text-sm text-text-secondary dark:text-gray-400">NEP-17 Token</p>
         </div>
       </div>
 
-      <!-- Token Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p class="text-sm text-gray-500 mb-1">Total Supply</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">
-            {{ formatSupply }}
-          </p>
+      <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="info-card">
+          <p class="info-label">Total Supply</p>
+          <p class="info-value">{{ formatSupply }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p class="text-sm text-gray-500 mb-1">Holders</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">
-            {{ formatNumber(token.holders) }}
-          </p>
+        <div class="info-card">
+          <p class="info-label">Holders</p>
+          <p class="info-value">{{ formatNumber(token.holders) }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p class="text-sm text-gray-500 mb-1">Transfers</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">
-            {{ formatNumber(token.transfers) }}
-          </p>
+        <div class="info-card">
+          <p class="info-label">Type</p>
+          <p class="info-value">{{ token.type || "NEP-17" }}</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p class="text-sm text-gray-500 mb-1">Decimals</p>
-          <p class="text-lg font-bold text-gray-800 dark:text-white">
-            {{ token.decimals }}
-          </p>
+        <div class="info-card">
+          <p class="info-label">Decimals</p>
+          <p class="info-value">{{ token.decimals || 0 }}</p>
         </div>
       </div>
 
-      <!-- Contract Info -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-6 p-4">
-        <div class="flex flex-col md:flex-row md:items-center gap-2">
-          <span class="text-gray-500 text-sm">Contract:</span>
-          <span class="font-mono text-sm break-all">{{ token.hash }}</span>
-          <button
-            @click="copyHash"
-            class="text-gray-400 hover:text-primary-500"
+      <div class="mb-6 etherscan-card">
+        <InfoRow
+          label="Contract"
+          tooltip="The smart contract address for this token"
+          :copyable="!!token.hash"
+          :copy-value="token.hash"
+        >
+          <router-link
+            v-if="token.hash"
+            :to="`/contractinfo/${token.hash}`"
+            class="break-all font-mono text-sm etherscan-link"
           >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-          </button>
-        </div>
+            {{ token.hash }}
+          </router-link>
+          <span v-else>-</span>
+        </InfoRow>
       </div>
 
-      <!-- Tabs -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-        <div class="border-b border-gray-200 dark:border-gray-700">
-          <nav class="flex -mb-px">
+      <div class="etherscan-card">
+        <div class="border-b border-card-border dark:border-card-border-dark">
+          <nav class="flex flex-wrap">
             <button
               v-for="tab in tabs"
               :key="tab.key"
-              @click="activeTab = tab.key"
-              :class="[
-                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+              class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+              :class="
                 activeTab === tab.key
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700',
-              ]"
+                  ? 'border-primary-500 text-primary-500 dark:text-primary-400'
+                  : 'border-transparent text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-gray-200'
+              "
+              @click="activeTab = tab.key"
             >
               {{ tab.label }}
             </button>
           </nav>
         </div>
-        <div class="p-4">
-          <div
-            v-if="activeTab === 'transfers'"
-            class="text-gray-500 text-center py-8"
-          >
-            Token transfers coming soon...
+
+        <div class="p-4 md:p-5">
+          <div v-if="!token.hash" class="py-8 text-center text-text-secondary dark:text-gray-400">
+            Loading token details...
           </div>
-          <div v-else class="text-gray-500 text-center py-8">
-            Token holders coming soon...
+
+          <div v-else-if="activeTab === 'transfers'">
+            <TokenTxNep17
+              :key="`token-transfers-${token.hash}`"
+              :contract-hash="token.hash"
+              :decimal="tokenDecimals"
+              :symbol="token.symbol"
+            />
+          </div>
+
+          <div v-else>
+            <TokenHolder :key="`token-holders-${token.hash}`" :contract-hash="token.hash" :decimal="tokenDecimals" />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script>
 import { tokenService } from "@/services";
+import { getTokenDetailTabs } from "@/utils/detailRouting";
+import InfoRow from "@/components/common/InfoRow.vue";
+import TokenTxNep17 from "@/views/Token/TokenTxNep17.vue";
+import TokenHolder from "@/views/Token/TokenHolder.vue";
 
 export default {
   name: "TokenDetailNew",
+  components: {
+    InfoRow,
+    TokenTxNep17,
+    TokenHolder,
+  },
   data() {
     return {
       token: {},
       loading: false,
       activeTab: "transfers",
-      tabs: [
-        { key: "transfers", label: "Transfers" },
-        { key: "holders", label: "Holders" },
-      ],
+      tabs: getTokenDetailTabs(),
     };
   },
   computed: {
     formatSupply() {
-      const s = this.token?.totalsupply;
-      if (!s) return "0";
-      const d = this.token?.decimals || 0;
-      return (s / Math.pow(10, d)).toLocaleString();
+      const totalSupply = this.token?.totalsupply;
+      if (!totalSupply) return "0";
+      const decimals = this.token?.decimals || 0;
+      return (totalSupply / Math.pow(10, decimals)).toLocaleString();
+    },
+    tokenDecimals() {
+      return Number(this.token?.decimals || 0);
     },
   },
   watch: {
@@ -155,18 +148,29 @@ export default {
       this.loading = true;
       try {
         this.token = (await tokenService.getByHash(hash)) || {};
-      } catch (e) {
-        console.error("Failed to load token:", e);
+      } catch {
+        // Service layer handles error logging
       } finally {
         this.loading = false;
       }
     },
-    copyHash() {
-      if (this.token?.hash) navigator.clipboard.writeText(this.token.hash);
-    },
-    formatNumber(n) {
-      return n ? n.toLocaleString() : "0";
+    formatNumber(value) {
+      return Number(value || 0).toLocaleString();
     },
   },
 };
 </script>
+
+<style scoped>
+.info-card {
+  @apply rounded-lg border border-card-border bg-white p-4 shadow-sm dark:border-card-border-dark dark:bg-gray-900;
+}
+
+.info-label {
+  @apply text-sm text-text-secondary dark:text-gray-400;
+}
+
+.info-value {
+  @apply mt-1 text-lg font-semibold text-text-primary dark:text-gray-100;
+}
+</style>

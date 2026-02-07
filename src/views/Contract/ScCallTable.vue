@@ -1,141 +1,104 @@
 <template>
-  <div class="card shadow" :class="type === 'dark' ? 'bg-default' : ''">
-    <div class="table-responsive">
-      <loading
-        :is-full-page="false"
-        :opacity="0.9"
-        :active="isLoading"
-      ></loading>
-      <base-table
-        class="table align-items-center table-hover"
-        :class="type === 'dark' ? 'table-dark' : ''"
-        :thead-classes="type === 'dark' ? 'thead-dark' : 'thead-light'"
-        tbody-classes="list"
-        :data="ScCallList"
-      >
-        <template v-slot:columns>
-          <th class="tableHeader">{{ $t("contract.txID") }}</th>
-          <th class="tableHeader">
-            {{ $t("contract.sender") }}
-            <el-button
-              type="info"
-              :plain="true"
-              size="small"
-              style="height: 21px; margin-left: 4px"
-              @click="changeFormat(button)"
-            >
-              {{ this.button.buttonName }}</el-button
-            >
-          </th>
-          <th class="tableHeader">{{ $t("contract.method") }}</th>
-          <th class="tableHeader">{{ $t("contract.callFlags") }}</th>
-        </template>
-
-        <template v-slot:default="row">
-          <th scope="row">
-            <div class="media align-items-center short">
-              <div class="media-body txid">
-                <span
-                  class="text-muted"
-                  v-if="
-                    row.item.txid ===
-                    '0x0000000000000000000000000000000000000000000000000000000000000000'
-                  "
-                  >{{ $t("Null Transaction") }}</span
-                >
-                <router-link
-                  class="mb-0 table-list-item-blue"
-                  v-else
-                  style="cursor: pointer"
-                  :to="'/transactionInfo/' + row.item.txid"
-                  >{{ row.item.txid }}</router-link
-                >
-              </div>
-            </div>
-          </th>
-          <td class="Sender">
-            <div class="short">
-              <span class="text-muted" v-if="row.item.originSender === null">
-                {{ $t("nullAddress") }}
-              </span>
-              <router-link
-                v-else-if="button.state"
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.originSender"
-                >{{ scriptHashToAddress(row.item.originSender) }}</router-link
-              >
-              <router-link
-                v-else
-                class="mb-0 table-list-item-blue"
-                style="cursor: pointer"
-                :to="'/accountprofile/' + row.item.originSender"
-                >{{ row.item.originSender }}</router-link
-              >
-            </div>
-          </td>
-          <td class="table-list-item">
-            {{ row.item.method }}
-          </td>
-          <td class="table-list-item">
-            {{ row.item.callFlags }}
-          </td>
-        </template>
-      </base-table>
+  <div class="etherscan-card overflow-hidden">
+    <div v-if="isLoading" class="space-y-2 p-4">
+      <Skeleton v-for="i in 5" :key="i" height="40px" />
     </div>
 
-    <div
-      v-if="totalCount >= 10"
-      class="card-footer d-flex justify-content-end"
-      :class="type === 'dark' ? 'bg-transparent' : ''"
-      style="height: 70px"
-    >
-      <el-pagination
-        v-if="windowWidth > 552"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        :page-size="10"
-        layout="jumper, prev, pager, next"
+    <template v-else>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+                Sender
+                <button class="btn-mini ml-1" @click="changeFormat(button)">
+                  {{ button.buttonName }}
+                </button>
+              </th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Method</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary">Call Flags</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tr
+              v-for="item in ScCallList"
+              :key="item.txid + item.method"
+              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            >
+              <td class="px-4 py-3">
+                <div class="max-w-[200px] truncate">
+                  <span
+                    v-if="item.txid === '0x0000000000000000000000000000000000000000000000000000000000000000'"
+                    class="text-sm text-text-muted"
+                  >
+                    Null Transaction
+                  </span>
+                  <router-link v-else :to="'/transactionInfo/' + item.txid" class="font-hash text-sm etherscan-link">
+                    {{ item.txid }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="max-w-[200px] truncate">
+                  <span v-if="item.originSender === null" class="text-sm text-text-muted">Null Address</span>
+                  <router-link
+                    v-else
+                    :to="'/accountprofile/' + item.originSender"
+                    class="font-hash text-sm etherscan-link"
+                  >
+                    {{ button.state ? scriptHashToAddress(item.originSender) : item.originSender }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.method }}
+              </td>
+              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                {{ item.callFlags }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="ScCallList.length === 0" class="p-4">
+        <EmptyState title="No contract calls found" />
+      </div>
+    </template>
+
+    <div v-if="totalCount > resultsPerPage" class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+      <EtherscanPagination
+        :page="parseInt(pagination)"
+        :total-pages="countPage"
+        :page-size="resultsPerPage"
         :total="totalCount"
-      >
-      </el-pagination>
-      <el-pagination
-        v-if="windowWidth < 552"
-        small="true"
-        @current-change="handleCurrentChange"
-        :hide-on-single-page="totalCount <= 10"
-        :current-page="parseInt(pagination)"
-        :pager-count="5"
-        layout="prev,pager,next"
-        :total="totalCount"
-      >
-      </el-pagination>
+        :show-page-size="false"
+        @update:page="handleCurrentChange"
+      />
     </div>
   </div>
 </template>
+
 <script>
-import axios from "axios";
-import Loading from "vue-loading-overlay";
-import "vue-loading-overlay/dist/vue-loading.css";
-import { scriptHashToAddress, changeFormat } from "../../store/util";
-import net from "../../store/store";
+import { contractService } from "@/services";
+import { scriptHashToAddress, changeFormat } from "@/store/util";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
 
 export default {
   name: "sc-call-table",
   props: {
-    type: {
-      type: String,
-    },
     contractHash: String,
   },
   components: {
-    Loading,
+    EtherscanPagination,
+    Skeleton,
+    EmptyState,
   },
   data() {
     return {
-      network: net.url,
       ScCallList: [],
       totalCount: 0,
       resultsPerPage: 10,
@@ -143,7 +106,6 @@ export default {
       isLoading: true,
       countPage: 0,
       button: { state: true, buttonName: "Hash" },
-      windowWidth: window.innerWidth,
     };
   },
   created() {
@@ -156,7 +118,6 @@ export default {
     scriptHashToAddress,
     changeFormat,
     watchcontract() {
-      //如果路由有变化，执行的对应的动作
       this.getScCallList(0);
     },
     handleCurrentChange(val) {
@@ -165,59 +126,13 @@ export default {
       const skip = (val - 1) * this.resultsPerPage;
       this.getScCallList(skip);
     },
-    getScCallList(skip) {
-      axios({
-        method: "post",
-        url: "/api",
-        data: {
-          jsonrpc: "2.0",
-          id: 1,
-          params: {
-            ContractHash: this.contractHash,
-            Limit: this.resultsPerPage,
-            Skip: skip,
-          },
-          method: "GetScCallByContractHash",
-        },
-        headers: {
-          "Content-Type": "application/json",
-          withCredentials: " true",
-          crossDomain: "true",
-        },
-      }).then((res) => {
-        this.ScCallList = res["data"]["result"]["result"];
-        this.totalCount = res["data"]["result"]["totalCount"];
-        this.countPage =
-          this.totalCount === 0
-            ? 1
-            : Math.ceil(this.totalCount / this.resultsPerPage);
-        this.isLoading = false;
-      });
-    },
-    getAddress(accountAddress) {
-      this.$router.push({
-        path: `/accountprofile/${accountAddress}`,
-      });
-    },
-    getTransaction(txhash) {
-      this.$router.push({
-        path: `/transactionInfo/${txhash}`,
-      });
+    async getScCallList(skip) {
+      const { result, totalCount } = await contractService.getScCalls(this.contractHash, this.resultsPerPage, skip);
+      this.ScCallList = result;
+      this.totalCount = totalCount;
+      this.countPage = totalCount === 0 ? 1 : Math.ceil(totalCount / this.resultsPerPage);
+      this.isLoading = false;
     },
   },
 };
 </script>
-<style>
-.txid {
-  width: 200px !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.addr {
-  width: 200px !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

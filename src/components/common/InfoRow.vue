@@ -1,23 +1,34 @@
 <template>
-  <div
-    class="info-row flex flex-col md:flex-row md:items-start py-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
-  >
-    <div class="md:w-1/4 text-gray-500 dark:text-gray-400 text-sm mb-1 md:mb-0">
-      {{ label }}
+  <div class="info-row">
+    <div class="info-row-label">
+      <span>{{ label }}</span>
+      <span v-if="tooltip" class="tooltip-trigger" :title="tooltip">?</span>
     </div>
-    <div class="md:w-3/4 text-gray-800 dark:text-white break-all">
+    <div class="info-row-value">
       <slot>{{ value }}</slot>
+      <CopyButton v-if="copyable && copyValue" :text="copyValue" class="ml-1.5 inline-flex" />
     </div>
   </div>
 </template>
 
 <script>
+import CopyButton from "./CopyButton.vue";
+
 export default {
   name: "InfoRow",
+  components: { CopyButton },
   props: {
     label: String,
     value: [String, Number],
+    tooltip: { type: String, default: "" },
     copyable: { type: Boolean, default: false },
+    copyValue: { type: String, default: "" },
   },
 };
 </script>
+
+<style scoped>
+.tooltip-trigger {
+  @apply ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-200 text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400;
+}
+</style>

@@ -1,439 +1,326 @@
 <template>
-  <div>
-    <div class="container-fluid mt--8" style="background-color: #f7f8fa">
-      <div class="row">
-        <div class="col">
-          <div class="top">
-            <loading
-              :is-full-page="false"
-              :opacity="0.9"
-              :active="isLoading"
-            ></loading>
-            <div
-              class="row mt-3 mb-5 title1 shortTitle"
-              style="font-size: 36px; height: 100px; align-items: end"
-            >
-              {{ $t("tokenDetail") }}
-            </div>
-            <div class="row mt-3 mb-3 title2 shortTitle">
-              {{ $t("overview") }}
-              <div>
-                <el-button
-                  type="info"
-                  :plain="true"
-                  size="small"
-                  style="height: 23px; margin-left: 10px"
-                  @click="getContract(this.token_info['hash'])"
-                >
-                  Contract</el-button
-                >
-              </div>
-            </div>
-            <div class="row mt-3"></div>
-
-            <card shadow class="card-style list">
-              <div class="row">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.name") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  <div v-if="this.token_info.ispopular">
-                    {{ this.token_info["tokenname"] }} &#x1F525;
-                  </div>
-                  <div v-else>{{ this.token_info["tokenname"] }}</div>
-                  <el-tag
-                    v-if="this.updateCounter === -1"
-                    type="danger"
-                    size="small"
-                  >
-                    Destroyed
-                  </el-tag>
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("hash") }}
-                </div>
-                <div class="col-md-9 context-black" id="token">
-                  <span>
-                    {{ this.token_info["hash"] }}
-                  </span>
-
-                  <i
-                    class="ni ni-single-copy-04"
-                    id="hashButton"
-                    title="Copy to Clipboard"
-                    style="padding-left: 5px; color: grey; cursor: pointer"
-                    @click="copyItem('token', 'hashButton', 'hashSpan')"
-                  ></i>
-                  <span style="color: #42b983" id="hashSpan"></span>
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.symbol") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  {{ this.token_info["symbol"] }}
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.decimal") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  {{ this.token_info["decimals"] }}
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.standard") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  {{ $t("tokenInfo.standard") }}
-                  {{ this.token_info["type"] }}
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.transferred") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  <div v-if="this.token_info.firsttransfertime">
-                    {{
-                      this.convertPreciseTime(
-                        this.token_info["firsttransfertime"]
-                      )
-                    }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.supply") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  {{
-                    convertToken(this.token_info["totalsupply"], this.decimal)
-                  }}
-                </div>
-              </div>
-
-              <div class="row info mt-3 mb-1">
-                <div class="col-md-3 lable-title">
-                  {{ $t("tokenInfo.holders") }}
-                </div>
-                <div class="col-md-9 context-black">
-                  {{ this.token_info["holders"] }}
-                </div>
-              </div>
-            </card>
-
-            <div class="row mt-5"></div>
-            <el-tabs
-              type="card"
-              class="list"
-              v-model="activeName"
-              style="width: 80%; margin-left: 10%; background-color: #f7f8fa"
-            >
-              <el-tab-pane :label="$t('tokenInfo.nftToken')" name="first">
-                <nft-token
-                  v-if="this.token_id['totalsupply'] !== 0"
-                  :contract-hash="token_id"
-                  :decimal="decimal == '' ? 0 : decimal"
-                ></nft-token>
-                <card shadow v-else class="text-center">
-                  {{ $t("NftToken.nullPrompt") }}</card
-                >
-              </el-tab-pane>
-              <el-tab-pane :label="$t('tokenInfo.topHolders')" name="second">
-                <nft-token-holder
-                  v-if="this.token_info['holders']"
-                  :contract-hash="token_id"
-                >
-                </nft-token-holder>
-                <card shadow v-else class="text-center">{{
-                  $t("tokenHolder.nullPrompt")
-                }}</card>
-              </el-tab-pane>
-              <el-tab-pane :label="$t('tokenInfo.contractInfo')" name="third">
-                <div
-                  class="extra"
-                  v-if="
-                    this.manifest.extra &&
-                    JSON.stringify(this.manifest.extra) !== '{}'
-                  "
-                >
-                  <div class="mt-2 mb-3 title4">
-                    {{ $t("tokenInfo.extra") }}
-                  </div>
-                  <card shadow>
-                    <div class="row">
-                      <div class="col-auto">
-                        {{ $t("tokenInfo.email") }} :
-                        <a :href="'mailto:' + manifest.extra['Email']">
-                          {{ this.manifest.extra["Email"] }}
-                        </a>
-                      </div>
-                      <div class="col-auto">
-                        {{ $t("tokenInfo.author") }}:
-                        {{ this.manifest.extra["Author"] }}
-                      </div>
-                      <div class="col-auto">
-                        {{ $t("tokenInfo.description") }} :
-                        {{ this.manifest.extra["Description"] }}
-                      </div>
-                    </div>
-                  </card>
-                </div>
-                <div class="abi" v-if="this.manifest.abi">
-                  <div
-                    class="events"
-                    v-if="this.manifest.abi.events.length !== 0"
-                  >
-                    <div class="mt-2 mb-3 title4">
-                      {{ $t("tokenInfo.events") }}
-                    </div>
-
-                    <el-collapse
-                      v-model="activeNames"
-                      v-for="(item, index) in this.manifest['abi']['events']"
-                      :key="index"
-                      :name="index"
-                      style="border: white"
-                    >
-                      <el-collapse-item
-                        :title="item['name']"
-                        style="margin-bottom: 20px"
-                      >
-                        <div class="row">
-                          <div class="col">
-                            <div class="params">
-                              <div class="event_parameters">
-                                {{ $t("tokenInfo.params") }}
-                              </div>
-                              <div v-if="item['parameters'].length !== 0">
-                                <div
-                                  v-for="(param, ind) in item['parameters']"
-                                  :key="ind"
-                                  class="row mt-3 mb-1"
-                                >
-                                  <div class="col-lg-2 event_param">
-                                    {{ param["name"] }}:
-                                  </div>
-                                  <div class="col-lg-9 context-black">
-                                    {{ param["type"] }}
-                                  </div>
-                                </div>
-                              </div>
-                              <div v-else>null</div>
-                            </div>
-                          </div>
-                        </div>
-                      </el-collapse-item>
-                    </el-collapse>
-                  </div>
-                  <div class="mt-4 mb-3 title4">
-                    {{ $t("tokenInfo.methods") }}
-                  </div>
-
-                  <el-collapse
-                    v-model="activeNames2"
-                    v-for="(item, index) in this.manifest['abi']['methods']"
-                    :key="index"
-                    :name="index"
-                    style="border: white"
-                  >
-                    <el-collapse-item
-                      :title="item['name']"
-                      style="margin-bottom: 20px"
-                    >
-                      <div class="row">
-                        <div
-                          class="col"
-                          style="margin-left: 4%"
-                          v-if="item['safe']"
-                        >
-                          <button
-                            class="btn btn-sm btn-primary"
-                            @click="onQuery(index)"
-                          >
-                            {{ $t("tokenInfo.query") }}
-                          </button>
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col-lg-3" style="margin-left: 4%">
-                          <div class="params">
-                            <div class="text-muted">
-                              {{ $t("tokenInfo.params") }}
-                            </div>
-                            <div v-if="item['parameters'].length !== 0">
-                              <div v-if="item['safe']">
-                                <div
-                                  v-for="(param, ind) in item['parameters']"
-                                  :key="ind"
-                                >
-                                  <li>
-                                    {{ param["name"] }}: {{ param["type"] }}
-                                    <div>
-                                      <input
-                                        type="text"
-                                        style="
-                                          border: 2px solid #676c6c;
-                                          border-radius: 4px;
-                                        "
-                                        v-model="
-                                          manifest['abi']['methods'][index][
-                                            'parameters'
-                                          ][ind].value
-                                        "
-                                      />
-                                    </div>
-                                  </li>
-                                </div>
-                              </div>
-                              <div v-else>
-                                <li
-                                  v-for="(param, ind) in item['parameters']"
-                                  :key="ind"
-                                >
-                                  {{ param["name"] }}: {{ param["type"] }}
-                                </li>
-                              </div>
-                            </div>
-                            <div v-else>{{ $t("tokenInfo.noParam") }}</div>
-                          </div>
-                        </div>
-                        <div class="col-lg-3" style="margin-left: 4%">
-                          <div class="return">
-                            <div class="text-muted">
-                              {{ $t("tokenInfo.returnType") }}
-                            </div>
-                            {{ item["returntype"] }}
-                          </div>
-                        </div>
-                        <div class="col-lg-3" style="margin-left: 4%">
-                          <div class="text-muted">
-                            {{ $t("tokenInfo.offset") }}
-                          </div>
-                          {{ item["offset"] }}
-                        </div>
-                        <div class="col-lg" style="margin-left: 4%">
-                          <div class="text-muted">
-                            {{ $t("tokenInfo.safe") }}
-                          </div>
-                          {{ item["safe"] }}
-                        </div>
-                      </div>
-                      <div class="mt-3 ml-4">
-                        <div
-                          v-if="
-                            manifest['abi']['methods'][index]['error'] &&
-                            manifest['abi']['methods'][index]['error'] !== ''
-                          "
-                        >
-                          <h3>{{ $t("tokenInfo.error") }}</h3>
-                          <div>
-                            {{ manifest["abi"]["methods"][index]["error"] }}
-                          </div>
-                        </div>
-                        <div
-                          v-else-if="
-                            manifest['abi']['methods'][index]['raw'] &&
-                            manifest['abi']['methods'][index]['raw'] !== ''
-                          "
-                        >
-                          <div class="row">
-                            <h3 class="col-auto">
-                              {{ $t("tokenInfo.response") }}
-                            </h3>
-                            <div>
-                              <button
-                                class="btn btn-sm btn-primary ml-2"
-                                @click="decode(index)"
-                              >
-                                {{
-                                  manifest["abi"]["methods"][index]["button"]
-                                }}
-                              </button>
-                            </div>
-                          </div>
-                          <contract-json-view
-                            v-if="manifest['abi']['methods'][index]['isRaw']"
-                            :json="manifest['abi']['methods'][index]['raw']"
-                          ></contract-json-view>
-                          <contract-json-view
-                            v-else
-                            :json="manifest['abi']['methods'][index]['display']"
-                          ></contract-json-view>
-                        </div>
-                      </div>
-                    </el-collapse-item>
-                  </el-collapse>
-                </div>
-              </el-tab-pane>
-            </el-tabs>
-          </div>
-          <div style="margin-top: 30px; margin-bottom: 20px"></div>
-        </div>
+  <div class="mx-auto max-w-[1400px] px-4 py-6">
+    <!-- Loading -->
+    <div v-if="isLoading" class="space-y-4">
+      <Skeleton height="40px" />
+      <div class="etherscan-card p-6">
+        <Skeleton v-for="i in 8" :key="i" height="24px" class="mb-3" />
       </div>
     </div>
+
+    <template v-else>
+      <!-- Page Title -->
+      <div class="mb-6 flex items-center gap-3">
+        <h1 class="text-xl font-semibold text-text-primary dark:text-white">Token Detail</h1>
+        <span
+          v-if="updateCounter === -1"
+          class="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
+        >
+          Destroyed
+        </span>
+        <button class="btn-outline ml-auto" @click="getContract(token_info['hash'])">View Contract</button>
+      </div>
+
+      <!-- Overview Card -->
+      <div class="etherscan-card mb-6">
+        <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+          <h2 class="text-sm font-semibold text-text-primary dark:text-white">Overview</h2>
+        </div>
+        <div class="divide-y divide-card-border dark:divide-card-border-dark">
+          <!-- Name -->
+          <div class="info-row">
+            <div class="info-label">Name</div>
+            <div class="info-value">
+              {{ token_info["tokenname"] }}
+              <span v-if="token_info.ispopular" class="ml-1">&#x1F525;</span>
+            </div>
+          </div>
+          <!-- Hash -->
+          <div class="info-row">
+            <div class="info-label">Hash</div>
+            <div class="info-value flex items-center gap-2">
+              <span class="font-hash text-primary-500 break-all">{{ token_info["hash"] }}</span>
+              <button
+                class="shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                title="Copy to clipboard"
+                @click="copyHash(token_info['hash'])"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
+              <span v-if="copied" class="text-xs text-green-500">Copied!</span>
+            </div>
+          </div>
+          <!-- Symbol -->
+          <div class="info-row">
+            <div class="info-label">Symbol</div>
+            <div class="info-value">{{ token_info["symbol"] }}</div>
+          </div>
+          <!-- Decimals -->
+          <div class="info-row">
+            <div class="info-label">Decimals</div>
+            <div class="info-value">{{ token_info["decimals"] }}</div>
+          </div>
+          <!-- Standard -->
+          <div class="info-row">
+            <div class="info-label">Standard</div>
+            <div class="info-value">NEP-{{ token_info["type"] }}</div>
+          </div>
+          <!-- First Transfer -->
+          <div class="info-row">
+            <div class="info-label">First Transfer</div>
+            <div class="info-value">
+              <span v-if="token_info.firsttransfertime">
+                {{ convertPreciseTime(token_info["firsttransfertime"]) }}
+              </span>
+              <span v-else class="text-text-muted">—</span>
+            </div>
+          </div>
+          <!-- Total Supply -->
+          <div class="info-row">
+            <div class="info-label">Total Supply</div>
+            <div class="info-value">{{ convertToken(token_info["totalsupply"], decimal) }}</div>
+          </div>
+          <!-- Holders -->
+          <div class="info-row">
+            <div class="info-label">Holders</div>
+            <div class="info-value">{{ token_info["holders"] }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div v-if="updateCounter !== -1">
+        <div class="mb-4 flex gap-1 border-b border-card-border dark:border-card-border-dark">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="tab-btn"
+            :class="{ active: activeName === tab.key }"
+            @click="activeName = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- Tab: NFT Tokens -->
+        <div v-show="activeName === 'nfts'">
+          <nft-token
+            v-if="token_info['totalsupply'] !== 0"
+            :contract-hash="token_id"
+            :decimal="decimal === '' ? 0 : decimal"
+          />
+          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No NFT tokens found</div>
+        </div>
+
+        <!-- Tab: Top Holders -->
+        <div v-show="activeName === 'holders'">
+          <token-holder v-if="token_info['holders']" :contract-hash="token_id" :format-balance="false" />
+          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No holders found</div>
+        </div>
+
+        <!-- Tab: Contract Info -->
+        <div v-show="activeName === 'contract'">
+          <!-- Extra Info -->
+          <div v-if="manifest.extra && JSON.stringify(manifest.extra) !== '{}'" class="etherscan-card mb-4">
+            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Extra</h3>
+            </div>
+            <div class="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 text-sm">
+              <div v-if="manifest.extra['Email']">
+                <span class="text-text-secondary">Email:</span>
+                <a :href="'mailto:' + manifest.extra['Email']" class="ml-1 etherscan-link">
+                  {{ manifest.extra["Email"] }}
+                </a>
+              </div>
+              <div v-if="manifest.extra['Author']">
+                <span class="text-text-secondary">Author:</span>
+                <span class="ml-1 text-text-primary dark:text-gray-200">{{ manifest.extra["Author"] }}</span>
+              </div>
+              <div v-if="manifest.extra['Description']">
+                <span class="text-text-secondary">Description:</span>
+                <span class="ml-1 text-text-primary dark:text-gray-200">{{ manifest.extra["Description"] }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABI: Events -->
+          <div v-if="manifest.abi && manifest.abi.events && manifest.abi.events.length > 0" class="etherscan-card mb-4">
+            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Events</h3>
+            </div>
+            <div class="divide-y divide-card-border dark:divide-card-border-dark">
+              <details v-for="(item, index) in manifest['abi']['events']" :key="'event-' + index" class="group">
+                <summary
+                  class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
+                >
+                  <svg
+                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                  {{ item["name"] }}
+                </summary>
+                <div class="px-4 pb-3 pl-10">
+                  <div class="text-xs font-medium uppercase text-text-secondary mb-2">Parameters</div>
+                  <div v-if="item['parameters'].length > 0" class="space-y-1">
+                    <div v-for="(param, ind) in item['parameters']" :key="ind" class="flex gap-2 text-sm">
+                      <span class="font-medium text-text-secondary">{{ param["name"] }}:</span>
+                      <span class="text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="text-sm text-text-muted">null</div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- ABI: Methods -->
+          <div v-if="manifest.abi && manifest.abi.methods" class="etherscan-card">
+            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Methods</h3>
+            </div>
+            <div class="divide-y divide-card-border dark:divide-card-border-dark">
+              <details v-for="(item, index) in manifest['abi']['methods']" :key="'method-' + index" class="group">
+                <summary
+                  class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
+                >
+                  <svg
+                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                  {{ item["name"] }}
+                  <span
+                    v-if="item['safe']"
+                    class="ml-1 rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    >safe</span
+                  >
+                </summary>
+                <div class="px-4 pb-4 pl-10">
+                  <div v-if="item['safe']" class="mb-3">
+                    <button class="btn-outline text-xs" @click="onQuery(index)">Query</button>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Parameters</div>
+                      <div v-if="item['parameters'].length > 0">
+                        <div v-for="(param, ind) in item['parameters']" :key="ind" class="mb-1 text-sm">
+                          <span class="font-medium text-text-secondary">{{ param["name"] }}:</span>
+                          <span class="ml-1 text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
+                          <input
+                            v-if="item['safe']"
+                            type="text"
+                            class="mt-1 block w-full rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            v-model="manifest['abi']['methods'][index]['parameters'][ind].value"
+                          />
+                        </div>
+                      </div>
+                      <div v-else class="text-sm text-text-muted">No parameters</div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Return Type</div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["returntype"] }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Offset</div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["offset"] }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Safe</div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["safe"] }}</div>
+                    </div>
+                  </div>
+                  <!-- Error -->
+                  <div
+                    class="mt-3"
+                    v-if="
+                      manifest['abi']['methods'][index]['error'] && manifest['abi']['methods'][index]['error'] !== ''
+                    "
+                  >
+                    <div class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Error</div>
+                    <div class="rounded bg-red-50 p-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                      {{ manifest["abi"]["methods"][index]["error"] }}
+                    </div>
+                  </div>
+                  <!-- Response -->
+                  <div
+                    class="mt-3"
+                    v-else-if="
+                      manifest['abi']['methods'][index]['raw'] && manifest['abi']['methods'][index]['raw'] !== ''
+                    "
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-xs font-semibold text-text-primary dark:text-white">Response</span>
+                      <button class="btn-mini" @click="decode(index)">
+                        {{ manifest["abi"]["methods"][index]["button"] }}
+                      </button>
+                    </div>
+                    <contract-json-view
+                      v-if="manifest['abi']['methods'][index]['isRaw']"
+                      :json="manifest['abi']['methods'][index]['raw']"
+                    />
+                    <contract-json-view v-else :json="manifest['abi']['methods'][index]['display']" />
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
 import { tokenService, contractService } from "@/services";
-import Loading from "vue-loading-overlay";
-import "vue-loading-overlay/dist/vue-loading.css";
+import NftToken from "./NftTokens";
+import TokenHolder from "./TokenHolder";
 import ContractJsonView from "../Contract/ContractJsonView";
 import Neon from "@cityofzion/neon-js";
-import {
-  convertPreciseTime,
-  convertToken,
-  responseConverter,
-  copyItem,
-  RPC_NODE_MAIN,
-  RPC_NODE_TEST_T5,
-} from "../../store/util";
-import net from "../../store/store";
-import NftToken from "./NftTokens";
-import NftTokenHolder from "./NftTokenHolder";
+import { convertPreciseTime, convertToken, responseConverter } from "@/store/util";
+import { getRpcUrl } from "@/utils/env";
+import Skeleton from "@/components/common/Skeleton.vue";
 
 export default {
   components: {
-    NftTokenHolder,
-    NftToken,
     ContractJsonView,
-
-    Loading,
+    NftToken,
+    TokenHolder,
+    Skeleton,
   },
   data() {
     return {
-      network: net.url,
-      token_id: this.$route.params.hash,
+      token_id: "",
       isLoading: true,
       token_info: [],
-      standard: 0,
       manifest: "",
       decimal: "",
-      activeName: "first",
-      activeNames: ["0"],
-      activeNames2: ["0"],
+      activeName: "nfts",
+      tabs: [
+        { key: "nfts", label: "NFT Tokens" },
+        { key: "holders", label: "Top Holders" },
+        { key: "contract", label: "Contract Info" },
+      ],
       updateCounter: 0,
+      copied: false,
     };
   },
   created() {
-    window.scroll(0, 0);
-    this.getToken(this.token_id);
-    this.getContractManifest(this.token_id);
-    this.getContractUpdateCounter(this.token_id);
+    this.token_id = this.$route.params.hash;
+    this.loadAllData();
   },
   watch: {
     $route: "watchrouter",
@@ -441,7 +328,6 @@ export default {
   methods: {
     convertPreciseTime,
     convertToken,
-    copyItem,
     decode(index) {
       if (this.manifest["abi"]["methods"][index]["isRaw"]) {
         this.manifest["abi"]["methods"][index]["isRaw"] = false;
@@ -451,11 +337,28 @@ export default {
         this.manifest["abi"]["methods"][index]["button"] = "Decode";
       }
     },
+    copyHash(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.copied = true;
+        setTimeout(() => {
+          this.copied = false;
+        }, 2000);
+      });
+    },
     watchrouter() {
-      //如果路由有变化，执行的对应的动作
-      if (this.$route.name === "NftInfo") {
-        location.reload();
+      if (this.$route.name === "NFTtokeninfo") {
+        this.token_id = this.$route.params.hash;
+        this.loadAllData();
       }
+    },
+    loadAllData() {
+      this.isLoading = true;
+      this.activeName = "nfts";
+      this.manifest = "";
+      this.updateCounter = 0;
+      this.getToken(this.token_id);
+      this.getContractManifest(this.token_id);
+      this.getContractUpdateCounter(this.token_id);
     },
     getContract(hash) {
       this.$router.push(`/contractinfo/${hash}`);
@@ -464,14 +367,11 @@ export default {
       tokenService
         .getByHash(token_id)
         .then((res) => {
-          let raw = res;
-          this.standard = raw?.type === "NEP17" ? 1 : 2;
-          this.decimal = raw?.decimals;
-          this.token_info = raw;
+          this.decimal = res?.decimals;
+          this.token_info = res;
           this.isLoading = false;
         })
-        .catch((err) => {
-          console.error("Failed to load token info:", err);
+        .catch(() => {
           this.isLoading = false;
         });
     },
@@ -479,10 +379,10 @@ export default {
       contractService
         .getByHash(contract_id)
         .then((res) => {
-          this.updateCounter = res?.updatecounter || 0;
+          this.updateCounter = res?.updatecounter;
         })
-        .catch((err) => {
-          console.error("Failed to get contract update counter:", err);
+        .catch(() => {
+          // Service layer handles error logging
         });
     },
     onQuery(index) {
@@ -493,22 +393,13 @@ export default {
       const contractParams = [];
       for (const item of params) {
         try {
-          let temp = Neon.create.contractParam(item["type"], item["value"]);
-          contractParams.push(temp);
+          contractParams.push(Neon.create.contractParam(item["type"], item["value"]));
         } catch (err) {
           this.manifest["abi"]["methods"][index]["error"] = err.toString();
           return;
         }
       }
-      let client = "";
-      if (`${location.hostname}` === "explorer.onegate.space") {
-        client = Neon.create.rpcClient(RPC_NODE_MAIN);
-      } else if (
-        `${location.hostname}` === "testmagnet.explorer.onegate.space"
-      ) {
-        client = Neon.create.rpcClient(RPC_NODE_TEST_T5);
-      }
-
+      const client = Neon.create.rpcClient(getRpcUrl());
       client
         .invokeFunction(this.token_id, name, contractParams)
         .then((res) => {
@@ -519,9 +410,7 @@ export default {
             this.manifest["abi"]["methods"][index]["isRaw"] = true;
             this.manifest["abi"]["methods"][index]["button"] = "Decode";
             this.manifest["abi"]["methods"][index]["raw"] = res["stack"];
-            this.manifest["abi"]["methods"][index]["display"] = JSON.parse(
-              JSON.stringify(temp, responseConverter)
-            );
+            this.manifest["abi"]["methods"][index]["display"] = JSON.parse(JSON.stringify(temp, responseConverter));
           }
         })
         .catch((err) => {
@@ -534,42 +423,31 @@ export default {
         .then((res) => {
           this.manifest = JSON.parse(res?.manifest || "{}");
         })
-        .catch((err) => {
-          console.error("Failed to get contract manifest:", err);
+        .catch(() => {
+          // Service layer handles error logging
         });
     },
   },
 };
 </script>
 
-<style>
-.el-collapse-item__header {
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  height: 70px;
-  line-height: 48px;
-  background-color: #fff;
-  color: #000000;
-  mix-blend-mode: normal;
-  cursor: pointer;
-  border-bottom: 0px !important;
-  font-family: Inter, sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 16px;
-  padding-left: 30px;
-  -webkit-transition: border-bottom-color 0.3s;
-  transition: border-bottom-color 0.3s;
-  outline: 0;
+<style scoped>
+.info-row {
+  @apply flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-4;
 }
-@media screen and (max-width: 790px) {
-  .info {
-    margin-top: 1.5rem !important;
-    margin-bottom: 1.5rem !important;
-  }
+.info-label {
+  @apply w-full shrink-0 text-sm font-medium text-text-secondary sm:w-48;
+}
+.info-value {
+  @apply text-sm text-text-primary dark:text-gray-200;
+}
+.tab-btn {
+  @apply px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:text-primary-500 border-b-2 border-transparent -mb-px;
+}
+.tab-btn.active {
+  @apply text-primary-500 border-primary-500;
+}
+.btn-outline {
+  @apply inline-flex items-center rounded-lg border border-card-border px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-gray-50 hover:text-primary-500 transition-colors dark:border-card-border-dark dark:hover:bg-gray-800;
 }
 </style>

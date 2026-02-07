@@ -1,3 +1,4 @@
+import axios from "axios";
 import { safeRpc, safeRpcList } from "./api";
 
 /**
@@ -21,11 +22,7 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 合约列表
    */
   async getList(limit = 20, skip = 0) {
-    return safeRpcList(
-      "GetContractList",
-      { Limit: limit, Skip: skip },
-      "get contract list"
-    );
+    return safeRpcList("GetContractList", { Limit: limit, Skip: skip }, "get contract list");
   },
 
   /**
@@ -45,11 +42,7 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
    */
   async searchByName(name, limit = 20, skip = 0) {
-    return safeRpcList(
-      "GetContractListByName",
-      { Name: name, Limit: limit, Skip: skip },
-      "search contracts"
-    );
+    return safeRpcList("GetContractListByName", { Name: name, Limit: limit, Skip: skip }, "search contracts");
   },
 
   /**
@@ -76,11 +69,46 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 验证合约列表
    */
   async getVerifiedList(limit = 20, skip = 0) {
+    return safeRpcList("GetVerifiedContracts", { Limit: limit, Skip: skip }, "get verified contracts");
+  },
+
+  /**
+   * 获取合约 SC 调用记录
+   * @param {string} hash - 合约哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} SC 调用列表
+   */
+  async getScCalls(hash, limit = 20, skip = 0) {
+    return safeRpcList("GetScCallByContractHash", { ContractHash: hash, Limit: limit, Skip: skip }, "get SC calls");
+  },
+
+  /**
+   * 获取合约事件通知列表
+   * @param {string} hash - 合约哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 事件列表
+   */
+  async getNotifications(hash, limit = 20, skip = 0) {
     return safeRpcList(
-      "GetVerifiedContracts",
-      { Limit: limit, Skip: skip },
-      "get verified contracts"
+      "GetNotificationByContractHash",
+      { ContractHash: hash, Limit: limit, Skip: skip },
+      "get contract notifications"
     );
+  },
+
+  /**
+   * 上传合约源码进行验证
+   * @param {string} nodeUrl - 验证节点 URL
+   * @param {FormData} formData - 包含源码文件和合约信息的 FormData
+   * @returns {Promise<Object>} 验证结果
+   */
+  async uploadVerification(nodeUrl, formData) {
+    const { data } = await axios.post(nodeUrl, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
   },
 };
 

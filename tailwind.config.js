@@ -6,72 +6,82 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Neo brand colors
+        // Neo brand colors (preserved)
         neo: {
           green: "#00E599",
           dark: "#1A1A2E",
           light: "#F7F8FA",
         },
-        // Primary colors
+        // Etherscan-style primary (link blue)
         primary: {
-          50: "#E6F7FF",
-          100: "#BAE7FF",
-          200: "#91D5FF",
-          300: "#69C0FF",
-          400: "#40A9FF",
-          500: "#165DFF",
-          600: "#096DD9",
-          700: "#0050B3",
-          800: "#003A8C",
-          900: "#002766",
+          50: "#eef6fc",
+          100: "#d4e9f7",
+          200: "#a8d3ef",
+          300: "#6db8e3",
+          400: "#3a9fd8",
+          500: "#0784c3",
+          600: "#066a9c",
+          700: "#055075",
+          800: "#03364e",
+          900: "#021c27",
         },
-        // Gray scale
+        // Etherscan gray scale
         gray: {
-          50: "#F7F8FA",
-          100: "#F2F3F5",
-          200: "#E5E6EB",
-          300: "#C9CDD4",
-          400: "#86909C",
-          500: "#4E5969",
-          600: "#272E3B",
-          700: "#1D2129",
-          800: "#17171A",
-          900: "#0D0D0F",
+          50: "#f8f9fa",
+          100: "#f0f1f3",
+          200: "#e7eaf3",
+          300: "#d5d9e2",
+          400: "#a0aec0",
+          500: "#6c757d",
+          600: "#4a5568",
+          700: "#2d3748",
+          800: "#1a202c",
+          900: "#0d1117",
         },
-        // Status colors
-        success: "#00B42A",
-        warning: "#FF7D00",
-        error: "#F53F3F",
-        info: "#165DFF",
+        // Etherscan text colors
+        text: {
+          primary: "#081d35",
+          secondary: "#6c757d",
+          muted: "#8c98a4",
+        },
+        // Etherscan header
+        header: {
+          bg: "#21325b",
+          "bg-dark": "#1a1c2e",
+        },
+        // Etherscan card
+        card: {
+          border: "#e7eaf3",
+          "border-dark": "#2d3748",
+        },
+        // Status colors (Etherscan)
+        success: "#00a186",
+        warning: "#db8b00",
+        error: "#de4437",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ['"Helvetica Neue"', "Arial", "sans-serif"],
+        mono: ['"JetBrains Mono"', "SFMono-Regular", "Menlo", "monospace"],
+      },
+      fontSize: {
+        xs: ["0.75rem", { lineHeight: "1rem" }],
+        sm: ["0.8125rem", { lineHeight: "1.25rem" }],
+        base: ["0.875rem", { lineHeight: "1.5rem" }],
+        lg: ["1rem", { lineHeight: "1.75rem" }],
+        xl: ["1.25rem", { lineHeight: "1.75rem" }],
+        "2xl": ["1.5rem", { lineHeight: "2rem" }],
       },
       boxShadow: {
-        card: "0 4px 20px rgba(0, 0, 0, 0.08)",
-        "card-hover": "0 8px 30px rgba(0, 0, 0, 0.12)",
-        dropdown: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        card: "0 0.5rem 1.2rem rgba(189,197,209,.2)",
+        "card-hover": "0 0.5rem 1.2rem rgba(189,197,209,.4)",
+        dropdown: "0 0.5rem 1rem rgba(0, 0, 0, 0.15)",
       },
       borderRadius: {
-        xl: "12px",
-        "2xl": "16px",
-        "3xl": "24px",
-      },
-      animation: {
-        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "fade-in": "fadeIn 0.3s ease-in-out",
-        "slide-up": "slideUp 0.3s ease-out",
-      },
-      keyframes: {
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
-        },
-        slideUp: {
-          "0%": { transform: "translateY(10px)", opacity: "0" },
-          "100%": { transform: "translateY(0)", opacity: "1" },
-        },
+        DEFAULT: "0.375rem",
+        lg: "0.5rem",
+        xl: "0.75rem",
+        "2xl": "1rem",
+        "3xl": "1.5rem",
       },
     },
   },

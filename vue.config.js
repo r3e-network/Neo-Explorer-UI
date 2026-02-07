@@ -10,31 +10,33 @@ module.exports = {
         changeOrigin: true,
         // 使用 NGD 官方 neo3fura
         target: "https://neofura.ngd.network",
+        // Only proxy actual API calls (POST), not SPA routes like /api-docs
+        filter(pathname) {
+          return pathname === "/api";
+        },
       },
       "/bpi": {
         changeOrigin: true,
         target: "https://neofura.ngd.network",
       },
-      "/ws": {
-        changeOrigin: true,
-        ws: true,
-        // 本地 neo3fura WebSocket
-        target: "ws://127.0.0.1:1926",
-      },
+      // "/ws" proxy removed — was intercepting webpack-dev-server HMR
+      // WebSocket and pointing to non-existent local neo3fura instance
     },
   },
   configureWebpack: {
     // Set up all the aliases we use in our app.
     resolve: {
       alias: {
-        'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
+        "vue-i18n": "vue-i18n/dist/vue-i18n.cjs.js",
       },
     },
-    externals: isProduction ? {
-      // CDN externals for production (optional)
-      // vue: "Vue",
-      // axios: "axios",
-    } : {},
+    externals: isProduction
+      ? {
+          // CDN externals for production (optional)
+          // vue: "Vue",
+          // axios: "axios",
+        }
+      : {},
     plugins: [
       new CompressionWebpackPlugin({
         algorithm: "gzip",
@@ -50,12 +52,6 @@ module.exports = {
         minSize: 20000,
         maxSize: 250000,
         cacheGroups: {
-          // Vendor chunks
-          elementPlus: {
-            name: "chunk-element-plus",
-            test: /[\\/]node_modules[\\/]element-plus/,
-            priority: 30,
-          },
           echarts: {
             name: "chunk-echarts",
             test: /[\\/]node_modules[\\/](echarts|zrender)/,
@@ -83,11 +79,11 @@ module.exports = {
     },
   },
   pwa: {
-    name: "Vue Argon Design",
-    themeColor: "#172b4d",
-    msTileColor: "#172b4d",
+    name: "Neo Explorer",
+    themeColor: "#21325b",
+    msTileColor: "#21325b",
     appleMobileWebAppCapable: "yes",
-    appleMobileWebAppStatusBarStyle: "#172b4d",
+    appleMobileWebAppStatusBarStyle: "#21325b",
   },
   css: {
     // Enable CSS source maps.
