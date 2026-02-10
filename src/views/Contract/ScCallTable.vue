@@ -34,7 +34,7 @@
                   >
                     Null Transaction
                   </span>
-                  <router-link v-else :to="'/transactionInfo/' + item.txid" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
                 </div>
@@ -44,7 +44,7 @@
                   <span v-if="item.originSender === null" class="text-sm text-text-muted">Null Address</span>
                   <router-link
                     v-else
-                    :to="'/accountprofile/' + item.originSender"
+                    :to="'/account-profile/' + item.originSender"
                     class="font-hash text-sm etherscan-link"
                   >
                     {{ button.state ? scriptHashToAddress(item.originSender) : item.originSender }}

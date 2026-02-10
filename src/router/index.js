@@ -10,6 +10,7 @@ const BlockDetailNew = () => import(/* webpackChunkName: "block" */ "../views/Bl
 // Transaction module
 const TransactionsNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TransactionsNew");
 const TxDetailNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxDetailNew");
+const TxExecutionTrace = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxExecutionTrace");
 
 // Token module
 const TokensNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokensNew");
@@ -33,6 +34,10 @@ const BurnFee = () => import(/* webpackChunkName: "burn" */ "../views/BurnGas/Bu
 const DailyTransaction = () => import(/* webpackChunkName: "charts" */ "../views/BurnGas/DailyTransaction");
 const ApiDocs = () => import(/* webpackChunkName: "developer" */ "../views/Developer/ApiDocs");
 
+// New placeholder pages
+const GasTracker = () => import(/* webpackChunkName: "gas-tracker" */ "../views/GasTracker/GasTracker");
+const AdvancedSearch = () => import(/* webpackChunkName: "search" */ "../views/Search/AdvancedSearch");
+
 // Error pages
 const Search = () => import(/* webpackChunkName: "error" */ "../views/NotFound/SearchNotFound");
 const PageNotFound = () => import(/* webpackChunkName: "error" */ "../views/NotFound/PageNotFound");
@@ -48,106 +53,145 @@ const routes = [
       {
         path: "/homepage",
         name: "homepage",
+        meta: { title: "Neo Explorer" },
         component: HomePageNew,
       },
       {
         path: "/blocks/:page",
         name: "blocks",
+        meta: { title: "Blocks" },
         component: BlocksNew,
       },
       {
-        path: "/blockinfo/:hash",
-        name: "blockinfo",
+        path: "/block-info/:hash",
+        name: "blockDetail",
+        meta: { title: "Block Detail" },
         component: BlockDetailNew,
       },
       {
-        path: "/Transactions/:page",
+        path: "/transactions/:page",
         name: "transactions",
+        meta: { title: "Transactions" },
         component: TransactionsNew,
       },
       {
-        path: "/transactionInfo/:txhash",
-        name: "transactionInfo",
+        path: "/transaction-info/:txhash",
+        name: "transactionDetail",
+        meta: { title: "Transaction Detail" },
         component: TxDetailNew,
       },
       {
         path: "/contracts/:page",
         name: "contracts",
+        meta: { title: "Contracts" },
         component: ContractsNew,
       },
       {
-        path: "/contractinfo/:hash",
-        name: "contractinfo",
+        path: "/contract-info/:hash",
+        name: "contractDetail",
+        meta: { title: "Contract Detail" },
         component: ContractDetailNew,
       },
       {
         path: "/account/:page",
-        name: "Accounts",
+        name: "accounts",
+        meta: { title: "Accounts" },
         component: AccountsNew,
       },
       {
-        path: "/accountprofile/:accountAddress",
-        name: "AccountProfile",
+        path: "/account-profile/:accountAddress",
+        name: "accountProfile",
+        meta: { title: "Address Detail" },
         component: AddressDetailNew,
       },
       {
         path: "/tokens/:tab/:page",
         name: "tokens",
+        meta: { title: "Tokens" },
         component: TokensNew,
       },
       {
-        path: "/NEP17tokeninfo/:hash",
-        name: "NEP17tokeninfo",
+        path: "/nep17-token-info/:hash",
+        name: "nep17TokenDetail",
+        meta: { title: "NEP-17 Token" },
         component: TokenDetailNew,
       },
       {
-        path: "/NFTtokeninfo/:hash",
-        name: "NFTtokeninfo",
+        path: "/nft-token-info/:hash",
+        name: "nep11TokenDetail",
+        meta: { title: "NFT Collection" },
         component: TokenInfoNep11,
       },
       {
         path: "/candidates/:page",
-        name: "Candidates",
+        name: "candidates",
+        meta: { title: "Consensus Nodes" },
         component: CandidatesNew,
       },
       {
         path: "/burn",
         name: "burn",
+        meta: { title: "Burned GAS" },
         component: BurnFee,
       },
       {
-        path: "/VerifyContract/:contractHash",
-        name: "VerifyContract",
+        path: "/verify-contract/:contractHash",
+        name: "verifyContract",
+        meta: { title: "Verify Contract" },
         component: VerifyContract,
       },
       {
-        path: "/SourceCode",
-        name: "SourceCode",
+        path: "/source-code",
+        name: "sourceCode",
+        meta: { title: "Source Code" },
         component: SourceCode,
       },
       {
         path: "/echarts",
-        name: "echarts",
+        name: "charts",
+        meta: { title: "Charts & Statistics" },
         component: DailyTransaction,
       },
       {
         path: "/api-docs",
         name: "apiDocs",
+        meta: { title: "API Documentation" },
         component: ApiDocs,
       },
       {
-        path: "/NFTinfo/:contractHash/:address/:tokenId",
-        name: "NftInfo",
+        path: "/nft-info/:contractHash/:address/:tokenId",
+        name: "nftDetail",
+        meta: { title: "NFT Detail" },
         component: NFTInfoNew,
+      },
+      {
+        path: "/gas-tracker",
+        name: "gasTracker",
+        meta: { title: "Gas Tracker" },
+        component: GasTracker,
+      },
+      {
+        path: "/advanced-search",
+        name: "advancedSearch",
+        meta: { title: "Advanced Search" },
+        component: AdvancedSearch,
+      },
+      {
+        path: "/tx/:txhash/trace",
+        name: "txExecutionTrace",
+        meta: { title: "Execution Trace" },
+        component: TxExecutionTrace,
       },
       {
         path: "search",
         name: "search",
+        meta: { title: "Search Results" },
         component: Search,
       },
       {
         path: "/:pathMatch(.*)",
-        name: "404",
+        name: "notFound",
+        meta: { title: "Page Not Found" },
         component: PageNotFound,
       },
     ],
@@ -164,6 +208,12 @@ const router = createRouter({
     }
     return { top: 0 };
   },
+});
+
+// Dynamic document title from route meta
+router.afterEach((to) => {
+  const title = to.meta?.title;
+  document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
 });
 
 export default router;

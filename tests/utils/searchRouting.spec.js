@@ -12,7 +12,7 @@ describe("resolveSearchLocation", () => {
         type: "block",
         data: { hash: "0xblockhash" },
       })
-    ).toEqual({ path: "/blockinfo/0xblockhash" });
+    ).toEqual({ path: "/block-info/0xblockhash" });
   });
 
   it("routes transactions to transaction detail page", () => {
@@ -21,7 +21,7 @@ describe("resolveSearchLocation", () => {
         type: "transaction",
         data: { hash: "0xtxhash" },
       })
-    ).toEqual({ path: "/transactionInfo/0xtxhash" });
+    ).toEqual({ path: "/transaction-info/0xtxhash" });
   });
 
   it("routes contracts to contract detail page", () => {
@@ -30,12 +30,12 @@ describe("resolveSearchLocation", () => {
         type: "contract",
         data: { hash: "0xcontracthash" },
       })
-    ).toEqual({ path: "/contractinfo/0xcontracthash" });
+    ).toEqual({ path: "/contract-info/0xcontracthash" });
   });
 
   it("routes addresses to account profile", () => {
     expect(resolveSearchLocation("Nabc", { type: "address" })).toEqual({
-      path: "/accountprofile/Nabc",
+      path: "/account-profile/Nabc",
     });
   });
 
@@ -45,7 +45,7 @@ describe("resolveSearchLocation", () => {
         type: "token",
         data: { hash: "0xtokenhash" },
       })
-    ).toEqual({ path: "/NEP17tokeninfo/0xtokenhash" });
+    ).toEqual({ path: "/nep17-token-info/0xtokenhash" });
   });
 
   it("falls back to search results page", () => {

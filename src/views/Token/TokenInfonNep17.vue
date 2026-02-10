@@ -361,7 +361,7 @@ export default {
       });
     },
     watchrouter() {
-      if (this.$route.name === "NEP17tokeninfo") {
+      if (this.$route.name === "nep17TokenDetail") {
         this.token_id = this.$route.params.hash;
         this.loadAllData();
       }

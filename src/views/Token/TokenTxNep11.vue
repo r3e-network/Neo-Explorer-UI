@@ -40,7 +40,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted">System</span>
-                  <router-link v-else :to="'/transactionInfo/' + item.txid" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
                 </div>
@@ -55,7 +55,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.from === null" class="text-sm text-text-muted">Null Address</span>
-                  <router-link v-else :to="'/accountprofile/' + item.from" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/account-profile/' + item.from" class="font-hash text-sm etherscan-link">
                     {{ fromButton.state ? scriptHashToAddress(item.from) : item.from }}
                   </router-link>
                 </div>
@@ -79,7 +79,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.to === null" class="text-sm text-text-muted">Null Address</span>
-                  <router-link v-else :to="'/accountprofile/' + item.to" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/account-profile/' + item.to" class="font-hash text-sm etherscan-link">
                     {{ toButton.state ? scriptHashToAddress(item.to) : item.to }}
                   </router-link>
                 </div>

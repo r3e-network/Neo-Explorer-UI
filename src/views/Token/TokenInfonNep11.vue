@@ -346,7 +346,7 @@ export default {
       });
     },
     watchrouter() {
-      if (this.$route.name === "NFTtokeninfo") {
+      if (this.$route.name === "nep11TokenDetail") {
         this.token_id = this.$route.params.hash;
         this.loadAllData();
       }
@@ -361,7 +361,7 @@ export default {
       this.getContractUpdateCounter(this.token_id);
     },
     getContract(hash) {
-      this.$router.push(`/contractinfo/${hash}`);
+      this.$router.push(`/contract-info/${hash}`);
     },
     getToken(token_id) {
       tokenService

@@ -1,9 +1,6 @@
 <template>
   <div class="hash-link inline-flex items-center gap-2">
-    <router-link
-      :to="linkPath"
-      class="font-mono text-sm text-primary-500 hover:text-primary-600 truncate max-w-xs"
-    >
+    <router-link :to="linkPath" class="font-mono text-sm text-primary-500 hover:text-primary-600 truncate max-w-xs">
       {{ displayHash }}
     </router-link>
     <CopyButton :text="hash" />
@@ -29,10 +26,10 @@ export default {
     },
     linkPath() {
       const routes = {
-        block: `/blockinfo/${this.hash}`,
-        tx: `/transactionInfo/${this.hash}`,
-        address: `/accountprofile/${this.hash}`,
-        contract: `/contractinfo/${this.hash}`,
+        block: `/block-info/${this.hash}`,
+        tx: `/transaction-info/${this.hash}`,
+        address: `/account-profile/${this.hash}`,
+        contract: `/contract-info/${this.hash}`,
       };
       return routes[this.type] || routes.tx;
     },

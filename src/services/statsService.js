@@ -17,14 +17,7 @@ export const statsService = {
 
     const fetchFn = async () => {
       try {
-        const [
-          blocksRes,
-          txsRes,
-          contractsRes,
-          candidatesRes,
-          addressesRes,
-          tokensRes,
-        ] = await Promise.all([
+        const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes] = await Promise.all([
           rpc("GetBlockCount").catch(() => null),
           rpc("GetTransactionCount").catch(() => null),
           rpc("GetContractCount").catch(() => null),
@@ -32,7 +25,7 @@ export const statsService = {
           rpc("GetAddressCount").catch(() => null),
           rpc("GetAssetCount").catch(() => null),
         ]);
-        
+
         // Extract values from different API response formats
         const blocks = blocksRes?.index || blocksRes?.["total counts"] || blocksRes?.total || 0;
         const txs = txsRes?.["total counts"] || txsRes?.total || txsRes?.index || 0;
@@ -40,7 +33,7 @@ export const statsService = {
         const candidates = candidatesRes?.total || candidatesRes?.["total counts"] || 0;
         const addresses = addressesRes?.["total counts"] || addressesRes?.total || 0;
         const tokens = tokensRes?.total || tokensRes?.["total counts"] || 0;
-        
+
         return { blocks, txs, contracts, candidates, addresses, tokens };
       } catch (error) {
         console.error("Failed to get dashboard stats:", error);
@@ -97,6 +90,58 @@ export const statsService = {
       console.error("Failed to get hourly transactions:", error.message);
       return [];
     }
+  },
+
+  /**
+   * 获取 Gas 追踪数据（最新手续费 + 网络费用）
+   * @returns {Promise<Object>} Gas 追踪数据
+   */
+  async getGasTracker() {
+    const key = getCacheKey("gas_tracker", {});
+    return cachedRequest(
+      key,
+      async () => {
+        try {
+          const [latestTxRes, feeRes] = await Promise.all([
+            rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null),
+            rpc("GetNetworkFee", {}).catch(() => null),
+          ]);
+
+          const latestTx = Array.isArray(latestTxRes?.result) ? latestTxRes.result[0] : null;
+
+          return {
+            latestNetworkFee: latestTx?.netfee ?? "0",
+            latestSystemFee: latestTx?.sysfee ?? "0",
+            networkFee: feeRes ?? null,
+          };
+        } catch (error) {
+          console.error("Failed to get gas tracker:", error);
+          return { latestNetworkFee: "0", latestSystemFee: "0", networkFee: null };
+        }
+      },
+      CACHE_TTL.stats
+    );
+  },
+
+  /**
+   * 获取每日统计数据（用于图表，带缓存）
+   * @param {number} [days=30] - 天数
+   * @returns {Promise<Array>} 每日统计数据
+   */
+  async getDailyStats(days = 30) {
+    const key = getCacheKey("daily_stats", { days });
+    return cachedRequest(
+      key,
+      async () => {
+        try {
+          return await rpc("GetDailyTransactions", { Days: days });
+        } catch (error) {
+          console.error("Failed to get daily stats:", error);
+          return [];
+        }
+      },
+      CACHE_TTL.chart
+    );
   },
 };
 

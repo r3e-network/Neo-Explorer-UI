@@ -1,6 +1,7 @@
 /**
  * Shared formatters for explorer views.
  */
+import { GAS_DIVISOR } from "@/constants";
 
 export function truncateHash(value, start = 10, end = 8) {
   if (!value) return "";
@@ -34,9 +35,21 @@ export function formatBytes(value) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+export function formatNumber(value) {
+  if (value === null || value === undefined) return "0";
+  return Number(value).toLocaleString();
+}
+
+export function formatGas(value, decimals = 8) {
+  if (!value) return "0";
+  return (Number(value) / GAS_DIVISOR).toFixed(decimals);
+}
+
 export default {
   truncateHash,
   formatUnixTime,
   formatAge,
   formatBytes,
+  formatNumber,
+  formatGas,
 };

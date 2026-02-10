@@ -51,7 +51,7 @@
         >
           <router-link
             v-if="token.hash"
-            :to="`/contractinfo/${token.hash}`"
+            :to="`/contract-info/${token.hash}`"
             class="break-all font-mono text-sm etherscan-link"
           >
             {{ token.hash }}
@@ -104,6 +104,7 @@
 
 <script>
 import { tokenService } from "@/services";
+import { formatNumber } from "@/utils/explorerFormat";
 import { getTokenDetailTabs } from "@/utils/detailRouting";
 import InfoRow from "@/components/common/InfoRow.vue";
 import TokenTxNep17 from "@/views/Token/TokenTxNep17.vue";
@@ -154,9 +155,7 @@ export default {
         this.loading = false;
       }
     },
-    formatNumber(value) {
-      return Number(value || 0).toLocaleString();
-    },
+    formatNumber,
   },
 };
 </script>

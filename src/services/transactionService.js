@@ -25,12 +25,7 @@ export const transactionService = {
     const key = getCacheKey("tx_list", { limit, skip });
     return cachedRequest(
       key,
-      () =>
-        safeRpcList(
-          "GetTransactionList",
-          { Limit: limit, Skip: skip },
-          "get transaction list"
-        ),
+      () => safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list"),
       CACHE_TTL.list
     );
   },
@@ -44,12 +39,7 @@ export const transactionService = {
     const key = getCacheKey("tx_hash", { hash });
     return cachedRequest(
       key,
-      () =>
-        safeRpc(
-          "GetRawTransactionByTransactionHash",
-          { TransactionHash: hash },
-          null
-        ),
+      () => safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
       CACHE_TTL.detail
     );
   },
@@ -75,6 +65,31 @@ export const transactionService = {
       "GetRawTransactionByAddress",
       { Address: address, Limit: limit, Skip: skip },
       "get transactions by address"
+    );
+  },
+
+  /**
+   * 获取交易的应用日志（带缓存，确认后不可变）
+   * @param {string} txHash - 交易哈希
+   * @returns {Promise<Object|null>} 应用日志数据
+   */
+  async getApplicationLog(txHash) {
+    const key = getCacheKey("tx_applog", { txHash });
+    return cachedRequest(key, () => safeRpc("GetApplicationLog", { TransactionHash: txHash }, null), CACHE_TTL.trace);
+  },
+
+  /**
+   * 获取交易的通知列表（分页）
+   * @param {string} txHash - 交易哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 通知列表
+   */
+  async getNotificationsByTx(txHash, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetNotificationByTransactionHash",
+      { TransactionHash: txHash, Limit: limit, Skip: skip },
+      "get notifications by tx"
     );
   },
 };

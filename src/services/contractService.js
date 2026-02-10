@@ -1,5 +1,6 @@
 import axios from "axios";
 import { safeRpc, safeRpcList } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 
 /**
  * Contract Service - Neo3 合约相关 API 调用
@@ -96,6 +97,34 @@ export const contractService = {
       { ContractHash: hash, Limit: limit, Skip: skip },
       "get contract notifications"
     );
+  },
+
+  /**
+   * 获取合约 manifest（带缓存，极少变更）
+   * @param {string} hash - 合约哈希
+   * @returns {Promise<Object|null>} manifest 数据
+   */
+  async getManifest(hash) {
+    const key = getCacheKey("contract_manifest", { hash });
+    return cachedRequest(
+      key,
+      async () => {
+        const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
+        return contract?.manifest ?? null;
+      },
+      CACHE_TTL.manifest
+    );
+  },
+
+  /**
+   * 只读调用合约方法（不上链）
+   * @param {string} hash - 合约哈希
+   * @param {string} method - 方法名
+   * @param {Array} [params=[]] - 调用参数
+   * @returns {Promise<Object|null>} 调用结果
+   */
+  async invokeRead(hash, method, params = []) {
+    return safeRpc("InvokeFunction", { ContractHash: hash, Operation: method, Args: params }, null);
   },
 
   /**

@@ -45,7 +45,7 @@
               >
                 <td class="px-4 py-3">
                   <router-link
-                    :to="`/transactionInfo/${tx.hash}`"
+                    :to="`/transaction-info/${tx.hash}`"
                     :title="tx.hash"
                     class="font-hash text-sm etherscan-link"
                   >
@@ -53,7 +53,7 @@
                   </router-link>
                 </td>
                 <td class="px-4 py-3">
-                  <router-link :to="`/blockinfo/${tx.blockhash}`" class="etherscan-link">
+                  <router-link :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
                     {{ tx.blockIndex }}
                   </router-link>
                 </td>
@@ -61,7 +61,7 @@
                   {{ showAbsoluteTime ? formatUnixTime(tx.blocktime) : formatAge(tx.blocktime) }}
                 </td>
                 <td class="px-4 py-3">
-                  <router-link :to="`/accountprofile/${tx.sender}`" class="font-hash text-sm etherscan-link">
+                  <router-link :to="`/account-profile/${tx.sender}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(tx.sender, 10, 6) }}
                   </router-link>
                 </td>
@@ -84,7 +84,7 @@
 
         <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
           <EtherscanPagination
-            :page="page"
+            :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
             :total="total"
@@ -99,14 +99,16 @@
 
 <script>
 import { transactionService } from "@/services";
+import { createPaginationMixin } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
-import { truncateHash, formatAge, formatUnixTime } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 
 export default {
   name: "TransactionsPage",
+  mixins: [createPaginationMixin("/transactions")],
   components: {
     EmptyState,
     ErrorState,
@@ -115,55 +117,27 @@ export default {
   },
   data: () => ({
     transactions: [],
-    total: 0,
-    page: 1,
-    pageSize: 20,
     loading: false,
     error: null,
     showAbsoluteTime: false,
   }),
-  computed: {
-    totalPages() {
-      return Math.max(1, Math.ceil(this.total / this.pageSize));
-    },
-  },
-  watch: {
-    "$route.params.page": {
-      immediate: true,
-      handler(p) {
-        this.page = parseInt(p) || 1;
-        this.loadData();
-      },
-    },
-  },
   methods: {
-    async loadData() {
+    async loadPage() {
       this.loading = true;
       this.error = null;
       try {
-        const skip = (this.page - 1) * this.pageSize;
-        const res = await transactionService.getList(this.pageSize, skip);
-        this.transactions = res?.result || [];
-        this.total = res?.totalCount || 0;
+        const res = await transactionService.getList(this.pageSize, this.paginationOffset);
+        this.transactions = this.applyPage(res?.totalCount, res?.result || []);
       } catch {
         this.error = "Failed to load transactions. Please try again.";
       } finally {
         this.loading = false;
       }
     },
-    goToPage(p) {
-      this.$router.push(`/Transactions/${p}`);
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push("/Transactions/1");
-    },
     truncateHash,
     formatAge,
     formatUnixTime,
-    formatNumber(n) {
-      return Number(n || 0).toLocaleString();
-    },
+    formatNumber,
   },
 };
 </script>

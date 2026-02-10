@@ -36,7 +36,7 @@
                 </td>
                 <td class="px-4 py-3">
                   <router-link
-                    :to="`/accountprofile/${account.address}`"
+                    :to="`/account-profile/${account.address}`"
                     :title="account.address"
                     class="font-hash text-sm etherscan-link"
                   >
@@ -86,6 +86,9 @@
 
 <script>
 import { accountService } from "@/services";
+import { GAS_DIVISOR } from "@/constants";
+import { createPaginationMixin } from "@/composables/usePagination";
+import { formatNumber } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/store/util";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -94,6 +97,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 export default {
   name: "AccountsNew",
+  mixins: [createPaginationMixin("/account")],
   components: {
     EmptyState,
     ErrorState,
@@ -105,46 +109,21 @@ export default {
       loading: true,
       error: null,
       accounts: [],
-      total: 0,
-      currentPage: 1,
-      totalPages: 1,
-      pageSize: 25,
     };
   },
-  watch: {
-    "$route.params.page": {
-      immediate: true,
-      handler(page) {
-        this.currentPage = parseInt(page) || 1;
-        this.loadAccounts();
-      },
-    },
-  },
   methods: {
-    async loadAccounts() {
+    async loadPage() {
       this.loading = true;
       this.error = null;
       try {
-        const offset = (this.currentPage - 1) * this.pageSize;
-        const response = await accountService.getList(this.pageSize, offset);
-        this.accounts = response?.result || [];
-        this.total = response?.totalCount || 0;
-        this.totalPages = Math.ceil(this.total / this.pageSize) || 1;
+        const response = await accountService.getList(this.pageSize, this.paginationOffset);
+        this.accounts = this.applyPage(response?.totalCount, response?.result || []);
       } catch {
         this.error = "Failed to load accounts. Please try again.";
         this.accounts = [];
       } finally {
         this.loading = false;
       }
-    },
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.$router.push(`/account/${page}`);
-      }
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push("/account/1");
     },
     formatBalance(balance) {
       if (!balance) return "0";
@@ -154,13 +133,10 @@ export default {
     formatGasBalance(balance) {
       if (!balance) return "0";
       // gasbalance from neo3fura is in smallest unit (10^-8)
-      const num = parseFloat(balance) / 1e8;
+      const num = parseFloat(balance) / GAS_DIVISOR;
       return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
     },
-    formatNumber(num) {
-      if (!num) return "0";
-      return num.toLocaleString();
-    },
+    formatNumber,
     convertAddress(hash) {
       if (!hash) return "-";
       try {

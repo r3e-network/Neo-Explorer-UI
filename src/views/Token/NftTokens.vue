@@ -52,7 +52,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[140px] truncate">
                   <router-link
-                    :to="'/NFTinfo/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
+                    :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
                     class="font-hash text-sm etherscan-link"
                   >
                     {{ item.tokenid }}
@@ -68,7 +68,7 @@
                   >
                     Null Address
                   </span>
-                  <router-link v-else :to="'/accountprofile/' + item.address" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/account-profile/' + item.address" class="font-hash text-sm etherscan-link">
                     {{ button.state ? scriptHashToAddress(item.address) : item.address }}
                   </router-link>
                 </div>

@@ -1,4 +1,5 @@
 import { safeRpc, safeRpcList } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -21,11 +22,7 @@ export const accountService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 账户列表
    */
   async getList(limit = 20, skip = 0) {
-    return safeRpcList(
-      "GetAddressList",
-      { Limit: limit, Skip: skip },
-      "get account list"
-    );
+    return safeRpcList("GetAddressList", { Limit: limit, Skip: skip }, "get account list");
   },
 
   /**
@@ -47,12 +44,43 @@ export const accountService = {
   },
 
   /**
-   * 获取账户余额（getAssets 别名）
+   * 获取账户代币持仓（带缓存）
    * @param {string} address - Neo3 地址
-   * @returns {Promise<Array>} 资产余额列表
+   * @returns {Promise<Array>} 代币持仓列表
    */
-  async getBalance(address) {
-    return safeRpc("GetAssetsHeldByAddress", { Address: address }, []);
+  async getTokenHoldings(address) {
+    const key = getCacheKey("addr_holdings", { address });
+    return cachedRequest(key, () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []), CACHE_TTL.holdings);
+  },
+
+  /**
+   * 获取地址的 NEP17 转账记录（分页）
+   * @param {string} address - Neo3 地址
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
+   */
+  async getNep17Transfers(address, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetNep17TransferByAddress",
+      { Address: address, Limit: limit, Skip: skip },
+      "get NEP17 transfers by address"
+    );
+  },
+
+  /**
+   * 获取地址的 NEP11 转账记录（分页）
+   * @param {string} address - Neo3 地址
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
+   */
+  async getNep11Transfers(address, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetNep11TransferByAddress",
+      { Address: address, Limit: limit, Skip: skip },
+      "get NEP11 transfers by address"
+    );
   },
 };
 

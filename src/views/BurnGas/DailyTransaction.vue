@@ -51,6 +51,7 @@
 <script>
 import { statsService } from "@/services";
 import NetworkChart from "@/components/charts/NetworkChart.vue";
+import { formatNumber } from "@/utils/explorerFormat";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 
@@ -133,9 +134,7 @@ export default {
 
       return mapped;
     },
-    formatNumber(value) {
-      return Number(value || 0).toLocaleString();
-    },
+    formatNumber,
   },
 };
 </script>

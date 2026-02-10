@@ -70,7 +70,7 @@
                   {{ token.symbol || "-" }}
                 </td>
                 <td class="px-4 py-3">
-                  <router-link :to="`/contractinfo/${token.hash}`" class="font-hash text-sm etherscan-link">
+                  <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(token.hash) }}
                   </router-link>
                 </td>
@@ -110,13 +110,15 @@
 
 <script>
 import { tokenService } from "@/services";
+import { createPaginationMixin } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
-import { truncateHash } from "@/utils/explorerFormat";
+import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
 export default {
   name: "TokensNew",
+  mixins: [createPaginationMixin("/tokens")],
   components: {
     EmptyState,
     Skeleton,
@@ -127,10 +129,6 @@ export default {
       loading: true,
       tokens: [],
       activeTab: "nep17",
-      total: 0,
-      currentPage: 1,
-      totalPages: 1,
-      pageSize: 25,
     };
   },
   computed: {
@@ -144,10 +142,8 @@ export default {
       this.currentPage = 1;
       this.$router.push(`/tokens/${this.activeTab}/1`);
       if (alreadyOnPage1) {
-        // Page watcher won't fire (value unchanged), so load directly
-        this.loadTokens();
+        this.loadPage();
       }
-      // Otherwise the page watcher handles it
     },
     "$route.params.tab": {
       immediate: true,
@@ -155,33 +151,24 @@ export default {
         if (tab && tab !== this.activeTab) this.activeTab = tab;
       },
     },
-    "$route.params.page": {
-      immediate: true,
-      handler(page) {
-        this.currentPage = parseInt(page) || 1;
-        this.loadTokens();
-      },
-    },
   },
   methods: {
-    async loadTokens() {
+    async loadPage() {
       this.loading = true;
       try {
-        const offset = (this.currentPage - 1) * this.pageSize;
         const response =
           this.activeTab === "nep11"
-            ? await tokenService.getNep11List(this.pageSize, offset)
-            : await tokenService.getNep17List(this.pageSize, offset);
+            ? await tokenService.getNep11List(this.pageSize, this.paginationOffset)
+            : await tokenService.getNep17List(this.pageSize, this.paginationOffset);
 
-        this.tokens = response?.result || [];
-        this.total = response?.totalCount || 0;
-        this.totalPages = Math.ceil(this.total / this.pageSize) || 1;
+        this.tokens = this.applyPage(response?.totalCount, response?.result || []);
       } catch {
         this.tokens = [];
       } finally {
         this.loading = false;
       }
     },
+    // Override mixin routing — tab-aware paths
     goToPage(page) {
       if (page >= 1 && page <= this.totalPages) {
         this.$router.push(`/tokens/${this.activeTab}/${page}`);
@@ -192,10 +179,7 @@ export default {
       this.$router.push(`/tokens/${this.activeTab}/1`);
     },
     truncateHash,
-    formatNumber(num) {
-      if (!num) return "0";
-      return num.toLocaleString();
-    },
+    formatNumber,
     formatSupply(token) {
       const supply = token.totalsupply;
       if (!supply) return "0";

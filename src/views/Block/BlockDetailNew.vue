@@ -2,7 +2,7 @@
   <div class="block-detail-page">
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-gray-500 mb-4">
+      <nav aria-label="Breadcrumb" class="flex items-center text-sm text-gray-500 mb-4">
         <router-link to="/" class="hover:text-primary-500">Home</router-link>
         <svg class="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -38,18 +38,20 @@
           <button
             @click="goToPrevBlock"
             :disabled="!block.prevhash"
+            aria-label="Previous block"
             class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <button
             @click="goToNextBlock"
             :disabled="!block.nextblockhash"
+            aria-label="Next block"
             class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -114,6 +116,7 @@
 
 <script>
 import { blockService } from "@/services";
+import { formatNumber, formatBytes, formatUnixTime } from "@/utils/explorerFormat";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -158,28 +161,21 @@ export default {
         this.loading = false;
       }
     },
-    formatNumber(num) {
-      return num?.toLocaleString() || "0";
-    },
+    formatNumber,
     formatTime(ts) {
-      if (!ts) return "";
-      // neo3fura returns millisecond timestamps (13+ digits); handle both formats
-      const ms = ts > 1e12 ? ts : ts * 1000;
-      return new Date(ms).toLocaleString();
+      return formatUnixTime(ts) || "";
     },
     formatSize(size) {
-      if (!size) return "0 bytes";
-      if (size >= 1024) return `${(size / 1024).toFixed(2)} KB`;
-      return `${size} bytes`;
+      return formatBytes(size);
     },
     goToPrevBlock() {
       if (this.block.prevhash) {
-        this.$router.push(`/blockinfo/${this.block.prevhash}`);
+        this.$router.push(`/block-info/${this.block.prevhash}`);
       }
     },
     goToNextBlock() {
       if (this.block.nextblockhash) {
-        this.$router.push(`/blockinfo/${this.block.nextblockhash}`);
+        this.$router.push(`/block-info/${this.block.nextblockhash}`);
       }
     },
   },

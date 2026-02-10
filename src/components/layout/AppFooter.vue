@@ -12,8 +12,8 @@
             </div>
             <span class="text-lg font-semibold text-text-primary dark:text-gray-100">Neo Explorer</span>
           </div>
-          <p class="mb-4 text-sm text-text-secondary dark:text-gray-400">
-            Blockchain explorer and analytics platform for Neo N3.
+          <p class="mb-4 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+            A Block Explorer and Analytics Platform for Neo N3.
           </p>
           <!-- Social Icons -->
           <div class="flex items-center gap-3">
@@ -49,12 +49,15 @@
 
         <div>
           <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
-            Explorer
+            Blockchain
           </h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/blocks/1" class="footer-link">Blocks</router-link></li>
             <li>
-              <router-link to="/Transactions/1" class="footer-link">Transactions</router-link>
+              <router-link to="/transactions/1" class="footer-link">Transactions</router-link>
+            </li>
+            <li>
+              <router-link to="/account/1" class="footer-link">Accounts</router-link>
             </li>
             <li>
               <router-link to="/contracts/1" class="footer-link">Contracts</router-link>
@@ -65,42 +68,44 @@
 
         <div>
           <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
-            Community
+            Resources
           </h3>
           <ul class="space-y-2 text-sm">
-            <li><a href="https://docs.neo.org" target="_blank" class="footer-link">Documentation</a></li>
-            <li><a href="https://neo.org" target="_blank" class="footer-link">Neo.org</a></li>
+            <li><router-link to="/echarts" class="footer-link">Charts &amp; Stats</router-link></li>
+            <li><router-link to="/gas-tracker" class="footer-link">Gas Tracker</router-link></li>
+            <li><router-link to="/api-docs" class="footer-link">API Documentation</router-link></li>
             <li>
-              <a href="https://github.com/neo-project" target="_blank" class="footer-link">GitHub</a>
-            </li>
-            <li>
-              <a href="https://twitter.com/neo_blockchain" target="_blank" class="footer-link">X (Twitter)</a>
+              <router-link to="/candidates/1" class="footer-link">Consensus Nodes</router-link>
             </li>
           </ul>
         </div>
 
         <div>
           <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
-            Products
+            Developers
           </h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/api-docs" class="footer-link">API Docs</router-link></li>
-            <li><router-link to="/echarts" class="footer-link">Charts</router-link></li>
-            <li><router-link to="/burn" class="footer-link">Burned GAS</router-link></li>
-            <li><router-link to="/homepage" class="footer-link">Homepage</router-link></li>
+            <li>
+              <router-link to="/verify-contract/" class="footer-link">Verify Contract</router-link>
+            </li>
+            <li>
+              <router-link to="/source-code" class="footer-link">Source Code</router-link>
+            </li>
           </ul>
         </div>
       </div>
 
       <div
-        class="mt-8 flex flex-col items-start justify-between gap-2 border-t border-gray-200 pt-5 text-xs text-text-secondary dark:border-gray-800 dark:text-gray-400 sm:flex-row sm:items-center"
+        class="mt-8 flex flex-col items-start justify-between gap-3 border-t border-gray-200 pt-5 text-xs text-text-secondary dark:border-gray-800 dark:text-gray-400 sm:flex-row sm:items-center"
       >
-        <p>© {{ currentYear }} Neo Explorer</p>
+        <p>&copy; {{ currentYear }} Neo Explorer</p>
+        <p class="hidden sm:block">Powered by <strong class="text-neo-green">neo3fura</strong></p>
         <button
           class="font-medium text-text-secondary hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
           @click="scrollTop"
         >
-          Back to Top ↑
+          Back to Top &uarr;
         </button>
       </div>
     </div>
@@ -128,5 +133,11 @@ export default {
   @apply flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-500
          transition-colors hover:bg-primary-500 hover:text-white
          dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-primary-600;
+}
+
+.footer-link {
+  @apply text-text-secondary no-underline transition-colors
+         hover:text-primary-500
+         dark:text-gray-400 dark:hover:text-primary-400;
 }
 </style>

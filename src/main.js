@@ -7,7 +7,13 @@ import directives from "./directives";
 import "./styles/tailwind.css";
 
 const appInstance = createApp(App);
-appInstance.config.devtools = true;
+appInstance.config.devtools = process.env.NODE_ENV !== "production";
+
+// Global error handler — prevents silent failures in components
+appInstance.config.errorHandler = (err, _instance, info) => {
+  console.error(`[Vue Error] ${info}:`, err);
+};
+
 appInstance.use(router);
 appInstance.use(i18n);
 appInstance.use(directives);

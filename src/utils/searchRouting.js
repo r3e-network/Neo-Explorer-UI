@@ -18,23 +18,23 @@ export function resolveSearchLocation(query, result) {
   const data = result?.data || {};
 
   if (type === "block") {
-    return { path: `/blockinfo/${data.hash || q}` };
+    return { path: `/block-info/${data.hash || q}` };
   }
 
   if (type === "transaction") {
-    return { path: `/transactionInfo/${data.hash || q}` };
+    return { path: `/transaction-info/${data.hash || q}` };
   }
 
   if (type === "contract") {
-    return { path: `/contractinfo/${data.hash || q}` };
+    return { path: `/contract-info/${data.hash || q}` };
   }
 
   if (type === "address") {
-    return { path: `/accountprofile/${q}` };
+    return { path: `/account-profile/${q}` };
   }
 
   if (type === "token") {
-    return { path: `/NEP17tokeninfo/${data.hash || q}` };
+    return { path: `/nep17-token-info/${data.hash || q}` };
   }
 
   return { path: "/search", query: { q } };

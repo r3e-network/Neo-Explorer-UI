@@ -36,14 +36,14 @@
                 </td>
                 <td class="px-4 py-3">
                   <router-link
-                    :to="`/contractinfo/${contract.hash}`"
+                    :to="`/contract-info/${contract.hash}`"
                     class="font-medium text-text-primary etherscan-link dark:text-gray-100"
                   >
                     {{ contract.name || "Unknown Contract" }}
                   </router-link>
                 </td>
                 <td class="px-4 py-3">
-                  <router-link :to="`/contractinfo/${contract.hash}`" class="font-hash text-sm etherscan-link">
+                  <router-link :to="`/contract-info/${contract.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(contract.hash) }}
                   </router-link>
                 </td>
@@ -87,14 +87,16 @@
 
 <script>
 import { contractService } from "@/services";
+import { createPaginationMixin } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
-import { truncateHash, formatUnixTime } from "@/utils/explorerFormat";
+import { truncateHash, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 
 export default {
   name: "ContractsNew",
+  mixins: [createPaginationMixin("/contracts")],
   components: {
     EmptyState,
     ErrorState,
@@ -106,31 +108,15 @@ export default {
       loading: true,
       error: null,
       contracts: [],
-      total: 0,
-      currentPage: 1,
-      totalPages: 1,
-      pageSize: 25,
     };
   },
-  watch: {
-    "$route.params.page": {
-      immediate: true,
-      handler(page) {
-        this.currentPage = parseInt(page) || 1;
-        this.loadContracts();
-      },
-    },
-  },
   methods: {
-    async loadContracts() {
+    async loadPage() {
       this.loading = true;
       this.error = null;
       try {
-        const offset = (this.currentPage - 1) * this.pageSize;
-        const response = await contractService.getList(this.pageSize, offset);
-        this.contracts = response?.result || [];
-        this.total = response?.totalCount || 0;
-        this.totalPages = Math.ceil(this.total / this.pageSize) || 1;
+        const response = await contractService.getList(this.pageSize, this.paginationOffset);
+        this.contracts = this.applyPage(response?.totalCount, response?.result || []);
       } catch {
         this.error = "Failed to load contracts. Please try again.";
         this.contracts = [];
@@ -138,20 +124,8 @@ export default {
         this.loading = false;
       }
     },
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.$router.push(`/contracts/${page}`);
-      }
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push("/contracts/1");
-    },
     truncateHash,
-    formatNumber(num) {
-      if (!num) return "0";
-      return num.toLocaleString();
-    },
+    formatNumber,
     formatTime(timestamp) {
       return formatUnixTime(timestamp) || "-";
     },

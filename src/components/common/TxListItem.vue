@@ -12,7 +12,7 @@
           Tx
         </div>
         <div class="min-w-0">
-          <router-link :to="`/transactionInfo/${tx.hash}`" :title="tx.hash" class="font-hash text-sm etherscan-link">
+          <router-link :to="`/transaction-info/${tx.hash}`" :title="tx.hash" class="font-hash text-sm etherscan-link">
             {{ truncateHash(tx.hash, 10, 6) }}
           </router-link>
           <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">
@@ -26,7 +26,7 @@
           <p class="text-xs text-text-secondary dark:text-gray-400">From</p>
           <router-link
             v-if="tx.sender"
-            :to="`/accountprofile/${tx.sender}`"
+            :to="`/account-profile/${tx.sender}`"
             :title="tx.sender"
             class="block truncate font-hash text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
           >
@@ -40,7 +40,7 @@
           <p class="text-xs text-text-secondary dark:text-gray-400">To</p>
           <router-link
             v-if="toAddress"
-            :to="`/accountprofile/${toAddress}`"
+            :to="`/account-profile/${toAddress}`"
             :title="toAddress"
             class="block truncate font-hash text-sm text-text-primary hover:text-primary-500 dark:text-gray-300"
           >
@@ -54,14 +54,14 @@
         <span :class="statusBadgeClass" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
           {{ statusText }}
         </span>
-        <p class="mt-1 text-xs text-text-secondary dark:text-gray-400">{{ formatFee }} GAS</p>
+        <p class="mt-1 text-xs text-text-secondary dark:text-gray-400">{{ txFee }} GAS</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { truncateHash, formatAge } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatGas } from "@/utils/explorerFormat";
 
 export default {
   name: "TxListItem",
@@ -70,7 +70,8 @@ export default {
   },
   computed: {
     isSuccess() {
-      return this.tx?.vmstate === "HALT" || !this.tx?.vmstate;
+      const state = this.tx?.vmstate;
+      return state === "HALT" || state === undefined || state === null;
     },
     iconClass() {
       return this.isSuccess
@@ -88,9 +89,9 @@ export default {
     toAddress() {
       return this.tx?.contractHash || this.tx?.to || "";
     },
-    formatFee() {
+    txFee() {
       const fee = this.tx?.netfee || this.tx?.sysfee || 0;
-      return fee ? (fee / 1e8).toFixed(4) : "0";
+      return formatGas(fee, 4);
     },
   },
   methods: {

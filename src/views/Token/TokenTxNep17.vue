@@ -46,7 +46,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted">System</span>
-                  <router-link v-else :to="'/transactionInfo/' + item.txid" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
                 </div>
@@ -55,7 +55,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.from === null" class="text-sm text-text-muted">Null Address</span>
-                  <router-link v-else :to="'/accountprofile/' + item.from" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/account-profile/' + item.from" class="font-hash text-sm etherscan-link">
                     {{ fromButton.state ? scriptHashToAddress(item.from) : item.from }}
                   </router-link>
                 </div>
@@ -70,7 +70,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.to === null" class="text-sm text-text-muted">Null Address</span>
-                  <router-link v-else :to="'/accountprofile/' + item.to" class="font-hash text-sm etherscan-link">
+                  <router-link v-else :to="'/account-profile/' + item.to" class="font-hash text-sm etherscan-link">
                     {{ toButton.state ? scriptHashToAddress(item.to) : item.to }}
                   </router-link>
                 </div>
@@ -104,6 +104,7 @@
 
 <script>
 import { tokenService } from "@/services";
+import { GAS_HASH } from "@/constants";
 import { changeFormat, convertToken, convertTime, scriptHashToAddress, convertISOTime, switchTime } from "@/store/util";
 import isOracleReward from "@/utils/isOracleReward";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
@@ -111,7 +112,6 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 
 const NULL_TX = "0x0000000000000000000000000000000000000000000000000000000000000000";
-const BNEO_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 export default {
   name: "tokens-tx-nep17",
@@ -160,7 +160,7 @@ export default {
       if (this.isOracleReward(item)) return "Oracle Fee Reward";
       if (this.isNullTx(item.txid) && item.from === null) return "Network Fee Reward";
       if (this.isNullTx(item.txid) && item.to === null) return "Fee Burn";
-      if (item.from === null && this.contractHash === BNEO_HASH) return "Transfer Reward";
+      if (item.from === null && this.contractHash === GAS_HASH) return "Transfer Reward";
       if (item.from === null) return "Mint";
       if (item.to === null) return "Burn";
       return "Transfer";

@@ -11,7 +11,7 @@
           Bk
         </div>
         <div class="min-w-0">
-          <router-link :to="`/blockinfo/${block.hash}`" :title="block.hash" class="font-medium etherscan-link">
+          <router-link :to="`/block-info/${block.hash}`" :title="block.hash" class="font-medium etherscan-link">
             #{{ block.index || 0 }}
           </router-link>
           <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">
@@ -24,7 +24,7 @@
         <p class="text-xs text-text-secondary dark:text-gray-400">Fee Recipient</p>
         <router-link
           v-if="block.speaker"
-          :to="`/accountprofile/${block.speaker}`"
+          :to="`/account-profile/${block.speaker}`"
           :title="block.speaker"
           class="block truncate font-hash text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
         >
@@ -38,14 +38,14 @@
           <span class="font-medium etherscan-link">{{ block.txcount || 0 }}</span>
           txns
         </p>
-        <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">{{ formatGas(block.netfee) }} GAS</p>
+        <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">{{ formatGas(block.netfee, 4) }} GAS</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { truncateHash, formatAge } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatGas } from "@/utils/explorerFormat";
 
 export default {
   name: "BlockListItem",
@@ -55,9 +55,7 @@ export default {
   methods: {
     truncateHash,
     formatAge,
-    formatGas(v) {
-      return v ? (v / 1e8).toFixed(4) : "0";
-    },
+    formatGas,
   },
 };
 </script>

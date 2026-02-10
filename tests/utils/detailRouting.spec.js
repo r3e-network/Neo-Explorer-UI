@@ -16,12 +16,12 @@ describe("detailRouting", () => {
 
   it("builds source code route with hash and normalized update counter", () => {
     expect(buildSourceCodeLocation("0xabc", 3)).toEqual({
-      path: "/SourceCode",
+      path: "/source-code",
       query: { contractHash: "0xabc", updatecounter: "3" },
     });
 
     expect(buildSourceCodeLocation("0xabc", "oops")).toEqual({
-      path: "/SourceCode",
+      path: "/source-code",
       query: { contractHash: "0xabc", updatecounter: "0" },
     });
   });

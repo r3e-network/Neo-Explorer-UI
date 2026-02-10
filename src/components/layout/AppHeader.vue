@@ -76,7 +76,7 @@
             </button>
             <div v-show="activeDropdown === 'blockchain'" class="dropdown-panel">
               <router-link to="/blocks/1" class="dropdown-link">Blocks</router-link>
-              <router-link to="/Transactions/1" class="dropdown-link">Transactions</router-link>
+              <router-link to="/transactions/1" class="dropdown-link">Transactions</router-link>
               <router-link to="/account/1" class="dropdown-link">Accounts</router-link>
               <router-link to="/candidates/1" class="dropdown-link">Consensus Nodes</router-link>
             </div>
@@ -117,7 +117,52 @@
             <div v-show="activeDropdown === 'resources'" class="dropdown-panel">
               <router-link to="/echarts" class="dropdown-link">Charts</router-link>
               <router-link to="/burn" class="dropdown-link">Burned Gas</router-link>
+              <router-link to="/candidates/1" class="dropdown-link">Consensus Nodes</router-link>
+            </div>
+          </li>
+
+          <li class="nav-dropdown" @mouseenter="openDropdown('developers')" @mouseleave="closeDropdown('developers')">
+            <button class="nav-link">
+              Developers
+              <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div v-show="activeDropdown === 'developers'" class="dropdown-panel">
               <router-link to="/api-docs" class="dropdown-link">API Docs</router-link>
+              <router-link to="/verify-contract/" class="dropdown-link">Verify Contract</router-link>
+              <router-link to="/contracts/1" class="dropdown-link">Contract Search</router-link>
+            </div>
+          </li>
+
+          <li class="nav-dropdown" @mouseenter="openDropdown('more')" @mouseleave="closeDropdown('more')">
+            <button class="nav-link">
+              More
+              <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+            <div v-show="activeDropdown === 'more'" class="mega-menu-panel">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Tools</p>
+                  <span class="dropdown-link cursor-default opacity-60">Unit Converter (Soon)</span>
+                  <span class="dropdown-link cursor-default opacity-60">CSV Export (Soon)</span>
+                </div>
+                <div>
+                  <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Explore</p>
+                  <router-link to="/gas-tracker" class="dropdown-link">Gas Tracker</router-link>
+                  <router-link to="/echarts" class="dropdown-link">Charts &amp; Stats</router-link>
+                </div>
+              </div>
             </div>
           </li>
         </ul>
@@ -131,19 +176,25 @@
               class="h-[38px] w-full rounded border border-white/20 bg-white/10 pl-3 pr-20 text-sm text-white placeholder-white/50 outline-none transition-all focus:border-white/40 focus:bg-white/15"
               placeholder="Search by Address / Txn Hash / Block"
             />
-            <button
-              type="submit"
-              class="absolute right-1 top-1/2 -translate-y-1/2 rounded bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </button>
+            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              <kbd
+                class="hidden rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-white/50 lg:inline-block"
+                >/</kbd
+              >
+              <button
+                type="submit"
+                class="rounded bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+            </div>
           </form>
         </div>
 
@@ -191,10 +242,16 @@
         <div class="grid grid-cols-2 gap-2 text-sm">
           <router-link to="/homepage" class="mobile-link" @click="closeMobile">Home</router-link>
           <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">Blocks</router-link>
-          <router-link to="/Transactions/1" class="mobile-link" @click="closeMobile">Transactions</router-link>
+          <router-link to="/transactions/1" class="mobile-link" @click="closeMobile">Transactions</router-link>
           <router-link to="/tokens/nep17/1" class="mobile-link" @click="closeMobile">Tokens</router-link>
           <router-link to="/contracts/1" class="mobile-link" @click="closeMobile">Contracts</router-link>
           <router-link to="/account/1" class="mobile-link" @click="closeMobile">Accounts</router-link>
+          <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">Consensus</router-link>
+          <router-link to="/echarts" class="mobile-link" @click="closeMobile">Charts</router-link>
+          <router-link to="/burn" class="mobile-link" @click="closeMobile">Burned Gas</router-link>
+          <router-link to="/api-docs" class="mobile-link" @click="closeMobile">API Docs</router-link>
+          <router-link to="/verify-contract/" class="mobile-link" @click="closeMobile">Verify Contract</router-link>
+          <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">Gas Tracker</router-link>
         </div>
       </div>
     </nav>
@@ -245,10 +302,12 @@ export default {
   async mounted() {
     await this.loadPrices();
     document.addEventListener("click", this.handleClickOutside);
+    document.addEventListener("keydown", this.handleGlobalKeydown);
   },
 
   beforeUnmount() {
     document.removeEventListener("click", this.handleClickOutside);
+    document.removeEventListener("keydown", this.handleGlobalKeydown);
     if (this.dropdownTimeout) {
       clearTimeout(this.dropdownTimeout);
     }
@@ -283,6 +342,19 @@ export default {
     selectNetwork(net) {
       this.currentNetwork = net.id;
       this.networkDropdownOpen = false;
+    },
+
+    handleGlobalKeydown(e) {
+      if (e.key === "/" && !this.isInputFocused()) {
+        e.preventDefault();
+        const input = this.$el.querySelector(".main-nav input[type='text']");
+        if (input) input.focus();
+      }
+    },
+
+    isInputFocused() {
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      return tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable;
     },
 
     async handleSearch() {
@@ -362,6 +434,11 @@ export default {
 .dropdown-panel {
   @apply absolute left-0 top-full z-50 mt-1 w-52 rounded border border-gray-200
          bg-white p-1.5 shadow-dropdown dark:border-gray-700 dark:bg-gray-800;
+}
+
+.mega-menu-panel {
+  @apply absolute left-0 top-full z-50 mt-1 w-80 rounded border border-gray-200
+         bg-white p-4 shadow-dropdown dark:border-gray-700 dark:bg-gray-800;
 }
 
 .dropdown-link {

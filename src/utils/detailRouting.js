@@ -9,7 +9,7 @@ export function normalizeUpdateCounter(value) {
 
 export function buildSourceCodeLocation(contractHash, updatecounter = 0) {
   return {
-    path: "/SourceCode",
+    path: "/source-code",
     query: {
       contractHash: contractHash || "",
       updatecounter: String(normalizeUpdateCounter(updatecounter)),
@@ -22,6 +22,8 @@ export function getContractDetailTabs() {
     { key: "transactions", label: "Transactions" },
     { key: "code", label: "Code" },
     { key: "events", label: "Events" },
+    { key: "readContract", label: "Read Contract" },
+    { key: "writeContract", label: "Write Contract" },
   ];
 }
 

@@ -15,8 +15,23 @@
         <div class="lg:col-span-1">
           <div class="etherscan-card p-4">
             <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-              <img v-if="image" v-lazy-image="image" :alt="nftName" class="h-full w-full object-cover" />
-              <div v-else class="flex h-full items-center justify-center text-gray-400">No image</div>
+              <img
+                v-if="image"
+                v-lazy-image="image"
+                :alt="nftName || 'NFT image'"
+                class="h-full w-full object-cover"
+                @error="handleImageError"
+              />
+              <div v-else class="flex h-full items-center justify-center text-gray-400">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -34,13 +49,13 @@
               </div>
               <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
                 <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Contract</span>
-                <router-link :to="`/contractinfo/${contractHash}`" class="break-all font-mono text-sm etherscan-link">
+                <router-link :to="`/contract-info/${contractHash}`" class="break-all font-mono text-sm etherscan-link">
                   {{ contractHash }}
                 </router-link>
               </div>
               <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
                 <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Owner</span>
-                <router-link :to="`/accountprofile/${address}`" class="break-all font-mono text-sm etherscan-link">
+                <router-link :to="`/account-profile/${address}`" class="break-all font-mono text-sm etherscan-link">
                   {{ address }}
                 </router-link>
               </div>
@@ -93,6 +108,9 @@ export default {
     },
   },
   methods: {
+    handleImageError() {
+      this.image = "";
+    },
     async loadNFT() {
       this.loading = true;
       try {

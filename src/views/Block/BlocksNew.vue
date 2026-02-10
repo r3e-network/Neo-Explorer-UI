@@ -45,13 +45,13 @@
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 <td class="px-4 py-3">
-                  <router-link :to="`/blockinfo/${block.hash}`" class="font-medium etherscan-link">
+                  <router-link :to="`/block-info/${block.hash}`" class="font-medium etherscan-link">
                     {{ block.index }}
                   </router-link>
                 </td>
                 <td class="px-4 py-3">
                   <router-link
-                    :to="`/blockinfo/${block.hash}`"
+                    :to="`/block-info/${block.hash}`"
                     :title="block.hash"
                     class="font-hash text-sm etherscan-link"
                   >
@@ -86,7 +86,7 @@
 
         <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
           <EtherscanPagination
-            :page="page"
+            :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
             :total="total"
@@ -101,14 +101,16 @@
 
 <script>
 import { blockService } from "@/services";
+import { createPaginationMixin } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
-import { truncateHash, formatAge, formatBytes, formatUnixTime } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatBytes, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 
 export default {
   name: "BlocksPage",
+  mixins: [createPaginationMixin("/blocks")],
   components: {
     EmptyState,
     ErrorState,
@@ -118,57 +120,29 @@ export default {
   data() {
     return {
       blocks: [],
-      total: 0,
-      page: 1,
-      pageSize: 20,
       loading: false,
       error: null,
       showAbsoluteTime: false,
     };
   },
-  computed: {
-    totalPages() {
-      return Math.max(1, Math.ceil(this.total / this.pageSize));
-    },
-  },
-  watch: {
-    "$route.params.page": {
-      immediate: true,
-      handler(newPage) {
-        this.page = parseInt(newPage) || 1;
-        this.loadBlocks();
-      },
-    },
-  },
   methods: {
-    async loadBlocks() {
+    async loadPage() {
       this.loading = true;
       this.error = null;
       try {
-        const skip = (this.page - 1) * this.pageSize;
-        const res = await blockService.getList(this.pageSize, skip);
-        this.blocks = res?.result || [];
-        this.total = res?.totalCount || 0;
+        const res = await blockService.getList(this.pageSize, this.paginationOffset);
+        this.blocks = this.applyPage(res?.totalCount, res?.result || []);
       } catch {
         this.error = "Failed to load blocks. Please try again.";
       } finally {
         this.loading = false;
       }
     },
-    goToPage(p) {
-      this.$router.push(`/blocks/${p}`);
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push("/blocks/1");
-    },
     truncateHash,
     formatAge,
     formatBytes,
     formatUnixTime,
-    formatNumber(num) {
-      return Number(num || 0).toLocaleString();
-    },
+    formatNumber,
   },
 };
 </script>

@@ -55,6 +55,8 @@
 
 <script>
 import { statsService } from "@/services";
+import { BURN_RATE } from "@/constants";
+import { formatNumber } from "@/utils/explorerFormat";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 
@@ -76,10 +78,10 @@ export default {
   computed: {
     estimatedBurn() {
       const txs = Number(this.stats.txs || 0);
-      return (txs * 0.00003).toFixed(2);
+      return (txs * BURN_RATE).toFixed(2);
     },
     burnPerTx() {
-      return "0.00003";
+      return String(BURN_RATE);
     },
   },
   created() {
@@ -97,9 +99,7 @@ export default {
         this.loading = false;
       }
     },
-    formatNumber(value) {
-      return Number(value || 0).toLocaleString();
-    },
+    formatNumber,
   },
 };
 </script>

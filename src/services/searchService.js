@@ -13,15 +13,13 @@ export const searchService = {
    */
   async search(query) {
     const results = { type: null, data: null };
+    query = (query || "").trim();
+    if (!query || query.length > 256) return results;
 
     try {
       // 检查是否为区块高度（纯数字）
       if (/^\d+$/.test(query)) {
-        const block = await safeRpc(
-          "GetBlockByBlockHeight",
-          { BlockHeight: parseInt(query) },
-          null
-        );
+        const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: parseInt(query) }, null);
         if (block) {
           results.type = "block";
           results.data = block;
@@ -34,11 +32,7 @@ export const searchService = {
         const hash = query.startsWith("0x") ? query : `0x${query}`;
 
         // 尝试区块
-        const block = await safeRpc(
-          "GetBlockByBlockHash",
-          { BlockHash: hash },
-          null
-        );
+        const block = await safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null);
         if (block) {
           results.type = "block";
           results.data = block;
@@ -46,11 +40,7 @@ export const searchService = {
         }
 
         // 尝试交易
-        const tx = await safeRpc(
-          "GetRawTransactionByTransactionHash",
-          { TransactionHash: hash },
-          null
-        );
+        const tx = await safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null);
         if (tx) {
           results.type = "transaction";
           results.data = tx;
@@ -58,11 +48,7 @@ export const searchService = {
         }
 
         // 尝试合约
-        const contract = await safeRpc(
-          "GetContractByContractHash",
-          { ContractHash: hash },
-          null
-        );
+        const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
         if (contract) {
           results.type = "contract";
           results.data = contract;
@@ -72,11 +58,7 @@ export const searchService = {
 
       // 检查是否为地址（N开头）
       if (/^N[A-Za-z0-9]{33}$/.test(query)) {
-        const account = await safeRpc(
-          "GetAddressByAddress",
-          { Address: query },
-          null
-        );
+        const account = await safeRpc("GetAddressByAddress", { Address: query }, null);
         if (account) {
           results.type = "address";
           results.data = account;

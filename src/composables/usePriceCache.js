@@ -51,18 +51,9 @@ async function fetchPrices(force = false) {
         marketCap: (data.neo?.usd || 0) * 100000000,
       };
       lastFetch.value = now;
-    } catch (error) {
-      console.error("Failed to fetch prices:", error.message);
-      // 保持旧数据或使用默认值
-      if (!prices.value.neo) {
-        prices.value = {
-          neo: 12.5,
-          gas: 4.2,
-          neoChange: 0,
-          gasChange: 0,
-          marketCap: 1250000000,
-        };
-      }
+    } catch {
+      // Keep previous data if available; otherwise leave at zero.
+      // Never inject hardcoded prices — users must not see stale/fake data.
     } finally {
       loading.value = false;
       pendingPromise = null;

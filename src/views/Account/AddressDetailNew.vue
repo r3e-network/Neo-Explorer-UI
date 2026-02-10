@@ -102,13 +102,31 @@
             />
 
             <div v-else class="space-y-4">
+              <div class="flex items-center justify-end">
+                <button
+                  class="flex items-center gap-1 text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                  @click="exportCsv"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Download CSV Export
+                </button>
+              </div>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[760px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Method</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Sender</th>
+                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Status</th>
                       <th class="px-4 py-3 text-right font-medium text-text-secondary">Size</th>
                     </tr>
@@ -121,12 +139,19 @@
                     >
                       <td class="px-4 py-3">
                         <router-link
-                          :to="`/transactionInfo/${tx.hash}`"
+                          :to="`/transaction-info/${tx.hash}`"
                           :title="tx.hash"
                           class="font-mono text-sm etherscan-link"
                         >
                           {{ truncateHash(tx.hash, 12, 8) }}
                         </router-link>
+                      </td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                        >
+                          {{ getTxMethod(tx) }}
+                        </span>
                       </td>
                       <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
                         {{ formatAge(tx.blocktime) }}
@@ -134,12 +159,20 @@
                       <td class="px-4 py-3">
                         <router-link
                           v-if="tx.sender"
-                          :to="`/accountprofile/${tx.sender}`"
+                          :to="`/account-profile/${tx.sender}`"
                           class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
                         >
                           {{ truncateHash(tx.sender, 10, 6) }}
                         </router-link>
                         <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <span
+                          class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          :class="getDirection(tx.sender, '').cssClass"
+                        >
+                          {{ getDirection(tx.sender, "").label }}
+                        </span>
                       </td>
                       <td class="px-4 py-3">
                         <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="txStatusClass(tx.vmstate)">
@@ -162,6 +195,228 @@
                   :total="txTotalCount"
                   @update:page="goToTxPage"
                   @update:page-size="changeTxPageSize"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section v-else-if="activeTab === 'tokenTransfers'">
+            <div v-if="nep17Loading" class="space-y-2">
+              <Skeleton v-for="index in 6" :key="index" height="46px" />
+            </div>
+
+            <ErrorState
+              v-else-if="nep17Error"
+              title="Unable to load token transfers"
+              :message="nep17Error"
+              @retry="loadNep17Transfers(1)"
+            />
+
+            <EmptyState
+              v-else-if="!nep17Transfers.length"
+              message="No token transfers found"
+              description="No NEP-17 transfer records were found for this address."
+            />
+
+            <div v-else class="space-y-4">
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[800px]">
+                  <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                    <tr>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
+                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
+                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Amount</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                    <tr
+                      v-for="(transfer, idx) in nep17Transfers"
+                      :key="`nep17-${transfer.txHash}-${idx}`"
+                      class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                    >
+                      <td class="px-4 py-3">
+                        <router-link
+                          :to="`/transaction-info/${transfer.txHash}`"
+                          :title="transfer.txHash"
+                          class="font-mono text-sm etherscan-link"
+                        >
+                          {{ truncateHash(transfer.txHash, 12, 8) }}
+                        </router-link>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                        {{ formatAge(transfer.timestamp) }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.from"
+                          :to="`/account-profile/${transfer.from}`"
+                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                        >
+                          {{ truncateHash(transfer.from, 10, 6) }}
+                        </router-link>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <span
+                          class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          :class="getDirection(transfer.from, transfer.to).cssClass"
+                        >
+                          {{ getDirection(transfer.from, transfer.to).label }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.to"
+                          :to="`/account-profile/${transfer.to}`"
+                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                        >
+                          {{ truncateHash(transfer.to, 10, 6) }}
+                        </router-link>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
+                      <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                        {{ formatTransferAmount(transfer.amount, transfer.decimals) }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.tokenHash"
+                          :to="`/nep17-token-info/${transfer.tokenHash}`"
+                          class="text-sm etherscan-link"
+                        >
+                          {{ transfer.tokenName }}
+                        </router-link>
+                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">{{
+                          transfer.tokenName
+                        }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+                <EtherscanPagination
+                  :page="nep17Page"
+                  :total-pages="nep17TotalPages"
+                  :page-size="nep17PageSize"
+                  :total="nep17TotalCount"
+                  @update:page="goToNep17Page"
+                  @update:page-size="changeNep17PageSize"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section v-else-if="activeTab === 'nftTransfers'">
+            <div v-if="nep11Loading" class="space-y-2">
+              <Skeleton v-for="index in 6" :key="index" height="46px" />
+            </div>
+
+            <ErrorState
+              v-else-if="nep11Error"
+              title="Unable to load NFT transfers"
+              :message="nep11Error"
+              @retry="loadNep11Transfers(1)"
+            />
+
+            <EmptyState
+              v-else-if="!nep11Transfers.length"
+              message="No NFT transfers found"
+              description="No NEP-11 transfer records were found for this address."
+            />
+
+            <div v-else class="space-y-4">
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[800px]">
+                  <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                    <tr>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
+                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Token ID</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                    <tr
+                      v-for="(transfer, idx) in nep11Transfers"
+                      :key="`nep11-${transfer.txHash}-${idx}`"
+                      class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                    >
+                      <td class="px-4 py-3">
+                        <router-link
+                          :to="`/transaction-info/${transfer.txHash}`"
+                          :title="transfer.txHash"
+                          class="font-mono text-sm etherscan-link"
+                        >
+                          {{ truncateHash(transfer.txHash, 12, 8) }}
+                        </router-link>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                        {{ formatAge(transfer.timestamp) }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.from"
+                          :to="`/account-profile/${transfer.from}`"
+                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                        >
+                          {{ truncateHash(transfer.from, 10, 6) }}
+                        </router-link>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <span
+                          class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          :class="getDirection(transfer.from, transfer.to).cssClass"
+                        >
+                          {{ getDirection(transfer.from, transfer.to).label }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.to"
+                          :to="`/account-profile/${transfer.to}`"
+                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                        >
+                          {{ truncateHash(transfer.to, 10, 6) }}
+                        </router-link>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
+                      <td class="px-4 py-3 font-mono text-sm text-text-secondary dark:text-gray-400">
+                        {{ transfer.tokenId ? truncateHash(transfer.tokenId, 8, 4) : "-" }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="transfer.tokenHash"
+                          :to="`/nft-token-info/${transfer.tokenHash}`"
+                          class="text-sm etherscan-link"
+                        >
+                          {{ transfer.tokenName }}
+                        </router-link>
+                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">{{
+                          transfer.tokenName
+                        }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+                <EtherscanPagination
+                  :page="nep11Page"
+                  :total-pages="nep11TotalPages"
+                  :page-size="nep11PageSize"
+                  :total="nep11TotalCount"
+                  @update:page="goToNep11Page"
+                  @update:page-size="changeNep11PageSize"
                 />
               </div>
             </div>
@@ -192,17 +447,28 @@
                     <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
                     <th class="px-4 py-3 text-left font-medium text-text-secondary">Standard</th>
                     <th class="px-4 py-3 text-right font-medium text-text-secondary">Balance</th>
+                    <th class="px-4 py-3 text-right font-medium text-text-secondary">Value (USD)</th>
                     <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
                   <tr
-                    v-for="asset in fungibleAssets"
+                    v-for="asset in sortedFungibleAssets()"
                     :key="assetKey(asset)"
                     class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                   >
-                    <td class="px-4 py-3 text-sm font-medium text-text-primary dark:text-gray-300">
-                      {{ assetDisplayName(asset) }}
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
+                          :class="tokenColor(assetDisplayName(asset))"
+                        >
+                          {{ tokenInitial(assetDisplayName(asset)) }}
+                        </span>
+                        <span class="text-sm font-medium text-text-primary dark:text-gray-300">
+                          {{ assetDisplayName(asset) }}
+                        </span>
+                      </div>
                     </td>
                     <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
                       {{ assetStandard(asset) }}
@@ -210,6 +476,7 @@
                     <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
                       {{ assetBalance(asset) }}
                     </td>
+                    <td class="px-4 py-3 text-right text-sm text-gray-400 italic">-</td>
                     <td class="px-4 py-3">
                       <router-link
                         v-if="assetHash(asset)"
@@ -226,7 +493,7 @@
             </div>
           </section>
 
-          <section v-else>
+          <section v-else-if="activeTab === 'nfts'">
             <div v-if="assetsLoading" class="space-y-2">
               <Skeleton v-for="index in 5" :key="index" height="46px" />
             </div>
@@ -297,9 +564,14 @@ import {
   normalizeAccountSummary,
   splitAddressAssets,
   normalizeAddressTransactions,
+  normalizeNep17Transfers,
+  normalizeNep11Transfers,
+  getTransferDirection,
+  parseTxMethod,
+  downloadTransactionsCsv,
   getPageCount,
 } from "@/utils/addressDetail";
-import { formatAge, truncateHash } from "@/utils/explorerFormat";
+import { formatAge, truncateHash, formatNumber } from "@/utils/explorerFormat";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -334,6 +606,24 @@ export default {
       txTotalCount: 0,
       txTotalPages: 1,
       isContract: false,
+
+      // NEP-17 Token Transfers
+      nep17Transfers: [],
+      nep17Loading: false,
+      nep17Error: "",
+      nep17Page: 1,
+      nep17PageSize: 10,
+      nep17TotalCount: 0,
+      nep17TotalPages: 1,
+
+      // NEP-11 NFT Transfers
+      nep11Transfers: [],
+      nep11Loading: false,
+      nep11Error: "",
+      nep11Page: 1,
+      nep11PageSize: 10,
+      nep11TotalCount: 0,
+      nep11TotalPages: 1,
     };
   },
   computed: {
@@ -355,6 +645,16 @@ export default {
         }
 
         await this.initializeData(addr);
+      },
+    },
+    activeTab: {
+      handler(tab) {
+        if (tab === "tokenTransfers" && !this.nep17Transfers.length && !this.nep17Loading) {
+          this.loadNep17Transfers(1);
+        }
+        if (tab === "nftTransfers" && !this.nep11Transfers.length && !this.nep11Loading) {
+          this.loadNep11Transfers(1);
+        }
       },
     },
   },
@@ -450,6 +750,70 @@ export default {
       this.loadTransactions(1);
     },
 
+    async loadNep17Transfers(page = 1, address = this.address) {
+      if (!address) return;
+      this.nep17Loading = true;
+      this.nep17Error = "";
+      try {
+        const safePage = Math.max(1, Number(page) || 1);
+        const skip = (safePage - 1) * this.nep17PageSize;
+        const response = await accountService.getNep17Transfers(address, this.nep17PageSize, skip);
+        this.nep17Transfers = normalizeNep17Transfers(response?.result || []);
+        this.nep17TotalCount = Number(response?.totalCount || 0);
+        this.nep17TotalPages = getPageCount(this.nep17TotalCount, this.nep17PageSize);
+        this.nep17Page = safePage > this.nep17TotalPages ? this.nep17TotalPages : safePage;
+      } catch {
+        this.nep17Transfers = [];
+        this.nep17TotalCount = 0;
+        this.nep17TotalPages = 1;
+        this.nep17Error = "Failed to load token transfers. Please try again.";
+      } finally {
+        this.nep17Loading = false;
+      }
+    },
+
+    goToNep17Page(page) {
+      if (page < 1 || page > this.nep17TotalPages || page === this.nep17Page) return;
+      this.loadNep17Transfers(page);
+    },
+
+    changeNep17PageSize(size) {
+      this.nep17PageSize = size;
+      this.loadNep17Transfers(1);
+    },
+
+    async loadNep11Transfers(page = 1, address = this.address) {
+      if (!address) return;
+      this.nep11Loading = true;
+      this.nep11Error = "";
+      try {
+        const safePage = Math.max(1, Number(page) || 1);
+        const skip = (safePage - 1) * this.nep11PageSize;
+        const response = await accountService.getNep11Transfers(address, this.nep11PageSize, skip);
+        this.nep11Transfers = normalizeNep11Transfers(response?.result || []);
+        this.nep11TotalCount = Number(response?.totalCount || 0);
+        this.nep11TotalPages = getPageCount(this.nep11TotalCount, this.nep11PageSize);
+        this.nep11Page = safePage > this.nep11TotalPages ? this.nep11TotalPages : safePage;
+      } catch {
+        this.nep11Transfers = [];
+        this.nep11TotalCount = 0;
+        this.nep11TotalPages = 1;
+        this.nep11Error = "Failed to load NFT transfers. Please try again.";
+      } finally {
+        this.nep11Loading = false;
+      }
+    },
+
+    goToNep11Page(page) {
+      if (page < 1 || page > this.nep11TotalPages || page === this.nep11Page) return;
+      this.loadNep11Transfers(page);
+    },
+
+    changeNep11PageSize(size) {
+      this.nep11PageSize = size;
+      this.loadNep11Transfers(1);
+    },
+
     txStatusText(vmstate) {
       const state = String(vmstate || "").toUpperCase();
       if (!state) {
@@ -504,10 +868,10 @@ export default {
       const standard = this.assetStandard(asset).toUpperCase();
 
       if (standard.includes("NEP11")) {
-        return `/NFTtokeninfo/${hash}`;
+        return `/nft-token-info/${hash}`;
       }
 
-      return `/NEP17tokeninfo/${hash}`;
+      return `/nep17-token-info/${hash}`;
     },
 
     assetKey(asset) {
@@ -520,12 +884,59 @@ export default {
       }
     },
 
+    getDirection(from, to) {
+      return getTransferDirection(from, to, this.address);
+    },
+
+    getTxMethod(tx) {
+      return parseTxMethod(tx);
+    },
+
+    exportCsv() {
+      downloadTransactionsCsv(this.transactions, `txns-${this.address}.csv`);
+    },
+
+    formatTransferAmount(amount, decimals = 8) {
+      const raw = Number(amount || 0);
+      if (!Number.isFinite(raw)) return "0";
+      const divisor = Math.pow(10, decimals);
+      return (raw / divisor).toLocaleString(undefined, { maximumFractionDigits: decimals });
+    },
+
+    tokenInitial(name) {
+      return (name || "?").charAt(0).toUpperCase();
+    },
+
+    tokenColor(name) {
+      const colors = [
+        "bg-blue-500",
+        "bg-green-500",
+        "bg-purple-500",
+        "bg-orange-500",
+        "bg-pink-500",
+        "bg-teal-500",
+        "bg-indigo-500",
+        "bg-red-500",
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || "").length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    },
+
+    sortedFungibleAssets() {
+      return [...this.fungibleAssets].sort((a, b) => {
+        const balA = Number(a?.balance ?? a?.amount ?? 0);
+        const balB = Number(b?.balance ?? b?.amount ?? 0);
+        return balB - balA;
+      });
+    },
+
     formatAge,
     truncateHash,
 
-    formatNumber(value) {
-      return Number(value || 0).toLocaleString();
-    },
+    formatNumber,
 
     formatBalanceValue(value) {
       const num = Number(value || 0);

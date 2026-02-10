@@ -150,6 +150,36 @@ export const tokenService = {
   async getNep11Properties(hash, tokenIds) {
     return safeRpc("GetNep11PropertiesByContractHashTokenId", { ContractHash: hash, tokenIds }, null);
   },
+
+  /**
+   * 根据交易哈希获取 NEP17 转账记录（分页）
+   * @param {string} txHash - 交易哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
+   */
+  async getTransfersByTxHash(txHash, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetNep17TransferByTransactionHash",
+      { TransactionHash: txHash, Limit: limit, Skip: skip },
+      "get NEP17 transfers by tx"
+    );
+  },
+
+  /**
+   * 根据交易哈希获取 NEP11 转账记录（分页）
+   * @param {string} txHash - 交易哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
+   */
+  async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0) {
+    return safeRpcList(
+      "GetNep11TransferByTransactionHash",
+      { TransactionHash: txHash, Limit: limit, Skip: skip },
+      "get NEP11 transfers by tx"
+    );
+  },
 };
 
 export default tokenService;

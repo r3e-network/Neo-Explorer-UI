@@ -125,7 +125,7 @@
             class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
           >
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Latest Transactions</h2>
-            <router-link to="/Transactions/1" class="btn-outline text-xs"> View all </router-link>
+            <router-link to="/transactions/1" class="btn-outline text-xs"> View all </router-link>
           </header>
 
           <div v-if="loading" class="space-y-2 p-4">
@@ -160,9 +160,17 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import NetworkChart from "@/components/charts/NetworkChart.vue";
-import { statsService, blockService, transactionService, searchService } from "@/services";
+import {
+  statsService,
+  blockService,
+  transactionService,
+  searchService,
+  tokenService,
+  contractService,
+} from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
+import { formatNumber } from "@/utils/explorerFormat";
 
 export default {
   name: "HomePageNew",
@@ -205,10 +213,12 @@ export default {
 
   computed: {
     networkFeeDisplay() {
-      return Math.max(0, Number(this.gasPrice || 0) * 0.08).toFixed(3);
+      const price = Number(this.gasPrice) || 0;
+      return Math.max(0, price * 0.08).toFixed(3);
     },
     gasCostUsd() {
-      return (Number(this.gasPrice || 0) * 0.02).toFixed(2);
+      const price = Number(this.gasPrice) || 0;
+      return (price * 0.02).toFixed(2);
     },
   },
 
@@ -319,25 +329,52 @@ export default {
 
       this.searchLoading = true;
       try {
-        const result = await searchService.search(query);
-        const location = resolveSearchLocation(query, result);
+        const location = await this.resolveByFilter(query, this.searchFilter);
         if (location) {
           this.$router.push(location);
         }
       } catch {
-        const location = resolveSearchLocation(query, null);
-        if (location) {
-          this.$router.push(location);
+        const fallback = resolveSearchLocation(query, null);
+        if (fallback) {
+          this.$router.push(fallback);
         }
       } finally {
         this.searchLoading = false;
       }
     },
 
-    formatNumber(num) {
-      if (!num) return "0";
-      return num.toLocaleString();
+    async resolveByFilter(query, filter) {
+      // Direct address navigation
+      if (filter === "address") {
+        return { path: `/account-profile/${query}` };
+      }
+
+      // Token name search — navigate to first match or fallback
+      if (filter === "token") {
+        const res = await tokenService.searchNep17ByName(query, 1, 0);
+        const first = res?.result?.[0];
+        if (first?.hash) {
+          return { path: `/nep17-token-info/${first.hash}` };
+        }
+        return { path: "/search", query: { q: query } };
+      }
+
+      // Contract name search — navigate to first match or fallback
+      if (filter === "contract") {
+        const res = await contractService.searchByName(query, 1, 0);
+        const first = res?.result?.[0];
+        if (first?.hash) {
+          return { path: `/contract-info/${first.hash}` };
+        }
+        return { path: "/search", query: { q: query } };
+      }
+
+      // Default: full search (block height / hash / address / etc.)
+      const result = await searchService.search(query);
+      return resolveSearchLocation(query, result);
     },
+
+    formatNumber,
 
     formatPrice(price) {
       if (!price) return "0.00";

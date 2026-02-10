@@ -34,7 +34,7 @@
                   {{ (page - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="px-4 py-3">
-                  <router-link :to="`/accountprofile/${candidate.candidate}`" class="font-hash text-sm etherscan-link">
+                  <router-link :to="`/account-profile/${candidate.candidate}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(candidate.candidate, 10, 6) }}
                   </router-link>
                 </td>
@@ -63,7 +63,7 @@
 
         <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
           <EtherscanPagination
-            :page="page"
+            :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
             :total="total"
@@ -78,6 +78,7 @@
 
 <script>
 import { candidateService } from "@/services";
+import { createPaginationMixin } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -87,6 +88,7 @@ import { truncateHash } from "@/utils/explorerFormat";
 
 export default {
   name: "CandidatesPage",
+  mixins: [createPaginationMixin("/candidates")],
   components: {
     EmptyState,
     ErrorState,
@@ -98,44 +100,19 @@ export default {
     loading: true,
     error: null,
     candidates: [],
-    total: 0,
-    page: 1,
-    pageSize: 25,
-    totalPages: 1,
   }),
-  watch: {
-    "$route.params.page": {
-      immediate: true,
-      handler(value) {
-        this.page = parseInt(value) || 1;
-        this.load();
-      },
-    },
-  },
   methods: {
-    async load() {
+    async loadPage() {
       this.loading = true;
       this.error = null;
       try {
-        const skip = (this.page - 1) * this.pageSize;
-        const res = await candidateService.getList(this.pageSize, skip);
-        this.candidates = res?.result || [];
-        this.total = res?.totalCount || this.candidates.length;
-        this.totalPages = Math.max(1, Math.ceil(this.total / this.pageSize));
+        const res = await candidateService.getList(this.pageSize, this.paginationOffset);
+        this.candidates = this.applyPage(res?.totalCount || (res?.result || []).length, res?.result || []);
       } catch {
         this.error = "Failed to load candidates. Please try again.";
       } finally {
         this.loading = false;
       }
-    },
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.$router.push(`/candidates/${page}`);
-      }
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push("/candidates/1");
     },
     truncateHash,
     formatVotes(value) {

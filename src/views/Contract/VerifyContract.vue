@@ -276,7 +276,7 @@ export default {
       }
       if (code === 5) {
         this.showNotification("success", "Contract verification succeeded!");
-        this.$router.push(`/contractinfo/${this.form.hash}`);
+        this.$router.push(`/contract-info/${this.form.hash}`);
         return;
       }
       if (code === 6) {

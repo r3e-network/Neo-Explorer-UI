@@ -1,6 +1,8 @@
 export function getAddressDetailTabs() {
   return [
     { key: "transactions", label: "Transactions" },
+    { key: "tokenTransfers", label: "Token Transfers" },
+    { key: "nftTransfers", label: "NFT Transfers" },
     { key: "tokens", label: "Token Holdings" },
     { key: "nfts", label: "NFTs" },
   ];
@@ -63,6 +65,112 @@ export function normalizeAddressTransactions(transactions = []) {
   }));
 }
 
+/**
+ * Normalize NEP-17 transfer records from the API.
+ * @param {Array} transfers - Raw transfer list
+ * @returns {Array} Normalized transfer objects
+ */
+export function normalizeNep17Transfers(transfers = []) {
+  const list = Array.isArray(transfers) ? transfers : [];
+  return list.map((t) => ({
+    txHash: t?.txid || t?.hash || t?.txHash || "",
+    timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
+    from: t?.from || t?.fromAddress || t?.sender || "",
+    to: t?.to || t?.toAddress || t?.receiver || "",
+    amount: t?.value ?? t?.amount ?? t?.transferamount ?? "0",
+    tokenName: t?.tokenname || t?.symbol || t?.name || "Unknown",
+    tokenHash: t?.contract || t?.contractHash || t?.assethash || "",
+    decimals: toNumber(t?.decimals, 8),
+  }));
+}
+
+/**
+ * Normalize NEP-11 (NFT) transfer records from the API.
+ * @param {Array} transfers - Raw transfer list
+ * @returns {Array} Normalized transfer objects
+ */
+export function normalizeNep11Transfers(transfers = []) {
+  const list = Array.isArray(transfers) ? transfers : [];
+  return list.map((t) => ({
+    txHash: t?.txid || t?.hash || t?.txHash || "",
+    timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
+    from: t?.from || t?.fromAddress || t?.sender || "",
+    to: t?.to || t?.toAddress || t?.receiver || "",
+    tokenId: t?.tokenid || t?.tokenId || t?.token_id || "",
+    tokenName: t?.tokenname || t?.symbol || t?.name || "Unknown",
+    tokenHash: t?.contract || t?.contractHash || t?.assethash || "",
+  }));
+}
+
+/**
+ * Determine transfer direction relative to the current address.
+ * @param {string} from - Sender address
+ * @param {string} to - Receiver address
+ * @param {string} currentAddress - The address being viewed
+ * @returns {{ label: string, cssClass: string }}
+ */
+export function getTransferDirection(from, to, currentAddress) {
+  const addr = (currentAddress || "").toLowerCase();
+  const f = (from || "").toLowerCase();
+  const t = (to || "").toLowerCase();
+
+  if (f === addr && t === addr) {
+    return { label: "SELF", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
+  }
+  if (t === addr) {
+    return { label: "IN", cssClass: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300" };
+  }
+  if (f === addr) {
+    return { label: "OUT", cssClass: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" };
+  }
+  return { label: "SELF", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
+}
+
+/**
+ * Parse a transaction method/type into a human-readable badge label.
+ * @param {Object} tx - Transaction object
+ * @returns {string}
+ */
+export function parseTxMethod(tx) {
+  const method = tx?.method || tx?.type || tx?.calltype || "";
+  if (!method) return "Transaction";
+
+  const lower = method.toLowerCase();
+  if (lower.includes("transfer")) return "Transfer";
+  if (lower.includes("vote")) return "Vote";
+  if (lower.includes("deploy")) return "Deploy";
+  if (lower.includes("invoke")) return "Invoke";
+  if (lower.includes("claim")) return "Claim";
+  if (lower.includes("register")) return "Register";
+  return method.length > 14 ? method.slice(0, 14) + "..." : method;
+}
+
+/**
+ * Generate a CSV string from transaction data and trigger a download.
+ * @param {Array} transactions - Array of transaction objects
+ * @param {string} filename - Download filename
+ */
+export function downloadTransactionsCsv(transactions = [], filename = "transactions.csv") {
+  const headers = ["Txn Hash", "Block Time", "Sender", "Status", "Size"];
+  const rows = (transactions || []).map((tx) => [
+    tx.hash || "",
+    tx.blocktime ? new Date(tx.blocktime > 1e12 ? tx.blocktime : tx.blocktime * 1000).toISOString() : "",
+    tx.sender || "",
+    tx.vmstate || "",
+    tx.size ?? "",
+  ]);
+
+  const csvContent = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function getPageCount(totalCount = 0, pageSize = 10) {
   const total = toNumber(totalCount, 0);
   const size = Math.max(1, toNumber(pageSize, 10));
@@ -74,5 +182,10 @@ export default {
   normalizeAccountSummary,
   splitAddressAssets,
   normalizeAddressTransactions,
+  normalizeNep17Transfers,
+  normalizeNep11Transfers,
+  getTransferDirection,
+  parseTxMethod,
+  downloadTransactionsCsv,
   getPageCount,
 };
