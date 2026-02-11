@@ -5,10 +5,10 @@
       <Breadcrumb :items="breadcrumbs" />
 
       <!-- Page Header -->
-      <div class="mb-5 flex flex-col gap-1">
-        <h1 class="text-xl font-bold text-text-primary dark:text-white md:text-2xl">Transactions</h1>
-        <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 network transactions</p>
-      </div>
+      <header class="mb-5 flex flex-col gap-1">
+        <h1 class="page-title">Transactions</h1>
+        <p class="page-subtitle">Neo N3 network transactions</p>
+      </header>
 
       <!-- Stats Bar -->
       <div
@@ -64,7 +64,7 @@
         <!-- Transaction Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800/60">
+            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
                 <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
                 <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Method</th>

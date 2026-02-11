@@ -8,7 +8,7 @@
       <svg
         v-if="icon === 'block'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -18,7 +18,7 @@
       <svg
         v-else-if="icon === 'tx'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -30,7 +30,7 @@
       <svg
         v-else-if="icon === 'token'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -40,7 +40,7 @@
       <svg
         v-else-if="icon === 'contract'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -52,7 +52,7 @@
       <svg
         v-else-if="icon === 'search'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -68,7 +68,7 @@
       <svg
         v-else
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400"
+        class="h-8 w-8 text-gray-400 dark:text-gray-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -87,7 +87,7 @@
     <router-link
       v-if="actionLabel && actionTo"
       :to="actionTo"
-      class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+      class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
     >
       {{ actionLabel }}
     </router-link>

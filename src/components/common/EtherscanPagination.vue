@@ -1,6 +1,8 @@
 <template>
   <nav aria-label="Pagination" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="text-sm text-text-secondary">Showing {{ startRecord }} to {{ endRecord }} of {{ total }} records</div>
+    <div class="text-sm text-text-secondary dark:text-gray-400">
+      Showing {{ startRecord }} to {{ endRecord }} of {{ total }} records
+    </div>
     <div class="flex items-center gap-1">
       <!-- First -->
       <button class="btn-page" :disabled="page <= 1" aria-label="First page" @click="goTo(1)">First</button>
@@ -9,7 +11,7 @@
 
       <!-- Page numbers -->
       <template v-for="p in visiblePages" :key="p">
-        <span v-if="p === '...'" class="px-1 text-xs text-gray-400">...</span>
+        <span v-if="p === '...'" class="px-1 text-xs text-gray-400 dark:text-gray-500">...</span>
         <button
           v-else
           class="btn-page"
@@ -37,7 +39,7 @@
         v-if="showPageSize"
         :value="pageSize"
         aria-label="Results per page"
-        class="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+        class="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
         @change="onPageSizeChange"
       >
         <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} / page</option>
@@ -116,6 +118,8 @@ function onPageSizeChange(e) {
 .btn-page {
   @apply rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600
          transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40
-         dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700;
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+         dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700
+         dark:focus-visible:ring-offset-gray-900;
 }
 </style>

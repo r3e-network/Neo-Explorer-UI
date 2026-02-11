@@ -1,14 +1,32 @@
 <template>
   <div class="nft-info">
-    <section class="mx-auto max-w-[1400px] px-4 py-6">
-      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
-        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
-        <span class="mx-2">/</span>
-        <span class="text-text-primary dark:text-gray-300">NFT Detail</span>
-      </nav>
+    <div class="mx-auto max-w-[1400px] px-4 py-6">
+      <!-- Breadcrumb -->
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'NFT Detail' }]" />
 
-      <div v-if="loading" class="space-y-2">
-        <Skeleton v-for="index in 6" :key="index" height="44px" />
+      <!-- Page Header -->
+      <div class="mb-6 flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/40">
+          <svg class="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-white">{{ nftName || "NFT Detail" }}</h1>
+          <p class="text-sm text-text-secondary">Non-Fungible Token</p>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="etherscan-card p-6">
+        <div class="space-y-4">
+          <Skeleton v-for="index in 6" :key="index" height="44px" />
+        </div>
       </div>
 
       <!-- Error State -->
@@ -40,12 +58,11 @@
         </div>
 
         <div class="space-y-6 lg:col-span-2">
-          <div class="etherscan-card p-6">
-            <h1 class="mb-4 text-2xl font-semibold text-text-primary dark:text-gray-100">
-              {{ nftName }}
-            </h1>
-
-            <div class="space-y-4">
+          <div class="etherscan-card overflow-hidden">
+            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+              <h2 class="text-base font-semibold text-gray-800 dark:text-white">Details</h2>
+            </div>
+            <div class="p-4 md:p-6">
               <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
                 <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Token ID</span>
                 <span class="break-all font-mono text-sm text-text-primary dark:text-gray-300">{{ tokenId }}</span>
@@ -70,7 +87,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -80,6 +97,7 @@ import { useRoute } from "vue-router";
 import { tokenService } from "@/services";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 
 const route = useRoute();
 

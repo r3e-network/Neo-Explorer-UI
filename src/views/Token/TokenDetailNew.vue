@@ -1,6 +1,6 @@
 <template>
   <div class="token-detail-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6">
+    <div class="mx-auto max-w-[1400px] px-4 py-6">
       <Breadcrumb
         :items="[
           { label: 'Home', to: '/homepage' },
@@ -11,12 +11,12 @@
 
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400"
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400"
         >
           <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
         </div>
         <div>
-          <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100">
+          <h1 class="text-2xl font-bold text-text-primary dark:text-white">
             {{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})
           </h1>
           <p class="text-sm text-text-secondary dark:text-gray-400">
@@ -107,7 +107,7 @@
           </div>
         </div>
       </template>
-    </section>
+    </div>
   </div>
 </template>
 

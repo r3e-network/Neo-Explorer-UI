@@ -14,7 +14,7 @@
           <router-link
             :to="`/block-info/${block.hash}`"
             :title="block.hash"
-            class="font-medium text-primary-500 hover:text-primary-600 dark:text-primary-400"
+            class="font-medium text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
           >
             #{{ formatNumber(block.index || 0) }}
           </router-link>
@@ -28,7 +28,7 @@
       <div class="hidden min-w-0 flex-1 text-center md:block">
         <p class="text-xs text-text-secondary dark:text-gray-400">Fee Recipient</p>
         <HashLink v-if="block.speaker" :hash="block.speaker" type="address" :copyable="false" />
-        <span v-else class="text-sm text-text-muted">-</span>
+        <span v-else class="text-sm text-text-muted dark:text-gray-500">-</span>
       </div>
 
       <!-- Tx count + reward -->

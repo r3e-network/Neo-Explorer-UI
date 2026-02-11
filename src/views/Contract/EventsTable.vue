@@ -13,11 +13,11 @@
         <table class="w-full min-w-[750px]">
           <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Event Name</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">VM State</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Index</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Event Name</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">VM State</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Index</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">
                 Time
                 <button class="btn-mini ml-1" @click="toggleTimeFormat">Format</button>
               </th>

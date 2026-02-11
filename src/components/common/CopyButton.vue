@@ -1,7 +1,7 @@
 <template>
   <button
     @click="copyText"
-    class="relative inline-flex items-center justify-center rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+    class="relative inline-flex items-center justify-center rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
     :class="sizeClass"
     :title="copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy'"
     :aria-label="copied ? 'Copied to clipboard' : copyFailed ? 'Copy to clipboard failed' : 'Copy to clipboard'"
@@ -63,7 +63,11 @@ const sizeClass = computed(() => (props.size === "md" ? "p-1.5" : "p-1"));
 
 const iconClass = computed(() => [
   props.size === "md" ? "w-5 h-5" : "w-3.5 h-3.5",
-  copied.value ? "text-green-500" : copyFailed.value ? "text-red-500" : "text-gray-400",
+  copied.value
+    ? "text-green-500 dark:text-green-400"
+    : copyFailed.value
+    ? "text-red-500 dark:text-red-400"
+    : "text-gray-400 dark:text-gray-500",
   "transition-colors",
 ]);
 

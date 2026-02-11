@@ -1,6 +1,6 @@
 <template>
   <div class="address-detail-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6">
+    <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
@@ -9,7 +9,7 @@
       <!-- Address header -->
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-500 dark:bg-orange-900/30 dark:text-orange-400"
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400"
         >
           <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path
@@ -19,7 +19,7 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100">Address</h1>
+            <h1 class="text-2xl font-bold text-text-primary dark:text-white">Address</h1>
             <span
               v-if="isContract"
               class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
@@ -605,7 +605,7 @@
           </section>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 

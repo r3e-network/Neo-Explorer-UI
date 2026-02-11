@@ -29,11 +29,7 @@
         <form @submit.prevent="performSearch" class="space-y-4">
           <!-- Type Filter + Input Row -->
           <div class="flex flex-col gap-3 sm:flex-row">
-            <select
-              v-model="searchType"
-              aria-label="Search type filter"
-              class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 sm:w-48"
-            >
+            <select v-model="searchType" aria-label="Search type filter" class="form-input sm:w-48">
               <option value="all">All Types</option>
               <option value="address">Address</option>
               <option value="transaction">Transaction</option>
@@ -48,7 +44,7 @@
                 type="text"
                 aria-label="Search query input"
                 :placeholder="inputPlaceholder"
-                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
+                class="form-input pr-10"
                 @input="clearValidation"
               />
               <button

@@ -24,15 +24,11 @@
       </div>
     </Transition>
 
-    <section class="mx-auto max-w-[1400px] px-4 py-6">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
-        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
-        <span class="mx-2">/</span>
-        <router-link to="/contracts/1" class="hover:text-primary-500">Contracts</router-link>
-        <span class="mx-2">/</span>
-        <span class="text-text-primary dark:text-gray-300">Verify</span>
-      </nav>
+      <BreadcrumbNav
+        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts', to: '/contracts/1' }, { label: 'Verify' }]"
+      />
 
       <div class="etherscan-card">
         <!-- Header -->
@@ -174,6 +170,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
 import { contractService } from "@/services";
 import {
   COMPILER_VERSION_OPTIONS,

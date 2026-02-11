@@ -12,7 +12,7 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full appearance-none border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 pl-3 pr-7 py-4 rounded-l-xl cursor-pointer focus:outline-none"
+        class="h-full appearance-none border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 pl-3 pr-7 py-4 rounded-l-xl cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
         aria-label="Search filter"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value">{{ f.label }}</option>
@@ -22,7 +22,7 @@
       <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-3' : 'pl-2.5'">
         <svg
           class="w-4 h-4"
-          :class="mode === 'full' ? 'text-gray-400' : 'text-white/50'"
+          :class="mode === 'full' ? 'text-gray-400 dark:text-gray-500' : 'text-white/50'"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

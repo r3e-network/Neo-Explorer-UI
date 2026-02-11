@@ -1,9 +1,12 @@
 <template>
   <div class="api-docs">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="text-2xl font-semibold text-text-primary dark:text-gray-100">API Documentation</h1>
-        <p class="text-sm text-text-secondary dark:text-gray-400">Neo Explorer API reference grouped by domain</p>
+      <!-- Breadcrumb -->
+      <BreadcrumbNav :items="[{ label: 'Home', to: '/homepage' }, { label: 'API Documentation' }]" />
+
+      <header class="mb-6">
+        <h1 class="page-title">API Documentation</h1>
+        <p class="page-subtitle">Neo Explorer API reference grouped by domain</p>
       </header>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -56,6 +59,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
 
 const activeCategory = ref("blocks");
 

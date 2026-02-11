@@ -29,8 +29,9 @@ const { isDark, toggleTheme: toggle } = useTheme();
 
 <style scoped>
 .theme-toggle {
-  @apply p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 
-         hover:bg-gray-200 dark:hover:bg-gray-700 
+  @apply p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800
+         hover:bg-gray-200 dark:hover:bg-gray-700
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
          transition-all duration-200 ease-in-out;
 }
 .theme-toggle:hover {

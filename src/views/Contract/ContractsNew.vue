@@ -1,6 +1,8 @@
 <template>
   <div class="contracts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts' }]" />
+
       <header class="mb-5 flex flex-col gap-1">
         <h1 class="page-title">Contracts</h1>
         <p class="page-subtitle">Smart contracts deployed on Neo N3</p>
@@ -172,6 +174,7 @@ import { useRoute, useRouter } from "vue-router";
 import { contractService } from "@/services";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

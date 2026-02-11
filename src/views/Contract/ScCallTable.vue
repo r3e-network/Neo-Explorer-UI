@@ -18,15 +18,15 @@
         <table class="w-full min-w-[700px]">
           <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">
                 Sender
                 <button class="btn-mini ml-1" aria-label="Toggle sender address format" @click="toggleAddressFormat">
                   {{ showAddress ? "Hash" : "Addr" }}
                 </button>
               </th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Method</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Call Flags</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Method</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Call Flags</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-card-border dark:divide-card-border-dark">

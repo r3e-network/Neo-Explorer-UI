@@ -104,7 +104,7 @@
         <p>&copy; {{ currentYear }} Neo Explorer</p>
         <p class="hidden sm:block">Powered by <strong class="text-neo-green">neo3fura</strong></p>
         <button
-          class="font-medium text-text-secondary hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
+          class="font-medium text-text-secondary transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
           aria-label="Back to top"
           @click="scrollTop"
         >

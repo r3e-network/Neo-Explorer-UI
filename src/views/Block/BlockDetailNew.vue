@@ -14,15 +14,17 @@
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30"
+            class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/40"
           >
-            <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="h-6 w-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Block #{{ formatNumber(block.index ?? 0) }}</h1>
-            <p class="page-subtitle" v-if="!loading">{{ timeAgo }}</p>
+            <h1 class="text-2xl font-bold text-text-primary dark:text-white">
+              Block #{{ formatNumber(block.index ?? 0) }}
+            </h1>
+            <p class="text-sm text-text-secondary" v-if="!loading">{{ timeAgo }}</p>
           </div>
         </div>
         <!-- Prev / Next Navigation -->

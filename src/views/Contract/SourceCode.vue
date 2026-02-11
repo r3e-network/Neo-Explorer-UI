@@ -1,13 +1,13 @@
 <template>
   <div class="source-code-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6">
-      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
-        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
-        <span class="mx-2">/</span>
-        <router-link to="/contracts/1" class="hover:text-primary-500">Contracts</router-link>
-        <span class="mx-2">/</span>
-        <span class="text-text-primary dark:text-gray-300">Source Code</span>
-      </nav>
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <BreadcrumbNav
+        :items="[
+          { label: 'Home', to: '/homepage' },
+          { label: 'Contracts', to: '/contracts/1' },
+          { label: 'Source Code' },
+        ]"
+      />
 
       <div class="etherscan-card">
         <header class="border-b border-card-border p-5 dark:border-card-border-dark md:p-6">
@@ -32,6 +32,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
 import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
 import { normalizeUpdateCounter } from "@/utils/detailRouting";
 

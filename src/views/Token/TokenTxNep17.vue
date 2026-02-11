@@ -29,14 +29,14 @@
         <table class="w-full min-w-[960px]">
           <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Type</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary"></th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary">Amount</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Type</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">From</th>
+              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400">Amount</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">To</th>
               <th
-                class="cursor-pointer select-none px-4 py-3 text-right font-medium text-text-secondary hover:text-primary-500"
+                class="cursor-pointer select-none px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400 hover:text-primary-500"
                 @click="showAbsoluteTime = !showAbsoluteTime"
               >
                 {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}

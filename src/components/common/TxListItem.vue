@@ -25,13 +25,18 @@
           <p class="text-xs text-text-secondary dark:text-gray-400">From</p>
           <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
         </div>
-        <svg class="h-4 w-4 flex-shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="h-4 w-4 flex-shrink-0 text-text-muted dark:text-gray-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
         <div class="min-w-0 text-left">
           <p class="text-xs text-text-secondary dark:text-gray-400">To</p>
           <HashLink v-if="toAddress" :hash="toAddress" type="address" :copyable="false" />
-          <span v-else class="text-sm text-text-muted">Contract Call</span>
+          <span v-else class="text-sm text-text-muted dark:text-gray-500">Contract Call</span>
         </div>
       </div>
 

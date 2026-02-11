@@ -29,10 +29,10 @@
         <table class="w-full min-w-[700px]">
           <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary">Address</th>
-              <th class="px-4 py-3 text-right font-medium text-text-secondary">Balance</th>
-              <th class="px-4 py-3 text-right font-medium text-text-secondary">Percentage</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Rank</th>
+              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Address</th>
+              <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Balance</th>
+              <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Percentage</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-card-border dark:divide-card-border-dark">

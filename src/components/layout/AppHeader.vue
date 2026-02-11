@@ -21,7 +21,7 @@
         <div class="flex items-center gap-2">
           <div ref="networkDropdown" class="relative">
             <button
-              class="h-6 rounded border border-gray-200 bg-white px-2 text-xs text-text-secondary transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              class="h-6 rounded border border-gray-200 bg-white px-2 text-xs text-text-secondary transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               aria-label="Select network"
               @click="networkDropdownOpen = !networkDropdownOpen"
             >
@@ -34,7 +34,7 @@
               <button
                 v-for="net in NETWORKS"
                 :key="net.id"
-                class="block w-full rounded px-2 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                class="block w-full rounded px-2 py-1.5 text-left text-xs text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
                 :aria-label="`Switch to ${net.name}`"
                 @click="selectNetwork(net)"
               >
@@ -143,7 +143,7 @@
 
         <!-- Mobile Hamburger -->
         <button
-          class="ml-3 rounded p-2 text-white/70 hover:text-white lg:hidden"
+          class="ml-3 rounded p-2 text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 lg:hidden"
           @click="mobileMenuOpen = !mobileMenuOpen"
           aria-label="Toggle menu"
         >
