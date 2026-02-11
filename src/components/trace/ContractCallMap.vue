@@ -7,7 +7,7 @@
     <div v-else class="space-y-6">
       <div v-for="(exec, ei) in callTree" :key="ei" class="execution-group">
         <!-- Execution header -->
-        <div class="flex items-center gap-3 mb-3">
+        <div class="flex flex-wrap items-center gap-3 mb-3">
           <span
             class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border"
             :class="vmStateClass(exec.vmState)"
@@ -15,8 +15,10 @@
             <span class="w-1.5 h-1.5 rounded-full" :class="vmStateDot(exec.vmState)"></span>
             {{ exec.vmState }}
           </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400"> Trigger: {{ exec.trigger }} </span>
-          <span class="text-xs font-mono text-gray-500 dark:text-gray-400"> {{ exec.gasConsumed }} GAS </span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">Trigger: {{ exec.trigger }}</span>
+          <span class="text-xs font-mono text-gray-500 dark:text-gray-400"
+            >{{ formatGasDecimal(exec.gasConsumed) }} GAS</span
+          >
         </div>
 
         <!-- Contract flow -->
@@ -52,7 +54,21 @@
             >
               <!-- Contract header -->
               <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                <HashLink :hash="node.contract" type="contract" />
+                <div class="flex items-center gap-2">
+                  <HashLink :hash="node.contract" type="contract" />
+                  <span
+                    v-if="node.contractName || getNodeName(node.contract)"
+                    class="text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    ({{ node.contractName || getNodeName(node.contract) }})
+                  </span>
+                  <span
+                    v-if="node.events && node.events.length > 0"
+                    class="ml-auto px-1.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300"
+                  >
+                    {{ node.events.length }} {{ node.events.length === 1 ? "event" : "events" }}
+                  </span>
+                </div>
               </div>
 
               <!-- Events list -->
@@ -60,11 +76,21 @@
                 <div
                   v-for="(evt, evi) in node.events"
                   :key="evi"
-                  class="event-badge flex items-center gap-1.5 px-2 py-1 rounded bg-gray-50 dark:bg-gray-700/30 text-xs"
+                  class="event-badge flex items-center gap-1.5 px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-700/30 text-xs"
                 >
-                  <span class="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0"></span>
+                  <span
+                    class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    :class="evt.eventName?.toLowerCase() === 'transfer' ? 'bg-emerald-400' : 'bg-primary-400'"
+                  ></span>
                   <span class="font-medium text-gray-700 dark:text-gray-300">
                     {{ evt.eventName }}
+                  </span>
+                  <!-- Compact transfer summary -->
+                  <span
+                    v-if="evt.eventName?.toLowerCase() === 'transfer' && getTransferSummary(evt)"
+                    class="text-gray-500 dark:text-gray-400 truncate"
+                  >
+                    {{ getTransferSummary(evt) }}
                   </span>
                 </div>
                 <div v-if="!node.events || node.events.length === 0" class="text-xs text-gray-400 italic px-2 py-1">
@@ -81,25 +107,62 @@
 
 <script setup>
 import HashLink from "@/components/common/HashLink.vue";
+import { scriptHashToAddress, isScriptHash } from "@/utils/neoCodec";
+import {
+  vmStateClass,
+  vmStateDot,
+  getContractDisplayName,
+  truncateHash,
+  formatGasDecimal,
+} from "@/utils/explorerFormat";
 
-defineProps({
+const props = defineProps({
   callTree: {
     type: Array,
     required: true,
   },
+  contractMetadata: {
+    type: [Map, Object],
+    default: null,
+  },
 });
 
-function vmStateClass(state) {
-  if (state === "HALT")
-    return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800";
-  if (state === "FAULT")
-    return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
-  return "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600";
+function getNodeName(hash) {
+  if (!props.contractMetadata) return null;
+  const meta = props.contractMetadata instanceof Map ? props.contractMetadata.get(hash) : props.contractMetadata[hash];
+  if (!meta) return getContractDisplayName(hash, null);
+  return meta.name || null;
 }
 
-function vmStateDot(state) {
-  if (state === "HALT") return "bg-emerald-500";
-  if (state === "FAULT") return "bg-red-500";
-  return "bg-gray-400";
+function getTransferSummary(evt) {
+  // Enriched operation objects have from/to/amount directly
+  if (evt.from !== undefined || evt.to !== undefined) {
+    const from = evt.from ? truncateHash(evt.from, 6, 4) : "Mint";
+    const to = evt.to ? truncateHash(evt.to, 6, 4) : "Burn";
+    const amount = evt.amount ?? "?";
+    const symbol = evt.tokenSymbol ? ` ${evt.tokenSymbol}` : "";
+    return `${from} → ${amount}${symbol} → ${to}`;
+  }
+  // Fallback for raw notification objects (buildCallTree format)
+  const state = evt.state;
+  if (!state) return null;
+  const params = state.value ?? (Array.isArray(state) ? state : []);
+  if (params.length < 3) return null;
+  const from = decodeCompact(params[0]);
+  const to = decodeCompact(params[1]);
+  const amount = params[2]?.value ?? "?";
+  return `${from} → ${amount} → ${to}`;
+}
+
+function decodeCompact(param) {
+  if (!param || !param.value) return "Mint";
+  if (param.type === "ByteString") {
+    if (isScriptHash(param.value)) {
+      const addr = scriptHashToAddress(param.value);
+      if (addr) return truncateHash(addr, 6, 4);
+    }
+    return truncateHash(param.value, 6, 4);
+  }
+  return String(param.value);
 }
 </script>

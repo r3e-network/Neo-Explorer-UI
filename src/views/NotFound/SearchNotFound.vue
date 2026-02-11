@@ -30,8 +30,4 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "SearchNotFound",
-};
-</script>
+<script setup></script>

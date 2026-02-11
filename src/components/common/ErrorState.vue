@@ -1,14 +1,7 @@
 <template>
   <div class="error-state text-center py-12 px-4">
-    <div
-      class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center"
-    >
-      <svg
-        class="w-8 h-8 text-red-500"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+      <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -24,6 +17,7 @@
     <button
       v-if="showRetry"
       @click="$emit('retry')"
+      aria-label="Retry"
       class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
     >
       Try Again
@@ -31,17 +25,15 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "ErrorState",
-  props: {
-    title: { type: String, default: "Something went wrong" },
-    message: {
-      type: String,
-      default: "Failed to load data. Please try again.",
-    },
-    showRetry: { type: Boolean, default: true },
+<script setup>
+defineProps({
+  title: { type: String, default: "Something went wrong" },
+  message: {
+    type: String,
+    default: "Failed to load data. Please try again.",
   },
-  emits: ["retry"],
-};
+  showRetry: { type: Boolean, default: true },
+});
+
+defineEmits(["retry"]);
 </script>

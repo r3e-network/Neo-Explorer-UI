@@ -29,32 +29,30 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
 import { normalizeUpdateCounter } from "@/utils/detailRouting";
 
-export default {
-  name: "SourceCode",
-  components: {
-    ContractSourceCodePanel,
+const route = useRoute();
+
+const props = defineProps({
+  contractHash: {
+    type: String,
+    default: "",
   },
-  props: {
-    contractHash: {
-      type: String,
-      default: "",
-    },
-    updatecounter: {
-      type: [Number, String],
-      default: 0,
-    },
+  updatecounter: {
+    type: [Number, String],
+    default: 0,
   },
-  computed: {
-    resolvedContractHash() {
-      return this.contractHash || this.$route.query.contractHash || "";
-    },
-    resolvedUpdateCounter() {
-      return normalizeUpdateCounter(this.updatecounter || this.$route.query.updatecounter || 0);
-    },
-  },
-};
+});
+
+const resolvedContractHash = computed(() => {
+  return props.contractHash || route.query.contractHash || "";
+});
+
+const resolvedUpdateCounter = computed(() => {
+  return normalizeUpdateCounter(props.updatecounter || route.query.updatecounter || 0);
+});
 </script>

@@ -1,6 +1,6 @@
 <template>
-  <nav aria-label="Breadcrumb" class="breadcrumb mb-4">
-    <ol class="flex items-center flex-wrap gap-1 text-sm">
+  <nav aria-label="Breadcrumb" class="mb-4">
+    <ol class="flex flex-wrap items-center gap-1 text-sm">
       <li v-for="(item, index) in items" :key="index" class="flex items-center">
         <!-- Separator -->
         <svg
@@ -14,7 +14,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
 
-        <!-- Last item: plain text (current page) -->
+        <!-- Last item: current page (no link) -->
         <span
           v-if="index === items.length - 1"
           class="font-medium text-gray-800 dark:text-gray-200"
@@ -27,7 +27,7 @@
         <router-link
           v-else
           :to="item.to"
-          class="text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+          class="text-gray-500 transition-colors hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
         >
           {{ item.label }}
         </router-link>
@@ -36,17 +36,12 @@
   </nav>
 </template>
 
-<script>
-export default {
-  name: "BreadcrumbNav",
-  props: {
-    items: {
-      type: Array,
-      required: true,
-      validator(value) {
-        return value.every((item) => typeof item.label === "string");
-      },
-    },
+<script setup>
+defineProps({
+  items: {
+    type: Array,
+    required: true,
+    validator: (value) => value.every((item) => typeof item.label === "string"),
   },
-};
+});
 </script>

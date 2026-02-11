@@ -1,22 +1,27 @@
 <template>
   <div class="tokens-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <!-- Breadcrumb -->
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tokens' }]" />
+
       <header class="mb-5 flex flex-col gap-1">
         <h1 class="page-title">Token Tracker</h1>
         <p class="page-subtitle">NEP-17 and NEP-11 tokens on Neo N3</p>
       </header>
 
+      <!-- Token List Card -->
       <div class="etherscan-card overflow-hidden">
+        <!-- Tabs -->
         <div class="border-b border-card-border px-4 dark:border-card-border-dark">
           <nav class="flex gap-1 py-2">
             <button
-              @click="activeTab = 'nep17'"
+              @click="switchTab('nep17')"
               :class="['tab-btn', activeTab === 'nep17' ? 'tab-btn-active' : 'tab-btn-inactive']"
             >
               NEP-17 Tokens
             </button>
             <button
-              @click="activeTab = 'nep11'"
+              @click="switchTab('nep11')"
               :class="['tab-btn', activeTab === 'nep11' ? 'tab-btn-active' : 'tab-btn-inactive']"
             >
               NEP-11 NFTs
@@ -24,16 +29,52 @@
           </nav>
         </div>
 
+        <!-- Search + Info bar -->
         <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="flex flex-col gap-3 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-card-border-dark"
         >
           <p class="text-sm text-text-secondary dark:text-gray-300">
-            {{ activeTabLabel }}
+            {{ activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT Collection List" }}
+            <span v-if="total > 0" class="text-text-muted">({{ formatNumber(total) }} total)</span>
           </p>
-          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
+          <div class="relative w-full sm:w-64">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by name..."
+              aria-label="Search tokens"
+              class="w-full rounded-lg border border-card-border bg-white py-1.5 pl-8 pr-3 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-primary-500 focus:outline-none dark:border-card-border-dark dark:bg-gray-900 dark:text-gray-200"
+              @input="handleSearchDebounced"
+            />
+            <svg
+              class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- Loading -->
+        <div v-if="loading" class="space-y-2 p-4">
+          <Skeleton v-for="i in pageSize" :key="i" height="44px" />
+        </div>
+
+        <!-- Error State -->
+        <ErrorState v-else-if="error" title="Unable to load tokens" :message="error" @retry="loadPage" />
+
+        <!-- Empty -->
+        <EmptyState v-else-if="tokens.length === 0" title="No tokens found" />
+
+        <!-- NEP-17 Table -->
+        <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
@@ -43,6 +84,7 @@
                 <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
                 <th class="px-4 py-3 text-right font-medium text-text-secondary">Holders</th>
                 <th class="px-4 py-3 text-right font-medium text-text-secondary">Total Supply</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Market Cap</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -55,20 +97,18 @@
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
+                  <router-link :to="`/nep17-token-info/${token.hash}`" class="flex items-center gap-3">
                     <div
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-text-primary dark:bg-gray-700 dark:text-gray-100"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="font-medium text-text-primary dark:text-gray-100">
+                    <span class="font-medium text-text-primary hover:text-primary-500 dark:text-gray-100">
                       {{ token.tokenname || "Unknown Token" }}
                     </span>
-                  </div>
+                  </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
-                  {{ token.symbol || "-" }}
-                </td>
+                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">{{ token.symbol || "-" }}</td>
                 <td class="px-4 py-3">
                   <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(token.hash) }}
@@ -80,20 +120,70 @@
                 <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
                   {{ formatSupply(token) }}
                 </td>
+                <td class="px-4 py-3 text-right text-sm text-text-muted">
+                  {{ formatMarketCap(token) }}
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div v-if="loading" class="space-y-2 p-4">
-          <Skeleton v-for="index in 10" :key="index" height="44px" />
+        <!-- NEP-11 Table -->
+        <div v-else class="overflow-x-auto">
+          <table class="w-full min-w-[920px]">
+            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+              <tr>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">#</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Symbol</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Items</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Holders</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+              <tr
+                v-for="(token, index) in tokens"
+                :key="token.hash"
+                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              >
+                <td class="px-4 py-3 text-sm text-text-muted">
+                  {{ (currentPage - 1) * pageSize + index + 1 }}
+                </td>
+                <td class="px-4 py-3">
+                  <router-link :to="`/nft-token-info/${token.hash}`" class="flex items-center gap-3">
+                    <div
+                      class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+                    >
+                      {{ token.symbol?.charAt(0) || "?" }}
+                    </div>
+                    <span class="font-medium text-text-primary hover:text-primary-500 dark:text-gray-100">
+                      {{ token.tokenname || "Unknown Collection" }}
+                    </span>
+                  </router-link>
+                </td>
+                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">{{ token.symbol || "-" }}</td>
+                <td class="px-4 py-3">
+                  <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
+                    {{ truncateHash(token.hash) }}
+                  </router-link>
+                </td>
+                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                  {{ formatSupply(token) }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                  {{ formatNumber(token.holders || 0) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div v-else-if="tokens.length === 0" class="p-4">
-          <EmptyState title="No tokens found" />
-        </div>
-
-        <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+        <!-- Pagination -->
+        <div
+          v-if="!loading && tokens.length > 0"
+          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+        >
           <EtherscanPagination
             :page="currentPage"
             :total-pages="totalPages"
@@ -108,98 +198,147 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
-import { createPaginationMixin } from "@/composables/usePagination";
+import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
+import { truncateHash, formatNumber, formatSupply as formatSupplyRaw } from "@/utils/explorerFormat";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
-import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
-export default {
-  name: "TokensNew",
-  mixins: [createPaginationMixin("/tokens")],
-  components: {
-    EmptyState,
-    Skeleton,
-    EtherscanPagination,
-  },
-  data() {
-    return {
-      loading: true,
-      tokens: [],
-      activeTab: "nep17",
-    };
-  },
-  computed: {
-    activeTabLabel() {
-      return this.activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT List";
-    },
-  },
-  watch: {
-    activeTab() {
-      const alreadyOnPage1 = this.currentPage === 1;
-      this.currentPage = 1;
-      this.$router.push(`/tokens/${this.activeTab}/1`);
-      if (alreadyOnPage1) {
-        this.loadPage();
-      }
-    },
-    "$route.params.tab": {
-      immediate: true,
-      handler(tab) {
-        if (tab && tab !== this.activeTab) this.activeTab = tab;
-      },
-    },
-  },
-  methods: {
-    async loadPage() {
-      this.loading = true;
-      try {
-        const response =
-          this.activeTab === "nep11"
-            ? await tokenService.getNep11List(this.pageSize, this.paginationOffset)
-            : await tokenService.getNep17List(this.pageSize, this.paginationOffset);
+const route = useRoute();
+const router = useRouter();
 
-        this.tokens = this.applyPage(response?.totalCount, response?.result || []);
-      } catch {
-        this.tokens = [];
-      } finally {
-        this.loading = false;
-      }
-    },
-    // Override mixin routing — tab-aware paths
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.$router.push(`/tokens/${this.activeTab}/${page}`);
-      }
-    },
-    changePageSize(size) {
-      this.pageSize = size;
-      this.$router.push(`/tokens/${this.activeTab}/1`);
-    },
-    truncateHash,
-    formatNumber,
-    formatSupply(token) {
-      const supply = token.totalsupply;
-      if (!supply) return "0";
-      const decimals = token.decimals || 0;
-      const num = parseFloat(supply) / Math.pow(10, decimals);
-      return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
-    },
+// --- State ---
+const tokens = ref([]);
+const loading = ref(false);
+const error = ref(null);
+const activeTab = ref("nep17");
+const searchQuery = ref("");
+
+// Pagination
+const currentPage = ref(1);
+const pageSize = ref(DEFAULT_PAGE_SIZE);
+const total = ref(0);
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value);
+
+// --- Search debounce ---
+let searchTimer = null;
+let currentRequestId = 0;
+function handleSearchDebounced() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1;
+    router.push(`/tokens/${activeTab.value}/1`);
+    loadPage();
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+// --- Methods ---
+function formatSupply(token) {
+  return formatSupplyRaw(token.totalsupply, token.decimals || 0);
+}
+
+function formatMarketCap(token) {
+  if (!token.market_cap && !token.marketcap) return "-";
+  const cap = parseFloat(token.market_cap || token.marketcap || 0);
+  if (cap <= 0) return "-";
+  if (cap >= 1e9) return "$" + (cap / 1e9).toFixed(2) + "B";
+  if (cap >= 1e6) return "$" + (cap / 1e6).toFixed(2) + "M";
+  if (cap >= 1e3) return "$" + (cap / 1e3).toFixed(2) + "K";
+  return "$" + cap.toFixed(2);
+}
+
+async function loadPage() {
+  const myRequestId = ++currentRequestId;
+  loading.value = true;
+  error.value = null;
+  try {
+    let response;
+    const query = searchQuery.value.trim();
+
+    if (query) {
+      response =
+        activeTab.value === "nep11"
+          ? await tokenService.searchNep11ByName(query, pageSize.value, paginationOffset.value)
+          : await tokenService.searchNep17ByName(query, pageSize.value, paginationOffset.value);
+    } else {
+      response =
+        activeTab.value === "nep11"
+          ? await tokenService.getNep11List(pageSize.value, paginationOffset.value)
+          : await tokenService.getNep17List(pageSize.value, paginationOffset.value);
+    }
+
+    if (myRequestId !== currentRequestId) return;
+    total.value = response?.totalCount || 0;
+    tokens.value = response?.result || [];
+  } catch (err) {
+    if (myRequestId !== currentRequestId) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load tokens:", err);
+    error.value = "Failed to load tokens. Please try again.";
+    tokens.value = [];
+  } finally {
+    if (myRequestId === currentRequestId) {
+      loading.value = false;
+    }
+  }
+}
+
+function switchTab(tab) {
+  if (tab === activeTab.value) return;
+  if (searchTimer) clearTimeout(searchTimer);
+  activeTab.value = tab;
+  searchQuery.value = "";
+  router.push(`/tokens/${tab}/1`);
+}
+
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) {
+    router.push(`/tokens/${activeTab.value}/${page}`);
+  }
+}
+
+function changePageSize(size) {
+  pageSize.value = size;
+  router.push(`/tokens/${activeTab.value}/1`);
+}
+
+// --- Route watchers ---
+watch(
+  () => route.params.tab,
+  (tab) => {
+    if (tab && tab !== activeTab.value) activeTab.value = tab;
+  }
+);
+
+watch(
+  () => route.params.page,
+  (page) => {
+    const parsed = parseInt(page) || 1;
+    currentPage.value = Math.max(1, parsed);
+    loadPage();
   },
-};
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+});
 </script>
 
 <style scoped>
 .tab-btn {
   @apply rounded-md px-3 py-2 text-sm font-medium transition-colors;
 }
-
 .tab-btn-active {
   @apply bg-primary-50 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400;
 }
-
 .tab-btn-inactive {
   @apply text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200;
 }

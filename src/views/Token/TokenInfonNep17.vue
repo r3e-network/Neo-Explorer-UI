@@ -29,7 +29,11 @@
 
         <!-- Token Image -->
         <div v-if="hasTokenImage" class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-          <img :src="image" alt="Token" class="h-16 w-16 rounded-lg object-contain" />
+          <img
+            :src="image"
+            :alt="token_info['tokenname'] ? token_info['tokenname'] + ' icon' : 'Token'"
+            class="h-16 w-16 rounded-lg object-contain"
+          />
         </div>
 
         <div class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -103,10 +107,12 @@
 
       <!-- Tabs -->
       <div v-if="updateCounter !== -1">
-        <div class="mb-4 flex gap-1 border-b border-card-border dark:border-card-border-dark">
+        <div class="mb-4 flex gap-1 border-b border-card-border dark:border-card-border-dark" role="tablist">
           <button
             v-for="tab in tabs"
             :key="tab.key"
+            role="tab"
+            :aria-selected="activeName === tab.key"
             class="tab-btn"
             :class="{ active: activeName === tab.key }"
             @click="activeName = tab.key"
@@ -230,6 +236,7 @@
                           <input
                             v-if="item['safe']"
                             type="text"
+                            :aria-label="`Parameter ${param['name']}`"
                             class="mt-1 block w-full rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                             v-model="manifest['abi']['methods'][index]['parameters'][ind].value"
                           />
@@ -294,8 +301,11 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, watch, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { tokenService, contractService } from "@/services";
+import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import TokensTxNep17 from "./TokenTxNep17";
 import TokenHolder from "./TokenHolder";
 import ContractJsonView from "../Contract/ContractJsonView";
@@ -304,154 +314,167 @@ import { convertPreciseTime, convertToken, responseConverter } from "@/store/uti
 import { getRpcUrl } from "@/utils/env";
 import Skeleton from "@/components/common/Skeleton.vue";
 
-export default {
-  components: {
-    ContractJsonView,
-    TokensTxNep17,
-    TokenHolder,
-    Skeleton,
-  },
-  data() {
-    return {
-      token_id: "",
-      isLoading: true,
-      token_info: [],
-      manifest: "",
-      decimal: "",
-      activeName: "transfers",
-      tabs: [
-        { key: "transfers", label: "Recent Transfers" },
-        { key: "holders", label: "Top Holders" },
-        { key: "contract", label: "Contract Info" },
-      ],
-      tokenImageList: {
-        GhostMarketToken: "https://governance.ghostmarket.io/images/gm.png",
-      },
-      image: "",
-      hasTokenImage: false,
-      updateCounter: 0,
-      copied: false,
-    };
-  },
-  created() {
-    this.token_id = this.$route.params.hash;
-    this.loadAllData();
-  },
-  watch: {
-    $route: "watchrouter",
-  },
-  methods: {
-    convertPreciseTime,
-    convertToken,
-    decode(index) {
-      if (this.manifest["abi"]["methods"][index]["isRaw"]) {
-        this.manifest["abi"]["methods"][index]["isRaw"] = false;
-        this.manifest["abi"]["methods"][index]["button"] = "Raw";
-      } else {
-        this.manifest["abi"]["methods"][index]["isRaw"] = true;
-        this.manifest["abi"]["methods"][index]["button"] = "Decode";
-      }
-    },
-    copyHash(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        this.copied = true;
-        setTimeout(() => {
-          this.copied = false;
-        }, 2000);
-      });
-    },
-    watchrouter() {
-      if (this.$route.name === "nep17TokenDetail") {
-        this.token_id = this.$route.params.hash;
-        this.loadAllData();
-      }
-    },
-    loadAllData() {
-      this.isLoading = true;
-      this.activeName = "transfers";
-      this.manifest = "";
-      this.updateCounter = 0;
-      this.getToken(this.token_id);
-      this.getContractManifest(this.token_id);
-      this.getContractUpdateCounter(this.token_id);
-    },
-    getContract(hash) {
-      this.$router.push(`/contractinfo/${hash}`);
-    },
-    getToken(token_id) {
-      tokenService
-        .getByHash(token_id)
-        .then((res) => {
-          this.decimal = res?.decimals;
-          this.token_info = res;
-          this.checkTokenImage();
-          this.isLoading = false;
-        })
-        .catch(() => {
-          this.isLoading = false;
-        });
-    },
-    checkTokenImage() {
-      const name = this.token_info["tokenname"];
-      if (name && name in this.tokenImageList) {
-        this.image = this.tokenImageList[name];
-        this.hasTokenImage = true;
-      }
-    },
-    getContractUpdateCounter(contract_id) {
-      contractService
-        .getByHash(contract_id)
-        .then((res) => {
-          this.updateCounter = res?.updatecounter;
-        })
-        .catch(() => {
-          // Service layer handles error logging
-        });
-    },
-    onQuery(index) {
-      this.manifest["abi"]["methods"][index]["result"] = "";
-      this.manifest["abi"]["methods"][index]["error"] = "";
-      const name = this.manifest["abi"]["methods"][index]["name"];
-      const params = this.manifest["abi"]["methods"][index]["parameters"];
-      const contractParams = [];
-      for (const item of params) {
-        try {
-          contractParams.push(Neon.create.contractParam(item["type"], item["value"]));
-        } catch (err) {
-          this.manifest["abi"]["methods"][index]["error"] = err.toString();
-          return;
-        }
-      }
-      const client = Neon.create.rpcClient(getRpcUrl());
-      client
-        .invokeFunction(this.token_id, name, contractParams)
-        .then((res) => {
-          if (res["exception"] != null) {
-            this.manifest["abi"]["methods"][index]["error"] = res["exception"];
-          } else {
-            const temp = JSON.parse(JSON.stringify(res["stack"]));
-            this.manifest["abi"]["methods"][index]["isRaw"] = true;
-            this.manifest["abi"]["methods"][index]["button"] = "Decode";
-            this.manifest["abi"]["methods"][index]["raw"] = res["stack"];
-            this.manifest["abi"]["methods"][index]["display"] = JSON.parse(JSON.stringify(temp, responseConverter));
-          }
-        })
-        .catch((err) => {
-          this.manifest["abi"]["methods"][index]["error"] = err.toString();
-        });
-    },
-    getContractManifest(token_id) {
-      contractService
-        .getByHash(token_id)
-        .then((res) => {
-          this.manifest = JSON.parse(res?.manifest || "{}");
-        })
-        .catch(() => {
-          // Service layer handles error logging
-        });
-    },
-  },
+const route = useRoute();
+const router = useRouter();
+
+// data() -> refs
+const token_id = ref("");
+const isLoading = ref(true);
+const token_info = ref([]);
+const manifest = ref("");
+const decimal = ref("");
+const activeName = ref("transfers");
+const tabs = [
+  { key: "transfers", label: "Recent Transfers" },
+  { key: "holders", label: "Top Holders" },
+  { key: "contract", label: "Contract Info" },
+];
+const tokenImageList = {
+  GhostMarketToken: "https://governance.ghostmarket.io/images/gm.png",
 };
+const image = ref("");
+const hasTokenImage = ref(false);
+const updateCounter = ref(0);
+const copied = ref(false);
+const abortController = ref(null);
+
+// Timer cleanup for copyHash setTimeout
+let copyTimer = null;
+onBeforeUnmount(() => {
+  if (copyTimer) clearTimeout(copyTimer);
+  abortController.value?.abort();
+});
+
+// methods -> functions
+function decode(index) {
+  if (manifest.value["abi"]["methods"][index]["isRaw"]) {
+    manifest.value["abi"]["methods"][index]["isRaw"] = false;
+    manifest.value["abi"]["methods"][index]["button"] = "Raw";
+  } else {
+    manifest.value["abi"]["methods"][index]["isRaw"] = true;
+    manifest.value["abi"]["methods"][index]["button"] = "Decode";
+  }
+}
+
+function copyHash(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    copied.value = true;
+    if (copyTimer) clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+      copied.value = false;
+    }, COPY_FEEDBACK_TIMEOUT_MS);
+  });
+}
+
+function loadAllData() {
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+
+  isLoading.value = true;
+  activeName.value = "transfers";
+  manifest.value = "";
+  updateCounter.value = 0;
+  getToken(token_id.value);
+  getContractManifest(token_id.value);
+  getContractUpdateCounter(token_id.value);
+}
+
+function getContract(hash) {
+  router.push(`/contract-info/${hash}`);
+}
+
+function getToken(id) {
+  tokenService
+    .getByHash(id)
+    .then((res) => {
+      if (abortController.value?.signal.aborted) return;
+      decimal.value = res?.decimals;
+      token_info.value = res;
+      checkTokenImage();
+      isLoading.value = false;
+    })
+    .catch(() => {
+      if (abortController.value?.signal.aborted) return;
+      isLoading.value = false;
+    });
+}
+
+function checkTokenImage() {
+  const name = token_info.value["tokenname"];
+  if (name && name in tokenImageList) {
+    image.value = tokenImageList[name];
+    hasTokenImage.value = true;
+  }
+}
+
+function getContractUpdateCounter(contract_id) {
+  contractService
+    .getByHash(contract_id)
+    .then((res) => {
+      if (abortController.value?.signal.aborted) return;
+      updateCounter.value = res?.updatecounter;
+    })
+    .catch(() => {
+      // Service layer handles error logging
+    });
+}
+
+function onQuery(index) {
+  manifest.value["abi"]["methods"][index]["result"] = "";
+  manifest.value["abi"]["methods"][index]["error"] = "";
+  const name = manifest.value["abi"]["methods"][index]["name"];
+  const params = manifest.value["abi"]["methods"][index]["parameters"];
+  const contractParams = [];
+  for (const item of params) {
+    try {
+      contractParams.push(Neon.create.contractParam(item["type"], item["value"]));
+    } catch (err) {
+      manifest.value["abi"]["methods"][index]["error"] = err.toString();
+      return;
+    }
+  }
+  const client = Neon.create.rpcClient(getRpcUrl());
+  client
+    .invokeFunction(token_id.value, name, contractParams)
+    .then((res) => {
+      if (res["exception"] != null) {
+        manifest.value["abi"]["methods"][index]["error"] = res["exception"];
+      } else {
+        const temp = JSON.parse(JSON.stringify(res["stack"]));
+        manifest.value["abi"]["methods"][index]["isRaw"] = true;
+        manifest.value["abi"]["methods"][index]["button"] = "Decode";
+        manifest.value["abi"]["methods"][index]["raw"] = res["stack"];
+        manifest.value["abi"]["methods"][index]["display"] = JSON.parse(JSON.stringify(temp, responseConverter));
+      }
+    })
+    .catch((err) => {
+      manifest.value["abi"]["methods"][index]["error"] = err.toString();
+    });
+}
+
+function getContractManifest(id) {
+  contractService
+    .getByHash(id)
+    .then((res) => {
+      if (abortController.value?.signal.aborted) return;
+      manifest.value = JSON.parse(res?.manifest || "{}");
+    })
+    .catch(() => {
+      // Service layer handles error logging
+    });
+}
+
+// Watch route changes (replaces created + watch.$route)
+watch(
+  () => route.params.hash,
+  (newHash) => {
+    if (newHash) {
+      token_id.value = newHash;
+      loadAllData();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

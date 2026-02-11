@@ -11,6 +11,9 @@
         <Skeleton v-for="index in 6" :key="index" height="44px" />
       </div>
 
+      <!-- Error State -->
+      <ErrorState v-else-if="error" title="NFT not found" :message="error" @retry="loadNFT" />
+
       <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-1">
           <div class="etherscan-card p-4">
@@ -71,62 +74,61 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import { tokenService } from "@/services";
 import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 
-export default {
-  name: "NFTInfoNew",
-  components: {
-    Skeleton,
-  },
-  data() {
-    return {
-      loading: true,
-      nftName: "",
-      image: "",
-      description: "",
-    };
-  },
-  computed: {
-    tokenId() {
-      return this.$route.params.tokenId;
-    },
-    contractHash() {
-      return this.$route.params.contractHash;
-    },
-    address() {
-      return this.$route.params.address;
-    },
-  },
-  watch: {
-    tokenId: {
-      immediate: true,
-      handler() {
-        this.loadNFT();
-      },
-    },
-  },
-  methods: {
-    handleImageError() {
-      this.image = "";
-    },
-    async loadNFT() {
-      this.loading = true;
-      try {
-        const result = await tokenService.getNep11Properties(this.contractHash, [this.tokenId]);
-        const data = result?.result?.[0];
-        if (data) {
-          this.nftName = data.name || "Unknown NFT";
-          this.image = data.image?.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/") || "";
-          this.description = data.description || "";
-        }
-      } catch {
-        // Service layer handles error logging
-      } finally {
-        this.loading = false;
-      }
-    },
-  },
-};
+const route = useRoute();
+
+// data() -> refs
+const loading = ref(true);
+const error = ref(null);
+const nftName = ref("");
+const image = ref("");
+const description = ref("");
+const abortController = ref(null);
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+// computed
+const tokenId = computed(() => route.params.tokenId);
+const contractHash = computed(() => route.params.contractHash);
+const address = computed(() => route.params.address);
+
+// methods -> functions
+function handleImageError() {
+  image.value = "";
+}
+
+async function loadNFT() {
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+
+  loading.value = true;
+  error.value = null;
+  try {
+    const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value]);
+    if (abortController.value?.signal.aborted) return;
+    const data = result?.result?.[0];
+    if (data) {
+      nftName.value = data.name || "Unknown NFT";
+      image.value = data.image?.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/") || "";
+      description.value = data.description || "";
+    }
+  } catch (err) {
+    if (abortController.value?.signal.aborted) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load NFT info:", err);
+    error.value = "Failed to load NFT details. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+// watch with immediate replaces the watch + created pattern
+watch(tokenId, () => loadNFT(), { immediate: true });
 </script>

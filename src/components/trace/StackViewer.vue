@@ -4,6 +4,7 @@
       No stack items
     </div>
     <div v-else class="space-y-1">
+      <!-- index key is acceptable: stack items have no unique ID and list is not reordered -->
       <div
         v-for="(item, index) in stack"
         :key="index"
@@ -11,6 +12,7 @@
       >
         <button
           class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors rounded-lg"
+          aria-label="Toggle stack item details"
           @click="toggle(index)"
         >
           <svg
@@ -84,6 +86,7 @@
 
 <script setup>
 import { reactive } from "vue";
+import { scriptHashToAddress, base64ToHex, base64ToUtf8, isScriptHash } from "@/utils/neoCodec";
 
 defineProps({
   stack: {
@@ -123,8 +126,11 @@ function formatPreview(item) {
     case "Boolean":
       return item.value ? "true" : "false";
     case "ByteString":
-    case "Buffer":
-      return item.value ? `${toHex(item.value).slice(0, 32)}...` : '""';
+    case "Buffer": {
+      if (!item.value) return '""';
+      const hex = toHex(item.value);
+      return hex.length > 32 ? `${hex.slice(0, 32)}...` : hex;
+    }
     case "Array":
       return `[${(item.value ?? []).length} items]`;
     case "Map":
@@ -136,37 +142,20 @@ function formatPreview(item) {
 
 function toHex(base64Str) {
   if (!base64Str) return "";
-  try {
-    const raw = atob(base64Str);
-    return Array.from(raw, (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-  } catch {
-    return base64Str;
-  }
+  return base64ToHex(base64Str);
 }
 
 function tryUtf8(base64Str) {
   if (!base64Str) return "";
-  try {
-    return atob(base64Str);
-  } catch {
-    return "(not valid UTF-8)";
-  }
+  return base64ToUtf8(base64Str) || "(not valid UTF-8)";
 }
 
 function isNeoAddress(base64Str) {
-  if (!base64Str) return false;
-  try {
-    const raw = atob(base64Str);
-    return raw.length === 20;
-  } catch {
-    return false;
-  }
+  return isScriptHash(base64Str);
 }
 
 function decodeAddress(base64Str) {
-  // 20-byte script hash detected; display as hex with 0x prefix
-  const hex = toHex(base64Str);
-  return hex ? `0x${hex}` : "";
+  return scriptHashToAddress(base64Str) || base64ToHex(base64Str);
 }
 
 function formatMapKey(key) {

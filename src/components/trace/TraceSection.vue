@@ -2,6 +2,8 @@
   <div class="trace-section">
     <button
       class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+      aria-label="Toggle trace section"
+      :aria-expanded="open"
       @click="open = !open"
     >
       <div class="flex items-center gap-2">

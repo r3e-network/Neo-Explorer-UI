@@ -1,46 +1,70 @@
 <template>
   <div class="accounts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Accounts' }]" />
+
       <header class="mb-5 flex flex-col gap-1">
-        <h1 class="page-title">Top Accounts</h1>
-        <p class="page-subtitle">Addresses ranked by NEO/GAS balance</p>
+        <h1 class="page-title">Top Accounts by Balance</h1>
+        <p class="page-subtitle">
+          Showing {{ total > 0 ? formatNumber(total) : "..." }} addresses ranked by NEO/GAS holdings
+        </p>
       </header>
 
       <div class="etherscan-card overflow-hidden">
         <div
           class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
         >
-          <p class="text-sm text-text-secondary dark:text-gray-300">Rich list ranking</p>
-          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
+          <p class="text-sm text-text-secondary dark:text-gray-300">
+            <span v-if="!loading && total > 0"> More than {{ formatNumber(total) }} addresses found </span>
+            <span v-else>Loading addresses...</span>
+          </p>
+          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} of {{ totalPages }}</p>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[880px]">
+        <!-- Loading state -->
+        <div v-if="loading" class="space-y-2 p-4">
+          <Skeleton v-for="index in pageSize" :key="index" height="44px" />
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="error" class="p-4">
+          <ErrorState title="Failed to load accounts" :message="error" @retry="loadPage" />
+        </div>
+
+        <!-- Empty state -->
+        <div v-else-if="accounts.length === 0" class="p-4">
+          <EmptyState message="No accounts found" description="No indexed addresses available yet." />
+        </div>
+
+        <!-- Data table -->
+        <div v-else class="overflow-x-auto">
+          <table class="w-full min-w-[900px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
+                <th class="w-16 px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
                 <th class="px-4 py-3 text-left font-medium text-text-secondary">Address</th>
                 <th class="px-4 py-3 text-right font-medium text-text-secondary">NEO Balance</th>
                 <th class="px-4 py-3 text-right font-medium text-text-secondary">GAS Balance</th>
                 <th class="px-4 py-3 text-right font-medium text-text-secondary">Txn Count</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Last Active</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
               <tr
                 v-for="(account, index) in accounts"
-                :key="account.address"
+                :key="account.address || index"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <td class="px-4 py-3 text-sm text-text-muted">
+                <td class="px-4 py-3 text-sm text-text-muted dark:text-gray-500">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="px-4 py-3">
                   <router-link
                     :to="`/account-profile/${account.address}`"
                     :title="account.address"
-                    class="font-hash text-sm etherscan-link"
+                    class="font-mono text-sm etherscan-link"
                   >
-                    {{ convertAddress(account.address) }}
+                    {{ displayAddress(account.address) }}
                   </router-link>
                 </td>
                 <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-300">
@@ -50,26 +74,20 @@
                   {{ formatGasBalance(account.gasbalance) }}
                 </td>
                 <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
-                  {{ formatNumber((account.nep17TransferCount || 0) + (account.nep11TransferCount || 0)) }}
+                  {{ formatNumber(getTxnCount(account)) }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                  {{ formatLastActive(account) }}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div v-if="loading" class="space-y-2 p-4">
-          <Skeleton v-for="index in 10" :key="index" height="44px" />
-        </div>
-
-        <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load accounts" :message="error" @retry="loadAccounts" />
-        </div>
-
-        <div v-else-if="accounts.length === 0" class="p-4">
-          <EmptyState title="No accounts found" />
-        </div>
-
-        <div class="border-t border-card-border px-4 py-3 dark:border-card-border-dark">
+        <div
+          v-if="!loading && accounts.length > 0"
+          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+        >
           <EtherscanPagination
             :page="currentPage"
             :total-pages="totalPages"
@@ -84,67 +102,91 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { accountService } from "@/services";
-import { GAS_DIVISOR } from "@/constants";
-import { createPaginationMixin } from "@/composables/usePagination";
-import { formatNumber } from "@/utils/explorerFormat";
+import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/store/util";
+import { DEFAULT_PAGE_SIZE } from "@/constants";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
-export default {
-  name: "AccountsNew",
-  mixins: [createPaginationMixin("/account")],
-  components: {
-    EmptyState,
-    ErrorState,
-    Skeleton,
-    EtherscanPagination,
+const route = useRoute();
+const router = useRouter();
+
+const loading = ref(true);
+const error = ref(null);
+const accounts = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(DEFAULT_PAGE_SIZE);
+const total = ref(0);
+let pageRequestId = 0;
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value);
+
+async function loadPage() {
+  const myRequestId = ++pageRequestId;
+  loading.value = true;
+  error.value = null;
+  try {
+    const response = await accountService.getList(pageSize.value, paginationOffset.value);
+    if (myRequestId !== pageRequestId) return;
+    total.value = response?.totalCount || 0;
+    accounts.value = response?.result || [];
+  } catch (err) {
+    if (myRequestId !== pageRequestId) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load accounts:", err);
+    error.value = "Failed to load accounts. Please try again.";
+    accounts.value = [];
+  } finally {
+    if (myRequestId === pageRequestId) {
+      loading.value = false;
+    }
+  }
+}
+
+function displayAddress(hash) {
+  if (!hash) return "-";
+  try {
+    return scriptHashToAddress(hash);
+  } catch {
+    return hash;
+  }
+}
+
+function getTxnCount(account) {
+  return (account.nep17TransferCount || 0) + (account.nep11TransferCount || 0);
+}
+
+function formatLastActive(account) {
+  const ts = account.lastTransactionTime || account.lasttransactiontime || 0;
+  if (!ts) return "-";
+  return formatAge(ts);
+}
+
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) {
+    router.push(`/account/${page}`);
+  }
+}
+
+function changePageSize(size) {
+  pageSize.value = size;
+  router.push("/account/1");
+}
+
+watch(
+  () => route.params.page,
+  (page) => {
+    const parsed = parseInt(page) || 1;
+    currentPage.value = Math.max(1, parsed);
+    loadPage();
   },
-  data() {
-    return {
-      loading: true,
-      error: null,
-      accounts: [],
-    };
-  },
-  methods: {
-    async loadPage() {
-      this.loading = true;
-      this.error = null;
-      try {
-        const response = await accountService.getList(this.pageSize, this.paginationOffset);
-        this.accounts = this.applyPage(response?.totalCount, response?.result || []);
-      } catch {
-        this.error = "Failed to load accounts. Please try again.";
-        this.accounts = [];
-      } finally {
-        this.loading = false;
-      }
-    },
-    formatBalance(balance) {
-      if (!balance) return "0";
-      const num = parseFloat(balance);
-      return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
-    },
-    formatGasBalance(balance) {
-      if (!balance) return "0";
-      // gasbalance from neo3fura is in smallest unit (10^-8)
-      const num = parseFloat(balance) / GAS_DIVISOR;
-      return num.toLocaleString(undefined, { maximumFractionDigits: 4 });
-    },
-    formatNumber,
-    convertAddress(hash) {
-      if (!hash) return "-";
-      try {
-        return scriptHashToAddress(hash);
-      } catch {
-        return hash;
-      }
-    },
-  },
-};
+  { immediate: true }
+);
 </script>

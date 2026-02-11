@@ -6,6 +6,18 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
  * @module services/statsService
  * @description 通过 neo3fura 获取网络统计信息，带缓存支持
  */
+
+const NETWORK_FEE_RATIO = 0.08;
+
+/**
+ * Calculate estimated network fee from GAS price.
+ * @param {number} gasPrice - Current GAS price in USD
+ * @returns {number} Estimated network fee (floored to 3 decimals)
+ */
+export function calculateNetworkFee(gasPrice) {
+  return Number(Math.max(0, (gasPrice || 0) * NETWORK_FEE_RATIO).toFixed(3));
+}
+
 export const statsService = {
   /**
    * 获取仪表盘统计数据（带缓存）
@@ -36,7 +48,7 @@ export const statsService = {
 
         return { blocks, txs, contracts, candidates, addresses, tokens };
       } catch (error) {
-        console.error("Failed to get dashboard stats:", error);
+        if (process.env.NODE_ENV !== "production") console.error("Failed to get dashboard stats:", error);
         return {
           blocks: 0,
           txs: 0,
@@ -48,12 +60,7 @@ export const statsService = {
       }
     };
 
-    if (forceRefresh) {
-      const data = await fetchFn();
-      return data;
-    }
-
-    return cachedRequest(key, fetchFn, CACHE_TTL.stats);
+    return cachedRequest(key, fetchFn, CACHE_TTL.stats, { forceRefresh });
   },
 
   /**
@@ -70,7 +77,7 @@ export const statsService = {
         try {
           return await rpc("GetDailyTransactions", { Days: days });
         } catch (error) {
-          console.error("Failed to get network activity:", error);
+          if (process.env.NODE_ENV !== "production") console.error("Failed to get network activity:", error);
           return [];
         }
       },
@@ -87,7 +94,7 @@ export const statsService = {
     try {
       return await rpc("GetHourlyTransactions", { Hours: hours });
     } catch (error) {
-      console.error("Failed to get hourly transactions:", error.message);
+      if (process.env.NODE_ENV !== "production") console.error("Failed to get hourly transactions:", error.message);
       return [];
     }
   },
@@ -115,7 +122,7 @@ export const statsService = {
             networkFee: feeRes ?? null,
           };
         } catch (error) {
-          console.error("Failed to get gas tracker:", error);
+          if (process.env.NODE_ENV !== "production") console.error("Failed to get gas tracker:", error);
           return { latestNetworkFee: "0", latestSystemFee: "0", networkFee: null };
         }
       },
@@ -136,7 +143,7 @@ export const statsService = {
         try {
           return await rpc("GetDailyTransactions", { Days: days });
         } catch (error) {
-          console.error("Failed to get daily stats:", error);
+          if (process.env.NODE_ENV !== "production") console.error("Failed to get daily stats:", error);
           return [];
         }
       },

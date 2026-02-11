@@ -1,3 +1,12 @@
+/**
+ * Address detail page helpers: normalization, transfer direction, CSV export.
+ */
+
+function toNumber(value, defaultValue = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : defaultValue;
+}
+
 export function getAddressDetailTabs() {
   return [
     { key: "transactions", label: "Transactions" },
@@ -8,19 +17,12 @@ export function getAddressDetailTabs() {
   ];
 }
 
-function toNumber(value, defaultValue = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : defaultValue;
-}
-
 export function normalizeAccountSummary(account = {}, assets = []) {
   const normalizedAssets = Array.isArray(assets) ? assets : [];
 
-  const neoBalance =
-    account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance ?? "0";
+  const neoBalance = account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance ?? "0";
 
-  const gasBalance =
-    account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance ?? "0";
+  const gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance ?? "0";
 
   const txCount = toNumber(
     account.txCount ?? account.txcount ?? account.transactioncount ?? account.transactionCount,
@@ -151,24 +153,31 @@ export function parseTxMethod(tx) {
  * @param {string} filename - Download filename
  */
 export function downloadTransactionsCsv(transactions = [], filename = "transactions.csv") {
-  const headers = ["Txn Hash", "Block Time", "Sender", "Status", "Size"];
-  const rows = (transactions || []).map((tx) => [
-    tx.hash || "",
-    tx.blocktime ? new Date(tx.blocktime > 1e12 ? tx.blocktime : tx.blocktime * 1000).toISOString() : "",
-    tx.sender || "",
-    tx.vmstate || "",
-    tx.size ?? "",
-  ]);
+  try {
+    const headers = ["Txn Hash", "Block Time", "Sender", "Status", "Size"];
+    const rows = (transactions || []).map((tx) => [
+      tx.hash || "",
+      tx.blocktime ? new Date(tx.blocktime > 1e12 ? tx.blocktime : tx.blocktime * 1000).toISOString() : "",
+      tx.sender || "",
+      tx.vmstate || "",
+      tx.size ?? "",
+    ]);
 
-  const csvContent = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") console.error("Failed to download CSV:", error);
+    alert("Failed to export transactions. Please try again.");
+  }
 }
 
 export function getPageCount(totalCount = 0, pageSize = 10) {
@@ -176,16 +185,3 @@ export function getPageCount(totalCount = 0, pageSize = 10) {
   const size = Math.max(1, toNumber(pageSize, 10));
   return Math.max(1, Math.ceil(total / size));
 }
-
-export default {
-  getAddressDetailTabs,
-  normalizeAccountSummary,
-  splitAddressAssets,
-  normalizeAddressTransactions,
-  normalizeNep17Transfers,
-  normalizeNep11Transfers,
-  getTransferDirection,
-  parseTxMethod,
-  downloadTransactionsCsv,
-  getPageCount,
-};

@@ -1,6 +1,7 @@
 <template>
   <div class="contract-detail-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <!-- Breadcrumb -->
       <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
         <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
         <span class="mx-2">/</span>
@@ -9,6 +10,7 @@
         <span class="text-text-primary dark:text-gray-300">{{ contract.name || "Contract" }}</span>
       </nav>
 
+      <!-- Contract Header -->
       <div class="mb-6 flex items-center gap-3">
         <div
           class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
@@ -46,10 +48,10 @@
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="font-mono text-sm text-text-secondary dark:text-gray-400">{{
-              truncateHash(contract.hash, 12, 8)
-            }}</span>
-            <button @click="copyHash" class="text-gray-400 hover:text-primary-500">
+            <span class="font-mono text-sm text-text-secondary dark:text-gray-400">
+              {{ truncateHash(contract.hash, 12, 8) }}
+            </span>
+            <button @click="copyHash" aria-label="Copy contract hash" class="text-gray-400 hover:text-primary-500">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -63,7 +65,11 @@
         </div>
       </div>
 
-      <div class="mb-6 etherscan-card">
+      <!-- Error State -->
+      <ErrorState v-if="error" title="Contract not found" :message="error" @retry="loadContract(route.params.hash)" />
+
+      <!-- Overview Card -->
+      <div v-if="!error" class="mb-6 etherscan-card">
         <div class="border-b border-card-border p-4 dark:border-card-border-dark">
           <h2 class="font-semibold text-text-primary dark:text-gray-100">Overview</h2>
         </div>
@@ -126,7 +132,8 @@
         </div>
       </div>
 
-      <div class="etherscan-card">
+      <!-- Tabs Card -->
+      <div v-if="!error" class="etherscan-card">
         <div class="border-b border-card-border dark:border-card-border-dark">
           <nav class="flex flex-wrap">
             <button
@@ -150,10 +157,17 @@
             Loading contract details...
           </div>
 
+          <!-- Transactions Tab -->
           <div v-else-if="activeTab === 'transactions'">
             <ScCallTable :key="`sc-${contract.hash}`" :contract-hash="contract.hash" />
           </div>
 
+          <!-- Events Tab -->
+          <div v-else-if="activeTab === 'events'">
+            <EventsTable :key="`events-${contract.hash}`" :contract-hash="contract.hash" />
+          </div>
+
+          <!-- Code / Source Tab -->
           <div v-else-if="activeTab === 'code'" class="space-y-6">
             <div
               class="flex flex-col gap-3 rounded-md border border-card-border bg-gray-50 p-3 dark:border-card-border-dark dark:bg-gray-800/40 md:flex-row md:items-center md:justify-between"
@@ -177,192 +191,111 @@
               :compact="true"
             />
 
-            <!-- Supported Standards -->
-            <div
-              v-if="supportedStandards.length"
-              class="rounded-lg border border-card-border dark:border-card-border-dark"
-            >
-              <button
-                class="flex w-full items-center justify-between p-4 text-left"
-                @click="codeSection.standards = !codeSection.standards"
-              >
-                <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Supported Standards</h3>
-                <svg
-                  class="h-4 w-4 text-gray-400 transition-transform"
-                  :class="{ 'rotate-180': codeSection.standards }"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <!-- Supported Standards Collapsible -->
+            <CollapsibleSection v-if="supportedStandards.length" title="Supported Standards" :default-open="false">
+              <div class="flex flex-wrap gap-2 pt-3">
+                <span
+                  v-for="std in supportedStandards"
+                  :key="'cs-' + std"
+                  class="inline-flex items-center rounded-md px-3 py-1 text-sm font-medium"
+                  :class="nepBadgeClass(std)"
+                  :title="nepTooltip(std)"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div
-                v-if="codeSection.standards"
-                class="border-t border-card-border px-4 pb-4 dark:border-card-border-dark"
-              >
-                <div class="flex flex-wrap gap-2 pt-3">
-                  <span
-                    v-for="std in supportedStandards"
-                    :key="'cs-' + std"
-                    class="inline-flex items-center rounded-md px-3 py-1 text-sm font-medium"
-                    :class="nepBadgeClass(std)"
-                    :title="nepTooltip(std)"
-                  >
-                    {{ std }}
-                  </span>
-                </div>
+                  {{ std }}
+                </span>
               </div>
-            </div>
+            </CollapsibleSection>
 
-            <!-- ABI Browser -->
-            <div v-if="manifest" class="rounded-lg border border-card-border dark:border-card-border-dark">
-              <button
-                class="flex w-full items-center justify-between p-4 text-left"
-                @click="codeSection.abi = !codeSection.abi"
-              >
-                <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">
-                  ABI Browser
-                  <span class="ml-2 text-xs font-normal text-text-secondary dark:text-gray-400">
-                    ({{ abiMethods.length }} methods, {{ abiEvents.length }} events)
-                  </span>
-                </h3>
-                <svg
-                  class="h-4 w-4 text-gray-400 transition-transform"
-                  :class="{ 'rotate-180': codeSection.abi }"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div v-if="codeSection.abi" class="border-t border-card-border dark:border-card-border-dark">
-                <!-- Methods -->
-                <div v-if="abiMethods.length" class="p-4">
-                  <h4
-                    class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
-                  >
-                    Methods
-                  </h4>
-                  <div class="space-y-2">
-                    <div
-                      v-for="method in abiMethods"
-                      :key="'abi-m-' + method.name"
-                      class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
-                    >
-                      <div class="flex items-center gap-2">
-                        <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">{{
-                          method.name
-                        }}</span>
-                        <span
-                          class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-                          :class="
-                            method.safe
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                          "
-                        >
-                          {{ method.safe ? "Safe" : "Unsafe" }}
-                        </span>
-                      </div>
-                      <div class="mt-1 font-mono text-xs text-text-secondary dark:text-gray-400">
-                        ({{ (method.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
-                        <span v-if="method.returntype"> &rarr; {{ method.returntype }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Events -->
-                <div v-if="abiEvents.length" class="border-t border-card-border p-4 dark:border-card-border-dark">
-                  <h4
-                    class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
-                  >
-                    Events
-                  </h4>
-                  <div class="space-y-2">
-                    <div
-                      v-for="evt in abiEvents"
-                      :key="'abi-e-' + evt.name"
-                      class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
-                    >
-                      <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">{{
-                        evt.name
-                      }}</span>
-                      <div class="mt-1 font-mono text-xs text-text-secondary dark:text-gray-400">
-                        ({{ (evt.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Permissions -->
-            <div
-              v-if="manifest && manifest.permissions && manifest.permissions.length"
-              class="rounded-lg border border-card-border dark:border-card-border-dark"
-            >
-              <button
-                class="flex w-full items-center justify-between p-4 text-left"
-                @click="codeSection.permissions = !codeSection.permissions"
-              >
-                <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Permissions</h3>
-                <svg
-                  class="h-4 w-4 text-gray-400 transition-transform"
-                  :class="{ 'rotate-180': codeSection.permissions }"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div v-if="codeSection.permissions" class="border-t border-card-border dark:border-card-border-dark">
-                <div class="divide-y divide-card-border dark:divide-card-border-dark">
+            <!-- ABI Browser Collapsible -->
+            <CollapsibleSection v-if="manifest" title="ABI Browser" :default-open="true">
+              <template #title-suffix>
+                <span class="ml-2 text-xs font-normal text-text-secondary dark:text-gray-400">
+                  ({{ abiMethods.length }} methods, {{ abiEvents.length }} events)
+                </span>
+              </template>
+              <!-- Methods -->
+              <div v-if="abiMethods.length" class="p-4">
+                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">
+                  Methods
+                </h4>
+                <div class="space-y-2">
                   <div
-                    v-for="(perm, idx) in manifest.permissions"
-                    :key="'perm-' + idx"
-                    class="flex flex-col gap-1 p-4 md:flex-row md:items-center md:gap-4"
+                    v-for="method in abiMethods"
+                    :key="'abi-m-' + method.name"
+                    class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
                   >
-                    <span class="font-mono text-sm text-text-primary dark:text-gray-200">
-                      {{ perm.contract || "*" }}
-                    </span>
-                    <span class="text-xs text-text-secondary dark:text-gray-400">
-                      Methods: {{ Array.isArray(perm.methods) ? perm.methods.join(", ") : "*" }}
-                    </span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+                        {{ method.name }}
+                      </span>
+                      <span
+                        class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                        :class="
+                          method.safe
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        "
+                      >
+                        {{ method.safe ? "Safe" : "Unsafe" }}
+                      </span>
+                    </div>
+                    <div class="mt-1 font-mono text-xs text-text-secondary dark:text-gray-400">
+                      ({{ (method.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
+                      <span v-if="method.returntype"> &rarr; {{ method.returntype }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Contract Manifest JSON -->
-            <div v-if="manifest" class="rounded-lg border border-card-border dark:border-card-border-dark">
-              <button
-                class="flex w-full items-center justify-between p-4 text-left"
-                @click="codeSection.manifest = !codeSection.manifest"
-              >
-                <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Contract Manifest</h3>
-                <svg
-                  class="h-4 w-4 text-gray-400 transition-transform"
-                  :class="{ 'rotate-180': codeSection.manifest }"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div v-if="codeSection.manifest" class="border-t border-card-border dark:border-card-border-dark">
-                <pre class="max-h-96 overflow-auto p-4 font-mono text-xs text-text-primary dark:text-gray-200">{{
-                  JSON.stringify(manifest, null, 2)
-                }}</pre>
+              <!-- Events -->
+              <div v-if="abiEvents.length" class="border-t border-card-border p-4 dark:border-card-border-dark">
+                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">
+                  Events
+                </h4>
+                <div class="space-y-2">
+                  <div
+                    v-for="evt in abiEvents"
+                    :key="'abi-e-' + evt.name"
+                    class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
+                  >
+                    <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+                      {{ evt.name }}
+                    </span>
+                    <div class="mt-1 font-mono text-xs text-text-secondary dark:text-gray-400">
+                      ({{ (evt.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CollapsibleSection>
 
-          <div v-else-if="activeTab === 'events'">
-            <EventsTable :key="`events-${contract.hash}`" :contract-hash="contract.hash" />
+            <!-- Permissions Collapsible -->
+            <CollapsibleSection
+              v-if="manifest && manifest.permissions && manifest.permissions.length"
+              title="Permissions"
+              :default-open="false"
+            >
+              <div class="divide-y divide-card-border dark:divide-card-border-dark">
+                <div
+                  v-for="(perm, idx) in manifest.permissions"
+                  :key="'perm-' + idx"
+                  class="flex flex-col gap-1 p-4 md:flex-row md:items-center md:gap-4"
+                >
+                  <span class="font-mono text-sm text-text-primary dark:text-gray-200">
+                    {{ perm.contract || "*" }}
+                  </span>
+                  <span class="text-xs text-text-secondary dark:text-gray-400">
+                    Methods: {{ Array.isArray(perm.methods) ? perm.methods.join(", ") : "*" }}
+                  </span>
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            <!-- Contract Manifest JSON Collapsible -->
+            <CollapsibleSection v-if="manifest" title="Contract Manifest" :default-open="false">
+              <pre class="max-h-96 overflow-auto p-4 font-mono text-xs text-text-primary dark:text-gray-200">{{
+                JSON.stringify(manifest, null, 2)
+              }}</pre>
+            </CollapsibleSection>
           </div>
 
           <!-- Read Contract Tab -->
@@ -379,16 +312,21 @@
                 :key="'rm-' + method.name"
                 class="rounded-lg border border-card-border dark:border-card-border-dark"
               >
-                <button class="flex w-full items-center justify-between p-4 text-left" @click="toggleReadMethod(mIdx)">
+                <button
+                  class="flex w-full items-center justify-between p-4 text-left"
+                  :aria-label="`Toggle ${method.name} method details`"
+                  :aria-expanded="readMethodState[mIdx]?.open"
+                  @click="toggleReadMethod(mIdx)"
+                >
                   <div class="flex items-center gap-2">
                     <span
                       class="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                     >
                       {{ mIdx + 1 }}
                     </span>
-                    <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">{{
-                      method.name
-                    }}</span>
+                    <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+                      {{ method.name }}
+                    </span>
                   </div>
                   <svg
                     class="h-4 w-4 text-gray-400 transition-transform"
@@ -413,7 +351,8 @@
                       <input
                         v-model="readMethodState[mIdx].params[pIdx]"
                         type="text"
-                        :placeholder="`${param.type}`"
+                        :placeholder="param.type"
+                        :aria-label="`Parameter ${param.name}`"
                         class="rounded-md border border-card-border bg-white px-3 py-2 font-mono text-sm text-text-primary focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
                       />
                     </div>
@@ -478,14 +417,6 @@
                     class="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
                     disabled
                   >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                      />
-                    </svg>
                     Connect Wallet
                   </button>
                 </div>
@@ -511,9 +442,9 @@
                     >
                       {{ wIdx + 1 }}
                     </span>
-                    <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">{{
-                      method.name
-                    }}</span>
+                    <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+                      {{ method.name }}
+                    </span>
                     <span
                       class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     >
@@ -536,185 +467,188 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// eslint-disable-next-line no-unused-vars
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import { contractService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
 import InfoRow from "@/components/common/InfoRow.vue";
+import CollapsibleSection from "@/components/common/CollapsibleSection.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import EventsTable from "@/views/Contract/EventsTable.vue";
 import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 
-export default {
-  name: "ContractDetailNew",
-  components: {
-    InfoRow,
-    ScCallTable,
-    EventsTable,
-    ContractSourceCodePanel,
+const route = useRoute();
+
+// State
+const abortController = ref(null);
+const contract = ref({});
+const manifest = ref(null);
+const loading = ref(false);
+const error = ref(null);
+const activeTab = ref("transactions");
+const tabs = getContractDetailTabs();
+const isVerified = ref(false);
+const readMethodState = ref([]);
+
+// Computed - source code link
+const sourceCodeLocation = computed(() =>
+  buildSourceCodeLocation(contract.value.hash, contract.value.updatecounter || 0)
+);
+
+// Computed - manifest-derived data
+const supportedStandards = computed(() => {
+  if (!manifest.value) return [];
+  const raw = manifest.value.supportedstandards || manifest.value.supportedStandards || [];
+  return Array.isArray(raw) ? raw : [];
+});
+
+const abiMethods = computed(() => {
+  const abi = manifest.value?.abi;
+  return abi && Array.isArray(abi.methods) ? abi.methods : [];
+});
+
+const abiEvents = computed(() => {
+  const abi = manifest.value?.abi;
+  return abi && Array.isArray(abi.events) ? abi.events : [];
+});
+
+const methodsCount = computed(() => abiMethods.value.length);
+const eventsCount = computed(() => abiEvents.value.length);
+const readMethods = computed(() => abiMethods.value.filter((m) => m.safe === true));
+const writeMethods = computed(() => abiMethods.value.filter((m) => m.safe !== true));
+
+// NEP badge helpers — static lookup map (avoids per-render string matching)
+const NEP_BADGE_DEFAULT =
+  "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600";
+const NEP_BADGE_CLASSES = Object.freeze({
+  "NEP-17":
+    "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  NEP17: "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  "NEP-11":
+    "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  NEP11:
+    "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+  "NEP-27":
+    "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+  NEP27:
+    "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+});
+
+function nepBadgeClass(std) {
+  return NEP_BADGE_CLASSES[String(std || "").toUpperCase()] || NEP_BADGE_DEFAULT;
+}
+
+function nepTooltip(std) {
+  const upper = String(std || "").toUpperCase();
+  if (upper.includes("NEP-17") || upper.includes("NEP17")) return "Fungible Token Standard";
+  if (upper.includes("NEP-11") || upper.includes("NEP11")) return "Non-Fungible Token Standard";
+  if (upper.includes("NEP-27") || upper.includes("NEP27")) return "Payable Contract Standard";
+  return std;
+}
+
+// Data loading
+async function loadContract(hash) {
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+  loading.value = true;
+  error.value = null;
+  manifest.value = null;
+  try {
+    contract.value = (await contractService.getByHash(hash)) || {};
+    if (abortController.value?.signal.aborted) return;
+    const [, manifestData] = await Promise.all([
+      checkVerification(hash),
+      contractService.getManifest(hash).catch(() => null),
+    ]);
+    if (abortController.value?.signal.aborted) return;
+    manifest.value = manifestData;
+  } catch (err) {
+    if (abortController.value?.signal.aborted) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load contract:", err);
+    error.value = "Failed to load contract details. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function checkVerification(hash) {
+  try {
+    const verified = await contractService.getVerifiedByHash(hash, contract.value.updatecounter || 0);
+    isVerified.value = !!(verified && verified.hash);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.warn("Contract verification check failed:", err);
+    isVerified.value = false;
+  }
+}
+
+// Read Contract interaction
+function toggleReadMethod(idx) {
+  if (!readMethodState.value[idx]) return;
+  readMethodState.value[idx].open = !readMethodState.value[idx].open;
+}
+
+async function invokeReadMethod(idx, method) {
+  const state = readMethodState.value[idx];
+  if (!state) return;
+  state.loading = true;
+  state.error = "";
+  state.result = undefined;
+  try {
+    const params = (method.parameters || []).map((p, i) => ({
+      type: p.type,
+      value: state.params[i] || "",
+    }));
+    state.result = await contractService.invokeRead(contract.value.hash, method.name, params);
+  } catch (err) {
+    state.error = err?.message || "Invocation failed. Please check parameters and try again.";
+  } finally {
+    state.loading = false;
+  }
+}
+
+function formatInvokeResult(result) {
+  if (result === null || result === undefined) return "null";
+  if (typeof result === "string") return result;
+  try {
+    return JSON.stringify(result, null, 2);
+  } catch {
+    return String(result);
+  }
+}
+
+function copyHash() {
+  if (contract.value?.hash) navigator.clipboard.writeText(contract.value.hash);
+}
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+// Route watcher - load contract on hash change
+watch(
+  () => route.params.hash,
+  (hash) => {
+    if (hash) loadContract(hash);
   },
-  data() {
-    return {
-      contract: {},
-      manifest: null,
+  { immediate: true }
+);
+
+// Rebuild read method state when manifest changes
+watch(
+  readMethods,
+  (methods) => {
+    readMethodState.value = methods.map(() => ({
+      open: false,
+      params: [],
       loading: false,
-      activeTab: "transactions",
-      tabs: getContractDetailTabs(),
-      isVerified: false,
-      readMethodState: [],
-      codeSection: {
-        standards: false,
-        abi: true,
-        permissions: false,
-        manifest: false,
-      },
-    };
+      result: undefined,
+      error: "",
+    }));
   },
-  computed: {
-    sourceCodeLocation() {
-      return buildSourceCodeLocation(this.contract.hash, this.contract.updatecounter || 0);
-    },
-    supportedStandards() {
-      if (!this.manifest) return [];
-      const raw = this.manifest.supportedstandards || this.manifest.supportedStandards || [];
-      return Array.isArray(raw) ? raw : [];
-    },
-    abiMethods() {
-      const abi = this.manifest?.abi;
-      if (!abi) return [];
-      return Array.isArray(abi.methods) ? abi.methods : [];
-    },
-    abiEvents() {
-      const abi = this.manifest?.abi;
-      if (!abi) return [];
-      return Array.isArray(abi.events) ? abi.events : [];
-    },
-    methodsCount() {
-      return this.abiMethods.length;
-    },
-    eventsCount() {
-      return this.abiEvents.length;
-    },
-    readMethods() {
-      return this.abiMethods.filter((m) => m.safe === true);
-    },
-    writeMethods() {
-      return this.abiMethods.filter((m) => m.safe !== true);
-    },
-  },
-  watch: {
-    "$route.params.hash": {
-      immediate: true,
-      handler(hash) {
-        if (hash) this.loadContract(hash);
-      },
-    },
-    readMethods: {
-      immediate: true,
-      handler(methods) {
-        this.readMethodState = methods.map(() => ({
-          open: false,
-          params: [],
-          loading: false,
-          result: undefined,
-          error: "",
-        }));
-      },
-    },
-  },
-  methods: {
-    async loadContract(hash) {
-      this.loading = true;
-      this.manifest = null;
-      try {
-        this.contract = (await contractService.getByHash(hash)) || {};
-
-        // Load verification status and manifest in parallel
-        const [, manifest] = await Promise.all([
-          this.checkVerification(hash),
-          contractService.getManifest(hash).catch(() => null),
-        ]);
-        this.manifest = manifest;
-      } catch {
-        // Service layer handles error logging
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    async checkVerification(hash) {
-      try {
-        const verified = await contractService.getVerifiedByHash(hash, this.contract.updatecounter || 0);
-        this.isVerified = !!(verified && verified.hash);
-      } catch {
-        this.isVerified = false;
-      }
-    },
-
-    nepBadgeClass(std) {
-      const upper = String(std || "").toUpperCase();
-      if (upper.includes("NEP-17") || upper.includes("NEP17")) {
-        return "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
-      }
-      if (upper.includes("NEP-11") || upper.includes("NEP11")) {
-        return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";
-      }
-      if (upper.includes("NEP-27") || upper.includes("NEP27")) {
-        return "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800";
-      }
-      return "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600";
-    },
-
-    nepTooltip(std) {
-      const upper = String(std || "").toUpperCase();
-      if (upper.includes("NEP-17") || upper.includes("NEP17")) return "Fungible Token Standard";
-      if (upper.includes("NEP-11") || upper.includes("NEP11")) return "Non-Fungible Token Standard";
-      if (upper.includes("NEP-27") || upper.includes("NEP27")) return "Payable Contract Standard";
-      return std;
-    },
-
-    toggleReadMethod(idx) {
-      if (!this.readMethodState[idx]) return;
-      this.readMethodState[idx].open = !this.readMethodState[idx].open;
-    },
-
-    async invokeReadMethod(idx, method) {
-      const state = this.readMethodState[idx];
-      if (!state) return;
-
-      state.loading = true;
-      state.error = "";
-      state.result = undefined;
-
-      try {
-        const params = (method.parameters || []).map((p, i) => ({
-          type: p.type,
-          value: state.params[i] || "",
-        }));
-        const result = await contractService.invokeRead(this.contract.hash, method.name, params);
-        state.result = result;
-      } catch (err) {
-        state.error = err?.message || "Invocation failed. Please check parameters and try again.";
-      } finally {
-        state.loading = false;
-      }
-    },
-
-    formatInvokeResult(result) {
-      if (result === null || result === undefined) return "null";
-      if (typeof result === "string") return result;
-      try {
-        return JSON.stringify(result, null, 2);
-      } catch {
-        return String(result);
-      }
-    },
-
-    copyHash() {
-      if (this.contract?.hash) navigator.clipboard.writeText(this.contract.hash);
-    },
-    truncateHash,
-    formatNumber,
-  },
-};
+  { immediate: true }
+);
 </script>

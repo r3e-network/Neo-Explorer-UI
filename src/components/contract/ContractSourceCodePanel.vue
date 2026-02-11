@@ -17,6 +17,7 @@
         </span>
         <button
           class="rounded border border-card-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          aria-label="Refresh source code"
           :disabled="!contractHash || isLoading"
           @click="loadSourceCode"
         >
@@ -69,7 +70,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch } from "vue";
 import { VAceEditor } from "vue3-ace-editor";
 import { rpc } from "@/services";
 import { truncateHash } from "@/utils/explorerFormat";
@@ -80,107 +82,87 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import "ace-builds/src-noconflict/mode-text";
 import "ace-builds/src-noconflict/theme-chrome";
 
-export default {
-  name: "ContractSourceCodePanel",
-  components: {
-    VAceEditor,
-    EmptyState,
-    ErrorState,
-    Skeleton,
+const props = defineProps({
+  contractHash: {
+    type: String,
+    default: "",
   },
-  props: {
-    contractHash: {
-      type: String,
-      default: "",
-    },
-    updatecounter: {
-      type: [Number, String],
-      default: 0,
-    },
-    showToolbar: {
-      type: Boolean,
-      default: true,
-    },
-    compact: {
-      type: Boolean,
-      default: false,
-    },
+  updatecounter: {
+    type: [Number, String],
+    default: 0,
   },
-  data() {
-    return {
-      sourceCodeList: [],
-      totalCount: 0,
-      isLoading: false,
-      loadError: false,
-      editorOptions: {
-        enableBasicAutocompletion: true,
-        enableSnippets: true,
-        showPrintMargin: false,
-      },
-    };
+  showToolbar: {
+    type: Boolean,
+    default: true,
   },
-  computed: {
-    safeUpdateCounter() {
-      return normalizeUpdateCounter(this.updatecounter);
-    },
-    fileCardClass() {
-      if (this.compact) {
-        return "overflow-hidden rounded-md border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
-      }
-
-      return "overflow-hidden rounded-lg border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
-    },
+  compact: {
+    type: Boolean,
+    default: false,
   },
-  watch: {
-    contractHash: "fetchIfReady",
-    updatecounter: "fetchIfReady",
-  },
-  created() {
-    this.fetchIfReady();
-  },
-  methods: {
-    async fetchIfReady() {
-      if (!this.contractHash) {
-        this.sourceCodeList = [];
-        this.totalCount = 0;
-        this.loadError = false;
-        return;
-      }
+});
 
-      await this.loadSourceCode();
-    },
-
-    async loadSourceCode() {
-      if (!this.contractHash) {
-        return;
-      }
-
-      this.isLoading = true;
-      this.loadError = false;
-
-      try {
-        const result = await rpc("GetSourceCodeByContractHash", {
-          ContractHash: this.contractHash,
-          updatecounter: this.safeUpdateCounter,
-        });
-
-        this.sourceCodeList = Array.isArray(result?.result) ? result.result : [];
-        this.totalCount = Number(result?.totalCount || this.sourceCodeList.length || 0);
-      } catch (error) {
-        this.sourceCodeList = [];
-        this.totalCount = 0;
-        this.loadError = true;
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    editorHeight(code) {
-      const lineCount = String(code || "").split("\n").length;
-      return `${Math.min(640, Math.max(220, lineCount * 18))}px`;
-    },
-
-    truncateHash,
-  },
+const sourceCodeList = ref([]);
+const totalCount = ref(0);
+const isLoading = ref(false);
+const loadError = ref(false);
+const editorOptions = {
+  enableBasicAutocompletion: true,
+  enableSnippets: true,
+  showPrintMargin: false,
 };
+
+const safeUpdateCounter = computed(() => normalizeUpdateCounter(props.updatecounter));
+
+const fileCardClass = computed(() => {
+  if (props.compact) {
+    return "overflow-hidden rounded-md border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
+  }
+  return "overflow-hidden rounded-lg border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
+});
+
+async function fetchIfReady() {
+  if (!props.contractHash) {
+    sourceCodeList.value = [];
+    totalCount.value = 0;
+    loadError.value = false;
+    return;
+  }
+  await loadSourceCode();
+}
+
+async function loadSourceCode() {
+  if (!props.contractHash) {
+    return;
+  }
+
+  isLoading.value = true;
+  loadError.value = false;
+
+  try {
+    const result = await rpc("GetSourceCodeByContractHash", {
+      ContractHash: props.contractHash,
+      updatecounter: safeUpdateCounter.value,
+    });
+
+    sourceCodeList.value = Array.isArray(result?.result) ? result.result : [];
+    totalCount.value = Number(result?.totalCount || sourceCodeList.value.length || 0);
+  } catch (error) {
+    sourceCodeList.value = [];
+    totalCount.value = 0;
+    loadError.value = true;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+function editorHeight(code) {
+  const lineCount = String(code || "").split("\n").length;
+  return `${Math.min(640, Math.max(220, lineCount * 18))}px`;
+}
+
+watch(() => props.contractHash, fetchIfReady);
+watch(() => props.updatecounter, fetchIfReady);
+
+// equivalent of created() hook -- runs synchronously during setup
+fetchIfReady();
 </script>

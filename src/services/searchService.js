@@ -27,31 +27,30 @@ export const searchService = {
         }
       }
 
-      // 检查是否为哈希（64位十六进制）
+      // 检查是否为哈希（64位十六进制）— 并行查询
       if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
         const hash = query.startsWith("0x") ? query : `0x${query}`;
 
-        // 尝试区块
-        const block = await safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null);
-        if (block) {
+        const [blockResult, txResult, contractResult] = await Promise.allSettled([
+          safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
+          safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
+          safeRpc("GetContractByContractHash", { ContractHash: hash }, null),
+        ]);
+
+        // 按优先级返回：block > tx > contract
+        if (blockResult.status === "fulfilled" && blockResult.value) {
           results.type = "block";
-          results.data = block;
+          results.data = blockResult.value;
           return results;
         }
-
-        // 尝试交易
-        const tx = await safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null);
-        if (tx) {
+        if (txResult.status === "fulfilled" && txResult.value) {
           results.type = "transaction";
-          results.data = tx;
+          results.data = txResult.value;
           return results;
         }
-
-        // 尝试合约
-        const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
-        if (contract) {
+        if (contractResult.status === "fulfilled" && contractResult.value) {
           results.type = "contract";
-          results.data = contract;
+          results.data = contractResult.value;
           return results;
         }
       }
@@ -66,7 +65,7 @@ export const searchService = {
         }
       }
     } catch (error) {
-      console.error("Search error:", error.message);
+      if (process.env.NODE_ENV !== "production") console.error("Search error:", error.message);
     }
 
     return results;

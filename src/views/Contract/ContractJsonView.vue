@@ -1,15 +1,7 @@
 <template>
   <div class="bgView">
-    <div
-      :class="['json-view', length ? 'closeable' : '']"
-      :style="'font-size:' + fontSize + 'px'"
-    >
-      <span
-        @click="toggleClose"
-        :class="['angle', innerclosed ? 'closed' : '']"
-        v-if="length"
-      >
-      </span>
+    <div :class="['json-view', length ? 'closeable' : '']" :style="'font-size:' + fontSize + 'px'">
+      <span @click="toggleClose" :class="['angle', innerclosed ? 'closed' : '']" v-if="length"> </span>
       <div class="content-wrap">
         <p class="first-line">
           <span v-if="jsonKey" class="json-key">"{{ jsonKey }}": </span>
@@ -51,90 +43,85 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "contractJsonView",
-  props: {
-    json: [Object, Array],
-    jsonKey: {
-      type: String,
-      default: "",
-    },
-    closed: {
-      type: Boolean,
-      default: false,
-    },
-    isLast: {
-      type: Boolean,
-      default: true,
-    },
-    fontSize: {
-      type: Number,
-      default: 13,
-    },
+<script setup>
+import { ref, computed, watch } from "vue";
+
+const props = defineProps({
+  json: [Object, Array],
+  jsonKey: {
+    type: String,
+    default: "",
   },
-  created() {
-    this.innerclosed = this.closed;
-    this.$watch("closed", () => {
-      this.innerclosed = this.closed;
+  closed: {
+    type: Boolean,
+    default: false,
+  },
+  isLast: {
+    type: Boolean,
+    default: true,
+  },
+  fontSize: {
+    type: Number,
+    default: 13,
+  },
+});
+
+const innerclosed = ref(props.closed);
+
+watch(
+  () => props.closed,
+  (val) => {
+    innerclosed.value = val;
+  }
+);
+
+function isObjectOrArray(source) {
+  const type = Object.prototype.toString.call(source);
+  return type === "[object Array]" || type === "[object Object]";
+}
+
+function toggleClose() {
+  innerclosed.value = !innerclosed.value;
+}
+
+const isArray = computed(() => {
+  return Object.prototype.toString.call(props.json) === "[object Array]";
+});
+
+const length = computed(() => {
+  return isArray.value ? props.json.length : Object.keys(props.json).length;
+});
+
+const subfix = computed(() => {
+  return (isArray.value ? "]" : "}") + (props.isLast ? "" : ",");
+});
+
+const prefix = computed(() => {
+  return isArray.value ? "[" : "{";
+});
+
+const items = computed(() => {
+  if (isArray.value) {
+    return props.json.map((item) => {
+      const isJSON = isObjectOrArray(item);
+      return {
+        value: isJSON ? item : JSON.stringify(item),
+        isJSON,
+        key: "",
+      };
     });
-  },
-  data() {
+  }
+  const json = props.json;
+  return Object.keys(json).map((key) => {
+    const item = json[key];
+    const isJSON = isObjectOrArray(item);
     return {
-      innerclosed: true,
+      value: isJSON ? item : JSON.stringify(item),
+      isJSON,
+      key,
     };
-  },
-  methods: {
-    isObjectOrArray(source) {
-      const type = Object.prototype.toString.call(source);
-      const res = type === "[object Array]" || type === "[object Object]";
-      return res;
-    },
-    toggleClose() {
-      if (this.innerclosed) {
-        this.innerclosed = false;
-      } else {
-        this.innerclosed = true;
-      }
-    },
-  },
-  computed: {
-    isArray() {
-      return Object.prototype.toString.call(this.json) === "[object Array]";
-    },
-    length() {
-      return this.isArray ? this.json.length : Object.keys(this.json).length;
-    },
-    subfix() {
-      return (this.isArray ? "]" : "}") + (this.isLast ? "" : ",");
-    },
-    prefix() {
-      return this.isArray ? "[" : "{";
-    },
-    items() {
-      if (this.isArray) {
-        return this.json.map((item) => {
-          const isJSON = this.isObjectOrArray(item);
-          return {
-            value: isJSON ? item : JSON.stringify(item),
-            isJSON,
-            key: "",
-          };
-        });
-      }
-      const json = this.json;
-      return Object.keys(json).map((key) => {
-        const item = json[key];
-        const isJSON = this.isObjectOrArray(item);
-        return {
-          value: isJSON ? item : JSON.stringify(item),
-          isJSON,
-          key,
-        };
-      });
-    },
-  },
-};
+  });
+});
 </script>
 
 <style>

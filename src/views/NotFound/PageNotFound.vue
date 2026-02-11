@@ -27,8 +27,4 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "PageNotFound",
-};
-</script>
+<script setup></script>

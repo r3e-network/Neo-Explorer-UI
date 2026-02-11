@@ -2,56 +2,50 @@
   <div class="block-detail-page">
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
-      <nav aria-label="Breadcrumb" class="flex items-center text-sm text-gray-500 mb-4">
-        <router-link to="/" class="hover:text-primary-500">Home</router-link>
-        <svg class="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-          />
-        </svg>
-        <router-link to="/blocks/1" class="hover:text-primary-500">Blocks</router-link>
-        <svg class="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-          />
-        </svg>
-        <span class="text-gray-700 dark:text-gray-300">#{{ block.index }}</span>
-      </nav>
+      <Breadcrumb
+        :items="[
+          { label: 'Home', to: '/homepage' },
+          { label: 'Blocks', to: '/blocks/1' },
+          { label: block.index != null ? `Block #${formatNumber(block.index)}` : 'Block' },
+        ]"
+      />
 
-      <!-- Page Header -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div class="flex items-center gap-3 mb-4 md:mb-0">
-          <div class="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-            <svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
+      <!-- Page Header with Nav -->
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <div
+            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30"
+          >
+            <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
             </svg>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Block #{{ formatNumber(block.index) }}</h1>
-            <p class="text-sm text-gray-500">{{ timeAgo }}</p>
+            <h1 class="page-title">Block #{{ formatNumber(block.index ?? 0) }}</h1>
+            <p class="page-subtitle" v-if="!loading">{{ timeAgo }}</p>
           </div>
         </div>
-        <!-- Navigation Buttons -->
-        <div class="flex gap-2">
+        <!-- Prev / Next Navigation -->
+        <div class="flex items-center gap-2">
           <button
-            @click="goToPrevBlock"
-            :disabled="!block.prevhash"
+            @click="navigateBlock((block.index ?? 0) - 1)"
+            :disabled="block.index == null || block.index <= 0"
+            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
             aria-label="Previous block"
-            class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
+            Prev
           </button>
           <button
-            @click="goToNextBlock"
-            :disabled="!block.nextblockhash"
+            @click="navigateBlock((block.index ?? 0) + 1)"
+            :disabled="block.index == null || block.index >= latestBlockHeight"
+            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
             aria-label="Next block"
-            class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            Next
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -59,54 +53,268 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="space-y-4">
+      <div v-if="loading" class="space-y-6">
         <div class="etherscan-card p-6">
-          <Skeleton class="h-6 w-1/3 mb-4" />
-          <Skeleton class="h-4 w-full mb-2" v-for="i in 8" :key="i" />
+          <Skeleton width="30%" height="24px" class="mb-6" />
+          <div class="space-y-4">
+            <div v-for="i in 10" :key="i" class="flex gap-4">
+              <Skeleton width="120px" height="18px" />
+              <Skeleton width="60%" height="18px" />
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Block Overview -->
+      <!-- Error State -->
+      <ErrorState v-else-if="error" title="Block not found" :message="error" @retry="loadBlock(route.params.hash)" />
+
+      <!-- Block Content -->
       <div v-else class="space-y-6">
+        <!-- Overview Card -->
         <div class="etherscan-card overflow-hidden">
-          <div class="p-4 border-b border-card-border dark:border-card-border-dark">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Overview</h2>
+          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Overview</h2>
           </div>
-          <div class="p-4 md:p-6 space-y-4">
-            <InfoRow label="Block Height" :copyable="false">
-              <span class="font-mono">{{ formatNumber(block.index) }}</span>
+          <div class="p-4 md:p-6">
+            <!-- Block Height -->
+            <InfoRow label="Block Height">
+              <span class="font-mono font-medium">{{ formatNumber(block.index) }}</span>
             </InfoRow>
+
+            <!-- Timestamp -->
             <InfoRow label="Timestamp">
-              <span>{{ formatTime(block.timestamp) }}</span>
-              <span class="text-gray-500 ml-2">({{ timeAgo }})</span>
+              <svg class="mr-1.5 inline h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{{ formatTimestamp(block.timestamp) }}</span>
+              <span class="ml-1.5 text-text-secondary">({{ timeAgo }})</span>
             </InfoRow>
+
+            <!-- Transactions -->
             <InfoRow label="Transactions">
-              <span class="text-primary-500 font-medium">{{ block.txcount || 0 }} transactions</span>
+              <span
+                v-if="block.txcount > 0"
+                class="inline-flex items-center rounded bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
+              >
+                {{ block.txcount }} transaction{{ block.txcount !== 1 ? "s" : "" }}
+              </span>
+              <span v-else class="text-text-secondary">0 transactions</span>
+            </InfoRow>
+
+            <!-- Validator / Next Consensus -->
+            <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
+              <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
+              <span v-else class="text-text-secondary">--</span>
+            </InfoRow>
+
+            <!-- Size -->
+            <InfoRow label="Size">
+              <span>{{ formatBytes(block.size) }}</span>
             </InfoRow>
           </div>
         </div>
 
-        <!-- Block Details -->
+        <!-- Details Card -->
         <div class="etherscan-card overflow-hidden">
-          <div class="p-4 border-b border-card-border dark:border-card-border-dark">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Details</h2>
+          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Details</h2>
           </div>
-          <div class="p-4 md:p-6 space-y-4">
-            <InfoRow label="Block Hash">
-              <HashLink :hash="block.hash" type="block" />
+          <div class="p-4 md:p-6">
+            <!-- Block Hash -->
+            <InfoRow label="Hash" :copyable="true" :copy-value="block.hash">
+              <span class="font-mono text-sm break-all">{{ block.hash }}</span>
             </InfoRow>
-            <InfoRow label="Previous Block">
-              <HashLink :hash="block.prevhash" type="block" />
+
+            <!-- Previous Hash -->
+            <InfoRow label="Previous Hash">
+              <router-link
+                v-if="
+                  block.prevhash &&
+                  block.prevhash !== '0x0000000000000000000000000000000000000000000000000000000000000000'
+                "
+                :to="`/block-info/${block.prevhash}`"
+                class="etherscan-link font-mono text-sm break-all"
+              >
+                {{ block.prevhash }}
+              </router-link>
+              <span v-else class="font-mono text-sm text-text-secondary">Genesis Block (no previous)</span>
             </InfoRow>
+
+            <!-- Merkle Root -->
             <InfoRow label="Merkle Root">
-              <span class="font-mono text-sm break-all">{{ block.merkleroot }}</span>
+              <span class="font-mono text-sm break-all text-text-primary dark:text-gray-300">
+                {{ block.merkleroot || "--" }}
+              </span>
             </InfoRow>
-            <InfoRow label="Size">
-              <span>{{ formatSize(block.size) }}</span>
+
+            <!-- Next Consensus -->
+            <InfoRow label="Next Consensus" tooltip="Address of the next consensus node">
+              <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" :truncate="false" />
+              <span v-else class="text-text-secondary">--</span>
             </InfoRow>
+
+            <!-- Version -->
             <InfoRow label="Version">
-              <span>{{ block.version }}</span>
+              <span>{{ block.version ?? "--" }}</span>
             </InfoRow>
+
+            <!-- Nonce -->
+            <InfoRow v-if="block.nonce" label="Nonce">
+              <span class="font-mono text-sm">{{ block.nonce }}</span>
+            </InfoRow>
+          </div>
+        </div>
+
+        <!-- Fees & Reward Card -->
+        <div class="etherscan-card overflow-hidden">
+          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Fees &amp; Reward</h2>
+          </div>
+          <div class="p-4 md:p-6">
+            <InfoRow label="System Fee Total">
+              <span class="font-mono">{{ formatGas(block.sysfee || block.totalSysFee || 0) }} GAS</span>
+            </InfoRow>
+            <InfoRow label="Network Fee Total">
+              <span class="font-mono">{{ formatGas(block.netfee || block.totalNetFee || 0) }} GAS</span>
+            </InfoRow>
+            <InfoRow v-if="reward !== null" label="GAS Reward" tooltip="Block reward distributed to consensus nodes">
+              <span class="font-mono text-green-600 dark:text-green-400"> {{ formatGas(reward) }} GAS </span>
+            </InfoRow>
+          </div>
+        </div>
+
+        <!-- Witnesses (Collapsible) -->
+        <div v-if="block.witnesses && block.witnesses.length > 0" class="etherscan-card overflow-hidden">
+          <button
+            @click="showWitnesses = !showWitnesses"
+            aria-label="Toggle witnesses section"
+            :aria-expanded="showWitnesses"
+            class="flex w-full items-center justify-between border-b border-card-border px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800/60"
+          >
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+              Witnesses
+              <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ block.witnesses.length }}) </span>
+            </h2>
+            <svg
+              class="h-5 w-5 text-gray-400 transition-transform"
+              :class="{ 'rotate-180': showWitnesses }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div v-if="showWitnesses" class="divide-y divide-card-border dark:divide-card-border-dark">
+            <div v-for="(w, idx) in block.witnesses" :key="idx" class="p-4">
+              <p class="mb-1 text-xs font-medium text-text-secondary">Witness #{{ idx + 1 }}</p>
+              <div class="space-y-2">
+                <div>
+                  <span class="text-xs text-text-secondary">Invocation:</span>
+                  <p class="mt-0.5 break-all font-mono text-xs text-gray-700 dark:text-gray-300">
+                    {{ w.invocation }}
+                  </p>
+                </div>
+                <div>
+                  <span class="text-xs text-text-secondary">Verification:</span>
+                  <p class="mt-0.5 break-all font-mono text-xs text-gray-700 dark:text-gray-300">
+                    {{ w.verification }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- dBFT Consensus Info -->
+        <div v-once class="etherscan-card overflow-hidden">
+          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">dBFT 2.0 Consensus</h2>
+          </div>
+          <div class="p-4 md:p-6">
+            <InfoRow label="Consensus Model">
+              <span>Delegated Byzantine Fault Tolerance (dBFT 2.0)</span>
+            </InfoRow>
+            <InfoRow label="Block Time">
+              <span>~15 seconds</span>
+            </InfoRow>
+            <InfoRow label="Finality">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                Deterministic (single-block finality)
+              </span>
+            </InfoRow>
+            <InfoRow label="Primary Index" v-if="block.primary !== undefined && block.primary !== null">
+              <span class="font-mono">{{ block.primary }}</span>
+            </InfoRow>
+          </div>
+        </div>
+
+        <!-- Transactions in Block -->
+        <div class="etherscan-card overflow-hidden">
+          <div
+            class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+          >
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+              Transactions
+              <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ transactions.length }}) </span>
+            </h2>
+          </div>
+
+          <!-- Tx Loading -->
+          <div v-if="txLoading" class="divide-y divide-card-border dark:divide-card-border-dark">
+            <div v-for="i in 3" :key="i" class="flex items-center gap-4 px-4 py-3">
+              <Skeleton width="50%" height="18px" />
+              <Skeleton width="20%" height="18px" />
+              <Skeleton width="15%" height="18px" />
+            </div>
+          </div>
+
+          <!-- Tx Empty -->
+          <EmptyState v-else-if="transactions.length === 0" message="No transactions in this block" icon="tx" />
+
+          <!-- Tx Table -->
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[700px]">
+              <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                <tr>
+                  <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
+                  <th class="px-4 py-3 text-left font-medium text-text-secondary">Sender</th>
+                  <th class="px-4 py-3 text-right font-medium text-text-secondary">System Fee</th>
+                  <th class="px-4 py-3 text-right font-medium text-text-secondary">Net Fee</th>
+                  <th class="px-4 py-3 text-right font-medium text-text-secondary">Size</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                <tr
+                  v-for="tx in transactions"
+                  :key="tx.hash"
+                  class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                >
+                  <td class="px-4 py-3">
+                    <HashLink :hash="tx.hash" type="tx" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
+                    <span v-else class="text-sm text-text-secondary">--</span>
+                  </td>
+                  <td class="px-4 py-3 text-right font-mono text-sm">
+                    {{ formatGas(tx.sysfee || 0) }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-mono text-sm">
+                    {{ formatGas(tx.netfee || 0) }}
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm text-text-secondary">
+                    {{ formatBytes(tx.size) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -114,70 +322,142 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { blockService } from "@/services";
-import { formatNumber, formatBytes, formatUnixTime } from "@/utils/explorerFormat";
+import { formatNumber, formatAge, formatBytes, formatGas } from "@/utils/explorerFormat";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import Skeleton from "@/components/common/Skeleton.vue";
 
-export default {
-  name: "BlockDetailNew",
-  components: { InfoRow, HashLink, Skeleton },
-  data() {
-    return {
-      block: {},
-      loading: false,
-    };
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+
+const route = useRoute();
+const router = useRouter();
+
+// --- State ---
+const abortController = ref(null);
+const block = ref({});
+const reward = ref(null);
+const transactions = ref([]);
+const loading = ref(false);
+const txLoading = ref(false);
+const error = ref(null);
+const showWitnesses = ref(false);
+const latestBlockHeight = ref(Infinity);
+
+// --- Computed ---
+const timeAgo = computed(() => {
+  if (!block.value?.timestamp) return "";
+  return formatAge(block.value.timestamp);
+});
+
+// --- Methods ---
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const ms = ts > 1e12 ? ts : ts * 1000;
+  const d = new Date(ms);
+  return d.toUTCString();
+}
+
+async function loadBlock(hash) {
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+  loading.value = true;
+  error.value = null;
+  reward.value = null;
+  transactions.value = [];
+  showWitnesses.value = false;
+
+  try {
+    // Fetch block info and raw block data in parallel
+    const [info, raw] = await Promise.all([blockService.getInfoByHash(hash), blockService.getByHash(hash)]);
+
+    if (abortController.value?.signal.aborted) return;
+
+    if (!info && !raw) {
+      error.value = "Block not found. The hash may be invalid.";
+      return;
+    }
+
+    // Merge info + raw for maximum field coverage
+    block.value = { ...(raw || {}), ...(info || {}) };
+
+    // Fetch latest block height for next-button disabled logic
+    blockService
+      .getCount()
+      .then((count) => {
+        if (abortController.value?.signal.aborted) return;
+        if (count > 0) latestBlockHeight.value = count - 1;
+      })
+      .catch(() => {});
+
+    // Load transactions and reward in parallel (non-blocking)
+    loadTransactions();
+    loadReward(hash);
+  } catch (err) {
+    if (abortController.value?.signal.aborted) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load block details:", err);
+    error.value = "Failed to load block details. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadTransactions() {
+  txLoading.value = true;
+  try {
+    // Use transactions already embedded in block data — no extra API call needed
+    if (block.value.tx && Array.isArray(block.value.tx)) {
+      transactions.value = block.value.tx;
+    } else {
+      transactions.value = [];
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.warn("Failed to load block transactions:", err);
+  } finally {
+    txLoading.value = false;
+  }
+}
+
+async function loadReward(_hash) {
+  try {
+    // Try to get reward from block info fields first
+    const r = block.value.gasconsumed || block.value.reward;
+    if (r) {
+      reward.value = r;
+      return;
+    }
+    // No dedicated reward endpoint in blockService, use what we have
+    reward.value = 0;
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.warn("Failed to load block reward:", err);
+  }
+}
+
+function navigateBlock(height) {
+  if (height < 0) return;
+  // We need to get the block hash by height, then navigate
+  blockService.getByHeight(height).then((b) => {
+    if (b?.hash) {
+      router.push(`/block-info/${b.hash}`);
+    }
+  });
+}
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+// --- Route watcher ---
+watch(
+  () => route.params.hash,
+  (hash) => {
+    if (hash) loadBlock(hash);
   },
-  computed: {
-    timeAgo() {
-      if (!this.block?.timestamp) return "";
-      // neo3fura returns millisecond timestamps (13+ digits); normalize to seconds
-      const ts = this.block.timestamp > 1e12 ? Math.floor(this.block.timestamp / 1000) : this.block.timestamp;
-      const secs = Math.max(0, Math.floor(Date.now() / 1000 - ts));
-      if (secs < 60) return `${secs} secs ago`;
-      if (secs < 3600) return `${Math.floor(secs / 60)} mins ago`;
-      if (secs < 86400) return `${Math.floor(secs / 3600)} hrs ago`;
-      return `${Math.floor(secs / 86400)} days ago`;
-    },
-  },
-  watch: {
-    "$route.params.hash": {
-      immediate: true,
-      handler(hash) {
-        if (hash) this.loadBlock(hash);
-      },
-    },
-  },
-  methods: {
-    async loadBlock(hash) {
-      this.loading = true;
-      try {
-        this.block = (await blockService.getInfoByHash(hash)) || {};
-      } catch {
-        // Service layer handles error logging
-      } finally {
-        this.loading = false;
-      }
-    },
-    formatNumber,
-    formatTime(ts) {
-      return formatUnixTime(ts) || "";
-    },
-    formatSize(size) {
-      return formatBytes(size);
-    },
-    goToPrevBlock() {
-      if (this.block.prevhash) {
-        this.$router.push(`/block-info/${this.block.prevhash}`);
-      }
-    },
-    goToNextBlock() {
-      if (this.block.nextblockhash) {
-        this.$router.push(`/block-info/${this.block.nextblockhash}`);
-      }
-    },
-  },
-};
+  { immediate: true }
+);
 </script>

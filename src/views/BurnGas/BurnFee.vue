@@ -1,105 +1,390 @@
 <template>
   <div class="burn-fee-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="text-2xl font-semibold text-text-primary dark:text-gray-100">GAS Burn Statistics</h1>
-        <p class="text-sm text-text-secondary dark:text-gray-400">Estimated fee burn insights from network activity</p>
-      </header>
+      <!-- Breadcrumb -->
+      <BreadcrumbNav :items="[{ label: 'Home', to: '/homepage' }, { label: 'Burned GAS' }]" />
 
-      <div class="grid gap-4 md:grid-cols-3">
-        <div class="etherscan-card p-4">
-          <p class="text-xs uppercase tracking-wide text-text-secondary">Total Transactions</p>
-          <p class="mt-2 text-2xl font-semibold text-text-primary dark:text-gray-100">
-            {{ formatNumber(stats.txs) }}
+      <!-- Page Header -->
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Burned GAS</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">
+            GAS burn statistics from Neo N3 system fee consumption
           </p>
         </div>
+      </div>
 
-        <div class="etherscan-card p-4">
-          <p class="text-xs uppercase tracking-wide text-text-secondary">Estimated GAS Burned</p>
-          <p class="mt-2 text-2xl font-semibold text-text-primary dark:text-gray-100">{{ estimatedBurn }} GAS</p>
+      <!-- Summary Cards -->
+      <div v-if="loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Skeleton v-for="i in 3" :key="i" height="110px" variant="rounded" />
+      </div>
+      <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Total GAS Burned -->
+        <div class="etherscan-card p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Total GAS Burned</p>
+          <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
+            {{ formatGasDisplay(totalBurned) }}
+          </p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS</p>
         </div>
 
-        <div class="etherscan-card p-4">
-          <p class="text-xs uppercase tracking-wide text-text-secondary">Estimated Burn / Tx</p>
-          <p class="mt-2 text-2xl font-semibold text-text-primary dark:text-gray-100">{{ burnPerTx }} GAS</p>
+        <!-- Daily Burn Rate -->
+        <div class="etherscan-card p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Avg Daily Burn</p>
+          <p class="mt-2 text-2xl font-bold text-text-primary dark:text-gray-100">
+            {{ formatGasDisplay(avgDailyBurn) }}
+          </p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / day</p>
+        </div>
+
+        <!-- Burn Trend -->
+        <div class="etherscan-card p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Burn Rate per Tx</p>
+          <p class="mt-2 text-2xl font-bold text-text-primary dark:text-gray-100">
+            {{ BURN_RATE }}
+          </p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS (system fee burn)</p>
         </div>
       </div>
 
-      <div class="mt-4 etherscan-card p-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Daily Activity Trend</h2>
-            <p class="text-sm text-text-secondary dark:text-gray-400">
-              Use the chart explorer for 14/30 day detail view.
-            </p>
-          </div>
-          <router-link
-            to="/echarts"
-            class="rounded-md bg-primary-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
-          >
-            Open Daily Chart
-          </router-link>
+      <!-- Cumulative Burn Chart (Area) -->
+      <div class="etherscan-card mb-6 p-5">
+        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Cumulative GAS Burned</h2>
+        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">Running total of estimated GAS burned over time</p>
+        <div v-if="loading" class="space-y-2">
+          <Skeleton v-for="i in 5" :key="i" height="44px" />
+        </div>
+        <div v-else-if="error" class="py-2">
+          <ErrorState title="Failed to load burn data" :message="error" @retry="loadData" />
+        </div>
+        <div v-else class="h-[360px]">
+          <canvas ref="cumulativeCanvas"></canvas>
         </div>
       </div>
 
-      <div v-if="loading" class="mt-4 space-y-2">
-        <Skeleton v-for="index in 4" :key="index" height="44px" />
+      <!-- Daily Burn Chart (Bar) -->
+      <div class="etherscan-card mb-6 p-5">
+        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Daily GAS Burned</h2>
+        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+          Estimated daily GAS burn based on transaction count
+        </p>
+        <div v-if="loading" class="space-y-2">
+          <Skeleton v-for="i in 4" :key="i" height="44px" />
+        </div>
+        <div v-else-if="error" class="py-2">
+          <ErrorState title="Failed to load burn data" :message="error" @retry="loadData" />
+        </div>
+        <div v-else class="h-[360px]">
+          <canvas ref="dailyBurnCanvas"></canvas>
+        </div>
       </div>
 
-      <div v-else-if="error" class="mt-4">
-        <ErrorState title="Failed to load burn metrics" :message="error" @retry="loadData" />
+      <!-- Info Card -->
+      <div class="etherscan-card p-5">
+        <h2 class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200">About GAS Burning</h2>
+        <div class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+          <p>
+            In Neo N3, system fees paid for smart contract execution are
+            <strong class="text-text-primary dark:text-gray-300">burned</strong> (permanently removed from circulation),
+            creating deflationary pressure on the GAS token supply.
+          </p>
+          <p>
+            The burn rate is approximately
+            <strong class="text-text-primary dark:text-gray-300">{{ BURN_RATE }} GAS</strong>
+            per transaction. Actual burn amounts vary based on contract complexity and computational resources consumed.
+          </p>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
-<script>
-import { statsService } from "@/services";
-import { BURN_RATE } from "@/constants";
-import { formatNumber } from "@/utils/explorerFormat";
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import { statsService } from "@/services";
+import { BURN_RATE } from "@/constants";
 
-export default {
-  name: "BurnFee",
-  components: {
-    Skeleton,
-    ErrorState,
-  },
-  data() {
+// --- State ---
+const loading = ref(true);
+const error = ref(null);
+const dailyData = ref([]);
+
+// --- Canvas refs ---
+const cumulativeCanvas = ref(null);
+const dailyBurnCanvas = ref(null);
+
+// --- Chart instances ---
+let cumulativeChart = null;
+let dailyBurnChart = null;
+
+// --- Computed ---
+const totalBurned = computed(() => {
+  return dailyData.value.reduce((sum, d) => sum + d.burned, 0);
+});
+
+const avgDailyBurn = computed(() => {
+  if (!dailyData.value.length) return 0;
+  return totalBurned.value / dailyData.value.length;
+});
+
+// --- Helpers ---
+function formatGasDisplay(value) {
+  return Number(value || 0).toFixed(8);
+}
+
+function formatDayOffset(offset) {
+  const date = new Date(Date.now() - offset * 24 * 60 * 60 * 1000);
+  return date.toISOString().split("T")[0];
+}
+
+function formatDateLabel(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function isDarkMode() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function getChartColors() {
+  const dark = isDarkMode();
+  return {
+    text: dark ? "#9CA3AF" : "#6B7280",
+    grid: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+    tooltipBg: dark ? "#1F2937" : "#ffffff",
+    tooltipTitle: dark ? "#F9FAFB" : "#111827",
+    tooltipBody: dark ? "#D1D5DB" : "#4B5563",
+    tooltipBorder: dark ? "#374151" : "#E5E7EB",
+  };
+}
+
+// --- Data normalization ---
+function normalizeData(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  if (!list.length) {
+    return Array.from({ length: 30 }, (_, i) => ({
+      date: formatDayOffset(29 - i),
+      transactions: 0,
+      burned: 0,
+    }));
+  }
+
+  const mapped = list.map((entry, i) => {
+    const date = entry?.date || entry?.Date || entry?.day || formatDayOffset(list.length - i - 1);
+    const txs = Number(entry?.transactions ?? entry?.DailyTransactions ?? entry?.dailyTransactions ?? entry?.txs ?? 0);
     return {
-      loading: true,
-      error: null,
-      stats: {
-        txs: 0,
-      },
+      date,
+      transactions: txs,
+      burned: txs * BURN_RATE,
     };
-  },
-  computed: {
-    estimatedBurn() {
-      const txs = Number(this.stats.txs || 0);
-      return (txs * BURN_RATE).toFixed(2);
+  });
+
+  if (mapped.length > 1 && mapped[0].date > mapped[mapped.length - 1].date) {
+    mapped.reverse();
+  }
+  return mapped;
+}
+
+// --- Chart creation ---
+function baseTooltipConfig(colors) {
+  return {
+    mode: "index",
+    intersect: false,
+    backgroundColor: colors.tooltipBg,
+    titleFontColor: colors.tooltipTitle,
+    bodyFontColor: colors.tooltipBody,
+    borderColor: colors.tooltipBorder,
+    borderWidth: 1,
+    xPadding: 12,
+    yPadding: 10,
+    displayColors: false,
+  };
+}
+
+function baseScalesConfig(colors) {
+  return {
+    xAxes: [
+      {
+        gridLines: { display: false },
+        ticks: { fontColor: colors.text, fontSize: 11, maxTicksLimit: 10 },
+      },
+    ],
+    yAxes: [
+      {
+        gridLines: { color: colors.grid, drawBorder: false },
+        ticks: {
+          fontColor: colors.text,
+          fontSize: 11,
+          beginAtZero: true,
+          callback: (v) => v.toFixed(4),
+        },
+      },
+    ],
+  };
+}
+
+function createCumulativeChart(Chart) {
+  if (!cumulativeCanvas.value) return;
+  const ctx = cumulativeCanvas.value.getContext("2d");
+  const colors = getChartColors();
+  const labels = dailyData.value.map((d) => formatDateLabel(d.date));
+
+  // Build cumulative series
+  let running = 0;
+  const cumulative = dailyData.value.map((d) => {
+    running += d.burned;
+    return running;
+  });
+
+  cumulativeChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Cumulative GAS Burned",
+          data: cumulative,
+          fill: true,
+          backgroundColor: "rgba(239, 68, 68, 0.1)",
+          borderColor: "#EF4444",
+          borderWidth: 2,
+          lineTension: 0.3,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: "#EF4444",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+        },
+      ],
     },
-    burnPerTx() {
-      return String(BURN_RATE);
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: { display: false },
+      tooltips: {
+        ...baseTooltipConfig(colors),
+        callbacks: {
+          label: (item) => `Total Burned: ${Number(item.yLabel).toFixed(8)} GAS`,
+        },
+      },
+      scales: {
+        xAxes: [
+          {
+            gridLines: { display: false },
+            ticks: { fontColor: colors.text, fontSize: 11, maxTicksLimit: 10 },
+          },
+        ],
+        yAxes: [
+          {
+            gridLines: { color: colors.grid, drawBorder: false },
+            ticks: {
+              fontColor: colors.text,
+              fontSize: 11,
+              beginAtZero: true,
+              callback: (v) => v.toFixed(2),
+            },
+          },
+        ],
+      },
     },
-  },
-  created() {
-    this.loadData();
-  },
-  methods: {
-    async loadData() {
-      this.loading = true;
-      this.error = null;
-      try {
-        this.stats = await statsService.getDashboardStats();
-      } catch {
-        this.error = "Unable to load burn metrics.";
-      } finally {
-        this.loading = false;
-      }
+  });
+}
+
+function createDailyBurnChart(Chart) {
+  if (!dailyBurnCanvas.value) return;
+  const ctx = dailyBurnCanvas.value.getContext("2d");
+  const colors = getChartColors();
+  const labels = dailyData.value.map((d) => formatDateLabel(d.date));
+  const values = dailyData.value.map((d) => d.burned);
+
+  dailyBurnChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Daily GAS Burned",
+          data: values,
+          backgroundColor: "rgba(249, 115, 22, 0.6)",
+          borderColor: "#F97316",
+          borderWidth: 1,
+          hoverBackgroundColor: "rgba(249, 115, 22, 0.8)",
+        },
+      ],
     },
-    formatNumber,
-  },
-};
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: { display: false },
+      tooltips: {
+        ...baseTooltipConfig(colors),
+        callbacks: {
+          label: (item) => `Burned: ${Number(item.yLabel).toFixed(8)} GAS`,
+        },
+      },
+      scales: baseScalesConfig(colors),
+    },
+  });
+}
+
+// --- Chart lifecycle ---
+function destroyCharts() {
+  if (cumulativeChart) {
+    cumulativeChart.destroy();
+    cumulativeChart = null;
+  }
+  if (dailyBurnChart) {
+    dailyBurnChart.destroy();
+    dailyBurnChart = null;
+  }
+}
+
+async function renderCharts() {
+  destroyCharts();
+  const { default: ChartJS } = await import("chart.js");
+  await nextTick();
+  createCumulativeChart(ChartJS);
+  createDailyBurnChart(ChartJS);
+}
+
+// --- Data loading ---
+async function loadData() {
+  loading.value = true;
+  error.value = null;
+  try {
+    const raw = await statsService.getNetworkActivity(30);
+    dailyData.value = normalizeData(raw);
+    renderCharts();
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load burn metrics:", err);
+    error.value = "Unable to load burn metrics. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+// --- Lifecycle ---
+onMounted(() => {
+  loadData();
+});
+
+onBeforeUnmount(() => {
+  destroyCharts();
+});
 </script>

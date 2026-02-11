@@ -2,31 +2,47 @@
   <div class="tx-detail-page">
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
-      <nav class="flex items-center text-sm text-text-secondary dark:text-gray-400 mb-4">
-        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
-        <span class="mx-2">/</span>
-        <router-link to="/transactions/1" class="hover:text-primary-500">Transactions</router-link>
-        <span class="mx-2">/</span>
-        <span class="text-text-primary dark:text-gray-300 truncate max-w-[200px]">{{ truncateHash }}</span>
-      </nav>
+      <Breadcrumb :items="breadcrumbs" />
 
       <!-- Page Header -->
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="statusBgClass">
-          <svg class="w-6 h-6" :class="statusIconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl"
+          :class="
+            isSuccess === true
+              ? 'bg-green-100 dark:bg-green-900/40'
+              : isSuccess === false
+              ? 'bg-red-100 dark:bg-red-900/40'
+              : 'bg-gray-100 dark:bg-gray-700'
+          "
+        >
+          <svg
+            class="h-6 w-6"
+            :class="isSuccess === true ? 'text-green-500' : isSuccess === false ? 'text-red-500' : 'text-gray-400'"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
-              v-if="isSuccess"
+              v-if="isSuccess === true"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
             <path
-              v-else
+              v-else-if="isSuccess === false"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
               d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+            <path
+              v-else
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
         </div>
@@ -36,7 +52,7 @@
         </div>
       </div>
 
-      <!-- Transaction Action Summary -->
+      <!-- Action Summary Banner -->
       <div
         v-if="!loading && tx.hash && actionSummary"
         class="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
@@ -77,23 +93,37 @@
         </button>
       </div>
 
+      <!-- State Change Summary (complex transactions only) -->
+      <StateChangeSummary v-if="isComplexTx" :enriched-trace="enrichedTrace" :loading="enrichedLoading" class="mb-6" />
+
       <!-- Loading State -->
-      <div v-if="loading" class="space-y-4">
-        <div class="etherscan-card p-6">
-          <div class="animate-pulse space-y-3">
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" v-for="i in 8" :key="i"></div>
-          </div>
+      <div v-if="loading" class="etherscan-card p-6">
+        <div class="animate-pulse space-y-4">
+          <div v-for="i in 8" :key="'skel-' + i" class="h-4 rounded bg-gray-200 dark:bg-gray-700" />
         </div>
       </div>
 
+      <!-- Error State -->
+      <div v-else-if="error" class="etherscan-card p-6 text-center">
+        <p class="mb-3 text-sm text-red-500">{{ error }}</p>
+        <button
+          class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+          @click="loadTx(txHash)"
+        >
+          Retry
+        </button>
+      </div>
+
       <!-- Tabbed Content -->
-      <div v-else class="etherscan-card">
+      <div v-else-if="tx.hash" class="etherscan-card">
         <!-- Tab Navigation -->
         <div class="border-b border-card-border dark:border-card-border-dark">
-          <nav class="flex flex-wrap">
+          <nav class="flex flex-wrap" role="tablist">
             <button
               v-for="tab in tabs"
               :key="tab.key"
+              role="tab"
+              :aria-selected="activeTab === tab.key"
               class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
               :class="
                 activeTab === tab.key
@@ -123,36 +153,60 @@
                 :copyable="!!tx.hash"
                 :copy-value="tx.hash"
               />
+
               <InfoRow label="Status" tooltip="The execution status of the transaction">
                 <StatusBadge :status="txStatus" />
               </InfoRow>
+
               <InfoRow label="Block">
-                <router-link :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
+                <router-link :to="`/block-info/${tx.blockhash}`" class="text-primary-500 hover:text-primary-600">
                   #{{ tx.blockIndex }}
                 </router-link>
               </InfoRow>
-              <InfoRow label="Timestamp" :value="formatTime(tx.blocktime)" />
+
+              <InfoRow label="Timestamp">
+                <span class="text-text-primary dark:text-gray-200">{{ formatTime(tx.blocktime) }}</span>
+                <span class="ml-2 text-xs text-text-secondary dark:text-gray-400">
+                  ({{ formatAge(tx.blocktime) }})
+                </span>
+              </InfoRow>
+
               <InfoRow label="Confirmations" tooltip="Number of blocks confirmed since this transaction">
                 <span
                   class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-text-primary dark:bg-gray-700 dark:text-gray-200"
                 >
-                  {{ confirmations }} blocks
+                  {{ confirmations.toLocaleString() }} blocks
                 </span>
               </InfoRow>
 
               <!-- Separator -->
-              <div class="py-1"></div>
+              <div class="py-1" />
 
               <InfoRow label="From" tooltip="The sending address of this transaction">
                 <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
                 <span v-else class="text-text-secondary">-</span>
               </InfoRow>
+
               <InfoRow label="Network Fee" :value="`${formatGas(tx.netfee)} GAS`" />
               <InfoRow label="System Fee" :value="`${formatGas(tx.sysfee)} GAS`" />
+
               <InfoRow label="Total Fee">
                 <span class="font-medium text-text-primary dark:text-gray-200">{{ totalFee }} GAS</span>
               </InfoRow>
+
               <InfoRow label="Size" :value="`${tx.size || 0} bytes`" />
+            </div>
+
+            <!-- Gas Breakdown (complex transactions) -->
+            <div
+              v-if="isComplexTx && enrichedTrace"
+              class="mt-4 rounded-lg border border-card-border dark:border-card-border-dark p-4"
+            >
+              <GasBreakdown
+                :executions="enrichedTrace?.executions ?? []"
+                :total-gas="totalGas"
+                :loading="enrichedLoading"
+              />
             </div>
 
             <!-- Collapsible More Details -->
@@ -161,7 +215,9 @@
                 class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
                 @click="showMore = !showMore"
               >
-                <span class="text-sm font-medium text-primary-500">Click to {{ showMore ? "hide" : "show" }} more</span>
+                <span class="text-sm font-medium text-primary-500">
+                  Click to {{ showMore ? "hide" : "show" }} more
+                </span>
                 <svg
                   class="h-4 w-4 text-primary-500 transition-transform duration-200"
                   :class="{ 'rotate-180': showMore }"
@@ -208,126 +264,175 @@
 
           <!-- ==================== LOGS TAB ==================== -->
           <div v-else-if="activeTab === 'logs'">
+            <!-- Loading -->
             <div v-if="appLogLoading" class="py-8 text-center">
               <div class="animate-pulse space-y-3">
-                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
-                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
+            <!-- Error -->
             <div v-else-if="appLogError" class="py-8 text-center">
               <p class="text-sm text-red-500">{{ appLogError }}</p>
             </div>
+            <!-- Empty -->
             <div v-else-if="!appLog" class="py-8 text-center text-text-secondary dark:text-gray-400">
               No application log available for this transaction.
             </div>
+            <!-- Content -->
             <div v-else class="space-y-6">
-              <!-- Execution Summary -->
-              <div v-for="(exec, eIdx) in appLog.executions" :key="'exec-' + eIdx">
-                <div class="mb-3 flex flex-wrap items-center gap-3">
-                  <span
-                    class="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-text-primary dark:bg-gray-700 dark:text-gray-200"
-                  >
-                    Trigger: {{ exec.trigger || "Application" }}
-                  </span>
-                  <span
-                    class="rounded px-2 py-1 text-xs font-medium"
-                    :class="
-                      exec.vmstate === 'HALT'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    "
-                  >
-                    VM State: {{ exec.vmstate || "UNKNOWN" }}
-                  </span>
-                  <span
-                    class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  >
-                    GAS Consumed: {{ formatGas(exec.gasconsumed) }}
-                  </span>
-                </div>
-
-                <!-- Stack Result -->
-                <div
-                  v-if="exec.stack && exec.stack.length"
-                  class="mb-4 rounded-lg border border-card-border p-3 dark:border-card-border-dark"
+              <!-- Raw JSON toggle -->
+              <div class="flex justify-end">
+                <button
+                  class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                  :class="
+                    showRawAppLog
+                      ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+                  "
+                  @click="showRawAppLog = !showRawAppLog"
                 >
-                  <h4
-                    class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
-                  >
-                    Stack Result
-                  </h4>
-                  <pre class="max-h-32 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200">{{
-                    JSON.stringify(exec.stack, null, 2)
-                  }}</pre>
-                </div>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                  {{ showRawAppLog ? "Decoded View" : "Raw JSON" }}
+                </button>
+              </div>
 
-                <!-- Notifications -->
-                <div v-if="exec.notifications && exec.notifications.length">
-                  <h4
-                    class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
+              <!-- Full raw JSON view -->
+              <pre
+                v-if="showRawAppLog"
+                class="max-h-[600px] overflow-auto rounded-lg bg-gray-50 dark:bg-gray-900 p-4 font-mono text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+                >{{ formatState(appLog) }}</pre
+              >
+
+              <template v-if="!showRawAppLog">
+                <div v-for="(exec, eIdx) in appLog.executions" :key="'exec-' + eIdx">
+                  <!-- Execution badges -->
+                  <div class="mb-3 flex flex-wrap items-center gap-3">
+                    <span
+                      class="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-text-primary dark:bg-gray-700 dark:text-gray-200"
+                    >
+                      Trigger: {{ exec.trigger || "Application" }}
+                    </span>
+                    <span
+                      class="rounded px-2 py-1 text-xs font-medium"
+                      :class="
+                        exec.vmstate === 'HALT'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      "
+                    >
+                      VM State: {{ exec.vmstate || "UNKNOWN" }}
+                    </span>
+                    <span
+                      class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    >
+                      GAS Consumed: {{ formatGasDecimal(exec.gasconsumed) }}
+                    </span>
+                  </div>
+
+                  <!-- Stack Result -->
+                  <div
+                    v-if="exec.stack && exec.stack.length"
+                    class="mb-4 rounded-lg border border-card-border p-3 dark:border-card-border-dark"
                   >
-                    Notifications ({{ exec.notifications.length }})
-                  </h4>
-                  <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                      <thead>
-                        <tr class="border-b border-card-border dark:border-card-border-dark">
-                          <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
-                            #
-                          </th>
-                          <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
-                            Contract
-                          </th>
-                          <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
-                            Event
-                          </th>
-                          <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
-                            State
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
-                        <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx">
-                          <td class="px-3 py-2 text-xs text-text-secondary">{{ nIdx }}</td>
-                          <td class="px-3 py-2">
-                            <HashLink :hash="n.contract" type="contract" />
-                          </td>
-                          <td class="px-3 py-2">
-                            <span
-                              class="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
-                            >
-                              {{ n.eventname || "unknown" }}
-                            </span>
-                          </td>
-                          <td class="px-3 py-2">
-                            <pre
-                              class="max-h-24 max-w-xs overflow-auto font-mono text-xs text-text-primary dark:text-gray-300"
-                              >{{ formatState(n.state) }}</pre
-                            >
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <h4
+                      class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
+                    >
+                      Stack Result
+                    </h4>
+                    <pre class="max-h-32 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200">{{
+                      JSON.stringify(exec.stack, null, 2)
+                    }}</pre>
+                  </div>
+
+                  <!-- Notifications -->
+                  <div v-if="exec.notifications && exec.notifications.length">
+                    <h4
+                      class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"
+                    >
+                      Notifications ({{ exec.notifications.length }})
+                    </h4>
+                    <!-- Enriched display when available -->
+                    <div v-if="enrichedTrace && enrichedTrace.executions[eIdx]" class="space-y-3">
+                      <EnrichedNotification
+                        v-for="(op, opIdx) in enrichedTrace.executions[eIdx].operations"
+                        :key="'enriched-' + opIdx"
+                        :notification="op"
+                        :event-def="op.eventDef"
+                      />
+                    </div>
+                    <!-- Raw fallback -->
+                    <div v-else class="overflow-x-auto">
+                      <table class="w-full text-sm">
+                        <thead>
+                          <tr class="border-b border-card-border dark:border-card-border-dark">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                              #
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                              Contract
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                              Event
+                            </th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                              State
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                          <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx">
+                            <td class="px-3 py-2 text-xs text-text-secondary">{{ nIdx }}</td>
+                            <td class="px-3 py-2">
+                              <HashLink :hash="n.contract" type="contract" />
+                            </td>
+                            <td class="px-3 py-2">
+                              <span
+                                class="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                              >
+                                {{ n.eventname || "unknown" }}
+                              </span>
+                            </td>
+                            <td class="px-3 py-2">
+                              <pre
+                                class="max-h-24 max-w-xs overflow-auto font-mono text-xs text-text-primary dark:text-gray-300"
+                                >{{ formatState(n.state) }}</pre
+                              >
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div v-else class="py-4 text-center text-sm text-text-secondary dark:text-gray-400">
+                    No notifications emitted.
                   </div>
                 </div>
-                <div v-else class="py-4 text-center text-sm text-text-secondary dark:text-gray-400">
-                  No notifications emitted.
-                </div>
-              </div>
+              </template>
             </div>
           </div>
 
           <!-- ==================== TOKEN TRANSFERS TAB ==================== -->
           <div v-else-if="activeTab === 'transfers'">
+            <!-- Loading -->
             <div v-if="transfersLoading" class="py-8 text-center">
               <div class="animate-pulse space-y-3">
-                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
-                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
+            <!-- Empty -->
             <div v-else-if="allTransfers.length === 0" class="py-8 text-center text-text-secondary dark:text-gray-400">
               No token transfers found for this transaction.
             </div>
+            <!-- Content -->
             <div v-else class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -364,11 +469,11 @@
                     </td>
                     <td class="px-3 py-2">
                       <HashLink v-if="t.from" :hash="t.from" type="address" />
-                      <span v-else class="text-xs text-text-secondary italic">Mint</span>
+                      <span v-else class="text-xs italic text-text-secondary">Mint</span>
                     </td>
                     <td class="px-3 py-2">
                       <HashLink v-if="t.to" :hash="t.to" type="address" />
-                      <span v-else class="text-xs text-text-secondary italic">Burn</span>
+                      <span v-else class="text-xs italic text-text-secondary">Burn</span>
                     </td>
                     <td class="px-3 py-2 text-right font-mono text-xs text-text-primary dark:text-gray-200">
                       {{ formatTransferAmount(t) }}
@@ -389,18 +494,43 @@
             </div>
           </div>
 
+          <!-- ==================== INTERNAL OPS TAB ==================== -->
+          <div v-else-if="activeTab === 'internal'">
+            <InternalOperations :enriched-trace="enrichedTrace" :loading="enrichedLoading" />
+          </div>
+
           <!-- ==================== EXECUTION TRACE TAB ==================== -->
           <div v-else-if="activeTab === 'trace'">
+            <!-- Loading -->
             <div v-if="appLogLoading" class="py-8 text-center">
               <div class="animate-pulse space-y-3">
-                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
-                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             </div>
+            <!-- Empty -->
             <div v-else-if="!appLog" class="py-8 text-center text-text-secondary dark:text-gray-400">
               No execution trace available for this transaction.
             </div>
+            <!-- Content -->
             <div v-else class="space-y-4">
+              <!-- Full trace link for complex txns -->
+              <router-link
+                v-if="isComplexTx"
+                :to="`/tx/${txHash}/trace`"
+                class="mb-4 flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 p-3 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-900/20 dark:text-primary-400 dark:hover:bg-primary-900/30"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                View Full Execution Trace
+              </router-link>
+
               <div
                 v-for="(node, nIdx) in callTree"
                 :key="'tree-' + nIdx"
@@ -423,7 +553,7 @@
                     {{ node.vmState }}
                   </span>
                   <span class="text-xs text-text-secondary dark:text-gray-400">
-                    GAS: {{ formatGas(node.gasConsumed) }}
+                    GAS: {{ formatGasDecimal(node.gasConsumed) }}
                   </span>
                 </div>
                 <div class="p-4">
@@ -440,7 +570,7 @@
                       <div
                         v-for="(evt, evtIdx) in child.events"
                         :key="'evt-' + evtIdx"
-                        class="mt-2 pl-3 border-l-2 border-gray-200 dark:border-gray-600"
+                        class="mt-2 border-l-2 border-gray-200 pl-3 dark:border-gray-600"
                       >
                         <span
                           class="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
@@ -468,201 +598,242 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// eslint-disable-next-line no-unused-vars
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, statsService } from "@/services";
-import { formatGas } from "@/utils/explorerFormat";
 import { GAS_DECIMALS } from "@/constants";
+import { formatGas, formatGasDecimal, formatAge, truncateHash, formatTime } from "@/utils/explorerFormat";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import InternalOperations from "@/components/trace/InternalOperations.vue";
+import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
+import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
+import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 
-export default {
-  name: "TxDetailNew",
-  components: { StatusBadge, InfoRow, HashLink },
-  data() {
-    return {
-      tx: {},
-      loading: false,
-      showMore: false,
-      activeTab: "overview",
-      // Application log
-      appLog: null,
-      appLogLoading: false,
-      appLogError: "",
-      // Token transfers
-      nep17Transfers: [],
-      nep11Transfers: [],
-      transfersLoading: false,
-      // Network height for confirmations
-      currentBlockHeight: 0,
-    };
+const route = useRoute();
+
+// --- Reactive State ---
+const abortController = ref(null);
+const tx = ref({});
+const loading = ref(false);
+const error = ref(null);
+const showMore = ref(false);
+const activeTab = ref("overview");
+
+// Application log
+const appLog = ref(null);
+const appLogLoading = ref(false);
+const appLogError = ref("");
+const showRawAppLog = ref(false);
+
+// Token transfers
+const nep17Transfers = ref([]);
+const nep11Transfers = ref([]);
+const transfersLoading = ref(false);
+
+// Network height for confirmations
+const currentBlockHeight = ref(0);
+
+// Enriched trace
+const enrichedTrace = ref(null);
+const enrichedLoading = ref(false);
+
+// --- Computed ---
+const txHash = computed(() => route.params.txhash || "");
+
+const breadcrumbs = computed(() => [
+  { label: "Home", to: "/homepage" },
+  { label: "Transactions", to: "/transactions/1" },
+  { label: truncateHash(txHash.value, 10, 6) },
+]);
+
+const isSuccess = computed(() => {
+  const state = tx.value?.vmstate;
+  if (!state) return null; // unknown yet
+  return state === "HALT";
+});
+
+const txStatus = computed(() => {
+  if (isSuccess.value === null) return "pending";
+  return isSuccess.value ? "success" : "failed";
+});
+
+const confirmations = computed(() => {
+  if (!currentBlockHeight.value || !tx.value.blockIndex) return 0;
+  return Math.max(0, currentBlockHeight.value - tx.value.blockIndex);
+});
+
+const totalFee = computed(() => {
+  const net = Number(tx.value.netfee || 0);
+  const sys = Number(tx.value.sysfee || 0);
+  return formatGas(net + sys);
+});
+
+const allTransfers = computed(() => {
+  return [...nep17Transfers.value, ...nep11Transfers.value];
+});
+
+const notificationCount = computed(() => {
+  if (!appLog.value?.executions) return 0;
+  return appLog.value.executions.reduce((sum, exec) => sum + (exec.notifications?.length || 0), 0);
+});
+
+const isComplexTx = computed(() => executionService.isComplexTransaction(appLog.value));
+const callTree = computed(() => executionService.buildCallTree(appLog.value));
+
+const enrichedOpsCount = computed(() => {
+  if (!enrichedTrace.value?.executions) return 0;
+  return enrichedTrace.value.executions.reduce((sum, e) => sum + (e.operations?.length ?? 0), 0);
+});
+
+const totalGas = computed(() => {
+  if (!enrichedTrace.value?.executions) return "0";
+  return enrichedTrace.value.executions.reduce((sum, e) => sum + Number(e.gasConsumed || 0), 0).toString();
+});
+
+const tabs = computed(() => [
+  { key: "overview", label: "Overview" },
+  { key: "logs", label: "Logs", count: notificationCount.value || null },
+  { key: "transfers", label: "Token Transfers", count: allTransfers.value.length || null },
+  { key: "internal", label: "Internal Ops", count: enrichedOpsCount.value || null },
+  { key: "trace", label: "Execution Trace" },
+]);
+
+const actionSummary = computed(() => buildActionSummary());
+
+// --- Methods ---
+function formatState(state) {
+  if (!state) return "-";
+  try {
+    return JSON.stringify(state, null, 2);
+  } catch {
+    return String(state);
+  }
+}
+
+function formatTransferAmount(t) {
+  const raw = Number(t.value || t.amount || 0);
+  const decimals = Number(t.decimals ?? GAS_DECIMALS);
+  if (decimals === 0) return String(raw);
+  return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
+}
+
+function buildActionSummary() {
+  if (!tx.value.hash) return "";
+  const transfers = allTransfers.value;
+  if (transfers.length === 1) {
+    const t = transfers[0];
+    const amount = formatTransferAmount(t);
+    const token = t.tokenname || t.symbol || "Token";
+    const from = t.from ? truncateHash(t.from, 6, 4) : "Mint";
+    const to = t.to ? truncateHash(t.to, 6, 4) : "Burn";
+    return `Transfer ${amount} ${token} from ${from} to ${to}`;
+  }
+  if (transfers.length > 1) {
+    return `${transfers.length} token transfers in this transaction`;
+  }
+  if (notificationCount.value > 0) {
+    return "Contract Call with " + notificationCount.value + " notification(s)";
+  }
+  return "";
+}
+
+// --- Data Loading ---
+function resetState() {
+  appLog.value = null;
+  appLogError.value = "";
+  nep17Transfers.value = [];
+  nep11Transfers.value = [];
+  currentBlockHeight.value = 0;
+  enrichedTrace.value = null;
+  showMore.value = false;
+  activeTab.value = "overview";
+  error.value = null;
+}
+
+async function loadTx(hash) {
+  if (!hash) return;
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+  loading.value = true;
+  resetState();
+  try {
+    tx.value = (await transactionService.getByHash(hash)) || {};
+    if (abortController.value?.signal.aborted) return;
+    // Fire secondary loads in parallel
+    loadTransfers(hash);
+    loadBlockHeight();
+    loadEnrichedTrace(hash);
+  } catch (err) {
+    if (abortController.value?.signal.aborted) return;
+    if (process.env.NODE_ENV !== "production") console.error("Failed to load transaction:", err);
+    error.value = "Failed to load transaction details.";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadEnrichedTrace(hash) {
+  enrichedLoading.value = true;
+  appLogLoading.value = true;
+  appLogError.value = "";
+  try {
+    enrichedTrace.value = await executionService.getEnrichedTrace(hash);
+    if (abortController.value?.signal.aborted) return;
+    appLog.value = enrichedTrace.value?.raw ?? null;
+  } catch (err) {
+    if (abortController.value?.signal.aborted) return;
+    if (process.env.NODE_ENV !== "production") console.warn("Failed to load enriched trace:", err);
+    try {
+      appLog.value = await executionService.getExecutionTrace(hash);
+    } catch {
+      appLogError.value = "Failed to load application log.";
+    }
+  } finally {
+    enrichedLoading.value = false;
+    appLogLoading.value = false;
+  }
+}
+
+async function loadTransfers(hash) {
+  transfersLoading.value = true;
+  try {
+    const [nep17Res, nep11Res] = await Promise.all([
+      tokenService.getTransfersByTxHash(hash).catch(() => ({ result: [] })),
+      tokenService.getNep11TransfersByTxHash(hash).catch(() => ({ result: [] })),
+    ]);
+    if (abortController.value?.signal.aborted) return;
+    nep17Transfers.value = (nep17Res?.result || []).map((t) => ({ ...t, _standard: "NEP-17" }));
+    nep11Transfers.value = (nep11Res?.result || []).map((t) => ({ ...t, _standard: "NEP-11" }));
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.warn("Failed to load token transfers:", err);
+  } finally {
+    transfersLoading.value = false;
+  }
+}
+
+async function loadBlockHeight() {
+  try {
+    const stats = await statsService.getDashboardStats();
+    currentBlockHeight.value = stats?.blocks || 0;
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.warn("Failed to load block height:", err);
+  }
+}
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+watch(
+  () => route.params.txhash,
+  (hash) => {
+    if (hash) loadTx(hash);
   },
-  computed: {
-    truncateHash() {
-      const h = this.tx?.hash;
-      return h ? `${h.slice(0, 10)}...${h.slice(-6)}` : "";
-    },
-    isSuccess() {
-      const state = this.tx?.vmstate;
-      return state === "HALT" || state === undefined || state === null;
-    },
-    statusBgClass() {
-      return this.isSuccess ? "bg-green-100 dark:bg-green-900" : "bg-red-100 dark:bg-red-900";
-    },
-    statusIconClass() {
-      return this.isSuccess ? "text-green-500" : "text-red-500";
-    },
-    txStatus() {
-      return this.isSuccess ? "success" : "failed";
-    },
-    tabs() {
-      const notifCount = this.notificationCount;
-      const xferCount = this.allTransfers.length;
-      return [
-        { key: "overview", label: "Overview" },
-        { key: "logs", label: "Logs", count: notifCount || null },
-        { key: "transfers", label: "Token Transfers", count: xferCount || null },
-        { key: "trace", label: "Execution Trace" },
-      ];
-    },
-    confirmations() {
-      if (!this.currentBlockHeight || !this.tx.blockIndex) return 0;
-      return Math.max(0, this.currentBlockHeight - this.tx.blockIndex);
-    },
-    totalFee() {
-      const net = Number(this.tx.netfee || 0);
-      const sys = Number(this.tx.sysfee || 0);
-      return formatGas(net + sys);
-    },
-    allTransfers() {
-      const nep17 = this.nep17Transfers.map((t) => ({ ...t, _standard: "NEP-17" }));
-      const nep11 = this.nep11Transfers.map((t) => ({ ...t, _standard: "NEP-11" }));
-      return [...nep17, ...nep11];
-    },
-    notificationCount() {
-      if (!this.appLog?.executions) return 0;
-      return this.appLog.executions.reduce((sum, exec) => sum + (exec.notifications?.length || 0), 0);
-    },
-    isComplexTx() {
-      return executionService.isComplexTransaction(this.appLog);
-    },
-    callTree() {
-      return executionService.buildCallTree(this.appLog);
-    },
-    actionSummary() {
-      return this.buildActionSummary();
-    },
-  },
-  watch: {
-    "$route.params.txhash": {
-      immediate: true,
-      handler(hash) {
-        if (hash) this.loadTx(hash);
-      },
-    },
-  },
-  methods: {
-    async loadTx(hash) {
-      this.loading = true;
-      this.resetState();
-      try {
-        this.tx = (await transactionService.getByHash(hash)) || {};
-        // Fire secondary data loads in parallel after main tx loads
-        this.loadAppLog(hash);
-        this.loadTransfers(hash);
-        this.loadBlockHeight();
-      } catch {
-        // Service layer handles error logging
-      } finally {
-        this.loading = false;
-      }
-    },
-    resetState() {
-      this.appLog = null;
-      this.appLogError = "";
-      this.nep17Transfers = [];
-      this.nep11Transfers = [];
-      this.currentBlockHeight = 0;
-      this.showMore = false;
-      this.activeTab = "overview";
-    },
-    async loadAppLog(hash) {
-      this.appLogLoading = true;
-      this.appLogError = "";
-      try {
-        this.appLog = await transactionService.getApplicationLog(hash);
-      } catch (e) {
-        this.appLogError = "Failed to load application log.";
-      } finally {
-        this.appLogLoading = false;
-      }
-    },
-    async loadTransfers(hash) {
-      this.transfersLoading = true;
-      try {
-        const [nep17Res, nep11Res] = await Promise.all([
-          tokenService.getTransfersByTxHash(hash).catch(() => ({ result: [] })),
-          tokenService.getNep11TransfersByTxHash(hash).catch(() => ({ result: [] })),
-        ]);
-        this.nep17Transfers = nep17Res?.result || [];
-        this.nep11Transfers = nep11Res?.result || [];
-      } catch {
-        // Graceful degradation
-      } finally {
-        this.transfersLoading = false;
-      }
-    },
-    async loadBlockHeight() {
-      try {
-        const stats = await statsService.getDashboardStats();
-        this.currentBlockHeight = stats?.blocks || 0;
-      } catch {
-        // Non-critical, confirmations will show 0
-      }
-    },
-    buildActionSummary() {
-      if (!this.tx.hash) return "";
-      const transfers = this.nep17Transfers;
-      if (transfers.length === 1) {
-        const t = transfers[0];
-        const amount = this.formatTransferAmount(t);
-        const token = t.tokenname || t.symbol || "Token";
-        const from = t.from ? this.shortAddr(t.from) : "Mint";
-        const to = t.to ? this.shortAddr(t.to) : "Burn";
-        return `Transfer ${amount} ${token} from ${from} to ${to}`;
-      }
-      if (transfers.length > 1) {
-        return `${transfers.length} token transfers in this transaction`;
-      }
-      if (this.notificationCount > 0) {
-        return "Contract Call with " + this.notificationCount + " notification(s)";
-      }
-      return "";
-    },
-    shortAddr(addr) {
-      if (!addr) return "";
-      return addr.length > 12 ? addr.slice(0, 6) + "..." + addr.slice(-4) : addr;
-    },
-    formatTransferAmount(t) {
-      const raw = Number(t.value || t.amount || 0);
-      const decimals = Number(t.decimals ?? GAS_DECIMALS);
-      if (decimals === 0) return String(raw);
-      return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
-    },
-    formatState(state) {
-      if (!state) return "-";
-      try {
-        return JSON.stringify(state, null, 2);
-      } catch {
-        return String(state);
-      }
-    },
-    formatTime(ts) {
-      if (!ts) return "-";
-      const ms = ts > 1e12 ? ts : ts * 1000;
-      return new Date(ms).toLocaleString();
-    },
-    formatGas,
-  },
-};
+  { immediate: true }
+);
 </script>

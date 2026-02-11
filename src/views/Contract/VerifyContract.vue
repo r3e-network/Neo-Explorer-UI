@@ -1,7 +1,7 @@
 <template>
   <div class="verify-contract-page">
     <!-- Loading overlay -->
-    <div v-if="isLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div v-if="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="flex flex-col items-center rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
         <p class="mt-3 text-sm text-text-secondary dark:text-gray-400">Verifying contract...</p>
@@ -13,12 +13,19 @@
       <div v-if="notification" class="fixed right-4 top-4 z-50 max-w-md">
         <div class="flex items-start gap-3 rounded-lg border p-4 shadow-lg" :class="notificationClass">
           <p class="flex-1 text-sm">{{ notification.message }}</p>
-          <button class="text-current opacity-60 hover:opacity-100" @click="notification = null">&times;</button>
+          <button
+            class="text-current opacity-60 hover:opacity-100"
+            aria-label="Dismiss notification"
+            @click="notification = null"
+          >
+            &times;
+          </button>
         </div>
       </div>
     </Transition>
 
     <section class="mx-auto max-w-[1400px] px-4 py-6">
+      <!-- Breadcrumb -->
       <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
         <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
         <span class="mx-2">/</span>
@@ -28,6 +35,7 @@
       </nav>
 
       <div class="etherscan-card">
+        <!-- Header -->
         <header class="border-b border-card-border p-5 dark:border-card-border-dark md:p-6">
           <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100 md:text-2xl">
             Verify & Publish Contract Source Code
@@ -38,17 +46,27 @@
           </p>
         </header>
 
+        <!-- Form + Sidebar -->
         <div class="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]">
-          <form @submit.prevent="uploadFilesAndParams" class="space-y-5">
+          <form @submit.prevent="submitVerification" class="space-y-5">
+            <!-- Contract Hash -->
             <div>
               <label class="form-label">Contract Hash <span class="text-red-500">*</span></label>
-              <input v-model="form.hash" type="text" placeholder="0x..." class="form-input" />
+              <input
+                v-model="form.hash"
+                type="text"
+                placeholder="0x..."
+                required
+                aria-label="Contract hash"
+                class="form-input"
+              />
               <p v-if="errors.hash" class="form-error">{{ errors.hash }}</p>
             </div>
 
+            <!-- Compiler Version -->
             <div>
               <label class="form-label">Compiler Version <span class="text-red-500">*</span></label>
-              <select v-model="form.version" class="form-input">
+              <select v-model="form.version" required class="form-input">
                 <option value="" disabled>Select your compiler version</option>
                 <option v-for="option in compilerVersionOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -57,9 +75,10 @@
               <p v-if="errors.version" class="form-error">{{ errors.version }}</p>
             </div>
 
+            <!-- Compile Command (conditional) -->
             <div v-if="showCompileCommand">
               <label class="form-label">Compile Command <span class="text-red-500">*</span></label>
-              <select v-model="form.command" class="form-input">
+              <select v-model="form.command" required class="form-input">
                 <option value="" disabled>Select your compile command</option>
                 <option v-for="option in compileCommandOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -68,30 +87,34 @@
               <p v-if="errors.command" class="form-error">{{ errors.command }}</p>
             </div>
 
+            <!-- File Upload -->
             <div>
               <label class="form-label">Source Code Files <span class="text-red-500">*</span></label>
               <div class="flex flex-wrap items-center gap-3">
                 <label
-                  class="inline-flex items-center rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-gray-50 hover:text-primary-500 transition-colors dark:border-card-border-dark dark:hover:bg-gray-800 cursor-pointer"
+                  class="inline-flex cursor-pointer items-center rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-gray-50 hover:text-primary-500 dark:border-card-border-dark dark:hover:bg-gray-800"
                 >
                   Select Files
                   <input
-                    ref="fileInput"
+                    ref="fileInputRef"
                     type="file"
-                    :accept="accept"
+                    :accept="acceptedExtensions"
                     multiple
+                    aria-label="Select source code files"
                     class="hidden"
                     @change="onFilesSelected"
                   />
                 </label>
                 <button
                   type="submit"
-                  :disabled="!canUpload"
-                  class="inline-flex items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  :disabled="!canSubmit"
+                  class="inline-flex items-center rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Upload &amp; Verify
+                  Upload & Verify
                 </button>
               </div>
+
+              <!-- File list -->
               <div v-if="fileList.length" class="mt-3 space-y-1">
                 <div
                   v-for="(file, idx) in fileList"
@@ -107,7 +130,12 @@
                     />
                   </svg>
                   <span>{{ file.name }}</span>
-                  <button type="button" @click="removeFile(idx)" class="text-red-400 hover:text-red-600">
+                  <button
+                    type="button"
+                    @click="removeFile(idx)"
+                    :aria-label="`Remove file ${file.name}`"
+                    class="text-red-400 hover:text-red-600"
+                  >
                     &times;
                   </button>
                 </div>
@@ -115,6 +143,7 @@
             </div>
           </form>
 
+          <!-- Sidebar Tips -->
           <aside
             class="rounded-lg border border-card-border bg-gray-50 p-4 text-sm dark:border-card-border-dark dark:bg-gray-900/40"
           >
@@ -129,7 +158,7 @@
             </ul>
 
             <div
-              v-if="form.version === javaCompilerVersion"
+              v-if="form.version === JAVA_COMPILER_VERSION"
               class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-200"
             >
               The <span class="font-semibold">className</span> property in
@@ -142,7 +171,9 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { contractService } from "@/services";
 import {
   COMPILER_VERSION_OPTIONS,
@@ -154,154 +185,147 @@ import {
   getCompilationFailureMessage,
 } from "@/utils/contractVerification";
 
-export default {
-  name: "VerifyContract",
-  data() {
-    return {
-      isLoading: false,
-      fileList: [],
-      notification: null,
-      errors: {},
-      accept: ".cs,.csproj,.py,.java,.gradle,.go",
-      form: {
-        hash: "",
-        version: "",
-        command: "",
-      },
-      javaPackage: "io.examples.HelloWorld",
-      isContractPattern: /^((0x)?)([0-9a-f]{40})$/,
-      compilerVersionOptions: COMPILER_VERSION_OPTIONS,
-      compileCommandOptions: COMPILE_COMMAND_OPTIONS,
-      javaCompilerVersion: JAVA_COMPILER_VERSION,
-    };
-  },
-  created() {
-    this.form.hash = this.$route.params.contractHash || "";
-  },
-  computed: {
-    showCompileCommand() {
-      return requiresCompileCommand(this.form.version);
-    },
-    canUpload() {
-      const baseReady = Boolean(this.form.hash && this.form.version && this.fileList.length);
-      if (!baseReady) {
-        return false;
-      }
+const route = useRoute();
+const router = useRouter();
+const fileInputRef = ref(null);
 
-      if (this.showCompileCommand && !this.form.command) {
-        return false;
-      }
+const CONTRACT_HASH_PATTERN = /^((0x)?)([0-9a-f]{40})$/;
 
-      return true;
-    },
-    compilerUploadHint() {
-      return getCompilerUploadHint(this.form.version);
-    },
-    notificationClass() {
-      const type = this.notification?.type || "error";
-      const map = {
-        success:
-          "border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/40 dark:text-green-200",
-        warning:
-          "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
-        error: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
-      };
-      return map[type] || map.error;
-    },
-  },
-  watch: {
-    "form.version"(nextVersion) {
-      if (!requiresCompileCommand(nextVersion)) {
-        this.form.command = "";
-      }
-    },
-  },
-  methods: {
-    showNotification(type, message) {
-      this.notification = { type, message };
-    },
+// Form state
+const loading = ref(false);
+const notification = ref(null);
+const errors = ref({});
+const fileList = ref([]);
+const form = ref({
+  hash: route.params.contractHash || "",
+  version: "",
+  command: "",
+});
 
-    async uploadFilesAndParams() {
-      if (!this.canUpload) return;
+// Constants exposed to template
+const compilerVersionOptions = COMPILER_VERSION_OPTIONS;
+const compileCommandOptions = COMPILE_COMMAND_OPTIONS;
+const acceptedExtensions = ".cs,.csproj,.py,.java,.gradle,.go";
 
-      this.errors = {};
-      if (!this.isContractPattern.test(this.form.hash)) {
-        this.errors.hash = "Invalid format. Must be a 40-character hex string.";
-        return;
-      }
+// Computed
+const showCompileCommand = computed(() => requiresCompileCommand(form.value.version));
 
-      const node = resolveUploadNode(this.form.version);
-      if (!node) {
-        this.showNotification("error", "Unsupported host for contract verification endpoint.");
-        return;
-      }
+const canSubmit = computed(() => {
+  const base = Boolean(form.value.hash && form.value.version && fileList.value.length);
+  if (!base) return false;
+  if (showCompileCommand.value && !form.value.command) return false;
+  return true;
+});
 
-      const formData = new FormData();
-      this.fileList.forEach((file) => formData.append("file", file));
-      formData.append("Contract", this.form.hash);
-      formData.append("Version", this.form.version);
+const compilerUploadHint = computed(() => getCompilerUploadHint(form.value.version));
 
-      if (this.showCompileCommand && this.form.command) {
-        formData.append("CompileCommand", this.form.command);
-      }
-      if (this.form.version === this.javaCompilerVersion) {
-        formData.append("JavaPackage", this.javaPackage);
-      }
+const notificationClass = computed(() => {
+  const type = notification.value?.type || "error";
+  const map = {
+    success:
+      "border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/40 dark:text-green-200",
+    warning:
+      "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
+    error: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200",
+  };
+  return map[type] || map.error;
+});
 
-      this.isLoading = true;
-      try {
-        const data = await contractService.uploadVerification(node, formData);
-        this.handleUploadResult(data);
-      } catch {
-        this.showNotification("error", "Server error, please try again later.");
-      } finally {
-        this.isLoading = false;
-      }
-    },
+// Reset compile command when compiler changes
+watch(
+  () => form.value.version,
+  (v) => {
+    if (!requiresCompileCommand(v)) {
+      form.value.command = "";
+    }
+  }
+);
 
-    handleUploadResult(result) {
-      const code = result?.Code;
+// Methods
+function showNotification(type, message) {
+  notification.value = { type, message };
+}
 
-      if (code === 2) {
-        this.showNotification("error", getCompilationFailureMessage(this.form.version));
-        return;
-      }
-      if (code === 0 || code === 1 || code === 3) {
-        this.showNotification("error", "Server error, please try again later.");
-        return;
-      }
-      if (code === 4) {
-        this.showNotification("error", `Failed in querying contract info on blockChain. ${result?.Msg || ""}`);
-        return;
-      }
-      if (code === 5) {
-        this.showNotification("success", "Contract verification succeeded!");
-        this.$router.push(`/contract-info/${this.form.hash}`);
-        return;
-      }
-      if (code === 6) {
-        this.showNotification("warning", "This contract has already been verified.");
-        return;
-      }
-      if (code === 7) {
-        this.showNotification("error", result?.Msg || "Verification failed.");
-        return;
-      }
+function onFilesSelected(event) {
+  const files = Array.from(event.target.files || []);
+  fileList.value = [...fileList.value, ...files];
+  if (fileInputRef.value) fileInputRef.value.value = "";
+}
 
-      this.showNotification("error", "Verification failed. Source code does not match deployed bytecode.");
-    },
+function removeFile(index) {
+  fileList.value.splice(index, 1);
+}
 
-    onFilesSelected(event) {
-      const files = Array.from(event.target.files || []);
-      this.fileList = [...this.fileList, ...files];
-      if (this.$refs.fileInput) this.$refs.fileInput.value = "";
-    },
+async function submitVerification() {
+  if (!canSubmit.value) return;
 
-    removeFile(index) {
-      this.fileList.splice(index, 1);
-    },
-  },
-};
+  errors.value = {};
+  if (!CONTRACT_HASH_PATTERN.test(form.value.hash)) {
+    errors.value.hash = "Invalid format. Must be a 40-character hex string.";
+    return;
+  }
+
+  const node = resolveUploadNode(form.value.version);
+  if (!node) {
+    showNotification("error", "Unsupported host for contract verification endpoint.");
+    return;
+  }
+
+  const formData = new FormData();
+  fileList.value.forEach((file) => formData.append("file", file));
+  formData.append("Contract", form.value.hash);
+  formData.append("Version", form.value.version);
+
+  if (showCompileCommand.value && form.value.command) {
+    formData.append("CompileCommand", form.value.command);
+  }
+  if (form.value.version === JAVA_COMPILER_VERSION) {
+    formData.append("JavaPackage", "io.examples.HelloWorld");
+  }
+
+  loading.value = true;
+  try {
+    const data = await contractService.uploadVerification(node, formData);
+    handleResult(data);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") console.error("Contract verification failed:", err);
+    showNotification("error", "Server error, please try again later.");
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleResult(result) {
+  const code = result?.Code;
+
+  if (code === 2) {
+    showNotification("error", getCompilationFailureMessage(form.value.version));
+    return;
+  }
+  if (code === 0 || code === 1 || code === 3) {
+    showNotification("error", "Server error, please try again later.");
+    return;
+  }
+  if (code === 4) {
+    showNotification("error", `Failed in querying contract info on blockChain. ${result?.Msg || ""}`);
+    return;
+  }
+  if (code === 5) {
+    showNotification("success", "Contract verification succeeded!");
+    router.push(`/contract-info/${form.value.hash}`);
+    return;
+  }
+  if (code === 6) {
+    showNotification("warning", "This contract has already been verified.");
+    return;
+  }
+  if (code === 7) {
+    showNotification("error", result?.Msg || "Verification failed.");
+    return;
+  }
+
+  showNotification("error", "Verification failed. Source code does not match deployed bytecode.");
+}
 </script>
 
 <style scoped>
@@ -309,12 +333,10 @@ export default {
 .slide-in-leave-active {
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
-
 .slide-in-enter-from {
   transform: translateX(100%);
   opacity: 0;
 }
-
 .slide-in-leave-to {
   transform: translateX(100%);
   opacity: 0;

@@ -17,15 +17,18 @@
           <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Neo N3 Gas Tracker</h1>
           <p class="text-sm text-text-secondary dark:text-gray-400">
             Real-time network fee estimates and GAS analytics
+            <span v-if="autoRefreshActive" class="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
+              <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+              Live
+            </span>
           </p>
         </div>
       </div>
 
-      <!-- Fee Stats Cards -->
+      <!-- Fee Estimate Cards -->
       <div v-if="loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Skeleton v-for="i in 3" :key="i" height="120px" variant="rounded" />
       </div>
-
       <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Low Fee -->
         <div class="etherscan-card p-5">
@@ -42,7 +45,7 @@
           <p class="text-2xl font-bold text-text-primary dark:text-gray-100">
             {{ formatGas(feeEstimates.low) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (slow)</p>
         </div>
 
         <!-- Average Fee -->
@@ -65,7 +68,7 @@
           <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">
             {{ formatGas(feeEstimates.average) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (standard)</p>
         </div>
 
         <!-- High Fee -->
@@ -88,7 +91,7 @@
           <p class="text-2xl font-bold text-text-primary dark:text-gray-100">
             {{ formatGas(feeEstimates.high) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (fast)</p>
         </div>
       </div>
 
@@ -115,7 +118,24 @@
         </div>
       </div>
 
-      <!-- Recent Blocks with Fee Data -->
+      <!-- Fee Trend Chart -->
+      <div class="etherscan-card mb-6 p-5">
+        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Fee Trend</h2>
+        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+          Average total fee per block from the last 20 blocks
+        </p>
+        <div v-if="blocksLoading" class="space-y-2">
+          <Skeleton v-for="i in 4" :key="i" height="44px" />
+        </div>
+        <div v-else-if="blocks.length" class="h-[280px]">
+          <canvas ref="feeTrendCanvas"></canvas>
+        </div>
+        <div v-else class="py-8 text-center text-sm text-text-muted dark:text-gray-500">
+          No block data available for chart
+        </div>
+      </div>
+
+      <!-- Recent Blocks Fee Table -->
       <div class="etherscan-card overflow-hidden">
         <div
           class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
@@ -146,11 +166,11 @@
           <table class="w-full min-w-[700px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Block #</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Count</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">System Fee</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Network Fee</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Total Fee</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Block</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
+                <th class="px-4 py-3 text-center font-medium text-text-secondary">Txns</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Avg Fee</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary">Total Fees</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -164,14 +184,14 @@
                     {{ formatNumber(block.index) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+                <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                  {{ formatAge(block.timestamp) }}
+                </td>
+                <td class="px-4 py-3 text-center text-sm text-text-primary dark:text-gray-300">
                   {{ block.txcount || 0 }}
                 </td>
                 <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
-                  {{ formatGas(block.sysfee || 0) }}
-                </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
-                  {{ formatGas(block.netfee || 0) }}
+                  {{ formatGas(avgFee(block)) }}
                 </td>
                 <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-200">
                   {{ formatGas(totalFee(block)) }}
@@ -182,7 +202,7 @@
         </div>
       </div>
 
-      <!-- Fee Trend Info -->
+      <!-- About Neo N3 Fees -->
       <div class="etherscan-card mt-6 p-5">
         <h2 class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200">About Neo N3 Fees</h2>
         <div class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
@@ -204,99 +224,229 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import Chart from "chart.js";
 import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { statsService, blockService } from "@/services";
-import { formatNumber } from "@/utils/explorerFormat";
-import { GAS_DIVISOR, BURN_RATE } from "@/constants";
+import { formatNumber, formatAge, formatGas } from "@/utils/explorerFormat";
+import { GAS_DIVISOR, BURN_RATE, GAS_TRACKER_REFRESH_INTERVAL } from "@/constants";
 
-export default {
-  name: "GasTracker",
+// --- State ---
+const loading = ref(true);
+const blocksLoading = ref(true);
+const blocksError = ref(null);
+const autoRefreshActive = ref(true);
 
-  components: { BreadcrumbNav, Skeleton, ErrorState, EmptyState },
+const gasData = ref({
+  latestNetworkFee: "0",
+  latestSystemFee: "0",
+  networkFee: null,
+});
 
-  data() {
-    return {
-      loading: true,
-      blocksLoading: true,
-      blocksError: null,
-      gasData: {
-        latestNetworkFee: "0",
-        latestSystemFee: "0",
-        networkFee: null,
+const feeEstimates = ref({ low: 0, average: 0, high: 0 });
+const blocks = ref([]);
+
+// --- Canvas ref & chart instance ---
+const feeTrendCanvas = ref(null);
+let feeTrendChart = null;
+let refreshTimer = null;
+let isRefreshing = false;
+
+// --- Helpers ---
+function totalFee(block) {
+  return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
+}
+
+function avgFee(block) {
+  const total = totalFee(block);
+  const txCount = Number(block.txcount) || 1;
+  return Math.round(total / txCount);
+}
+
+function isDarkMode() {
+  return document.documentElement.classList.contains("dark");
+}
+
+function getChartColors() {
+  const dark = isDarkMode();
+  return {
+    text: dark ? "#9CA3AF" : "#6B7280",
+    grid: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+    tooltipBg: dark ? "#1F2937" : "#ffffff",
+    tooltipTitle: dark ? "#F9FAFB" : "#111827",
+    tooltipBody: dark ? "#D1D5DB" : "#4B5563",
+    tooltipBorder: dark ? "#374151" : "#E5E7EB",
+  };
+}
+
+// --- Fee estimation from block data ---
+function computeFeeEstimates() {
+  const feeBearing = blocks.value.filter((b) => totalFee(b) > 0);
+  if (!feeBearing.length) {
+    feeEstimates.value = { low: 0, average: 0, high: 0 };
+    return;
+  }
+
+  const fees = feeBearing.map((b) => totalFee(b));
+  fees.sort((a, b) => a - b);
+
+  feeEstimates.value = {
+    low: fees[0],
+    high: fees[fees.length - 1],
+    average: Math.round(fees.reduce((s, f) => s + f, 0) / fees.length),
+  };
+}
+
+// --- Fee Trend Chart ---
+function destroyChart() {
+  if (feeTrendChart) {
+    feeTrendChart.destroy();
+    feeTrendChart = null;
+  }
+}
+
+function createFeeTrendChart() {
+  if (!feeTrendCanvas.value || !blocks.value.length) return;
+  destroyChart();
+
+  const ctx = feeTrendCanvas.value.getContext("2d");
+  const colors = getChartColors();
+
+  // Reverse so oldest block is first (left side of chart)
+  const sorted = [...blocks.value].reverse();
+  const labels = sorted.map((b) => `#${Number(b.index).toLocaleString()}`);
+  const values = sorted.map((b) => totalFee(b) / GAS_DIVISOR);
+
+  feeTrendChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Total Fee (GAS)",
+          data: values,
+          fill: true,
+          backgroundColor: "rgba(16, 185, 129, 0.08)",
+          borderColor: "#10B981",
+          borderWidth: 2,
+          lineTension: 0.35,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "#10B981",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      legend: { display: false },
+      tooltips: {
+        mode: "index",
+        intersect: false,
+        backgroundColor: colors.tooltipBg,
+        titleFontColor: colors.tooltipTitle,
+        bodyFontColor: colors.tooltipBody,
+        borderColor: colors.tooltipBorder,
+        borderWidth: 1,
+        xPadding: 12,
+        yPadding: 10,
+        displayColors: false,
+        callbacks: {
+          label: (item) => `Fee: ${Number(item.yLabel).toFixed(8)} GAS`,
+        },
       },
-      feeEstimates: { low: 0, average: 0, high: 0 },
-      blocks: [],
-      BURN_RATE,
-    };
-  },
-
-  created() {
-    this.loadData();
-  },
-
-  methods: {
-    formatGas(value) {
-      if (!value) return "0.00000000";
-      return (Number(value) / GAS_DIVISOR).toFixed(8);
+      scales: {
+        xAxes: [
+          {
+            gridLines: { display: false },
+            ticks: { fontColor: colors.text, fontSize: 10, maxTicksLimit: 10 },
+          },
+        ],
+        yAxes: [
+          {
+            gridLines: { color: colors.grid, drawBorder: false },
+            ticks: {
+              fontColor: colors.text,
+              fontSize: 11,
+              beginAtZero: true,
+              callback: (v) => v.toFixed(4),
+            },
+          },
+        ],
+      },
     },
+  });
+}
 
-    formatNumber,
+// --- Data loading ---
+async function loadGasTracker() {
+  loading.value = true;
+  try {
+    const data = await statsService.getGasTracker();
+    gasData.value = data;
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") console.error("Gas tracker load failed:", e);
+  } finally {
+    loading.value = false;
+  }
+}
 
-    totalFee(block) {
-      return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
-    },
+async function loadBlocks() {
+  blocksLoading.value = true;
+  blocksError.value = null;
+  try {
+    const res = await blockService.getList(20, 0);
+    blocks.value = res?.result || [];
+    computeFeeEstimates();
+    nextTick(() => createFeeTrendChart());
+  } catch (e) {
+    blocksError.value = e.message || "Failed to load blocks";
+  } finally {
+    blocksLoading.value = false;
+  }
+}
 
-    async loadData() {
-      await Promise.all([this.loadGasTracker(), this.loadBlocks()]);
-    },
+async function loadData() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  try {
+    await Promise.all([loadGasTracker(), loadBlocks()]);
+  } finally {
+    isRefreshing = false;
+  }
+}
 
-    async loadGasTracker() {
-      this.loading = true;
-      try {
-        const data = await statsService.getGasTracker();
-        this.gasData = data;
-        this.computeFeeEstimates();
-      } catch (e) {
-        console.error("Gas tracker load failed:", e);
-      } finally {
-        this.loading = false;
-      }
-    },
+// --- Auto-refresh (30s) ---
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshTimer = setInterval(() => {
+    loadData();
+  }, GAS_TRACKER_REFRESH_INTERVAL);
+  autoRefreshActive.value = true;
+}
 
-    async loadBlocks() {
-      this.blocksLoading = true;
-      this.blocksError = null;
-      try {
-        const res = await blockService.getList(15, 0);
-        this.blocks = res?.result || [];
-        this.computeFeeEstimates();
-      } catch (e) {
-        this.blocksError = e.message || "Failed to load blocks";
-      } finally {
-        this.blocksLoading = false;
-      }
-    },
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  autoRefreshActive.value = false;
+}
 
-    computeFeeEstimates() {
-      const feeBearing = this.blocks.filter((b) => (Number(b.netfee) || 0) + (Number(b.sysfee) || 0) > 0);
-      if (!feeBearing.length) {
-        this.feeEstimates = { low: 0, average: 0, high: 0 };
-        return;
-      }
+// --- Lifecycle ---
+onMounted(() => {
+  loadData();
+  startAutoRefresh();
+});
 
-      const fees = feeBearing.map((b) => (Number(b.netfee) || 0) + (Number(b.sysfee) || 0));
-      fees.sort((a, b) => a - b);
-
-      const low = fees[0];
-      const high = fees[fees.length - 1];
-      const average = Math.round(fees.reduce((s, f) => s + f, 0) / fees.length);
-
-      this.feeEstimates = { low, average, high };
-    },
-  },
-};
+onBeforeUnmount(() => {
+  stopAutoRefresh();
+  destroyChart();
+});
 </script>

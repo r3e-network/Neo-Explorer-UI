@@ -24,37 +24,28 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import AppHeader from "./AppHeader.vue";
 import AppFooter from "./AppFooter.vue";
 
-export default {
-  name: "MainLayout",
-  components: { AppHeader, AppFooter },
+const showBackToTop = ref(false);
 
-  data() {
-    return {
-      showBackToTop: false,
-    };
-  },
+function handleScroll() {
+  showBackToTop.value = window.scrollY > 300;
+}
 
-  mounted() {
-    window.addEventListener("scroll", this.handleScroll, { passive: true });
-  },
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
-  beforeUnmount() {
-    window.removeEventListener("scroll", this.handleScroll);
-  },
+onMounted(() => {
+  window.addEventListener("scroll", handleScroll, { passive: true });
+});
 
-  methods: {
-    handleScroll() {
-      this.showBackToTop = window.scrollY > 300;
-    },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-  },
-};
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", handleScroll);
+});
 </script>
 
 <style scoped>

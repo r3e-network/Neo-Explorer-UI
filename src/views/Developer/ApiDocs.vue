@@ -54,62 +54,58 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "ApiDocs",
-  data() {
-    return {
-      activeCategory: "blocks",
-      categories: [
-        { key: "blocks", label: "Blocks" },
-        { key: "transactions", label: "Transactions" },
-        { key: "addresses", label: "Addresses" },
-        { key: "contracts", label: "Contracts" },
-      ],
-      methods: [
-        {
-          name: "GetBlockCount",
-          endpoint: "blocks/count",
-          desc: "Get current block height",
-          category: "blocks",
-        },
-        {
-          name: "GetBlockByHash",
-          endpoint: "blocks/{hash}",
-          desc: "Get block by hash",
-          category: "blocks",
-        },
-        {
-          name: "GetTransactionList",
-          endpoint: "transactions",
-          desc: "Get transaction list",
-          category: "transactions",
-        },
-        {
-          name: "GetTransactionByHash",
-          endpoint: "transactions/{hash}",
-          desc: "Get transaction by hash",
-          category: "transactions",
-        },
-        {
-          name: "GetAddressInfo",
-          endpoint: "addresses/{address}",
-          desc: "Get address info",
-          category: "addresses",
-        },
-        {
-          name: "GetContractInfo",
-          endpoint: "contracts/{hash}",
-          desc: "Get contract info",
-          category: "contracts",
-        },
-      ],
-    };
+<script setup>
+import { ref, computed } from "vue";
+
+const activeCategory = ref("blocks");
+
+const categories = [
+  { key: "blocks", label: "Blocks" },
+  { key: "transactions", label: "Transactions" },
+  { key: "addresses", label: "Addresses" },
+  { key: "contracts", label: "Contracts" },
+];
+
+const methods = [
+  {
+    name: "GetBlockCount",
+    endpoint: "blocks/count",
+    desc: "Get current block height",
+    category: "blocks",
   },
-  computed: {
-    filteredMethods() {
-      return this.methods.filter((method) => method.category === this.activeCategory);
-    },
+  {
+    name: "GetBlockByHash",
+    endpoint: "blocks/{hash}",
+    desc: "Get block by hash",
+    category: "blocks",
   },
-};
+  {
+    name: "GetTransactionList",
+    endpoint: "transactions",
+    desc: "Get transaction list",
+    category: "transactions",
+  },
+  {
+    name: "GetTransactionByHash",
+    endpoint: "transactions/{hash}",
+    desc: "Get transaction by hash",
+    category: "transactions",
+  },
+  {
+    name: "GetAddressInfo",
+    endpoint: "addresses/{address}",
+    desc: "Get address info",
+    category: "addresses",
+  },
+  {
+    name: "GetContractInfo",
+    endpoint: "contracts/{hash}",
+    desc: "Get contract info",
+    category: "contracts",
+  },
+];
+
+const filteredMethods = computed(() => {
+  return methods.filter((method) => method.category === activeCategory.value);
+});
 </script>

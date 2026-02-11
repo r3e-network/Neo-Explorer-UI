@@ -33,13 +33,8 @@ export const blockService = {
     const key = getCacheKey("block_list", { limit, skip });
     return cachedRequest(
       key,
-      () =>
-        safeRpcList(
-          "GetBlockInfoList",
-          { Limit: limit, Skip: skip },
-          "get block list"
-        ),
-      CACHE_TTL.list
+      () => safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list"),
+      CACHE_TTL.block
     );
   },
 
@@ -50,11 +45,7 @@ export const blockService = {
    */
   async getByHash(hash) {
     const key = getCacheKey("block_hash", { hash });
-    return cachedRequest(
-      key,
-      () => safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
-      CACHE_TTL.detail
-    );
+    return cachedRequest(key, () => safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null), CACHE_TTL.txDetail);
   },
 
   /**
@@ -90,11 +81,7 @@ export const blockService = {
    * @returns {Promise<Object|null>} 区块头数据
    */
   async getHeaderByHeight(height) {
-    return safeRpc(
-      "GetBlockHeaderByBlockHeight",
-      { BlockHeight: height },
-      null
-    );
+    return safeRpc("GetBlockHeaderByBlockHeight", { BlockHeight: height }, null);
   },
 };
 

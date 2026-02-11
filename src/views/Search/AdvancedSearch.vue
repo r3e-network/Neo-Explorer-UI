@@ -2,7 +2,7 @@
   <div class="advanced-search-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <BreadcrumbNav :items="[{ label: 'Home', to: '/homepage' }, { label: 'Advanced Search' }]" />
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Advanced Search' }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -31,6 +31,7 @@
           <div class="flex flex-col gap-3 sm:flex-row">
             <select
               v-model="searchType"
+              aria-label="Search type filter"
               class="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 sm:w-48"
             >
               <option value="all">All Types</option>
@@ -45,6 +46,7 @@
                 ref="searchInput"
                 v-model="query"
                 type="text"
+                aria-label="Search query input"
                 :placeholder="inputPlaceholder"
                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
                 @input="clearValidation"
@@ -53,6 +55,7 @@
                 v-if="query"
                 type="button"
                 @click="clearSearch"
+                aria-label="Clear search query"
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,8 +282,10 @@
   </div>
 </template>
 
-<script>
-import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
+<script setup>
+import { ref, computed, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -288,131 +293,125 @@ import HashLink from "@/components/common/HashLink.vue";
 import { searchService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
-export default {
-  name: "AdvancedSearch",
+const route = useRoute();
 
-  components: { BreadcrumbNav, Skeleton, ErrorState, EmptyState, HashLink },
+const searchInput = ref(null);
+const query = ref("");
+const searchType = ref("all");
+const searching = ref(false);
+const searchError = ref(null);
+const hasSearched = ref(false);
+const validationError = ref(null);
+const result = ref({ type: null, data: null });
+const abortController = ref(null);
 
-  data() {
-    return {
-      query: "",
-      searchType: "all",
-      searching: false,
-      searchError: null,
-      hasSearched: false,
-      validationError: null,
-      result: { type: null, data: null },
-    };
-  },
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
 
-  computed: {
-    inputPlaceholder() {
-      const placeholders = {
-        all: "Search by address, tx hash, block height, or contract hash...",
-        address: "Enter Neo N3 address (starts with N)...",
-        transaction: "Enter transaction hash (0x + 64 hex chars)...",
-        block: "Enter block height or block hash...",
-        contract: "Enter contract script hash...",
-      };
-      return placeholders[this.searchType] || placeholders.all;
-    },
+const inputPlaceholder = computed(() => {
+  const placeholders = {
+    all: "Search by address, tx hash, block height, or contract hash...",
+    address: "Enter Neo N3 address (starts with N)...",
+    transaction: "Enter transaction hash (0x + 64 hex chars)...",
+    block: "Enter block height or block hash...",
+    contract: "Enter contract script hash...",
+  };
+  return placeholders[searchType.value] || placeholders.all;
+});
 
-    resultTypeLabel() {
-      const labels = {
-        block: "Block",
-        transaction: "Transaction",
-        address: "Address",
-        contract: "Contract",
-      };
-      return labels[this.result.type] || "Unknown";
-    },
+const resultTypeLabel = computed(() => {
+  const labels = {
+    block: "Block",
+    transaction: "Transaction",
+    address: "Address",
+    contract: "Contract",
+  };
+  return labels[result.value.type] || "Unknown";
+});
 
-    resultBadgeClass() {
-      const classes = {
-        block: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-        transaction: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-        address: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-        contract: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-      };
-      return classes[this.result.type] || "";
-    },
-  },
+const resultBadgeClass = computed(() => {
+  const classes = {
+    block: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+    transaction: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    address: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    contract: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  };
+  return classes[result.value.type] || "";
+});
 
-  created() {
-    const q = this.$route.query.q;
-    if (q) {
-      this.query = q;
-      this.performSearch();
-    }
-  },
+function clearValidation() {
+  validationError.value = null;
+}
 
-  methods: {
-    truncateHash,
-    formatNumber,
+function clearSearch() {
+  query.value = "";
+  hasSearched.value = false;
+  result.value = { type: null, data: null };
+  searchError.value = null;
+  validationError.value = null;
+  searchInput.value?.focus();
+}
 
-    clearValidation() {
-      this.validationError = null;
-    },
+function validate() {
+  const q = query.value.trim();
+  if (!q) {
+    validationError.value = "Please enter a search term.";
+    return false;
+  }
+  if (q.length > 256) {
+    validationError.value = "Search query is too long (max 256 characters).";
+    return false;
+  }
 
-    clearSearch() {
-      this.query = "";
-      this.hasSearched = false;
-      this.result = { type: null, data: null };
-      this.searchError = null;
-      this.validationError = null;
-      this.$refs.searchInput?.focus();
-    },
+  if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q)) {
+    validationError.value = "Invalid Neo N3 address format. Must start with N followed by 33 alphanumeric characters.";
+    return false;
+  }
+  if (searchType.value === "transaction" && !/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {
+    validationError.value = "Invalid transaction hash. Must be 64 hex characters (optionally prefixed with 0x).";
+    return false;
+  }
+  if (searchType.value === "block" && !/^(\d+|(0x)?[a-fA-F0-9]{64})$/.test(q)) {
+    validationError.value = "Invalid block identifier. Enter a block height (number) or block hash.";
+    return false;
+  }
+  if (searchType.value === "contract" && !/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) {
+    validationError.value = "Invalid contract hash format.";
+    return false;
+  }
 
-    validate() {
-      const q = this.query.trim();
-      if (!q) {
-        this.validationError = "Please enter a search term.";
-        return false;
-      }
-      if (q.length > 256) {
-        this.validationError = "Search query is too long (max 256 characters).";
-        return false;
-      }
+  validationError.value = null;
+  return true;
+}
 
-      if (this.searchType === "address" && !/^N[A-Za-z0-9]{33}$/.test(q)) {
-        this.validationError =
-          "Invalid Neo N3 address format. Must start with N followed by 33 alphanumeric characters.";
-        return false;
-      }
-      if (this.searchType === "transaction" && !/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {
-        this.validationError = "Invalid transaction hash. Must be 64 hex characters (optionally prefixed with 0x).";
-        return false;
-      }
-      if (this.searchType === "block" && !/^(\d+|(0x)?[a-fA-F0-9]{64})$/.test(q)) {
-        this.validationError = "Invalid block identifier. Enter a block height (number) or block hash.";
-        return false;
-      }
-      if (this.searchType === "contract" && !/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) {
-        this.validationError = "Invalid contract hash format.";
-        return false;
-      }
+async function performSearch() {
+  if (!validate()) return;
 
-      this.validationError = null;
-      return true;
-    },
+  abortController.value?.abort();
+  abortController.value = new AbortController();
 
-    async performSearch() {
-      if (!this.validate()) return;
+  searching.value = true;
+  searchError.value = null;
+  hasSearched.value = true;
 
-      this.searching = true;
-      this.searchError = null;
-      this.hasSearched = true;
+  try {
+    const res = await searchService.search(query.value.trim());
+    if (abortController.value?.signal.aborted) return;
+    result.value = res || { type: null, data: null };
+  } catch (e) {
+    if (abortController.value?.signal.aborted) return;
+    searchError.value = e.message || "An unexpected error occurred during search.";
+    result.value = { type: null, data: null };
+  } finally {
+    searching.value = false;
+  }
+}
 
-      try {
-        const res = await searchService.search(this.query.trim());
-        this.result = res || { type: null, data: null };
-      } catch (e) {
-        this.searchError = e.message || "An unexpected error occurred during search.";
-        this.result = { type: null, data: null };
-      } finally {
-        this.searching = false;
-      }
-    },
-  },
-};
+// created() equivalent - runs synchronously during setup
+const q = route.query.q;
+if (q) {
+  query.value = q;
+  performSearch();
+}
 </script>

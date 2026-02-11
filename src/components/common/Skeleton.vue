@@ -1,72 +1,36 @@
 <template>
-  <div :class="skeletonClass" :style="customStyle"></div>
+  <div class="flex flex-col" :class="count > 1 ? 'gap-2' : ''">
+    <div v-for="i in count" :key="i" :class="skeletonClass" :style="customStyle" />
+  </div>
 </template>
 
-<script>
-export default {
-  name: "Skeleton",
-  props: {
-    width: { type: String, default: "100%" },
-    height: { type: String, default: "20px" },
-    variant: {
-      type: String,
-      default: "text",
-      validator: (v) =>
-        ["text", "circular", "rectangular", "rounded"].includes(v),
-    },
-    animation: {
-      type: String,
-      default: "pulse",
-      validator: (v) => ["pulse", "wave", "none"].includes(v),
-    },
-  },
-  computed: {
-    skeletonClass() {
-      const base = "skeleton bg-gray-200 dark:bg-gray-700";
-      const variants = {
-        text: "rounded",
-        circular: "rounded-full",
-        rectangular: "rounded-none",
-        rounded: "rounded-lg",
-      };
-      const animations = {
-        pulse: "animate-pulse",
-        wave: "skeleton-wave",
-        none: "",
-      };
-      return `${base} ${variants[this.variant]} ${animations[this.animation]}`;
-    },
-    customStyle() {
-      return { width: this.width, height: this.height };
-    },
-  },
-};
-</script>
+<script setup>
+import { computed } from "vue";
 
-<style scoped>
-.skeleton-wave {
-  position: relative;
-  overflow: hidden;
-}
-.skeleton-wave::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: wave 1.5s infinite;
-}
-@keyframes wave {
-  100% {
-    transform: translateX(100%);
-  }
-}
-</style>
+const props = defineProps({
+  width: { type: String, default: "100%" },
+  height: { type: String, default: "20px" },
+  variant: {
+    type: String,
+    default: "text",
+    validator: (v) => ["text", "rounded", "circle"].includes(v),
+  },
+  count: { type: Number, default: 1 },
+});
+
+const variantClass = computed(() => {
+  const map = {
+    text: "rounded",
+    rounded: "rounded-lg",
+    circle: "rounded-full",
+  };
+  return map[props.variant] || "rounded";
+});
+
+const skeletonClass = computed(() => ["animate-pulse", "bg-gray-200", "dark:bg-gray-700", variantClass.value]);
+
+const customStyle = computed(() => ({
+  width: props.variant === "circle" ? props.height : props.width,
+  height: props.height,
+}));
+</script>

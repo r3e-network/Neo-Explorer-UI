@@ -26,7 +26,7 @@ export const transactionService = {
     return cachedRequest(
       key,
       () => safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list"),
-      CACHE_TTL.list
+      CACHE_TTL.txList
     );
   },
 
@@ -40,7 +40,7 @@ export const transactionService = {
     return cachedRequest(
       key,
       () => safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
-      CACHE_TTL.detail
+      CACHE_TTL.txDetail
     );
   },
 

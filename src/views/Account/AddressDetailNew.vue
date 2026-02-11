@@ -1,23 +1,22 @@
 <template>
   <div class="address-detail-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6">
-      <nav class="mb-4 flex items-center text-sm text-text-secondary dark:text-gray-400">
-        <router-link to="/homepage" class="hover:text-primary-500">Home</router-link>
-        <span class="mx-2">/</span>
-        <router-link to="/account/1" class="hover:text-primary-500">Addresses</router-link>
-        <span class="mx-2">/</span>
-        <span class="max-w-[220px] truncate text-text-primary dark:text-gray-300">{{ truncateAddr }}</span>
-      </nav>
+      <!-- Breadcrumb -->
+      <Breadcrumb
+        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
+      />
 
+      <!-- Address header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-500">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-500 dark:bg-orange-900/30 dark:text-orange-400"
+        >
           <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path
               d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
             />
           </svg>
         </div>
-
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100">Address</h1>
@@ -30,20 +29,36 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="font-mono text-sm text-text-secondary dark:text-gray-400">{{ address }}</span>
-            <button @click="copyAddress" class="text-gray-400 hover:text-primary-500">
+            <CopyButton :text="address" />
+            <button
+              class="p-1 text-gray-400 hover:text-primary-500 transition-colors"
+              title="Show QR Code"
+              aria-label="Toggle QR code display"
+              @click="showQr = !showQr"
+            >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
                 />
               </svg>
             </button>
           </div>
+          <!-- QR code placeholder -->
+          <div
+            v-if="showQr"
+            class="mt-2 inline-block rounded-lg border border-card-border bg-white p-3 dark:border-card-border-dark dark:bg-gray-800"
+          >
+            <div class="flex h-32 w-32 items-center justify-center text-xs text-text-secondary dark:text-gray-400">
+              QR: {{ address }}
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- Balance overview cards -->
       <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <div class="info-card">
           <p class="info-label">NEO Balance</p>
@@ -51,24 +66,26 @@
         </div>
         <div class="info-card">
           <p class="info-label">GAS Balance</p>
-          <p class="info-value">{{ formatBalanceValue(gasBalance) }}</p>
+          <p class="info-value">{{ formatGasDisplay(gasBalance) }}</p>
         </div>
         <div class="info-card">
           <p class="info-label">Transactions</p>
           <p class="info-value">{{ formatNumber(txCount) }}</p>
         </div>
         <div class="info-card">
-          <p class="info-label">Tokens</p>
+          <p class="info-label">Token Holdings</p>
           <p class="info-value">{{ formatNumber(tokenCount) }}</p>
         </div>
       </div>
 
       <div class="etherscan-card">
         <div class="border-b border-card-border dark:border-card-border-dark">
-          <nav class="flex flex-wrap">
+          <nav class="flex flex-wrap" role="tablist">
             <button
               v-for="tab in tabs"
               :key="tab.key"
+              role="tab"
+              :aria-selected="activeTab === tab.key"
               class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
               :class="
                 activeTab === tab.key
@@ -92,7 +109,7 @@
               v-else-if="transactionsError"
               title="Unable to load transactions"
               :message="transactionsError"
-              @retry="loadTransactions(1)"
+              @retry="loadTxPage(1)"
             />
 
             <EmptyState
@@ -102,9 +119,14 @@
             />
 
             <div v-else class="space-y-4">
-              <div class="flex items-center justify-end">
+              <div class="flex items-center justify-between">
+                <p class="text-sm text-text-secondary dark:text-gray-400">
+                  Latest {{ transactions.length }} from a total of
+                  <span class="font-medium text-text-primary dark:text-gray-300">{{ formatNumber(txTotalCount) }}</span>
+                  transactions
+                </p>
                 <button
-                  class="flex items-center gap-1 text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
+                  class="flex items-center gap-1 rounded border border-card-border px-2.5 py-1.5 text-xs text-primary-500 transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800"
                   @click="exportCsv"
                 >
                   <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,20 +137,22 @@
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                     />
                   </svg>
-                  Download CSV Export
+                  CSV Export
                 </button>
               </div>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[760px]">
+                <table class="w-full min-w-[900px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Method</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Block</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Sender</th>
-                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Status</th>
-                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Size</th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
+                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
+                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Value</th>
+                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Txn Fee</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -143,7 +167,7 @@
                           :title="tx.hash"
                           class="font-mono text-sm etherscan-link"
                         >
-                          {{ truncateHash(tx.hash, 12, 8) }}
+                          {{ truncateHash(tx.hash, 10, 6) }}
                         </router-link>
                       </td>
                       <td class="px-4 py-3">
@@ -153,34 +177,50 @@
                           {{ getTxMethod(tx) }}
                         </span>
                       </td>
+                      <td class="px-4 py-3">
+                        <router-link
+                          v-if="tx.blockIndex"
+                          :to="`/block-info/${tx.blockIndex}`"
+                          class="text-sm etherscan-link"
+                        >
+                          {{ formatNumber(tx.blockIndex) }}
+                        </router-link>
+                        <span v-else class="text-sm text-gray-400">-</span>
+                      </td>
                       <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
                         {{ formatAge(tx.blocktime) }}
                       </td>
                       <td class="px-4 py-3">
                         <router-link
-                          v-if="tx.sender"
+                          v-if="tx.sender && tx.sender !== address"
                           :to="`/account-profile/${tx.sender}`"
-                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                          class="font-mono text-sm etherscan-link"
                         >
-                          {{ truncateHash(tx.sender, 10, 6) }}
+                          {{ truncateHash(tx.sender, 8, 6) }}
                         </router-link>
+                        <span v-else-if="tx.sender" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                          {{ truncateHash(tx.sender, 8, 6) }}
+                        </span>
                         <span v-else class="text-sm text-gray-400">-</span>
                       </td>
-                      <td class="px-4 py-3 text-center">
+                      <td class="px-2 py-3 text-center">
                         <span
-                          class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-xs font-semibold"
                           :class="getDirection(tx.sender, '').cssClass"
                         >
                           {{ getDirection(tx.sender, "").label }}
                         </span>
                       </td>
                       <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="txStatusClass(tx.vmstate)">
-                          {{ txStatusText(tx.vmstate) }}
+                        <span class="font-mono text-sm text-text-primary dark:text-gray-300">
+                          {{ truncateHash(address, 8, 6) }}
                         </span>
                       </td>
+                      <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                        {{ formatTxValue(tx) }}
+                      </td>
                       <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
-                        {{ formatNumber(tx.size) }} B
+                        {{ formatTxFee(tx) }}
                       </td>
                     </tr>
                   </tbody>
@@ -219,14 +259,17 @@
             />
 
             <div v-else class="space-y-4">
+              <p class="text-sm text-text-secondary dark:text-gray-400">
+                Latest {{ nep17Transfers.length }} NEP-17 token transfers
+              </p>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[800px]">
+                <table class="w-full min-w-[850px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
                       <th class="px-4 py-3 text-right font-medium text-text-secondary">Amount</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
@@ -244,7 +287,7 @@
                           :title="transfer.txHash"
                           class="font-mono text-sm etherscan-link"
                         >
-                          {{ truncateHash(transfer.txHash, 12, 8) }}
+                          {{ truncateHash(transfer.txHash, 10, 6) }}
                         </router-link>
                       </td>
                       <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
@@ -252,17 +295,20 @@
                       </td>
                       <td class="px-4 py-3">
                         <router-link
-                          v-if="transfer.from"
+                          v-if="transfer.from && !isSelf(transfer.from)"
                           :to="`/account-profile/${transfer.from}`"
-                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                          class="font-mono text-sm etherscan-link"
                         >
-                          {{ truncateHash(transfer.from, 10, 6) }}
+                          {{ truncateHash(transfer.from, 8, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else-if="transfer.from" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                          {{ truncateHash(transfer.from, 8, 6) }}
+                        </span>
+                        <span v-else class="text-sm text-gray-400">Null</span>
                       </td>
-                      <td class="px-4 py-3 text-center">
+                      <td class="px-2 py-3 text-center">
                         <span
-                          class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                          class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-xs font-semibold"
                           :class="getDirection(transfer.from, transfer.to).cssClass"
                         >
                           {{ getDirection(transfer.from, transfer.to).label }}
@@ -270,13 +316,16 @@
                       </td>
                       <td class="px-4 py-3">
                         <router-link
-                          v-if="transfer.to"
+                          v-if="transfer.to && !isSelf(transfer.to)"
                           :to="`/account-profile/${transfer.to}`"
-                          class="font-mono text-sm text-text-primary hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"
+                          class="font-mono text-sm etherscan-link"
                         >
-                          {{ truncateHash(transfer.to, 10, 6) }}
+                          {{ truncateHash(transfer.to, 8, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else-if="transfer.to" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                          {{ truncateHash(transfer.to, 8, 6) }}
+                        </span>
+                        <span v-else class="text-sm text-gray-400">Null</span>
                       </td>
                       <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
                         {{ formatTransferAmount(transfer.amount, transfer.decimals) }}
@@ -289,9 +338,9 @@
                         >
                           {{ transfer.tokenName }}
                         </router-link>
-                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">{{
-                          transfer.tokenName
-                        }}</span>
+                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">
+                          {{ transfer.tokenName }}
+                        </span>
                       </td>
                     </tr>
                   </tbody>
@@ -330,14 +379,17 @@
             />
 
             <div v-else class="space-y-4">
+              <p class="text-sm text-text-secondary dark:text-gray-400">
+                Latest {{ nep11Transfers.length }} NEP-11 (NFT) transfers
+              </p>
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[800px]">
+                <table class="w-full min-w-[850px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-                      <th class="px-4 py-3 text-center font-medium text-text-secondary">Dir</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Token ID</th>
                       <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
@@ -557,7 +609,9 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import { accountService, transactionService, contractService } from "@/services";
 import {
   getAddressDetailTabs,
@@ -571,383 +625,331 @@ import {
   downloadTransactionsCsv,
   getPageCount,
 } from "@/utils/addressDetail";
-import { formatAge, truncateHash, formatNumber } from "@/utils/explorerFormat";
+import { formatAge, truncateHash, formatNumber, formatBalance } from "@/utils/explorerFormat";
+import { usePagination } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import CopyButton from "@/components/common/CopyButton.vue";
 
-export default {
-  name: "AddressDetailNew",
-  components: {
-    EmptyState,
-    ErrorState,
-    Skeleton,
-    EtherscanPagination,
-  },
-  data() {
+const route = useRoute();
+
+// --- Reactive state ---
+const abortController = ref(null);
+const neoBalance = ref("0");
+const gasBalance = ref("0");
+const txCount = ref(0);
+const tokenCount = ref(0);
+const activeTab = ref("transactions");
+const tabs = getAddressDetailTabs();
+const assets = ref([]);
+const fungibleAssets = ref([]);
+const nftAssets = ref([]);
+const assetsLoading = ref(false);
+const assetsError = ref("");
+// Transactions pagination via composable
+const {
+  items: transactions,
+  loading: transactionsLoading,
+  error: transactionsError,
+  currentPage: txPage,
+  pageSize: txPageSize,
+  totalCount: txTotalCount,
+  totalPages: txTotalPages,
+  loadPage: loadTxPage,
+  goToPage: goToTxPage,
+  changePageSize: changeTxPageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+    const response = await transactionService.getByAddress(addr, pageSize, skip);
     return {
-      neoBalance: "0",
-      gasBalance: "0",
-      txCount: 0,
-      tokenCount: 0,
-      activeTab: "transactions",
-      tabs: getAddressDetailTabs(),
-      assets: [],
-      fungibleAssets: [],
-      nftAssets: [],
-      assetsLoading: false,
-      assetsError: "",
-      transactions: [],
-      transactionsLoading: false,
-      transactionsError: "",
-      txPage: 1,
-      txPageSize: 10,
-      txTotalCount: 0,
-      txTotalPages: 1,
-      isContract: false,
-
-      // NEP-17 Token Transfers
-      nep17Transfers: [],
-      nep17Loading: false,
-      nep17Error: "",
-      nep17Page: 1,
-      nep17PageSize: 10,
-      nep17TotalCount: 0,
-      nep17TotalPages: 1,
-
-      // NEP-11 NFT Transfers
-      nep11Transfers: [],
-      nep11Loading: false,
-      nep11Error: "",
-      nep11Page: 1,
-      nep11PageSize: 10,
-      nep11TotalCount: 0,
-      nep11TotalPages: 1,
+      result: normalizeAddressTransactions(response?.result || []),
+      totalCount: Number(response?.totalCount || 0),
     };
   },
-  computed: {
-    address() {
-      return this.$route.params.accountAddress;
-    },
-    truncateAddr() {
-      const value = this.address || "";
-      if (!value) return "";
-      return `${value.slice(0, 10)}...${value.slice(-8)}`;
-    },
+  { defaultPageSize: 10 }
+);
+const isContract = ref(false);
+const showQr = ref(false);
+
+// NEP-17 Token Transfers
+const nep17Transfers = ref([]);
+const nep17Loading = ref(false);
+const nep17Error = ref("");
+const nep17Page = ref(1);
+const nep17PageSize = ref(10);
+const nep17TotalCount = ref(0);
+const nep17TotalPages = ref(1);
+
+// NEP-11 NFT Transfers
+const nep11Transfers = ref([]);
+const nep11Loading = ref(false);
+const nep11Error = ref("");
+const nep11Page = ref(1);
+const nep11PageSize = ref(10);
+const nep11TotalCount = ref(0);
+const nep11TotalPages = ref(1);
+
+// --- Computed ---
+const address = computed(() => route.params.accountAddress);
+
+const truncateAddr = computed(() => {
+  const value = address.value || "";
+  if (!value) return "";
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
+});
+
+// --- Data loading methods ---
+async function loadSummary(addr) {
+  try {
+    const account = (await accountService.getByAddress(addr)) || {};
+    const summary = normalizeAccountSummary(account, assets.value);
+    neoBalance.value = summary.neoBalance;
+    gasBalance.value = summary.gasBalance;
+    txCount.value = summary.txCount;
+    tokenCount.value = summary.tokenCount;
+
+    try {
+      const contract = await contractService.getByHash(addr);
+      isContract.value = !!(contract && contract.hash);
+    } catch {
+      isContract.value = false;
+    }
+  } catch {
+    neoBalance.value = "0";
+    gasBalance.value = "0";
+    txCount.value = 0;
+  }
+}
+
+async function loadAssets(addr) {
+  assetsLoading.value = true;
+  assetsError.value = "";
+
+  try {
+    const result = await accountService.getAssets(addr);
+    assets.value = Array.isArray(result) ? result : [];
+
+    const split = splitAddressAssets(assets.value);
+    fungibleAssets.value = split.fungibleAssets;
+    nftAssets.value = split.nftAssets;
+    tokenCount.value = assets.value.length;
+  } catch {
+    assets.value = [];
+    fungibleAssets.value = [];
+    nftAssets.value = [];
+    assetsError.value = "Failed to load token balances. Please try again.";
+  } finally {
+    assetsLoading.value = false;
+  }
+}
+
+async function loadNep17Transfers(page = 1, addr = address.value) {
+  if (!addr) return;
+  nep17Loading.value = true;
+  nep17Error.value = "";
+  try {
+    const safePage = Math.max(1, Number(page) || 1);
+    const skip = (safePage - 1) * nep17PageSize.value;
+    const response = await accountService.getNep17Transfers(addr, nep17PageSize.value, skip);
+    nep17Transfers.value = normalizeNep17Transfers(response?.result || []);
+    nep17TotalCount.value = Number(response?.totalCount || 0);
+    nep17TotalPages.value = getPageCount(nep17TotalCount.value, nep17PageSize.value);
+    nep17Page.value = safePage > nep17TotalPages.value ? nep17TotalPages.value : safePage;
+  } catch {
+    nep17Transfers.value = [];
+    nep17TotalCount.value = 0;
+    nep17TotalPages.value = 1;
+    nep17Error.value = "Failed to load token transfers. Please try again.";
+  } finally {
+    nep17Loading.value = false;
+  }
+}
+
+function goToNep17Page(page) {
+  if (page < 1 || page > nep17TotalPages.value || page === nep17Page.value) return;
+  loadNep17Transfers(page);
+}
+
+function changeNep17PageSize(size) {
+  nep17PageSize.value = size;
+  loadNep17Transfers(1);
+}
+
+async function loadNep11Transfers(page = 1, addr = address.value) {
+  if (!addr) return;
+  nep11Loading.value = true;
+  nep11Error.value = "";
+  try {
+    const safePage = Math.max(1, Number(page) || 1);
+    const skip = (safePage - 1) * nep11PageSize.value;
+    const response = await accountService.getNep11Transfers(addr, nep11PageSize.value, skip);
+    nep11Transfers.value = normalizeNep11Transfers(response?.result || []);
+    nep11TotalCount.value = Number(response?.totalCount || 0);
+    nep11TotalPages.value = getPageCount(nep11TotalCount.value, nep11PageSize.value);
+    nep11Page.value = safePage > nep11TotalPages.value ? nep11TotalPages.value : safePage;
+  } catch {
+    nep11Transfers.value = [];
+    nep11TotalCount.value = 0;
+    nep11TotalPages.value = 1;
+    nep11Error.value = "Failed to load NFT transfers. Please try again.";
+  } finally {
+    nep11Loading.value = false;
+  }
+}
+
+function goToNep11Page(page) {
+  if (page < 1 || page > nep11TotalPages.value || page === nep11Page.value) return;
+  loadNep11Transfers(page);
+}
+
+function changeNep11PageSize(size) {
+  nep11PageSize.value = size;
+  loadNep11Transfers(1);
+}
+
+// --- Helper methods (exposed to template) ---
+function assetHash(asset) {
+  return asset?.hash || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
+}
+
+function assetStandard(asset) {
+  return String(asset?.standard || asset?.type || "Unknown");
+}
+
+function assetDisplayName(asset) {
+  return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
+}
+
+function assetBalance(asset) {
+  const raw = asset?.balance ?? asset?.amount ?? asset?.quantity ?? asset?.totalbalance;
+  if (raw === undefined || raw === null || raw === "") return "-";
+  const num = Number(raw);
+  if (Number.isFinite(num)) return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  return String(raw);
+}
+
+function assetTokenRoute(asset) {
+  const hash = assetHash(asset);
+  const standard = assetStandard(asset).toUpperCase();
+  if (standard.includes("NEP11")) return `/nft-token-info/${hash}`;
+  return `/nep17-token-info/${hash}`;
+}
+
+function assetKey(asset) {
+  return `${assetHash(asset)}-${assetDisplayName(asset)}-${assetBalance(asset)}`;
+}
+
+function getDirection(from, to) {
+  return getTransferDirection(from, to, address.value);
+}
+
+function getTxMethod(tx) {
+  return parseTxMethod(tx);
+}
+
+function exportCsv() {
+  downloadTransactionsCsv(transactions.value, `txns-${address.value}.csv`);
+}
+
+function formatTransferAmount(amount, decimals = 8) {
+  const raw = Number(amount || 0);
+  if (!Number.isFinite(raw)) return "0";
+  const divisor = Math.pow(10, decimals);
+  return (raw / divisor).toLocaleString(undefined, { maximumFractionDigits: decimals });
+}
+
+function tokenInitial(name) {
+  return (name || "?").charAt(0).toUpperCase();
+}
+
+function tokenColor(name) {
+  const colors = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-orange-500",
+    "bg-pink-500",
+    "bg-teal-500",
+    "bg-indigo-500",
+    "bg-red-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || "").length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function sortedFungibleAssets() {
+  return [...fungibleAssets.value].sort((a, b) => {
+    const balA = Number(a?.balance ?? a?.amount ?? 0);
+    const balB = Number(b?.balance ?? b?.amount ?? 0);
+    return balB - balA;
+  });
+}
+
+function formatBalanceValue(value) {
+  return formatBalance(value, 8);
+}
+
+function formatGasDisplay(value) {
+  return formatBalance(value, 8);
+}
+
+function isSelf(addr) {
+  return (addr || "").toLowerCase() === (address.value || "").toLowerCase();
+}
+
+function formatTxValue(tx) {
+  const val = Number(tx?.value ?? tx?.amount ?? 0);
+  if (!val) return "-";
+  return val.toLocaleString(undefined, { maximumFractionDigits: 8 });
+}
+
+function formatTxFee(tx) {
+  const net = Number(tx?.netfee || 0);
+  const sys = Number(tx?.sysfee || 0);
+  const total = net + sys;
+  if (!total) return "-";
+  const decimals = 8;
+  return (total / Math.pow(10, decimals)).toFixed(Math.min(decimals, 6));
+}
+
+// --- Initialization ---
+async function initializeData(addr) {
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+  txPage.value = 1;
+  await Promise.all([loadSummary(addr), loadAssets(addr), loadTxPage(1)]);
+}
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+// --- Watchers ---
+watch(
+  address,
+  async (addr) => {
+    if (!addr) return;
+    await initializeData(addr);
   },
-  watch: {
-    address: {
-      immediate: true,
-      async handler(addr) {
-        if (!addr) {
-          return;
-        }
+  { immediate: true }
+);
 
-        await this.initializeData(addr);
-      },
-    },
-    activeTab: {
-      handler(tab) {
-        if (tab === "tokenTransfers" && !this.nep17Transfers.length && !this.nep17Loading) {
-          this.loadNep17Transfers(1);
-        }
-        if (tab === "nftTransfers" && !this.nep11Transfers.length && !this.nep11Loading) {
-          this.loadNep11Transfers(1);
-        }
-      },
-    },
-  },
-  methods: {
-    async initializeData(addr) {
-      this.txPage = 1;
-      await Promise.all([this.loadSummary(addr), this.loadAssets(addr), this.loadTransactions(1, addr)]);
-    },
-
-    async loadSummary(addr) {
-      try {
-        const account = (await accountService.getByAddress(addr)) || {};
-        const summary = normalizeAccountSummary(account, this.assets);
-        this.neoBalance = summary.neoBalance;
-        this.gasBalance = summary.gasBalance;
-        this.txCount = summary.txCount;
-        this.tokenCount = summary.tokenCount;
-
-        // Detect contract address
-        try {
-          const contract = await contractService.getByHash(addr);
-          this.isContract = !!(contract && contract.hash);
-        } catch {
-          this.isContract = false;
-        }
-      } catch (error) {
-        this.neoBalance = "0";
-        this.gasBalance = "0";
-        this.txCount = 0;
-      }
-    },
-
-    async loadAssets(addr) {
-      this.assetsLoading = true;
-      this.assetsError = "";
-
-      try {
-        const assets = await accountService.getAssets(addr);
-        this.assets = Array.isArray(assets) ? assets : [];
-
-        const { fungibleAssets, nftAssets } = splitAddressAssets(this.assets);
-        this.fungibleAssets = fungibleAssets;
-        this.nftAssets = nftAssets;
-        this.tokenCount = this.assets.length;
-      } catch (error) {
-        this.assets = [];
-        this.fungibleAssets = [];
-        this.nftAssets = [];
-        this.assetsError = "Failed to load token balances. Please try again.";
-      } finally {
-        this.assetsLoading = false;
-      }
-    },
-
-    async loadTransactions(page = 1, address = this.address) {
-      if (!address) {
-        return;
-      }
-
-      this.transactionsLoading = true;
-      this.transactionsError = "";
-
-      try {
-        const safePage = Math.max(1, Number(page) || 1);
-        const skip = (safePage - 1) * this.txPageSize;
-        const response = await transactionService.getByAddress(address, this.txPageSize, skip);
-
-        this.transactions = normalizeAddressTransactions(response?.result || []);
-        this.txTotalCount = Number(response?.totalCount || 0);
-        this.txTotalPages = getPageCount(this.txTotalCount, this.txPageSize);
-        this.txPage = safePage > this.txTotalPages ? this.txTotalPages : safePage;
-        this.txCount = Math.max(this.txCount, this.txTotalCount);
-      } catch (error) {
-        this.transactions = [];
-        this.txTotalCount = 0;
-        this.txTotalPages = 1;
-        this.transactionsError = "Failed to load transaction history. Please try again.";
-      } finally {
-        this.transactionsLoading = false;
-      }
-    },
-
-    goToTxPage(page) {
-      if (page < 1 || page > this.txTotalPages || page === this.txPage) {
-        return;
-      }
-
-      this.loadTransactions(page);
-    },
-
-    changeTxPageSize(size) {
-      this.txPageSize = size;
-      this.loadTransactions(1);
-    },
-
-    async loadNep17Transfers(page = 1, address = this.address) {
-      if (!address) return;
-      this.nep17Loading = true;
-      this.nep17Error = "";
-      try {
-        const safePage = Math.max(1, Number(page) || 1);
-        const skip = (safePage - 1) * this.nep17PageSize;
-        const response = await accountService.getNep17Transfers(address, this.nep17PageSize, skip);
-        this.nep17Transfers = normalizeNep17Transfers(response?.result || []);
-        this.nep17TotalCount = Number(response?.totalCount || 0);
-        this.nep17TotalPages = getPageCount(this.nep17TotalCount, this.nep17PageSize);
-        this.nep17Page = safePage > this.nep17TotalPages ? this.nep17TotalPages : safePage;
-      } catch {
-        this.nep17Transfers = [];
-        this.nep17TotalCount = 0;
-        this.nep17TotalPages = 1;
-        this.nep17Error = "Failed to load token transfers. Please try again.";
-      } finally {
-        this.nep17Loading = false;
-      }
-    },
-
-    goToNep17Page(page) {
-      if (page < 1 || page > this.nep17TotalPages || page === this.nep17Page) return;
-      this.loadNep17Transfers(page);
-    },
-
-    changeNep17PageSize(size) {
-      this.nep17PageSize = size;
-      this.loadNep17Transfers(1);
-    },
-
-    async loadNep11Transfers(page = 1, address = this.address) {
-      if (!address) return;
-      this.nep11Loading = true;
-      this.nep11Error = "";
-      try {
-        const safePage = Math.max(1, Number(page) || 1);
-        const skip = (safePage - 1) * this.nep11PageSize;
-        const response = await accountService.getNep11Transfers(address, this.nep11PageSize, skip);
-        this.nep11Transfers = normalizeNep11Transfers(response?.result || []);
-        this.nep11TotalCount = Number(response?.totalCount || 0);
-        this.nep11TotalPages = getPageCount(this.nep11TotalCount, this.nep11PageSize);
-        this.nep11Page = safePage > this.nep11TotalPages ? this.nep11TotalPages : safePage;
-      } catch {
-        this.nep11Transfers = [];
-        this.nep11TotalCount = 0;
-        this.nep11TotalPages = 1;
-        this.nep11Error = "Failed to load NFT transfers. Please try again.";
-      } finally {
-        this.nep11Loading = false;
-      }
-    },
-
-    goToNep11Page(page) {
-      if (page < 1 || page > this.nep11TotalPages || page === this.nep11Page) return;
-      this.loadNep11Transfers(page);
-    },
-
-    changeNep11PageSize(size) {
-      this.nep11PageSize = size;
-      this.loadNep11Transfers(1);
-    },
-
-    txStatusText(vmstate) {
-      const state = String(vmstate || "").toUpperCase();
-      if (!state) {
-        return "Unknown";
-      }
-
-      return state === "HALT" ? "Success" : state;
-    },
-
-    txStatusClass(vmstate) {
-      const state = String(vmstate || "").toUpperCase();
-      if (state === "HALT") {
-        return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300";
-      }
-
-      if (!state) {
-        return "bg-gray-100 text-text-secondary dark:bg-gray-800 dark:text-gray-300";
-      }
-
-      return "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300";
-    },
-
-    assetHash(asset) {
-      return asset?.hash || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
-    },
-
-    assetStandard(asset) {
-      return String(asset?.standard || asset?.type || "Unknown");
-    },
-
-    assetDisplayName(asset) {
-      return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
-    },
-
-    assetBalance(asset) {
-      const raw = asset?.balance ?? asset?.amount ?? asset?.quantity ?? asset?.totalbalance;
-
-      if (raw === undefined || raw === null || raw === "") {
-        return "-";
-      }
-
-      const num = Number(raw);
-      if (Number.isFinite(num)) {
-        return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
-      }
-
-      return String(raw);
-    },
-
-    assetTokenRoute(asset) {
-      const hash = this.assetHash(asset);
-      const standard = this.assetStandard(asset).toUpperCase();
-
-      if (standard.includes("NEP11")) {
-        return `/nft-token-info/${hash}`;
-      }
-
-      return `/nep17-token-info/${hash}`;
-    },
-
-    assetKey(asset) {
-      return `${this.assetHash(asset)}-${this.assetDisplayName(asset)}-${this.assetBalance(asset)}`;
-    },
-
-    copyAddress() {
-      if (this.address) {
-        navigator.clipboard.writeText(this.address);
-      }
-    },
-
-    getDirection(from, to) {
-      return getTransferDirection(from, to, this.address);
-    },
-
-    getTxMethod(tx) {
-      return parseTxMethod(tx);
-    },
-
-    exportCsv() {
-      downloadTransactionsCsv(this.transactions, `txns-${this.address}.csv`);
-    },
-
-    formatTransferAmount(amount, decimals = 8) {
-      const raw = Number(amount || 0);
-      if (!Number.isFinite(raw)) return "0";
-      const divisor = Math.pow(10, decimals);
-      return (raw / divisor).toLocaleString(undefined, { maximumFractionDigits: decimals });
-    },
-
-    tokenInitial(name) {
-      return (name || "?").charAt(0).toUpperCase();
-    },
-
-    tokenColor(name) {
-      const colors = [
-        "bg-blue-500",
-        "bg-green-500",
-        "bg-purple-500",
-        "bg-orange-500",
-        "bg-pink-500",
-        "bg-teal-500",
-        "bg-indigo-500",
-        "bg-red-500",
-      ];
-      let hash = 0;
-      for (let i = 0; i < (name || "").length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return colors[Math.abs(hash) % colors.length];
-    },
-
-    sortedFungibleAssets() {
-      return [...this.fungibleAssets].sort((a, b) => {
-        const balA = Number(a?.balance ?? a?.amount ?? 0);
-        const balB = Number(b?.balance ?? b?.amount ?? 0);
-        return balB - balA;
-      });
-    },
-
-    formatAge,
-    truncateHash,
-
-    formatNumber,
-
-    formatBalanceValue(value) {
-      const num = Number(value || 0);
-      if (!Number.isFinite(num)) {
-        return String(value || "0");
-      }
-
-      return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
-    },
-  },
-};
+watch(activeTab, (tab) => {
+  if (tab === "tokenTransfers" && !nep17Transfers.value.length && !nep17Loading.value) {
+    loadNep17Transfers(1);
+  }
+  if (tab === "nftTransfers" && !nep11Transfers.value.length && !nep11Loading.value) {
+    loadNep11Transfers(1);
+  }
+});
 </script>
 
 <style scoped>

@@ -40,7 +40,8 @@ export const accountService = {
    * @returns {Promise<Array>} 资产列表
    */
   async getAssets(address) {
-    return safeRpc("GetAssetsHeldByAddress", { Address: address }, []);
+    const key = getCacheKey("addr_assets", { address });
+    return cachedRequest(key, () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []), CACHE_TTL.token);
   },
 
   /**
@@ -50,7 +51,7 @@ export const accountService = {
    */
   async getTokenHoldings(address) {
     const key = getCacheKey("addr_holdings", { address });
-    return cachedRequest(key, () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []), CACHE_TTL.holdings);
+    return cachedRequest(key, () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []), CACHE_TTL.stats);
   },
 
   /**

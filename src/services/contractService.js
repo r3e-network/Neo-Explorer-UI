@@ -23,7 +23,12 @@ export const contractService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 合约列表
    */
   async getList(limit = 20, skip = 0) {
-    return safeRpcList("GetContractList", { Limit: limit, Skip: skip }, "get contract list");
+    const key = getCacheKey("contract_list", { limit, skip });
+    return cachedRequest(
+      key,
+      () => safeRpcList("GetContractList", { Limit: limit, Skip: skip }, "get contract list"),
+      CACHE_TTL.contract
+    );
   },
 
   /**
@@ -112,7 +117,7 @@ export const contractService = {
         const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
         return contract?.manifest ?? null;
       },
-      CACHE_TTL.manifest
+      CACHE_TTL.contract
     );
   },
 
@@ -134,10 +139,17 @@ export const contractService = {
    * @returns {Promise<Object>} 验证结果
    */
   async uploadVerification(nodeUrl, formData) {
-    const { data } = await axios.post(nodeUrl, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data;
+    try {
+      const { data } = await axios.post(nodeUrl, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data;
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[contractService] uploadVerification failed:", err);
+      }
+      throw err;
+    }
   },
 };
 

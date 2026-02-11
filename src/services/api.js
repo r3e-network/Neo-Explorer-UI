@@ -17,23 +17,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.message);
+    if (process.env.NODE_ENV !== "production") console.error("API Error:", error.message);
     return Promise.reject(error);
   }
 );
+
+// Incrementing RPC ID for unique request identification
+let _rpcId = 0;
 
 // Base RPC call
 export const rpc = async (method, params = {}) => {
   try {
     const response = await api.post("", {
       jsonrpc: "2.0",
-      id: Date.now(),
+      id: ++_rpcId,
       method,
       params,
     });
+    if (response.data?.error) {
+      const rpcErr = response.data.error;
+      throw new Error(`RPC Error ${rpcErr.code || ""}: ${rpcErr.message || "Unknown RPC error"}`);
+    }
     return response.data?.result;
   } catch (error) {
-    console.error(`RPC Error [${method}]:`, error);
+    if (process.env.NODE_ENV !== "production") console.error(`RPC Error [${method}]:`, error);
     throw error;
   }
 };
@@ -50,7 +57,7 @@ export const safeRpc = async (method, params = {}, defaultValue = null) => {
     const result = await rpc(method, params);
     return result ?? defaultValue;
   } catch (error) {
-    console.error(`SafeRPC Error [${method}]:`, error.message);
+    if (process.env.NODE_ENV !== "production") console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;
   }
 };
@@ -113,7 +120,7 @@ export const safeRpcList = async (method, params = {}, errorMsg = "API call") =>
     const result = await rpc(method, params);
     return formatListResponse(result);
   } catch (error) {
-    console.error(`Failed to ${errorMsg}:`, error.message);
+    if (process.env.NODE_ENV !== "production") console.error(`Failed to ${errorMsg}:`, error.message);
     return { result: [], totalCount: 0 };
   }
 };

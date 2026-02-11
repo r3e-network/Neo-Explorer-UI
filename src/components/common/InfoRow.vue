@@ -11,20 +11,16 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import CopyButton from "./CopyButton.vue";
 
-export default {
-  name: "InfoRow",
-  components: { CopyButton },
-  props: {
-    label: String,
-    value: [String, Number],
-    tooltip: { type: String, default: "" },
-    copyable: { type: Boolean, default: false },
-    copyValue: { type: String, default: "" },
-  },
-};
+defineProps({
+  label: { type: String, required: true },
+  value: { type: [String, Number], default: "" },
+  tooltip: { type: String, default: "" },
+  copyable: { type: Boolean, default: false },
+  copyValue: { type: String, default: "" },
+});
 </script>
 
 <style scoped>

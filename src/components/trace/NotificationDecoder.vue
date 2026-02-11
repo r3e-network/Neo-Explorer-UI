@@ -12,12 +12,40 @@
         :hash="notification.contract"
         type="contract"
       />
+      <!-- Raw toggle -->
+      <button
+        v-if="notification.state"
+        class="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors"
+        :class="
+          showRawState
+            ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
+            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+        "
+        @click="showRawState = !showRawState"
+      >
+        {{ showRawState ? "Decoded" : "Raw" }}
+      </button>
     </div>
 
+    <!-- Raw JSON view -->
+    <pre
+      v-if="showRawState && notification.state"
+      class="max-h-32 overflow-auto rounded bg-gray-50 dark:bg-gray-900 p-2 font-mono text-xs text-gray-600 dark:text-gray-400"
+      >{{ formatRawState(notification.state) }}</pre
+    >
+
     <!-- Decoded Transfer -->
-    <div v-if="isTransfer" class="transfer-summary flex items-center gap-2 text-sm flex-wrap">
+    <div v-else-if="isTransfer" class="transfer-summary flex items-center gap-2 text-sm flex-wrap">
       <span class="text-gray-500 dark:text-gray-400">From</span>
+      <HashLink v-if="isAddress(fromAddress)" :hash="fromAddress" type="address" />
       <span
+        v-else-if="fromAddress === 'null'"
+        class="px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+      >
+        Mint
+      </span>
+      <span
+        v-else
         class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
       >
         {{ fromAddress }}
@@ -25,7 +53,15 @@
       <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
       </svg>
+      <HashLink v-if="isAddress(toAddress)" :hash="toAddress" type="address" />
       <span
+        v-else-if="toAddress === 'null'"
+        class="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+      >
+        Burn
+      </span>
+      <span
+        v-else
         class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
       >
         {{ toAddress }}
@@ -38,13 +74,17 @@
     <!-- Decoded Approval -->
     <div v-else-if="isApproval" class="approval-summary flex items-center gap-2 text-sm flex-wrap">
       <span class="text-gray-500 dark:text-gray-400">Owner</span>
+      <HashLink v-if="isAddress(approvalOwner)" :hash="approvalOwner" type="address" />
       <span
+        v-else
         class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
       >
         {{ approvalOwner }}
       </span>
       <span class="text-gray-500 dark:text-gray-400">approved</span>
+      <HashLink v-if="isAddress(approvalSpender)" :hash="approvalSpender" type="address" />
       <span
+        v-else
         class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
       >
         {{ approvalSpender }}
@@ -63,7 +103,8 @@
           <span class="type-badge px-1 py-0.5 rounded text-xs" :class="paramTypeBadge(param.type)">
             {{ param.type }}
           </span>
-          <span class="text-gray-700 dark:text-gray-300 truncate">
+          <HashLink v-if="isAddress(formatParam(param))" :hash="formatParam(param)" type="address" />
+          <span v-else class="text-gray-700 dark:text-gray-300 truncate">
             {{ formatParam(param) }}
           </span>
         </div>
@@ -73,22 +114,38 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { decodeStackItem } from "@/utils/neoCodec";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { formatTokenAmount } from "@/utils/explorerFormat";
 
 const props = defineProps({
   notification: {
     type: Object,
     required: true,
   },
+  showInlineParams: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+const showRawState = ref(false);
+
+const tokenDecimals = computed(() => {
+  const hash = props.notification.contract;
+  if (!hash) return 0;
+  const native = NATIVE_CONTRACTS[hash.toLowerCase()];
+  return native?.decimals ?? 0;
 });
 
 const isTransfer = computed(() => {
-  return props.notification.eventName === "Transfer";
+  return props.notification.eventName?.toLowerCase() === "transfer";
 });
 
 const isApproval = computed(() => {
-  return props.notification.eventName === "Approval";
+  return props.notification.eventName?.toLowerCase() === "approval";
 });
 
 const approvalOwner = computed(() => {
@@ -106,7 +163,8 @@ const approvalSpender = computed(() => {
 const approvalAmount = computed(() => {
   const params = stateParams.value;
   if (params.length < 3) return "0";
-  return decodeStackValue(params[2]);
+  const raw = decodeStackValue(params[2]);
+  return formatTokenAmount(raw, tokenDecimals.value, 8);
 });
 
 const stateParams = computed(() => {
@@ -130,42 +188,21 @@ const toAddress = computed(() => {
 const transferAmount = computed(() => {
   const params = stateParams.value;
   if (params.length < 3) return "0";
-  return decodeStackValue(params[2]);
+  const raw = decodeStackValue(params[2]);
+  return formatTokenAmount(raw, tokenDecimals.value, 8);
 });
 
 const eventBadgeClass = computed(() => {
-  const name = props.notification.eventName;
-  if (name === "Transfer") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
-  if (name === "Approval") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
+  const name = props.notification.eventName?.toLowerCase();
+  if (name === "transfer") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+  if (name === "approval") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
   return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
 });
 
 function decodeStackValue(param) {
   if (!param) return "null";
-  if (param.type === "Integer") return param.value ?? "0";
-  if (param.type === "Boolean") return param.value ? "true" : "false";
-  if (param.type === "ByteString") {
-    return decodeByteString(param.value);
-  }
-  return String(param.value ?? "");
-}
-
-function decodeByteString(base64Str) {
-  if (!base64Str) return "null";
-  try {
-    const raw = atob(base64Str);
-    if (raw.length === 20) {
-      // Neo address (script hash) - show as 0x hex
-      return "0x" + Array.from(raw, (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-    }
-    // Try readable UTF-8
-    const printable = /^[\x20-\x7E]+$/.test(raw);
-    if (printable) return raw;
-    // Fallback to hex
-    return "0x" + Array.from(raw, (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-  } catch {
-    return base64Str;
-  }
+  const decoded = decodeStackItem(param);
+  return decoded.decodedValue || "null";
 }
 
 function paramTypeBadge(type) {
@@ -178,7 +215,19 @@ function paramTypeBadge(type) {
   return map[type] ?? "bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
 }
 
+function isAddress(val) {
+  return typeof val === "string" && /^N[A-HJ-NP-Za-km-z1-9]{33}$/.test(val);
+}
+
 function formatParam(param) {
   return decodeStackValue(param);
+}
+
+function formatRawState(state) {
+  try {
+    return JSON.stringify(state, null, 2);
+  } catch {
+    return String(state);
+  }
 }
 </script>

@@ -11,7 +11,9 @@ appInstance.config.devtools = process.env.NODE_ENV !== "production";
 
 // Global error handler — prevents silent failures in components
 appInstance.config.errorHandler = (err, _instance, info) => {
-  console.error(`[Vue Error] ${info}:`, err);
+  if (process.env.NODE_ENV !== "production") {
+    console.error(`[Vue Error] ${info}:`, err);
+  }
 };
 
 appInstance.use(router);
