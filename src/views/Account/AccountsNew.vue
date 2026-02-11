@@ -3,12 +3,24 @@
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Accounts' }]" />
 
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="page-title">Top Accounts by Balance</h1>
-        <p class="page-subtitle">
-          Showing {{ total > 0 ? formatNumber(total) : "..." }} addresses ranked by NEO/GAS holdings
-        </p>
-      </header>
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Top Accounts</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 accounts ranked by balance</p>
+        </div>
+      </div>
 
       <div class="etherscan-card overflow-hidden">
         <div

@@ -1,24 +1,35 @@
 <template>
-  <div class="tx-execution-trace max-w-6xl mx-auto px-4 py-6">
-    <!-- Breadcrumb / back link -->
-    <div class="mb-6">
-      <router-link
-        :to="`/transaction-info/${txHash}`"
-        class="inline-flex items-center gap-1.5 text-sm text-primary-500 hover:text-primary-600 transition-colors"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Transaction
-      </router-link>
-    </div>
+  <div class="tx-execution-trace mx-auto max-w-[1400px] px-4 py-6">
+    <!-- Breadcrumb -->
+    <Breadcrumb
+      :items="[
+        { label: 'Home', to: '/homepage' },
+        { label: 'Transactions', to: '/transactions/1' },
+        { label: 'Transaction', to: `/transaction-info/${txHash}` },
+        { label: 'Execution Trace' },
+      ]"
+    />
 
     <!-- Page header -->
-    <div class="mb-6">
-      <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Execution Trace</h1>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500 dark:text-gray-400">Transaction:</span>
-        <HashLink :hash="txHash" type="tx" :truncate="false" />
+    <div class="mb-6 flex items-center gap-3">
+      <div
+        class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300"
+      >
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Execution Trace</h1>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-text-secondary dark:text-gray-400">Transaction:</span>
+          <HashLink :hash="txHash" type="tx" :truncate="false" />
+        </div>
       </div>
     </div>
 
@@ -28,9 +39,9 @@
     </section>
 
     <!-- Call map section -->
-    <section class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Contract Call Map</h2>
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <section class="mb-6">
+      <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Contract Call Map</h2>
+      <div class="etherscan-card p-4">
         <div v-if="loading" class="space-y-3">
           <Skeleton width="60%" height="20px" />
           <Skeleton width="100%" height="100px" variant="rounded" />
@@ -51,24 +62,24 @@
     </section>
 
     <!-- Gas Breakdown -->
-    <section class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Gas Usage Breakdown</h2>
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <section class="mb-6">
+      <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Gas Usage Breakdown</h2>
+      <div class="etherscan-card p-4">
         <GasBreakdown :executions="enrichedData?.executions ?? []" :total-gas="totalGas" :loading="loading" />
       </div>
     </section>
 
     <!-- Token transfer flow section -->
-    <section v-if="transfers.length > 0" class="mb-8">
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Token Transfer Flow</h2>
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <section v-if="transfers.length > 0" class="mb-6">
+      <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Token Transfer Flow</h2>
+      <div class="etherscan-card p-4">
         <TokenTransferFlow :transfers="transfers" :loading="loading" />
       </div>
     </section>
 
     <!-- Detailed trace section -->
     <section>
-      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Detailed Trace</h2>
+      <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Detailed Trace</h2>
       <ExecutionTraceView :tx-hash="txHash" :enriched-data="enrichedData" :preloaded="!!enrichedData" />
     </section>
   </div>
@@ -78,6 +89,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { executionService } from "@/services";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

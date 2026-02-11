@@ -2,7 +2,7 @@
   <div class="daily-transaction-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <BreadcrumbNav :items="[{ label: 'Home', to: '/homepage' }, { label: 'Charts & Statistics' }]" />
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Charts & Statistics' }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -126,7 +126,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
-import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";

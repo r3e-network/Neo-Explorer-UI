@@ -129,6 +129,10 @@ const items = computed(() => {
   background-color: #ffffff;
 }
 
+:is(.dark) .bgView {
+  background-color: rgb(17 24 39);
+}
+
 .json-view {
   position: relative;
   display: block;
@@ -143,12 +147,24 @@ const items = computed(() => {
   color: #6a7469;
 }
 
+:is(.dark) .json-note {
+  color: #9ca3af;
+}
+
 .json-key {
   color: rgb(94, 114, 228);
 }
 
+:is(.dark) .json-key {
+  color: rgb(147, 163, 255);
+}
+
 .json-value {
   color: rgb(81, 88, 81);
+}
+
+:is(.dark) .json-value {
+  color: rgb(209, 213, 209);
 }
 
 .json-item {
@@ -174,6 +190,10 @@ const items = computed(() => {
   border-left: dashed 1px #bbb;
   top: 0;
   left: 2px;
+}
+
+:is(.dark) .json-body .body-line {
+  border-left-color: #4b5563;
 }
 
 .last-line {
@@ -202,9 +222,17 @@ const items = computed(() => {
   border-right: solid 6px transparent;
 }
 
+:is(.dark) .angle::after {
+  border-top-color: #d1d5db;
+}
+
 .angle.closed::after {
   border-left: solid 4px #333;
   border-top: solid 6px transparent;
   border-bottom: solid 6px transparent;
+}
+
+:is(.dark) .angle.closed::after {
+  border-left-color: #d1d5db;
 }
 </style>

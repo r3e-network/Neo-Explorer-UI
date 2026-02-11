@@ -76,7 +76,7 @@
 
   /* ── Page Header ── */
   .page-title {
-    @apply text-xl font-semibold text-text-primary;
+    @apply text-2xl font-bold text-text-primary;
   }
   .dark .page-title {
     @apply text-gray-100;
@@ -91,6 +91,33 @@
   }
   .dark .footer-link {
     @apply text-gray-400 hover:text-primary-400;
+  }
+
+  /* ── Page Header Icon ── */
+  .page-header-icon {
+    @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl;
+  }
+
+  /* ── Stat Cards ── */
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-text-secondary;
+  }
+  .dark .stat-label {
+    @apply text-gray-400;
+  }
+  .stat-value {
+    @apply mt-1 text-xl font-bold text-text-primary;
+  }
+  .dark .stat-value {
+    @apply text-gray-100;
+  }
+
+  /* ── Card Header ── */
+  .card-header {
+    @apply flex items-center justify-between border-b border-card-border px-4 py-3;
+  }
+  .dark .card-header {
+    @apply border-card-border-dark;
   }
 }
 
@@ -130,5 +157,16 @@
   .font-hash {
     font-family: "JetBrains Mono", SFMono-Regular, Menlo, monospace;
     font-size: 0.8125rem;
+  }
+
+  /* Table row hover */
+  tbody tr {
+    @apply transition-colors;
+  }
+  tbody tr:hover {
+    @apply bg-gray-50/70;
+  }
+  .dark tbody tr:hover {
+    @apply bg-gray-800/40;
   }
 }

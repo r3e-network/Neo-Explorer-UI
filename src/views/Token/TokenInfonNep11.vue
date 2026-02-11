@@ -9,15 +9,32 @@
     </div>
 
     <template v-else>
-      <!-- Page Title -->
+      <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <h1 class="text-xl font-semibold text-text-primary dark:text-white">Token Detail</h1>
-        <span
-          v-if="updateCounter === -1"
-          class="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
         >
-          Destroyed
-        </span>
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Token Detail</h1>
+            <span
+              v-if="updateCounter === -1"
+              class="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            >
+              Destroyed
+            </span>
+          </div>
+          <p class="text-sm text-text-secondary dark:text-gray-400">NEP-11 Non-Fungible Token</p>
+        </div>
         <button class="btn-outline ml-auto" aria-label="View contract details" @click="getContract(token_info['hash'])">
           View Contract
         </button>

@@ -26,22 +26,30 @@
 
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <BreadcrumbNav
+      <Breadcrumb
         :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts', to: '/contracts/1' }, { label: 'Verify' }]"
       />
 
-      <div class="etherscan-card">
-        <!-- Header -->
-        <header class="border-b border-card-border p-5 dark:border-card-border-dark md:p-6">
-          <h1 class="text-xl font-semibold text-text-primary dark:text-gray-100 md:text-2xl">
-            Verify & Publish Contract Source Code
-          </h1>
-          <p class="mt-2 text-sm text-text-secondary dark:text-gray-400">
-            Upload the exact source files used at deployment time. The explorer recompiles and matches the generated
-            bytecode with the deployed contract.
-          </p>
-        </header>
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Verify Contract</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">Submit contract source code for verification</p>
+        </div>
+      </div>
 
+      <div class="etherscan-card">
         <!-- Form + Sidebar -->
         <div class="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]">
           <form @submit.prevent="submitVerification" class="space-y-5">
@@ -170,7 +178,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { contractService } from "@/services";
 import {
   COMPILER_VERSION_OPTIONS,

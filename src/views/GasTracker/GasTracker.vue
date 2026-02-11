@@ -2,7 +2,7 @@
   <div class="gas-tracker-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <BreadcrumbNav :items="[{ label: 'Home', to: '/homepage' }, { label: 'Gas Tracker' }]" />
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Gas Tracker' }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -227,7 +227,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Chart from "chart.js";
-import BreadcrumbNav from "@/components/common/Breadcrumb.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

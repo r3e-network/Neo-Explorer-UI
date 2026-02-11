@@ -6,8 +6,10 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/40">
-          <svg class="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -17,8 +19,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-white">{{ nftName || "NFT Detail" }}</h1>
-          <p class="text-sm text-text-secondary">Non-Fungible Token</p>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">{{ nftName || "NFT Detail" }}</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">Non-Fungible Token</p>
         </div>
       </div>
 

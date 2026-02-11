@@ -5,10 +5,24 @@
       <Breadcrumb :items="breadcrumbs" />
 
       <!-- Page Header -->
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="page-title">Transactions</h1>
-        <p class="page-subtitle">Neo N3 network transactions</p>
-      </header>
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Transactions</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 network transactions</p>
+        </div>
+      </div>
 
       <!-- Stats Bar -->
       <div

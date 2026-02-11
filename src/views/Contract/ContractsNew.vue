@@ -3,10 +3,24 @@
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts' }]" />
 
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="page-title">Contracts</h1>
-        <p class="page-subtitle">Smart contracts deployed on Neo N3</p>
-      </header>
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Contracts</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">Smart contracts deployed on Neo N3</p>
+        </div>
+      </div>
 
       <!-- Search Bar -->
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

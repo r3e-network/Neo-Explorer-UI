@@ -4,10 +4,26 @@
       <!-- Breadcrumb -->
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Blocks' }]" />
 
-      <header class="mb-5 flex flex-col gap-1">
-        <h1 class="page-title">Blocks</h1>
-        <p class="page-subtitle">Blocks confirmed on the Neo N3 blockchain (dBFT 2.0 consensus)</p>
-      </header>
+      <div class="mb-6 flex items-center gap-3">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"
+        >
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Blocks</h1>
+          <p class="text-sm text-text-secondary dark:text-gray-400">
+            Blocks confirmed on the Neo N3 blockchain (dBFT 2.0 consensus)
+          </p>
+        </div>
+      </div>
 
       <!-- Stats Bar -->
       <div class="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-2">
