@@ -5,7 +5,7 @@
       <div class="hero-overlay"></div>
       <div class="mx-auto max-w-[1400px] px-4 py-10 md:py-14 relative z-10">
         <div class="mx-auto max-w-3xl text-center">
-          <h1 class="text-3xl font-semibold text-white md:text-4xl">The Neo N3 Blockchain Explorer</h1>
+          <h1 class="text-3xl font-bold text-white md:text-4xl">The Neo N3 Blockchain Explorer</h1>
           <p class="mt-2 text-sm text-white/60">Search transactions, blocks, addresses, tokens and more on Neo N3</p>
           <div class="mt-6">
             <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />

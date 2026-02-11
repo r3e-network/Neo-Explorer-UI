@@ -50,10 +50,10 @@
           <table class="w-full min-w-[760px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Address</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Votes</th>
-                <th class="px-4 py-3 text-center font-medium text-text-secondary">Status</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Address</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Votes</th>
+                <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">

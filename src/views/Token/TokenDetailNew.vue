@@ -16,7 +16,7 @@
           <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-white">
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
             {{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})
           </h1>
           <p class="text-sm text-text-secondary dark:text-gray-400">

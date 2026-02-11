@@ -21,7 +21,7 @@
         </div>
         <div>
           <div class="flex flex-wrap items-center gap-2">
-            <h1 class="text-2xl font-bold text-text-primary dark:text-white">
+            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
               {{ contract.name || "Unknown Contract" }}
             </h1>
             <span
@@ -71,7 +71,7 @@
       <!-- Overview Card -->
       <div v-if="!error" class="mb-6 etherscan-card">
         <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-          <h2 class="text-base font-semibold text-gray-800 dark:text-white">Overview</h2>
+          <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
         </div>
         <div class="divide-y divide-card-border dark:divide-card-border-dark">
           <InfoRow

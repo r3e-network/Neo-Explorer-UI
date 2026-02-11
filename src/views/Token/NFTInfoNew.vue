@@ -62,7 +62,7 @@
         <div class="space-y-6 lg:col-span-2">
           <div class="etherscan-card overflow-hidden">
             <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-              <h2 class="text-base font-semibold text-gray-800 dark:text-white">Details</h2>
+              <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
             </div>
             <div class="p-4 md:p-6">
               <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">

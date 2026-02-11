@@ -21,7 +21,7 @@
             </svg>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-text-primary dark:text-white">
+            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
               Block #{{ formatNumber(block.index ?? 0) }}
             </h1>
             <p class="text-sm text-text-secondary" v-if="!loading">{{ timeAgo }}</p>
@@ -75,7 +75,7 @@
         <!-- Overview Card -->
         <div class="etherscan-card overflow-hidden">
           <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Overview</h2>
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
           </div>
           <div class="p-4 md:p-6">
             <!-- Block Height -->
@@ -124,7 +124,7 @@
         <!-- Details Card -->
         <div class="etherscan-card overflow-hidden">
           <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Details</h2>
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
           </div>
           <div class="p-4 md:p-6">
             <!-- Block Hash -->
@@ -175,7 +175,7 @@
         <!-- Fees & Reward Card -->
         <div class="etherscan-card overflow-hidden">
           <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">Fees &amp; Reward</h2>
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Fees &amp; Reward</h2>
           </div>
           <div class="p-4 md:p-6">
             <InfoRow label="System Fee Total">
@@ -198,7 +198,7 @@
             :aria-expanded="showWitnesses"
             class="flex w-full items-center justify-between border-b border-card-border px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800/60"
           >
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
               Witnesses
               <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ block.witnesses.length }}) </span>
             </h2>
@@ -236,7 +236,7 @@
         <!-- dBFT Consensus Info -->
         <div v-once class="etherscan-card overflow-hidden">
           <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">dBFT 2.0 Consensus</h2>
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">dBFT 2.0 Consensus</h2>
           </div>
           <div class="p-4 md:p-6">
             <InfoRow label="Consensus Model">
@@ -262,7 +262,7 @@
           <div
             class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
           >
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white">
+            <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
               Transactions
               <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ transactions.length }}) </span>
             </h2>

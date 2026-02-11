@@ -47,7 +47,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-white">Transaction Details</h1>
+          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Transaction Details</h1>
           <StatusBadge :status="txStatus" />
         </div>
       </div>
