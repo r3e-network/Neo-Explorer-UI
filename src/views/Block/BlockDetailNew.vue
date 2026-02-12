@@ -276,7 +276,7 @@
           </div>
 
           <!-- Tx Empty -->
-          <EmptyState v-else-if="transactions.length === 0" message="No transactions in this block" icon="tx" />
+          <EmptyState v-else-if="transactions.length === 0" :message="emptyTransactionsMessage" icon="tx" />
 
           <!-- Tx Table -->
           <div v-else class="overflow-x-auto">
@@ -360,6 +360,12 @@ const blockTransactionCount = computed(() => {
   return transactions.value.length;
 });
 
+const emptyTransactionsMessage = computed(() =>
+  blockTransactionCount.value > 0
+    ? "Transactions are still indexing for this block. Please retry in a few seconds."
+    : "No transactions in this block"
+);
+
 const timeAgo = computed(() => {
   if (!block.value?.timestamp) return "";
   return formatAge(block.value.timestamp);
@@ -427,6 +433,7 @@ async function loadTransactions() {
   txLoading.value = true;
   try {
     const blockHash = block.value?.hash;
+    const blockIndex = Number(block.value?.index);
     if (!blockHash) {
       transactions.value = [];
       return;
@@ -442,36 +449,60 @@ async function loadTransactions() {
     }
 
     const declaredCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
-    let maxToLoad = declaredCount > 0 ? declaredCount : BLOCK_TX_FETCH_BATCH_SIZE;
-    let loaded = 0;
-    const collected = [];
 
-    while (loaded < maxToLoad) {
-      if (abortController.value?.signal.aborted) return;
+    const fetchPagedTransactions = async (fetchFn, expectedCount) => {
+      let maxToLoad = expectedCount > 0 ? expectedCount : BLOCK_TX_FETCH_BATCH_SIZE;
+      let loaded = 0;
+      const collected = [];
 
-      const limit = Math.min(BLOCK_TX_FETCH_BATCH_SIZE, maxToLoad - loaded);
-      const res = await blockService.getTransactionsByHash(blockHash, limit, loaded);
+      while (loaded < maxToLoad) {
+        if (abortController.value?.signal.aborted) return { collected, expectedTotal: maxToLoad };
 
-      if (abortController.value?.signal.aborted) return;
-      const list = Array.isArray(res?.result) ? res.result : [];
+        const limit = Math.min(BLOCK_TX_FETCH_BATCH_SIZE, maxToLoad - loaded);
+        const res = await fetchFn(limit, loaded);
 
-      if (loaded === 0) {
-        const totalFromApi = Number(res?.totalCount || 0);
-        if (Number.isFinite(totalFromApi) && totalFromApi > maxToLoad) {
-          maxToLoad = totalFromApi;
+        if (abortController.value?.signal.aborted) return { collected, expectedTotal: maxToLoad };
+
+        const list = Array.isArray(res?.result) ? res.result : [];
+        if (loaded === 0) {
+          const totalFromApi = Number(res?.totalCount || 0);
+          if (Number.isFinite(totalFromApi) && totalFromApi > maxToLoad) {
+            maxToLoad = totalFromApi;
+          }
+        }
+
+        if (list.length === 0) {
+          break;
+        }
+
+        collected.push(...list);
+        loaded += list.length;
+
+        if (list.length < limit) {
+          break;
         }
       }
 
-      if (list.length === 0) {
-        break;
-      }
+      return { collected, expectedTotal: maxToLoad };
+    };
 
-      collected.push(...list);
-      loaded += list.length;
+    let { collected, expectedTotal } = await fetchPagedTransactions(
+      (limit, skip) => blockService.getTransactionsByHash(blockHash, limit, skip),
+      declaredCount
+    );
 
-      if (list.length < limit) {
-        break;
-      }
+    if (
+      collected.length === 0 &&
+      Number.isFinite(blockIndex) &&
+      blockIndex >= 0 &&
+      declaredCount > 0
+    ) {
+      const fallback = await fetchPagedTransactions(
+        (limit, skip) => blockService.getTransactionsByHeight(blockIndex, limit, skip),
+        declaredCount
+      );
+      collected = fallback.collected;
+      expectedTotal = fallback.expectedTotal;
     }
 
     if (abortController.value?.signal.aborted) return;
@@ -480,7 +511,7 @@ async function loadTransactions() {
 
     const resolvedCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
     if ((!resolvedCount || resolvedCount <= 0) && collected.length > 0) {
-      block.value.txcount = Math.max(collected.length, maxToLoad);
+      block.value.txcount = Math.max(collected.length, expectedTotal);
       block.value.transactioncount = block.value.txcount;
     }
   } catch (err) {
@@ -489,6 +520,7 @@ async function loadTransactions() {
     txLoading.value = false;
   }
 }
+
 
 async function loadReward(_hash) {
   try {
