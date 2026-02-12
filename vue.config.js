@@ -56,6 +56,13 @@ module.exports = {
           // axios: "axios",
         }
       : {},
+    performance: isProduction
+      ? {
+          hints: "warning",
+          maxAssetSize: 550 * 1024,
+          maxEntrypointSize: 600 * 1024,
+        }
+      : undefined,
     plugins: [
       new CompressionWebpackPlugin({
         algorithm: "gzip",
