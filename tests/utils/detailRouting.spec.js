@@ -29,8 +29,10 @@ describe("detailRouting", () => {
   it("returns standard contract detail tabs", () => {
     expect(getContractDetailTabs()).toEqual([
       { key: "transactions", label: "Transactions" },
-      { key: "code", label: "Code" },
       { key: "events", label: "Events" },
+      { key: "readContract", label: "Read Contract" },
+      { key: "writeContract", label: "Write Contract" },
+      { key: "code", label: "Code" },
     ]);
   });
 

@@ -69,3 +69,43 @@ export function usePagination(fetchFn, { defaultPageSize = DEFAULT_PAGE_SIZE } =
     changePageSize,
   };
 }
+
+/**
+ * Legacy Options API pagination mixin kept for test/backward compatibility.
+ * @param {string} basePath
+ * @returns {object}
+ */
+export function createPaginationMixin(basePath) {
+  return {
+    data() {
+      return {
+        currentPage: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        total: 0,
+        totalPages: 1,
+      };
+    },
+    computed: {
+      paginationOffset() {
+        return (this.currentPage - 1) * this.pageSize;
+      },
+    },
+    watch: {},
+    methods: {
+      applyPage(totalCount, items) {
+        this.total = Number(totalCount) || 0;
+        this.totalPages = Math.max(1, Math.ceil(this.total / this.pageSize));
+        return Array.isArray(items) ? items : [];
+      },
+      goToPage(page) {
+        if (page >= 1 && page <= this.totalPages) {
+          this.$router.push(`${basePath}/${page}`);
+        }
+      },
+      changePageSize(size) {
+        this.pageSize = size;
+        this.$router.push(`${basePath}/1`);
+      },
+    },
+  };
+}

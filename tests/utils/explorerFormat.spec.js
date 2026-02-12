@@ -4,7 +4,7 @@ import { truncateHash, formatUnixTime, formatAge, formatBytes } from "../../src/
 describe("explorerFormat", () => {
   it("truncates hash with defaults", () => {
     const hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
-    expect(truncateHash(hash)).toBe("0x12345678...90abcdef");
+    expect(truncateHash(hash)).toBe("0x123456...abcdef");
   });
 
   it("returns empty string for missing hash", () => {
