@@ -67,4 +67,35 @@ describe("blockService", () => {
       expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 100 }, null);
     });
   });
+
+  describe("getTransactionsByHash", () => {
+    it("calls safeRpcList with hash and pagination", async () => {
+      const mockData = { result: [{ hash: "0x1" }], totalCount: 1 };
+      api.safeRpcList.mockResolvedValueOnce(mockData);
+
+      const result = await blockService.getTransactionsByHash("0xabc", 10, 5);
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetRawTransactionByBlockHash",
+        { BlockHash: "0xabc", Limit: 10, Skip: 5 },
+        "get transactions by block hash"
+      );
+      expect(result).toEqual(mockData);
+    });
+  });
+
+  describe("getTransactionsByHeight", () => {
+    it("calls safeRpcList with height and pagination", async () => {
+      const mockData = { result: [{ hash: "0x1" }], totalCount: 1 };
+      api.safeRpcList.mockResolvedValueOnce(mockData);
+
+      const result = await blockService.getTransactionsByHeight(123, 10, 5);
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetRawTransactionByBlockHeight",
+        { BlockHeight: 123, Limit: 10, Skip: 5 },
+        "get transactions by block height"
+      );
+      expect(result).toEqual(mockData);
+    });
+  });
+
 });

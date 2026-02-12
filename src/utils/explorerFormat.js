@@ -88,6 +88,21 @@ export function formatGas(value, decimals = 8) {
 }
 
 /**
+ * Return raw transaction fee in fixed8 units (netfee + sysfee).
+ * @param {{netfee?: number|string, sysfee?: number|string}|null|undefined} tx
+ * @returns {number}
+ */
+export function getTransactionTotalFee(tx) {
+  const net = Number(tx?.netfee ?? 0);
+  const sys = Number(tx?.sysfee ?? 0);
+
+  const safeNet = Number.isFinite(net) ? net : 0;
+  const safeSys = Number.isFinite(sys) ? sys : 0;
+
+  return safeNet + safeSys;
+}
+
+/**
  * Format a decimal GAS string (e.g. gasconsumed from RPC) for display.
  * Unlike formatGas, this does NOT divide by GAS_DIVISOR because the value
  * is already in GAS units (e.g. "9.977").

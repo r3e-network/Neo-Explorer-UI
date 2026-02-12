@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { truncateHash, formatUnixTime, formatAge, formatBytes } from "../../src/utils/explorerFormat";
+import { truncateHash, formatUnixTime, formatAge, formatBytes, getTransactionTotalFee } from "../../src/utils/explorerFormat";
 
 describe("explorerFormat", () => {
   it("truncates hash with defaults", () => {
@@ -25,5 +25,11 @@ describe("explorerFormat", () => {
   it("formats bytes with units", () => {
     expect(formatBytes(1000)).toBe("1000 B");
     expect(formatBytes(1024)).toBe("1.00 KB");
+  });
+
+  it("sums transaction net and system fees", () => {
+    expect(getTransactionTotalFee({ netfee: 40000, sysfee: 1200000 })).toBe(1240000);
+    expect(getTransactionTotalFee({ netfee: 0, sysfee: 0 })).toBe(0);
+    expect(getTransactionTotalFee(null)).toBe(0);
   });
 });

@@ -100,10 +100,10 @@
             <!-- Transactions -->
             <InfoRow label="Transactions">
               <span
-                v-if="block.txcount > 0"
+                v-if="blockTransactionCount > 0"
                 class="inline-flex items-center rounded bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
               >
-                {{ block.txcount }} transaction{{ block.txcount !== 1 ? "s" : "" }}
+                {{ blockTransactionCount }} transaction{{ blockTransactionCount !== 1 ? "s" : "" }}
               </span>
               <span v-else class="text-text-secondary">0 transactions</span>
             </InfoRow>
@@ -262,7 +262,7 @@
           <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
               Transactions
-              <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ transactions.length }}) </span>
+              <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ blockTransactionCount }}) </span>
             </h2>
           </div>
 
@@ -348,8 +348,18 @@ const txLoading = ref(false);
 const error = ref(null);
 const showWitnesses = ref(false);
 const latestBlockHeight = ref(Infinity);
+const BLOCK_TX_FETCH_BATCH_SIZE = 100;
 
 // --- Computed ---
+const blockTransactionCount = computed(() => {
+  const declared = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
+  if (Number.isFinite(declared) && declared > 0) {
+    return declared;
+  }
+
+  return transactions.value.length;
+});
+
 const timeAgo = computed(() => {
   if (!block.value?.timestamp) return "";
   return formatAge(block.value.timestamp);
@@ -386,6 +396,12 @@ async function loadBlock(hash) {
     // Merge info + raw for maximum field coverage
     block.value = { ...(raw || {}), ...(info || {}) };
 
+    const mergedTxCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
+    if (Number.isFinite(mergedTxCount) && mergedTxCount > 0) {
+      block.value.txcount = mergedTxCount;
+      block.value.transactioncount = mergedTxCount;
+    }
+
     // Fetch latest block height for next-button disabled logic
     blockService
       .getCount()
@@ -410,11 +426,62 @@ async function loadBlock(hash) {
 async function loadTransactions() {
   txLoading.value = true;
   try {
-    // Use transactions already embedded in block data — no extra API call needed
-    if (block.value.tx && Array.isArray(block.value.tx)) {
-      transactions.value = block.value.tx;
-    } else {
+    const blockHash = block.value?.hash;
+    if (!blockHash) {
       transactions.value = [];
+      return;
+    }
+
+    if (Array.isArray(block.value.tx) && block.value.tx.length > 0) {
+      transactions.value = block.value.tx;
+      if (!block.value.txcount) {
+        block.value.txcount = block.value.tx.length;
+        block.value.transactioncount = block.value.tx.length;
+      }
+      return;
+    }
+
+    const declaredCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
+    let maxToLoad = declaredCount > 0 ? declaredCount : BLOCK_TX_FETCH_BATCH_SIZE;
+    let loaded = 0;
+    const collected = [];
+
+    while (loaded < maxToLoad) {
+      if (abortController.value?.signal.aborted) return;
+
+      const limit = Math.min(BLOCK_TX_FETCH_BATCH_SIZE, maxToLoad - loaded);
+      const res = await blockService.getTransactionsByHash(blockHash, limit, loaded);
+
+      if (abortController.value?.signal.aborted) return;
+      const list = Array.isArray(res?.result) ? res.result : [];
+
+      if (loaded === 0) {
+        const totalFromApi = Number(res?.totalCount || 0);
+        if (Number.isFinite(totalFromApi) && totalFromApi > maxToLoad) {
+          maxToLoad = totalFromApi;
+        }
+      }
+
+      if (list.length === 0) {
+        break;
+      }
+
+      collected.push(...list);
+      loaded += list.length;
+
+      if (list.length < limit) {
+        break;
+      }
+    }
+
+    if (abortController.value?.signal.aborted) return;
+
+    transactions.value = collected;
+
+    const resolvedCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
+    if ((!resolvedCount || resolvedCount <= 0) && collected.length > 0) {
+      block.value.txcount = Math.max(collected.length, maxToLoad);
+      block.value.transactioncount = block.value.txcount;
     }
   } catch (err) {
     if (process.env.NODE_ENV !== "production") console.warn("Failed to load block transactions:", err);

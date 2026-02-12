@@ -69,7 +69,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { formatAge, formatGas } from "@/utils/explorerFormat";
+import { formatAge, formatGas, getTransactionTotalFee } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 
 const props = defineProps({
@@ -98,8 +98,5 @@ const statusText = computed(() => (isSuccess.value ? "Success" : "Failed"));
 
 const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
 
-const txFee = computed(() => {
-  const fee = props.tx?.netfee || props.tx?.sysfee || 0;
-  return formatGas(fee, 4);
-});
+const txFee = computed(() => formatGas(getTransactionTotalFee(props.tx), 4));
 </script>

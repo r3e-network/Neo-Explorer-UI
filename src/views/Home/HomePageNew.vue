@@ -231,7 +231,7 @@ import {
   priceChangeClass,
   formatLargeNumber,
 } from "@/utils/explorerFormat";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { NETWORK_CHANGE_EVENT, getNetworkRefreshIntervalMs } from "@/utils/env";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
@@ -253,6 +253,18 @@ const marketCap = ref(0);
 const tps = ref(0);
 let refreshInterval = null;
 let isRefreshing = false;
+
+function hasSameOrderedHashes(currentList = [], nextList = []) {
+  if (currentList.length !== nextList.length) return false;
+
+  for (let index = 0; index < currentList.length; index += 1) {
+    if ((currentList[index]?.hash || "") !== (nextList[index]?.hash || "")) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 // Computed
 const networkFeeDisplay = computed(() => {
@@ -305,8 +317,19 @@ async function loadLatestData(forceRefresh = false) {
       }),
     ]);
 
-    if (blocksRes) latestBlocks.value = blocksRes?.result || [];
-    if (txsRes) latestTxs.value = txsRes?.result || [];
+    if (blocksRes) {
+      const nextBlocks = blocksRes?.result || [];
+      if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
+        latestBlocks.value = nextBlocks;
+      }
+    }
+
+    if (txsRes) {
+      const nextTxs = txsRes?.result || [];
+      if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
+        latestTxs.value = nextTxs;
+      }
+    }
 
     // Calculate TPS from latest blocks
     if (latestBlocks.value.length >= 2) {
@@ -352,6 +375,12 @@ async function handleSearch(inputValue) {
   }
 }
 
+function handleNetworkChange() {
+  loadLatestData(true);
+  loadStats();
+  startAutoRefresh();
+}
+
 function startAutoRefresh() {
   stopAutoRefresh();
   refreshInterval = setInterval(() => {
@@ -370,10 +399,12 @@ function stopAutoRefresh() {
 onMounted(() => {
   loadData();
   startAutoRefresh();
+  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
 });
 
 onBeforeUnmount(() => {
   stopAutoRefresh();
+  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
 });
 </script>
 

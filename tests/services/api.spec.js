@@ -99,4 +99,13 @@ describe("safeRpc", () => {
     const result = await safeRpc("GetBlockCount", {}, []);
     expect(result).toEqual([]);
   });
+
+  it("normalizes block transactioncount alias", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { hash: "0xabc", transactioncount: 1 } },
+    });
+
+    const result = await safeRpc("GetBlockInfoByBlockHash", { BlockHash: "0xabc" });
+    expect(result).toEqual({ hash: "0xabc", transactioncount: 1, txcount: 1 });
+  });
 });

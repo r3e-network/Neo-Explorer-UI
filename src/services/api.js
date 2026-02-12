@@ -79,7 +79,8 @@ export const rpc = async (method, params = {}) => {
 export const safeRpc = async (method, params = {}, defaultValue = null) => {
   try {
     const result = await rpc(method, params);
-    return result ?? defaultValue;
+    const normalized = normalizeItem(result);
+    return normalized ?? defaultValue;
   } catch (error) {
     if (process.env.NODE_ENV !== "production") console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;

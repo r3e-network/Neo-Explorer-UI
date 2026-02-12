@@ -24,7 +24,7 @@ export const NETWORK_OPTIONS = [
 ];
 
 export const NETWORK_REFRESH_INTERVALS = {
-  [NET_ENV.Mainnet]: 15 * 1000,
+  [NET_ENV.Mainnet]: 8 * 1000,
   [NET_ENV.TestT5]: 3 * 1000,
 };
 

@@ -134,6 +134,50 @@ export const blockService = {
       options
     );
   },
+
+  /**
+   * 根据区块哈希获取交易列表（分页）
+   * @param {string} hash - 区块哈希
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 交易列表
+   */
+  async getTransactionsByHash(hash, limit = 20, skip = 0, options = {}) {
+    const key = getCacheKey("block_transactions_hash", { hash, limit, skip });
+    return cachedRequest(
+      key,
+      () =>
+        safeRpcList(
+          "GetRawTransactionByBlockHash",
+          { BlockHash: hash, Limit: limit, Skip: skip },
+          "get transactions by block hash"
+        ),
+      CACHE_TTL.txDetail,
+      options
+    );
+  },
+
+  /**
+   * 根据区块高度获取交易列表（分页）
+   * @param {number} height - 区块高度
+   * @param {number} [limit=20] - 每页数量
+   * @param {number} [skip=0] - 跳过数量
+   * @returns {Promise<{result: Array, totalCount: number}>} 交易列表
+   */
+  async getTransactionsByHeight(height, limit = 20, skip = 0, options = {}) {
+    const key = getCacheKey("block_transactions_height", { height, limit, skip });
+    return cachedRequest(
+      key,
+      () =>
+        safeRpcList(
+          "GetRawTransactionByBlockHeight",
+          { BlockHeight: height, Limit: limit, Skip: skip },
+          "get transactions by block height"
+        ),
+      CACHE_TTL.txDetail,
+      options
+    );
+  },
 };
 
 export default blockService;
