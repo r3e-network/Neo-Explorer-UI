@@ -102,10 +102,10 @@
                   To
                 </th>
                 <th class="table-header-cell-right hidden lg:table-cell">
-                  Value
+                  Gas Used
                 </th>
                 <th class="table-header-cell-right hidden xl:table-cell">
-                  Txn Fee
+                  Net / Sys Fee
                 </th>
               </tr>
             </thead>
@@ -194,12 +194,12 @@
                 <td
                   class="table-cell hidden text-right font-mono lg:table-cell"
                 >
-                  {{ formatTxValue(tx) }} GAS
+                  {{ formatTxGas(tx) }} GAS
                 </td>
 
                 <!-- Fee -->
                 <td class="table-cell-secondary hidden text-right text-xs xl:table-cell">
-                  {{ formatTxFee(tx) }}
+                  {{ formatTxFeeBreakdown(tx) }}
                 </td>
               </tr>
             </tbody>
@@ -284,19 +284,28 @@ function getRecipient(tx) {
   return null;
 }
 
-function formatTxValue(tx) {
-  // Sum of GAS value from transfers, or 0
-  const val = Number(tx.value || tx.netfee || 0);
-  if (val === 0) return "0";
-  return formatGas(val);
-}
+function formatTxGas(tx) {
+  const transferValue = Number(tx.value || 0);
+  if (transferValue > 0) {
+    return formatGas(transferValue);
+  }
 
-function formatTxFee(tx) {
   const net = Number(tx.netfee || 0);
   const sys = Number(tx.sysfee || 0);
   const totalFee = net + sys;
   if (totalFee === 0) return "0";
   return formatGas(totalFee);
+}
+
+function formatTxFeeBreakdown(tx) {
+  const net = Number(tx.netfee || 0);
+  const sys = Number(tx.sysfee || 0);
+
+  if (net === 0 && sys === 0) {
+    return "N: 0 / S: 0";
+  }
+
+  return `N: ${formatGas(net)} / S: ${formatGas(sys)}`;
 }
 
 async function loadPage({ silent = false, forceRefresh = false } = {}) {
