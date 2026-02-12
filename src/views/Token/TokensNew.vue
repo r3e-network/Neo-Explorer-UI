@@ -216,6 +216,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatNumber, formatSupply as formatSupplyRaw } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -271,22 +272,36 @@ function formatMarketCap(token) {
 
 async function loadPage() {
   const myRequestId = ++currentRequestId;
-  loading.value = true;
+  const query = searchQuery.value.trim();
+  const skip = paginationOffset.value;
+  const cacheKey = query
+    ? getCacheKey(activeTab.value === "nep11" ? "token_nep11_search" : "token_nep17_search", {
+        name: query,
+        limit: pageSize.value,
+        skip,
+      })
+    : getCacheKey(activeTab.value === "nep11" ? "token_nep11_list" : "token_nep17_list", {
+        limit: pageSize.value,
+        skip,
+      });
+  const hasCachedData = getCache(cacheKey) !== null;
+
+  loading.value = !hasCachedData;
   error.value = null;
+
   try {
     let response;
-    const query = searchQuery.value.trim();
 
     if (query) {
       response =
         activeTab.value === "nep11"
-          ? await tokenService.searchNep11ByName(query, pageSize.value, paginationOffset.value)
-          : await tokenService.searchNep17ByName(query, pageSize.value, paginationOffset.value);
+          ? await tokenService.searchNep11ByName(query, pageSize.value, skip)
+          : await tokenService.searchNep17ByName(query, pageSize.value, skip);
     } else {
       response =
         activeTab.value === "nep11"
-          ? await tokenService.getNep11List(pageSize.value, paginationOffset.value)
-          : await tokenService.getNep17List(pageSize.value, paginationOffset.value);
+          ? await tokenService.getNep11List(pageSize.value, skip)
+          : await tokenService.getNep17List(pageSize.value, skip);
     }
 
     if (myRequestId !== currentRequestId) return;

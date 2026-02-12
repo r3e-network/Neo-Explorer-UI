@@ -1,5 +1,6 @@
 import { rpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
+import { getNetworkRefreshIntervalMs } from "../utils/env";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -8,6 +9,12 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
  */
 
 const NETWORK_FEE_RATIO = 0.08;
+
+const getRealtimeStatsCacheOptions = (options = {}) => ({
+  staleWhileRevalidate: true,
+  softTtl: getNetworkRefreshIntervalMs(),
+  ...options,
+});
 
 /**
  * Calculate estimated network fee from GAS price.
@@ -60,7 +67,7 @@ export const statsService = {
       }
     };
 
-    return cachedRequest(key, fetchFn, CACHE_TTL.stats, { forceRefresh });
+    return cachedRequest(key, fetchFn, CACHE_TTL.chart, getRealtimeStatsCacheOptions({ forceRefresh }));
   },
 
   /**
@@ -101,9 +108,10 @@ export const statsService = {
 
   /**
    * 获取 Gas 追踪数据（最新手续费 + 网络费用）
+   * @param {boolean} [forceRefresh=false] - 强制刷新
    * @returns {Promise<Object>} Gas 追踪数据
    */
-  async getGasTracker() {
+  async getGasTracker(forceRefresh = false) {
     const key = getCacheKey("gas_tracker", {});
     return cachedRequest(
       key,
@@ -126,7 +134,8 @@ export const statsService = {
           return { latestNetworkFee: "0", latestSystemFee: "0", networkFee: null };
         }
       },
-      CACHE_TTL.stats
+      CACHE_TTL.chart,
+      getRealtimeStatsCacheOptions({ forceRefresh })
     );
   },
 

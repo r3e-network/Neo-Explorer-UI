@@ -231,7 +231,7 @@ import {
   priceChangeClass,
   formatLargeNumber,
 } from "@/utils/explorerFormat";
-import { HOME_REFRESH_INTERVAL } from "@/constants";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
@@ -287,7 +287,7 @@ async function loadStats() {
   }
 }
 
-async function loadLatestData() {
+async function loadLatestData(forceRefresh = false) {
   if (isRefreshing) return;
   isRefreshing = true;
   try {
@@ -295,11 +295,11 @@ async function loadLatestData() {
     txsError.value = false;
 
     const [blocksRes, txsRes] = await Promise.all([
-      blockService.getList(6, 0).catch(() => {
+      blockService.getList(6, 0, { forceRefresh }).catch(() => {
         blocksError.value = true;
         return null;
       }),
-      transactionService.getList(6, 0).catch(() => {
+      transactionService.getList(6, 0, { forceRefresh }).catch(() => {
         txsError.value = true;
         return null;
       }),
@@ -352,14 +352,28 @@ async function handleSearch(inputValue) {
   }
 }
 
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshInterval = setInterval(() => {
+    loadLatestData(true);
+  }, getNetworkRefreshIntervalMs());
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   loadData();
-  refreshInterval = setInterval(loadLatestData, HOME_REFRESH_INTERVAL);
+  startAutoRefresh();
 });
 
 onBeforeUnmount(() => {
-  if (refreshInterval) clearInterval(refreshInterval);
+  stopAutoRefresh();
 });
 </script>
 

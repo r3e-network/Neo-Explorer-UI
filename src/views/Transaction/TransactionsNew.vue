@@ -226,10 +226,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { transactionService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 import { truncateHash, formatAge, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -250,6 +252,7 @@ const currentPage = ref(1);
 const pageSize = ref(DEFAULT_PAGE_SIZE);
 const total = ref(0);
 let currentRequestId = 0;
+let refreshTimer = null;
 
 // Computed
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
@@ -296,23 +299,36 @@ function formatTxFee(tx) {
   return formatGas(totalFee);
 }
 
-async function loadPage() {
+async function loadPage({ silent = false, forceRefresh = false } = {}) {
   const myRequestId = ++currentRequestId;
-  loading.value = true;
-  error.value = null;
+  const skip = (currentPage.value - 1) * pageSize.value;
+  const cacheKey = getCacheKey("tx_list", { limit: pageSize.value, skip });
+  const hasCachedData = getCache(cacheKey) !== null;
+  const shouldShowLoading = !silent && !hasCachedData;
+
+  if (shouldShowLoading) {
+    loading.value = true;
+  }
+
+  if (!silent) {
+    error.value = null;
+  }
+
   try {
-    const skip = (currentPage.value - 1) * pageSize.value;
-    const res = await transactionService.getList(pageSize.value, skip);
+    const res = await transactionService.getList(pageSize.value, skip, { forceRefresh });
     if (myRequestId !== currentRequestId) return;
     total.value = res?.totalCount || 0;
     transactions.value = res?.result || [];
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
     if (process.env.NODE_ENV !== "production") console.error("Failed to load transactions:", err);
-    error.value = "Failed to load transactions. Please try again.";
-    transactions.value = [];
+
+    if (!silent || transactions.value.length === 0) {
+      error.value = "Failed to load transactions. Please try again.";
+      transactions.value = [];
+    }
   } finally {
-    if (myRequestId === currentRequestId) {
+    if (myRequestId === currentRequestId && shouldShowLoading) {
       loading.value = false;
     }
   }
@@ -320,13 +336,28 @@ async function loadPage() {
 
 function goToPage(page) {
   if (page >= 1 && page <= totalPages.value) {
-    router.push(`/transactions/${page}`);
+    router.push("/transactions/" + page);
   }
 }
 
 function changePageSize(size) {
   pageSize.value = size;
   router.push("/transactions/1");
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  refreshTimer = setInterval(() => {
+    loadPage({ silent: true, forceRefresh: true });
+  }, getNetworkRefreshIntervalMs());
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 }
 
 // Watch route param for page changes
@@ -338,4 +369,12 @@ watch(
   },
   { immediate: true }
 );
+
+onMounted(() => {
+  startAutoRefresh();
+});
+
+onBeforeUnmount(() => {
+  stopAutoRefresh();
+});
 </script>

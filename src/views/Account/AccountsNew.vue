@@ -116,6 +116,7 @@
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { accountService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/store/util";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
@@ -141,10 +142,15 @@ const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value
 
 async function loadPage() {
   const myRequestId = ++pageRequestId;
-  loading.value = true;
+  const skip = paginationOffset.value;
+  const cacheKey = getCacheKey("account_list", { limit: pageSize.value, skip });
+  const hasCachedData = getCache(cacheKey) !== null;
+
+  loading.value = !hasCachedData;
   error.value = null;
+
   try {
-    const response = await accountService.getList(pageSize.value, paginationOffset.value);
+    const response = await accountService.getList(pageSize.value, skip);
     if (myRequestId !== pageRequestId) return;
     total.value = response?.totalCount || 0;
     accounts.value = response?.result || [];

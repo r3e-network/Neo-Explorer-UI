@@ -182,6 +182,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { contractService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -235,14 +236,21 @@ function formatTime(timestamp) {
 // Data fetching
 async function loadPage() {
   const myRequestId = ++currentRequestId;
-  loading.value = true;
+  const offset = (currentPage.value - 1) * pageSize.value;
+  const query = searchQuery.value.trim();
+  const cacheKey = isSearchMode.value
+    ? getCacheKey("contract_search", { name: query, limit: pageSize.value, skip: offset })
+    : getCacheKey("contract_list", { limit: pageSize.value, skip: offset });
+  const hasCachedData = getCache(cacheKey) !== null;
+
+  loading.value = !hasCachedData;
   error.value = null;
+
   try {
-    const offset = (currentPage.value - 1) * pageSize.value;
     let response;
 
     if (isSearchMode.value) {
-      response = await contractService.searchByName(searchQuery.value.trim(), pageSize.value, offset);
+      response = await contractService.searchByName(query, pageSize.value, offset);
     } else {
       response = await contractService.getList(pageSize.value, offset);
     }

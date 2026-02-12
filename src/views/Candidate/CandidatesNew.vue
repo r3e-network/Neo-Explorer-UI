@@ -101,6 +101,7 @@
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { candidateService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { truncateHash } from "@/utils/explorerFormat";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -125,10 +126,15 @@ const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value
 
 async function loadPage() {
   const myRequestId = ++currentRequestId;
-  loading.value = true;
+  const skip = paginationOffset.value;
+  const cacheKey = getCacheKey("candidate_list", { limit: pageSize.value, skip });
+  const hasCachedData = getCache(cacheKey) !== null;
+
+  loading.value = !hasCachedData;
   error.value = null;
+
   try {
-    const res = await candidateService.getList(pageSize.value, paginationOffset.value);
+    const res = await candidateService.getList(pageSize.value, skip);
     if (myRequestId !== currentRequestId) return;
     const count = res?.totalCount || (res?.result || []).length;
     total.value = count || 0;

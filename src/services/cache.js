@@ -12,16 +12,6 @@ const MAX_CACHE_SIZE = 500;
 // 缓存存储
 const cache = new Map();
 
-/**
- * LRU 淘汰：当缓存达到上限时删除最旧条目
- */
-function evictIfNeeded() {
-  if (cache.size >= MAX_CACHE_SIZE) {
-    const oldestKey = cache.keys().next().value;
-    cache.delete(oldestKey);
-  }
-}
-
 // 进行中的请求（用于去重）
 const pendingRequests = new Map();
 
@@ -59,6 +49,66 @@ const LEGACY_TTL = new Proxy(DEFAULT_TTL, {
 });
 
 /**
+ * LRU 淘汰：当缓存达到上限时删除最旧条目
+ */
+function evictIfNeeded() {
+  if (cache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+}
+
+function touchCacheItem(key, item) {
+  // LRU refresh: move to end of Map iteration order
+  cache.delete(key);
+  cache.set(key, item);
+}
+
+function getValidCacheItem(key, { touch = false } = {}) {
+  const item = cache.get(key);
+  if (!item) return null;
+
+  if (Date.now() > item.expiry) {
+    cache.delete(key);
+    return null;
+  }
+
+  if (touch) {
+    touchCacheItem(key, item);
+  }
+
+  return item;
+}
+
+function fetchAndCache(key, fetchFn, ttl) {
+  if (pendingRequests.has(key)) {
+    return pendingRequests.get(key);
+  }
+
+  const promise = fetchFn()
+    .then((data) => {
+      setCache(key, data, ttl);
+      pendingRequests.delete(key);
+      return data;
+    })
+    .catch((error) => {
+      pendingRequests.delete(key);
+      throw error;
+    });
+
+  pendingRequests.set(key, promise);
+  return promise;
+}
+
+const normalizeSoftTtl = (softTtl, ttl) => {
+  if (Number.isFinite(softTtl)) {
+    return Math.max(0, softTtl);
+  }
+
+  return Math.max(0, ttl);
+};
+
+/**
  * 生成缓存键
  * @param {string} method - API方法名
  * @param {object} params - 参数
@@ -70,21 +120,46 @@ export const getCacheKey = (method, params = {}) => {
 };
 
 /**
+ * 获取缓存元信息
+ * @param {string} key - 缓存键
+ * @returns {{key: string, data: any, timestamp: number, expiry: number, ttl: number, age: number, remaining: number}|null}
+ */
+export const getCacheMeta = (key) => {
+  const item = getValidCacheItem(key);
+  if (!item) return null;
+
+  const now = Date.now();
+  return {
+    key,
+    data: item.data,
+    timestamp: item.timestamp,
+    expiry: item.expiry,
+    ttl: item.ttl,
+    age: now - item.timestamp,
+    remaining: Math.max(0, item.expiry - now),
+  };
+};
+
+/**
+ * 判断缓存是否在指定时间窗口内为“新鲜”
+ * @param {string} key - 缓存键
+ * @param {number} ttl - 新鲜窗口（毫秒）
+ * @returns {boolean}
+ */
+export const isCacheFresh = (key, ttl = DEFAULT_TTL.block) => {
+  const meta = getCacheMeta(key);
+  if (!meta) return false;
+  return meta.age <= ttl;
+};
+
+/**
  * 获取缓存数据
  * @param {string} key - 缓存键
  * @returns {any|null} 缓存数据或null
  */
 export const getCache = (key) => {
-  const item = cache.get(key);
-  if (!item) return null;
-
-  // 检查是否过期
-  if (Date.now() > item.expiry) {
-    cache.delete(key);
-    return null;
-  }
-
-  return item.data;
+  const item = getValidCacheItem(key, { touch: true });
+  return item ? item.data : null;
 };
 
 /**
@@ -95,10 +170,13 @@ export const getCache = (key) => {
  */
 export const setCache = (key, data, ttl = DEFAULT_TTL.block) => {
   evictIfNeeded();
+
+  const timestamp = Date.now();
   cache.set(key, {
     data,
-    expiry: Date.now() + ttl,
-    timestamp: Date.now(),
+    expiry: timestamp + ttl,
+    timestamp,
+    ttl,
   });
 };
 
@@ -133,45 +211,46 @@ export const clearCacheByPrefix = (prefix) => {
  * 带缓存的请求包装器
  * @param {string} key - 缓存键
  * @param {Function} fetchFn - 请求函数
- * @param {number} ttl - 缓存时间
+ * @param {number} ttl - 缓存时间（硬过期）
+ * @param {{forceRefresh?: boolean, staleWhileRevalidate?: boolean, softTtl?: number, onBackgroundRefreshError?: Function}} options
  * @returns {Promise<any>} 数据
  */
-export const cachedRequest = async (key, fetchFn, ttl = DEFAULT_TTL.block, { forceRefresh = false } = {}) => {
-  // 1. 检查缓存（除非强制刷新）
+export const cachedRequest = async (
+  key,
+  fetchFn,
+  ttl = DEFAULT_TTL.block,
+  { forceRefresh = false, staleWhileRevalidate = false, softTtl, onBackgroundRefreshError } = {}
+) => {
   if (!forceRefresh) {
-    const item = cache.get(key);
+    const item = getValidCacheItem(key, { touch: true });
+
     if (item) {
-      if (Date.now() <= item.expiry) {
-        hitCount++;
-        // LRU refresh: move to end of Map iteration order
-        cache.delete(key);
-        cache.set(key, item);
-        return item.data;
+      hitCount++;
+
+      if (staleWhileRevalidate) {
+        const revalidateAfter = normalizeSoftTtl(softTtl, ttl);
+        const age = Date.now() - item.timestamp;
+
+        if (age >= revalidateAfter && !pendingRequests.has(key)) {
+          fetchAndCache(key, fetchFn, ttl).catch((error) => {
+            if (typeof onBackgroundRefreshError === "function") {
+              onBackgroundRefreshError(error);
+              return;
+            }
+
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(`[cache] Background refresh failed for key: ${key}`, error);
+            }
+          });
+        }
       }
-      cache.delete(key);
+
+      return item.data;
     }
   }
+
   missCount++;
-
-  // 2. 检查是否有进行中的相同请求（去重）
-  if (pendingRequests.has(key)) {
-    return pendingRequests.get(key);
-  }
-
-  // 3. 发起新请求
-  const promise = fetchFn()
-    .then((data) => {
-      setCache(key, data, ttl);
-      pendingRequests.delete(key);
-      return data;
-    })
-    .catch((error) => {
-      pendingRequests.delete(key);
-      throw error;
-    });
-
-  pendingRequests.set(key, promise);
-  return promise;
+  return fetchAndCache(key, fetchFn, ttl);
 };
 
 /**
@@ -194,6 +273,8 @@ export { MAX_CACHE_SIZE };
 
 export default {
   getCache,
+  getCacheMeta,
+  isCacheFresh,
   setCache,
   clearCache,
   clearAllCache,

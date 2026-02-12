@@ -183,10 +183,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { blockService, statsService } from "@/services";
+import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -229,12 +231,13 @@ const rangeEnd = computed(() => {
 
 // --- Request deduplication ---
 let currentRequestId = 0;
+let refreshTimer = null;
 
 // --- Methods ---
-async function loadStats() {
+async function loadStats(forceRefresh = false) {
   statsLoading.value = true;
   try {
-    const stats = await statsService.getDashboardStats();
+    const stats = await statsService.getDashboardStats(forceRefresh);
     totalBlocks.value = stats?.blocks || 0;
     latestHeight.value = totalBlocks.value > 0 ? totalBlocks.value - 1 : 0;
   } catch (err) {
@@ -244,21 +247,35 @@ async function loadStats() {
   }
 }
 
-async function loadPage() {
+async function loadPage({ silent = false, forceRefresh = false } = {}) {
   const myRequestId = ++currentRequestId;
-  loading.value = true;
-  error.value = null;
+  const skip = paginationOffset.value;
+  const cacheKey = getCacheKey("block_list", { limit: pageSize.value, skip });
+  const hasCachedData = getCache(cacheKey) !== null;
+  const shouldShowLoading = !silent && !hasCachedData;
+
+  if (shouldShowLoading) {
+    loading.value = true;
+  }
+
+  if (!silent) {
+    error.value = null;
+  }
+
   try {
-    const res = await blockService.getList(pageSize.value, paginationOffset.value);
+    const res = await blockService.getList(pageSize.value, skip, { forceRefresh });
     if (myRequestId !== currentRequestId) return;
     total.value = res?.totalCount || 0;
     blocks.value = res?.result || [];
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
     if (process.env.NODE_ENV !== "production") console.error("Failed to load blocks:", err);
-    error.value = "Failed to load blocks. Please try again.";
+
+    if (!silent || blocks.value.length === 0) {
+      error.value = "Failed to load blocks. Please try again.";
+    }
   } finally {
-    if (myRequestId === currentRequestId) {
+    if (myRequestId === currentRequestId && shouldShowLoading) {
       loading.value = false;
     }
   }
@@ -266,13 +283,29 @@ async function loadPage() {
 
 function goToPage(page) {
   if (page >= 1 && page <= totalPages.value) {
-    router.push(`/blocks/${page}`);
+    router.push("/blocks/" + page);
   }
 }
 
 function changePageSize(size) {
   pageSize.value = size;
   router.push("/blocks/1");
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  refreshTimer = setInterval(() => {
+    loadPage({ silent: true, forceRefresh: true });
+    loadStats(true);
+  }, getNetworkRefreshIntervalMs());
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 }
 
 // --- Route watcher ---
@@ -286,6 +319,12 @@ watch(
   { immediate: true }
 );
 
-// Load stats once on mount
-loadStats();
+onMounted(() => {
+  loadStats();
+  startAutoRefresh();
+});
+
+onBeforeUnmount(() => {
+  stopAutoRefresh();
+});
 </script>

@@ -23,6 +23,11 @@ export const NETWORK_OPTIONS = [
   { id: NET_ENV.TestT5, name: "N3 Testnet" },
 ];
 
+export const NETWORK_REFRESH_INTERVALS = {
+  [NET_ENV.Mainnet]: 15 * 1000,
+  [NET_ENV.TestT5]: 3 * 1000,
+};
+
 export const getNetworkLabel = (env) => {
   const selected = NETWORK_OPTIONS.find((network) => network.id === normalizeEnv(env));
   return selected?.name || "N3 Mainnet";
@@ -40,6 +45,11 @@ export const getStoredEnv = () => {
 };
 
 export const getCurrentEnv = () => getStoredEnv() || DEFAULT_ENV;
+
+export const getNetworkRefreshIntervalMs = (env = getCurrentEnv()) => {
+  const normalizedEnv = normalizeEnv(env);
+  return NETWORK_REFRESH_INTERVALS[normalizedEnv] || NETWORK_REFRESH_INTERVALS[DEFAULT_ENV];
+};
 
 export const setCurrentEnv = (env) => {
   const normalizedEnv = normalizeEnv(env);

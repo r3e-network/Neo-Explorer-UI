@@ -230,7 +230,8 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { statsService, blockService } from "@/services";
 import { formatNumber, formatAge, formatGas } from "@/utils/explorerFormat";
-import { GAS_DIVISOR, BURN_RATE, GAS_TRACKER_REFRESH_INTERVAL } from "@/constants";
+import { GAS_DIVISOR, BURN_RATE } from "@/constants";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 // --- State ---
 const loading = ref(true);
@@ -389,10 +390,10 @@ function createFeeTrendChart(Chart) {
 }
 
 // --- Data loading ---
-async function loadGasTracker() {
+async function loadGasTracker(forceRefresh = false) {
   loading.value = true;
   try {
-    const data = await statsService.getGasTracker();
+    const data = await statsService.getGasTracker(forceRefresh);
     gasData.value = data;
   } catch (e) {
     if (process.env.NODE_ENV !== "production") console.error("Gas tracker load failed:", e);
@@ -401,11 +402,11 @@ async function loadGasTracker() {
   }
 }
 
-async function loadBlocks() {
+async function loadBlocks(forceRefresh = false) {
   blocksLoading.value = true;
   blocksError.value = null;
   try {
-    const res = await blockService.getList(20, 0);
+    const res = await blockService.getList(20, 0, { forceRefresh });
     blocks.value = res?.result || [];
     computeFeeEstimates();
     renderChart();
@@ -416,22 +417,22 @@ async function loadBlocks() {
   }
 }
 
-async function loadData() {
+async function loadData(forceRefresh = false) {
   if (isRefreshing) return;
   isRefreshing = true;
   try {
-    await Promise.all([loadGasTracker(), loadBlocks()]);
+    await Promise.all([loadGasTracker(forceRefresh), loadBlocks(forceRefresh)]);
   } finally {
     isRefreshing = false;
   }
 }
 
-// --- Auto-refresh (30s) ---
+// --- Auto-refresh (network-aware) ---
 function startAutoRefresh() {
   stopAutoRefresh();
   refreshTimer = setInterval(() => {
-    loadData();
-  }, GAS_TRACKER_REFRESH_INTERVAL);
+    loadData(true);
+  }, getNetworkRefreshIntervalMs());
   autoRefreshActive.value = true;
 }
 
