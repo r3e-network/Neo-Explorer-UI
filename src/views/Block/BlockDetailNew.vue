@@ -323,10 +323,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { blockService } from "@/services";
 import { formatNumber, formatAge, formatBytes, formatGas } from "@/utils/explorerFormat";
+import { NETWORK_CHANGE_EVENT, getNetworkRefreshIntervalMs } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -349,6 +350,10 @@ const error = ref(null);
 const showWitnesses = ref(false);
 const latestBlockHeight = ref(Infinity);
 const BLOCK_TX_FETCH_BATCH_SIZE = 100;
+let refreshTimer = null;
+let isBackgroundRefreshing = false;
+let blockRequestId = 0;
+let txRequestId = 0;
 
 // --- Computed ---
 const blockTransactionCount = computed(() => {
@@ -379,67 +384,99 @@ function formatTimestamp(ts) {
   return d.toUTCString();
 }
 
-async function loadBlock(hash) {
-  abortController.value?.abort();
-  abortController.value = new AbortController();
-  loading.value = true;
-  error.value = null;
-  reward.value = null;
-  transactions.value = [];
-  showWitnesses.value = false;
+function mergeBlockData(raw, info) {
+  const merged = { ...(raw || {}), ...(info || {}) };
+  const mergedTxCount = Number(merged?.txcount ?? merged?.transactioncount ?? 0);
+
+  if (Number.isFinite(mergedTxCount) && mergedTxCount > 0) {
+    merged.txcount = mergedTxCount;
+    merged.transactioncount = mergedTxCount;
+  }
+
+  return merged;
+}
+
+async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
+  if (!hash) return;
+
+  const requestId = ++blockRequestId;
+
+  if (!silent) {
+    abortController.value?.abort();
+    abortController.value = new AbortController();
+    loading.value = true;
+    error.value = null;
+    reward.value = null;
+    transactions.value = [];
+    showWitnesses.value = false;
+  }
 
   try {
     // Fetch block info and raw block data in parallel
-    const [info, raw] = await Promise.all([blockService.getInfoByHash(hash), blockService.getByHash(hash)]);
+    const [info, raw] = await Promise.all([
+      blockService.getInfoByHash(hash, { forceRefresh }),
+      blockService.getByHash(hash, { forceRefresh }),
+    ]);
 
-    if (abortController.value?.signal.aborted) return;
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
 
     if (!info && !raw) {
-      error.value = "Block not found. The hash may be invalid.";
+      if (!silent) {
+        error.value = "Block not found. The hash may be invalid.";
+      }
       return;
     }
 
     // Merge info + raw for maximum field coverage
-    block.value = { ...(raw || {}), ...(info || {}) };
-
-    const mergedTxCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
-    if (Number.isFinite(mergedTxCount) && mergedTxCount > 0) {
-      block.value.txcount = mergedTxCount;
-      block.value.transactioncount = mergedTxCount;
-    }
+    block.value = mergeBlockData(raw, info);
+    error.value = null;
 
     // Fetch latest block height for next-button disabled logic
     blockService
-      .getCount()
+      .getCount({ forceRefresh })
       .then((count) => {
-        if (abortController.value?.signal.aborted) return;
+        if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
         if (count > 0) latestBlockHeight.value = count - 1;
       })
       .catch(() => {});
 
     // Load transactions and reward in parallel (non-blocking)
-    loadTransactions();
+    void loadTransactions({ silent, forceRefresh });
     loadReward(hash);
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
     if (process.env.NODE_ENV !== "production") console.error("Failed to load block details:", err);
-    error.value = "Failed to load block details. Please try again.";
+    if (!silent) {
+      error.value = "Failed to load block details. Please try again.";
+    }
   } finally {
-    loading.value = false;
+    if (!silent && requestId === blockRequestId) {
+      loading.value = false;
+    }
   }
 }
 
-async function loadTransactions() {
-  txLoading.value = true;
+async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
+  const requestId = ++txRequestId;
+
+  if (!silent) {
+    txLoading.value = true;
+  }
+
   try {
     const blockHash = block.value?.hash;
     const blockIndex = Number(block.value?.index);
+
     if (!blockHash) {
-      transactions.value = [];
+      if (!silent) {
+        transactions.value = [];
+      }
       return;
     }
 
     if (Array.isArray(block.value.tx) && block.value.tx.length > 0) {
+      if (requestId !== txRequestId || abortController.value?.signal.aborted) return;
+
       transactions.value = block.value.tx;
       if (!block.value.txcount) {
         block.value.txcount = block.value.tx.length;
@@ -461,7 +498,9 @@ async function loadTransactions() {
         const limit = Math.min(BLOCK_TX_FETCH_BATCH_SIZE, maxToLoad - loaded);
         const res = await fetchFn(limit, loaded);
 
-        if (abortController.value?.signal.aborted) return { collected, expectedTotal: maxToLoad };
+        if (requestId !== txRequestId || abortController.value?.signal.aborted) {
+          return { collected, expectedTotal: maxToLoad };
+        }
 
         const list = Array.isArray(res?.result) ? res.result : [];
         if (loaded === 0) {
@@ -487,7 +526,7 @@ async function loadTransactions() {
     };
 
     let { collected, expectedTotal } = await fetchPagedTransactions(
-      (limit, skip) => blockService.getTransactionsByHash(blockHash, limit, skip),
+      (limit, skip) => blockService.getTransactionsByHash(blockHash, limit, skip, { forceRefresh }),
       declaredCount
     );
 
@@ -498,16 +537,18 @@ async function loadTransactions() {
       declaredCount > 0
     ) {
       const fallback = await fetchPagedTransactions(
-        (limit, skip) => blockService.getTransactionsByHeight(blockIndex, limit, skip),
+        (limit, skip) => blockService.getTransactionsByHeight(blockIndex, limit, skip, { forceRefresh }),
         declaredCount
       );
       collected = fallback.collected;
       expectedTotal = fallback.expectedTotal;
     }
 
-    if (abortController.value?.signal.aborted) return;
+    if (requestId !== txRequestId || abortController.value?.signal.aborted) return;
 
-    transactions.value = collected;
+    if (!silent || collected.length > 0 || blockTransactionCount.value === 0) {
+      transactions.value = collected;
+    }
 
     const resolvedCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
     if ((!resolvedCount || resolvedCount <= 0) && collected.length > 0) {
@@ -537,6 +578,41 @@ async function loadReward(_hash) {
   }
 }
 
+async function refreshCurrentBlockSilently() {
+  if (isBackgroundRefreshing || loading.value) return;
+
+  const hash = route.params.hash;
+  if (!hash) return;
+
+  isBackgroundRefreshing = true;
+
+  try {
+    await loadBlock(hash, { silent: true, forceRefresh: true });
+  } finally {
+    isBackgroundRefreshing = false;
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  refreshTimer = setInterval(() => {
+    void refreshCurrentBlockSilently();
+  }, getNetworkRefreshIntervalMs());
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+function handleNetworkChange() {
+  startAutoRefresh();
+  void refreshCurrentBlockSilently();
+}
+
 function navigateBlock(height) {
   if (height < 0) return;
   // We need to get the block hash by height, then navigate
@@ -547,7 +623,14 @@ function navigateBlock(height) {
   });
 }
 
+onMounted(() => {
+  startAutoRefresh();
+  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+});
+
 onBeforeUnmount(() => {
+  stopAutoRefresh();
+  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   abortController.value?.abort();
 });
 
