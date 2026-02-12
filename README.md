@@ -94,6 +94,9 @@ All neo3fura API calls are encapsulated in `src/services/`:
 git clone https://github.com/r3e-network/Neo-Explorer-UI.git
 cd Neo-Explorer-UI
 
+# Create local env config
+cp .env.example .env
+
 # Install dependencies
 yarn install
 
@@ -114,6 +117,32 @@ yarn build
 docker build -t neo-explorer-ui .
 docker run -p 8080:80 neo-explorer-ui
 ```
+
+### Vercel Deployment
+
+This repository is Vercel-ready for SPA routing, with an in-app network switcher (Mainnet default, Testnet optional).
+
+```bash
+# Install dependencies
+npm install
+
+# Deploy (first time links project)
+npx vercel
+
+# Deploy production
+npx vercel --prod
+```
+
+Optional build-time environment variable:
+
+- `VUE_APP_RPC_BASE_URL` (optional fixed override; default uses the in-app network switch)
+
+Vercel routing is defined in `vercel.json`:
+
+- `/api/mainnet` → `https://neofura.ngd.network/api`
+- `/api/testnet` → `https://testmagnet.ngd.network/api`
+- `/api` aliases to mainnet (backward compatible)
+- SPA fallback (`/:path*` → `/index.html`)
 
 ## 📁 Project Structure
 

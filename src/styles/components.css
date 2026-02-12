@@ -43,11 +43,11 @@
     @apply text-gray-300;
   }
   .form-input {
-    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
+    @apply w-full rounded-md border border-card-border bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
     @apply focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
   }
   .dark .form-input {
-    @apply border-gray-600 bg-gray-900 text-gray-200 placeholder-gray-500;
+    @apply border-card-border-dark bg-gray-800 text-gray-200 placeholder-gray-500;
   }
   .form-error {
     @apply mt-1 text-xs text-red-500;

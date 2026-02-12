@@ -5,7 +5,7 @@
 
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
+          class="page-header-icon bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -17,15 +17,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Consensus Candidates</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 consensus node candidates and voting</p>
+          <h1 class="page-title">Consensus Candidates</h1>
+          <p class="page-subtitle">Neo N3 consensus node candidates and voting</p>
         </div>
       </div>
 
       <div class="etherscan-card overflow-hidden">
-        <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-        >
+        <div class="card-header">
           <p class="text-sm text-text-secondary dark:text-gray-300">Candidate list</p>
           <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
         </div>
@@ -50,10 +48,10 @@
           <table class="w-full min-w-[760px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Address</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Votes</th>
-                <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400">Status</th>
+                <th class="table-header-cell">#</th>
+                <th class="table-header-cell">Address</th>
+                <th class="table-header-cell-right">Votes</th>
+                <th class="table-header-cell text-center">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -62,18 +60,18 @@
                 :key="candidate.candidate"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <td class="px-4 py-3 text-sm text-text-muted">
+                <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/account-profile/${candidate.candidate}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(candidate.candidate, 10, 6) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right">
                   {{ formatVotes(candidate.votes) }}
                 </td>
-                <td class="px-4 py-3 text-center">
+                <td class="table-cell text-center">
                   <StatusBadge :status="candidateStatus(candidate.state)" />
                 </td>
               </tr>

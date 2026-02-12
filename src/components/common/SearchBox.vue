@@ -52,7 +52,7 @@
         :class="[
           'flex-1 bg-transparent focus:outline-none',
           mode === 'full'
-            ? 'px-3 py-4 pr-28 text-gray-800 dark:text-white placeholder-gray-400 text-base'
+            ? 'px-3 py-4 pr-28 text-gray-800 dark:text-gray-100 placeholder-gray-400 text-base'
             : 'px-2.5 py-2 pr-16 text-sm text-white placeholder-white/50',
         ]"
         @keyup.enter="handleSearch"
@@ -176,7 +176,7 @@
               >{{ getTypeIcon(item.type) }}</span
             >
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-800 dark:text-white truncate">{{ item.label }}</p>
+              <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ item.label }}</p>
               <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">{{ item.value }}</p>
             </div>
             <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

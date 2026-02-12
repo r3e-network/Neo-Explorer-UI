@@ -12,16 +12,14 @@
 
       <!-- Contract Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300"
-        >
+        <div class="page-header-icon bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300">
           <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
           </svg>
         </div>
         <div>
           <div class="flex flex-wrap items-center gap-2">
-            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
+            <h1 class="page-title">
               {{ contract.name || "Unknown Contract" }}
             </h1>
             <span
@@ -51,7 +49,11 @@
             <span class="font-mono text-sm text-text-secondary dark:text-gray-400">
               {{ truncateHash(contract.hash, 12, 8) }}
             </span>
-            <button @click="copyHash" aria-label="Copy contract hash" class="text-gray-400 hover:text-primary-500">
+            <button
+              @click="copyHash"
+              aria-label="Copy contract hash"
+              class="text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
+            >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -70,7 +72,7 @@
 
       <!-- Overview Card -->
       <div v-if="!error" class="mb-6 etherscan-card">
-        <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+        <div class="card-header">
           <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
         </div>
         <div class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -179,7 +181,7 @@
               </p>
               <router-link
                 :to="sourceCodeLocation"
-                class="inline-flex items-center justify-center rounded border border-card-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-gray-100 dark:border-card-border-dark dark:text-gray-200 dark:hover:bg-gray-800"
+                class="btn-outline inline-flex items-center justify-center rounded px-3 py-2 text-sm font-medium transition-colors"
               >
                 Open Full Source Page
               </router-link>
@@ -331,7 +333,7 @@
                     </span>
                   </div>
                   <svg
-                    class="h-4 w-4 text-gray-400 transition-transform"
+                    class="h-4 w-4 text-gray-400 transition-transform dark:text-gray-500"
                     :class="{ 'rotate-180': readMethodState[mIdx]?.open }"
                     fill="none"
                     stroke="currentColor"
@@ -355,7 +357,7 @@
                         type="text"
                         :placeholder="param.type"
                         :aria-label="`Parameter ${param.name}`"
-                        class="rounded-md border border-card-border bg-white px-3 py-2 font-mono text-sm text-text-primary focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+                        class="form-input font-mono"
                       />
                     </div>
                   </div>
@@ -512,7 +514,7 @@
                     </span>
                   </div>
                   <svg
-                    class="h-4 w-4 text-gray-400 transition-transform duration-200"
+                    class="h-4 w-4 text-gray-400 transition-transform duration-200 dark:text-gray-500"
                     :class="{ 'rotate-180': writeMethodState[wIdx]?.open }"
                     fill="none"
                     stroke="currentColor"
@@ -537,7 +539,7 @@
                         type="text"
                         :placeholder="param.type"
                         :aria-label="`Parameter ${param.name}`"
-                        class="rounded-md border border-card-border bg-white px-3 py-2 font-mono text-sm text-text-primary focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+                        class="form-input font-mono"
                       />
                     </div>
                   </div>

@@ -107,3 +107,6 @@ typings/
 
 # TernJS port file
 .tern-port
+
+# Vercel local project metadata
+.vercel/

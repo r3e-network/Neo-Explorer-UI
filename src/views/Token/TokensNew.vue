@@ -5,9 +5,7 @@
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tokens' }]" />
 
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300"
-        >
+        <div class="page-header-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -18,16 +16,16 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Tokens</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">NEP-17 fungible tokens on Neo N3</p>
+          <h1 class="page-title">Tokens</h1>
+          <p class="page-subtitle">NEP-17 fungible tokens on Neo N3</p>
         </div>
       </div>
 
       <!-- Token List Card -->
       <div class="etherscan-card overflow-hidden">
         <!-- Tabs -->
-        <div class="border-b border-card-border px-4 dark:border-card-border-dark">
-          <nav class="flex gap-1 py-2">
+        <div class="card-header">
+          <nav class="flex gap-1">
             <button
               @click="switchTab('nep17')"
               :class="['tab-btn', activeTab === 'nep17' ? 'tab-btn-active' : 'tab-btn-inactive']"
@@ -57,7 +55,7 @@
               type="text"
               placeholder="Search by name..."
               aria-label="Search tokens"
-              class="w-full rounded-lg border border-card-border bg-white py-1.5 pl-8 pr-3 text-sm text-text-primary placeholder-text-muted transition-colors focus:border-primary-500 focus:outline-none dark:border-card-border-dark dark:bg-gray-900 dark:text-gray-200"
+              class="form-input pl-8 pr-3"
               @input="handleSearchDebounced"
             />
             <svg
@@ -82,23 +80,25 @@
         </div>
 
         <!-- Error State -->
-        <ErrorState v-else-if="error" title="Unable to load tokens" :message="error" @retry="loadPage" />
+        <div v-else-if="error" class="p-6">
+          <ErrorState title="Unable to load tokens" :message="error" @retry="loadPage" />
+        </div>
 
         <!-- Empty -->
-        <EmptyState v-else-if="tokens.length === 0" title="No tokens found" />
+        <EmptyState v-else-if="tokens.length === 0" message="No tokens found" />
 
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Symbol</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Holders</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Total Supply</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Market Cap</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Token</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Symbol</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Contract</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Holders</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Total Supply</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Market Cap</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -147,12 +147,12 @@
           <table class="w-full min-w-[920px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Symbol</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Items</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Holders</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Collection</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Symbol</th>
+                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Contract</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Items</th>
+                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Holders</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -345,15 +345,3 @@ onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
 });
 </script>
-
-<style scoped>
-.tab-btn {
-  @apply rounded-md px-3 py-2 text-sm font-medium transition-colors;
-}
-.tab-btn-active {
-  @apply bg-primary-50 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400;
-}
-.tab-btn-inactive {
-  @apply text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200;
-}
-</style>

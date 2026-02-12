@@ -6,13 +6,15 @@
     </div>
 
     <!-- Error State -->
-    <ErrorState v-else-if="error" title="Unable to load NFT items" :message="error" @retry="loadNftItems(0)" />
+    <div v-else-if="error" class="p-6">
+      <ErrorState title="Unable to load NFT items" :message="error" @retry="loadNftItems(0)" />
+    </div>
 
     <template v-else>
       <!-- View Toggle + Info bar -->
       <div
         v-if="totalCount > 0"
-        class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+        class="card-header"
       >
         <p class="text-sm text-text-secondary dark:text-gray-300">
           A total of {{ formatNumber(totalCount) }} NFT items found
@@ -72,7 +74,7 @@
               loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div v-else class="flex h-full items-center justify-center text-gray-400">
+            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
               <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -110,7 +112,7 @@
               loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div v-else class="flex h-full items-center justify-center text-gray-400">
+            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -134,7 +136,7 @@
       </div>
 
       <div v-if="tableData.length === 0" class="p-4">
-        <EmptyState title="No NFT tokens found" />
+        <EmptyState message="No NFT tokens found" />
       </div>
     </template>
 

@@ -7,7 +7,7 @@
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl"
+          class="page-header-icon"
           :class="
             isSuccess === true
               ? 'bg-green-100 dark:bg-green-900/40'
@@ -18,7 +18,13 @@
         >
           <svg
             class="h-6 w-6"
-            :class="isSuccess === true ? 'text-green-500' : isSuccess === false ? 'text-red-500' : 'text-gray-400'"
+            :class="
+              isSuccess === true
+                ? 'text-green-500'
+                : isSuccess === false
+                ? 'text-red-500'
+                : 'text-gray-400 dark:text-gray-500'
+            "
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -47,7 +53,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Transaction Details</h1>
+          <h1 class="page-title">Transaction Details</h1>
           <StatusBadge :status="txStatus" />
         </div>
       </div>
@@ -97,22 +103,20 @@
       <StateChangeSummary v-if="isComplexTx" :enriched-trace="enrichedTrace" :loading="enrichedLoading" class="mb-6" />
 
       <!-- Loading State -->
-      <div v-if="loading" class="etherscan-card p-6">
-        <div class="animate-pulse space-y-4">
-          <div v-for="i in 8" :key="'skel-' + i" class="h-4 rounded bg-gray-200 dark:bg-gray-700" />
+      <div v-if="loading" class="space-y-6">
+        <div class="etherscan-card p-6">
+          <Skeleton width="30%" height="24px" class="mb-6" />
+          <div class="space-y-4">
+            <div v-for="i in 8" :key="'skel-' + i" class="flex gap-4">
+              <Skeleton width="120px" height="18px" />
+              <Skeleton width="60%" height="18px" />
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="etherscan-card p-6 text-center">
-        <p class="mb-3 text-sm text-red-500">{{ error }}</p>
-        <button
-          class="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
-          @click="loadTx(txHash)"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState v-else-if="error" title="Transaction not found" :message="error" @retry="loadTx(txHash)" />
 
       <!-- Tabbed Content -->
       <div v-else-if="tx.hash" class="etherscan-card">
@@ -159,7 +163,7 @@
               </InfoRow>
 
               <InfoRow label="Block">
-                <router-link :to="`/block-info/${tx.blockhash}`" class="text-primary-500 hover:text-primary-600">
+                <router-link :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
                   #{{ tx.blockIndex }}
                 </router-link>
               </InfoRow>
@@ -212,7 +216,7 @@
             <!-- Collapsible More Details -->
             <div class="mt-4 rounded-lg border border-card-border dark:border-card-border-dark">
               <button
-                class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                 @click="showMore = !showMore"
               >
                 <span class="text-sm font-medium text-primary-500">
@@ -406,34 +410,34 @@
                       <table class="w-full text-sm">
                         <thead>
                           <tr class="border-b border-card-border dark:border-card-border-dark">
-                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                            <th class="table-header-cell">
                               #
                             </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                            <th class="table-header-cell">
                               Contract
                             </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                            <th class="table-header-cell">
                               Event
                             </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                            <th class="table-header-cell">
                               State
                             </th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
                           <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx">
-                            <td class="px-3 py-2 text-xs text-text-secondary">{{ nIdx }}</td>
-                            <td class="px-3 py-2">
+                            <td class="table-cell-secondary text-xs">{{ nIdx }}</td>
+                            <td class="table-cell">
                               <HashLink :hash="n.contract" type="contract" />
                             </td>
-                            <td class="px-3 py-2">
+                            <td class="table-cell">
                               <span
                                 class="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
                               >
                                 {{ n.eventname || "unknown" }}
                               </span>
                             </td>
-                            <td class="px-3 py-2">
+                            <td class="table-cell">
                               <pre
                                 class="max-h-24 max-w-xs overflow-auto font-mono text-xs text-text-primary dark:text-gray-300"
                                 >{{ formatState(n.state) }}</pre
@@ -470,25 +474,25 @@
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-card-border dark:border-card-border-dark">
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">#</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">Type</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">From</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">To</th>
-                    <th class="px-3 py-2 text-right text-xs font-medium text-text-secondary dark:text-gray-400">
+                    <th class="table-header-cell">#</th>
+                    <th class="table-header-cell">Type</th>
+                    <th class="table-header-cell">From</th>
+                    <th class="table-header-cell">To</th>
+                    <th class="table-header-cell-right">
                       Amount
                     </th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                    <th class="table-header-cell">
                       Token
                     </th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-text-secondary dark:text-gray-400">
+                    <th class="table-header-cell">
                       Contract
                     </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
                   <tr v-for="(t, tIdx) in allTransfers" :key="'xfer-' + tIdx">
-                    <td class="px-3 py-2 text-xs text-text-secondary">{{ tIdx + 1 }}</td>
-                    <td class="px-3 py-2">
+                    <td class="table-cell-secondary text-xs">{{ tIdx + 1 }}</td>
+                    <td class="table-cell">
                       <span
                         class="rounded px-2 py-0.5 text-xs font-medium"
                         :class="
@@ -500,25 +504,25 @@
                         {{ t._standard }}
                       </span>
                     </td>
-                    <td class="px-3 py-2">
+                    <td class="table-cell">
                       <HashLink v-if="t.from" :hash="t.from" type="address" />
                       <span v-else class="text-xs italic text-text-secondary">Mint</span>
                     </td>
-                    <td class="px-3 py-2">
+                    <td class="table-cell">
                       <HashLink v-if="t.to" :hash="t.to" type="address" />
                       <span v-else class="text-xs italic text-text-secondary">Burn</span>
                     </td>
-                    <td class="px-3 py-2 text-right font-mono text-xs text-text-primary dark:text-gray-200">
+                    <td class="table-cell text-right font-mono text-xs">
                       {{ formatTransferAmount(t) }}
                     </td>
-                    <td class="px-3 py-2">
+                    <td class="table-cell">
                       <span
                         class="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-text-primary dark:bg-gray-700 dark:text-gray-200"
                       >
                         {{ t.tokenname || t.symbol || "Unknown" }}
                       </span>
                     </td>
-                    <td class="px-3 py-2">
+                    <td class="table-cell">
                       <HashLink :hash="t.contract || t.contractHash" type="contract" />
                     </td>
                   </tr>
@@ -647,6 +651,8 @@ import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
 import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
 
 const route = useRoute();
 

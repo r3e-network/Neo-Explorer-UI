@@ -6,18 +6,20 @@
     </div>
 
     <!-- Error State -->
-    <ErrorState v-else-if="error" title="Unable to load events" :message="error" @retry="() => loadPage(currentPage)" />
+    <div v-else-if="error" class="p-6">
+      <ErrorState title="Unable to load events" :message="error" @retry="() => loadPage(currentPage)" />
+    </div>
 
     <template v-else>
       <div class="overflow-x-auto">
         <table class="w-full min-w-[750px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Event Name</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">VM State</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Index</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">
+              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell">Event Name</th>
+              <th class="table-header-cell">VM State</th>
+              <th class="table-header-cell">Index</th>
+              <th class="table-header-cell">
                 Time
                 <button class="btn-mini ml-1" @click="toggleTimeFormat">Format</button>
               </th>
@@ -29,7 +31,7 @@
               :key="item.txid + item.eventname"
               class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
             >
-              <td class="px-4 py-3">
+              <td class="table-cell">
                 <div class="max-w-[200px] truncate">
                   <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted"> Null Transaction </span>
                   <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
@@ -37,14 +39,14 @@
                   </router-link>
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+              <td class="table-cell">
                 <span
                   class="inline-flex items-center rounded bg-violet-50 px-1.5 py-0.5 font-mono text-xs text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
                 >
                   {{ item.eventname }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm">
+              <td class="table-cell">
                 <span
                   class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
                   :class="vmStateClass(item.Vmstate)"
@@ -52,10 +54,10 @@
                   {{ item.Vmstate }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+              <td class="table-cell">
                 {{ item.index }}
               </td>
-              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+              <td class="table-cell">
                 {{ formatTimestamp(item.timestamp) }}
               </td>
             </tr>
@@ -68,10 +70,7 @@
       </div>
     </template>
 
-    <div
-      v-if="!loading && totalCount > pageSize"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
-    >
+    <div v-if="!loading && totalCount > pageSize" class="card-header border-t border-b-0">
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"

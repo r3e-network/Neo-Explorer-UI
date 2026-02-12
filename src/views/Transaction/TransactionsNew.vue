@@ -7,7 +7,7 @@
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
+          class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -19,8 +19,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Transactions</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 network transactions</p>
+          <h1 class="page-title">Transactions</h1>
+          <p class="page-subtitle">Neo N3 network transactions</p>
         </div>
       </div>
 
@@ -45,9 +45,7 @@
       <!-- Main Card -->
       <div class="etherscan-card overflow-hidden">
         <!-- Card Header -->
-        <div
-          class="flex flex-col gap-2 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-card-border-dark"
-        >
+        <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-sm text-text-secondary dark:text-gray-400">
             Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(total) }} transactions
           </p>
@@ -80,11 +78,11 @@
           <table class="w-full min-w-[900px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Method</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Block</th>
+                <th class="table-header-cell">Txn Hash</th>
+                <th class="table-header-cell">Method</th>
+                <th class="table-header-cell">Block</th>
                 <th
-                  class="cursor-pointer select-none px-4 py-3 text-left font-medium text-text-secondary transition-colors hover:text-primary-500 dark:text-gray-400"
+                  class="table-header-cell cursor-pointer select-none transition-colors hover:text-primary-500"
                   @click="showAbsoluteTime = !showAbsoluteTime"
                 >
                   {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
@@ -97,20 +95,16 @@
                     />
                   </svg>
                 </th>
-                <th class="hidden px-4 py-3 text-left font-medium text-text-secondary md:table-cell dark:text-gray-400">
+                <th class="table-header-cell hidden md:table-cell">
                   From
                 </th>
-                <th class="hidden px-4 py-3 text-left font-medium text-text-secondary lg:table-cell dark:text-gray-400">
+                <th class="table-header-cell hidden lg:table-cell">
                   To
                 </th>
-                <th
-                  class="hidden px-4 py-3 text-right font-medium text-text-secondary lg:table-cell dark:text-gray-400"
-                >
+                <th class="table-header-cell-right hidden lg:table-cell">
                   Value
                 </th>
-                <th
-                  class="hidden px-4 py-3 text-right font-medium text-text-secondary xl:table-cell dark:text-gray-400"
-                >
+                <th class="table-header-cell-right hidden xl:table-cell">
                   Txn Fee
                 </th>
               </tr>
@@ -119,10 +113,10 @@
               <tr
                 v-for="tx in transactions"
                 :key="tx.hash"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 <!-- Txn Hash -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <div class="flex items-center gap-1.5">
                     <svg
                       class="h-4 w-4 flex-shrink-0"
@@ -135,7 +129,7 @@
                     <router-link
                       :to="`/transaction-info/${tx.hash}`"
                       :title="tx.hash"
-                      class="font-mono text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                      class="etherscan-link font-mono"
                     >
                       {{ truncateHash(tx.hash) }}
                     </router-link>
@@ -143,7 +137,7 @@
                 </td>
 
                 <!-- Method -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <span
                     class="inline-block max-w-[100px] truncate rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-text-primary dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                     :title="getMethodName(tx)"
@@ -153,30 +147,30 @@
                 </td>
 
                 <!-- Block -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link
                     :to="`/block-info/${tx.blockhash}`"
-                    class="text-sm text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+                    class="etherscan-link"
                   >
                     {{ tx.blockIndex }}
                   </router-link>
                 </td>
 
                 <!-- Age -->
-                <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary">
                   <span :title="formatUnixTime(tx.blocktime)">
                     {{ showAbsoluteTime ? formatUnixTime(tx.blocktime) : formatAge(tx.blocktime) }}
                   </span>
                 </td>
 
                 <!-- From -->
-                <td class="hidden px-4 py-3 md:table-cell">
+                <td class="table-cell hidden md:table-cell">
                   <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
                   <span v-else class="text-xs text-text-secondary">-</span>
                 </td>
 
                 <!-- To -->
-                <td class="hidden px-4 py-3 lg:table-cell">
+                <td class="table-cell hidden lg:table-cell">
                   <span v-if="getRecipient(tx)" class="flex items-center gap-1">
                     <svg
                       class="h-3 w-3 flex-shrink-0 text-green-500"
@@ -198,13 +192,13 @@
 
                 <!-- Value -->
                 <td
-                  class="hidden px-4 py-3 text-right font-mono text-sm text-text-primary lg:table-cell dark:text-gray-200"
+                  class="table-cell hidden text-right font-mono lg:table-cell"
                 >
                   {{ formatTxValue(tx) }} GAS
                 </td>
 
                 <!-- Fee -->
-                <td class="hidden px-4 py-3 text-right text-xs text-text-secondary xl:table-cell dark:text-gray-400">
+                <td class="table-cell-secondary hidden text-right text-xs xl:table-cell">
                   {{ formatTxFee(tx) }}
                 </td>
               </tr>

@@ -140,7 +140,7 @@
             </div>
             <div class="mini-stat">
               <span class="mini-label">Last Finalized Block</span>
-              <router-link to="/blocks/1" class="mini-value-link">{{ formatNumber(blockCount) }}</router-link>
+              <router-link to="/blocks/1" class="mini-value-link etherscan-link">{{ formatNumber(blockCount) }}</router-link>
             </div>
             <div class="mini-stat">
               <span class="mini-label">Network Fee</span>
@@ -160,9 +160,7 @@
       <div class="grid gap-4 lg:grid-cols-2">
         <!-- Latest Blocks -->
         <article class="etherscan-card overflow-hidden">
-          <header
-            class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-          >
+          <header class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Latest Blocks</h2>
             <router-link to="/blocks/1" class="btn-outline text-xs">View all</router-link>
           </header>
@@ -178,7 +176,7 @@
             />
           </div>
           <div v-else-if="!latestBlocks.length" class="p-4">
-            <EmptyState title="No blocks found" />
+            <EmptyState message="No blocks found" />
           </div>
           <div v-else>
             <BlockListItem v-for="block in latestBlocks" :key="block.hash" :block="block" />
@@ -187,9 +185,7 @@
 
         <!-- Latest Transactions -->
         <article class="etherscan-card overflow-hidden">
-          <header
-            class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-          >
+          <header class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Latest Transactions</h2>
             <router-link to="/transactions/1" class="btn-outline text-xs">View all</router-link>
           </header>
@@ -205,7 +201,7 @@
             />
           </div>
           <div v-else-if="!latestTxs.length" class="p-4">
-            <EmptyState title="No transactions found" />
+            <EmptyState message="No transactions found" />
           </div>
           <div v-else>
             <TxListItem v-for="tx in latestTxs" :key="tx.hash" :tx="tx" />
@@ -385,14 +381,6 @@ onBeforeUnmount(() => {
 
 .stat-block {
   @apply rounded-lg border border-card-border p-3 dark:border-card-border-dark;
-}
-
-.stat-label {
-  @apply text-xs font-medium text-text-secondary dark:text-gray-400;
-}
-
-.stat-value {
-  @apply text-lg font-semibold text-text-primary dark:text-gray-100;
 }
 
 .mini-stat {

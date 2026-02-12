@@ -6,18 +6,15 @@
     </div>
 
     <!-- Error State -->
-    <ErrorState
-      v-else-if="error"
-      title="Unable to load token holders"
-      :message="error"
-      @retry="() => loadPage(currentPage)"
-    />
+    <div v-else-if="error" class="p-6">
+      <ErrorState title="Unable to load token holders" :message="error" @retry="() => loadPage(currentPage)" />
+    </div>
 
     <template v-else>
       <!-- Info bar -->
       <div
         v-if="totalCount > 0"
-        class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+        class="card-header"
       >
         <p class="text-sm text-text-secondary dark:text-gray-300">
           A total of {{ formatNumber(totalCount) }} holders found
@@ -89,7 +86,7 @@
       </div>
 
       <div v-if="holders.length === 0" class="p-4">
-        <EmptyState title="No holders found" />
+        <EmptyState message="No holders found" />
       </div>
     </template>
 

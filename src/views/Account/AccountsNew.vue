@@ -5,7 +5,7 @@
 
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
+          class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -17,15 +17,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Top Accounts</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 accounts ranked by balance</p>
+          <h1 class="page-title">Top Accounts</h1>
+          <p class="page-subtitle">Neo N3 accounts ranked by balance</p>
         </div>
       </div>
 
       <div class="etherscan-card overflow-hidden">
-        <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-        >
+        <div class="card-header">
           <p class="text-sm text-text-secondary dark:text-gray-300">
             <span v-if="!loading && total > 0"> More than {{ formatNumber(total) }} addresses found </span>
             <span v-else>Loading addresses...</span>
@@ -53,12 +51,12 @@
           <table class="w-full min-w-[900px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="w-16 px-4 py-3 text-left font-medium text-text-secondary">Rank</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Address</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">NEO Balance</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">GAS Balance</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Txn Count</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Last Active</th>
+                <th class="table-header-cell w-16">Rank</th>
+                <th class="table-header-cell">Address</th>
+                <th class="table-header-cell-right">NEO Balance</th>
+                <th class="table-header-cell-right">GAS Balance</th>
+                <th class="table-header-cell-right">Txn Count</th>
+                <th class="table-header-cell-right">Last Active</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -67,10 +65,10 @@
                 :key="account.address || index"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <td class="px-4 py-3 text-sm text-text-muted dark:text-gray-500">
+                <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link
                     :to="`/account-profile/${account.address}`"
                     :title="account.address"
@@ -79,16 +77,16 @@
                     {{ displayAddress(account.address) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right font-medium">
                   {{ formatBalance(account.neobalance) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right font-medium">
                   {{ formatGasBalance(account.gasbalance) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary text-right">
                   {{ formatNumber(getTxnCount(account)) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary text-right">
                   {{ formatLastActive(account) }}
                 </td>
               </tr>

@@ -7,7 +7,7 @@
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300"
+          class="page-header-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -19,8 +19,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Burned GAS</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <h1 class="page-title">Burned GAS</h1>
+          <p class="page-subtitle">
             GAS burn statistics from Neo N3 system fee consumption
           </p>
         </div>
@@ -32,8 +32,8 @@
       </div>
       <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Total GAS Burned -->
-        <div class="etherscan-card p-5">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Total GAS Burned</p>
+        <div class="stat-card">
+          <p class="stat-label">Total GAS Burned</p>
           <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
             {{ formatGasDisplay(totalBurned) }}
           </p>
@@ -41,18 +41,18 @@
         </div>
 
         <!-- Daily Burn Rate -->
-        <div class="etherscan-card p-5">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Avg Daily Burn</p>
-          <p class="mt-2 text-2xl font-bold text-text-primary dark:text-gray-100">
+        <div class="stat-card">
+          <p class="stat-label">Avg Daily Burn</p>
+          <p class="stat-value text-2xl">
             {{ formatGasDisplay(avgDailyBurn) }}
           </p>
           <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / day</p>
         </div>
 
         <!-- Burn Trend -->
-        <div class="etherscan-card p-5">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Burn Rate per Tx</p>
-          <p class="mt-2 text-2xl font-bold text-text-primary dark:text-gray-100">
+        <div class="stat-card">
+          <p class="stat-label">Burn Rate per Tx</p>
+          <p class="stat-value text-2xl">
             {{ BURN_RATE }}
           </p>
           <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS (system fee burn)</p>

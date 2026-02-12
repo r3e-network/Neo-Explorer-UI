@@ -30,7 +30,7 @@
 
   /* ── Buttons ── */
   .btn-outline {
-    @apply bg-transparent text-primary-500 border border-primary-500 hover:bg-primary-50;
+    @apply inline-flex items-center justify-center rounded-md border border-primary-500 bg-transparent px-3 py-1.5 text-sm font-medium text-primary-500 transition-colors duration-150 hover:bg-primary-50;
   }
   .dark .btn-outline {
     @apply hover:bg-primary-900/30;
@@ -47,11 +47,11 @@
     @apply text-gray-300;
   }
   .form-input {
-    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
+    @apply w-full rounded-md border border-card-border bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
     @apply focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
   }
   .dark .form-input {
-    @apply border-gray-600 bg-gray-900 text-gray-200 placeholder-gray-500;
+    @apply border-card-border-dark bg-gray-800 text-gray-200 placeholder-gray-500;
   }
   .form-error {
     @apply mt-1 text-xs text-red-500;
@@ -99,6 +99,9 @@
   }
 
   /* ── Stat Cards ── */
+  .stat-card {
+    @apply etherscan-card p-5;
+  }
   .stat-label {
     @apply text-xs font-medium uppercase tracking-wide text-text-secondary;
   }
@@ -118,6 +121,43 @@
   }
   .dark .card-header {
     @apply border-card-border-dark;
+  }
+
+  /* ── Table ── */
+  .table-header-cell {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-secondary;
+  }
+  .dark .table-header-cell {
+    @apply text-gray-400;
+  }
+  .table-header-cell-right {
+    @apply table-header-cell text-right;
+  }
+  .table-cell {
+    @apply px-4 py-3 text-sm text-text-primary;
+  }
+  .dark .table-cell {
+    @apply text-gray-200;
+  }
+  .table-cell-secondary {
+    @apply px-4 py-3 text-sm text-text-secondary;
+  }
+  .dark .table-cell-secondary {
+    @apply text-gray-400;
+  }
+  .table-cell-mono {
+    @apply table-cell font-hash;
+  }
+
+  /* ── Tabs ── */
+  .tab-btn {
+    @apply rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
+  }
+  .tab-btn-active {
+    @apply bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300;
+  }
+  .tab-btn-inactive {
+    @apply text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100;
   }
 }
 

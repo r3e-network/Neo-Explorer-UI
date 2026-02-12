@@ -4,9 +4,7 @@
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts' }]" />
 
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
-        >
+        <div class="page-header-icon bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -17,8 +15,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Contracts</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Smart contracts deployed on Neo N3</p>
+          <h1 class="page-title">Contracts</h1>
+          <p class="page-subtitle">Smart contracts deployed on Neo N3</p>
         </div>
       </div>
 
@@ -26,7 +24,7 @@
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="relative max-w-md flex-1">
           <svg
-            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -43,7 +41,7 @@
             type="text"
             placeholder="Search by contract name..."
             aria-label="Search contracts"
-            class="w-full rounded-lg border border-card-border bg-white py-2 pl-10 pr-4 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+            class="form-input rounded-lg py-2 pl-10 pr-4"
             @input="onSearchInput"
           />
         </div>
@@ -64,9 +62,7 @@
       </div>
 
       <div class="etherscan-card overflow-hidden">
-        <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-        >
+        <div class="card-header">
           <p class="text-sm text-text-secondary dark:text-gray-300">
             {{ isSearchMode ? "Search results" : "Contract registry" }}
           </p>
@@ -91,15 +87,15 @@
         <!-- Data Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Hash</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Invocations</th>
-                <th class="px-4 py-3 text-center font-medium text-text-secondary">Standards</th>
-                <th class="px-4 py-3 text-center font-medium text-text-secondary">Verified</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Created</th>
+                <th class="table-header-cell">#</th>
+                <th class="table-header-cell">Contract</th>
+                <th class="table-header-cell">Hash</th>
+                <th class="table-header-cell-right">Invocations</th>
+                <th class="table-header-cell text-center">Standards</th>
+                <th class="table-header-cell text-center">Verified</th>
+                <th class="table-header-cell-right">Created</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -108,10 +104,10 @@
                 :key="contract.hash"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <td class="px-4 py-3 text-sm text-text-muted">
+                <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link
                     :to="`/contract-info/${contract.hash}`"
                     class="font-medium text-text-primary etherscan-link dark:text-gray-100"
@@ -119,15 +115,15 @@
                     {{ contract.name || "Unknown Contract" }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/contract-info/${contract.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(contract.hash) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right">
                   {{ formatNumber(contract.invocations || 0) }}
                 </td>
-                <td class="px-4 py-3 text-center">
+                <td class="table-cell text-center">
                   <div class="flex flex-wrap justify-center gap-1">
                     <span
                       v-for="std in getStandards(contract)"
@@ -140,7 +136,7 @@
                     <span v-if="!getStandards(contract).length" class="text-xs text-text-muted">-</span>
                   </div>
                 </td>
-                <td class="px-4 py-3 text-center">
+                <td class="table-cell text-center">
                   <svg
                     v-if="contract.verified"
                     class="mx-auto h-5 w-5 text-success"
@@ -155,7 +151,7 @@
                   </svg>
                   <span v-else class="text-xs text-text-muted">-</span>
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary text-right">
                   {{ formatTime(contract.createtime) }}
                 </td>
               </tr>

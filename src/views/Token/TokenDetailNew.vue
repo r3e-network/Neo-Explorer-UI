@@ -10,16 +10,14 @@
       />
 
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400"
-        >
+        <div class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400">
           <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
+          <h1 class="page-title">
             {{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})
           </h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <p class="page-subtitle">
             {{ token.type ? `NEP-${token.type} Token` : "Token" }}
           </p>
         </div>
@@ -30,21 +28,21 @@
 
       <template v-else>
         <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="info-card">
-            <p class="info-label">Total Supply</p>
-            <p class="info-value">{{ formatSupply }}</p>
+          <div class="stat-card">
+            <p class="stat-label">Total Supply</p>
+            <p class="stat-value">{{ formatSupply }}</p>
           </div>
-          <div class="info-card">
-            <p class="info-label">Holders</p>
-            <p class="info-value">{{ formatNumber(token.holders) }}</p>
+          <div class="stat-card">
+            <p class="stat-label">Holders</p>
+            <p class="stat-value">{{ formatNumber(token.holders) }}</p>
           </div>
-          <div class="info-card">
-            <p class="info-label">Type</p>
-            <p class="info-value">{{ token.type || "NEP-17" }}</p>
+          <div class="stat-card">
+            <p class="stat-label">Type</p>
+            <p class="stat-value">{{ token.type || "NEP-17" }}</p>
           </div>
-          <div class="info-card">
-            <p class="info-label">Decimals</p>
-            <p class="info-value">{{ token.decimals || 0 }}</p>
+          <div class="stat-card">
+            <p class="stat-label">Decimals</p>
+            <p class="stat-value">{{ token.decimals || 0 }}</p>
           </div>
         </div>
 
@@ -58,7 +56,7 @@
             <router-link
               v-if="token.hash"
               :to="`/contract-info/${token.hash}`"
-              class="break-all font-mono text-sm etherscan-link"
+              class="break-all font-hash text-sm etherscan-link"
             >
               {{ token.hash }}
             </router-link>
@@ -67,19 +65,14 @@
         </div>
 
         <div class="etherscan-card">
-          <div class="border-b border-card-border dark:border-card-border-dark">
-            <nav class="flex flex-wrap" role="tablist">
+          <div class="card-header">
+            <nav class="flex flex-wrap gap-1" role="tablist">
               <button
                 v-for="tab in tabs"
                 :key="tab.key"
                 role="tab"
                 :aria-selected="activeTab === tab.key"
-                class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
-                :class="
-                  activeTab === tab.key
-                    ? 'border-primary-500 text-primary-500 dark:text-primary-400'
-                    : 'border-transparent text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-gray-200'
-                "
+                :class="['tab-btn', activeTab === tab.key ? 'tab-btn-active' : 'tab-btn-inactive']"
                 @click="activeTab = tab.key"
               >
                 {{ tab.label }}
@@ -167,17 +160,3 @@ watch(
   { immediate: true }
 );
 </script>
-
-<style scoped>
-.info-card {
-  @apply rounded-lg border border-card-border bg-white p-4 shadow-sm dark:border-card-border-dark dark:bg-gray-900;
-}
-
-.info-label {
-  @apply text-sm text-text-secondary dark:text-gray-400;
-}
-
-.info-value {
-  @apply mt-1 text-lg font-semibold text-text-primary dark:text-gray-100;
-}
-</style>

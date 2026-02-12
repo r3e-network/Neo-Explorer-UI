@@ -14,17 +14,17 @@
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/40"
+            class="page-header-icon bg-primary-100 dark:bg-primary-900/40"
           >
             <svg class="h-6 w-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
             </svg>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
+            <h1 class="page-title">
               Block #{{ formatNumber(block.index ?? 0) }}
             </h1>
-            <p class="text-sm text-text-secondary" v-if="!loading">{{ timeAgo }}</p>
+            <p class="page-subtitle" v-if="!loading">{{ timeAgo }}</p>
           </div>
         </div>
         <!-- Prev / Next Navigation -->
@@ -74,7 +74,7 @@
       <div v-else class="space-y-6">
         <!-- Overview Card -->
         <div class="etherscan-card overflow-hidden">
-          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+          <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
           </div>
           <div class="p-4 md:p-6">
@@ -85,7 +85,7 @@
 
             <!-- Timestamp -->
             <InfoRow label="Timestamp">
-              <svg class="mr-1.5 inline h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="mr-1.5 inline h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -123,7 +123,7 @@
 
         <!-- Details Card -->
         <div class="etherscan-card overflow-hidden">
-          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+          <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
           </div>
           <div class="p-4 md:p-6">
@@ -174,7 +174,7 @@
 
         <!-- Fees & Reward Card -->
         <div class="etherscan-card overflow-hidden">
-          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+          <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Fees &amp; Reward</h2>
           </div>
           <div class="p-4 md:p-6">
@@ -203,7 +203,7 @@
               <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ block.witnesses.length }}) </span>
             </h2>
             <svg
-              class="h-5 w-5 text-gray-400 transition-transform"
+              class="h-5 w-5 text-gray-400 transition-transform dark:text-gray-500"
               :class="{ 'rotate-180': showWitnesses }"
               fill="none"
               stroke="currentColor"
@@ -235,7 +235,7 @@
 
         <!-- dBFT Consensus Info -->
         <div v-once class="etherscan-card overflow-hidden">
-          <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+          <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">dBFT 2.0 Consensus</h2>
           </div>
           <div class="p-4 md:p-6">
@@ -259,9 +259,7 @@
 
         <!-- Transactions in Block -->
         <div class="etherscan-card overflow-hidden">
-          <div
-            class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-          >
+          <div class="card-header">
             <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
               Transactions
               <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ transactions.length }}) </span>
@@ -285,11 +283,11 @@
             <table class="w-full min-w-[700px]">
               <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                 <tr>
-                  <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-                  <th class="px-4 py-3 text-left font-medium text-text-secondary">Sender</th>
-                  <th class="px-4 py-3 text-right font-medium text-text-secondary">System Fee</th>
-                  <th class="px-4 py-3 text-right font-medium text-text-secondary">Net Fee</th>
-                  <th class="px-4 py-3 text-right font-medium text-text-secondary">Size</th>
+                  <th class="table-header-cell">Txn Hash</th>
+                  <th class="table-header-cell">Sender</th>
+                  <th class="table-header-cell-right">System Fee</th>
+                  <th class="table-header-cell-right">Net Fee</th>
+                  <th class="table-header-cell-right">Size</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -298,20 +296,20 @@
                   :key="tx.hash"
                   class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                 >
-                  <td class="px-4 py-3">
+                  <td class="table-cell">
                     <HashLink :hash="tx.hash" type="tx" />
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="table-cell">
                     <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
                     <span v-else class="text-sm text-text-secondary">--</span>
                   </td>
-                  <td class="px-4 py-3 text-right font-mono text-sm">
+                  <td class="table-cell text-right font-mono">
                     {{ formatGas(tx.sysfee || 0) }}
                   </td>
-                  <td class="px-4 py-3 text-right font-mono text-sm">
+                  <td class="table-cell text-right font-mono">
                     {{ formatGas(tx.netfee || 0) }}
                   </td>
-                  <td class="px-4 py-3 text-right text-sm text-text-secondary">
+                  <td class="table-cell-secondary text-right">
                     {{ formatBytes(tx.size) }}
                   </td>
                 </tr>

@@ -5,9 +5,7 @@
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'API Documentation' }]" />
 
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
-        >
+        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -18,8 +16,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">API Documentation</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Neo N3 Explorer API reference and endpoints</p>
+          <h1 class="page-title">API Documentation</h1>
+          <p class="page-subtitle">Neo N3 Explorer API reference and endpoints</p>
         </div>
       </div>
 

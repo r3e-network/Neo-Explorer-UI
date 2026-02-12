@@ -8,9 +8,7 @@
 
       <!-- Address header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400"
-        >
+        <div class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400">
           <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path
               d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
@@ -19,7 +17,7 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Address</h1>
+            <h1 class="page-title">Address</h1>
             <span
               v-if="isContract"
               class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
@@ -27,11 +25,11 @@
               Contract
             </span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="font-mono text-sm text-text-secondary dark:text-gray-400">{{ address }}</span>
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <span class="font-hash break-all text-sm text-text-secondary dark:text-gray-400">{{ address }}</span>
             <CopyButton :text="address" />
             <button
-              class="p-1 text-gray-400 hover:text-primary-500 transition-colors"
+              class="p-1 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
               title="Show QR Code"
               aria-label="Toggle QR code display"
               @click="showQr = !showQr"
@@ -65,7 +63,7 @@
                   d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
                 />
               </svg>
-              <p class="max-w-[200px] break-all text-center font-mono text-xs text-text-secondary dark:text-gray-400">
+              <p class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400">
                 {{ address }}
               </p>
             </div>
@@ -75,33 +73,33 @@
 
       <!-- Balance overview cards -->
       <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div class="info-card">
-          <p class="info-label">NEO Balance</p>
-          <p class="info-value">{{ formatBalanceValue(neoBalance) }}</p>
+        <div class="stat-card">
+          <p class="stat-label">NEO Balance</p>
+          <p class="stat-value">{{ formatBalanceValue(neoBalance) }}</p>
         </div>
-        <div class="info-card">
-          <p class="info-label">GAS Balance</p>
-          <p class="info-value">{{ formatGasDisplay(gasBalance) }}</p>
+        <div class="stat-card">
+          <p class="stat-label">GAS Balance</p>
+          <p class="stat-value">{{ formatGasDisplay(gasBalance) }}</p>
         </div>
-        <div class="info-card">
-          <p class="info-label">Transactions</p>
-          <p class="info-value">{{ formatNumber(txCount) }}</p>
+        <div class="stat-card">
+          <p class="stat-label">Transactions</p>
+          <p class="stat-value">{{ formatNumber(txCount) }}</p>
         </div>
-        <div class="info-card">
-          <p class="info-label">Token Holdings</p>
-          <p class="info-value">{{ formatNumber(tokenCount) }}</p>
+        <div class="stat-card">
+          <p class="stat-label">Token Holdings</p>
+          <p class="stat-value">{{ formatNumber(tokenCount) }}</p>
         </div>
       </div>
 
       <div class="etherscan-card">
-        <div class="border-b border-card-border dark:border-card-border-dark">
+        <div class="card-header">
           <nav class="flex flex-wrap" role="tablist">
             <button
               v-for="tab in tabs"
               :key="tab.key"
               role="tab"
               :aria-selected="activeTab === tab.key"
-              class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
+              class="tab-btn border-b-2 px-4 py-3"
               :class="
                 activeTab === tab.key
                   ? 'border-primary-500 text-primary-500 dark:text-primary-400'
@@ -140,10 +138,7 @@
                   <span class="font-medium text-text-primary dark:text-gray-300">{{ formatNumber(txTotalCount) }}</span>
                   transactions
                 </p>
-                <button
-                  class="flex items-center gap-1 rounded border border-card-border px-2.5 py-1.5 text-xs text-primary-500 transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800"
-                  @click="exportCsv"
-                >
+                <button class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs" @click="exportCsv">
                   <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -159,15 +154,15 @@
                 <table class="w-full min-w-[900px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Method</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Block</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
-                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Value</th>
-                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Txn Fee</th>
+                      <th class="table-header-cell">Txn Hash</th>
+                      <th class="table-header-cell">Method</th>
+                      <th class="table-header-cell">Block</th>
+                      <th class="table-header-cell">Age</th>
+                      <th class="table-header-cell">From</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th class="table-header-cell">To</th>
+                      <th class="table-header-cell-right">Value</th>
+                      <th class="table-header-cell-right">Txn Fee</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -176,23 +171,23 @@
                       :key="tx.hash"
                       class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                     >
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           :to="`/transaction-info/${tx.hash}`"
                           :title="tx.hash"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(tx.hash, 10, 6) }}
                         </router-link>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <span
                           class="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                         >
                           {{ getTxMethod(tx) }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="tx.blockIndex"
                           :to="`/block-info/${tx.blockIndex}`"
@@ -200,23 +195,23 @@
                         >
                           {{ formatNumber(tx.blockIndex) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                       </td>
-                      <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                      <td class="table-cell-secondary">
                         {{ formatAge(tx.blocktime) }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="tx.sender && tx.sender !== address"
                           :to="`/account-profile/${tx.sender}`"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(tx.sender, 8, 6) }}
                         </router-link>
-                        <span v-else-if="tx.sender" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                        <span v-else-if="tx.sender" class="font-hash text-sm text-text-primary dark:text-gray-300">
                           {{ truncateHash(tx.sender, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                       </td>
                       <td class="px-2 py-3 text-center">
                         <span
@@ -226,15 +221,15 @@
                           {{ getDirection(tx.sender, "").label }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">
-                        <span class="font-mono text-sm text-text-primary dark:text-gray-300">
+                      <td class="table-cell">
+                        <span class="font-hash text-sm text-text-primary dark:text-gray-300">
                           {{ truncateHash(address, 8, 6) }}
                         </span>
                       </td>
-                      <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                      <td class="table-cell text-right">
                         {{ formatTxValue(tx) }}
                       </td>
-                      <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+                      <td class="table-cell-secondary text-right">
                         {{ formatTxFee(tx) }}
                       </td>
                     </tr>
@@ -281,13 +276,13 @@
                 <table class="w-full min-w-[850px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
-                      <th class="px-4 py-3 text-right font-medium text-text-secondary">Amount</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
+                      <th class="table-header-cell">Txn Hash</th>
+                      <th class="table-header-cell">Age</th>
+                      <th class="table-header-cell">From</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th class="table-header-cell">To</th>
+                      <th class="table-header-cell-right">Amount</th>
+                      <th class="table-header-cell">Token</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -296,30 +291,30 @@
                       :key="`nep17-${transfer.txHash}-${idx}`"
                       class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                     >
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           :to="`/transaction-info/${transfer.txHash}`"
                           :title="transfer.txHash"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.txHash, 10, 6) }}
                         </router-link>
                       </td>
-                      <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                      <td class="table-cell-secondary">
                         {{ formatAge(transfer.timestamp) }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.from && !isSelf(transfer.from)"
                           :to="`/account-profile/${transfer.from}`"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.from, 8, 6) }}
                         </router-link>
-                        <span v-else-if="transfer.from" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                        <span v-else-if="transfer.from" class="font-hash text-sm text-text-primary dark:text-gray-300">
                           {{ truncateHash(transfer.from, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400">Null</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Null</span>
                       </td>
                       <td class="px-2 py-3 text-center">
                         <span
@@ -329,23 +324,23 @@
                           {{ getDirection(transfer.from, transfer.to).label }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.to && !isSelf(transfer.to)"
                           :to="`/account-profile/${transfer.to}`"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.to, 8, 6) }}
                         </router-link>
-                        <span v-else-if="transfer.to" class="font-mono text-sm text-text-primary dark:text-gray-300">
+                        <span v-else-if="transfer.to" class="font-hash text-sm text-text-primary dark:text-gray-300">
                           {{ truncateHash(transfer.to, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400">Null</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Null</span>
                       </td>
-                      <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                      <td class="table-cell text-right">
                         {{ formatTransferAmount(transfer.amount, transfer.decimals) }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.tokenHash"
                           :to="`/nep17-token-info/${transfer.tokenHash}`"
@@ -353,7 +348,7 @@
                         >
                           {{ transfer.tokenName }}
                         </router-link>
-                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">
+                        <span v-else class="table-cell-secondary">
                           {{ transfer.tokenName }}
                         </span>
                       </td>
@@ -401,13 +396,13 @@
                 <table class="w-full min-w-[850px]">
                   <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                     <tr>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn Hash</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary"></th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">To</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Token ID</th>
-                      <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
+                      <th class="table-header-cell">Txn Hash</th>
+                      <th class="table-header-cell">Age</th>
+                      <th class="table-header-cell">From</th>
+                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th class="table-header-cell">To</th>
+                      <th class="table-header-cell">Token ID</th>
+                      <th class="table-header-cell">Collection</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -416,27 +411,27 @@
                       :key="`nep11-${transfer.txHash}-${idx}`"
                       class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                     >
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           :to="`/transaction-info/${transfer.txHash}`"
                           :title="transfer.txHash"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.txHash, 12, 8) }}
                         </router-link>
                       </td>
-                      <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                      <td class="table-cell-secondary">
                         {{ formatAge(transfer.timestamp) }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.from"
                           :to="`/account-profile/${transfer.from}`"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.from, 10, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                       </td>
                       <td class="px-4 py-3 text-center">
                         <span
@@ -446,20 +441,20 @@
                           {{ getDirection(transfer.from, transfer.to).label }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.to"
                           :to="`/account-profile/${transfer.to}`"
-                          class="font-mono text-sm etherscan-link"
+                          class="font-hash text-sm etherscan-link"
                         >
                           {{ truncateHash(transfer.to, 10, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400">-</span>
+                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                       </td>
-                      <td class="px-4 py-3 font-mono text-sm text-text-secondary dark:text-gray-400">
+                      <td class="table-cell-secondary font-hash">
                         {{ transfer.tokenId ? truncateHash(transfer.tokenId, 8, 4) : "-" }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="table-cell">
                         <router-link
                           v-if="transfer.tokenHash"
                           :to="`/nft-token-info/${transfer.tokenHash}`"
@@ -467,7 +462,7 @@
                         >
                           {{ transfer.tokenName }}
                         </router-link>
-                        <span v-else class="text-sm text-text-secondary dark:text-gray-400">{{
+                        <span v-else class="table-cell-secondary">{{
                           transfer.tokenName
                         }}</span>
                       </td>
@@ -511,11 +506,11 @@
               <table class="w-full min-w-[700px]">
                 <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                   <tr>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Token</th>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Standard</th>
-                    <th class="px-4 py-3 text-right font-medium text-text-secondary">Balance</th>
-                    <th class="px-4 py-3 text-right font-medium text-text-secondary">Value (USD)</th>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
+                    <th class="table-header-cell">Token</th>
+                    <th class="table-header-cell">Standard</th>
+                    <th class="table-header-cell-right">Balance</th>
+                    <th class="table-header-cell-right">Value (USD)</th>
+                    <th class="table-header-cell">Contract</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -524,7 +519,7 @@
                     :key="assetKey(asset)"
                     class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                   >
-                    <td class="px-4 py-3">
+                    <td class="table-cell">
                       <div class="flex items-center gap-2">
                         <span
                           class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -537,22 +532,22 @@
                         </span>
                       </div>
                     </td>
-                    <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                    <td class="table-cell-secondary">
                       {{ assetStandard(asset) }}
                     </td>
-                    <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                    <td class="table-cell text-right">
                       {{ assetBalance(asset) }}
                     </td>
-                    <td class="px-4 py-3 text-right text-sm text-gray-400 italic">-</td>
-                    <td class="px-4 py-3">
+                    <td class="table-cell-secondary text-right italic">-</td>
+                    <td class="table-cell">
                       <router-link
                         v-if="assetHash(asset)"
                         :to="assetTokenRoute(asset)"
-                        class="font-mono text-sm etherscan-link"
+                        class="font-hash text-sm etherscan-link"
                       >
                         {{ truncateHash(assetHash(asset), 12, 8) }}
                       </router-link>
-                      <span v-else class="text-sm text-gray-400">-</span>
+                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                     </td>
                   </tr>
                 </tbody>
@@ -582,10 +577,10 @@
               <table class="w-full min-w-[700px]">
                 <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
                   <tr>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Collection</th>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Standard</th>
-                    <th class="px-4 py-3 text-right font-medium text-text-secondary">Balance</th>
-                    <th class="px-4 py-3 text-left font-medium text-text-secondary">Contract</th>
+                    <th class="table-header-cell">Collection</th>
+                    <th class="table-header-cell">Standard</th>
+                    <th class="table-header-cell-right">Balance</th>
+                    <th class="table-header-cell">Contract</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -594,24 +589,24 @@
                     :key="assetKey(asset)"
                     class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                   >
-                    <td class="px-4 py-3 text-sm font-medium text-text-primary dark:text-gray-300">
+                    <td class="table-cell font-medium">
                       {{ assetDisplayName(asset) }}
                     </td>
-                    <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                    <td class="table-cell-secondary">
                       {{ assetStandard(asset) }}
                     </td>
-                    <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                    <td class="table-cell text-right">
                       {{ assetBalance(asset) }}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="table-cell">
                       <router-link
                         v-if="assetHash(asset)"
                         :to="assetTokenRoute(asset)"
-                        class="font-mono text-sm etherscan-link"
+                        class="font-hash text-sm etherscan-link"
                       >
                         {{ truncateHash(assetHash(asset), 12, 8) }}
                       </router-link>
-                      <span v-else class="text-sm text-gray-400">-</span>
+                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                     </td>
                   </tr>
                 </tbody>
@@ -966,17 +961,3 @@ watch(activeTab, (tab) => {
   }
 });
 </script>
-
-<style scoped>
-.info-card {
-  @apply rounded-lg border border-card-border bg-white p-4 shadow-sm dark:border-card-border-dark dark:bg-gray-900;
-}
-
-.info-label {
-  @apply mb-1 text-sm text-text-secondary dark:text-gray-400;
-}
-
-.info-value {
-  @apply text-xl font-semibold text-text-primary dark:text-gray-100;
-}
-</style>

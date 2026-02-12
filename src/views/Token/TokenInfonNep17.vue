@@ -11,9 +11,7 @@
     <template v-else>
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
-        >
+        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -25,7 +23,7 @@
         </div>
         <div class="flex-1">
           <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Token Detail</h1>
+            <h1 class="page-title">Token Detail</h1>
             <span
               v-if="updateCounter === -1"
               class="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -33,19 +31,19 @@
               Destroyed
             </span>
           </div>
-          <p class="text-sm text-text-secondary dark:text-gray-400">NEP-17 Fungible Token</p>
+          <p class="page-subtitle">NEP-17 Fungible Token</p>
         </div>
         <button class="btn-outline ml-auto" @click="getContract(token_info['hash'])">View Contract</button>
       </div>
 
       <!-- Overview Card -->
       <div class="etherscan-card mb-6">
-        <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-          <h2 class="text-sm font-semibold text-text-primary dark:text-white">Overview</h2>
+        <div class="card-header">
+          <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
         </div>
 
         <!-- Token Image -->
-        <div v-if="hasTokenImage" class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+        <div v-if="hasTokenImage" class="card-header">
           <img
             :src="image"
             :alt="token_info['tokenname'] ? token_info['tokenname'] + ' icon' : 'Token'"
@@ -68,7 +66,7 @@
             <div class="info-value flex items-center gap-2">
               <span class="font-hash text-primary-500 break-all">{{ token_info["hash"] }}</span>
               <button
-                class="shrink-0 text-gray-400 hover:text-primary-500 transition-colors"
+                class="shrink-0 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
                 title="Copy to clipboard"
                 @click="copyHash(token_info['hash'])"
               >
@@ -124,18 +122,21 @@
 
       <!-- Tabs -->
       <div v-if="updateCounter !== -1">
-        <div class="mb-4 flex gap-1 border-b border-card-border dark:border-card-border-dark" role="tablist">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            role="tab"
-            :aria-selected="activeName === tab.key"
-            class="tab-btn"
-            :class="{ active: activeName === tab.key }"
-            @click="activeName = tab.key"
-          >
-            {{ tab.label }}
-          </button>
+        <div class="etherscan-card mb-0">
+          <div class="card-header">
+            <nav class="flex flex-wrap gap-1" role="tablist">
+              <button
+                v-for="tab in tabs"
+                :key="tab.key"
+                role="tab"
+                :aria-selected="activeName === tab.key"
+                :class="['tab-btn', activeName === tab.key ? 'tab-btn-active' : 'tab-btn-inactive']"
+                @click="activeName = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </nav>
+          </div>
         </div>
 
         <!-- Tab: Recent Transfers -->
@@ -156,8 +157,8 @@
         <div v-show="activeName === 'contract'">
           <!-- Extra Info -->
           <div v-if="manifest.extra && JSON.stringify(manifest.extra) !== '{}'" class="etherscan-card mb-4">
-            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Extra</h3>
+            <div class="card-header">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Extra</h3>
             </div>
             <div class="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 text-sm">
               <div v-if="manifest.extra['Email']">
@@ -179,8 +180,8 @@
 
           <!-- ABI: Events -->
           <div v-if="manifest.abi && manifest.abi.events && manifest.abi.events.length > 0" class="etherscan-card mb-4">
-            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Events</h3>
+            <div class="card-header">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Events</h3>
             </div>
             <div class="divide-y divide-card-border dark:divide-card-border-dark">
               <details v-for="(item, index) in manifest['abi']['events']" :key="'event-' + index" class="group">
@@ -188,7 +189,7 @@
                   class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
                 >
                   <svg
-                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90"
+                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90 dark:text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -213,8 +214,8 @@
 
           <!-- ABI: Methods -->
           <div v-if="manifest.abi && manifest.abi.methods" class="etherscan-card">
-            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-white">Methods</h3>
+            <div class="card-header">
+              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Methods</h3>
             </div>
             <div class="divide-y divide-card-border dark:divide-card-border-dark">
               <details v-for="(item, index) in manifest['abi']['methods']" :key="'method-' + index" class="group">
@@ -222,7 +223,7 @@
                   class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
                 >
                   <svg
-                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90"
+                    class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90 dark:text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -252,10 +253,10 @@
                           <span class="ml-1 text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
                           <input
                             v-if="item['safe']"
+                            v-model="manifest['abi']['methods'][index]['parameters'][ind].value"
                             type="text"
                             :aria-label="`Parameter ${param['name']}`"
-                            class="mt-1 block w-full rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                            v-model="manifest['abi']['methods'][index]['parameters'][ind].value"
+                            class="form-input mt-1 py-1 text-xs"
                           />
                         </div>
                       </div>
@@ -297,7 +298,7 @@
                     "
                   >
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="text-xs font-semibold text-text-primary dark:text-white">Response</span>
+                      <span class="text-xs font-semibold text-text-primary dark:text-gray-100">Response</span>
                       <button class="btn-mini" @click="decode(index)">
                         {{ manifest["abi"]["methods"][index]["button"] }}
                       </button>
@@ -493,24 +494,3 @@ watch(
   { immediate: true }
 );
 </script>
-
-<style scoped>
-.info-row {
-  @apply flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-4;
-}
-.info-label {
-  @apply w-full shrink-0 text-sm font-medium text-text-secondary sm:w-48;
-}
-.info-value {
-  @apply text-sm text-text-primary dark:text-gray-200;
-}
-.tab-btn {
-  @apply px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:text-primary-500 border-b-2 border-transparent -mb-px;
-}
-.tab-btn.active {
-  @apply text-primary-500 border-primary-500;
-}
-.btn-outline {
-  @apply inline-flex items-center rounded-lg border border-card-border px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-gray-50 hover:text-primary-500 transition-colors dark:border-card-border-dark dark:hover:bg-gray-800;
-}
-</style>

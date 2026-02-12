@@ -22,7 +22,7 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">{{ contractCount }}</p>
+          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ contractCount }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">Contracts</p>
         </div>
       </div>
@@ -44,7 +44,7 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">{{ transferCount }}</p>
+          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ transferCount }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">Transfers</p>
         </div>
       </div>
@@ -66,7 +66,7 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">{{ eventCount }}</p>
+          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ eventCount }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">Events</p>
         </div>
       </div>
@@ -88,7 +88,7 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-white leading-tight">{{ formattedGas }}</p>
+          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formattedGas }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">GAS Used</p>
         </div>
       </div>

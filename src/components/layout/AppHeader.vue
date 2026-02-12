@@ -34,7 +34,12 @@
               <button
                 v-for="net in NETWORKS"
                 :key="net.id"
-                class="block w-full rounded px-2 py-1.5 text-left text-xs text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                :class="[
+                  'block w-full rounded px-2 py-1.5 text-left text-xs transition-colors',
+                  net.id === currentNetwork
+                    ? 'bg-gray-100 text-primary-600 dark:bg-gray-700 dark:text-primary-300'
+                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700',
+                ]"
                 :aria-label="`Switch to ${net.name}`"
                 @click="selectNetwork(net)"
               >
@@ -190,20 +195,20 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import ThemeToggle from "@/components/common/ThemeToggle.vue";
 import SearchBox from "@/components/common/SearchBox.vue";
-import { searchService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { formatPrice, formatPriceChange, priceChangeClass } from "@/utils/explorerFormat";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
-import { calculateNetworkFee } from "@/services/statsService";
+import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
+
+const NETWORK_FEE_RATIO = 0.08;
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
 
-const NETWORKS = [
-  { id: "Mainnet", name: "N3 Mainnet" },
-  { id: "Testnet", name: "N3 Testnet" },
-];
+const NETWORKS = NETWORK_OPTIONS;
+
+let searchServiceModulePromise = null;
 
 const mobileMenuOpen = ref(false);
 const networkDropdownOpen = ref(false);
@@ -217,9 +222,9 @@ const neoPriceChange = ref(0);
 const gasPriceChange = ref(0);
 const networkFee = ref(0);
 
-const currentNetwork = ref("Mainnet");
+const currentNetwork = ref(getCurrentEnv());
 
-const currentNetworkLabel = computed(() => currentNetwork.value);
+const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
 
 function openDropdown(name) {
   if (dropdownTimeout) clearTimeout(dropdownTimeout);
@@ -237,8 +242,16 @@ function closeMobile() {
 }
 
 function selectNetwork(net) {
-  currentNetwork.value = net.id;
+  const previousNetwork = currentNetwork.value;
+  const nextNetwork = setCurrentEnv(net.id);
+
+  currentNetwork.value = nextNetwork;
   networkDropdownOpen.value = false;
+
+  if (nextNetwork !== previousNetwork) {
+    activeDropdown.value = null;
+    mobileMenuOpen.value = false;
+  }
 }
 
 function handleClickOutside(e) {
@@ -247,9 +260,19 @@ function handleClickOutside(e) {
   }
 }
 
+async function loadSearchService() {
+  if (!searchServiceModulePromise) {
+    searchServiceModulePromise = import("@/services/searchService");
+  }
+
+  const module = await searchServiceModulePromise;
+  return module.searchService;
+}
+
 async function handleSearch(query) {
   if (!query) return;
   try {
+    const searchService = await loadSearchService();
     const result = await searchService.search(query);
     const location = resolveSearchLocation(query, result);
     if (location) router.push(location);
@@ -263,6 +286,10 @@ async function handleSearch(query) {
 function handleMobileSearch(query) {
   closeMobile();
   handleSearch(query);
+}
+
+function calculateNetworkFee(gasPrice) {
+  return Number(Math.max(0, (gasPrice || 0) * NETWORK_FEE_RATIO).toFixed(3));
 }
 
 async function loadPrices() {
@@ -279,6 +306,8 @@ function formatGasValue(value) {
 }
 
 onMounted(async () => {
+  currentNetwork.value = getCurrentEnv();
+
   try {
     await loadPrices();
   } catch (err) {

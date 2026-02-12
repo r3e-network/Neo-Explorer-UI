@@ -1,22 +1,62 @@
 # Deployment Guide
 
-This guide covers production deployment options for Neo Explorer UI.
+This guide covers production deployment options for Neo Explorer UI, with Vercel as the primary path.
 
 ## Build for Production
 
 ```bash
 # Install dependencies
-yarn install
+npm install
 
 # Build optimized bundle
-yarn build
+npm run build
 ```
 
-The build output will be in the `dist/` directory.
+The build output is generated in `dist/`.
 
 ## Deployment Options
 
-### Option 1: Docker (Recommended)
+### Option 1: Vercel (Recommended)
+
+This repository includes a `vercel.json` configuration ready for Vue SPA deployment with network switching support:
+
+- Builds with `npm run build`
+- Serves static output from `dist/`
+- Rewrites `/api/mainnet` to `https://neofura.ngd.network/api`
+- Rewrites `/api/testnet` to `https://testmagnet.ngd.network/api`
+- Keeps `/api` as a backward-compatible alias to mainnet
+- Falls back all non-file SPA routes to `/index.html`
+
+The UI network dropdown (header utility bar) controls which RPC base path is used at runtime:
+
+- **Default**: Mainnet
+- **Alternative**: Testnet
+- **Persistence**: Stored in browser localStorage
+
+#### Deploy with Vercel CLI
+
+```bash
+# Install once
+npm i -g vercel
+
+# From project root (first run links the project)
+vercel
+
+# Production deployment
+vercel --prod
+```
+
+#### Deploy via Git Integration
+
+1. Push this repository to GitHub/GitLab/Bitbucket.
+2. Import the repo in the Vercel dashboard.
+3. Confirm project settings:
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Add environment variables if needed (see below).
+5. Deploy.
+
+### Option 2: Docker
 
 #### Quick Start
 
@@ -28,7 +68,7 @@ The build output will be in the `dist/` directory.
 
 ```bash
 # Build the application
-yarn build
+npm run build
 
 # Build Docker image
 docker build -t neo-explorer-ui .
@@ -37,51 +77,13 @@ docker build -t neo-explorer-ui .
 docker run -d -p 8080:80 --name neo-explorer neo-explorer-ui
 ```
 
-#### Docker Compose
+### Option 3: Nginx Static Hosting
 
-Create `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-services:
-  neo-explorer:
-    build: .
-    ports:
-      - "8080:80"
-    restart: unless-stopped
-```
-
-Run with:
-```bash
-docker-compose up -d
-```
-
-### Option 2: Static Hosting
-
-The `dist/` folder can be deployed to any static hosting service:
-
-- **Nginx** - Copy to `/var/www/html`
-- **Apache** - Copy to `/var/www/html`
-- **Vercel** - `vercel deploy dist`
-- **Netlify** - Drag & drop `dist` folder
-- **GitHub Pages** - Push to `gh-pages` branch
-
-### Option 3: Nginx Manual Setup
-
-#### Install Nginx
-
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install nginx
-
-# CentOS/RHEL
-sudo yum install nginx
-```
+The `dist/` folder can be deployed to static servers such as Nginx/Apache.
 
 #### Configure Nginx
 
-Copy the provided `default.conf` or create custom config:
+Use SPA fallback routing:
 
 ```nginx
 server {
@@ -90,18 +92,15 @@ server {
     root /var/www/neo-explorer;
     index index.html;
 
-    # SPA routing
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Cache static assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
 
-    # Gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript;
 }
@@ -110,50 +109,59 @@ server {
 #### Deploy Files
 
 ```bash
-# Copy build files
 sudo cp -r dist/* /var/www/neo-explorer/
-
-# Set permissions
 sudo chown -R www-data:www-data /var/www/neo-explorer
-
-# Restart Nginx
 sudo systemctl restart nginx
 ```
 
 ## Environment Variables
 
-Configure via `.env` before building:
+Configure build-time variables in `.env`, `.env.production`, or Vercel project settings.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VUE_APP_API_URL` | Backend API endpoint | - |
-| `VUE_APP_NETWORK` | Network (mainnet/testnet) | testnet |
+| `VUE_APP_RPC_BASE_URL` | Optional fixed RPC base URL. Leave unset to follow UI network switch. | unset |
 
-## SSL/HTTPS Setup
+Notes:
 
-For production, use Let's Encrypt:
-
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com
-```
+- If `VUE_APP_RPC_BASE_URL` is set to a custom value (e.g. external URL), it overrides the runtime switch.
+- Keep it unset to use Mainnet/Testnet switching in UI.
 
 ## Health Checks
 
-Verify deployment:
+Verify deployment quickly:
 
 ```bash
-# Check if site is accessible
-curl -I http://localhost:8080
+# App entry
+curl -I https://your-domain.example/
 
-# Check Nginx status
-sudo systemctl status nginx
+# SPA route fallback (should return index.html, not 404)
+curl -I https://your-domain.example/blocks/1
+
+# Mainnet RPC proxy endpoint
+curl -X POST https://your-domain.example/api/mainnet \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getversion","params":{}}'
+
+# Testnet RPC proxy endpoint
+curl -X POST https://your-domain.example/api/testnet \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getversion","params":{}}'
 ```
 
 ## Troubleshooting
 
-**404 on page refresh**: Ensure Nginx `try_files` is configured for SPA routing.
+**404 on page refresh (Vercel/Nginx)**
+- Ensure SPA fallback is configured (`/(.*) -> /index.html` on Vercel, `try_files` on Nginx).
 
-**Assets not loading**: Check file permissions and paths in Nginx config.
+**RPC calls fail on Vercel**
+- Confirm `vercel.json` exists in repo root.
+- Verify `/api/mainnet` and `/api/testnet` rewrites are present.
+- Check Vercel deployment logs for routing issues.
 
-**CORS errors**: Configure backend API to allow your domain.
+**Network switch appears unchanged**
+- Confirm browser localStorage is enabled.
+- After switching network, page reloads and should fetch from the new endpoint.
+
+**Assets not loading**
+- Verify build output is `dist` and Vercel Output Directory is `dist`.

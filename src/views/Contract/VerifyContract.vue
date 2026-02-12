@@ -31,9 +31,7 @@
       />
 
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
-        >
+        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -44,8 +42,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Verify Contract</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Submit contract source code for verification</p>
+          <h1 class="page-title">Verify Contract</h1>
+          <p class="page-subtitle">Submit contract source code for verification</p>
         </div>
       </div>
 
@@ -96,7 +94,7 @@
               <label class="form-label">Source Code Files <span class="text-red-500">*</span></label>
               <div class="flex flex-wrap items-center gap-3">
                 <label
-                  class="inline-flex cursor-pointer items-center rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-gray-50 hover:text-primary-500 dark:border-card-border-dark dark:hover:bg-gray-800"
+                  class="btn-outline inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                 >
                   Select Files
                   <input

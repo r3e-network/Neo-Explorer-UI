@@ -6,7 +6,7 @@
 
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"
+          class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -18,8 +18,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Blocks</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <h1 class="page-title">Blocks</h1>
+          <p class="page-subtitle">
             Blocks confirmed on the Neo N3 blockchain (dBFT 2.0 consensus)
           </p>
         </div>
@@ -66,9 +66,7 @@
 
       <!-- Block List Card -->
       <div class="etherscan-card overflow-hidden">
-        <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-        >
+        <div class="card-header">
           <p class="text-sm text-text-secondary dark:text-gray-300">
             Block #{{ formatNumber(rangeStart) }} to #{{ formatNumber(rangeEnd) }}
             <span class="hidden sm:inline">(Total of {{ formatNumber(total) }} blocks)</span>
@@ -87,7 +85,9 @@
         </div>
 
         <!-- Error State -->
-        <ErrorState v-else-if="error" title="Failed to load blocks" :message="error" @retry="loadPage" />
+        <div v-else-if="error" class="p-6">
+          <ErrorState title="Failed to load blocks" :message="error" @retry="loadPage" />
+        </div>
 
         <!-- Empty State -->
         <EmptyState v-else-if="blocks.length === 0" message="No blocks found" icon="block" />
@@ -97,9 +97,9 @@
           <table class="w-full min-w-[800px]">
             <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Block</th>
+                <th class="table-header-cell">Block</th>
                 <th
-                  class="cursor-pointer select-none px-4 py-3 text-left font-medium text-text-secondary hover:text-primary-500"
+                  class="table-header-cell cursor-pointer select-none hover:text-primary-500"
                   @click="showAbsoluteTime = !showAbsoluteTime"
                 >
                   {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
@@ -112,10 +112,10 @@
                     />
                   </svg>
                 </th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Txn</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Validator</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">GAS Reward</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Size</th>
+                <th class="table-header-cell">Txn</th>
+                <th class="table-header-cell">Validator</th>
+                <th class="table-header-cell-right">GAS Reward</th>
+                <th class="table-header-cell-right">Size</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -125,17 +125,17 @@
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 <!-- Block Height -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/block-info/${block.hash}`" class="etherscan-link font-medium">
                     {{ formatNumber(block.index) }}
                   </router-link>
                 </td>
                 <!-- Age / DateTime -->
-                <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary">
                   {{ showAbsoluteTime ? formatUnixTime(block.timestamp) : formatAge(block.timestamp) }}
                 </td>
                 <!-- Txn Count -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link
                     v-if="block.txcount > 0"
                     :to="`/block-info/${block.hash}`"
@@ -143,19 +143,19 @@
                   >
                     {{ block.txcount }}
                   </router-link>
-                  <span v-else class="text-sm text-text-secondary">0</span>
+                  <span v-else class="table-cell-secondary p-0">0</span>
                 </td>
                 <!-- Validator -->
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
                   <span v-else class="text-sm text-text-secondary">--</span>
                 </td>
                 <!-- GAS Reward -->
-                <td class="px-4 py-3 text-right font-mono text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right font-mono">
                   {{ formatGas(block.gasconsumed || block.reward || 0) }}
                 </td>
                 <!-- Size -->
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right">
                   {{ formatBytes(block.size) }}
                 </td>
               </tr>

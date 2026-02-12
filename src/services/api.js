@@ -1,15 +1,39 @@
 import axios from "axios";
+import { getRpcApiBasePath } from "../utils/env";
+
+const LEGACY_RPC_BASE_URL = "/api";
+
+const normalizeBaseUrl = (baseUrl) => {
+  if (typeof baseUrl !== "string") return "";
+
+  return baseUrl.trim().replace(/\/+$/, "");
+};
+
+const configuredRpcBaseUrl = normalizeBaseUrl(process.env.VUE_APP_RPC_BASE_URL || "");
+
+const useConfiguredBaseUrl = Boolean(configuredRpcBaseUrl && configuredRpcBaseUrl !== LEGACY_RPC_BASE_URL);
+
+const resolveRpcBaseUrl = () => {
+  if (useConfiguredBaseUrl) {
+    return configuredRpcBaseUrl;
+  }
+
+  return getRpcApiBasePath();
+};
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: resolveRpcBaseUrl(),
   timeout: 30000,
   headers: { "Content-Type": "application/json" },
 });
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    config.baseURL = resolveRpcBaseUrl();
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 

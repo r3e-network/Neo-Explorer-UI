@@ -3,22 +3,65 @@ export const NET_ENV = {
   TestT5: "TestT5",
 };
 
-export const APP_URL = {
-  [NET_ENV.Mainnet]: "explorer.onegate.space",
-  [NET_ENV.TestT5]: "testmagnet.explorer.onegate.space",
+export const NETWORK_STORAGE_KEY = "neo_explorer_network";
+export const NETWORK_CHANGE_EVENT = "neo-explorer-network-change";
+
+const ENV_ALIASES = {
+  [NET_ENV.Mainnet]: NET_ENV.Mainnet,
+  [NET_ENV.TestT5]: NET_ENV.TestT5,
+  Testnet: NET_ENV.TestT5,
 };
 
-export const inProduction = process.env.NODE_ENV === "production";
+const DEFAULT_ENV = NET_ENV.Mainnet;
 
-export const getCurrentEnv = () => {
-  const hostname = inProduction ? location.hostname : APP_URL[process.env.VUE_APP_DEV_ENV];
+const normalizeEnv = (value) => ENV_ALIASES[value] || DEFAULT_ENV;
 
-  const env = {
-    [APP_URL[NET_ENV.Mainnet]]: NET_ENV.Mainnet,
-    [APP_URL[NET_ENV.TestT5]]: NET_ENV.TestT5,
-  }[hostname];
+const canUseLocalStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
-  return env || NET_ENV.Mainnet;
+export const NETWORK_OPTIONS = [
+  { id: NET_ENV.Mainnet, name: "N3 Mainnet" },
+  { id: NET_ENV.TestT5, name: "N3 Testnet" },
+];
+
+export const getNetworkLabel = (env) => {
+  const selected = NETWORK_OPTIONS.find((network) => network.id === normalizeEnv(env));
+  return selected?.name || "N3 Mainnet";
+};
+
+export const getStoredEnv = () => {
+  if (!canUseLocalStorage()) return null;
+
+  try {
+    const value = window.localStorage.getItem(NETWORK_STORAGE_KEY);
+    return value ? normalizeEnv(value) : null;
+  } catch (_err) {
+    return null;
+  }
+};
+
+export const getCurrentEnv = () => getStoredEnv() || DEFAULT_ENV;
+
+export const setCurrentEnv = (env) => {
+  const normalizedEnv = normalizeEnv(env);
+  const previousEnv = getCurrentEnv();
+
+  if (canUseLocalStorage()) {
+    try {
+      window.localStorage.setItem(NETWORK_STORAGE_KEY, normalizedEnv);
+    } catch (_err) {
+      // Ignore storage write errors (private mode, quota, etc.)
+    }
+  }
+
+  if (typeof window !== "undefined" && normalizedEnv !== previousEnv) {
+    window.dispatchEvent(
+      new CustomEvent(NETWORK_CHANGE_EVENT, {
+        detail: { env: normalizedEnv },
+      })
+    );
+  }
+
+  return normalizedEnv;
 };
 
 // AI Analysis API Configuration
@@ -33,5 +76,13 @@ export const RPC_URLS = {
   [NET_ENV.TestT5]: "https://testmagnet.ngd.network",
 };
 
-// Get RPC URL based on current environment (hostname-aware)
-export const getRpcUrl = () => RPC_URLS[getCurrentEnv()];
+export const RPC_API_BASE_PATHS = {
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
+};
+
+// Get RPC URL based on selected environment
+export const getRpcUrl = () => RPC_URLS[getCurrentEnv()] || RPC_URLS[NET_ENV.Mainnet];
+
+// Get API base path (proxied in dev + Vercel rewrites)
+export const getRpcApiBasePath = () => RPC_API_BASE_PATHS[getCurrentEnv()] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];

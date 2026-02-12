@@ -6,27 +6,24 @@
     </div>
 
     <!-- Error State -->
-    <ErrorState
-      v-else-if="error"
-      title="Unable to load contract calls"
-      :message="error"
-      @retry="() => loadPage(currentPage)"
-    />
+    <div v-else-if="error" class="p-6">
+      <ErrorState title="Unable to load contract calls" :message="error" @retry="() => loadPage(currentPage)" />
+    </div>
 
     <template v-else>
       <div class="overflow-x-auto">
         <table class="w-full min-w-[700px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="bg-gray-50 dark:bg-gray-800">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">
+              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell">
                 Sender
                 <button class="btn-mini ml-1" aria-label="Toggle sender address format" @click="toggleAddressFormat">
                   {{ showAddress ? "Hash" : "Addr" }}
                 </button>
               </th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Method</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Call Flags</th>
+              <th class="table-header-cell">Method</th>
+              <th class="table-header-cell">Call Flags</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -35,7 +32,7 @@
               :key="item.txid + item.method"
               class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
             >
-              <td class="px-4 py-3">
+              <td class="table-cell">
                 <div class="max-w-[200px] truncate">
                   <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted"> Null Transaction </span>
                   <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
@@ -43,7 +40,7 @@
                   </router-link>
                 </div>
               </td>
-              <td class="px-4 py-3">
+              <td class="table-cell">
                 <div class="max-w-[200px] truncate">
                   <span v-if="!item.originSender" class="text-sm text-text-muted">Null Address</span>
                   <router-link
@@ -55,14 +52,14 @@
                   </router-link>
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+              <td class="table-cell">
                 <span
                   class="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-gray-700"
                 >
                   {{ item.method }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">
+              <td class="table-cell">
                 {{ item.callFlags }}
               </td>
             </tr>
@@ -75,10 +72,7 @@
       </div>
     </template>
 
-    <div
-      v-if="!loading && totalCount > pageSize"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
-    >
+    <div v-if="!loading && totalCount > pageSize" class="card-header border-t border-b-0">
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"

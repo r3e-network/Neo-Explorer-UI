@@ -1,0 +1,39 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "routes": [
+    {
+      "src": "/api/mainnet",
+      "dest": "https://neofura.ngd.network/api"
+    },
+    {
+      "src": "/api/testnet",
+      "dest": "https://testmagnet.ngd.network/api"
+    },
+    {
+      "src": "/api",
+      "dest": "/api/mainnet"
+    },
+    {
+      "src": "/bpi/mainnet/(.*)",
+      "dest": "https://neofura.ngd.network/bpi/$1"
+    },
+    {
+      "src": "/bpi/testnet/(.*)",
+      "dest": "https://testmagnet.ngd.network/bpi/$1"
+    },
+    {
+      "src": "/bpi/(.*)",
+      "dest": "/bpi/mainnet/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

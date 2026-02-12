@@ -4,6 +4,8 @@
  * @description 提供内存缓存、请求去重、TTL过期等功能
  */
 
+import { getCurrentEnv } from "../utils/env";
+
 // LRU 缓存上限
 const MAX_CACHE_SIZE = 500;
 
@@ -63,7 +65,8 @@ const LEGACY_TTL = new Proxy(DEFAULT_TTL, {
  * @returns {string} 缓存键
  */
 export const getCacheKey = (method, params = {}) => {
-  return `${method}:${JSON.stringify(params)}`;
+  const network = getCurrentEnv();
+  return `${network}:${method}:${JSON.stringify(params)}`;
 };
 
 /**

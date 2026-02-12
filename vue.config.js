@@ -6,14 +6,33 @@ const isProduction = process.env.NODE_ENV === "production";
 module.exports = {
   devServer: {
     proxy: {
+      "/api/mainnet": {
+        changeOrigin: true,
+        target: "https://neofura.ngd.network",
+        pathRewrite: { "^/api/mainnet": "/api" },
+      },
+      "/api/testnet": {
+        changeOrigin: true,
+        target: "https://testmagnet.ngd.network",
+        pathRewrite: { "^/api/testnet": "/api" },
+      },
       "/api": {
         changeOrigin: true,
-        // 使用 NGD 官方 neo3fura
         target: "https://neofura.ngd.network",
-        // Only proxy actual API calls (POST), not SPA routes like /api-docs
+        // Backward-compatible alias: /api -> mainnet /api
         filter(pathname) {
           return pathname === "/api";
         },
+      },
+      "/bpi/mainnet": {
+        changeOrigin: true,
+        target: "https://neofura.ngd.network",
+        pathRewrite: { "^/bpi/mainnet": "/bpi" },
+      },
+      "/bpi/testnet": {
+        changeOrigin: true,
+        target: "https://testmagnet.ngd.network",
+        pathRewrite: { "^/bpi/testnet": "/bpi" },
       },
       "/bpi": {
         changeOrigin: true,
@@ -27,7 +46,7 @@ module.exports = {
     // Set up all the aliases we use in our app.
     resolve: {
       alias: {
-        "vue-i18n": "vue-i18n/dist/vue-i18n.cjs.js",
+        "vue-i18n": "vue-i18n/dist/vue-i18n.esm-bundler.js",
       },
     },
     externals: isProduction

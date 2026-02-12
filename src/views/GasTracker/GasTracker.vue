@@ -6,16 +6,14 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
-        >
+        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Neo N3 Gas Tracker</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <h1 class="page-title">Neo N3 Gas Tracker</h1>
+          <p class="page-subtitle">
             Real-time network fee estimates and GAS analytics
             <span v-if="autoRefreshActive" class="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
               <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -31,7 +29,7 @@
       </div>
       <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Low Fee -->
-        <div class="etherscan-card p-5">
+        <div class="stat-card">
           <div class="mb-2 flex items-center gap-2">
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
@@ -40,16 +38,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </span>
-            <span class="text-sm font-medium text-text-secondary dark:text-gray-400">Low</span>
+            <span class="stat-label text-sm normal-case tracking-normal">Low</span>
           </div>
-          <p class="text-2xl font-bold text-text-primary dark:text-gray-100">
+          <p class="stat-value text-2xl">
             {{ formatGas(feeEstimates.low) }}
           </p>
           <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (slow)</p>
         </div>
 
         <!-- Average Fee -->
-        <div class="etherscan-card border-primary-200 p-5 dark:border-primary-800">
+        <div class="stat-card border-primary-200 dark:border-primary-800">
           <div class="mb-2 flex items-center gap-2">
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
@@ -63,16 +61,16 @@
                 />
               </svg>
             </span>
-            <span class="text-sm font-medium text-text-secondary dark:text-gray-400">Average</span>
+            <span class="stat-label text-sm normal-case tracking-normal">Average</span>
           </div>
-          <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">
+          <p class="stat-value text-2xl text-primary-600 dark:text-primary-400">
             {{ formatGas(feeEstimates.average) }}
           </p>
           <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (standard)</p>
         </div>
 
         <!-- High Fee -->
-        <div class="etherscan-card p-5">
+        <div class="stat-card">
           <div class="mb-2 flex items-center gap-2">
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
@@ -86,9 +84,9 @@
                 />
               </svg>
             </span>
-            <span class="text-sm font-medium text-text-secondary dark:text-gray-400">High</span>
+            <span class="stat-label text-sm normal-case tracking-normal">High</span>
           </div>
-          <p class="text-2xl font-bold text-text-primary dark:text-gray-100">
+          <p class="stat-value text-2xl">
             {{ formatGas(feeEstimates.high) }}
           </p>
           <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (fast)</p>
@@ -138,7 +136,7 @@
       <!-- Recent Blocks Fee Table -->
       <div class="etherscan-card overflow-hidden">
         <div
-          class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="card-header"
         >
           <h2 class="text-sm font-semibold text-text-primary dark:text-gray-200">Recent Blocks - Fee Data</h2>
           <button @click="loadData" class="text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400">
@@ -164,13 +162,13 @@
         <!-- Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[700px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Block</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary">Age</th>
-                <th class="px-4 py-3 text-center font-medium text-text-secondary">Txns</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Avg Fee</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary">Total Fees</th>
+                <th class="table-header-cell">Block</th>
+                <th class="table-header-cell">Age</th>
+                <th class="table-header-cell text-center">Txns</th>
+                <th class="table-header-cell-right">Avg Fee</th>
+                <th class="table-header-cell-right">Total Fees</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
@@ -179,21 +177,21 @@
                 :key="block.hash"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/block-info/${block.hash}`" class="font-medium etherscan-link">
                     {{ formatNumber(block.index) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-secondary dark:text-gray-400">
+                <td class="table-cell-secondary">
                   {{ formatAge(block.timestamp) }}
                 </td>
-                <td class="px-4 py-3 text-center text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-center">
                   {{ block.txcount || 0 }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="table-cell text-right">
                   {{ formatGas(avgFee(block)) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm font-medium text-text-primary dark:text-gray-200">
+                <td class="table-cell text-right font-medium text-text-primary dark:text-gray-200">
                   {{ formatGas(totalFee(block)) }}
                 </td>
               </tr>
@@ -226,7 +224,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
-import Chart from "chart.js";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -309,7 +306,14 @@ function destroyChart() {
   }
 }
 
-function createFeeTrendChart() {
+async function renderChart() {
+  destroyChart();
+  const { default: ChartJS } = await import("chart.js");
+  await nextTick();
+  createFeeTrendChart(ChartJS);
+}
+
+function createFeeTrendChart(Chart) {
   if (!feeTrendCanvas.value || !blocks.value.length) return;
   destroyChart();
 
@@ -404,7 +408,7 @@ async function loadBlocks() {
     const res = await blockService.getList(20, 0);
     blocks.value = res?.result || [];
     computeFeeEstimates();
-    nextTick(() => createFeeTrendChart());
+    renderChart();
   } catch (e) {
     blocksError.value = e.message || "Failed to load blocks";
   } finally {

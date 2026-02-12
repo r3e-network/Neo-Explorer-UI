@@ -6,9 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
-        >
+        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -19,8 +17,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Advanced Search</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Filter and search across the Neo N3 blockchain</p>
+          <h1 class="page-title">Advanced Search</h1>
+          <p class="page-subtitle">Filter and search across the Neo N3 blockchain</p>
         </div>
       </div>
 
@@ -52,7 +50,7 @@
                 type="button"
                 @click="clearSearch"
                 aria-label="Clear search query"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -106,9 +104,7 @@
       <div v-else-if="hasSearched" class="etherscan-card overflow-hidden">
         <!-- Result Found -->
         <template v-if="result.type">
-          <div
-            class="flex items-center justify-between border-b border-card-border px-4 py-3 dark:border-card-border-dark"
-          >
+          <div class="card-header">
             <p class="text-sm font-semibold text-text-primary dark:text-gray-200">Search Result</p>
             <span
               class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
@@ -135,10 +131,7 @@
                 </div>
               </div>
               <HashLink :hash="result.data.hash" type="block" :truncate="false" />
-              <router-link
-                :to="`/block-info/${result.data.hash}`"
-                class="inline-flex items-center gap-1 text-sm font-medium text-primary-500 hover:text-primary-600"
-              >
+              <router-link :to="`/block-info/${result.data.hash}`" class="inline-flex items-center gap-1 text-sm font-medium etherscan-link">
                 View Block Details
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -166,7 +159,7 @@
               <HashLink :hash="result.data.hash" type="tx" :truncate="false" />
               <router-link
                 :to="`/transaction-info/${result.data.hash}`"
-                class="inline-flex items-center gap-1 text-sm font-medium text-primary-500 hover:text-primary-600"
+                class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
                 View Transaction Details
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +188,7 @@
               <HashLink :hash="query.trim()" type="address" :truncate="false" />
               <router-link
                 :to="`/account-profile/${query.trim()}`"
-                class="inline-flex items-center gap-1 text-sm font-medium text-primary-500 hover:text-primary-600"
+                class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
                 View Address Details
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +225,7 @@
               <HashLink :hash="result.data.hash" type="contract" :truncate="false" />
               <router-link
                 :to="`/contract-info/${result.data.hash}`"
-                class="inline-flex items-center gap-1 text-sm font-medium text-primary-500 hover:text-primary-600"
+                class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
                 View Contract Details
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,7 +252,7 @@
       <!-- Initial Empty State (before any search) -->
       <div v-else class="etherscan-card p-8 text-center">
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-          <svg class="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

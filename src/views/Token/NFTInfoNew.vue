@@ -6,9 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
-        >
+        <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -19,8 +17,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">{{ nftName || "NFT Detail" }}</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">Non-Fungible Token</p>
+          <h1 class="page-title">{{ nftName || "NFT Detail" }}</h1>
+          <p class="page-subtitle">Non-Fungible Token</p>
         </div>
       </div>
 
@@ -32,7 +30,9 @@
       </div>
 
       <!-- Error State -->
-      <ErrorState v-else-if="error" title="NFT not found" :message="error" @retry="loadNFT" />
+      <div v-else-if="error" class="p-6">
+        <ErrorState title="NFT not found" :message="error" @retry="loadNFT" />
+      </div>
 
       <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-1">
@@ -45,7 +45,7 @@
                 class="h-full w-full object-cover"
                 @error="handleImageError"
               />
-              <div v-else class="flex h-full items-center justify-center text-gray-400">
+              <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
@@ -61,30 +61,26 @@
 
         <div class="space-y-6 lg:col-span-2">
           <div class="etherscan-card overflow-hidden">
-            <div class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
+            <div class="card-header">
               <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
             </div>
-            <div class="p-4 md:p-6">
-              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
-                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Token ID</span>
-                <span class="break-all font-mono text-sm text-text-primary dark:text-gray-300">{{ tokenId }}</span>
-              </div>
-              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
-                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Contract</span>
-                <router-link :to="`/contract-info/${contractHash}`" class="break-all font-mono text-sm etherscan-link">
+            <div class="divide-y divide-card-border dark:divide-card-border-dark">
+              <InfoRow label="Token ID">
+                <span class="break-all font-hash text-sm text-text-primary dark:text-gray-300">{{ tokenId }}</span>
+              </InfoRow>
+              <InfoRow label="Contract">
+                <router-link :to="`/contract-info/${contractHash}`" class="break-all font-hash text-sm etherscan-link">
                   {{ contractHash }}
                 </router-link>
-              </div>
-              <div class="flex flex-col border-b border-card-border py-2 dark:border-card-border-dark md:flex-row">
-                <span class="mb-1 w-32 text-sm text-text-secondary dark:text-gray-400 md:mb-0">Owner</span>
-                <router-link :to="`/account-profile/${address}`" class="break-all font-mono text-sm etherscan-link">
+              </InfoRow>
+              <InfoRow label="Owner">
+                <router-link :to="`/account-profile/${address}`" class="break-all font-hash text-sm etherscan-link">
                   {{ address }}
                 </router-link>
-              </div>
-              <div v-if="description" class="flex flex-col py-2">
-                <span class="mb-1 text-sm text-text-secondary dark:text-gray-400">Description</span>
+              </InfoRow>
+              <InfoRow v-if="description" label="Description">
                 <p class="text-text-primary dark:text-gray-300">{{ description }}</p>
-              </div>
+              </InfoRow>
             </div>
           </div>
         </div>
@@ -100,6 +96,7 @@ import { tokenService } from "@/services";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import InfoRow from "@/components/common/InfoRow.vue";
 
 const route = useRoute();
 

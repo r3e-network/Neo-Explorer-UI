@@ -11,9 +11,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300"
-        >
+        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -24,8 +22,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">Verified Source Code</h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <h1 class="page-title">Verified Source Code</h1>
+          <p class="page-subtitle">
             Browse verified contract source files and compare with deployed bytecode.
           </p>
         </div>

@@ -138,7 +138,8 @@ const items = computed(() => {
   display: block;
   width: 100%;
   height: 100%;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
   padding-left: 20px;
   box-sizing: border-box;
 }

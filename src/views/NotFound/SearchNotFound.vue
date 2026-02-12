@@ -12,7 +12,7 @@
             />
           </svg>
         </div>
-        <h1 class="text-2xl font-semibold text-text-primary dark:text-gray-100">No Results Found</h1>
+        <h1 class="page-title">No Results Found</h1>
         <p class="mx-auto mt-2 max-w-md text-sm text-text-secondary dark:text-gray-400">
           Try searching by transaction hash, block hash/height, contract hash, or Neo address.
         </p>

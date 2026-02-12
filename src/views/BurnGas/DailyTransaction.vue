@@ -7,7 +7,7 @@
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300"
+          class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300"
         >
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -19,10 +19,10 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-text-primary dark:text-gray-100">
+          <h1 class="page-title">
             Neo N3 Blockchain Charts &amp; Statistics
           </h1>
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <p class="page-subtitle">
             Network activity, address growth, and transaction volume analytics
           </p>
         </div>
@@ -51,22 +51,22 @@
         <Skeleton v-for="i in 4" :key="i" height="90px" variant="rounded" />
       </div>
       <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="etherscan-card p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Avg Txns / Day</p>
-          <p class="mt-1 text-xl font-bold text-text-primary dark:text-gray-100">{{ formatNumber(avgTxPerDay) }}</p>
+        <div class="stat-card p-4">
+          <p class="stat-label">Avg Txns / Day</p>
+          <p class="stat-value text-xl">{{ formatNumber(avgTxPerDay) }}</p>
         </div>
-        <div class="etherscan-card p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Total Txns</p>
-          <p class="mt-1 text-xl font-bold text-text-primary dark:text-gray-100">{{ formatNumber(totalTxns) }}</p>
+        <div class="stat-card p-4">
+          <p class="stat-label">Total Txns</p>
+          <p class="stat-value text-xl">{{ formatNumber(totalTxns) }}</p>
         </div>
-        <div class="etherscan-card p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Peak Day</p>
-          <p class="mt-1 text-xl font-bold text-text-primary dark:text-gray-100">{{ formatNumber(peakTxns) }}</p>
+        <div class="stat-card p-4">
+          <p class="stat-label">Peak Day</p>
+          <p class="stat-value text-xl">{{ formatNumber(peakTxns) }}</p>
           <p class="text-xs text-text-muted dark:text-gray-500">{{ peakDate }}</p>
         </div>
-        <div class="etherscan-card p-4">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">Data Points</p>
-          <p class="mt-1 text-xl font-bold text-text-primary dark:text-gray-100">{{ chartData.length }} days</p>
+        <div class="stat-card p-4">
+          <p class="stat-label">Data Points</p>
+          <p class="stat-value text-xl">{{ chartData.length }} days</p>
         </div>
       </div>
 
