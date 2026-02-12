@@ -102,7 +102,7 @@
                   To
                 </th>
                 <th class="table-header-cell-right hidden lg:table-cell">
-                  Gas Used
+                  Value / Gas
                 </th>
                 <th class="table-header-cell-right hidden xl:table-cell">
                   Net / Sys Fee
@@ -194,7 +194,10 @@
                 <td
                   class="table-cell hidden text-right font-mono lg:table-cell"
                 >
-                  {{ formatTxGas(tx) }} GAS
+                  <div class="flex flex-col items-end leading-tight">
+                    <span class="max-w-[180px] truncate" :title="getTxValueSummary(tx)">{{ getTxValueSummary(tx) }}</span>
+                    <span class="text-[11px] text-text-secondary">{{ formatTxGas(tx) }} GAS</span>
+                  </div>
                 </td>
 
                 <!-- Fee -->
@@ -228,11 +231,11 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { transactionService } from "@/services";
+import { transactionService, tokenService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getNetworkRefreshIntervalMs } from "@/utils/env";
-import { truncateHash, formatAge, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatUnixTime, formatNumber, formatGas, formatTokenAmount } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -253,6 +256,8 @@ const pageSize = ref(DEFAULT_PAGE_SIZE);
 const total = ref(0);
 let currentRequestId = 0;
 let refreshTimer = null;
+const transferSummaryByHash = ref({});
+const pendingTransferSummaries = new Set();
 
 // Computed
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
@@ -284,12 +289,105 @@ function getRecipient(tx) {
   return null;
 }
 
-function formatTxGas(tx) {
+function getTxValueSummary(tx) {
+  const summary = transferSummaryByHash.value[tx.hash];
+  if (summary) return summary;
+
   const transferValue = Number(tx.value || 0);
   if (transferValue > 0) {
-    return formatGas(transferValue);
+    return `${formatGas(transferValue)} GAS`;
   }
 
+  return "—";
+}
+
+function truncateTokenId(tokenId, start = 8, end = 6) {
+  if (!tokenId) return "";
+  const value = String(tokenId);
+
+  if (value.length <= start + end + 3) {
+    return value;
+  }
+
+  return `${value.slice(0, start)}...${value.slice(-end)}`;
+}
+
+function getExtraTransferSuffix(totalCount) {
+  const extraTransfers = Math.max(0, Number(totalCount || 0) - 1);
+  return extraTransfers > 0 ? ` +${extraTransfers}` : "";
+}
+
+function setTransferSummary(hash, summary) {
+  transferSummaryByHash.value = {
+    ...transferSummaryByHash.value,
+    [hash]: summary,
+  };
+}
+
+async function loadTransferSummaryByHash(hash) {
+  if (!hash || transferSummaryByHash.value[hash] || pendingTransferSummaries.has(hash)) {
+    return;
+  }
+
+  pendingTransferSummaries.add(hash);
+
+  try {
+    const nep17Res = await tokenService.getTransfersByTxHash(hash, 1, 0);
+    const nep17 = nep17Res?.result?.[0];
+
+    if (nep17) {
+      const amount = formatTokenAmount(nep17.value || 0, Number(nep17.decimals || 0), 8);
+      const symbol = nep17.symbol || nep17.tokenname || "Token";
+      const suffix = getExtraTransferSuffix(nep17Res?.totalCount);
+      setTransferSummary(hash, `${amount} ${symbol}${suffix}`);
+      return;
+    }
+
+    const nep11Res = await tokenService.getNep11TransfersByTxHash(hash, 1, 0);
+    const nep11 = nep11Res?.result?.[0];
+
+    if (nep11) {
+      const symbol = nep11.symbol || nep11.tokenname || "NFT";
+      const tokenId = nep11.tokenid || nep11.tokenId;
+      const suffix = getExtraTransferSuffix(nep11Res?.totalCount);
+      const readableTokenId = truncateTokenId(tokenId);
+      setTransferSummary(hash, readableTokenId ? `1 ${symbol} #${readableTokenId}${suffix}` : `1 ${symbol}${suffix}`);
+      return;
+    }
+
+    setTransferSummary(hash, "—");
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Failed to load transaction transfer summary:", err);
+    }
+    setTransferSummary(hash, "—");
+  } finally {
+    pendingTransferSummaries.delete(hash);
+  }
+}
+
+async function enrichTransferSummaries(txList) {
+  const hashes = (txList || [])
+    .filter((tx) => {
+      const hash = tx?.hash;
+      if (!hash || transferSummaryByHash.value[hash] || pendingTransferSummaries.has(hash)) {
+        return false;
+      }
+
+      const transferValue = Number(tx?.value || 0);
+      return transferValue <= 0;
+    })
+    .map((tx) => tx.hash);
+
+  if (hashes.length === 0) return;
+
+  const batchSize = 4;
+  for (let index = 0; index < hashes.length; index += batchSize) {
+    const batch = hashes.slice(index, index + batchSize);
+    await Promise.all(batch.map((hash) => loadTransferSummaryByHash(hash)));
+  }
+}
+function formatTxGas(tx) {
   const net = Number(tx.netfee || 0);
   const sys = Number(tx.sysfee || 0);
   const totalFee = net + sys;
@@ -328,6 +426,7 @@ async function loadPage({ silent = false, forceRefresh = false } = {}) {
     if (myRequestId !== currentRequestId) return;
     total.value = res?.totalCount || 0;
     transactions.value = res?.result || [];
+    void enrichTransferSummaries(transactions.value);
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
     if (process.env.NODE_ENV !== "production") console.error("Failed to load transactions:", err);
