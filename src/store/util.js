@@ -1,5 +1,14 @@
 import { format } from "timeago.js";
-import Neon from "@cityofzion/neon-js";
+import {
+  base64ToBytes,
+  bytesToHex,
+  bytesToUtf8,
+  isPublicKeyHex,
+  isScriptHashHex,
+  reverseHex,
+  scriptHashHexToAddress,
+} from "@/utils/neoHelpers";
+
 function changeFormat(button) {
   if (button.state) {
     button.state = false;
@@ -75,44 +84,45 @@ function convertISOTime(time) {
 }
 
 function scriptHashToAddress(hash) {
-  const trunc = hash.substring(2);
-  const acc = Neon.create.account(trunc);
-  return acc.address;
+  if (!hash || typeof hash !== "string") return "";
+  return scriptHashHexToAddress(hash) || hash;
 }
 
 function responseConverter(_key, val) {
   if (typeof val === "object") {
     if (val["type"] === "ByteString" && typeof val["value"] === "string") {
-      const buffer = Buffer.from(val["value"], "base64");
-      const hex = buffer.toString("hex");
-      if (Neon.is.publicKey(hex)) {
-        const acc = Neon.create.account(hex);
+      const bytes = base64ToBytes(val["value"]);
+      const hex = bytesToHex(bytes);
+      if (isPublicKeyHex(hex)) {
+        val["type"] = "PublicKey";
+        val["value"] = "0x" + hex;
+      } else if (isScriptHashHex(hex)) {
+        const reversed = reverseHex(hex);
         val["type"] = "ScriptHash";
-        val["value"] = "0x" + acc.scriptHash;
-      } else if (Neon.is.scriptHash(hex)) {
-        const reversed = Neon.u.reverseHex(hex);
-        val["type"] = "ScriptHash";
-        val["value"] = "0x" + reversed;
-      } else if (/^((0x)?)([0-9a-f]{64})$/.test(hex)) {
+        val["value"] = reversed ? "0x" + reversed : "0x" + hex;
+      } else if (/^([0-9a-f]{64})$/i.test(hex)) {
         val["type"] = "ScriptHash";
         val["value"] = "0x" + hex;
       } else {
-        if (/^[\x20-\x7F]*$/.test(buffer.toString())) {
+        const text = bytesToUtf8(bytes);
+        if (text && /^[\x20-\x7F]*$/.test(text)) {
           val["type"] = "String";
-          val["value"] = buffer.toString();
+          val["value"] = text;
         } else {
           val["type"] = "HexString";
-          val["value"] = buffer.toString("hex");
+          val["value"] = hex;
         }
       }
     } else if (val["type"] === "Buffer" && typeof val["value"] === "string") {
-      const buffer = Buffer.from(val["value"], "base64");
-      if (/^[\x20-\x7F]*$/.test(buffer.toString())) {
+      const bytes = base64ToBytes(val["value"]);
+      const hex = bytesToHex(bytes);
+      const text = bytesToUtf8(bytes);
+      if (text && /^[\x20-\x7F]*$/.test(text)) {
         val["type"] = "String";
-        val["value"] = buffer.toString();
+        val["value"] = text;
       } else {
         val["type"] = "BigInteger";
-        val["value"] = parseInt(buffer.toString("hex"), 16);
+        val["value"] = Number.parseInt(hex || "0", 16);
       }
     }
   }

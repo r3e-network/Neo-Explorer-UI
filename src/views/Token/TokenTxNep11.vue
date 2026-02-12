@@ -164,8 +164,8 @@ import { ref, watch } from "vue";
 import { tokenService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 import { convertToken, convertTime, scriptHashToAddress, convertISOTime } from "@/store/util";
-import Neon from "@cityofzion/neon-js";
 import { usePagination } from "@/composables/usePagination";
+import { hexToBase64 } from "@/utils/neoHelpers";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -183,7 +183,7 @@ const showAbsoluteTime = ref(false);
 const showAddress = ref(true);
 
 function hashToBase64(hash) {
-  return Neon.u.hex2base64(hash);
+  return hexToBase64(hash);
 }
 
 const {

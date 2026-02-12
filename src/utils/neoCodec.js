@@ -2,11 +2,11 @@
  * Neo N3 data type decoding utilities.
  *
  * Decodes NeoVM stack items (ByteString, Integer, Hash160, etc.)
- * into human-readable values. Uses neon-js for address conversion.
+ * into human-readable values. Uses lightweight helpers for address conversion.
  *
  * @module utils/neoCodec
  */
-import Neon from "@cityofzion/neon-js";
+import { scriptHashBase64ToAddress } from "@/utils/neoHelpers";
 
 /**
  * Convert a base64-encoded 20-byte script hash to a Neo N3 address (N...).
@@ -15,16 +15,9 @@ import Neon from "@cityofzion/neon-js";
  */
 export function scriptHashToAddress(base64ScriptHash) {
   if (!base64ScriptHash) return null;
-  try {
-    const raw = atob(base64ScriptHash);
-    if (raw.length !== 20) return null;
-    const hex = Array.from(raw, (c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-    const reversed = Neon.u.reverseHex(hex);
-    const account = Neon.create.account("0x" + reversed);
-    return account.address;
-  } catch {
-    return null;
-  }
+
+  const address = scriptHashBase64ToAddress(base64ScriptHash);
+  return address || null;
 }
 
 /**

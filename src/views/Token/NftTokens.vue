@@ -162,11 +162,11 @@ import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { tokenService } from "@/services";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { formatNumber, truncateHash } from "@/utils/explorerFormat";
-import Neon from "@cityofzion/neon-js";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import { base64ToHex } from "@/utils/neoHelpers";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -191,7 +191,7 @@ const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalC
 
 // --- Methods ---
 function base64ToHash(base) {
-  return Neon.u.base642hex(base);
+  return base64ToHex(base);
 }
 
 function fetchNftProperties() {

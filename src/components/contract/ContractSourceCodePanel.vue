@@ -57,14 +57,12 @@
           </h2>
         </header>
 
-        <v-ace-editor
-          :value="item.code || ''"
-          lang="text"
-          theme="chrome"
-          :readonly="true"
-          :options="editorOptions"
-          :style="{ height: editorHeight(item.code) }"
-        />
+        <div
+          class="overflow-auto bg-gray-50 dark:bg-gray-900/40"
+          :style="{ height: viewerHeight(item.code) }"
+        >
+          <pre class="min-h-full p-4 text-xs leading-5 text-text-primary dark:text-gray-200"><code class="font-mono whitespace-pre">{{ item.code || "" }}</code></pre>
+        </div>
       </article>
     </div>
   </div>
@@ -72,15 +70,12 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { VAceEditor } from "vue3-ace-editor";
 import { rpc } from "@/services";
 import { truncateHash } from "@/utils/explorerFormat";
 import { normalizeUpdateCounter } from "@/utils/detailRouting";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import "ace-builds/src-noconflict/mode-text";
-import "ace-builds/src-noconflict/theme-chrome";
 
 const props = defineProps({
   contractHash: {
@@ -105,11 +100,6 @@ const sourceCodeList = ref([]);
 const totalCount = ref(0);
 const isLoading = ref(false);
 const loadError = ref(false);
-const editorOptions = {
-  enableBasicAutocompletion: true,
-  enableSnippets: true,
-  showPrintMargin: false,
-};
 
 const safeUpdateCounter = computed(() => normalizeUpdateCounter(props.updatecounter));
 
@@ -146,7 +136,7 @@ async function loadSourceCode() {
 
     sourceCodeList.value = Array.isArray(result?.result) ? result.result : [];
     totalCount.value = Number(result?.totalCount || sourceCodeList.value.length || 0);
-  } catch (error) {
+  } catch (_error) {
     sourceCodeList.value = [];
     totalCount.value = 0;
     loadError.value = true;
@@ -155,7 +145,7 @@ async function loadSourceCode() {
   }
 }
 
-function editorHeight(code) {
+function viewerHeight(code) {
   const lineCount = String(code || "").split("\n").length;
   return `${Math.min(640, Math.max(220, lineCount * 18))}px`;
 }

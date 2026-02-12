@@ -327,9 +327,8 @@ import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import TokensTxNep17 from "./TokenTxNep17";
 import TokenHolder from "./TokenHolder";
 import ContractJsonView from "../Contract/ContractJsonView";
-import Neon from "@cityofzion/neon-js";
 import { convertPreciseTime, convertToken, responseConverter } from "@/store/util";
-import { getRpcUrl } from "@/utils/env";
+import { invokeContractFunction } from "@/utils/contractInvocation";
 import Skeleton from "@/components/common/Skeleton.vue";
 
 const route = useRoute();
@@ -442,31 +441,22 @@ function onQuery(index) {
   manifest.value["abi"]["methods"][index]["error"] = "";
   const name = manifest.value["abi"]["methods"][index]["name"];
   const params = manifest.value["abi"]["methods"][index]["parameters"];
-  const contractParams = [];
-  for (const item of params) {
-    try {
-      contractParams.push(Neon.create.contractParam(item["type"], item["value"]));
-    } catch (err) {
-      manifest.value["abi"]["methods"][index]["error"] = err.toString();
-      return;
-    }
-  }
-  const client = Neon.create.rpcClient(getRpcUrl());
-  client
-    .invokeFunction(token_id.value, name, contractParams)
+
+  invokeContractFunction(token_id.value, name, params)
     .then((res) => {
-      if (res["exception"] != null) {
+      if (res?.["exception"] != null) {
         manifest.value["abi"]["methods"][index]["error"] = res["exception"];
       } else {
-        const temp = JSON.parse(JSON.stringify(res["stack"]));
+        const stack = Array.isArray(res?.["stack"]) ? res["stack"] : [];
+        const temp = JSON.parse(JSON.stringify(stack));
         manifest.value["abi"]["methods"][index]["isRaw"] = true;
         manifest.value["abi"]["methods"][index]["button"] = "Decode";
-        manifest.value["abi"]["methods"][index]["raw"] = res["stack"];
+        manifest.value["abi"]["methods"][index]["raw"] = stack;
         manifest.value["abi"]["methods"][index]["display"] = JSON.parse(JSON.stringify(temp, responseConverter));
       }
     })
     .catch((err) => {
-      manifest.value["abi"]["methods"][index]["error"] = err.toString();
+      manifest.value["abi"]["methods"][index]["error"] = err?.message || err?.toString?.() || "Failed to invoke function";
     });
 }
 
