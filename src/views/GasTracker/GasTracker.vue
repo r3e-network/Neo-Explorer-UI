@@ -2,21 +2,40 @@
   <div class="gas-tracker-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Gas Tracker' }]" />
+      <Breadcrumb
+        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Gas Tracker' }]"
+      />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <div
+          class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
+        >
+          <svg
+            class="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
           </svg>
         </div>
         <div>
           <h1 class="page-title">Neo N3 Gas Tracker</h1>
           <p class="page-subtitle">
             Real-time network fee estimates and GAS analytics
-            <span v-if="autoRefreshActive" class="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
-              <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            <span
+              v-if="autoRefreshActive"
+              class="ml-2 inline-flex items-center gap-1 text-xs text-green-500"
+            >
+              <span
+                class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"
+              ></span>
               Live
             </span>
           </p>
@@ -34,16 +53,30 @@
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             </span>
-            <span class="stat-label text-sm normal-case tracking-normal">Low</span>
+            <span class="stat-label text-sm normal-case tracking-normal"
+              >Low</span
+            >
           </div>
           <p class="stat-value text-2xl">
             {{ formatGas(feeEstimates.low) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (slow)</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">
+            GAS / transaction (slow)
+          </p>
         </div>
 
         <!-- Average Fee -->
@@ -52,7 +85,12 @@
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -61,12 +99,16 @@
                 />
               </svg>
             </span>
-            <span class="stat-label text-sm normal-case tracking-normal">Average</span>
+            <span class="stat-label text-sm normal-case tracking-normal"
+              >Average</span
+            >
           </div>
           <p class="stat-value text-2xl text-primary-600 dark:text-primary-400">
             {{ formatGas(feeEstimates.average) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (standard)</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">
+            GAS / transaction (standard)
+          </p>
         </div>
 
         <!-- High Fee -->
@@ -75,7 +117,12 @@
             <span
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -84,32 +131,48 @@
                 />
               </svg>
             </span>
-            <span class="stat-label text-sm normal-case tracking-normal">High</span>
+            <span class="stat-label text-sm normal-case tracking-normal"
+              >High</span
+            >
           </div>
           <p class="stat-value text-2xl">
             {{ formatGas(feeEstimates.high) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (fast)</p>
+          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">
+            GAS / transaction (fast)
+          </p>
         </div>
       </div>
 
       <!-- Latest Fee Summary -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Latest Fee Summary</h2>
+        <h2
+          class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200"
+        >
+          Latest Fee Summary
+        </h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-            <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500"
+            >
               Latest System Fee
             </p>
-            <p class="mt-1 text-lg font-semibold text-text-primary dark:text-gray-200">
+            <p
+              class="mt-1 text-lg font-semibold text-text-primary dark:text-gray-200"
+            >
               {{ formatGas(gasData.latestSystemFee) }} GAS
             </p>
           </div>
           <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
-            <p class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500">
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-text-muted dark:text-gray-500"
+            >
               Latest Network Fee
             </p>
-            <p class="mt-1 text-lg font-semibold text-text-primary dark:text-gray-200">
+            <p
+              class="mt-1 text-lg font-semibold text-text-primary dark:text-gray-200"
+            >
               {{ formatGas(gasData.latestNetworkFee) }} GAS
             </p>
           </div>
@@ -118,7 +181,11 @@
 
       <!-- Fee Trend Chart -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Fee Trend</h2>
+        <h2
+          class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200"
+        >
+          Fee Trend
+        </h2>
         <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
           Average total fee per block from the last 20 blocks
         </p>
@@ -128,18 +195,27 @@
         <div v-else-if="blocks.length" class="h-[280px]">
           <canvas ref="feeTrendCanvas"></canvas>
         </div>
-        <div v-else class="py-8 text-center text-sm text-text-muted dark:text-gray-500">
+        <div
+          v-else
+          class="py-8 text-center text-sm text-text-muted dark:text-gray-500"
+        >
           No block data available for chart
         </div>
       </div>
 
       <!-- Recent Blocks Fee Table -->
       <div class="etherscan-card overflow-hidden">
-        <div
-          class="card-header"
-        >
-          <h2 class="text-sm font-semibold text-text-primary dark:text-gray-200">Recent Blocks - Fee Data</h2>
-          <button @click="loadData" class="text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400">
+        <div class="card-header">
+          <h2
+            class="text-sm font-semibold text-text-primary dark:text-gray-200"
+          >
+            Recent Blocks - Fee Data
+          </h2>
+          <button
+            @click="loadData"
+            aria-label="Refresh data"
+            class="text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400"
+          >
             Refresh
           </button>
         </div>
@@ -151,7 +227,11 @@
 
         <!-- Error -->
         <div v-else-if="blocksError" class="p-4">
-          <ErrorState title="Failed to load block fee data" :message="blocksError" @retry="loadBlocks" />
+          <ErrorState
+            title="Failed to load block fee data"
+            :message="blocksError"
+            @retry="loadBlocks"
+          />
         </div>
 
         <!-- Empty -->
@@ -171,14 +251,19 @@
                 <th class="table-header-cell-right">Total Fees</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody
+              class="divide-y divide-card-border dark:divide-card-border-dark"
+            >
               <tr
                 v-for="block in blocks"
                 :key="block.hash"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
               >
                 <td class="table-cell">
-                  <router-link :to="`/block-info/${block.hash}`" class="font-medium etherscan-link">
+                  <router-link
+                    :to="`/block-info/${block.hash}`"
+                    class="font-medium etherscan-link"
+                  >
                     {{ formatNumber(block.index) }}
                   </router-link>
                 </td>
@@ -191,7 +276,9 @@
                 <td class="table-cell text-right">
                   {{ formatGas(avgFee(block)) }}
                 </td>
-                <td class="table-cell text-right font-medium text-text-primary dark:text-gray-200">
+                <td
+                  class="table-cell text-right font-medium text-text-primary dark:text-gray-200"
+                >
                   {{ formatGas(totalFee(block)) }}
                 </td>
               </tr>
@@ -202,18 +289,30 @@
 
       <!-- About Neo N3 Fees -->
       <div class="etherscan-card mt-6 p-5">
-        <h2 class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200">About Neo N3 Fees</h2>
-        <div class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+        <h2
+          class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200"
+        >
+          About Neo N3 Fees
+        </h2>
+        <div
+          class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400"
+        >
           <p>
             Neo N3 transactions incur two types of fees:
-            <strong class="text-text-primary dark:text-gray-300">System Fee</strong> (consumed for on-chain operations
-            like contract invocations) and
-            <strong class="text-text-primary dark:text-gray-300">Network Fee</strong> (paid to Consensus Nodes for
-            transaction verification and inclusion).
+            <strong class="text-text-primary dark:text-gray-300"
+              >System Fee</strong
+            >
+            (consumed for on-chain operations like contract invocations) and
+            <strong class="text-text-primary dark:text-gray-300"
+              >Network Fee</strong
+            >
+            (paid to Consensus Nodes for transaction verification and
+            inclusion).
           </p>
           <p>
-            Unlike Ethereum's variable gas pricing, Neo N3 fees are deterministic and based on the computational
-            resources consumed. The Network Fee is partially burned at a rate of
+            Unlike Ethereum's variable gas pricing, Neo N3 fees are
+            deterministic and based on the computational resources consumed. The
+            Network Fee is partially burned at a rate of
             {{ BURN_RATE }} GAS per byte, contributing to GAS deflation.
           </p>
         </div>
@@ -396,7 +495,8 @@ async function loadGasTracker(forceRefresh = false) {
     const data = await statsService.getGasTracker(forceRefresh);
     gasData.value = data;
   } catch (e) {
-    if (process.env.NODE_ENV !== "production") console.error("Gas tracker load failed:", e);
+    if (process.env.NODE_ENV !== "production")
+      console.error("Gas tracker load failed:", e);
   } finally {
     loading.value = false;
   }

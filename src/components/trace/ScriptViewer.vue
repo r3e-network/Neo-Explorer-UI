@@ -15,7 +15,12 @@
           "
           @click="showRaw = !showRaw"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -37,13 +42,30 @@
     >
 
     <!-- Decoded opcodes table -->
-    <div v-else class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+    <div
+      v-else
+      class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+    >
       <table class="w-full text-xs">
         <thead>
-          <tr class="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700">
-            <th class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-16">Offset</th>
-            <th class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-32">Opcode</th>
-            <th class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400">Operand</th>
+          <tr
+            class="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700"
+          >
+            <th
+              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-16"
+            >
+              Offset
+            </th>
+            <th
+              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-32"
+            >
+              Opcode
+            </th>
+            <th
+              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400"
+            >
+              Operand
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -56,12 +78,19 @@
               {{ formatOffset(inst.offset) }}
             </td>
             <td class="px-3 py-1.5">
-              <span class="font-mono font-semibold" :class="opcodeColor(inst.opcode)">
+              <span
+                class="font-mono font-semibold"
+                :class="opcodeColor(inst.opcode)"
+              >
                 {{ inst.opcode }}
               </span>
             </td>
-            <td class="px-3 py-1.5 font-mono text-gray-700 dark:text-gray-300 break-all">
-              <span v-if="inst.operand" :class="operandClass(inst)">{{ inst.operand }}</span>
+            <td
+              class="px-3 py-1.5 font-mono text-gray-700 dark:text-gray-300 break-all"
+            >
+              <span v-if="inst.operand" :class="operandClass(inst)">{{
+                inst.operand
+              }}</span>
             </td>
           </tr>
         </tbody>
@@ -95,7 +124,17 @@ const showRaw = ref(false);
 const showAllOps = ref(false);
 const maxVisible = 50;
 
-const instructions = computed(() => disassembleScript(props.script));
+const instructions = computed(() => {
+  if (!props.script) return [];
+  try {
+    return disassembleScript(props.script);
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Failed to disassemble script:", e);
+    }
+    return [];
+  }
+});
 
 const visibleInstructions = computed(() => {
   if (showAllOps.value || instructions.value.length <= maxVisible) {
@@ -123,16 +162,25 @@ function formatOffset(offset) {
 function opcodeColor(opcode) {
   if (opcode === "SYSCALL") return "text-amber-600 dark:text-amber-400";
   if (opcode.startsWith("PUSH")) return "text-blue-600 dark:text-blue-400";
-  if (opcode.startsWith("JMP") || opcode === "CALL" || opcode === "CALL_L" || opcode === "RET")
+  if (
+    opcode.startsWith("JMP") ||
+    opcode === "CALL" ||
+    opcode === "CALL_L" ||
+    opcode === "RET"
+  )
     return "text-purple-600 dark:text-purple-400";
-  if (opcode === "ABORT" || opcode === "THROW" || opcode === "FAULT") return "text-red-600 dark:text-red-400";
+  if (opcode === "ABORT" || opcode === "THROW" || opcode === "FAULT")
+    return "text-red-600 dark:text-red-400";
   return "text-gray-800 dark:text-gray-200";
 }
 
 function operandClass(inst) {
-  if (inst.opcode === "SYSCALL") return "text-amber-700 dark:text-amber-300 font-semibold";
-  if (inst.operand.startsWith('"')) return "text-emerald-600 dark:text-emerald-400";
-  if (inst.operand.includes("Hash160")) return "text-blue-600 dark:text-blue-400";
+  if (inst.opcode === "SYSCALL")
+    return "text-amber-700 dark:text-amber-300 font-semibold";
+  if (inst.operand.startsWith('"'))
+    return "text-emerald-600 dark:text-emerald-400";
+  if (inst.operand.includes("Hash160"))
+    return "text-blue-600 dark:text-blue-400";
   return "";
 }
 </script>

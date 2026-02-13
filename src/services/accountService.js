@@ -40,7 +40,12 @@ export const accountService = {
     const key = getCacheKey("account_list", { limit, skip });
     return cachedRequest(
       key,
-      () => safeRpcList("GetAddressList", { Limit: limit, Skip: skip }, "get account list"),
+      () =>
+        safeRpcList(
+          "GetAddressList",
+          { Limit: limit, Skip: skip },
+          "get account list"
+        ),
       CACHE_TTL.chart,
       getRealtimeListCacheOptions(options)
     );
@@ -83,7 +88,7 @@ export const accountService = {
    * @returns {Promise<Array>} 代币持仓列表
    */
   async getTokenHoldings(address, options = {}) {
-    const key = getCacheKey("addr_assets", { address });
+    const key = getCacheKey("addr_token_holdings", { address });
     return cachedRequest(
       key,
       () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []),
@@ -101,7 +106,11 @@ export const accountService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
   async getNep17Transfers(address, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("account_nep17_transfers", { address, limit, skip });
+    const key = getCacheKey("account_nep17_transfers", {
+      address,
+      limit,
+      skip,
+    });
     return cachedRequest(
       key,
       () =>
@@ -124,7 +133,11 @@ export const accountService = {
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
   async getNep11Transfers(address, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("account_nep11_transfers", { address, limit, skip });
+    const key = getCacheKey("account_nep11_transfers", {
+      address,
+      limit,
+      skip,
+    });
     return cachedRequest(
       key,
       () =>

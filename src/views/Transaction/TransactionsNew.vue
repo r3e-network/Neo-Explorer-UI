@@ -9,7 +9,12 @@
         <div
           class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
         >
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -29,7 +34,12 @@
         v-if="total > 0"
         class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-900/20"
       >
-        <svg class="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          class="h-4 w-4 flex-shrink-0 text-blue-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -45,15 +55,48 @@
       <!-- Main Card -->
       <div class="etherscan-card overflow-hidden">
         <!-- Card Header -->
-        <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+        >
           <p class="text-sm text-text-secondary dark:text-gray-400">
-            Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(total) }} transactions
+            Showing {{ startRecord }} to {{ endRecord }} of
+            {{ formatNumber(total) }} transactions
           </p>
+          <button
+            v-if="transactions.length > 0"
+            @click="exportData"
+            class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            title="Export to CSV"
+          >
+            <svg
+              class="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+              stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003
+              3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </button>
         </div>
 
         <!-- Loading Skeletons -->
-        <div v-if="loading" class="divide-y divide-card-border dark:divide-card-border-dark">
-          <div v-for="i in pageSize" :key="'skel-' + i" class="flex items-center gap-4 px-4 py-3.5">
+        <div
+          v-if="loading"
+          class="divide-y divide-card-border dark:divide-card-border-dark"
+        >
+          <div
+            v-for="i in pageSize"
+            :key="'skel-' + i"
+            class="flex items-center gap-4 px-4 py-3.5"
+          >
             <Skeleton width="180px" height="16px" />
             <Skeleton width="60px" height="24px" variant="rounded" />
             <Skeleton width="70px" height="16px" />
@@ -67,16 +110,26 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Failed to load transactions" :message="error" @retry="loadPage" />
+          <ErrorState
+            title="Failed to load transactions"
+            :message="error"
+            @retry="loadPage"
+          />
         </div>
 
         <!-- Empty State -->
-        <EmptyState v-else-if="transactions.length === 0" icon="tx" message="No transactions found" />
+        <EmptyState
+          v-else-if="transactions.length === 0"
+          icon="tx"
+          message="No transactions found"
+        />
 
         <!-- Transaction Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead
+              class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+            >
               <tr>
                 <th class="table-header-cell">Txn Hash</th>
                 <th class="table-header-cell">Method</th>
@@ -86,7 +139,12 @@
                   @click="showAbsoluteTime = !showAbsoluteTime"
                 >
                   {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
-                  <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    class="ml-0.5 inline h-3 w-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -95,12 +153,8 @@
                     />
                   </svg>
                 </th>
-                <th class="table-header-cell hidden md:table-cell">
-                  From
-                </th>
-                <th class="table-header-cell hidden lg:table-cell">
-                  To
-                </th>
+                <th class="table-header-cell hidden md:table-cell">From</th>
+                <th class="table-header-cell hidden lg:table-cell">To</th>
                 <th class="table-header-cell-right hidden lg:table-cell">
                   Value / Gas
                 </th>
@@ -109,7 +163,9 @@
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody
+              class="divide-y divide-card-border dark:divide-card-border-dark"
+            >
               <tr
                 v-for="tx in transactions"
                 :key="tx.hash"
@@ -159,7 +215,11 @@
                 <!-- Age -->
                 <td class="table-cell-secondary">
                   <span :title="formatUnixTime(tx.blocktime)">
-                    {{ showAbsoluteTime ? formatUnixTime(tx.blocktime) : formatAge(tx.blocktime) }}
+                    {{
+                      showAbsoluteTime
+                        ? formatUnixTime(tx.blocktime)
+                        : formatAge(tx.blocktime)
+                    }}
                   </span>
                 </td>
 
@@ -195,13 +255,21 @@
                   class="table-cell hidden text-right font-mono lg:table-cell"
                 >
                   <div class="flex flex-col items-end leading-tight">
-                    <span class="max-w-[180px] truncate" :title="getTxValueSummary(tx)">{{ getTxValueSummary(tx) }}</span>
-                    <span class="text-[11px] text-text-secondary">{{ formatTxGas(tx) }} GAS</span>
+                    <span
+                      class="max-w-[180px] truncate"
+                      :title="getTxValueSummary(tx)"
+                      >{{ getTxValueSummary(tx) }}</span
+                    >
+                    <span class="text-[11px] text-text-secondary"
+                      >{{ formatTxGas(tx) }} GAS</span
+                    >
                   </div>
                 </td>
 
                 <!-- Fee -->
-                <td class="table-cell-secondary hidden text-right text-xs xl:table-cell">
+                <td
+                  class="table-cell-secondary hidden text-right text-xs xl:table-cell"
+                >
                   {{ formatTxFeeBreakdown(tx) }}
                 </td>
               </tr>
@@ -214,7 +282,13 @@
           v-if="!loading && transactions.length > 0"
           class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
         >
+          <InfiniteScroll
+            :loading="loadingMore"
+            :has-more="currentPage < totalPages"
+            @load-more="loadMore"
+          />
           <EtherscanPagination
+            v-if="false"
             :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
@@ -235,13 +309,22 @@ import { transactionService, tokenService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getNetworkRefreshIntervalMs } from "@/utils/env";
-import { truncateHash, formatAge, formatUnixTime, formatNumber, formatGas, formatTokenAmount } from "@/utils/explorerFormat";
+import {
+  truncateHash,
+  formatAge,
+  formatUnixTime,
+  formatNumber,
+  formatGas,
+  formatTokenAmount,
+} from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
+import { exportTransactionsToCSV } from "@/utils/dataExport";
 
 const route = useRoute();
 const router = useRouter();
@@ -249,6 +332,7 @@ const router = useRouter();
 // State
 const transactions = ref([]);
 const loading = ref(false);
+const loadingMore = ref(false);
 const error = ref(null);
 const showAbsoluteTime = ref(false);
 const currentPage = ref(1);
@@ -260,11 +344,20 @@ const transferSummaryByHash = ref({});
 const pendingTransferSummaries = new Set();
 
 // Computed
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
-const startRecord = computed(() => (total.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1));
-const endRecord = computed(() => Math.min(currentPage.value * pageSize.value, total.value));
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(total.value / pageSize.value))
+);
+const startRecord = computed(() =>
+  total.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1
+);
+const endRecord = computed(() =>
+  Math.min(currentPage.value * pageSize.value, total.value)
+);
 
-const breadcrumbs = [{ label: "Home", to: "/homepage" }, { label: "Transactions" }];
+const breadcrumbs = [
+  { label: "Home", to: "/homepage" },
+  { label: "Transactions" },
+];
 
 // Methods
 function getTxStatusColor(tx) {
@@ -325,7 +418,11 @@ function setTransferSummary(hash, summary) {
 }
 
 async function loadTransferSummaryByHash(hash) {
-  if (!hash || transferSummaryByHash.value[hash] || pendingTransferSummaries.has(hash)) {
+  if (
+    !hash ||
+    transferSummaryByHash.value[hash] ||
+    pendingTransferSummaries.has(hash)
+  ) {
     return;
   }
 
@@ -336,7 +433,11 @@ async function loadTransferSummaryByHash(hash) {
     const nep17 = nep17Res?.result?.[0];
 
     if (nep17) {
-      const amount = formatTokenAmount(nep17.value || 0, Number(nep17.decimals || 0), 8);
+      const amount = formatTokenAmount(
+        nep17.value || 0,
+        Number(nep17.decimals || 0),
+        8
+      );
       const symbol = nep17.symbol || nep17.tokenname || "Token";
       const suffix = getExtraTransferSuffix(nep17Res?.totalCount);
       setTransferSummary(hash, `${amount} ${symbol}${suffix}`);
@@ -351,7 +452,12 @@ async function loadTransferSummaryByHash(hash) {
       const tokenId = nep11.tokenid || nep11.tokenId;
       const suffix = getExtraTransferSuffix(nep11Res?.totalCount);
       const readableTokenId = truncateTokenId(tokenId);
-      setTransferSummary(hash, readableTokenId ? `1 ${symbol} #${readableTokenId}${suffix}` : `1 ${symbol}${suffix}`);
+      setTransferSummary(
+        hash,
+        readableTokenId
+          ? `1 ${symbol} #${readableTokenId}${suffix}`
+          : `1 ${symbol}${suffix}`
+      );
       return;
     }
 
@@ -370,7 +476,11 @@ async function enrichTransferSummaries(txList) {
   const hashes = (txList || [])
     .filter((tx) => {
       const hash = tx?.hash;
-      if (!hash || transferSummaryByHash.value[hash] || pendingTransferSummaries.has(hash)) {
+      if (
+        !hash ||
+        transferSummaryByHash.value[hash] ||
+        pendingTransferSummaries.has(hash)
+      ) {
         return false;
       }
 
@@ -422,14 +532,17 @@ async function loadPage({ silent = false, forceRefresh = false } = {}) {
   }
 
   try {
-    const res = await transactionService.getList(pageSize.value, skip, { forceRefresh });
+    const res = await transactionService.getList(pageSize.value, skip, {
+      forceRefresh,
+    });
     if (myRequestId !== currentRequestId) return;
     total.value = res?.totalCount || 0;
     transactions.value = res?.result || [];
-    void enrichTransferSummaries(transactions.value);
+    enrichTransferSummaries(transactions.value).catch(() => {});
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
-    if (process.env.NODE_ENV !== "production") console.error("Failed to load transactions:", err);
+    if (process.env.NODE_ENV !== "production")
+      console.error("Failed to load transactions:", err);
 
     if (!silent || transactions.value.length === 0) {
       error.value = "Failed to load transactions. Please try again.";
@@ -453,6 +566,32 @@ function changePageSize(size) {
   router.push("/transactions/1");
 }
 
+async function loadMore() {
+  if (loadingMore.value || currentPage.value >= totalPages.value) return;
+
+  loadingMore.value = true;
+  const nextPage = currentPage.value + 1;
+  const skip = (nextPage - 1) * pageSize.value;
+
+  try {
+    const res = await transactionService.getList(pageSize.value, skip, {
+      forceRefresh: true,
+    });
+    if (res?.result?.length > 0) {
+      transactions.value = [...transactions.value, ...res.result];
+      currentPage.value = nextPage;
+      total.value = res.totalCount || total.value;
+      enrichTransferSummaries(res.result).catch(() => {});
+    }
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Failed to load more transactions:", err);
+    }
+  } finally {
+    loadingMore.value = false;
+  }
+}
+
 function startAutoRefresh() {
   stopAutoRefresh();
 
@@ -466,6 +605,13 @@ function stopAutoRefresh() {
     clearInterval(refreshTimer);
     refreshTimer = null;
   }
+}
+
+function exportData() {
+  if (!transactions.value || transactions.value.length === 0) {
+    return;
+  }
+  exportTransactionsToCSV(transactions.value);
 }
 
 // Watch route param for page changes

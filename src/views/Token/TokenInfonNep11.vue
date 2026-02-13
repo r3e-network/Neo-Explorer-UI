@@ -8,11 +8,23 @@
       </div>
     </div>
 
+    <!-- Error State -->
+    <div v-else-if="error" class="py-12">
+      <ErrorState :message="error" @retry="reloadToken" />
+    </div>
+
     <template v-else>
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
+        >
+          <svg
+            class="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -33,7 +45,11 @@
           </div>
           <p class="page-subtitle">NEP-11 Non-Fungible Token</p>
         </div>
-        <button class="btn-outline ml-auto" aria-label="View contract details" @click="getContract(token_info['hash'])">
+        <button
+          class="btn-outline ml-auto"
+          aria-label="View contract details"
+          @click="getContract(token_info['hash'])"
+        >
           View Contract
         </button>
       </div>
@@ -41,7 +57,11 @@
       <!-- Overview Card -->
       <div class="etherscan-card mb-6">
         <div class="card-header">
-          <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
+          <h2
+            class="text-base font-semibold text-text-primary dark:text-gray-100"
+          >
+            Overview
+          </h2>
         </div>
         <div class="divide-y divide-card-border dark:divide-card-border-dark">
           <!-- Name -->
@@ -56,13 +76,20 @@
           <div class="info-row">
             <div class="info-label">Hash</div>
             <div class="info-value flex items-center gap-2">
-              <span class="font-hash text-primary-500 break-all">{{ token_info["hash"] }}</span>
+              <span class="font-hash text-primary-500 break-all">{{
+                token_info["hash"]
+              }}</span>
               <button
                 class="shrink-0 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
                 title="Copy to clipboard"
                 @click="copyHash(token_info['hash'])"
               >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -102,7 +129,9 @@
           <!-- Total Supply -->
           <div class="info-row">
             <div class="info-label">Total Supply</div>
-            <div class="info-value">{{ convertToken(token_info["totalsupply"], decimal) }}</div>
+            <div class="info-value">
+              {{ convertToken(token_info["totalsupply"], decimal) }}
+            </div>
           </div>
           <!-- Holders -->
           <div class="info-row">
@@ -122,7 +151,12 @@
                 :key="tab.key"
                 role="tab"
                 :aria-selected="activeName === tab.key"
-                :class="['tab-btn', activeName === tab.key ? 'tab-btn-active' : 'tab-btn-inactive']"
+                :class="[
+                  'tab-btn',
+                  activeName === tab.key
+                    ? 'tab-btn-active'
+                    : 'tab-btn-inactive',
+                ]"
                 @click="activeName = tab.key"
               >
                 {{ tab.label }}
@@ -138,47 +172,92 @@
             :contract-hash="token_id"
             :decimal="decimal === '' ? 0 : decimal"
           />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No NFT tokens found</div>
+          <div
+            v-else
+            class="etherscan-card p-6 text-center text-sm text-text-muted"
+          >
+            No NFT tokens found
+          </div>
         </div>
 
         <!-- Tab: Top Holders -->
         <div v-show="activeName === 'holders'">
-          <token-holder v-if="token_info['holders']" :contract-hash="token_id" :format-balance="false" />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No holders found</div>
+          <token-holder
+            v-if="token_info['holders']"
+            :contract-hash="token_id"
+            :format-balance="false"
+          />
+          <div
+            v-else
+            class="etherscan-card p-6 text-center text-sm text-text-muted"
+          >
+            No holders found
+          </div>
         </div>
 
         <!-- Tab: Contract Info -->
         <div v-show="activeName === 'contract'">
           <!-- Extra Info -->
-          <div v-if="manifest.extra && JSON.stringify(manifest.extra) !== '{}'" class="etherscan-card mb-4">
+          <div
+            v-if="manifest.extra && JSON.stringify(manifest.extra) !== '{}'"
+            class="etherscan-card mb-4"
+          >
             <div class="card-header">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Extra</h3>
+              <h3
+                class="text-sm font-semibold text-text-primary dark:text-gray-100"
+              >
+                Extra
+              </h3>
             </div>
             <div class="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 text-sm">
               <div v-if="manifest.extra['Email']">
                 <span class="text-text-secondary">Email:</span>
-                <a :href="'mailto:' + manifest.extra['Email']" class="ml-1 etherscan-link">
+                <a
+                  :href="'mailto:' + manifest.extra['Email']"
+                  class="ml-1 etherscan-link"
+                >
                   {{ manifest.extra["Email"] }}
                 </a>
               </div>
               <div v-if="manifest.extra['Author']">
                 <span class="text-text-secondary">Author:</span>
-                <span class="ml-1 text-text-primary dark:text-gray-200">{{ manifest.extra["Author"] }}</span>
+                <span class="ml-1 text-text-primary dark:text-gray-200">{{
+                  manifest.extra["Author"]
+                }}</span>
               </div>
               <div v-if="manifest.extra['Description']">
                 <span class="text-text-secondary">Description:</span>
-                <span class="ml-1 text-text-primary dark:text-gray-200">{{ manifest.extra["Description"] }}</span>
+                <span class="ml-1 text-text-primary dark:text-gray-200">{{
+                  manifest.extra["Description"]
+                }}</span>
               </div>
             </div>
           </div>
 
           <!-- ABI: Events -->
-          <div v-if="manifest.abi && manifest.abi.events && manifest.abi.events.length > 0" class="etherscan-card mb-4">
+          <div
+            v-if="
+              manifest.abi &&
+              manifest.abi.events &&
+              manifest.abi.events.length > 0
+            "
+            class="etherscan-card mb-4"
+          >
             <div class="card-header">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Events</h3>
+              <h3
+                class="text-sm font-semibold text-text-primary dark:text-gray-100"
+              >
+                Events
+              </h3>
             </div>
-            <div class="divide-y divide-card-border dark:divide-card-border-dark">
-              <details v-for="(item, index) in manifest['abi']['events']" :key="'event-' + index" class="group">
+            <div
+              class="divide-y divide-card-border dark:divide-card-border-dark"
+            >
+              <details
+                v-for="(item, index) in manifest['abi']['events']"
+                :key="'event-' + index"
+                class="group"
+              >
                 <summary
                   class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
                 >
@@ -188,16 +267,33 @@
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   {{ item["name"] }}
                 </summary>
                 <div class="px-4 pb-3 pl-10">
-                  <div class="text-xs font-medium uppercase text-text-secondary mb-2">Parameters</div>
+                  <div
+                    class="text-xs font-medium uppercase text-text-secondary mb-2"
+                  >
+                    Parameters
+                  </div>
                   <div v-if="item['parameters'].length > 0" class="space-y-1">
-                    <div v-for="(param, ind) in item['parameters']" :key="ind" class="flex gap-2 text-sm">
-                      <span class="font-medium text-text-secondary">{{ param["name"] }}:</span>
-                      <span class="text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
+                    <div
+                      v-for="(param, ind) in item['parameters']"
+                      :key="ind"
+                      class="flex gap-2 text-sm"
+                    >
+                      <span class="font-medium text-text-secondary"
+                        >{{ param["name"] }}:</span
+                      >
+                      <span class="text-text-primary dark:text-gray-300">{{
+                        param["type"]
+                      }}</span>
                     </div>
                   </div>
                   <div v-else class="text-sm text-text-muted">null</div>
@@ -207,12 +303,25 @@
           </div>
 
           <!-- ABI: Methods -->
-          <div v-if="manifest.abi && manifest.abi.methods" class="etherscan-card">
+          <div
+            v-if="manifest.abi && manifest.abi.methods"
+            class="etherscan-card"
+          >
             <div class="card-header">
-              <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Methods</h3>
+              <h3
+                class="text-sm font-semibold text-text-primary dark:text-gray-100"
+              >
+                Methods
+              </h3>
             </div>
-            <div class="divide-y divide-card-border dark:divide-card-border-dark">
-              <details v-for="(item, index) in manifest['abi']['methods']" :key="'method-' + index" class="group">
+            <div
+              class="divide-y divide-card-border dark:divide-card-border-dark"
+            >
+              <details
+                v-for="(item, index) in manifest['abi']['methods']"
+                :key="'method-' + index"
+                class="group"
+              >
                 <summary
                   class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
                 >
@@ -222,7 +331,12 @@
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   {{ item["name"] }}
                   <span
@@ -233,48 +347,98 @@
                 </summary>
                 <div class="px-4 pb-4 pl-10">
                   <div v-if="item['safe']" class="mb-3">
-                    <button class="btn-outline text-xs" @click="onQuery(index)">Query</button>
+                    <button
+                      class="btn-outline text-xs"
+                      aria-label="Query method"
+                      @click="onQuery(index)"
+                    >
+                      Query
+                    </button>
                   </div>
                   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Parameters</div>
+                      <div
+                        class="text-xs font-medium uppercase text-text-secondary mb-1"
+                      >
+                        Parameters
+                      </div>
                       <div v-if="item['parameters'].length > 0">
-                        <div v-for="(param, ind) in item['parameters']" :key="ind" class="mb-1 text-sm">
-                          <span class="font-medium text-text-secondary">{{ param["name"] }}:</span>
-                          <span class="ml-1 text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
+                        <div
+                          v-for="(param, ind) in item['parameters']"
+                          :key="ind"
+                          class="mb-1 text-sm"
+                        >
+                          <span class="font-medium text-text-secondary"
+                            >{{ param["name"] }}:</span
+                          >
+                          <span
+                            class="ml-1 text-text-primary dark:text-gray-300"
+                            >{{ param["type"] }}</span
+                          >
                           <input
                             v-if="item['safe']"
-                            v-model="manifest['abi']['methods'][index]['parameters'][ind].value"
+                            v-model="
+                              manifest['abi']['methods'][index]['parameters'][
+                                ind
+                              ].value
+                            "
                             type="text"
                             :aria-label="`Parameter ${param['name']}`"
                             class="form-input mt-1 py-1 text-xs"
                           />
                         </div>
                       </div>
-                      <div v-else class="text-sm text-text-muted">No parameters</div>
+                      <div v-else class="text-sm text-text-muted">
+                        No parameters
+                      </div>
                     </div>
                     <div>
-                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Return Type</div>
-                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["returntype"] }}</div>
+                      <div
+                        class="text-xs font-medium uppercase text-text-secondary mb-1"
+                      >
+                        Return Type
+                      </div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">
+                        {{ item["returntype"] }}
+                      </div>
                     </div>
                     <div>
-                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Offset</div>
-                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["offset"] }}</div>
+                      <div
+                        class="text-xs font-medium uppercase text-text-secondary mb-1"
+                      >
+                        Offset
+                      </div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">
+                        {{ item["offset"] }}
+                      </div>
                     </div>
                     <div>
-                      <div class="text-xs font-medium uppercase text-text-secondary mb-1">Safe</div>
-                      <div class="text-sm text-text-primary dark:text-gray-300">{{ item["safe"] }}</div>
+                      <div
+                        class="text-xs font-medium uppercase text-text-secondary mb-1"
+                      >
+                        Safe
+                      </div>
+                      <div class="text-sm text-text-primary dark:text-gray-300">
+                        {{ item["safe"] }}
+                      </div>
                     </div>
                   </div>
                   <!-- Error -->
                   <div
                     class="mt-3"
                     v-if="
-                      manifest['abi']['methods'][index]['error'] && manifest['abi']['methods'][index]['error'] !== ''
+                      manifest['abi']['methods'][index]['error'] &&
+                      manifest['abi']['methods'][index]['error'] !== ''
                     "
                   >
-                    <div class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Error</div>
-                    <div class="rounded bg-red-50 p-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                    <div
+                      class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1"
+                    >
+                      Error
+                    </div>
+                    <div
+                      class="rounded bg-red-50 p-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300"
+                    >
                       {{ manifest["abi"]["methods"][index]["error"] }}
                     </div>
                   </div>
@@ -282,12 +446,20 @@
                   <div
                     class="mt-3"
                     v-else-if="
-                      manifest['abi']['methods'][index]['raw'] && manifest['abi']['methods'][index]['raw'] !== ''
+                      manifest['abi']['methods'][index]['raw'] &&
+                      manifest['abi']['methods'][index]['raw'] !== ''
                     "
                   >
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="text-xs font-semibold text-text-primary dark:text-gray-100">Response</span>
-                      <button class="btn-mini" @click="decode(index)">
+                      <span
+                        class="text-xs font-semibold text-text-primary dark:text-gray-100"
+                        >Response</span
+                      >
+                      <button
+                        class="btn-mini"
+                        aria-label="Decode response"
+                        @click="decode(index)"
+                      >
                         {{ manifest["abi"]["methods"][index]["button"] }}
                       </button>
                     </div>
@@ -295,7 +467,10 @@
                       v-if="manifest['abi']['methods'][index]['isRaw']"
                       :json="manifest['abi']['methods'][index]['raw']"
                     />
-                    <contract-json-view v-else :json="manifest['abi']['methods'][index]['display']" />
+                    <contract-json-view
+                      v-else
+                      :json="manifest['abi']['methods'][index]['display']"
+                    />
                   </div>
                 </div>
               </details>
@@ -315,9 +490,14 @@ import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import NftToken from "./NftTokens";
 import TokenHolder from "./TokenHolder";
 import ContractJsonView from "../Contract/ContractJsonView";
-import { convertPreciseTime, convertToken, responseConverter } from "@/store/util";
+import {
+  convertPreciseTime,
+  convertToken,
+  responseConverter,
+} from "@/store/util";
 import { invokeContractFunction } from "@/utils/contractInvocation";
 import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -325,8 +505,9 @@ const router = useRouter();
 // data() -> refs
 const token_id = ref("");
 const isLoading = ref(true);
-const token_info = ref([]);
-const manifest = ref("");
+const error = ref(null);
+const token_info = ref({});
+const manifest = ref({});
 const decimal = ref("");
 const activeName = ref("nfts");
 const tabs = [
@@ -384,18 +565,30 @@ function getContract(hash) {
 }
 
 function getToken(id) {
+  error.value = null;
   tokenService
     .getByHash(id)
     .then((res) => {
       if (abortController.value?.signal.aborted) return;
       decimal.value = res?.decimals;
-      token_info.value = res;
+      token_info.value = res || {};
       isLoading.value = false;
     })
-    .catch(() => {
+    .catch((err) => {
       if (abortController.value?.signal.aborted) return;
+      error.value = "Failed to load token information. Please try again.";
       isLoading.value = false;
+      if (process.env.NODE_ENV !== "production")
+        console.error("Failed to load token:", err);
     });
+}
+
+function reloadToken() {
+  const tokenId = route.params.hash;
+  if (tokenId) {
+    isLoading.value = true;
+    getToken(tokenId);
+  }
 }
 
 function getContractUpdateCounter(contract_id) {
@@ -426,11 +619,14 @@ function onQuery(index) {
         manifest.value["abi"]["methods"][index]["isRaw"] = true;
         manifest.value["abi"]["methods"][index]["button"] = "Decode";
         manifest.value["abi"]["methods"][index]["raw"] = stack;
-        manifest.value["abi"]["methods"][index]["display"] = JSON.parse(JSON.stringify(temp, responseConverter));
+        manifest.value["abi"]["methods"][index]["display"] = JSON.parse(
+          JSON.stringify(temp, responseConverter)
+        );
       }
     })
     .catch((err) => {
-      manifest.value["abi"]["methods"][index]["error"] = err?.message || err?.toString?.() || "Failed to invoke function";
+      manifest.value["abi"]["methods"][index]["error"] =
+        err?.message || err?.toString?.() || "Failed to invoke function";
     });
 }
 

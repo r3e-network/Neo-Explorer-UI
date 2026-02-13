@@ -1,7 +1,15 @@
 <template>
   <div class="bgView">
-    <div :class="['json-view', length ? 'closeable' : '']" :style="'font-size:' + fontSize + 'px'">
-      <span @click="toggleClose" :class="['angle', innerclosed ? 'closed' : '']" v-if="length"> </span>
+    <div
+      :class="['json-view', length ? 'closeable' : '']"
+      :style="'font-size:' + fontSize + 'px'"
+    >
+      <span
+        @click="toggleClose"
+        :class="['angle', innerclosed ? 'closed' : '']"
+        v-if="length"
+      >
+      </span>
       <div class="content-wrap">
         <p class="first-line">
           <span v-if="jsonKey" class="json-key">"{{ jsonKey }}": </span>
@@ -16,13 +24,13 @@
         </p>
         <div v-if="!innerclosed && length" class="json-body">
           <template v-for="(item, index) in items" :key="index">
-            <contract-json-view
+            <ContractJsonView
               :closed="closed"
               v-if="item.isJSON"
               :json="item.value"
               :jsonKey="item.key"
               :isLast="index === items.length - 1"
-            ></contract-json-view>
+            ></ContractJsonView>
             <p class="json-item" v-else>
               <span class="json-key">
                 {{ isArray ? "" : '"' + item.key + '"' }}
@@ -72,7 +80,7 @@ watch(
   () => props.closed,
   (val) => {
     innerclosed.value = val;
-  }
+  },
 );
 
 function isObjectOrArray(source) {

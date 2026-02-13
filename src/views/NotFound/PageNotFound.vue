@@ -1,10 +1,19 @@
 <template>
   <div class="page-not-found">
-    <section class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8">
+    <section
+      class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8"
+    >
       <div class="w-full max-w-lg etherscan-card p-8 text-center">
         <!-- 404 SVG Icon -->
-        <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-          <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+        >
+          <svg
+            class="h-12 w-12 text-gray-400 dark:text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -13,7 +22,7 @@
             />
           </svg>
         </div>
-        <p class="text-7xl font-bold text-gray-200 dark:text-gray-700">404</p>
+        <p class="text-7xl font-bold text-gray-300 dark:text-gray-600">404</p>
         <h1 class="mt-2 page-title">Page Not Found</h1>
         <p class="mt-2 text-sm text-text-secondary dark:text-gray-400">
           The requested page does not exist or may have been moved.

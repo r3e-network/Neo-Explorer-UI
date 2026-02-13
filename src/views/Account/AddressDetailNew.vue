@@ -3,12 +3,18 @@
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
+        :items="[
+          { label: 'Home', to: '/homepage' },
+          { label: 'Addresses', to: '/account/1' },
+          { label: truncateAddr },
+        ]"
       />
 
       <!-- Address header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400">
+        <div
+          class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400"
+        >
           <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path
               d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
@@ -26,7 +32,10 @@
             </span>
           </div>
           <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <span class="font-hash break-all text-sm text-text-secondary dark:text-gray-400">{{ address }}</span>
+            <span
+              class="font-hash break-all text-sm text-text-secondary dark:text-gray-400"
+              >{{ address }}</span
+            >
             <CopyButton :text="address" />
             <button
               class="p-1 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
@@ -34,7 +43,12 @@
               aria-label="Toggle QR code display"
               @click="showQr = !showQr"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -63,7 +77,9 @@
                   d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
                 />
               </svg>
-              <p class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400">
+              <p
+                class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400"
+              >
                 {{ address }}
               </p>
             </div>
@@ -135,11 +151,22 @@
               <div class="flex items-center justify-between">
                 <p class="text-sm text-text-secondary dark:text-gray-400">
                   Latest {{ transactions.length }} from a total of
-                  <span class="font-medium text-text-primary dark:text-gray-300">{{ formatNumber(txTotalCount) }}</span>
+                  <span
+                    class="font-medium text-text-primary dark:text-gray-300"
+                    >{{ formatNumber(txTotalCount) }}</span
+                  >
                   transactions
                 </p>
-                <button class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs" @click="exportCsv">
-                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button
+                  class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs"
+                  @click="exportCsv"
+                >
+                  <svg
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -152,20 +179,26 @@
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[900px]">
-                  <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                  <thead
+                    class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+                  >
                     <tr>
                       <th class="table-header-cell">Txn Hash</th>
                       <th class="table-header-cell">Method</th>
                       <th class="table-header-cell">Block</th>
                       <th class="table-header-cell">Age</th>
                       <th class="table-header-cell">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th
+                        class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"
+                      ></th>
                       <th class="table-header-cell">To</th>
                       <th class="table-header-cell-right">Value</th>
                       <th class="table-header-cell-right">Txn Fee</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                  <tbody
+                    class="divide-y divide-card-border dark:divide-card-border-dark"
+                  >
                     <tr
                       v-for="tx in transactions"
                       :key="tx.hash"
@@ -195,7 +228,11 @@
                         >
                           {{ formatNumber(tx.blockIndex) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >-</span
+                        >
                       </td>
                       <td class="table-cell-secondary">
                         {{ formatAge(tx.blocktime) }}
@@ -208,21 +245,30 @@
                         >
                           {{ truncateHash(tx.sender, 8, 6) }}
                         </router-link>
-                        <span v-else-if="tx.sender" class="font-hash text-sm text-text-primary dark:text-gray-300">
+                        <span
+                          v-else-if="tx.sender"
+                          class="font-hash text-sm text-text-primary dark:text-gray-300"
+                        >
                           {{ truncateHash(tx.sender, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >-</span
+                        >
                       </td>
                       <td class="px-2 py-3 text-center">
                         <span
                           class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-xs font-semibold"
-                          :class="getDirection(tx.sender, '').cssClass"
+                          :class="getDirection(tx.sender, address).cssClass"
                         >
-                          {{ getDirection(tx.sender, "").label }}
+                          {{ getDirection(tx.sender, address).label }}
                         </span>
                       </td>
                       <td class="table-cell">
-                        <span class="font-hash text-sm text-text-primary dark:text-gray-300">
+                        <span
+                          class="font-hash text-sm text-text-primary dark:text-gray-300"
+                        >
                           {{ truncateHash(address, 8, 6) }}
                         </span>
                       </td>
@@ -237,7 +283,9 @@
                 </table>
               </div>
 
-              <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+              <div
+                class="border-t border-card-border pt-3 dark:border-card-border-dark"
+              >
                 <EtherscanPagination
                   :page="txPage"
                   :total-pages="txTotalPages"
@@ -274,18 +322,24 @@
               </p>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[850px]">
-                  <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                  <thead
+                    class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+                  >
                     <tr>
                       <th class="table-header-cell">Txn Hash</th>
                       <th class="table-header-cell">Age</th>
                       <th class="table-header-cell">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th
+                        class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"
+                      ></th>
                       <th class="table-header-cell">To</th>
                       <th class="table-header-cell-right">Amount</th>
                       <th class="table-header-cell">Token</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                  <tbody
+                    class="divide-y divide-card-border dark:divide-card-border-dark"
+                  >
                     <tr
                       v-for="(transfer, idx) in nep17Transfers"
                       :key="`nep17-${transfer.txHash}-${idx}`"
@@ -311,15 +365,24 @@
                         >
                           {{ truncateHash(transfer.from, 8, 6) }}
                         </router-link>
-                        <span v-else-if="transfer.from" class="font-hash text-sm text-text-primary dark:text-gray-300">
+                        <span
+                          v-else-if="transfer.from"
+                          class="font-hash text-sm text-text-primary dark:text-gray-300"
+                        >
                           {{ truncateHash(transfer.from, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Null</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >Null</span
+                        >
                       </td>
                       <td class="px-2 py-3 text-center">
                         <span
                           class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-xs font-semibold"
-                          :class="getDirection(transfer.from, transfer.to).cssClass"
+                          :class="
+                            getDirection(transfer.from, transfer.to).cssClass
+                          "
                         >
                           {{ getDirection(transfer.from, transfer.to).label }}
                         </span>
@@ -332,13 +395,25 @@
                         >
                           {{ truncateHash(transfer.to, 8, 6) }}
                         </router-link>
-                        <span v-else-if="transfer.to" class="font-hash text-sm text-text-primary dark:text-gray-300">
+                        <span
+                          v-else-if="transfer.to"
+                          class="font-hash text-sm text-text-primary dark:text-gray-300"
+                        >
                           {{ truncateHash(transfer.to, 8, 6) }}
                         </span>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Null</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >Null</span
+                        >
                       </td>
                       <td class="table-cell text-right">
-                        {{ formatTransferAmount(transfer.amount, transfer.decimals) }}
+                        {{
+                          formatTransferAmount(
+                            transfer.amount,
+                            transfer.decimals,
+                          )
+                        }}
                       </td>
                       <td class="table-cell">
                         <router-link
@@ -357,7 +432,9 @@
                 </table>
               </div>
 
-              <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+              <div
+                class="border-t border-card-border pt-3 dark:border-card-border-dark"
+              >
                 <EtherscanPagination
                   :page="nep17Page"
                   :total-pages="nep17TotalPages"
@@ -394,18 +471,24 @@
               </p>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[850px]">
-                  <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                  <thead
+                    class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+                  >
                     <tr>
                       <th class="table-header-cell">Txn Hash</th>
                       <th class="table-header-cell">Age</th>
                       <th class="table-header-cell">From</th>
-                      <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+                      <th
+                        class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"
+                      ></th>
                       <th class="table-header-cell">To</th>
                       <th class="table-header-cell">Token ID</th>
                       <th class="table-header-cell">Collection</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                  <tbody
+                    class="divide-y divide-card-border dark:divide-card-border-dark"
+                  >
                     <tr
                       v-for="(transfer, idx) in nep11Transfers"
                       :key="`nep11-${transfer.txHash}-${idx}`"
@@ -431,12 +514,18 @@
                         >
                           {{ truncateHash(transfer.from, 10, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >-</span
+                        >
                       </td>
                       <td class="px-4 py-3 text-center">
                         <span
                           class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
-                          :class="getDirection(transfer.from, transfer.to).cssClass"
+                          :class="
+                            getDirection(transfer.from, transfer.to).cssClass
+                          "
                         >
                           {{ getDirection(transfer.from, transfer.to).label }}
                         </span>
@@ -449,10 +538,18 @@
                         >
                           {{ truncateHash(transfer.to, 10, 6) }}
                         </router-link>
-                        <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        <span
+                          v-else
+                          class="text-sm text-gray-400 dark:text-gray-500"
+                          >-</span
+                        >
                       </td>
                       <td class="table-cell-secondary font-hash">
-                        {{ transfer.tokenId ? truncateHash(transfer.tokenId, 8, 4) : "-" }}
+                        {{
+                          transfer.tokenId
+                            ? truncateHash(transfer.tokenId, 8, 4)
+                            : "-"
+                        }}
                       </td>
                       <td class="table-cell">
                         <router-link
@@ -471,7 +568,9 @@
                 </table>
               </div>
 
-              <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+              <div
+                class="border-t border-card-border pt-3 dark:border-card-border-dark"
+              >
                 <EtherscanPagination
                   :page="nep11Page"
                   :total-pages="nep11TotalPages"
@@ -504,7 +603,9 @@
 
             <div v-else class="overflow-x-auto">
               <table class="w-full min-w-[700px]">
-                <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                <thead
+                  class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+                >
                   <tr>
                     <th class="table-header-cell">Token</th>
                     <th class="table-header-cell">Standard</th>
@@ -513,7 +614,9 @@
                     <th class="table-header-cell">Contract</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                <tbody
+                  class="divide-y divide-card-border dark:divide-card-border-dark"
+                >
                   <tr
                     v-for="asset in sortedFungibleAssets()"
                     :key="assetKey(asset)"
@@ -527,7 +630,9 @@
                         >
                           {{ tokenInitial(assetDisplayName(asset)) }}
                         </span>
-                        <span class="text-sm font-medium text-text-primary dark:text-gray-300">
+                        <span
+                          class="text-sm font-medium text-text-primary dark:text-gray-300"
+                        >
                           {{ assetDisplayName(asset) }}
                         </span>
                       </div>
@@ -547,7 +652,11 @@
                       >
                         {{ truncateHash(assetHash(asset), 12, 8) }}
                       </router-link>
-                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                      <span
+                        v-else
+                        class="text-sm text-gray-400 dark:text-gray-500"
+                        >-</span
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -575,7 +684,9 @@
 
             <div v-else class="overflow-x-auto">
               <table class="w-full min-w-[700px]">
-                <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+                <thead
+                  class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800"
+                >
                   <tr>
                     <th class="table-header-cell">Collection</th>
                     <th class="table-header-cell">Standard</th>
@@ -583,7 +694,9 @@
                     <th class="table-header-cell">Contract</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+                <tbody
+                  class="divide-y divide-card-border dark:divide-card-border-dark"
+                >
                   <tr
                     v-for="asset in nftAssets"
                     :key="assetKey(asset)"
@@ -606,7 +719,11 @@
                       >
                         {{ truncateHash(assetHash(asset), 12, 8) }}
                       </router-link>
-                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                      <span
+                        v-else
+                        class="text-sm text-gray-400 dark:text-gray-500"
+                        >-</span
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -622,7 +739,11 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
-import { accountService, transactionService, contractService } from "@/services";
+import {
+  accountService,
+  transactionService,
+  contractService,
+} from "@/services";
 import {
   getAddressDetailTabs,
   normalizeAccountSummary,
@@ -635,7 +756,12 @@ import {
   downloadTransactionsCsv,
   getPageCount,
 } from "@/utils/addressDetail";
-import { formatAge, truncateHash, formatNumber, formatBalance } from "@/utils/explorerFormat";
+import {
+  formatAge,
+  truncateHash,
+  formatNumber,
+  formatBalance,
+} from "@/utils/explorerFormat";
 import { usePagination } from "@/composables/usePagination";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -675,13 +801,17 @@ const {
   async (pageSize, skip) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
-    const response = await transactionService.getByAddress(addr, pageSize, skip);
+    const response = await transactionService.getByAddress(
+      addr,
+      pageSize,
+      skip,
+    );
     return {
       result: normalizeAddressTransactions(response?.result || []),
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10 }
+  { defaultPageSize: 10 },
 );
 const isContract = ref(false);
 const showQr = ref(false);
@@ -765,11 +895,19 @@ async function loadNep17Transfers(page = 1, addr = address.value) {
   try {
     const safePage = Math.max(1, Number(page) || 1);
     const skip = (safePage - 1) * nep17PageSize.value;
-    const response = await accountService.getNep17Transfers(addr, nep17PageSize.value, skip);
+    const response = await accountService.getNep17Transfers(
+      addr,
+      nep17PageSize.value,
+      skip,
+    );
     nep17Transfers.value = normalizeNep17Transfers(response?.result || []);
     nep17TotalCount.value = Number(response?.totalCount || 0);
-    nep17TotalPages.value = getPageCount(nep17TotalCount.value, nep17PageSize.value);
-    nep17Page.value = safePage > nep17TotalPages.value ? nep17TotalPages.value : safePage;
+    nep17TotalPages.value = getPageCount(
+      nep17TotalCount.value,
+      nep17PageSize.value,
+    );
+    nep17Page.value =
+      safePage > nep17TotalPages.value ? nep17TotalPages.value : safePage;
   } catch {
     nep17Transfers.value = [];
     nep17TotalCount.value = 0;
@@ -781,7 +919,8 @@ async function loadNep17Transfers(page = 1, addr = address.value) {
 }
 
 function goToNep17Page(page) {
-  if (page < 1 || page > nep17TotalPages.value || page === nep17Page.value) return;
+  if (page < 1 || page > nep17TotalPages.value || page === nep17Page.value)
+    return;
   loadNep17Transfers(page);
 }
 
@@ -797,11 +936,19 @@ async function loadNep11Transfers(page = 1, addr = address.value) {
   try {
     const safePage = Math.max(1, Number(page) || 1);
     const skip = (safePage - 1) * nep11PageSize.value;
-    const response = await accountService.getNep11Transfers(addr, nep11PageSize.value, skip);
+    const response = await accountService.getNep11Transfers(
+      addr,
+      nep11PageSize.value,
+      skip,
+    );
     nep11Transfers.value = normalizeNep11Transfers(response?.result || []);
     nep11TotalCount.value = Number(response?.totalCount || 0);
-    nep11TotalPages.value = getPageCount(nep11TotalCount.value, nep11PageSize.value);
-    nep11Page.value = safePage > nep11TotalPages.value ? nep11TotalPages.value : safePage;
+    nep11TotalPages.value = getPageCount(
+      nep11TotalCount.value,
+      nep11PageSize.value,
+    );
+    nep11Page.value =
+      safePage > nep11TotalPages.value ? nep11TotalPages.value : safePage;
   } catch {
     nep11Transfers.value = [];
     nep11TotalCount.value = 0;
@@ -813,7 +960,8 @@ async function loadNep11Transfers(page = 1, addr = address.value) {
 }
 
 function goToNep11Page(page) {
-  if (page < 1 || page > nep11TotalPages.value || page === nep11Page.value) return;
+  if (page < 1 || page > nep11TotalPages.value || page === nep11Page.value)
+    return;
   loadNep11Transfers(page);
 }
 
@@ -824,7 +972,13 @@ function changeNep11PageSize(size) {
 
 // --- Helper methods (exposed to template) ---
 function assetHash(asset) {
-  return asset?.hash || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
+  return (
+    asset?.hash ||
+    asset?.contracthash ||
+    asset?.contractHash ||
+    asset?.assethash ||
+    ""
+  );
 }
 
 function assetStandard(asset) {
@@ -836,10 +990,12 @@ function assetDisplayName(asset) {
 }
 
 function assetBalance(asset) {
-  const raw = asset?.balance ?? asset?.amount ?? asset?.quantity ?? asset?.totalbalance;
+  const raw =
+    asset?.balance ?? asset?.amount ?? asset?.quantity ?? asset?.totalbalance;
   if (raw === undefined || raw === null || raw === "") return "-";
   const num = Number(raw);
-  if (Number.isFinite(num)) return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  if (Number.isFinite(num))
+    return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
   return String(raw);
 }
 
@@ -870,7 +1026,9 @@ function formatTransferAmount(amount, decimals = 8) {
   const raw = Number(amount || 0);
   if (!Number.isFinite(raw)) return "0";
   const divisor = Math.pow(10, decimals);
-  return (raw / divisor).toLocaleString(undefined, { maximumFractionDigits: decimals });
+  return (raw / divisor).toLocaleString(undefined, {
+    maximumFractionDigits: decimals,
+  });
 }
 
 function tokenInitial(name) {
@@ -949,14 +1107,22 @@ watch(
     if (!addr) return;
     await initializeData(addr);
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(activeTab, (tab) => {
-  if (tab === "tokenTransfers" && !nep17Transfers.value.length && !nep17Loading.value) {
+  if (
+    tab === "tokenTransfers" &&
+    !nep17Transfers.value.length &&
+    !nep17Loading.value
+  ) {
     loadNep17Transfers(1);
   }
-  if (tab === "nftTransfers" && !nep11Transfers.value.length && !nep11Loading.value) {
+  if (
+    tab === "nftTransfers" &&
+    !nep11Transfers.value.length &&
+    !nep11Loading.value
+  ) {
     loadNep11Transfers(1);
   }
 });

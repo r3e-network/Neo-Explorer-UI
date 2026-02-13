@@ -7,7 +7,11 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load events" :message="error" @retry="() => loadPage(currentPage)" />
+      <ErrorState
+        title="Unable to load events"
+        :message="error"
+        @retry="() => loadPage(currentPage)"
+      />
     </div>
 
     <template v-else>
@@ -21,11 +25,19 @@
               <th class="table-header-cell">Index</th>
               <th class="table-header-cell">
                 Time
-                <button class="btn-mini ml-1" @click="toggleTimeFormat">Format</button>
+                <button
+                  class="btn-mini ml-1"
+                  aria-label="Toggle time format"
+                  @click="toggleTimeFormat"
+                >
+                  Format
+                </button>
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody
+            class="divide-y divide-card-border dark:divide-card-border-dark"
+          >
             <tr
               v-for="item in items"
               :key="item.txid + item.eventname"
@@ -33,8 +45,17 @@
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted"> Null Transaction </span>
-                  <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
+                  <span
+                    v-if="isNullTx(item.txid)"
+                    class="text-sm text-text-muted"
+                  >
+                    Null Transaction
+                  </span>
+                  <router-link
+                    v-else
+                    :to="`/transaction-info/${item.txid}`"
+                    class="font-hash text-sm etherscan-link"
+                  >
                     {{ item.txid }}
                   </router-link>
                 </div>
@@ -70,7 +91,10 @@
       </div>
     </template>
 
-    <div v-if="!loading && totalCount > pageSize" class="card-header border-t border-b-0">
+    <div
+      v-if="!loading && totalCount > pageSize"
+      class="card-header border-t border-b-0"
+    >
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"
@@ -94,7 +118,8 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { vmStateClass } from "@/utils/explorerFormat";
 
-const NULL_TX = "0x0000000000000000000000000000000000000000000000000000000000000000";
+const NULL_TX =
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -112,7 +137,9 @@ const {
   totalPages,
   loadPage,
   goToPage,
-} = usePagination((limit, skip) => contractService.getNotifications(props.contractHash, limit, skip));
+} = usePagination((limit, skip) =>
+  contractService.getNotifications(props.contractHash, limit, skip)
+);
 
 function isNullTx(txid) {
   return txid === NULL_TX;

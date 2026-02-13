@@ -1,0 +1,29 @@
+{
+  "name": "Neo N3 Explorer",
+  "short_name": "Neo Explorer",
+  "description": "Search transactions, blocks, addresses, tokens and contracts on Neo N3 network",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#21325b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/img/brand/oneGate.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/brand/oneGate.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "cryptocurrency", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
