@@ -17,7 +17,49 @@ export const executionService = {
    */
   async getExecutionTrace(txHash) {
     const key = getCacheKey("exec_trace", { txHash });
-    return cachedRequest(key, () => safeRpc("GetApplicationLog", { TransactionHash: txHash }, null), CACHE_TTL.trace);
+    return cachedRequest(
+      key,
+      () => safeRpc("GetApplicationLog", { TransactionHash: txHash }, null),
+      CACHE_TTL.trace
+    );
+  },
+
+  /**
+   * 获取详细的执行追踪（包含 opcode 步骤）
+   * @param {string} txHash - 交易哈希
+   * @returns {Promise<Object|null>} 详细执行追踪数据
+   */
+  async getDetailedTrace(txHash) {
+    const key = getCacheKey("exec_detailed_trace", { txHash });
+    return cachedRequest(
+      key,
+      async () => {
+        try {
+          // Try to get detailed trace from neo3fura API
+          const response = await fetch(
+            `/api?jsonrpc=2.0&id=1&method=GetExecutionTraceByTransactionHash&params=["${txHash}"]`
+          );
+          const data = await response.json();
+          if (data.result) {
+            return data.result;
+          }
+          // Fallback to basic trace
+          return await safeRpc(
+            "GetApplicationLog",
+            { TransactionHash: txHash },
+            null
+          );
+        } catch (error) {
+          // Fallback to basic trace
+          return await safeRpc(
+            "GetApplicationLog",
+            { TransactionHash: txHash },
+            null
+          );
+        }
+      },
+      CACHE_TTL.trace
+    );
   },
 
   /**
@@ -72,7 +114,9 @@ export const executionService = {
             events: [],
           });
         }
-        contractMap.get(hash).events.push(this.decodeNotification(notification));
+        contractMap
+          .get(hash)
+          .events.push(this.decodeNotification(notification));
       }
 
       return {
@@ -124,7 +168,9 @@ export const executionService = {
     const manifestMap = await this._fetchManifests([...contractHashes]);
 
     // Build enriched executions
-    const enrichedExecutions = executions.map((exec) => this._enrichExecution(exec, manifestMap));
+    const enrichedExecutions = executions.map((exec) =>
+      this._enrichExecution(exec, manifestMap)
+    );
 
     // Extract all transfer operations across executions
     const transfers = enrichedExecutions.flatMap((e) =>
@@ -166,7 +212,12 @@ export const executionService = {
           operationType,
           rawState: n.state,
           // For transfer ops, extract from/to/amount
-          ...this._extractTransferFields(operationType, decodedParams, hash, manifest),
+          ...this._extractTransferFields(
+            operationType,
+            decodedParams,
+            hash,
+            manifest
+          ),
         };
       });
 
@@ -190,7 +241,9 @@ export const executionService = {
    */
   async _fetchManifests(hashes) {
     const map = new Map();
-    const results = await Promise.all(hashes.map((h) => contractService.getManifest(h).catch(() => null)));
+    const results = await Promise.all(
+      hashes.map((h) => contractService.getManifest(h).catch(() => null))
+    );
     hashes.forEach((h, i) => map.set(h, results[i]));
     return map;
   },
@@ -202,7 +255,11 @@ export const executionService = {
   _findEventDef(manifest, eventName) {
     if (!manifest) return null;
     if (!manifest.abi?.events) return null;
-    return manifest.abi.events.find((e) => e.name?.toLowerCase() === eventName?.toLowerCase()) ?? null;
+    return (
+      manifest.abi.events.find(
+        (e) => e.name?.toLowerCase() === eventName?.toLowerCase()
+      ) ?? null
+    );
   },
 
   /**
@@ -212,13 +269,15 @@ export const executionService = {
   _classifyOperation(eventName, contractHash) {
     const name = eventName.toLowerCase();
     if (name === "transfer") return "transfer";
-    if (name === "deploy" || name === "update" || name === "migrate") return "deploy";
+    if (name === "deploy" || name === "update" || name === "migrate")
+      return "deploy";
     if (name === "destroy") return "destroy";
     if (name === "vote" || name === "unvote") return "vote";
     if (name === "approval") return "approval";
     if (name === "mint") return "mint";
     if (name === "burn") return "burn";
-    if (contractHash.toLowerCase() === CONTRACT_MANAGEMENT_HASH) return "deploy";
+    if (contractHash.toLowerCase() === CONTRACT_MANAGEMENT_HASH)
+      return "deploy";
     return "custom";
   },
 
@@ -245,24 +304,42 @@ export const executionService = {
     const native = NATIVE_CONTRACTS[contractHash?.toLowerCase()];
     if (native?.decimals !== undefined) return native.decimals;
     // Some APIs / manifests include decimals in the extra field
-    if (manifest?.extra?.decimals !== undefined) return Number(manifest.extra.decimals);
+    if (manifest?.extra?.decimals !== undefined)
+      return Number(manifest.extra.decimals);
     // Default: 0 (safest for display — shows raw integer)
     return 0;
   },
 
   _extractTransferFields(operationType, decodedParams, contractHash, manifest) {
-    if (operationType !== "transfer" || !Array.isArray(decodedParams) || decodedParams.length < 3) return {};
+    if (
+      operationType !== "transfer" ||
+      !Array.isArray(decodedParams) ||
+      decodedParams.length < 3
+    )
+      return {};
     const native = NATIVE_CONTRACTS[contractHash?.toLowerCase()];
     const fields = {
-      from: decodedParams[0]?.decoded?.decodedValue ?? decodedParams[0]?.displayValue ?? null,
-      to: decodedParams[1]?.decoded?.decodedValue ?? decodedParams[1]?.displayValue ?? null,
-      amount: decodedParams[2]?.decoded?.decodedValue ?? decodedParams[2]?.displayValue ?? "0",
+      from:
+        decodedParams[0]?.decoded?.decodedValue ??
+        decodedParams[0]?.displayValue ??
+        null,
+      to:
+        decodedParams[1]?.decoded?.decodedValue ??
+        decodedParams[1]?.displayValue ??
+        null,
+      amount:
+        decodedParams[2]?.decoded?.decodedValue ??
+        decodedParams[2]?.displayValue ??
+        "0",
       tokenSymbol: native?.symbol ?? manifest?.name ?? null,
       tokenDecimals: this._getTokenDecimals(contractHash, manifest),
     };
     // NEP-11 transfers have a 4th param: tokenId
     if (decodedParams.length >= 4 && decodedParams[3]?.decoded) {
-      const rawId = decodedParams[3].decoded.decodedValue ?? decodedParams[3].decoded.displayValue ?? null;
+      const rawId =
+        decodedParams[3].decoded.decodedValue ??
+        decodedParams[3].decoded.displayValue ??
+        null;
       if (rawId != null && rawId !== "") {
         fields.tokenId = rawId;
       }
