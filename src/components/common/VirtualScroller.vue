@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 const props = defineProps({
   items: { type: Array, default: () => [] },

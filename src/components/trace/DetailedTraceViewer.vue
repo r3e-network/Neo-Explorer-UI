@@ -226,10 +226,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { truncateHash } from "@/utils/explorerFormat";
 
-const props = defineProps({
+defineProps({
   trace: {
     type: Object,
     default: () => ({

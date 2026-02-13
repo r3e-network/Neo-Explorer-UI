@@ -115,7 +115,7 @@ const props = defineProps({
   isOpen: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["close"]);
+defineEmits(["close"]);
 
 const pendingTxs = ref([]);
 const loading = ref(false);

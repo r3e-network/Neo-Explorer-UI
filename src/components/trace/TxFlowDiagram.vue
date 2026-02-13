@@ -102,7 +102,6 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
 import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
