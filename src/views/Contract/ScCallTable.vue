@@ -90,12 +90,11 @@ import { ref, watch } from "vue";
 import { contractService } from "@/services";
 import { scriptHashToAddress } from "@/store/util";
 import { usePagination } from "@/composables/usePagination";
+import { NULL_TX_HASH } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-
-const NULL_TX = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -116,7 +115,7 @@ const {
 } = usePagination((limit, skip) => contractService.getScCalls(props.contractHash, limit, skip));
 
 function isNullTx(txid) {
-  return txid === NULL_TX;
+  return txid === NULL_TX_HASH;
 }
 
 function toggleAddressFormat() {

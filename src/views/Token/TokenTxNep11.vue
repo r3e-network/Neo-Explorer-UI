@@ -12,10 +12,7 @@
 
     <template v-else>
       <!-- Info bar -->
-      <div
-        v-if="totalCount > 0"
-        class="card-header"
-      >
+      <div v-if="totalCount > 0" class="card-header">
         <p class="text-sm text-text-secondary dark:text-gray-300">
           A total of {{ formatNumber(totalCount) }} transfers found
         </p>
@@ -170,8 +167,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-
-const NULL_TX = "0x0000000000000000000000000000000000000000000000000000000000000000";
+import { NULL_TX_HASH } from "@/constants";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -201,7 +197,7 @@ const {
 );
 
 function isNullTx(txid) {
-  return txid === NULL_TX;
+  return txid === NULL_TX_HASH;
 }
 
 function getTypeLabel(item) {

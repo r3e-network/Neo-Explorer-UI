@@ -7,11 +7,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState
-        title="Unable to load NFT items"
-        :message="error"
-        @retry="loadNftItems(0)"
-      />
+      <ErrorState title="Unable to load NFT items" :message="error" @retry="loadNftItems(0)" />
     </div>
 
     <template v-else>
@@ -31,12 +27,7 @@
             ]"
             title="Grid view"
           >
-            <svg
-              class="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -55,45 +46,23 @@
             ]"
             title="List view"
           >
-            <svg
-              class="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
       </div>
 
       <!-- Grid View -->
-      <div
-        v-if="viewMode === 'grid'"
-        class="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4"
-      >
+      <div v-if="viewMode === 'grid'" class="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4">
         <router-link
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
-          :to="
-            '/nft-info/' +
-            item.asset +
-            '/' +
-            item.address +
-            '/' +
-            base64ToHash(item.tokenid)
-          "
+          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
           class="group overflow-hidden rounded-lg border border-card-border transition-shadow hover:shadow-md dark:border-card-border-dark"
         >
           <!-- Image -->
-          <div
-            class="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800"
-          >
+          <div class="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
             <img
               v-if="item.image"
               :src="item.image"
@@ -102,16 +71,8 @@
               loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div
-              v-else
-              class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500"
-            >
-              <svg
-                class="h-10 w-10"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
+              <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -123,39 +84,23 @@
           </div>
           <!-- Info -->
           <div class="p-2.5">
-            <p
-              class="truncate text-sm font-medium text-text-primary dark:text-gray-200"
-            >
+            <p class="truncate text-sm font-medium text-text-primary dark:text-gray-200">
               {{ item.nftname || "Unnamed" }}
             </p>
-            <p class="mt-0.5 truncate font-hash text-xs text-text-muted">
-              #{{ item.tokenid }}
-            </p>
+            <p class="mt-0.5 truncate font-hash text-xs text-text-muted">#{{ item.tokenid }}</p>
           </div>
         </router-link>
       </div>
 
       <!-- List View -->
-      <div
-        v-else
-        class="divide-y divide-card-border dark:divide-card-border-dark"
-      >
+      <div v-else class="divide-y divide-card-border dark:divide-card-border-dark">
         <router-link
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
-          :to="
-            '/nft-info/' +
-            item.asset +
-            '/' +
-            item.address +
-            '/' +
-            base64ToHash(item.tokenid)
-          "
+          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
           class="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
         >
-          <div
-            class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
-          >
+          <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
             <img
               v-if="item.image"
               :src="item.image"
@@ -164,16 +109,8 @@
               loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div
-              v-else
-              class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500"
-            >
-              <svg
-                class="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -184,14 +121,10 @@
             </div>
           </div>
           <div class="min-w-0 flex-1">
-            <p
-              class="truncate text-sm font-medium text-text-primary dark:text-gray-200"
-            >
+            <p class="truncate text-sm font-medium text-text-primary dark:text-gray-200">
               {{ item.nftname || "Unnamed" }}
             </p>
-            <p class="truncate font-hash text-xs text-text-muted">
-              #{{ item.tokenid }}
-            </p>
+            <p class="truncate font-hash text-xs text-text-muted">#{{ item.tokenid }}</p>
           </div>
           <div class="hidden text-right text-xs text-text-muted sm:block">
             <p class="font-hash truncate max-w-[140px]">
@@ -253,9 +186,7 @@ onBeforeUnmount(() => {
   abortController.value?.abort();
 });
 
-const totalPages = computed(() =>
-  totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / resultsPerPage),
-);
+const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / resultsPerPage)));
 
 // --- Methods ---
 function base64ToHash(base) {
@@ -275,9 +206,7 @@ function fetchNftProperties() {
   for (let k = 0; k < tableData.value.length; k++) {
     const idx = k;
     tokenService
-      .getNep11Properties(tableData.value[idx].asset, [
-        tableData.value[idx].tokenid,
-      ])
+      .getNep11Properties(tableData.value[idx].asset, [tableData.value[idx].tokenid])
       .then((result) => {
         const value = result?.result?.[0];
         if (value) {
@@ -286,17 +215,16 @@ function fetchNftProperties() {
             nftname: value.name || "Unnamed",
             image: value.image
               ? value.image.startsWith("ipfs")
-                ? value.image.replace(
-                    /^(ipfs:\/\/)|^(ipfs-video:\/\/)/,
-                    "https://ipfs.io/ipfs/",
-                  )
+                ? value.image.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/")
                 : value.image
               : "",
             description: value.description || "",
           };
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (import.meta.env.DEV) console.warn("NFT properties fetch failed:", err);
+      })
       .finally(() => {
         checkComplete();
       });
@@ -310,19 +238,14 @@ async function loadNftItems(skip = 0) {
   loading.value = true;
   error.value = null;
   try {
-    const res = await tokenService.getNftHoldersList(
-      props.contractHash,
-      resultsPerPage,
-      skip,
-    );
+    const res = await tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip);
     if (abortController.value?.signal.aborted) return;
     tableData.value = res?.result || [];
     totalCount.value = res?.totalCount || 0;
     fetchNftProperties();
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
-    if (process.env.NODE_ENV !== "production")
-      console.error("Failed to load NFT items:", err);
+    if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
     error.value = "Failed to load NFT items. Please try again.";
     tableData.value = [];
     loading.value = false;
@@ -340,7 +263,7 @@ watch(
   () => {
     currentPage.value = 1;
     loadNftItems(0);
-  },
+  }
 );
 
 // Initial load

@@ -175,7 +175,7 @@ export function downloadTransactionsCsv(transactions = [], filename = "transacti
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.error("Failed to download CSV:", error);
+    if (import.meta.env.DEV) console.error("Failed to download CSV:", error);
     alert("Failed to export transactions. Please try again.");
   }
 }

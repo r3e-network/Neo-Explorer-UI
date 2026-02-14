@@ -291,7 +291,7 @@ async function submitVerification() {
     const data = await contractService.uploadVerification(node, formData);
     handleResult(data);
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Contract verification failed:", err);
+    if (import.meta.env.DEV) console.error("Contract verification failed:", err);
     showNotification("error", "Server error, please try again later.");
   } finally {
     loading.value = false;
@@ -315,7 +315,7 @@ function handleResult(result) {
   }
   if (code === 5) {
     showNotification("success", "Contract verification succeeded!");
-    router.push(`/contract-info/${form.value.hash}`);
+    router.push(`/contract-info/${form.value.hash}`).catch(() => {});
     return;
   }
   if (code === 6) {

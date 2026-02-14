@@ -39,7 +39,7 @@ const DEPRECATED_ALIASES = { list: "block", detail: "txDetail", manifest: "contr
 const LEGACY_TTL = new Proxy(DEFAULT_TTL, {
   get(target, prop) {
     if (prop in DEPRECATED_ALIASES) {
-      if (process.env.NODE_ENV !== "production") {
+      if (import.meta.env.DEV) {
         console.warn(`[cache] TTL key "${prop}" is deprecated. Use "${DEPRECATED_ALIASES[prop]}" instead.`);
       }
       return target[DEPRECATED_ALIASES[prop]];
@@ -116,7 +116,8 @@ const normalizeSoftTtl = (softTtl, ttl) => {
  */
 export const getCacheKey = (method, params = {}) => {
   const network = getCurrentEnv();
-  return `${network}:${method}:${JSON.stringify(params)}`;
+  const sortedParams = JSON.stringify(params, Object.keys(params).sort());
+  return `${network}:${method}:${sortedParams}`;
 };
 
 /**
@@ -238,7 +239,7 @@ export const cachedRequest = async (
               return;
             }
 
-            if (process.env.NODE_ENV !== "production") {
+            if (import.meta.env.DEV) {
               console.warn(`[cache] Background refresh failed for key: ${key}`, error);
             }
           });

@@ -102,7 +102,7 @@ async function copyText() {
       copied.value = false;
     }, COPY_FEEDBACK_TIMEOUT_MS);
   } catch (e) {
-    if (process.env.NODE_ENV !== "production") console.error("Copy failed:", e);
+    if (import.meta.env.DEV) console.error("Copy failed:", e);
     copyFailed.value = true;
     feedbackTimer = setTimeout(() => {
       copyFailed.value = false;

@@ -9,38 +9,10 @@ import {
   scriptHashHexToAddress,
 } from "@/utils/neoHelpers";
 
-function changeFormat(button) {
-  if (button.state) {
-    button.state = false;
-    button.buttonName = "Addr";
-  } else {
-    button.state = true;
-    button.buttonName = "Hash";
-  }
-}
-
-/*
- * Button{
- *   state: boolean
- *   buttonName: string
- * }
- * */
-
 function numFormat(num) {
-  var res = num.toString().replace(/\d+/, function (n) {
-    return n.replace(/(\d)(?=(\d{3})+$)/g, function ($1) {
-      return $1 + ",";
-    });
-  });
-  return res;
-}
-
-function switchTime(time) {
-  if (time.state) {
-    time.state = false;
-  } else {
-    time.state = true;
-  }
+  const parts = num.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
 }
 
 function convertToken(token, decimal) {
@@ -129,13 +101,4 @@ function responseConverter(_key, val) {
   return val;
 }
 
-export {
-  switchTime,
-  changeFormat,
-  convertToken,
-  convertTime,
-  convertPreciseTime,
-  scriptHashToAddress,
-  responseConverter,
-  convertISOTime,
-};
+export { convertToken, convertTime, convertPreciseTime, scriptHashToAddress, responseConverter, convertISOTime };

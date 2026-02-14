@@ -1,94 +1,226 @@
-import { describe, it, expect } from "vitest";
-import { createPaginationMixin } from "@/composables/usePagination";
+import { usePagination } from "@/composables/usePagination";
 
-describe("createPaginationMixin", () => {
-  it("returns a mixin object with data, computed, watch, and methods", () => {
-    const mixin = createPaginationMixin("/blocks");
-    expect(mixin).toHaveProperty("data");
-    expect(mixin).toHaveProperty("computed");
-    expect(mixin).toHaveProperty("watch");
-    expect(mixin).toHaveProperty("methods");
+function flushPromises() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+describe("usePagination", () => {
+  describe("initial state", () => {
+    it("returns correct default initial state", () => {
+      const fetchFn = vi.fn();
+      const p = usePagination(fetchFn);
+
+      expect(p.items.value).toEqual([]);
+      expect(p.loading.value).toBe(false);
+      expect(p.error.value).toBeNull();
+      expect(p.totalCount.value).toBe(0);
+      expect(p.currentPage.value).toBe(1);
+      expect(p.pageSize.value).toBe(25); // DEFAULT_PAGE_SIZE
+    });
+
+    it("accepts custom defaultPageSize", () => {
+      const p = usePagination(vi.fn(), { defaultPageSize: 10 });
+      expect(p.pageSize.value).toBe(10);
+    });
   });
 
-  it("data factory returns default pagination state", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const state = mixin.data();
-    expect(state.currentPage).toBe(1);
-    expect(state.pageSize).toBe(25);
-    expect(state.total).toBe(0);
-    expect(state.totalPages).toBe(1);
+  describe("computed properties", () => {
+    it("totalPages defaults to 1 when totalCount is 0", () => {
+      const p = usePagination(vi.fn());
+      expect(p.totalPages.value).toBe(1);
+    });
+
+    it("computes totalPages correctly", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 100 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(1);
+      expect(p.totalPages.value).toBe(10);
+    });
+
+    it("computes totalPages with remainder", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 27 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(1);
+      expect(p.totalPages.value).toBe(3);
+    });
+
+    it("computes startRecord and endRecord for page 1", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(10), totalCount: 55 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(1);
+      expect(p.startRecord.value).toBe(1);
+      expect(p.endRecord.value).toBe(10);
+    });
+
+    it("computes startRecord and endRecord for middle page", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(10), totalCount: 55 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(3);
+      expect(p.startRecord.value).toBe(21);
+      expect(p.endRecord.value).toBe(30);
+    });
+
+    it("endRecord is capped at totalCount on last page", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(5), totalCount: 55 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(6);
+      expect(p.startRecord.value).toBe(51);
+      expect(p.endRecord.value).toBe(55);
+    });
+
+    it("startRecord is 0 when totalCount is 0", () => {
+      const p = usePagination(vi.fn());
+      expect(p.startRecord.value).toBe(0);
+    });
   });
 
-  it("paginationOffset computes correct offset", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const ctx = { currentPage: 3, pageSize: 25 };
-    const offset = mixin.computed.paginationOffset.call(ctx);
-    expect(offset).toBe(50);
+  describe("loadPage()", () => {
+    it("calls fetchFn with correct pageSize and skip", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: ["a"], totalCount: 50 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(3);
+      expect(fetchFn).toHaveBeenCalledWith(10, 20);
+    });
+
+    it("sets loading during fetch", async () => {
+      let resolveFn;
+      const fetchFn = vi.fn(
+        () =>
+          new Promise((r) => {
+            resolveFn = r;
+          })
+      );
+      const p = usePagination(fetchFn);
+
+      const promise = p.loadPage(1);
+      expect(p.loading.value).toBe(true);
+
+      resolveFn({ result: [], totalCount: 0 });
+      await promise;
+      expect(p.loading.value).toBe(false);
+    });
+
+    it("stores items and totalCount from response", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: ["x", "y"], totalCount: 42 });
+      const p = usePagination(fetchFn);
+
+      await p.loadPage(1);
+      expect(p.items.value).toEqual(["x", "y"]);
+      expect(p.totalCount.value).toBe(42);
+    });
+
+    it("updates currentPage on success", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 100 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(5);
+      expect(p.currentPage.value).toBe(5);
+    });
+
+    it("handles null/undefined response gracefully", async () => {
+      const fetchFn = vi.fn().mockResolvedValue(null);
+      const p = usePagination(fetchFn);
+
+      await p.loadPage(1);
+      expect(p.items.value).toEqual([]);
+      expect(p.totalCount.value).toBe(0);
+    });
   });
 
-  it("paginationOffset is 0 for page 1", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const ctx = { currentPage: 1, pageSize: 25 };
-    expect(mixin.computed.paginationOffset.call(ctx)).toBe(0);
+  describe("error handling", () => {
+    it("sets error string on fetch failure", async () => {
+      const fetchFn = vi.fn().mockRejectedValue(new Error("network"));
+      const p = usePagination(fetchFn);
+
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      await p.loadPage(1);
+      console.error.mockRestore();
+
+      expect(p.error.value).toBe("Failed to load data. Please try again.");
+      expect(p.items.value).toEqual([]);
+      expect(p.loading.value).toBe(false);
+    });
   });
 
-  it("applyPage updates total and totalPages, returns items", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const ctx = { total: 0, totalPages: 1, pageSize: 25 };
-    const items = [{ id: 1 }, { id: 2 }];
+  describe("goToPage()", () => {
+    it("loads valid page within range", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 100 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
 
-    const result = mixin.methods.applyPage.call(ctx, 100, items);
+      await p.loadPage(1);
+      fetchFn.mockClear();
 
-    expect(ctx.total).toBe(100);
-    expect(ctx.totalPages).toBe(4);
-    expect(result).toBe(items);
+      await p.goToPage(5);
+      expect(fetchFn).toHaveBeenCalledWith(10, 40);
+    });
+
+    it("ignores page < 1", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 50 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(1);
+      fetchFn.mockClear();
+
+      p.goToPage(0);
+      p.goToPage(-1);
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
+
+    it("ignores page > totalPages", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 50 });
+      const p = usePagination(fetchFn, { defaultPageSize: 10 });
+
+      await p.loadPage(1);
+      fetchFn.mockClear();
+
+      p.goToPage(999);
+      expect(fetchFn).not.toHaveBeenCalled();
+    });
   });
 
-  it("applyPage handles zero totalCount", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const ctx = { total: 50, totalPages: 2, pageSize: 25 };
+  describe("changePageSize()", () => {
+    it("updates pageSize and reloads page 1", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: [], totalCount: 100 });
+      const p = usePagination(fetchFn, { defaultPageSize: 25 });
 
-    mixin.methods.applyPage.call(ctx, 0, []);
+      await p.loadPage(3);
+      fetchFn.mockClear();
 
-    expect(ctx.total).toBe(0);
-    expect(ctx.totalPages).toBe(1);
+      await p.changePageSize(50);
+      expect(p.pageSize.value).toBe(50);
+      expect(fetchFn).toHaveBeenCalledWith(50, 0);
+    });
   });
 
-  it("goToPage calls router.push with correct path", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const pushed = [];
-    const ctx = {
-      totalPages: 5,
-      $router: { push: (path) => pushed.push(path) },
-    };
+  describe("race condition guard", () => {
+    it("discards stale responses from earlier requests", async () => {
+      let callIndex = 0;
+      const fetchFn = vi.fn(() => {
+        const idx = ++callIndex;
+        if (idx === 1) {
+          return new Promise((r) => setTimeout(() => r({ result: ["stale"], totalCount: 1 }), 50));
+        }
+        return Promise.resolve({ result: ["fresh"], totalCount: 2 });
+      });
 
-    mixin.methods.goToPage.call(ctx, 3);
-    expect(pushed).toEqual(["/blocks/3"]);
-  });
+      const p = usePagination(fetchFn);
 
-  it("goToPage ignores out-of-range pages", () => {
-    const mixin = createPaginationMixin("/blocks");
-    const pushed = [];
-    const ctx = {
-      totalPages: 5,
-      $router: { push: (path) => pushed.push(path) },
-    };
+      const first = p.loadPage(1);
+      const second = p.loadPage(2);
 
-    mixin.methods.goToPage.call(ctx, 0);
-    mixin.methods.goToPage.call(ctx, 6);
-    expect(pushed).toEqual([]);
-  });
+      await second;
+      expect(p.items.value).toEqual(["fresh"]);
+      expect(p.totalCount.value).toBe(2);
 
-  it("changePageSize updates pageSize and navigates to page 1", () => {
-    const mixin = createPaginationMixin("/transactions");
-    const pushed = [];
-    const ctx = {
-      pageSize: 25,
-      $router: { push: (path) => pushed.push(path) },
-    };
-
-    mixin.methods.changePageSize.call(ctx, 50);
-    expect(ctx.pageSize).toBe(50);
-    expect(pushed).toEqual(["/transactions/1"]);
+      await first;
+      expect(p.items.value).toEqual(["fresh"]);
+      expect(p.totalCount.value).toBe(2);
+    });
   });
 });

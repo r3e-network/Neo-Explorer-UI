@@ -21,7 +21,7 @@ const coinGeckoApi = axios.create({
 coinGeckoApi.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (process.env.NODE_ENV !== "production") {
+    if (import.meta.env.DEV) {
       console.warn("CoinGecko API error:", error.message);
     }
     return Promise.reject(error);
@@ -63,7 +63,7 @@ export async function getTokenPrices(
         }
         return result;
       } catch (error) {
-        if (process.env.NODE_ENV !== "production") {
+        if (import.meta.env.DEV) {
           console.warn("Failed to fetch token prices:", error.message);
         }
         return {
@@ -97,7 +97,7 @@ export async function getTokenChart(tokenId, currency = "usd", days = 7) {
           volumes: response.data.total_volumes || [],
         };
       } catch (error) {
-        if (process.env.NODE_ENV !== "production") {
+        if (import.meta.env.DEV) {
           console.warn("Failed to fetch token chart:", error.message);
         }
         return { prices: [], market_caps: [], volumes: [] };
@@ -132,7 +132,7 @@ export async function getTokenMarketData(tokenId, currency = "usd") {
         }
         return null;
       } catch (error) {
-        if (process.env.NODE_ENV !== "production") {
+        if (import.meta.env.DEV) {
           console.warn("Failed to fetch market data:", error.message);
         }
         return null;

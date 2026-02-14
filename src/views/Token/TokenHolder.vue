@@ -12,10 +12,7 @@
 
     <template v-else>
       <!-- Info bar -->
-      <div
-        v-if="totalCount > 0"
-        class="card-header"
-      >
+      <div v-if="totalCount > 0" class="card-header">
         <p class="text-sm text-text-secondary dark:text-gray-300">
           A total of {{ formatNumber(totalCount) }} holders found
         </p>
@@ -51,12 +48,7 @@
               <!-- Address -->
               <td class="px-4 py-3">
                 <div class="max-w-[220px] truncate">
-                  <span
-                    v-if="item.address === '0x0000000000000000000000000000000000000000'"
-                    class="text-sm text-text-muted"
-                  >
-                    Null Address
-                  </span>
+                  <span v-if="item.address === NULL_ADDRESS" class="text-sm text-text-muted"> Null Address </span>
                   <router-link v-else :to="'/account-profile/' + item.address" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.address) : truncateHash(item.address) }}
                   </router-link>
@@ -113,6 +105,7 @@ import { tokenService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 import { convertToken, scriptHashToAddress } from "@/store/util";
 import { usePagination } from "@/composables/usePagination";
+import { NULL_ADDRESS } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

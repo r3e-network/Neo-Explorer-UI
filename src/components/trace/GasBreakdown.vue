@@ -1,7 +1,7 @@
 <template>
   <div class="gas-breakdown">
     <!-- Loading -->
-    <div v-if="loading" class="space-y-3">
+    <div v-if="loading" aria-live="polite" class="space-y-3">
       <Skeleton width="100%" height="20px" />
       <Skeleton width="100%" height="32px" variant="rounded" />
       <Skeleton v-for="i in 3" :key="i" width="80%" height="16px" />
@@ -70,9 +70,19 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import { formatGasDecimal, truncateHash } from "@/utils/explorerFormat";
 
 const props = defineProps({
-  executions: { type: Array, default: () => [] },
-  totalGas: { type: String, default: "0" },
-  loading: { type: Boolean, default: false },
+  executions: {
+    type: Array,
+    default: () => [],
+    validator: (val) => val.every((e) => e !== null && typeof e === "object"),
+  },
+  totalGas: {
+    type: String,
+    default: "0",
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const SEGMENT_COLORS = ["emerald", "blue", "purple", "amber", "rose", "cyan"];
@@ -96,6 +106,7 @@ const contractGasData = computed(() => {
   let totalOps = 0;
 
   for (const exec of props.executions) {
+    if (!exec) continue;
     for (const op of exec.operations ?? []) {
       const hash = op.contract ?? "unknown";
       const name = op.contractName || truncateHash(hash);

@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { blockService, statsService, tokenService } from "@/services";
 import { getCurrentEnv } from "@/utils/env";
 
@@ -7,6 +7,15 @@ const prefetchQueue = ref(new Set());
 let prefetchTimeout = null;
 
 export function useCacheWarming() {
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      if (prefetchTimeout) {
+        clearTimeout(prefetchTimeout);
+        prefetchTimeout = null;
+      }
+    });
+  }
+
   const warmCriticalCache = async () => {
     if (isWarmedUp.value) return;
 
@@ -22,11 +31,11 @@ export function useCacheWarming() {
 
       isWarmedUp.value = true;
 
-      if (process.env.NODE_ENV !== "production") {
+      if (import.meta.env.DEV) {
         console.log("[Cache] Critical data warmed up");
       }
     } catch (err) {
-      if (process.env.NODE_ENV !== "production") {
+      if (import.meta.env.DEV) {
         console.warn("[Cache] Warming failed:", err);
       }
     }
@@ -73,19 +82,27 @@ export function useCacheWarming() {
 }
 
 export function usePrefetchOnHover() {
-  const prefetchOnHover = (url, fetchFn) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.addEventListener(
-      "mouseenter",
-      () => {
-        fetchFn();
-      },
-      { once: true }
-    );
+  const prefetchedUrls = new Set();
+
+  const prefetchOnHover = (el, fetchFn) => {
+    if (!el || !(el instanceof HTMLElement)) return;
+    const url = el.getAttribute("href") || el.dataset.prefetchUrl || "";
+    if (prefetchedUrls.has(url)) return;
+
+    const handler = () => {
+      prefetchedUrls.add(url);
+      el.removeEventListener("mouseenter", handler);
+      fetchFn();
+    };
+
+    el.addEventListener("mouseenter", handler, { once: true });
   };
 
-  return { prefetchOnHover };
+  const cleanup = () => {
+    prefetchedUrls.clear();
+  };
+
+  return { prefetchOnHover, cleanup };
 }
 
 export function useInfiniteScroll(fetchFn, options = {}) {
@@ -93,14 +110,22 @@ export function useInfiniteScroll(fetchFn, options = {}) {
   const isLoadingMore = ref(false);
   let debounceTimer = null;
 
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
+    });
+  }
+
   const handleScroll = (container, currentPage, hasMore) => {
     if (isLoadingMore.value || !hasMore) return;
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       const scrollTop = container.scrollTop || window.scrollY;
-      const scrollHeight =
-        container.scrollHeight || document.documentElement.scrollHeight;
+      const scrollHeight = container.scrollHeight || document.documentElement.scrollHeight;
       const clientHeight = container.clientHeight || window.innerHeight;
 
       if (scrollHeight - scrollTop - clientHeight < threshold) {

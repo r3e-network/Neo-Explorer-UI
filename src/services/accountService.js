@@ -1,6 +1,5 @@
-import { safeRpc, safeRpcList } from "./api";
-import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
-import { getNetworkRefreshIntervalMs } from "../utils/env";
+import { CACHE_TTL } from "./cache";
+import { createService } from "./serviceFactory";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -8,148 +7,70 @@ import { getNetworkRefreshIntervalMs } from "../utils/env";
  * @description 通过 neo3fura 后端获取账户数据
  */
 
-const getRealtimeListCacheOptions = (options = {}) => ({
-  staleWhileRevalidate: true,
-  softTtl: getNetworkRefreshIntervalMs(),
-  ...options,
-});
-
-export const accountService = {
-  /**
-   * 获取账户总数
-   * @returns {Promise<number>} 账户数量
-   */
-  async getCount(options = {}) {
-    const key = getCacheKey("account_count", {});
-    return cachedRequest(
-      key,
-      () => safeRpc("GetAddressCount", {}, 0),
-      CACHE_TTL.stats,
-      getRealtimeListCacheOptions(options)
-    );
+export const accountService = createService(
+  {
+    getCount: {
+      cacheKey: "account_count",
+      rpcMethod: "GetAddressCount",
+      fallback: 0,
+      ttl: CACHE_TTL.stats,
+      realtime: true,
+      buildParams: () => ({}),
+    },
+    getList: {
+      _type: "list",
+      cacheKey: "account_list",
+      rpcMethod: "GetAddressList",
+      errorLabel: "get account list",
+      ttl: CACHE_TTL.chart,
+      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
+      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
+    },
+    getByAddress: {
+      cacheKey: "account_address",
+      rpcMethod: "GetAddressByAddress",
+      fallback: null,
+      ttl: CACHE_TTL.address,
+      realtime: true,
+      buildParams: ([address]) => ({ Address: address }),
+      buildCacheParams: ([address]) => ({ address }),
+    },
+    getAssets: {
+      cacheKey: "addr_assets",
+      rpcMethod: "GetAssetsHeldByAddress",
+      fallback: [],
+      ttl: CACHE_TTL.token,
+      realtime: true,
+      buildParams: ([address]) => ({ Address: address }),
+      buildCacheParams: ([address]) => ({ address }),
+    },
+    getNep17Transfers: {
+      _type: "list",
+      cacheKey: "account_nep17_transfers",
+      rpcMethod: "GetNep17TransferByAddress",
+      errorLabel: "get NEP17 transfers by address",
+      ttl: CACHE_TTL.chart,
+      buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
+      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
+    },
+    getNep11Transfers: {
+      _type: "list",
+      cacheKey: "account_nep11_transfers",
+      rpcMethod: "GetNep11TransferByAddress",
+      errorLabel: "get NEP11 transfers by address",
+      ttl: CACHE_TTL.chart,
+      buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
+      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
+    },
   },
-
-  /**
-   * 获取账户列表（分页）
-   * @param {number} [limit=20] - 每页数量
-   * @param {number} [skip=0] - 跳过数量
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<{result: Array, totalCount: number}>} 账户列表
-   */
-  async getList(limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("account_list", { limit, skip });
-    return cachedRequest(
-      key,
-      () =>
-        safeRpcList(
-          "GetAddressList",
-          { Limit: limit, Skip: skip },
-          "get account list"
-        ),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-
-  /**
-   * 根据地址获取账户信息
-   * @param {string} address - Neo3 地址
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<Object|null>} 账户数据
-   */
-  async getByAddress(address, options = {}) {
-    const key = getCacheKey("account_address", { address });
-    return cachedRequest(
-      key,
-      () => safeRpc("GetAddressByAddress", { Address: address }, null),
-      CACHE_TTL.address,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-
-  /**
-   * 获取账户持有的资产
-   * @param {string} address - Neo3 地址
-   * @returns {Promise<Array>} 资产列表
-   */
-  async getAssets(address, options = {}) {
-    const key = getCacheKey("addr_assets", { address });
-    return cachedRequest(
-      key,
-      () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []),
-      CACHE_TTL.token,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-
-  /**
-   * 获取账户代币持仓（带缓存）
-   * @param {string} address - Neo3 地址
-   * @returns {Promise<Array>} 代币持仓列表
-   */
-  async getTokenHoldings(address, options = {}) {
-    const key = getCacheKey("addr_token_holdings", { address });
-    return cachedRequest(
-      key,
-      () => safeRpc("GetAssetsHeldByAddress", { Address: address }, []),
-      CACHE_TTL.token,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-
-  /**
-   * 获取地址的 NEP17 转账记录（分页）
-   * @param {string} address - Neo3 地址
-   * @param {number} [limit=20] - 每页数量
-   * @param {number} [skip=0] - 跳过数量
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-   */
-  async getNep17Transfers(address, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("account_nep17_transfers", {
-      address,
-      limit,
-      skip,
-    });
-    return cachedRequest(
-      key,
-      () =>
-        safeRpcList(
-          "GetNep17TransferByAddress",
-          { Address: address, Limit: limit, Skip: skip },
-          "get NEP17 transfers by address"
-        ),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-
-  /**
-   * 获取地址的 NEP11 转账记录（分页）
-   * @param {string} address - Neo3 地址
-   * @param {number} [limit=20] - 每页数量
-   * @param {number} [skip=0] - 跳过数量
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-   */
-  async getNep11Transfers(address, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("account_nep11_transfers", {
-      address,
-      limit,
-      skip,
-    });
-    return cachedRequest(
-      key,
-      () =>
-        safeRpcList(
-          "GetNep11TransferByAddress",
-          { Address: address, Limit: limit, Skip: skip },
-          "get NEP11 transfers by address"
-        ),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
-  },
-};
+  {
+    /**
+     * @deprecated Use getAssets instead — identical RPC call.
+     */
+    getTokenHoldings(address, options = {}) {
+      return this.getAssets(address, options);
+    },
+  }
+);
 
 export default accountService;

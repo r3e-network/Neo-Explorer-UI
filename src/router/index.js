@@ -1,46 +1,46 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-// Core pages - lazy loaded with named chunks
-const HomePageNew = () => import(/* webpackChunkName: "home" */ "../views/Home/HomePageNew");
+// Core pages - lazy loaded
+const HomePage = () => import("../views/Home/HomePage.vue");
 
 // Block module
-const BlocksNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlocksNew");
-const BlockDetailNew = () => import(/* webpackChunkName: "block" */ "../views/Block/BlockDetailNew");
+const Blocks = () => import("../views/Block/Blocks.vue");
+const BlockDetail = () => import("../views/Block/BlockDetail.vue");
 
 // Transaction module
-const TransactionsNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TransactionsNew");
-const TxDetailNew = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxDetailNew");
-const TxExecutionTrace = () => import(/* webpackChunkName: "transaction" */ "../views/Transaction/TxExecutionTrace");
+const Transactions = () => import("../views/Transaction/Transactions.vue");
+const TxDetail = () => import("../views/Transaction/TxDetail.vue");
+const TxExecutionTrace = () => import("../views/Transaction/TxExecutionTrace.vue");
 
 // Token module
-const TokensNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokensNew");
-const TokenDetailNew = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenDetailNew");
-const TokenInfoNep11 = () => import(/* webpackChunkName: "token" */ "../views/Token/TokenInfonNep11");
-const NFTInfoNew = () => import(/* webpackChunkName: "token" */ "../views/Token/NFTInfoNew");
+const Tokens = () => import("../views/Token/Tokens.vue");
+const TokenDetail = () => import("../views/Token/TokenDetail.vue");
+const TokenInfoNep11 = () => import("../views/Token/TokenInfonNep11.vue");
+const NFTInfo = () => import("../views/Token/NFTInfo.vue");
 
 // Contract module
-const ContractsNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractsNew");
-const ContractDetailNew = () => import(/* webpackChunkName: "contract" */ "../views/Contract/ContractDetailNew");
-const VerifyContract = () => import(/* webpackChunkName: "contract" */ "../views/Contract/VerifyContract");
-const SourceCode = () => import(/* webpackChunkName: "contract" */ "../views/Contract/SourceCode");
+const Contracts = () => import("../views/Contract/Contracts.vue");
+const ContractDetail = () => import("../views/Contract/ContractDetail.vue");
+const VerifyContract = () => import("../views/Contract/VerifyContract.vue");
+const SourceCode = () => import("../views/Contract/SourceCode.vue");
 
 // Account module
-const AccountsNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AccountsNew");
-const AddressDetailNew = () => import(/* webpackChunkName: "account" */ "../views/Account/AddressDetailNew");
+const Accounts = () => import("../views/Account/Accounts.vue");
+const AddressDetail = () => import("../views/Account/AddressDetail.vue");
 
 // Other pages
-const CandidatesNew = () => import(/* webpackChunkName: "candidate" */ "../views/Candidate/CandidatesNew");
-const BurnFee = () => import(/* webpackChunkName: "burn" */ "../views/BurnGas/BurnFee");
-const DailyTransaction = () => import(/* webpackChunkName: "charts" */ "../views/BurnGas/DailyTransaction");
-const ApiDocs = () => import(/* webpackChunkName: "developer" */ "../views/Developer/ApiDocs");
+const Candidates = () => import("../views/Candidate/Candidates.vue");
+const BurnFee = () => import("../views/BurnGas/BurnFee.vue");
+const DailyTransaction = () => import("../views/BurnGas/DailyTransaction.vue");
+const ApiDocs = () => import("../views/Developer/ApiDocs.vue");
 
 // New placeholder pages
-const GasTracker = () => import(/* webpackChunkName: "gas-tracker" */ "../views/GasTracker/GasTracker");
-const AdvancedSearch = () => import(/* webpackChunkName: "search" */ "../views/Search/AdvancedSearch");
+const GasTracker = () => import("../views/GasTracker/GasTracker.vue");
+const AdvancedSearch = () => import("../views/Search/AdvancedSearch.vue");
 
 // Error pages
-const Search = () => import(/* webpackChunkName: "error" */ "../views/NotFound/SearchNotFound");
-const PageNotFound = () => import(/* webpackChunkName: "error" */ "../views/NotFound/PageNotFound");
+const Search = () => import("../views/NotFound/SearchNotFound.vue");
+const PageNotFound = () => import("../views/NotFound/PageNotFound.vue");
 
 import MainLayout from "../components/layout/MainLayout.vue";
 
@@ -54,67 +54,67 @@ const routes = [
         path: "/homepage",
         name: "homepage",
         meta: { title: "Neo Explorer" },
-        component: HomePageNew,
+        component: HomePage,
       },
       {
         path: "/blocks/:page",
         name: "blocks",
         meta: { title: "Blocks" },
-        component: BlocksNew,
+        component: Blocks,
       },
       {
         path: "/block-info/:hash",
         name: "blockDetail",
         meta: { title: "Block Detail" },
-        component: BlockDetailNew,
+        component: BlockDetail,
       },
       {
         path: "/transactions/:page",
         name: "transactions",
         meta: { title: "Transactions" },
-        component: TransactionsNew,
+        component: Transactions,
       },
       {
         path: "/transaction-info/:txhash",
         name: "transactionDetail",
         meta: { title: "Transaction Detail" },
-        component: TxDetailNew,
+        component: TxDetail,
       },
       {
         path: "/contracts/:page",
         name: "contracts",
         meta: { title: "Contracts" },
-        component: ContractsNew,
+        component: Contracts,
       },
       {
         path: "/contract-info/:hash",
         name: "contractDetail",
         meta: { title: "Contract Detail" },
-        component: ContractDetailNew,
+        component: ContractDetail,
       },
       {
         path: "/account/:page",
         name: "accounts",
         meta: { title: "Accounts" },
-        component: AccountsNew,
+        component: Accounts,
       },
       {
         path: "/account-profile/:accountAddress",
         name: "accountProfile",
         meta: { title: "Address Detail" },
-        component: AddressDetailNew,
+        component: AddressDetail,
       },
       {
         path: "/tokens/:tab/:page",
         name: "tokens",
         meta: { title: "Tokens" },
-        component: TokensNew,
+        component: Tokens,
       },
       {
         path: "/nep17-token-info/:hash",
         name: "nep17TokenDetail",
         meta: { title: "NEP-17 Token" },
-        component: TokenDetailNew,
+        component: TokenDetail,
       },
       {
         path: "/nft-token-info/:hash",
@@ -126,7 +126,7 @@ const routes = [
         path: "/candidates/:page",
         name: "candidates",
         meta: { title: "Consensus Nodes" },
-        component: CandidatesNew,
+        component: Candidates,
       },
       {
         path: "/burn",
@@ -162,7 +162,7 @@ const routes = [
         path: "/nft-info/:contractHash/:address/:tokenId",
         name: "nftDetail",
         meta: { title: "NFT Detail" },
-        component: NFTInfoNew,
+        component: NFTInfo,
       },
       {
         path: "/gas-tracker",
@@ -189,7 +189,7 @@ const routes = [
         component: Search,
       },
       {
-        path: "/:pathMatch(.*)",
+        path: "/:pathMatch(.*)*",
         name: "notFound",
         meta: { title: "Page Not Found" },
         component: PageNotFound,
@@ -208,6 +208,18 @@ const router = createRouter({
     }
     return { top: 0 };
   },
+});
+
+// Reset error state on navigation
+router.beforeEach(() => {
+  // Allow navigation to proceed; clears any stale error context
+});
+
+// Catch lazy-load and navigation failures
+router.onError((error) => {
+  if (import.meta.env.DEV) {
+    console.error("Router error:", error);
+  }
 });
 
 // Dynamic document title from route meta

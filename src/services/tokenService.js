@@ -16,37 +16,31 @@ const getRealtimeListCacheOptions = (options = {}) => ({
 
 export const tokenService = {
   /**
-   * 获取 NEP17 代币列表
+   * 获取代币列表（通用）
+   * @param {string} type - 代币类型 ("NEP17" | "NEP11")
    * @param {number} [limit=20] - 每页数量
    * @param {number} [skip=0] - 跳过数量
    * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
    * @returns {Promise<{result: Array, totalCount: number}>} 代币列表
    */
-  async getNep17List(limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("token_nep17_list", { limit, skip });
+  async getTokenList(type, limit = 20, skip = 0, options = {}) {
+    const key = getCacheKey("token_list", { type, limit, skip });
     return cachedRequest(
       key,
-      () => safeRpcList("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP17" }, "get NEP17 list"),
+      () => safeRpcList("GetAssetInfos", { Limit: limit, Skip: skip, Type: type }, `get ${type} list`),
       CACHE_TTL.chart,
       getRealtimeListCacheOptions(options)
     );
   },
 
-  /**
-   * 获取 NEP11 (NFT) 代币列表
-   * @param {number} [limit=20] - 每页数量
-   * @param {number} [skip=0] - 跳过数量
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<{result: Array, totalCount: number}>} NFT 列表
-   */
+  /** @see getTokenList */
+  async getNep17List(limit = 20, skip = 0, options = {}) {
+    return this.getTokenList("NEP17", limit, skip, options);
+  },
+
+  /** @see getTokenList */
   async getNep11List(limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("token_nep11_list", { limit, skip });
-    return cachedRequest(
-      key,
-      () => safeRpcList("GetAssetInfos", { Limit: limit, Skip: skip, Type: "NEP11" }, "get NEP11 list"),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
+    return this.getTokenList("NEP11", limit, skip, options);
   },
 
   /**
@@ -87,49 +81,33 @@ export const tokenService = {
   },
 
   /**
-   * 按名称搜索 NEP17 代币
+   * 按名称搜索代币（通用）
+   * @param {string} type - 代币标准 ("NEP17" | "NEP11")
    * @param {string} name - 代币名称
    * @param {number} [limit=20] - 每页数量
    * @param {number} [skip=0] - 跳过数量
    * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
    * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
    */
-  async searchNep17ByName(name, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("token_nep17_search", { name, limit, skip });
+  async searchTokenByName(type, name, limit = 20, skip = 0, options = {}) {
+    const key = getCacheKey("token_search", { type, name, limit, skip });
     return cachedRequest(
       key,
       () =>
-        safeRpcList(
-          "GetAssetInfosByName",
-          { Name: name, Limit: limit, Skip: skip, Standard: "NEP17" },
-          "search NEP17"
-        ),
+        safeRpcList("GetAssetInfosByName", { Name: name, Limit: limit, Skip: skip, Standard: type }, `search ${type}`),
       CACHE_TTL.chart,
       getRealtimeListCacheOptions(options)
     );
   },
 
-  /**
-   * 按名称搜索 NEP11 代币
-   * @param {string} name - 代币名称
-   * @param {number} [limit=20] - 每页数量
-   * @param {number} [skip=0] - 跳过数量
-   * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-   * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
-   */
+  /** @see searchTokenByName */
+  async searchNep17ByName(name, limit = 20, skip = 0, options = {}) {
+    return this.searchTokenByName("NEP17", name, limit, skip, options);
+  },
+
+  /** @see searchTokenByName */
   async searchNep11ByName(name, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("token_nep11_search", { name, limit, skip });
-    return cachedRequest(
-      key,
-      () =>
-        safeRpcList(
-          "GetAssetInfosByName",
-          { Name: name, Limit: limit, Skip: skip, Standard: "NEP11" },
-          "search NEP11"
-        ),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
+    return this.searchTokenByName("NEP11", name, limit, skip, options);
   },
 
   /**

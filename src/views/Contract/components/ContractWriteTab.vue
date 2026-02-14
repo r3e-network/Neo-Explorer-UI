@@ -1,0 +1,196 @@
+<template>
+  <div class="space-y-4">
+    <!-- Wallet Connection Banner -->
+    <div
+      v-if="!walletConnected"
+      class="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
+    >
+      <div class="flex items-start gap-3">
+        <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <div>
+          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Connect Wallet to Interact</h3>
+          <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">
+            To write to this contract, connect a NeoLine or O3 wallet.
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button
+              class="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
+              :disabled="walletConnecting"
+              @click="emit('connectWallet', 'NeoLine')"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+              {{ walletConnecting ? "Connecting..." : "NeoLine" }}
+            </button>
+            <button
+              class="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
+              :disabled="walletConnecting"
+              @click="emit('connectWallet', 'O3')"
+            >
+              {{ walletConnecting ? "Connecting..." : "O3 Wallet" }}
+            </button>
+          </div>
+          <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ walletError }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connected wallet banner -->
+    <div
+      v-if="walletConnected"
+      class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
+    >
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <span class="text-sm font-medium text-green-800 dark:text-green-300">
+          Connected: {{ walletAccount?.address ? truncateHash(walletAccount.address, 8, 6) : "" }}
+        </span>
+        <span
+          class="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400"
+        >
+          {{ walletProvider }}
+        </span>
+      </div>
+      <button
+        class="text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400"
+        @click="emit('disconnectWallet')"
+      >
+        Disconnect
+      </button>
+    </div>
+
+    <div v-if="!manifest" class="py-8 text-center text-text-secondary dark:text-gray-400">
+      Loading contract manifest...
+    </div>
+    <div v-else-if="!writeMethods.length" class="py-8 text-center text-text-secondary dark:text-gray-400">
+      No write methods found in this contract.
+    </div>
+    <div v-else class="space-y-3">
+      <div
+        v-for="(method, wIdx) in writeMethods"
+        :key="'wm-' + method.name"
+        class="rounded-lg border border-card-border dark:border-card-border-dark"
+      >
+        <!-- Method header (clickable) -->
+        <button
+          class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+          :aria-expanded="writeMethodState[wIdx]?.open"
+          @click="emit('toggleMethod', wIdx)"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="flex h-6 w-6 items-center justify-center rounded bg-amber-100 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            >
+              {{ wIdx + 1 }}
+            </span>
+            <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+              {{ method.name }}
+            </span>
+            <span
+              class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            >
+              Write
+            </span>
+          </div>
+          <svg
+            class="h-4 w-4 text-gray-400 transition-transform duration-200 dark:text-gray-500"
+            :class="{ 'rotate-180': writeMethodState[wIdx]?.open }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <!-- Expandable method body -->
+        <div
+          v-if="writeMethodState[wIdx]?.open"
+          class="border-t border-card-border px-4 pb-4 dark:border-card-border-dark"
+        >
+          <!-- Parameters -->
+          <div v-if="method.parameters && method.parameters.length" class="mt-3 space-y-2">
+            <div v-for="(param, pIdx) in method.parameters" :key="'wp-' + pIdx" class="flex flex-col gap-1">
+              <label class="text-xs font-medium text-text-secondary dark:text-gray-400">
+                {{ param.name }} <span class="text-[10px]">({{ param.type }})</span>
+              </label>
+              <input
+                :value="writeMethodState[wIdx].params[pIdx]"
+                type="text"
+                :placeholder="param.type"
+                :aria-label="`Parameter ${param.name}`"
+                class="form-input font-mono"
+                @input="emit('updateParam', wIdx, pIdx, $event.target.value)"
+              />
+            </div>
+          </div>
+          <div v-else class="mt-3 text-xs text-text-secondary dark:text-gray-400">No parameters required.</div>
+          <!-- Invoke button -->
+          <button
+            class="mt-3 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'"
+            :disabled="!walletConnected || writeMethodState[wIdx]?.loading"
+            @click="emit('invokeMethod', wIdx, method)"
+          >
+            <svg v-if="writeMethodState[wIdx]?.loading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            {{ !walletConnected ? "Connect Wallet First" : writeMethodState[wIdx]?.loading ? "Sending..." : "Write" }}
+          </button>
+          <!-- Result -->
+          <div
+            v-if="writeMethodState[wIdx]?.result !== undefined"
+            class="mt-3 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
+          >
+            <h5 class="mb-1 text-xs font-semibold text-green-700 dark:text-green-400">Transaction Submitted</h5>
+            <p class="break-all font-mono text-xs text-green-800 dark:text-green-300">
+              TxID: {{ writeMethodState[wIdx].result?.txid || writeMethodState[wIdx].result }}
+            </p>
+          </div>
+          <!-- Error -->
+          <div
+            v-if="writeMethodState[wIdx]?.error"
+            class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+          >
+            <p class="text-xs text-red-600 dark:text-red-400">{{ writeMethodState[wIdx].error }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { truncateHash } from "@/utils/explorerFormat";
+
+defineProps({
+  writeMethods: { type: Array, required: true },
+  writeMethodState: { type: Array, required: true },
+  manifest: { type: Object, default: null },
+  walletConnected: { type: Boolean, default: false },
+  walletAccount: { type: Object, default: null },
+  walletProvider: { type: String, default: "" },
+  walletConnecting: { type: Boolean, default: false },
+  walletError: { type: String, default: "" },
+});
+
+const emit = defineEmits(["connectWallet", "disconnectWallet", "toggleMethod", "invokeMethod", "updateParam"]);
+</script>

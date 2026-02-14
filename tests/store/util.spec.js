@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { convertToken, changeFormat, switchTime, convertISOTime } from "../../src/store/util";
+import { convertToken, convertISOTime } from "../../src/store/util";
 
 describe("store/util", () => {
   describe("convertToken", () => {
@@ -9,36 +9,6 @@ describe("store/util", () => {
 
     it("converts token with 0 decimals", () => {
       expect(convertToken(100, 0)).toBe("100");
-    });
-  });
-
-  describe("changeFormat", () => {
-    it("toggles state from true to false", () => {
-      const button = { state: true, buttonName: "Hash" };
-      changeFormat(button);
-      expect(button.state).toBe(false);
-      expect(button.buttonName).toBe("Addr");
-    });
-
-    it("toggles state from false to true", () => {
-      const button = { state: false, buttonName: "Addr" };
-      changeFormat(button);
-      expect(button.state).toBe(true);
-      expect(button.buttonName).toBe("Hash");
-    });
-  });
-
-  describe("switchTime", () => {
-    it("toggles time state from true to false", () => {
-      const time = { state: true };
-      switchTime(time);
-      expect(time.state).toBe(false);
-    });
-
-    it("toggles time state from false to true", () => {
-      const time = { state: false };
-      switchTime(time);
-      expect(time.state).toBe(true);
     });
   });
 

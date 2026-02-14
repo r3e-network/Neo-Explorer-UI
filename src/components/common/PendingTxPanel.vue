@@ -1,20 +1,12 @@
 <template>
   <div class="pending-tx-panel" v-if="isOpen">
-    <div
-      class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700"
-    >
+    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
       <div class="flex items-center gap-2">
         <span class="flex h-2 w-2">
-          <span
-            class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-400 opacity-75"
-          ></span>
-          <span
-            class="relative inline-flex h-2 w-2 rounded-full bg-green-500"
-          ></span>
+          <span class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
         </span>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Pending Transactions
-        </h3>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Pending Transactions</h3>
         <span
           class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
         >
@@ -25,29 +17,14 @@
         @click="$emit('close')"
         class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
       >
-        <svg
-          class="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          />
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
     </div>
 
     <div class="max-h-[400px] overflow-y-auto">
-      <div
-        v-if="pendingTxs.length === 0"
-        class="p-6 text-center text-sm text-gray-500"
-      >
-        No pending transactions
-      </div>
+      <div v-if="pendingTxs.length === 0" class="p-6 text-center text-sm text-gray-500">No pending transactions</div>
       <div
         v-else
         v-for="tx in pendingTxs"
@@ -63,9 +40,7 @@
             {{ truncateHash(tx.hash, 10, 8) }}
           </router-link>
           <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
-            <span v-if="tx.from">
-              From: {{ truncateHash(tx.from, 6, 4) }}
-            </span>
+            <span v-if="tx.from"> From: {{ truncateHash(tx.from, 6, 4) }} </span>
             <span v-if="tx.to" class="text-gray-400">→</span>
             <span v-if="tx.to"> To: {{ truncateHash(tx.to, 6, 4) }} </span>
           </div>
@@ -87,13 +62,7 @@
         :disabled="loading"
         class="flex w-full items-center justify-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
       >
-        <svg
-          class="h-4 w-4"
-          :class="{ 'animate-spin': loading }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="h-4 w-4" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -108,8 +77,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { truncateHash, formatGas, formatAge } from "@/utils/explorerFormat";
+import { PENDING_TX_POLL_INTERVAL } from "@/constants";
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -120,14 +90,12 @@ defineEmits(["close"]);
 const pendingTxs = ref([]);
 const loading = ref(false);
 let pollInterval = null;
-const POLL_INTERVAL = 10000;
 
 async function fetchPendingTransactions() {
   loading.value = true;
   try {
-    const response = await fetch(
-      "/api/mainnet?jsonrpc=2.0&id=1&method=getrawmempool&params=[true]"
-    );
+    const response = await fetch("/api/mainnet?jsonrpc=2.0&id=1&method=getrawmempool&params=[true]");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
 
     if (data.result && Array.isArray(data.result)) {
@@ -141,7 +109,7 @@ async function fetchPendingTransactions() {
       }));
     }
   } catch (error) {
-    console.warn("Failed to fetch pending transactions:", error);
+    if (import.meta.env.DEV) console.warn("Failed to fetch pending transactions:", error);
   } finally {
     loading.value = false;
   }
@@ -149,7 +117,7 @@ async function fetchPendingTransactions() {
 
 function startPolling() {
   fetchPendingTransactions();
-  pollInterval = setInterval(fetchPendingTransactions, POLL_INTERVAL);
+  pollInterval = setInterval(fetchPendingTransactions, PENDING_TX_POLL_INTERVAL);
 }
 
 function stopPolling() {
@@ -168,6 +136,17 @@ onMounted(() => {
     startPolling();
   }
 });
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (newVal) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+  }
+);
 
 onUnmounted(() => {
   stopPolling();

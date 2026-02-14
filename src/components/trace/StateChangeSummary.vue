@@ -1,7 +1,7 @@
 <template>
   <div class="state-change-summary">
     <!-- Loading -->
-    <div v-if="loading" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div v-if="loading" aria-live="polite" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <Skeleton v-for="i in 4" :key="i" width="100%" height="72px" variant="rounded" />
     </div>
 
@@ -102,14 +102,22 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import { formatGasDecimal } from "@/utils/explorerFormat";
 
 const props = defineProps({
-  enrichedTrace: { type: Object, default: null },
-  loading: { type: Boolean, default: false },
+  enrichedTrace: {
+    type: Object,
+    default: null,
+    validator: (val) => val === null || (typeof val === "object" && !Array.isArray(val)),
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const contractCount = computed(() => {
   if (!props.enrichedTrace?.executions) return 0;
   const hashes = new Set();
   for (const exec of props.enrichedTrace.executions) {
+    if (!exec) continue;
     for (const op of exec.operations ?? []) {
       hashes.add(op.contract);
     }

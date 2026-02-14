@@ -3,6 +3,16 @@ export const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 export const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 export const CONTRACT_MANAGEMENT_HASH = "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2";
 
+// ---------------------------------------------------------------------------
+// Null / zero sentinel values
+// ---------------------------------------------------------------------------
+
+/** 256-bit zero hash — used to identify system transactions (e.g. oracle rewards) */
+export const NULL_TX_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
+/** 160-bit zero address — represents the null/burn address */
+export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 // Pagination defaults
 export const DEFAULT_PAGE_SIZE = 25;
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -30,6 +40,9 @@ export const COPY_FEEDBACK_TIMEOUT_MS = 2000;
 
 /** Delay before closing navigation dropdown on mouse leave */
 export const DROPDOWN_CLOSE_DELAY_MS = 120;
+
+/** Pending transactions panel polling interval */
+export const PENDING_TX_POLL_INTERVAL = 10000;
 
 // ---------------------------------------------------------------------------
 // Native contract metadata (Neo N3 mainnet)

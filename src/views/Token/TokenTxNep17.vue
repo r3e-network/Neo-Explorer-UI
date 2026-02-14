@@ -157,8 +157,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-
-const NULL_TX = "0x0000000000000000000000000000000000000000000000000000000000000000";
+import { NULL_TX_HASH } from "@/constants";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -182,7 +181,7 @@ const {
 } = usePagination((limit, skip) => tokenService.getNep17Transfers(props.contractHash, limit, skip));
 
 function isNullTx(txid) {
-  return txid === NULL_TX;
+  return txid === NULL_TX_HASH;
 }
 
 function getTypeLabel(item) {

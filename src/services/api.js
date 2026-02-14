@@ -9,7 +9,7 @@ const normalizeBaseUrl = (baseUrl) => {
   return baseUrl.trim().replace(/\/+$/, "");
 };
 
-const configuredRpcBaseUrl = normalizeBaseUrl(process.env.VUE_APP_RPC_BASE_URL || "");
+const configuredRpcBaseUrl = normalizeBaseUrl(import.meta.env.VITE_RPC_BASE_URL || "");
 
 const useConfiguredBaseUrl = Boolean(configuredRpcBaseUrl && configuredRpcBaseUrl !== LEGACY_RPC_BASE_URL);
 
@@ -41,7 +41,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (process.env.NODE_ENV !== "production") console.error("API Error:", error.message);
+    if (import.meta.env.DEV) console.error("API Error:", error.message);
     return Promise.reject(error);
   }
 );
@@ -64,7 +64,7 @@ export const rpc = async (method, params = {}) => {
     }
     return response.data?.result;
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.error(`RPC Error [${method}]:`, error);
+    if (import.meta.env.DEV) console.error(`RPC Error [${method}]:`, error);
     throw error;
   }
 };
@@ -82,7 +82,7 @@ export const safeRpc = async (method, params = {}, defaultValue = null) => {
     const normalized = normalizeItem(result);
     return normalized ?? defaultValue;
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.error(`SafeRPC Error [${method}]:`, error.message);
+    if (import.meta.env.DEV) console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;
   }
 };
@@ -145,7 +145,7 @@ export const safeRpcList = async (method, params = {}, errorMsg = "API call") =>
     const result = await rpc(method, params);
     return formatListResponse(result);
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") console.error(`Failed to ${errorMsg}:`, error.message);
+    if (import.meta.env.DEV) console.error(`Failed to ${errorMsg}:`, error.message);
     return { result: [], totalCount: 0 };
   }
 };

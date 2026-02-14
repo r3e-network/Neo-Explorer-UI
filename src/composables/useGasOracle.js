@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
-import { safeRpc } from "./api";
-import { getCacheKey, cachedRequest, CACHE_TTL } from "./cache";
+import { safeRpc } from "@/services/api";
+import { getCacheKey, cachedRequest, CACHE_TTL } from "@/services/cache";
 
 const GAS_DECIMALS = 8;
 
@@ -25,12 +25,8 @@ class GasOracle {
       ]);
 
       if (feeRes) {
-        this.networkFee.value =
-          Number(feeRes.networkFee || feeRes.netfee || 0) /
-          Math.pow(10, GAS_DECIMALS);
-        this.systemFee.value =
-          Number(feeRes.systemFee || feeRes.sysfee || 0) /
-          Math.pow(10, GAS_DECIMALS);
+        this.networkFee.value = Number(feeRes.networkFee || feeRes.netfee || 0) / Math.pow(10, GAS_DECIMALS);
+        this.systemFee.value = Number(feeRes.systemFee || feeRes.sysfee || 0) / Math.pow(10, GAS_DECIMALS);
       }
 
       if (typeof txRes === "number") {
@@ -40,7 +36,7 @@ class GasOracle {
       this.lastUpdate.value = Date.now();
       this.calculateSuggestions();
     } catch (error) {
-      console.warn("Failed to update gas oracle:", error);
+      if (import.meta.env.DEV) console.warn("Failed to update gas oracle:", error);
     }
   }
 

@@ -1,14 +1,6 @@
 <template>
-  <div
-    ref="containerRef"
-    class="virtual-scroller"
-    :style="{ height: containerHeight + 'px' }"
-    @scroll="onScroll"
-  >
-    <div
-      class="virtual-scroller-content"
-      :style="{ height: totalHeight + 'px', position: 'relative' }"
-    >
+  <div ref="containerRef" class="virtual-scroller" :style="{ height: containerHeight + 'px' }" @scroll="onScroll">
+    <div class="virtual-scroller-content" :style="{ height: totalHeight + 'px', position: 'relative' }">
       <div
         v-for="item in visibleItems"
         :key="item.key"
@@ -25,23 +17,9 @@
       </div>
     </div>
 
-    <div
-      v-if="loading"
-      class="absolute bottom-0 left-0 right-0 flex justify-center py-4"
-    >
-      <svg
-        class="h-6 w-6 animate-spin text-primary-500"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-        ></circle>
+    <div v-if="loading" class="absolute bottom-0 left-0 right-0 flex justify-center py-4">
+      <svg class="h-6 w-6 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path
           class="opacity-75"
           fill="currentColor"
@@ -53,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -96,6 +74,7 @@ const visibleItems = computed(() => {
   return items;
 });
 
+let resizeObserver = null;
 let ticking = false;
 
 function onScroll() {
@@ -133,13 +112,19 @@ function scrollToIndex(index) {
 
 onMounted(() => {
   if (containerRef.value) {
-    const resizeObserver = new ResizeObserver((entries) => {
+    resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        containerHeight.value =
-          entry.contentRect.height || props.containerHeight;
+        containerHeight.value = entry.contentRect.height || props.containerHeight;
       }
     });
     resizeObserver.observe(containerRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
   }
 });
 

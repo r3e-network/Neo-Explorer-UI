@@ -1,4 +1,5 @@
 import { getCurrentEnv, NET_ENV } from "./env";
+import { NULL_TX_HASH } from "@/constants";
 
 const validateAddressConfig = {
   [NET_ENV.Mainnet]: [
@@ -15,20 +16,19 @@ const validateAddressConfig = {
   ],
 };
 
+const ORACLE_REWARD_AMOUNT = "10000000";
+
 const isOracleReward = (item) => {
+  if (!item || typeof item !== "object") return false;
   const currentEnv = getCurrentEnv();
   const validateList = validateAddressConfig[currentEnv];
-  if (!validateList) {
-    return false;
-  } else {
-    return (
-      item.txid ===
-        "0x0000000000000000000000000000000000000000000000000000000000000000" &&
-      item.from === null &&
-      item.value === "10000000" &&
-      validateList.includes(item.to)
-    );
-  }
+  if (!validateList) return false;
+  return (
+    item.txid === NULL_TX_HASH &&
+    item.from === null &&
+    item.value === ORACLE_REWARD_AMOUNT &&
+    validateList.includes(item.to)
+  );
 };
 
 export default isOracleReward;

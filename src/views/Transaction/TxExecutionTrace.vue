@@ -140,7 +140,7 @@ async function loadTrace(hash) {
     enrichedData.value = await executionService.getEnrichedTrace(h);
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
-    if (process.env.NODE_ENV !== "production") console.error("Failed to load trace:", err);
+    if (import.meta.env.DEV) console.error("Failed to load trace:", err);
     error.value = "Failed to load execution trace.";
   } finally {
     loading.value = false;

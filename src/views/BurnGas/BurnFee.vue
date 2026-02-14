@@ -372,7 +372,7 @@ async function loadData() {
     dailyData.value = normalizeData(raw);
     renderCharts();
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Failed to load burn metrics:", err);
+    if (import.meta.env.DEV) console.error("Failed to load burn metrics:", err);
     error.value = "Unable to load burn metrics. Please try again.";
   } finally {
     loading.value = false;

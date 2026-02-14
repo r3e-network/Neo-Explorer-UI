@@ -37,7 +37,7 @@ export function usePagination(fetchFn, { defaultPageSize = DEFAULT_PAGE_SIZE } =
       currentPage.value = page;
     } catch (err) {
       if (myId !== requestId) return;
-      if (process.env.NODE_ENV !== "production") console.error("Failed to load page:", err);
+      if (import.meta.env.DEV) console.error("Failed to load page:", err);
       error.value = "Failed to load data. Please try again.";
       items.value = [];
     } finally {
@@ -99,12 +99,12 @@ export function createPaginationMixin(basePath) {
       },
       goToPage(page) {
         if (page >= 1 && page <= this.totalPages) {
-          this.$router.push(`${basePath}/${page}`);
+          this.$router.push(`${basePath}/${page}`).catch(() => {});
         }
       },
       changePageSize(size) {
         this.pageSize = size;
-        this.$router.push(`${basePath}/1`);
+        this.$router.push(`${basePath}/1`).catch(() => {});
       },
     },
   };

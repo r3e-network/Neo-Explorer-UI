@@ -62,6 +62,10 @@ export function useThrottleFn(fn, delay = 300) {
     }
   };
 
+  onUnmounted(() => {
+    cancel();
+  });
+
   return { throttledFn, cancel };
 }
 
@@ -77,6 +81,10 @@ export function useDebouncedRef(source, delay = 300) {
       debouncedValue.value = newValue;
     }, delay);
   };
+
+  onUnmounted(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 
   return {
     value: debouncedValue,
@@ -196,15 +204,22 @@ export function useWindowSize() {
 
 export function useMediaQuery(query) {
   const matches = ref(false);
+  let mediaQuery = null;
 
   const handleChange = (event) => {
     matches.value = event.matches;
   };
 
   onMounted(() => {
-    const mediaQuery = window.matchMedia(query);
+    mediaQuery = window.matchMedia(query);
     matches.value = mediaQuery.matches;
     mediaQuery.addEventListener("change", handleChange);
+  });
+
+  onUnmounted(() => {
+    if (mediaQuery) {
+      mediaQuery.removeEventListener("change", handleChange);
+    }
   });
 
   return matches;

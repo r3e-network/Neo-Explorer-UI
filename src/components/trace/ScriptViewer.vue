@@ -129,7 +129,7 @@ const instructions = computed(() => {
   try {
     return disassembleScript(props.script);
   } catch (e) {
-    if (process.env.NODE_ENV !== "production") {
+    if (import.meta.env.DEV) {
       console.error("Failed to disassemble script:", e);
     }
     return [];

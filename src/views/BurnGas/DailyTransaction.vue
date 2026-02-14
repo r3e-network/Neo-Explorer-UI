@@ -6,9 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300"
-        >
+        <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -19,12 +17,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">
-            Neo N3 Blockchain Charts &amp; Statistics
-          </h1>
-          <p class="page-subtitle">
-            Network activity, address growth, and transaction volume analytics
-          </p>
+          <h1 class="page-title">Neo N3 Blockchain Charts &amp; Statistics</h1>
+          <p class="page-subtitle">Network activity, address growth, and transaction volume analytics</p>
         </div>
       </div>
 
@@ -161,8 +155,8 @@ const totalTxns = computed(() => {
 });
 
 const peakTxns = computed(() => {
-  if (!chartData.value.length) return 0;
-  return Math.max(...chartData.value.map((d) => d.transactions));
+  const values = chartData.value?.map((d) => d.transactions) ?? [];
+  return values.length ? Math.max(...values) : 0;
 });
 
 const peakDate = computed(() => {
@@ -428,7 +422,7 @@ async function loadData() {
     chartData.value = normalizeChartData(raw, selectedDays.value);
     renderCharts();
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Failed to load chart data:", err);
+    if (import.meta.env.DEV) console.error("Failed to load chart data:", err);
     error.value = "Failed to load chart data. Please try again.";
   } finally {
     loading.value = false;

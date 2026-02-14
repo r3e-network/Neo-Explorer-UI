@@ -1,14 +1,16 @@
 <template>
   <div class="execution-trace-view">
     <!-- Loading state -->
-    <div v-if="loading" class="space-y-4 py-6">
+    <div v-if="loading" aria-live="polite" class="space-y-4 py-6">
       <Skeleton width="40%" height="24px" />
       <Skeleton width="100%" height="120px" variant="rounded" />
       <Skeleton width="100%" height="80px" variant="rounded" />
     </div>
 
     <!-- Error state -->
-    <ErrorState v-else-if="error" :title="'Failed to load execution trace'" :message="error" @retry="loadTrace" />
+    <div v-else-if="error" aria-live="assertive">
+      <ErrorState :title="'Failed to load execution trace'" :message="error" @retry="loadTrace" />
+    </div>
 
     <!-- Simple transaction -->
     <EmptyState
@@ -34,6 +36,7 @@
       >
         <!-- Collapsible execution header -->
         <button
+          :aria-label="`Toggle execution ${ei + 1}: ${exec.trigger} (${exec.vmState})`"
           class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors cursor-pointer"
           :aria-expanded="!!expandedExecs[ei]"
           @click="toggleExec(ei)"
@@ -111,6 +114,84 @@
             </div>
           </TraceSection>
 
+          <!-- Opcode Execution Steps (from neo3fura detailed trace) -->
+          <TraceSection
+            v-if="execSteps(ei).length > 0"
+            title="Execution Steps (Opcodes)"
+            :count="execSteps(ei).length"
+            :default-open="false"
+          >
+            <div class="max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                  <tr>
+                    <th class="w-16 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                    <th class="w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                      OpCode
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Operand</th>
+                    <th class="w-24 px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Gas</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tr v-for="(step, si) in execSteps(ei)" :key="si" class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td class="px-3 py-1.5 font-mono text-xs text-gray-400">{{ step.offset ?? si }}</td>
+                    <td class="px-3 py-1.5">
+                      <span
+                        class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
+                        :class="opcodeColorClass(step.opcode)"
+                      >
+                        {{ step.opcode }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-1.5 font-mono text-xs text-gray-600 dark:text-gray-400 truncate max-w-xs">
+                      {{ step.operand || step.instruction || "-" }}
+                    </td>
+                    <td class="px-3 py-1.5 text-right font-mono text-xs text-gray-400">
+                      {{ step.gasConsumed ?? step.gas ?? "-" }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </TraceSection>
+
+          <!-- Contract-to-Contract Calls (from detailed trace) -->
+          <TraceSection
+            v-if="execContractCalls(ei).length > 0"
+            title="Internal Contract Calls"
+            :count="execContractCalls(ei).length"
+            :default-open="true"
+          >
+            <div class="space-y-2">
+              <div
+                v-for="(call, ci) in execContractCalls(ei)"
+                :key="ci"
+                class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2"
+              >
+                <span
+                  class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300"
+                >
+                  {{ ci + 1 }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <HashLink :hash="call.contract || call.contractHash || call.callee" type="contract" />
+                    <span
+                      v-if="call.method || call.operation"
+                      class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+                    >
+                      {{ call.method || call.operation }}
+                    </span>
+                  </div>
+                  <div v-if="call.caller" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Called by: <HashLink :hash="call.caller" type="contract" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TraceSection>
+
           <!-- Return Stack section (collapsed by default) -->
           <TraceSection
             v-if="exec.stack && exec.stack.length > 0"
@@ -145,16 +226,18 @@ import StackViewer from "./StackViewer.vue";
 import TraceSection from "./TraceSection.vue";
 import StateChangeSummary from "./StateChangeSummary.vue";
 import GasBreakdown from "./GasBreakdown.vue";
-import { vmStateClass, vmStateDot, formatGasDecimal } from "@/utils/explorerFormat";
+import { vmStateClass, vmStateDot, formatGasDecimal, opcodeColorClass } from "@/utils/explorerFormat";
 
 const props = defineProps({
   txHash: {
     type: String,
     required: true,
+    validator: (val) => val.length > 0,
   },
   enrichedData: {
     type: Object,
     default: null,
+    validator: (val) => val === null || (typeof val === "object" && !Array.isArray(val)),
   },
   preloaded: {
     type: Boolean,
@@ -189,6 +272,8 @@ function applyPreloadedData(data) {
       gasConsumed: exec.gasConsumed ?? "0",
       stack: exec.stack ?? [],
       children: exec.byContract ?? [],
+      steps: exec.steps ?? [],
+      contractCalls: exec.contractCalls ?? [],
     }));
     callTree.value.forEach((_, i) => {
       expandedExecs[i] = true;
@@ -196,6 +281,16 @@ function applyPreloadedData(data) {
   } else {
     callTree.value = [];
   }
+}
+
+/** Get opcode steps for a given execution index from enriched trace */
+function execSteps(ei) {
+  return enrichedTrace.value?.executions?.[ei]?.steps ?? callTree.value[ei]?.steps ?? [];
+}
+
+/** Get internal contract calls for a given execution index */
+function execContractCalls(ei) {
+  return enrichedTrace.value?.executions?.[ei]?.contractCalls ?? callTree.value[ei]?.contractCalls ?? [];
 }
 
 const totalGas = computed(() => {
@@ -245,9 +340,22 @@ async function loadTrace() {
 async function loadEnrichedTrace() {
   enrichedLoading.value = true;
   try {
-    enrichedTrace.value = await executionService.getEnrichedTrace(props.txHash);
+    const data = await executionService.getEnrichedTrace(props.txHash);
+    enrichedTrace.value = data;
+    // Rebuild callTree from enriched data to include steps/contractCalls
+    if (data?.executions && isComplex.value) {
+      callTree.value = data.executions.map((exec) => ({
+        trigger: exec.trigger ?? "Application",
+        vmState: exec.vmState ?? "UNKNOWN",
+        gasConsumed: exec.gasConsumed ?? "0",
+        stack: exec.stack ?? [],
+        children: exec.byContract ?? [],
+        steps: exec.steps ?? [],
+        contractCalls: exec.contractCalls ?? [],
+      }));
+    }
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.warn("Failed to load enriched trace:", err);
+    if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
   } finally {
     enrichedLoading.value = false;
   }

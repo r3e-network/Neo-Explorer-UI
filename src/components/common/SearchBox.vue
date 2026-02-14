@@ -366,7 +366,7 @@ function fetchSuggestions() {
     }
     suggestions.value = result;
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") console.error("Failed to fetch suggestions:", err);
+    if (import.meta.env.DEV) console.error("Failed to fetch suggestions:", err);
     suggestions.value = [];
   } finally {
     isSearching.value = false;
