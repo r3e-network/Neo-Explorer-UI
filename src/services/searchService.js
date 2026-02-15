@@ -3,14 +3,93 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 
 const MAX_SUGGESTIONS = 5;
 
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
 /**
- * Search Service - 全局搜索功能
+ * In-flight request deduplication for _classifyAndDispatch.
+ * Prevents duplicate RPC calls when the same query is dispatched concurrently
+ * (e.g. rapid keystrokes triggering both getSuggestions and search).
+ * @type {Map<string, Promise<Object>>}
+ */
+const _pending = new Map();
+
+/**
+ * Deduplicate concurrent calls sharing the same key.
+ * Returns the existing promise if one is already in-flight; otherwise
+ * executes `fn`, caches the promise, and cleans up on settlement.
+ *
+ * @param {string} key
+ * @param {() => Promise<any>} fn
+ * @returns {Promise<any>}
+ */
+function _dedupe(key, fn) {
+  if (_pending.has(key)) return _pending.get(key);
+  const p = fn().finally(() => _pending.delete(key));
+  _pending.set(key, p);
+  return p;
+}
+
+/**
+ * Classify a query string and dispatch parallel RPC lookups.
+ *
+ * Returns raw lookup results keyed by type so callers can format them
+ * differently (suggestions vs. single-result search).
+ *
+ * @param {string} query - Trimmed, validated query string.
+ * @returns {Promise<{block?: Object, transaction?: Object, contract?: Object, address?: Object}>}
+ * @private
+ */
+async function _classifyAndDispatch(query) {
+  const hits = {};
+
+  // Block height (pure digits)
+  if (/^\d+$/.test(query)) {
+    const blockHeight = parseInt(query);
+    if (blockHeight >= 0) {
+      const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null);
+      if (block) hits.block = block;
+    }
+  }
+
+  // Full hash (64 hex chars) — parallel exact lookups
+  if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
+    const hash = query.startsWith("0x") ? query : `0x${query}`;
+
+    const [txResult, blockResult, contractResult] = await Promise.allSettled([
+      safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
+      safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
+      safeRpc("GetContractByContractHash", { ContractHash: hash }, null),
+    ]);
+
+    if (txResult.status === "fulfilled" && txResult.value) hits.transaction = txResult.value;
+    if (blockResult.status === "fulfilled" && blockResult.value) hits.block = hits.block || blockResult.value;
+    if (contractResult.status === "fulfilled" && contractResult.value) hits.contract = contractResult.value;
+  }
+
+  // Neo address (N + 33 alphanumeric)
+  if (/^N[A-Za-z0-9]{33}$/.test(query)) {
+    const account = await safeRpc("GetAddressByAddress", { Address: query }, null);
+    if (account) hits.address = account;
+  }
+
+  return hits;
+}
+
+// ---------------------------------------------------------------------------
+// Public service
+// ---------------------------------------------------------------------------
+
+/**
+ * Search Service
  * @module services/searchService
- * @description 支持区块、交易、地址、合约的统一搜索
+ * @description Unified search across blocks, transactions, addresses, and contracts.
  */
 export const searchService = {
   /**
-   * Get search suggestions (quick lookup for autocomplete)
+   * Get search suggestions (quick lookup for autocomplete).
+   *
    * @param {string} query - Search query
    * @returns {Promise<Array>} Array of suggestions with type and data
    */
@@ -22,93 +101,61 @@ export const searchService = {
     return cachedRequest(
       key,
       async () => {
-        const suggestions = [];
-
         try {
-          // Search by block height
-          if (/^\d+$/.test(query)) {
-            const blockHeight = parseInt(query);
-            if (blockHeight >= 0) {
-              const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null);
-              if (block) {
-                suggestions.push({
-                  type: "block",
-                  label: `Block #${blockHeight}`,
-                  sublabel: `${block.txcount || 0} transactions`,
-                  data: block,
-                });
-              }
-            }
+          const hits = await _dedupe(query, () => _classifyAndDispatch(query));
+          const suggestions = [];
+
+          if (hits.block) {
+            const b = hits.block;
+            suggestions.push({
+              type: "block",
+              label: `Block #${b.index ?? query}`,
+              sublabel: `${b.txcount || 0} transactions`,
+              data: b,
+            });
+          }
+          if (hits.transaction) {
+            const tx = hits.transaction;
+            suggestions.push({
+              type: "transaction",
+              label: tx.hash?.substring(0, 20) + "...",
+              sublabel: `Block #${tx.blockindex ?? "?"}`,
+              data: tx,
+            });
+          }
+          if (hits.contract) {
+            const c = hits.contract;
+            suggestions.push({
+              type: "contract",
+              label: c.name || (c.hash || query).substring(0, 20) + "...",
+              sublabel: "Contract",
+              data: c,
+            });
+          }
+          if (hits.address) {
+            const a = hits.address;
+            suggestions.push({
+              type: "address",
+              label: a.address || query,
+              sublabel: a.balance ? `${a.balance} NEO` : "Address",
+              data: a,
+            });
           }
 
-          // Search by hash prefix
-          if (/^(0x)?[a-fA-F0-9]{4,}$/.test(query)) {
-            const hashQuery = query.startsWith("0x") ? query : `0x${query}`;
-
-            // Try to find transactions with matching prefix
-            const txList = await safeRpc("GetTransactionList", { Limit: 10, Skip: 0 }, { result: [] });
-            const matchingTxs = (txList?.result || [])
-              .filter((tx) => tx.hash?.toLowerCase().startsWith(hashQuery.toLowerCase()))
-              .slice(0, MAX_SUGGESTIONS);
-
-            for (const tx of matchingTxs) {
-              suggestions.push({
-                type: "transaction",
-                label: tx.hash.substring(0, 20) + "...",
-                sublabel: `Block #${tx.blockindex}`,
-                data: tx,
-              });
-            }
-
-            // Try to find blocks with matching prefix
-            const latestBlock = await safeRpc("GetBlockCount", {}, 0);
-            if (typeof latestBlock === "number") {
-              const searchHeight = Math.max(0, latestBlock - 100);
-              for (let h = latestBlock; h >= searchHeight && suggestions.length < MAX_SUGGESTIONS * 2; h--) {
-                const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: h }, null);
-                if (block?.hash?.toLowerCase().startsWith(hashQuery.toLowerCase())) {
-                  suggestions.push({
-                    type: "block",
-                    label: `Block #${h}`,
-                    sublabel: block.hash.substring(0, 20) + "...",
-                    data: block,
-                  });
-                  break;
-                }
-              }
-            }
-          }
-
-          // Search by address prefix
-          if (/^N[A-Za-z0-9]{4,}$/.test(query)) {
-            const addressList = await safeRpc("GetAddressList", { Limit: 20, Skip: 0 }, { result: [] });
-            const matchingAddresses = (addressList?.result || [])
-              .filter((addr) => addr.address?.toLowerCase().startsWith(query.toLowerCase()))
-              .slice(0, MAX_SUGGESTIONS);
-
-            for (const addr of matchingAddresses) {
-              suggestions.push({
-                type: "address",
-                label: addr.address,
-                sublabel: addr.balance ? `${addr.balance} NEO` : "No balance",
-                data: addr,
-              });
-            }
-          }
+          return suggestions.slice(0, MAX_SUGGESTIONS);
         } catch (error) {
           if (import.meta.env.DEV) console.error("Search suggestions error:", error.message);
+          return [];
         }
-
-        return suggestions.slice(0, MAX_SUGGESTIONS * 2);
       },
       CACHE_TTL.block
     );
   },
 
   /**
-   * 全局搜索
-   * @param {string} query - 搜索关键词（区块高度/哈希/地址）
-   * @returns {Promise<{type: string|null, data: Object|null}>} 搜索结果
+   * Full search — returns the first matching result by priority.
+   * @param {string} query
+   * @returns {Promise<{type: string|null, data: Object|null}>}
    */
   async search(query) {
     query = (query || "").trim();
@@ -118,61 +165,19 @@ export const searchService = {
     return cachedRequest(
       key,
       async () => {
-        const results = { type: null, data: null };
-
         try {
-          // 检查是否为区块高度（纯数字）
-          if (/^\d+$/.test(query)) {
-            const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: parseInt(query) }, null);
-            if (block) {
-              results.type = "block";
-              results.data = block;
-              return results;
-            }
-          }
+          const hits = await _dedupe(query, () => _classifyAndDispatch(query));
 
-          // 检查是否为哈希（64位十六进制）— 并行查询
-          if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
-            const hash = query.startsWith("0x") ? query : `0x${query}`;
-
-            const [blockResult, txResult, contractResult] = await Promise.allSettled([
-              safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
-              safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
-              safeRpc("GetContractByContractHash", { ContractHash: hash }, null),
-            ]);
-
-            // 按优先级返回：block > tx > contract
-            if (blockResult.status === "fulfilled" && blockResult.value) {
-              results.type = "block";
-              results.data = blockResult.value;
-              return results;
-            }
-            if (txResult.status === "fulfilled" && txResult.value) {
-              results.type = "transaction";
-              results.data = txResult.value;
-              return results;
-            }
-            if (contractResult.status === "fulfilled" && contractResult.value) {
-              results.type = "contract";
-              results.data = contractResult.value;
-              return results;
-            }
-          }
-
-          // 检查是否为地址（N开头）
-          if (/^N[A-Za-z0-9]{33}$/.test(query)) {
-            const account = await safeRpc("GetAddressByAddress", { Address: query }, null);
-            if (account) {
-              results.type = "address";
-              results.data = account;
-              return results;
-            }
-          }
+          // Priority: block > transaction > contract > address
+          if (hits.block) return { type: "block", data: hits.block };
+          if (hits.transaction) return { type: "transaction", data: hits.transaction };
+          if (hits.contract) return { type: "contract", data: hits.contract };
+          if (hits.address) return { type: "address", data: hits.address };
         } catch (error) {
           if (import.meta.env.DEV) console.error("Search error:", error.message);
         }
 
-        return results;
+        return { type: null, data: null };
       },
       CACHE_TTL.block
     );

@@ -1,5 +1,14 @@
 import { usePagination } from "@/composables/usePagination";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
+vi.mock("vue-router", () => ({
+  useRoute: () => ({ params: {} }),
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
 function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -85,7 +94,7 @@ describe("usePagination", () => {
       const p = usePagination(fetchFn, { defaultPageSize: 10 });
 
       await p.loadPage(3);
-      expect(fetchFn).toHaveBeenCalledWith(10, 20);
+      expect(fetchFn).toHaveBeenCalledWith(10, 20, expect.objectContaining({ forceRefresh: false }));
     });
 
     it("sets loading during fetch", async () => {
@@ -142,7 +151,7 @@ describe("usePagination", () => {
       await p.loadPage(1);
       console.error.mockRestore();
 
-      expect(p.error.value).toBe("Failed to load data. Please try again.");
+      expect(p.error.value).toBe("errors.generic");
       expect(p.items.value).toEqual([]);
       expect(p.loading.value).toBe(false);
     });
@@ -157,7 +166,7 @@ describe("usePagination", () => {
       fetchFn.mockClear();
 
       await p.goToPage(5);
-      expect(fetchFn).toHaveBeenCalledWith(10, 40);
+      expect(fetchFn).toHaveBeenCalledWith(10, 40, expect.objectContaining({ forceRefresh: false }));
     });
 
     it("ignores page < 1", async () => {
@@ -194,7 +203,7 @@ describe("usePagination", () => {
 
       await p.changePageSize(50);
       expect(p.pageSize.value).toBe(50);
-      expect(fetchFn).toHaveBeenCalledWith(50, 0);
+      expect(fetchFn).toHaveBeenCalledWith(50, 0, expect.objectContaining({ forceRefresh: false }));
     });
   });
 

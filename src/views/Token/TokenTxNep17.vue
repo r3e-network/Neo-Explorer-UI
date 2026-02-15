@@ -1,3 +1,4 @@
+<!-- @deprecated Use <TransferTable type="nep17" /> from @/components/common/TransferTable.vue instead. -->
 <template>
   <div class="etherscan-card overflow-hidden">
     <!-- Loading -->
@@ -115,7 +116,7 @@
               </td>
               <!-- Time -->
               <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
-                {{ showAbsoluteTime ? convertISOTime(item.timestamp) : convertTime(item.timestamp) }}
+                {{ showAbsoluteTime ? formatDateTime(item.timestamp) : formatAge(item.timestamp) }}
               </td>
             </tr>
           </tbody>
@@ -149,7 +150,8 @@ import { ref, watch } from "vue";
 import { tokenService } from "@/services";
 import { GAS_HASH } from "@/constants";
 import { truncateHash } from "@/utils/explorerFormat";
-import { convertToken, convertTime, scriptHashToAddress, convertISOTime } from "@/store/util";
+import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
+import { formatAge, formatDateTime } from "@/utils/timeFormat";
 import { formatNumber } from "@/utils/explorerFormat";
 import isOracleReward from "@/utils/isOracleReward";
 import { usePagination } from "@/composables/usePagination";

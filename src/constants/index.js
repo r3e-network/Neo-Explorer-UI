@@ -72,3 +72,15 @@ export const OPERATION_TYPES = {
 };
 
 export const MAX_INLINE_OPERATIONS = 20;
+
+// Contract verification result codes returned by the verification server
+export const VERIFICATION_RESULT = {
+  SERVER_ERROR_0: 0,
+  SERVER_ERROR_1: 1,
+  COMPILATION_FAILURE: 2,
+  SERVER_ERROR_3: 3,
+  CONTRACT_NOT_FOUND: 4,
+  SUCCESS: 5,
+  ALREADY_VERIFIED: 6,
+  MISMATCH: 7,
+};

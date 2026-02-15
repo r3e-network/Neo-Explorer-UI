@@ -4,7 +4,7 @@
     <div v-if="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="flex flex-col items-center rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
-        <p class="mt-3 text-sm text-text-secondary dark:text-gray-400">Verifying contract...</p>
+        <p class="mt-3 text-sm text-text-secondary dark:text-gray-400">{{ t("verify.verifying") }}</p>
       </div>
     </div>
 
@@ -87,6 +87,17 @@
                 </option>
               </select>
               <p v-if="errors.command" class="form-error">{{ errors.command }}</p>
+            </div>
+
+            <!-- Java Package Name (conditional) -->
+            <div v-if="form.version === JAVA_COMPILER_VERSION" class="space-y-1">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Java Package Name</label>
+              <input
+                v-model="form.javaPackage"
+                type="text"
+                placeholder="e.g., io.examples.HelloWorld"
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              />
             </div>
 
             <!-- File Upload -->
@@ -176,6 +187,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { contractService } from "@/services";
 import {
@@ -187,12 +199,14 @@ import {
   getCompilerUploadHint,
   getCompilationFailureMessage,
 } from "@/utils/contractVerification";
+import { VERIFICATION_RESULT } from "@/constants";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const fileInputRef = ref(null);
 
-const CONTRACT_HASH_PATTERN = /^((0x)?)([0-9a-f]{40})$/;
+const CONTRACT_HASH_PATTERN = /^((0x)?)([0-9a-fA-F]{40})$/;
 
 // Form state
 const loading = ref(false);
@@ -203,6 +217,7 @@ const form = ref({
   hash: route.params.contractHash || "",
   version: "",
   command: "",
+  javaPackage: "",
 });
 
 // Constants exposed to template
@@ -247,6 +262,9 @@ watch(
 // Methods
 function showNotification(type, message) {
   notification.value = { type, message };
+  setTimeout(() => {
+    notification.value = null;
+  }, 8000);
 }
 
 function onFilesSelected(event) {
@@ -283,7 +301,7 @@ async function submitVerification() {
     formData.append("CompileCommand", form.value.command);
   }
   if (form.value.version === JAVA_COMPILER_VERSION) {
-    formData.append("JavaPackage", "io.examples.HelloWorld");
+    formData.append("JavaPackage", form.value.javaPackage || "");
   }
 
   loading.value = true;
@@ -292,7 +310,7 @@ async function submitVerification() {
     handleResult(data);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Contract verification failed:", err);
-    showNotification("error", "Server error, please try again later.");
+    showNotification("error", t("verify.serverError"));
   } finally {
     loading.value = false;
   }
@@ -301,33 +319,37 @@ async function submitVerification() {
 function handleResult(result) {
   const code = result?.Code;
 
-  if (code === 2) {
+  if (code === VERIFICATION_RESULT.COMPILATION_FAILURE) {
     showNotification("error", getCompilationFailureMessage(form.value.version));
     return;
   }
-  if (code === 0 || code === 1 || code === 3) {
-    showNotification("error", "Server error, please try again later.");
+  if (
+    code === VERIFICATION_RESULT.SERVER_ERROR_0 ||
+    code === VERIFICATION_RESULT.SERVER_ERROR_1 ||
+    code === VERIFICATION_RESULT.SERVER_ERROR_3
+  ) {
+    showNotification("error", t("verify.serverError"));
     return;
   }
-  if (code === 4) {
-    showNotification("error", `Failed in querying contract info on blockChain. ${result?.Msg || ""}`);
+  if (code === VERIFICATION_RESULT.CONTRACT_NOT_FOUND) {
+    showNotification("error", `${t("verify.contractNotFound")} ${result?.Msg || ""}`);
     return;
   }
-  if (code === 5) {
-    showNotification("success", "Contract verification succeeded!");
+  if (code === VERIFICATION_RESULT.SUCCESS) {
+    showNotification("success", t("verify.success"));
     router.push(`/contract-info/${form.value.hash}`).catch(() => {});
     return;
   }
-  if (code === 6) {
-    showNotification("warning", "This contract has already been verified.");
+  if (code === VERIFICATION_RESULT.ALREADY_VERIFIED) {
+    showNotification("warning", t("verify.alreadyVerified"));
     return;
   }
-  if (code === 7) {
-    showNotification("error", result?.Msg || "Verification failed.");
+  if (code === VERIFICATION_RESULT.MISMATCH) {
+    showNotification("error", result?.Msg || t("verify.verificationFailed"));
     return;
   }
 
-  showNotification("error", "Verification failed. Source code does not match deployed bytecode.");
+  showNotification("error", t("verify.mismatch"));
 }
 </script>
 

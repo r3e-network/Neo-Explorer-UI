@@ -51,6 +51,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { blockService } from "@/services";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { NETWORK_CHANGE_EVENT, getNetworkRefreshIntervalMs } from "@/utils/env";
@@ -63,8 +64,7 @@ import BlockTransactionsCard from "./components/BlockTransactionsCard.vue";
 
 const route = useRoute();
 const router = useRouter();
-
-// --- State ---
+const { t } = useI18n();
 const abortController = ref(null);
 const block = ref({});
 const reward = ref(null);
@@ -140,7 +140,7 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
 
     if (!info && !raw) {
       if (!silent) {
-        error.value = "Block not found. The hash may be invalid.";
+        error.value = t("errors.blockNotFound");
       }
       return;
     }
@@ -167,7 +167,7 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
     if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load block details:", err);
     if (!silent) {
-      error.value = "Failed to load block details. Please try again.";
+      error.value = t("errors.loadBlockDetails");
     }
   } finally {
     if (!silent && requestId === blockRequestId) {

@@ -31,7 +31,7 @@
 
       <div
         v-for="(exec, ei) in callTree"
-        :key="ei"
+        :key="exec.trigger + '-' + exec.vmState + '-' + ei"
         class="trace-execution rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
       >
         <!-- Collapsible execution header -->
@@ -116,9 +116,9 @@
 
           <!-- Opcode Execution Steps (from neo3fura detailed trace) -->
           <TraceSection
-            v-if="execSteps(ei).length > 0"
+            v-if="(execStepsMap[ei] ?? []).length > 0"
             title="Execution Steps (Opcodes)"
-            :count="execSteps(ei).length"
+            :count="execStepsMap[ei].length"
             :default-open="false"
           >
             <div class="max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
@@ -134,7 +134,11 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                  <tr v-for="(step, si) in execSteps(ei)" :key="si" class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <tr
+                    v-for="(step, si) in execStepsMap[ei]"
+                    :key="step.opcode + '-' + (step.offset ?? si)"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
                     <td class="px-3 py-1.5 font-mono text-xs text-gray-400">{{ step.offset ?? si }}</td>
                     <td class="px-3 py-1.5">
                       <span
@@ -158,14 +162,14 @@
 
           <!-- Contract-to-Contract Calls (from detailed trace) -->
           <TraceSection
-            v-if="execContractCalls(ei).length > 0"
+            v-if="(execContractCallsMap[ei] ?? []).length > 0"
             title="Internal Contract Calls"
-            :count="execContractCalls(ei).length"
+            :count="execContractCallsMap[ei].length"
             :default-open="true"
           >
             <div class="space-y-2">
               <div
-                v-for="(call, ci) in execContractCalls(ei)"
+                v-for="(call, ci) in execContractCallsMap[ei]"
                 :key="ci"
                 class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2"
               >
@@ -283,15 +287,12 @@ function applyPreloadedData(data) {
   }
 }
 
-/** Get opcode steps for a given execution index from enriched trace */
-function execSteps(ei) {
-  return enrichedTrace.value?.executions?.[ei]?.steps ?? callTree.value[ei]?.steps ?? [];
-}
+/** Pre-computed maps: avoids re-evaluating per render cycle in v-for */
+const execStepsMap = computed(() => (enrichedTrace.value?.executions ?? callTree.value).map((e) => e?.steps ?? []));
 
-/** Get internal contract calls for a given execution index */
-function execContractCalls(ei) {
-  return enrichedTrace.value?.executions?.[ei]?.contractCalls ?? callTree.value[ei]?.contractCalls ?? [];
-}
+const execContractCallsMap = computed(() =>
+  (enrichedTrace.value?.executions ?? callTree.value).map((e) => e?.contractCalls ?? [])
+);
 
 const totalGas = computed(() => {
   if (!enrichedTrace.value?.executions) return "0";

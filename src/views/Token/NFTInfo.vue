@@ -92,6 +92,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -99,6 +100,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 
 const route = useRoute();
+const { t } = useI18n();
 
 // data() -> refs
 const loading = ref(true);
@@ -140,12 +142,16 @@ async function loadNFT() {
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
-    error.value = "Failed to load NFT details. Please try again.";
+    error.value = t("errors.loadNftDetails");
   } finally {
     loading.value = false;
   }
 }
 
 // watch with immediate replaces the watch + created pattern
-watch(tokenId, () => loadNFT(), { immediate: true });
+watch(
+  () => [contractHash.value, tokenId.value],
+  () => loadNFT(),
+  { immediate: true }
+);
 </script>

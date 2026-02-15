@@ -26,7 +26,7 @@ const isOracleReward = (item) => {
   return (
     item.txid === NULL_TX_HASH &&
     item.from === null &&
-    item.value === ORACLE_REWARD_AMOUNT &&
+    String(item.value) === ORACLE_REWARD_AMOUNT &&
     validateList.includes(item.to)
   );
 };

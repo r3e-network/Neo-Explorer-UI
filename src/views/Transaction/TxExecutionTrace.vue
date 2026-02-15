@@ -13,9 +13,7 @@
 
       <!-- Page header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300"
-        >
+        <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -89,6 +87,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { executionService } from "@/services";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -103,7 +102,7 @@ import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 
 const route = useRoute();
-
+const { t } = useI18n();
 const loading = ref(false);
 const error = ref(null);
 const enrichedData = ref(null);
@@ -141,7 +140,7 @@ async function loadTrace(hash) {
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load trace:", err);
-    error.value = "Failed to load execution trace.";
+    error.value = t("errors.loadExecutionTrace");
   } finally {
     loading.value = false;
   }

@@ -64,7 +64,7 @@
         <div class="info-label">First Transfer</div>
         <div class="info-value">
           <span v-if="tokenInfo.firsttransfertime">
-            {{ convertPreciseTime(tokenInfo["firsttransfertime"]) }}
+            {{ formatTime(tokenInfo["firsttransfertime"]) }}
           </span>
           <span v-else class="text-text-muted">&mdash;</span>
         </div>
@@ -86,7 +86,8 @@
 </template>
 
 <script setup>
-import { convertPreciseTime, convertToken } from "@/store/util";
+import { convertToken } from "@/utils/neoHelpers";
+import { formatTime } from "@/utils/timeFormat";
 
 defineProps({
   tokenInfo: {

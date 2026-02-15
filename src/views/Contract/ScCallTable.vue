@@ -88,7 +88,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import { contractService } from "@/services";
-import { scriptHashToAddress } from "@/store/util";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { usePagination } from "@/composables/usePagination";
 import { NULL_TX_HASH } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";

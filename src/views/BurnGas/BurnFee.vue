@@ -6,9 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div
-          class="page-header-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300"
-        >
+        <div class="page-header-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -20,9 +18,7 @@
         </div>
         <div>
           <h1 class="page-title">Burned GAS</h1>
-          <p class="page-subtitle">
-            GAS burn statistics from Neo N3 system fee consumption
-          </p>
+          <p class="page-subtitle">GAS burn statistics from Neo N3 system fee consumption</p>
         </div>
       </div>
 
@@ -113,13 +109,16 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
 import { BURN_RATE } from "@/constants";
+import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 
 // --- State ---
+const { t } = useI18n();
 const loading = ref(true);
 const error = ref(null);
 const dailyData = ref([]);
@@ -158,22 +157,6 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function isDarkMode() {
-  return document.documentElement.classList.contains("dark");
-}
-
-function getChartColors() {
-  const dark = isDarkMode();
-  return {
-    text: dark ? "#9CA3AF" : "#6B7280",
-    grid: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-    tooltipBg: dark ? "#1F2937" : "#ffffff",
-    tooltipTitle: dark ? "#F9FAFB" : "#111827",
-    tooltipBody: dark ? "#D1D5DB" : "#4B5563",
-    tooltipBorder: dark ? "#374151" : "#E5E7EB",
-  };
-}
-
 // --- Data normalization ---
 function normalizeData(raw) {
   const list = Array.isArray(raw) ? raw : [];
@@ -202,43 +185,6 @@ function normalizeData(raw) {
 }
 
 // --- Chart creation ---
-function baseTooltipConfig(colors) {
-  return {
-    mode: "index",
-    intersect: false,
-    backgroundColor: colors.tooltipBg,
-    titleFontColor: colors.tooltipTitle,
-    bodyFontColor: colors.tooltipBody,
-    borderColor: colors.tooltipBorder,
-    borderWidth: 1,
-    xPadding: 12,
-    yPadding: 10,
-    displayColors: false,
-  };
-}
-
-function baseScalesConfig(colors) {
-  return {
-    xAxes: [
-      {
-        gridLines: { display: false },
-        ticks: { fontColor: colors.text, fontSize: 11, maxTicksLimit: 10 },
-      },
-    ],
-    yAxes: [
-      {
-        gridLines: { color: colors.grid, drawBorder: false },
-        ticks: {
-          fontColor: colors.text,
-          fontSize: 11,
-          beginAtZero: true,
-          callback: (v) => v.toFixed(4),
-        },
-      },
-    ],
-  };
-}
-
 function createCumulativeChart(Chart) {
   if (!cumulativeCanvas.value) return;
   const ctx = cumulativeCanvas.value.getContext("2d");
@@ -344,6 +290,8 @@ function createDailyBurnChart(Chart) {
 }
 
 // --- Chart lifecycle ---
+let renderGeneration = 0;
+
 function destroyCharts() {
   if (cumulativeChart) {
     cumulativeChart.destroy();
@@ -356,9 +304,11 @@ function destroyCharts() {
 }
 
 async function renderCharts() {
+  const myGeneration = ++renderGeneration;
   destroyCharts();
   const { default: ChartJS } = await import("chart.js");
   await nextTick();
+  if (myGeneration !== renderGeneration) return;
   createCumulativeChart(ChartJS);
   createDailyBurnChart(ChartJS);
 }
@@ -373,7 +323,7 @@ async function loadData() {
     renderCharts();
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load burn metrics:", err);
-    error.value = "Unable to load burn metrics. Please try again.";
+    error.value = t("errors.loadBurnMetrics");
   } finally {
     loading.value = false;
   }

@@ -180,6 +180,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { contractService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
@@ -193,6 +194,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 // State
 const loading = ref(true);
@@ -261,7 +263,7 @@ async function loadPage() {
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
     if (import.meta.env.DEV) console.error("Failed to load contracts:", err);
-    error.value = "Failed to load contracts. Please try again.";
+    error.value = t("errors.loadContracts");
     contracts.value = [];
   } finally {
     if (myRequestId === currentRequestId) {

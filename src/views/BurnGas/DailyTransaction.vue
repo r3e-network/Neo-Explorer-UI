@@ -120,13 +120,17 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
+import Chart from "chart.js";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
 import { formatNumber } from "@/utils/explorerFormat";
+import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 
 // --- State ---
+const { t } = useI18n();
 const loading = ref(true);
 const error = ref(null);
 const selectedDays = ref(30);
@@ -144,14 +148,13 @@ let addressChartInstance = null;
 let volumeChartInstance = null;
 
 // --- Computed stats ---
-const avgTxPerDay = computed(() => {
-  if (!chartData.value.length) return 0;
-  const total = chartData.value.reduce((s, d) => s + d.transactions, 0);
-  return Math.round(total / chartData.value.length);
-});
-
 const totalTxns = computed(() => {
   return chartData.value.reduce((s, d) => s + d.transactions, 0);
+});
+
+const avgTxPerDay = computed(() => {
+  if (!chartData.value.length) return 0;
+  return Math.round(totalTxns.value / chartData.value.length);
 });
 
 const peakTxns = computed(() => {
@@ -183,22 +186,6 @@ function formatYAxis(value) {
   return value;
 }
 
-function isDarkMode() {
-  return document.documentElement.classList.contains("dark");
-}
-
-function getChartColors() {
-  const dark = isDarkMode();
-  return {
-    text: dark ? "#9CA3AF" : "#6B7280",
-    grid: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-    tooltipBg: dark ? "#1F2937" : "#ffffff",
-    tooltipTitle: dark ? "#F9FAFB" : "#111827",
-    tooltipBody: dark ? "#D1D5DB" : "#4B5563",
-    tooltipBorder: dark ? "#374151" : "#E5E7EB",
-  };
-}
-
 // --- Data normalization ---
 function normalizeChartData(raw, days) {
   const list = Array.isArray(raw) ? raw : [];
@@ -227,71 +214,37 @@ function normalizeChartData(raw, days) {
   return mapped;
 }
 
-// --- Chart creation ---
-function baseTooltipConfig(colors) {
-  return {
-    mode: "index",
-    intersect: false,
-    backgroundColor: colors.tooltipBg,
-    titleFontColor: colors.tooltipTitle,
-    bodyFontColor: colors.tooltipBody,
-    borderColor: colors.tooltipBorder,
-    borderWidth: 1,
-    xPadding: 12,
-    yPadding: 10,
-    displayColors: false,
-  };
-}
-
-function baseScalesConfig(colors) {
-  return {
-    xAxes: [
-      {
-        gridLines: { display: false },
-        ticks: { fontColor: colors.text, fontSize: 11, maxTicksLimit: 12 },
-      },
-    ],
-    yAxes: [
-      {
-        gridLines: { color: colors.grid, drawBorder: false },
-        ticks: {
-          fontColor: colors.text,
-          fontSize: 11,
-          beginAtZero: true,
-          callback: formatYAxis,
-        },
-      },
-    ],
-  };
-}
-
-function createTxChart(Chart) {
-  if (!txChart.value) return;
-  const ctx = txChart.value.getContext("2d");
+// --- Chart factory ---
+function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, data }) {
+  if (!canvasRef.value) return null;
+  const ctx = canvasRef.value.getContext("2d");
   const colors = getChartColors();
-  const labels = chartData.value.map((d) => formatDateLabel(d.date));
-  const values = chartData.value.map((d) => d.transactions);
 
-  txChartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Daily Transactions",
-          data: values,
+  const isBar = type === "bar";
+  const dataset = {
+    label,
+    data,
+    backgroundColor: bgColor,
+    borderColor: color,
+    borderWidth: isBar ? 1 : 2,
+    ...(isBar
+      ? { hoverBackgroundColor: bgColor.replace(/[\d.]+\)$/, "0.8)") }
+      : {
           fill: true,
-          backgroundColor: "rgba(22, 93, 255, 0.08)",
-          borderColor: "#165DFF",
-          borderWidth: 2,
           lineTension: 0.35,
           pointRadius: selectedDays.value > 60 ? 0 : 3,
           pointHoverRadius: 5,
-          pointBackgroundColor: "#165DFF",
+          pointBackgroundColor: color,
           pointBorderColor: "#fff",
           pointBorderWidth: 2,
-        },
-      ],
+        }),
+  };
+
+  return new Chart(ctx, {
+    type,
+    data: {
+      labels: chartData.value.map((d) => formatDateLabel(d.date)),
+      datasets: [dataset],
     },
     options: {
       responsive: true,
@@ -300,92 +253,20 @@ function createTxChart(Chart) {
       tooltips: {
         ...baseTooltipConfig(colors),
         callbacks: {
-          label: (item) => `Transactions: ${Number(item.yLabel).toLocaleString()}`,
+          label: (item) => `${tooltipLabel}: ${Number(item.yLabel).toLocaleString()}`,
         },
       },
-      scales: baseScalesConfig(colors),
+      scales: baseScalesConfig(colors, formatYAxis),
     },
   });
 }
 
-function createAddressChart(Chart) {
-  if (!addressChart.value) return;
-  const ctx = addressChart.value.getContext("2d");
-  const colors = getChartColors();
-  const labels = chartData.value.map((d) => formatDateLabel(d.date));
-  const values = chartData.value.map((d) => d.addresses);
-
-  addressChartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Active Addresses",
-          data: values,
-          fill: true,
-          backgroundColor: "rgba(0, 180, 42, 0.08)",
-          borderColor: "#00B42A",
-          borderWidth: 2,
-          lineTension: 0.35,
-          pointRadius: selectedDays.value > 60 ? 0 : 3,
-          pointHoverRadius: 5,
-          pointBackgroundColor: "#00B42A",
-          pointBorderColor: "#fff",
-          pointBorderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      legend: { display: false },
-      tooltips: {
-        ...baseTooltipConfig(colors),
-        callbacks: {
-          label: (item) => `Active Addresses: ${Number(item.yLabel).toLocaleString()}`,
-        },
-      },
-      scales: baseScalesConfig(colors),
-    },
-  });
-}
-
-function createVolumeChart(Chart) {
-  if (!volumeChart.value) return;
-  const ctx = volumeChart.value.getContext("2d");
-  const colors = getChartColors();
-  const labels = chartData.value.map((d) => formatDateLabel(d.date));
-  const values = chartData.value.map((d) => d.transactions);
-
-  volumeChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Transaction Volume",
-          data: values,
-          backgroundColor: "rgba(255, 125, 0, 0.6)",
-          borderColor: "#FF7D00",
-          borderWidth: 1,
-          hoverBackgroundColor: "rgba(255, 125, 0, 0.8)",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      legend: { display: false },
-      tooltips: {
-        ...baseTooltipConfig(colors),
-        callbacks: {
-          label: (item) => `Volume: ${Number(item.yLabel).toLocaleString()}`,
-        },
-      },
-      scales: baseScalesConfig(colors),
-    },
-  });
+function updateChartData(instance, data) {
+  if (!instance) return false;
+  instance.data.labels = chartData.value.map((d) => formatDateLabel(d.date));
+  instance.data.datasets[0].data = data;
+  instance.update();
+  return true;
 }
 
 // --- Chart lifecycle ---
@@ -404,26 +285,60 @@ function destroyCharts() {
   }
 }
 
-async function renderCharts() {
+async function renderCharts(dataOnly = false) {
+  const txValues = chartData.value.map((d) => d.transactions);
+  const addrValues = chartData.value.map((d) => d.addresses);
+
+  if (dataOnly) {
+    const updated =
+      updateChartData(txChartInstance, txValues) &&
+      updateChartData(addressChartInstance, addrValues) &&
+      updateChartData(volumeChartInstance, txValues);
+    if (updated) return;
+  }
+
   destroyCharts();
-  const { default: ChartJS } = await import("chart.js");
   await nextTick();
-  createTxChart(ChartJS);
-  createAddressChart(ChartJS);
-  createVolumeChart(ChartJS);
+
+  txChartInstance = createChart(txChart, {
+    type: "line",
+    label: "Daily Transactions",
+    color: "#165DFF",
+    bgColor: "rgba(22, 93, 255, 0.08)",
+    tooltipLabel: "Transactions",
+    data: txValues,
+  });
+
+  addressChartInstance = createChart(addressChart, {
+    type: "line",
+    label: "Active Addresses",
+    color: "#00B42A",
+    bgColor: "rgba(0, 180, 42, 0.08)",
+    tooltipLabel: "Active Addresses",
+    data: addrValues,
+  });
+
+  volumeChartInstance = createChart(volumeChart, {
+    type: "bar",
+    label: "Transaction Volume",
+    color: "#FF7D00",
+    bgColor: "rgba(255, 125, 0, 0.6)",
+    tooltipLabel: "Volume",
+    data: txValues,
+  });
 }
 
 // --- Data loading ---
-async function loadData() {
+async function loadData(dataOnly = false) {
   loading.value = true;
   error.value = null;
   try {
     const raw = await statsService.getNetworkActivity(selectedDays.value);
     chartData.value = normalizeChartData(raw, selectedDays.value);
-    renderCharts();
+    await renderCharts(dataOnly);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load chart data:", err);
-    error.value = "Failed to load chart data. Please try again.";
+    error.value = t("errors.loadChartData");
   } finally {
     loading.value = false;
   }
@@ -432,7 +347,7 @@ async function loadData() {
 function changeDays(days) {
   if (selectedDays.value === days) return;
   selectedDays.value = days;
-  loadData();
+  loadData(true);
 }
 
 // --- Lifecycle ---

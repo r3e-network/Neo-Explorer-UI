@@ -65,7 +65,7 @@
         <div class="card-header">
           <p class="text-sm text-text-secondary dark:text-gray-300">
             Block #{{ formatNumber(rangeStart) }} to #{{ formatNumber(rangeEnd) }}
-            <span class="hidden sm:inline">(Total of {{ formatNumber(total) }} blocks)</span>
+            <span class="hidden sm:inline">(Total of {{ formatNumber(totalCount) }} blocks)</span>
           </p>
           <button
             v-if="blocks.length > 0"
@@ -98,7 +98,7 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Failed to load blocks" :message="error" @retry="loadPage" />
+          <ErrorState title="Failed to load blocks" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty State -->
@@ -181,15 +181,6 @@
           class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
         >
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
-          <EtherscanPagination
-            v-if="false"
-            :page="currentPage"
-            :total-pages="totalPages"
-            :page-size="pageSize"
-            :total="total"
-            @update:page="goToPage"
-            @update:page-size="changePageSize"
-          />
         </div>
       </div>
     </section>
@@ -197,60 +188,51 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { blockService, statsService } from "@/services";
-import { getCache, getCacheKey } from "@/services/cache";
-import { DEFAULT_PAGE_SIZE } from "@/constants";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { getCacheKey } from "@/services/cache";
+import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { usePagination } from "@/composables/usePagination";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import { exportBlocksToCSV } from "@/utils/dataExport";
 
-const route = useRoute();
-const router = useRouter();
-
-// --- State ---
-const blocks = ref([]);
-const loading = ref(false);
-const loadingMore = ref(false);
-const error = ref(null);
+const { t } = useI18n();
 const showAbsoluteTime = ref(false);
-
-// Pagination
-const currentPage = ref(1);
-const pageSize = ref(DEFAULT_PAGE_SIZE);
-const total = ref(0);
-
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
-const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value);
+const loadingMore = ref(false);
 
 // Stats bar
 const statsLoading = ref(true);
 const totalBlocks = ref(0);
 const latestHeight = ref(0);
 
+// --- Pagination via composable (route-synced, cache-aware) ---
+const { items: blocks, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
+  (limit, skip, opts) => blockService.getList(limit, skip, opts),
+  {
+    routeSync: { basePath: "/blocks" },
+    cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
+    errorMessage: t("errors.loadBlocks"),
+  }
+);
+
 // Range display
 const rangeStart = computed(() => {
-  const indices = blocks.value?.map((b) => b.index) ?? [];
+  const indices = blocks.value?.map((b) => Number(b.index)).filter((i) => Number.isFinite(i)) ?? [];
   return indices.length ? Math.min(...indices) : 0;
 });
 const rangeEnd = computed(() => {
-  const indices = blocks.value?.map((b) => b.index) ?? [];
+  const indices = blocks.value?.map((b) => Number(b.index)).filter((i) => Number.isFinite(i)) ?? [];
   return indices.length ? Math.max(...indices) : 0;
 });
 
-// --- Request deduplication ---
-let currentRequestId = 0;
-let refreshTimer = null;
-
-// --- Methods ---
+// --- Stats ---
 async function loadStats(forceRefresh = false) {
   statsLoading.value = true;
   try {
@@ -264,118 +246,45 @@ async function loadStats(forceRefresh = false) {
   }
 }
 
-async function loadPage({ silent = false, forceRefresh = false } = {}) {
-  const myRequestId = ++currentRequestId;
-  const skip = paginationOffset.value;
-  const cacheKey = getCacheKey("block_list", { limit: pageSize.value, skip });
-  const hasCachedData = getCache(cacheKey) !== null;
-  const shouldShowLoading = !silent && !hasCachedData;
-
-  if (shouldShowLoading) {
-    loading.value = true;
-  }
-
-  if (!silent) {
-    error.value = null;
-  }
-
-  try {
-    const res = await blockService.getList(pageSize.value, skip, {
-      forceRefresh,
-    });
-    if (myRequestId !== currentRequestId) return;
-    total.value = res?.totalCount || 0;
-    blocks.value = res?.result || [];
-  } catch (err) {
-    if (myRequestId !== currentRequestId) return;
-    if (import.meta.env.DEV) console.error("Failed to load blocks:", err);
-
-    if (!silent || !blocks.value?.length) {
-      error.value = "Failed to load blocks. Please try again.";
-    }
-  } finally {
-    if (myRequestId === currentRequestId && shouldShowLoading) {
-      loading.value = false;
-    }
-  }
-}
-
-function goToPage(page) {
-  if (page >= 1 && page <= totalPages.value) {
-    router.push("/blocks/" + page).catch(() => {});
-  }
-}
-
-function changePageSize(size) {
-  pageSize.value = size;
-  router.push("/blocks/1").catch(() => {});
-}
+// --- Load more (infinite scroll) ---
+let loadMoreRequestId = 0;
 
 async function loadMore() {
   if (loadingMore.value || currentPage.value >= totalPages.value) return;
 
+  const myRequestId = ++loadMoreRequestId;
   loadingMore.value = true;
   const nextPage = currentPage.value + 1;
   const skip = (nextPage - 1) * pageSize.value;
 
   try {
-    const res = await blockService.getList(pageSize.value, skip, {
-      forceRefresh: true,
-    });
+    const res = await blockService.getList(pageSize.value, skip, { forceRefresh: true });
+    if (myRequestId !== loadMoreRequestId) return;
     if (res?.result?.length > 0) {
       blocks.value = [...blocks.value, ...res.result];
       currentPage.value = nextPage;
-      total.value = res.totalCount || total.value;
+      totalCount.value = res.totalCount || totalCount.value;
     }
   } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error("Failed to load more blocks:", err);
-    }
+    if (import.meta.env.DEV) console.error("Failed to load more blocks:", err);
   } finally {
-    loadingMore.value = false;
+    if (myRequestId === loadMoreRequestId) loadingMore.value = false;
   }
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh();
-
-  refreshTimer = setInterval(() => {
-    loadPage({ silent: true, forceRefresh: true });
-    loadStats(true);
-  }, getNetworkRefreshIntervalMs());
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
+// Auto-refresh via composable (handles cleanup + visibility pause)
+const { start: startAutoRefresh } = useAutoRefresh(() => {
+  loadPage(currentPage.value, { silent: true, forceRefresh: true });
+  loadStats(true);
+});
 
 function exportData() {
-  if (!blocks.value || blocks.value.length === 0) {
-    return;
-  }
+  if (!blocks.value || blocks.value.length === 0) return;
   exportBlocksToCSV(blocks.value);
 }
-
-// --- Route watcher ---
-watch(
-  () => route.params.page,
-  (page) => {
-    const parsed = parseInt(page) || 1;
-    currentPage.value = Math.max(1, parsed);
-    loadPage();
-  },
-  { immediate: true }
-);
 
 onMounted(() => {
   loadStats();
   startAutoRefresh();
-});
-
-onBeforeUnmount(() => {
-  stopAutoRefresh();
 });
 </script>

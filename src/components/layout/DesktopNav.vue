@@ -7,8 +7,22 @@
       class="nav-dropdown"
       @mouseenter="$emit('open-dropdown', 'blockchain')"
       @mouseleave="$emit('close-dropdown', 'blockchain')"
+      @focusout="handleFocusOut('blockchain')"
     >
-      <button class="nav-link" aria-label="Blockchain menu">
+      <button
+        class="nav-link"
+        aria-label="Blockchain menu"
+        aria-haspopup="true"
+        :aria-expanded="activeDropdown === 'blockchain'"
+        @click="$emit(activeDropdown === 'blockchain' ? 'close-dropdown' : 'open-dropdown', 'blockchain')"
+        @keydown.enter.prevent="
+          $emit(activeDropdown === 'blockchain' ? 'close-dropdown' : 'open-dropdown', 'blockchain')
+        "
+        @keydown.space.prevent="
+          $emit(activeDropdown === 'blockchain' ? 'close-dropdown' : 'open-dropdown', 'blockchain')
+        "
+        @keydown.escape="$emit('close-dropdown', 'blockchain')"
+      >
         Blockchain
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -18,7 +32,11 @@
           />
         </svg>
       </button>
-      <div v-show="activeDropdown === 'blockchain'" class="dropdown-panel">
+      <div
+        v-show="activeDropdown === 'blockchain'"
+        class="dropdown-panel"
+        @keydown.escape="$emit('close-dropdown', 'blockchain')"
+      >
         <router-link to="/blocks/1" class="dropdown-link">Blocks</router-link>
         <router-link to="/transactions/1" class="dropdown-link">Transactions</router-link>
         <router-link to="/account/1" class="dropdown-link">Accounts</router-link>
@@ -29,8 +47,18 @@
       class="nav-dropdown"
       @mouseenter="$emit('open-dropdown', 'tokens')"
       @mouseleave="$emit('close-dropdown', 'tokens')"
+      @focusout="handleFocusOut('tokens')"
     >
-      <button class="nav-link" aria-label="Tokens menu">
+      <button
+        class="nav-link"
+        aria-label="Tokens menu"
+        aria-haspopup="true"
+        :aria-expanded="activeDropdown === 'tokens'"
+        @click="$emit(activeDropdown === 'tokens' ? 'close-dropdown' : 'open-dropdown', 'tokens')"
+        @keydown.enter.prevent="$emit(activeDropdown === 'tokens' ? 'close-dropdown' : 'open-dropdown', 'tokens')"
+        @keydown.space.prevent="$emit(activeDropdown === 'tokens' ? 'close-dropdown' : 'open-dropdown', 'tokens')"
+        @keydown.escape="$emit('close-dropdown', 'tokens')"
+      >
         Tokens
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -40,7 +68,11 @@
           />
         </svg>
       </button>
-      <div v-show="activeDropdown === 'tokens'" class="dropdown-panel">
+      <div
+        v-show="activeDropdown === 'tokens'"
+        class="dropdown-panel"
+        @keydown.escape="$emit('close-dropdown', 'tokens')"
+      >
         <router-link to="/tokens/nep17/1" class="dropdown-link">NEP-17 Tokens</router-link>
         <router-link to="/tokens/nep11/1" class="dropdown-link">NEP-11 NFTs</router-link>
       </div>
@@ -52,8 +84,18 @@
       class="nav-dropdown"
       @mouseenter="$emit('open-dropdown', 'resources')"
       @mouseleave="$emit('close-dropdown', 'resources')"
+      @focusout="handleFocusOut('resources')"
     >
-      <button class="nav-link" aria-label="Resources menu">
+      <button
+        class="nav-link"
+        aria-label="Resources menu"
+        aria-haspopup="true"
+        :aria-expanded="activeDropdown === 'resources'"
+        @click="$emit(activeDropdown === 'resources' ? 'close-dropdown' : 'open-dropdown', 'resources')"
+        @keydown.enter.prevent="$emit(activeDropdown === 'resources' ? 'close-dropdown' : 'open-dropdown', 'resources')"
+        @keydown.space.prevent="$emit(activeDropdown === 'resources' ? 'close-dropdown' : 'open-dropdown', 'resources')"
+        @keydown.escape="$emit('close-dropdown', 'resources')"
+      >
         Resources
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -63,7 +105,11 @@
           />
         </svg>
       </button>
-      <div v-show="activeDropdown === 'resources'" class="dropdown-panel">
+      <div
+        v-show="activeDropdown === 'resources'"
+        class="dropdown-panel"
+        @keydown.escape="$emit('close-dropdown', 'resources')"
+      >
         <router-link to="/echarts" class="dropdown-link">Charts &amp; Stats</router-link>
         <router-link to="/gas-tracker" class="dropdown-link">Gas Tracker</router-link>
         <router-link to="/burn" class="dropdown-link">Burned GAS</router-link>
@@ -73,8 +119,22 @@
       class="nav-dropdown"
       @mouseenter="$emit('open-dropdown', 'developers')"
       @mouseleave="$emit('close-dropdown', 'developers')"
+      @focusout="handleFocusOut('developers')"
     >
-      <button class="nav-link" aria-label="Developers menu">
+      <button
+        class="nav-link"
+        aria-label="Developers menu"
+        aria-haspopup="true"
+        :aria-expanded="activeDropdown === 'developers'"
+        @click="$emit(activeDropdown === 'developers' ? 'close-dropdown' : 'open-dropdown', 'developers')"
+        @keydown.enter.prevent="
+          $emit(activeDropdown === 'developers' ? 'close-dropdown' : 'open-dropdown', 'developers')
+        "
+        @keydown.space.prevent="
+          $emit(activeDropdown === 'developers' ? 'close-dropdown' : 'open-dropdown', 'developers')
+        "
+        @keydown.escape="$emit('close-dropdown', 'developers')"
+      >
         Developers
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -84,7 +144,11 @@
           />
         </svg>
       </button>
-      <div v-show="activeDropdown === 'developers'" class="dropdown-panel">
+      <div
+        v-show="activeDropdown === 'developers'"
+        class="dropdown-panel"
+        @keydown.escape="$emit('close-dropdown', 'developers')"
+      >
         <router-link to="/api-docs" class="dropdown-link">API Docs</router-link>
         <router-link to="/verify-contract/" class="dropdown-link">Verify Contract</router-link>
         <router-link to="/source-code" class="dropdown-link">Source Code</router-link>
@@ -94,11 +158,23 @@
 </template>
 
 <script setup>
+const emit = defineEmits(["open-dropdown", "close-dropdown"]);
+
 defineProps({
   activeDropdown: { type: String, default: null },
 });
 
-defineEmits(["open-dropdown", "close-dropdown"]);
+function handleFocusOut(name) {
+  setTimeout(() => {
+    const el = document.activeElement;
+    const dropdown = document.querySelector(
+      `.nav-dropdown:has([aria-label="${name.charAt(0).toUpperCase() + name.slice(1)} menu"])`
+    );
+    if (dropdown && !dropdown.contains(el)) {
+      emit("close-dropdown", name);
+    }
+  }, 0);
+}
 </script>
 
 <style scoped>

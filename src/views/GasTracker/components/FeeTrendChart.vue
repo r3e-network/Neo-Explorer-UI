@@ -16,8 +16,10 @@
 
 <script setup>
 import { ref, watch, onBeforeUnmount, nextTick } from "vue";
+import Chart from "chart.js";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { GAS_DIVISOR } from "@/constants";
+import { getChartColors, baseTooltipConfig } from "@/utils/chartHelpers";
 
 const props = defineProps({
   blocks: {
@@ -37,22 +39,6 @@ function totalFee(block) {
   return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
 }
 
-function isDarkMode() {
-  return document.documentElement.classList.contains("dark");
-}
-
-function getChartColors() {
-  const dark = isDarkMode();
-  return {
-    text: dark ? "#9CA3AF" : "#6B7280",
-    grid: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-    tooltipBg: dark ? "#1F2937" : "#ffffff",
-    tooltipTitle: dark ? "#F9FAFB" : "#111827",
-    tooltipBody: dark ? "#D1D5DB" : "#4B5563",
-    tooltipBorder: dark ? "#374151" : "#E5E7EB",
-  };
-}
-
 function destroyChart() {
   if (feeTrendChart) {
     feeTrendChart.destroy();
@@ -60,7 +46,7 @@ function destroyChart() {
   }
 }
 
-function createFeeTrendChart(Chart) {
+function createFeeTrendChart() {
   if (!feeTrendCanvas.value || !props.blocks.length) return;
   destroyChart();
 
@@ -97,16 +83,7 @@ function createFeeTrendChart(Chart) {
       maintainAspectRatio: false,
       legend: { display: false },
       tooltips: {
-        mode: "index",
-        intersect: false,
-        backgroundColor: colors.tooltipBg,
-        titleFontColor: colors.tooltipTitle,
-        bodyFontColor: colors.tooltipBody,
-        borderColor: colors.tooltipBorder,
-        borderWidth: 1,
-        xPadding: 12,
-        yPadding: 10,
-        displayColors: false,
+        ...baseTooltipConfig(colors),
         callbacks: {
           label: (item) => `Fee: ${Number(item.yLabel).toFixed(8)} GAS`,
         },
@@ -136,9 +113,8 @@ function createFeeTrendChart(Chart) {
 
 async function renderChart() {
   destroyChart();
-  const { default: ChartJS } = await import("chart.js");
   await nextTick();
-  createFeeTrendChart(ChartJS);
+  createFeeTrendChart();
 }
 
 watch(

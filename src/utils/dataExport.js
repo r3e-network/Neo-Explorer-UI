@@ -1,34 +1,23 @@
-export function exportToCSV(data, filename) {
-  if (!data || !data.length) {
-    if (import.meta.env.DEV) console.warn("No data to export");
-    return;
+function escapeCsvValue(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  // Escape formula injection: prefix with single quote if starts with dangerous char
+  if (/^[=+@-]/.test(str)) {
+    return `"'${str.replace(/"/g, '""')}"`;
   }
+  // Escape values containing commas, quotes, or newlines
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
 
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(","),
-    ...data.map((row) =>
-      headers
-        .map((header) => {
-          const value = row[header];
-          if (value === null || value === undefined) return "";
-          const stringValue = String(value);
-          if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
-            return `"${stringValue.replace(/"/g, '""')}"`;
-          }
-          return stringValue;
-        })
-        .join(",")
-    ),
-  ];
-
-  const csvString = csvRows.join("\n");
-  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   try {
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}.csv`);
+    link.setAttribute("download", filename);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -38,26 +27,34 @@ export function exportToCSV(data, filename) {
   }
 }
 
+export function exportToCSV(data, filename) {
+  if (!data || !data.length) {
+    if (import.meta.env.DEV) console.warn("No data to export");
+    return;
+  }
+
+  const safeFilename = filename.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.map(escapeCsvValue).join(","),
+    ...data.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(",")),
+  ];
+
+  const csvString = csvRows.join("\n");
+  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+  downloadBlob(blob, `${safeFilename}.csv`);
+}
+
 export function exportToJSON(data, filename) {
   if (!data) {
     if (import.meta.env.DEV) console.warn("No data to export");
     return;
   }
 
+  const safeFilename = filename.replace(/[^a-zA-Z0-9_-]/g, "_");
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  try {
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}.json`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  downloadBlob(blob, `${safeFilename}.json`);
 }
 
 export function flattenObject(obj, prefix = "") {

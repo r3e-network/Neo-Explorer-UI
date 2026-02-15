@@ -60,7 +60,7 @@ describe("useAsync", () => {
       const { execute } = useAsync(asyncFn);
 
       await execute("a", 2, true);
-      expect(asyncFn).toHaveBeenCalledWith("a", 2, true);
+      expect(asyncFn).toHaveBeenCalledWith("a", 2, true, expect.objectContaining({ signal: expect.any(AbortSignal) }));
     });
 
     it("clears previous error on new execute", async () => {

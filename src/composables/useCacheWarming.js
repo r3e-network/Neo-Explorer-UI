@@ -1,12 +1,12 @@
 import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { blockService, statsService, tokenService } from "@/services";
-import { getCurrentEnv } from "@/utils/env";
 
 const isWarmedUp = ref(false);
 const prefetchQueue = ref(new Set());
-let prefetchTimeout = null;
 
 export function useCacheWarming() {
+  let prefetchTimeout = null;
+
   if (getCurrentInstance()) {
     onBeforeUnmount(() => {
       if (prefetchTimeout) {
@@ -19,14 +19,12 @@ export function useCacheWarming() {
   const warmCriticalCache = async () => {
     if (isWarmedUp.value) return;
 
-    const env = getCurrentEnv();
-
     try {
       await Promise.allSettled([
-        blockService.getLatestBlock(),
+        blockService.getList(1, 0),
         blockService.getCount(),
         statsService.getDashboardStats(),
-        tokenService.getList(50, 0, { network: env }),
+        tokenService.getTokenList("NEP17", 50, 0),
       ]);
 
       isWarmedUp.value = true;

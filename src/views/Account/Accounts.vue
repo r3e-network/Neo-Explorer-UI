@@ -112,11 +112,12 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { accountService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
-import { scriptHashToAddress } from "@/store/util";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -126,6 +127,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const loading = ref(true);
 const error = ref(null);
@@ -155,7 +157,7 @@ async function loadPage() {
   } catch (err) {
     if (myRequestId !== pageRequestId) return;
     if (import.meta.env.DEV) console.error("Failed to load accounts:", err);
-    error.value = "Failed to load accounts. Please try again.";
+    error.value = t("errors.loadAccounts");
     accounts.value = [];
   } finally {
     if (myRequestId === pageRequestId) {

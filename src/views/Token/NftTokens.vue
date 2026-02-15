@@ -58,7 +58,7 @@
         <router-link
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
-          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
+          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHex(item.tokenid)"
           class="group overflow-hidden rounded-lg border border-card-border transition-shadow hover:shadow-md dark:border-card-border-dark"
         >
           <!-- Image -->
@@ -97,7 +97,7 @@
         <router-link
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
-          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHash(item.tokenid)"
+          :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHex(item.tokenid)"
           class="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
         >
           <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -158,6 +158,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { formatNumber, truncateHash } from "@/utils/explorerFormat";
@@ -178,6 +179,7 @@ const totalCount = ref(0);
 const resultsPerPage = DEFAULT_PAGE_SIZE;
 const currentPage = ref(1);
 const loading = ref(true);
+const { t } = useI18n();
 const error = ref(null);
 const viewMode = ref("grid");
 const abortController = ref(null);
@@ -189,46 +191,57 @@ onBeforeUnmount(() => {
 const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / resultsPerPage)));
 
 // --- Methods ---
-function base64ToHash(base) {
-  return base64ToHex(base);
+const CONCURRENCY_LIMIT = 5;
+
+let fetchGeneration = 0;
+
+/** Resolve an IPFS / data URI to a displayable URL. */
+function resolveImageUrl(raw) {
+  if (!raw) return "";
+  let url = raw;
+  if (url.startsWith("ipfs")) {
+    url = url.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/");
+  }
+  return url.startsWith("https://") || url.startsWith("data:image/") ? url : "";
 }
 
-function fetchNftProperties() {
-  if (tableData.value.length === 0) {
+/**
+ * Fetch NFT properties in batches of CONCURRENCY_LIMIT to avoid
+ * saturating the browser connection pool.
+ */
+async function fetchNftProperties() {
+  const myGeneration = ++fetchGeneration;
+  const items = tableData.value;
+  if (items.length === 0) {
     loading.value = false;
     return;
   }
-  let pending = tableData.value.length;
-  const checkComplete = () => {
-    pending--;
-    if (pending <= 0) loading.value = false;
-  };
-  for (let k = 0; k < tableData.value.length; k++) {
-    const idx = k;
-    tokenService
-      .getNep11Properties(tableData.value[idx].asset, [tableData.value[idx].tokenid])
-      .then((result) => {
-        const value = result?.result?.[0];
-        if (value) {
-          tableData.value[idx] = {
-            ...tableData.value[idx],
-            nftname: value.name || "Unnamed",
-            image: value.image
-              ? value.image.startsWith("ipfs")
-                ? value.image.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/")
-                : value.image
-              : "",
-            description: value.description || "",
-          };
-        }
-      })
-      .catch((err) => {
-        if (import.meta.env.DEV) console.warn("NFT properties fetch failed:", err);
-      })
-      .finally(() => {
-        checkComplete();
-      });
+
+  for (let i = 0; i < items.length; i += CONCURRENCY_LIMIT) {
+    if (myGeneration !== fetchGeneration) return; // stale
+
+    const chunk = items.slice(i, i + CONCURRENCY_LIMIT);
+    const results = await Promise.allSettled(
+      chunk.map((item) => tokenService.getNep11Properties(item.asset, [item.tokenid]))
+    );
+
+    if (myGeneration !== fetchGeneration) return; // stale
+
+    results.forEach((res, j) => {
+      if (res.status !== "fulfilled") return;
+      const value = res.value?.result?.[0];
+      if (!value) return;
+      const idx = i + j;
+      tableData.value[idx] = {
+        ...tableData.value[idx],
+        nftname: value.name || "Unnamed",
+        image: resolveImageUrl(value.image),
+        description: value.description || "",
+      };
+    });
   }
+
+  if (myGeneration === fetchGeneration) loading.value = false;
 }
 
 async function loadNftItems(skip = 0) {
@@ -246,7 +259,7 @@ async function loadNftItems(skip = 0) {
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
-    error.value = "Failed to load NFT items. Please try again.";
+    error.value = t("errors.loadNftItems");
     tableData.value = [];
     loading.value = false;
   }

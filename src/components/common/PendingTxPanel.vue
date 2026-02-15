@@ -6,7 +6,7 @@
           <span class="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-400 opacity-75"></span>
           <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
         </span>
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Pending Transactions</h3>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t("pendingTx.title") }}</h3>
         <span
           class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
         >
@@ -15,6 +15,7 @@
       </div>
       <button
         @click="$emit('close')"
+        aria-label="Close pending transaction panel"
         class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +25,7 @@
     </div>
 
     <div class="max-h-[400px] overflow-y-auto">
-      <div v-if="pendingTxs.length === 0" class="p-6 text-center text-sm text-gray-500">No pending transactions</div>
+      <div v-if="pendingTxs.length === 0" class="p-6 text-center text-sm text-gray-500">{{ t("pendingTx.empty") }}</div>
       <div
         v-else
         v-for="tx in pendingTxs"
@@ -70,7 +71,7 @@
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
           />
         </svg>
-        {{ loading ? "Refreshing..." : "Refresh" }}
+        {{ loading ? t("pendingTx.refreshing") : t("pendingTx.refresh") }}
       </button>
     </div>
   </div>
@@ -78,8 +79,12 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { truncateHash, formatGas, formatAge } from "@/utils/explorerFormat";
 import { PENDING_TX_POLL_INTERVAL } from "@/constants";
+import { transactionService } from "@/services";
+
+const { t } = useI18n();
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -94,20 +99,7 @@ let pollInterval = null;
 async function fetchPendingTransactions() {
   loading.value = true;
   try {
-    const response = await fetch("/api/mainnet?jsonrpc=2.0&id=1&method=getrawmempool&params=[true]");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-
-    if (data.result && Array.isArray(data.result)) {
-      pendingTxs.value = data.result.slice(0, 20).map((tx) => ({
-        hash: tx.hash || tx.txid,
-        from: tx.sender,
-        to: tx.receiver || tx.outputs?.[0]?.address,
-        netfee: tx.netfee,
-        sysfee: tx.sysfee,
-        timestamp: tx.timestamp || Date.now() / 1000,
-      }));
-    }
+    pendingTxs.value = await transactionService.getPendingTransactions(20);
   } catch (error) {
     if (import.meta.env.DEV) console.warn("Failed to fetch pending transactions:", error);
   } finally {
@@ -116,6 +108,7 @@ async function fetchPendingTransactions() {
 }
 
 function startPolling() {
+  stopPolling();
   fetchPendingTransactions();
   pollInterval = setInterval(fetchPendingTransactions, PENDING_TX_POLL_INTERVAL);
 }
@@ -131,10 +124,19 @@ function refresh() {
   fetchPendingTransactions();
 }
 
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopPolling();
+  } else if (props.isOpen) {
+    startPolling();
+  }
+}
+
 onMounted(() => {
   if (props.isOpen) {
     startPolling();
   }
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
 watch(
@@ -150,6 +152,7 @@ watch(
 
 onUnmounted(() => {
   stopPolling();
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
 });
 
 defineExpose({ startPolling, stopPolling, refresh });

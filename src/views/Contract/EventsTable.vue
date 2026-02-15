@@ -86,7 +86,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import { contractService } from "@/services";
-import { convertTime, convertISOTime } from "@/store/util";
+import { formatAge, formatDateTime } from "@/utils/timeFormat";
 import { usePagination } from "@/composables/usePagination";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -122,7 +122,7 @@ function toggleTimeFormat() {
 }
 
 function formatTimestamp(ts) {
-  return useRelativeTime.value ? convertTime(ts) : convertISOTime(ts);
+  return useRelativeTime.value ? formatAge(ts) : formatDateTime(ts);
 }
 
 watch(

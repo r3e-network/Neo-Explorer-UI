@@ -21,6 +21,8 @@
           <button
             class="h-6 rounded border border-gray-200 bg-white px-2 text-xs text-text-secondary transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
             aria-label="Select network"
+            aria-haspopup="true"
+            :aria-expanded="networkDropdownOpen"
             @click="$emit('toggle-network-dropdown')"
           >
             {{ currentNetworkLabel }}
@@ -74,7 +76,8 @@ const networkDropdown = ref(null);
 defineExpose({ networkDropdown });
 
 function formatGasValue(value) {
-  return Number(value || 0).toFixed(3);
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num.toFixed(3) : "0.000";
 }
 </script>
 

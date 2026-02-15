@@ -1,18 +1,7 @@
 <template>
-  <div ref="containerRef" class="virtual-scroller" :style="{ height: containerHeight + 'px' }" @scroll="onScroll">
-    <div class="virtual-scroller-content" :style="{ height: totalHeight + 'px', position: 'relative' }">
-      <div
-        v-for="item in visibleItems"
-        :key="item.key"
-        class="virtual-scroller-item"
-        :style="{
-          position: 'absolute',
-          top: item.top + 'px',
-          left: 0,
-          right: 0,
-          height: itemHeight + 'px',
-        }"
-      >
+  <div ref="containerRef" class="virtual-scroller" :style="containerStyle" @scroll="onScroll">
+    <div class="virtual-scroller-content" :style="contentStyle">
+      <div v-for="item in visibleItems" :key="item.key" class="virtual-scroller-item" :style="item.style">
         <slot :item="item.data" :index="item.index"></slot>
       </div>
     </div>
@@ -31,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
@@ -48,7 +37,18 @@ const containerRef = ref(null);
 const scrollTop = ref(0);
 const containerHeight = ref(props.containerHeight);
 
+// Sync prop changes to local ref (ResizeObserver overrides when active)
+watch(
+  () => props.containerHeight,
+  (v) => {
+    containerHeight.value = v;
+  }
+);
+
 const totalHeight = computed(() => props.items.length * props.itemHeight);
+
+const containerStyle = computed(() => ({ height: containerHeight.value + "px" }));
+const contentStyle = computed(() => ({ height: totalHeight.value + "px", position: "relative" }));
 
 const startIndex = computed(() => {
   const start = Math.floor(scrollTop.value / props.itemHeight) - props.buffer;
@@ -62,6 +62,7 @@ const endIndex = computed(() => {
 });
 
 const visibleItems = computed(() => {
+  const h = props.itemHeight + "px";
   const items = [];
   for (let i = startIndex.value; i < endIndex.value; i++) {
     items.push({
@@ -69,6 +70,7 @@ const visibleItems = computed(() => {
       data: props.items[i],
       key: props.items[i]?.hash || props.items[i]?.index || i,
       top: i * props.itemHeight,
+      style: { position: "absolute", top: i * props.itemHeight + "px", left: 0, right: 0, height: h },
     });
   }
   return items;
@@ -142,6 +144,6 @@ defineExpose({ scrollToTop, scrollToIndex, scrollTop });
 }
 
 .virtual-scroller-item {
-  will-change: transform;
+  contain: layout style;
 }
 </style>

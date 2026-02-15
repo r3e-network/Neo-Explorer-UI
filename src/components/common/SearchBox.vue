@@ -307,6 +307,10 @@ function handleFocus() {
 
 function handleBlur() {
   isFocused.value = false;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
 }
 
 function closeSuggestions() {

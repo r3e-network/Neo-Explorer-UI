@@ -35,25 +35,7 @@
       <!-- Tabs Card -->
       <div v-if="!error" class="etherscan-card">
         <div class="border-b border-card-border dark:border-card-border-dark">
-          <nav class="flex flex-wrap" role="tablist">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              :id="'tab-' + tab.key"
-              role="tab"
-              :aria-selected="activeTab === tab.key"
-              :aria-controls="'panel-' + tab.key"
-              class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
-              :class="
-                activeTab === tab.key
-                  ? 'border-primary-500 text-primary-500 dark:text-primary-400'
-                  : 'border-transparent text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-gray-200'
-              "
-              @click="activeTab = tab.key"
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
+          <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
         <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 md:p-5">
@@ -116,12 +98,14 @@
 </template>
 
 <script setup>
-// eslint-disable-next-line no-unused-vars
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
 import { walletService } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
+import { useMethodInteraction } from "@/composables/useMethodInteraction";
+import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import EventsTable from "@/views/Contract/EventsTable.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -133,8 +117,7 @@ import ContractReadTab from "@/views/Contract/components/ContractReadTab.vue";
 import ContractWriteTab from "@/views/Contract/components/ContractWriteTab.vue";
 
 const route = useRoute();
-
-// State
+const { t } = useI18n();
 const abortController = ref(null);
 const contract = ref({});
 const manifest = ref(null);
@@ -143,7 +126,6 @@ const error = ref(null);
 const activeTab = ref("transactions");
 const tabs = getContractDetailTabs();
 const isVerified = ref(false);
-const readMethodState = ref([]);
 
 // Wallet state
 const walletConnected = ref(false);
@@ -151,7 +133,6 @@ const walletAccount = ref(null);
 const walletProvider = ref(null);
 const walletConnecting = ref(false);
 const walletError = ref("");
-const writeMethodState = ref([]);
 
 // Computed - source code link
 const sourceCodeLocation = computed(() =>
@@ -180,6 +161,35 @@ const eventsCount = computed(() => abiEvents.value.length);
 const readMethods = computed(() => abiMethods.value.filter((m) => m.safe === true));
 const writeMethods = computed(() => abiMethods.value.filter((m) => m.safe !== true));
 
+// Read contract interaction via composable
+const {
+  methodState: readMethodState,
+  toggleMethod: toggleReadMethod,
+  updateParam: updateReadParam,
+  invokeMethod: invokeReadMethod,
+} = useMethodInteraction(readMethods, (name, params) => contractService.invokeRead(contract.value.hash, name, params), {
+  errorFallback: t("contract.invocationFailed"),
+});
+
+// Write contract interaction via composable
+const {
+  methodState: writeMethodState,
+  toggleMethod: toggleWriteMethod,
+  updateParam: updateWriteParam,
+  invokeMethod: invokeWriteMethod,
+} = useMethodInteraction(
+  writeMethods,
+  async (name, params) => {
+    const args = params.map((p) => ({ type: p.type, value: p.value }));
+    return walletService.invoke({
+      scriptHash: contract.value.hash,
+      operation: name,
+      args,
+    });
+  },
+  { errorFallback: t("contract.txFailed") }
+);
+
 // Data loading
 async function loadContract(hash) {
   abortController.value?.abort();
@@ -199,7 +209,7 @@ async function loadContract(hash) {
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);
-    error.value = "Failed to load contract details. Please try again.";
+    error.value = t("errors.loadContractDetails");
   } finally {
     loading.value = false;
   }
@@ -212,43 +222,6 @@ async function checkVerification(hash) {
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Contract verification check failed:", err);
     isVerified.value = false;
-  }
-}
-
-// Read Contract interaction
-function toggleReadMethod(idx) {
-  if (!readMethodState.value[idx]) return;
-  readMethodState.value[idx].open = !readMethodState.value[idx].open;
-}
-
-async function invokeReadMethod(idx, method) {
-  const state = readMethodState.value[idx];
-  if (!state) return;
-  state.loading = true;
-  state.error = "";
-  state.result = undefined;
-  try {
-    const params = (method.parameters || []).map((p, i) => ({
-      type: p.type,
-      value: state.params[i] || "",
-    }));
-    state.result = await contractService.invokeRead(contract.value.hash, method.name, params);
-  } catch (err) {
-    state.error = err?.message || "Invocation failed. Please check parameters and try again.";
-  } finally {
-    state.loading = false;
-  }
-}
-
-function updateReadParam(methodIdx, paramIdx, value) {
-  if (readMethodState.value[methodIdx]) {
-    readMethodState.value[methodIdx].params[paramIdx] = value;
-  }
-}
-
-function updateWriteParam(methodIdx, paramIdx, value) {
-  if (writeMethodState.value[methodIdx]) {
-    writeMethodState.value[methodIdx].params[paramIdx] = value;
   }
 }
 
@@ -269,36 +242,6 @@ watch(
   { immediate: true }
 );
 
-// Rebuild read method state when manifest changes
-watch(
-  readMethods,
-  (methods) => {
-    readMethodState.value = methods.map(() => ({
-      open: false,
-      params: [],
-      loading: false,
-      result: undefined,
-      error: "",
-    }));
-  },
-  { immediate: true }
-);
-
-// Rebuild write method state when manifest changes
-watch(
-  writeMethods,
-  (methods) => {
-    writeMethodState.value = methods.map(() => ({
-      open: false,
-      params: [],
-      loading: false,
-      result: undefined,
-      error: "",
-    }));
-  },
-  { immediate: true }
-);
-
 // --- Wallet Methods ---
 async function connectWallet(providerName) {
   walletConnecting.value = true;
@@ -309,7 +252,7 @@ async function connectWallet(providerName) {
     walletAccount.value = account;
     walletProvider.value = providerName;
   } catch (err) {
-    walletError.value = err?.message || "Failed to connect wallet";
+    walletError.value = err?.message || t("contract.walletConnectFailed");
   } finally {
     walletConnecting.value = false;
   }
@@ -321,34 +264,5 @@ function disconnectWallet() {
   walletAccount.value = null;
   walletProvider.value = null;
   walletError.value = "";
-}
-
-function toggleWriteMethod(idx) {
-  if (!writeMethodState.value[idx]) return;
-  writeMethodState.value[idx].open = !writeMethodState.value[idx].open;
-}
-
-async function invokeWriteMethod(idx, method) {
-  const state = writeMethodState.value[idx];
-  if (!state) return;
-  state.loading = true;
-  state.error = "";
-  state.result = undefined;
-  try {
-    const args = (method.parameters || []).map((p, i) => ({
-      type: p.type,
-      value: state.params[i] || "",
-    }));
-    const result = await walletService.invoke({
-      scriptHash: contract.value.hash,
-      operation: method.name,
-      args,
-    });
-    state.result = result;
-  } catch (err) {
-    state.error = err?.message || "Transaction failed. Please check parameters.";
-  } finally {
-    state.loading = false;
-  }
 }
 </script>

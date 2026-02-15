@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { tokenService } from "@/services";
-import { formatGas, formatTokenAmount } from "@/utils/explorerFormat";
+import { formatTokenAmount } from "@/utils/explorerFormat";
 
 /**
  * Composable for lazily loading and caching transfer value summaries

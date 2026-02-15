@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, getCurrentInstance } from "vue";
 
 export function useDebounceFn(fn, delay = 300) {
   let timeoutId = null;
@@ -27,6 +27,11 @@ export function useDebounceFn(fn, delay = 300) {
     }
     fn(...args);
   };
+
+  // Auto-cleanup when used inside a component
+  if (getCurrentInstance()) {
+    onUnmounted(cancel);
+  }
 
   return { debouncedFn, cancel, flush };
 }
@@ -62,9 +67,11 @@ export function useThrottleFn(fn, delay = 300) {
     }
   };
 
-  onUnmounted(() => {
-    cancel();
-  });
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      cancel();
+    });
+  }
 
   return { throttledFn, cancel };
 }
@@ -82,9 +89,11 @@ export function useDebouncedRef(source, delay = 300) {
     }, delay);
   };
 
-  onUnmounted(() => {
-    if (timeoutId) clearTimeout(timeoutId);
-  });
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+  }
 
   return {
     value: debouncedValue,
@@ -130,10 +139,10 @@ export function useKeyPress(key, callback, options = {}) {
   });
 }
 
-export function useLocalStorage(key, defaultValue) {
+function useStorage(storageApi, key, defaultValue) {
   const data = ref(defaultValue);
 
-  const stored = localStorage.getItem(key);
+  const stored = storageApi.getItem(key);
   if (stored) {
     try {
       data.value = JSON.parse(stored);
@@ -145,50 +154,37 @@ export function useLocalStorage(key, defaultValue) {
   const setValue = (value) => {
     data.value = value;
     const toStore = typeof value === "string" ? value : JSON.stringify(value);
-    localStorage.setItem(key, toStore);
+    storageApi.setItem(key, toStore);
   };
 
   const removeValue = () => {
     data.value = defaultValue;
-    localStorage.removeItem(key);
+    storageApi.removeItem(key);
   };
 
   return { data, setValue, removeValue };
 }
 
+export function useLocalStorage(key, defaultValue) {
+  return useStorage(localStorage, key, defaultValue);
+}
+
 export function useSessionStorage(key, defaultValue) {
-  const data = ref(defaultValue);
-
-  const stored = sessionStorage.getItem(key);
-  if (stored) {
-    try {
-      data.value = JSON.parse(stored);
-    } catch (e) {
-      data.value = stored;
-    }
-  }
-
-  const setValue = (value) => {
-    data.value = value;
-    const toStore = typeof value === "string" ? value : JSON.stringify(value);
-    sessionStorage.setItem(key, toStore);
-  };
-
-  const removeValue = () => {
-    data.value = defaultValue;
-    sessionStorage.removeItem(key);
-  };
-
-  return { data, setValue, removeValue };
+  return useStorage(sessionStorage, key, defaultValue);
 }
 
 export function useWindowSize() {
   const width = ref(window.innerWidth);
   const height = ref(window.innerHeight);
+  let rafId = null;
 
   const handleResize = () => {
-    width.value = window.innerWidth;
-    height.value = window.innerHeight;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      width.value = window.innerWidth;
+      height.value = window.innerHeight;
+      rafId = null;
+    });
   };
 
   onMounted(() => {
@@ -197,6 +193,10 @@ export function useWindowSize() {
 
   onUnmounted(() => {
     window.removeEventListener("resize", handleResize);
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
   });
 
   return { width, height };
@@ -228,10 +228,15 @@ export function useMediaQuery(query) {
 export function useScrollPosition() {
   const x = ref(0);
   const y = ref(0);
+  let rafId = null;
 
   const handleScroll = () => {
-    x.value = window.scrollX;
-    y.value = window.scrollY;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      x.value = window.scrollX;
+      y.value = window.scrollY;
+      rafId = null;
+    });
   };
 
   onMounted(() => {
@@ -241,6 +246,10 @@ export function useScrollPosition() {
 
   onUnmounted(() => {
     window.removeEventListener("scroll", handleScroll);
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
   });
 
   return { x, y };

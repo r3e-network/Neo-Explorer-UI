@@ -73,28 +73,7 @@
       <div v-else-if="tx.hash" class="etherscan-card">
         <!-- Tab Navigation -->
         <div class="border-b border-card-border dark:border-card-border-dark">
-          <nav class="flex flex-wrap" role="tablist">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              role="tab"
-              :aria-selected="activeTab === tab.key"
-              class="border-b-2 px-4 py-3 text-sm font-medium transition-colors"
-              :class="
-                activeTab === tab.key
-                  ? 'border-primary-500 text-primary-500 dark:text-primary-400'
-                  : 'border-transparent text-text-secondary hover:text-text-primary dark:text-gray-400 dark:hover:text-gray-200'
-              "
-              @click="activeTab = tab.key"
-            >
-              {{ tab.label }}
-              <span
-                v-if="tab.count != null"
-                class="ml-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700"
-                >{{ tab.count }}</span
-              >
-            </button>
-          </nav>
+          <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
         <div class="p-4 md:p-5">
@@ -158,10 +137,12 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
+import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InternalOperations from "@/components/trace/InternalOperations.vue";
 import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
@@ -175,6 +156,7 @@ import TxTransfersTab from "./components/TxTransfersTab.vue";
 import TxExecutionTraceTab from "./components/TxExecutionTraceTab.vue";
 
 const route = useRoute();
+const { t } = useI18n();
 
 // --- Reactive State ---
 const abortController = ref(null);
@@ -325,13 +307,19 @@ async function loadTx(hash) {
     tx.value = (await transactionService.getByHash(hash)) || {};
     if (abortController.value?.signal.aborted) return;
     // Fire secondary loads in parallel
-    loadTransfers(hash);
-    loadBlockHeight();
-    loadEnrichedTrace(hash);
+    loadTransfers(hash).catch((err) => {
+      if (import.meta.env.DEV) console.warn("[TxDetail] loadTransfers failed:", err);
+    });
+    loadBlockHeight().catch((err) => {
+      if (import.meta.env.DEV) console.warn("[TxDetail] loadBlockHeight failed:", err);
+    });
+    loadEnrichedTrace(hash).catch((err) => {
+      if (import.meta.env.DEV) console.warn("[TxDetail] loadEnrichedTrace failed:", err);
+    });
   } catch (err) {
     if (abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load transaction:", err);
-    error.value = "Failed to load transaction details.";
+    error.value = t("errors.loadTxDetails");
   } finally {
     loading.value = false;
   }
@@ -354,7 +342,7 @@ async function loadEnrichedTrace(hash) {
       if (abortController.value?.signal.aborted) return;
       appLog.value = fallback;
     } catch {
-      appLogError.value = "Failed to load application log.";
+      appLogError.value = t("errors.loadAppLog");
     }
   } finally {
     enrichedLoading.value = false;

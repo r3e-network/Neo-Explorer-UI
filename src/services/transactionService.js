@@ -1,3 +1,4 @@
+import { safeRpc } from "./api";
 import { CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { executionService } from "./executionService";
@@ -64,6 +65,24 @@ export const transactionService = createService(
     },
   },
   {
+    /**
+     * Fetch pending transactions from the mempool.
+     * @param {number} [limit=20] - Max items to return.
+     * @returns {Promise<Array>} Pending transaction list.
+     */
+    async getPendingTransactions(limit = 20) {
+      const result = await safeRpc("getrawmempool", [true], []);
+      if (!Array.isArray(result)) return [];
+      return result.slice(0, limit).map((tx) => ({
+        hash: tx.hash || tx.txid,
+        from: tx.sender,
+        to: tx.receiver || tx.outputs?.[0]?.address,
+        netfee: tx.netfee,
+        sysfee: tx.sysfee,
+        timestamp: tx.timestamp || Date.now() / 1000,
+      }));
+    },
+
     /**
      * @deprecated Use executionService.getExecutionTrace directly — identical RPC call.
      */

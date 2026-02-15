@@ -1,6 +1,9 @@
 <script setup>
+import { useI18n } from "vue-i18n";
 import EmptyState from "./EmptyState.vue";
 import Skeleton from "./Skeleton.vue";
+
+const { t } = useI18n();
 
 defineProps({
   columns: {
@@ -16,6 +19,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  rowKey: {
+    type: String,
+    default: "",
+  },
 });
 </script>
 
@@ -27,6 +34,7 @@ defineProps({
           <th
             v-for="col in columns"
             :key="col.key"
+            scope="col"
             :class="[
               'px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
               col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
@@ -38,9 +46,9 @@ defineProps({
       </thead>
       <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
         <template v-if="loading">
-          <tr role="row" aria-live="polite">
+          <tr role="row">
             <td :colspan="columns.length" class="px-4 py-3">
-              <div class="space-y-3">
+              <div class="space-y-3" role="status" aria-live="polite">
                 <Skeleton v-for="i in 5" :key="'skeleton-' + i" class="h-4 w-full" />
               </div>
             </td>
@@ -50,7 +58,7 @@ defineProps({
           <tr>
             <td :colspan="columns.length" class="px-4 py-8">
               <slot name="empty">
-                <EmptyState message="No data available" />
+                <EmptyState :message="t('common.noDataAvailable')" />
               </slot>
             </td>
           </tr>
@@ -58,7 +66,7 @@ defineProps({
         <template v-else>
           <tr
             v-for="(row, idx) in data"
-            :key="idx"
+            :key="rowKey && row[rowKey] != null ? row[rowKey] : idx"
             class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
           >
             <td

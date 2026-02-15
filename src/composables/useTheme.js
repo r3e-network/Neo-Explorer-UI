@@ -2,6 +2,18 @@ import { ref, watch } from "vue";
 
 const isDark = ref(false);
 
+const applyTheme = () => {
+  if (isDark.value) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+};
+
+// Register watcher once at module level -- avoids accumulation when
+// multiple components call useTheme().
+watch(isDark, applyTheme);
+
 export function useTheme() {
   const initTheme = () => {
     const saved = localStorage.getItem("theme");
@@ -10,24 +22,12 @@ export function useTheme() {
     } else {
       isDark.value = window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
-    applyTheme();
-  };
-
-  const applyTheme = () => {
-    if (isDark.value) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
   };
 
   const toggleTheme = () => {
     isDark.value = !isDark.value;
     localStorage.setItem("theme", isDark.value ? "dark" : "light");
-    applyTheme();
   };
-
-  watch(isDark, applyTheme);
 
   return { isDark, initTheme, toggleTheme };
 }

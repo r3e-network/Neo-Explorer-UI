@@ -143,3 +143,58 @@ export function scriptHashBase64ToAddress(base64ScriptHash = "") {
 
   return scriptHashHexToAddress(scriptHashHexBigEndian);
 }
+
+// ---------------------------------------------------------------------------
+// Migrated from @/store/util — kept here so every consumer imports from one
+// canonical location.
+// ---------------------------------------------------------------------------
+
+function numFormat(num) {
+  const parts = num.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+}
+
+export function convertToken(token, decimal) {
+  return numFormat(parseFloat((token * Math.pow(10, -decimal)).toFixed(8)));
+}
+
+export function scriptHashToAddress(hash) {
+  if (!hash || typeof hash !== "string") return "";
+  return scriptHashHexToAddress(hash) || hash;
+}
+
+export function responseConverter(_key, val) {
+  if (typeof val === "object" && val !== null) {
+    if (val["type"] === "ByteString" && typeof val["value"] === "string") {
+      const bytes = base64ToBytes(val["value"]);
+      const hex = bytesToHex(bytes);
+      if (isPublicKeyHex(hex)) {
+        return { ...val, type: "PublicKey", value: "0x" + hex };
+      } else if (isScriptHashHex(hex)) {
+        const reversed = reverseHex(hex);
+        return { ...val, type: "ScriptHash", value: reversed ? "0x" + reversed : "0x" + hex };
+      } else if (hex && /^([0-9a-f]{64})$/i.test(hex)) {
+        return { ...val, type: "ScriptHash", value: "0x" + hex };
+      } else {
+        const text = bytesToUtf8(bytes);
+        if (text && /^[\x20-\x7F]*$/.test(text)) {
+          return { ...val, type: "String", value: text };
+        } else {
+          return { ...val, type: "HexString", value: hex };
+        }
+      }
+    } else if (val["type"] === "Buffer" && typeof val["value"] === "string") {
+      const bytes = base64ToBytes(val["value"]);
+      const hex = bytesToHex(bytes);
+      const text = bytesToUtf8(bytes);
+      if (text && /^[\x20-\x7F]*$/.test(text)) {
+        return { ...val, type: "String", value: text };
+      } else {
+        const parsed = Number.parseInt(hex || "0", 16);
+        return { ...val, type: "BigInteger", value: Number.isFinite(parsed) ? parsed : 0 };
+      }
+    }
+  }
+  return val;
+}

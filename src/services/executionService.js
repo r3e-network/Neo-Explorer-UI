@@ -156,7 +156,7 @@ export const executionService = createService(
           const eventName = n.eventname ?? "unknown";
           const manifest = manifestMap.get(hash);
           const eventDef = this._findEventDef(manifest, eventName);
-          const decodedParams = decodeNotificationParams(n.state, eventDef);
+          const decodedParams = eventDef ? decodeNotificationParams(n.state, eventDef) : [];
           const operationType = this._classifyOperation(eventName, hash);
 
           return {
@@ -193,18 +193,30 @@ export const executionService = createService(
       return enriched;
     },
 
-    /** @private */
+    /**
+     * Fetch contract manifests in parallel, collecting partial failures.
+     * @private
+     * @param {string[]} hashes
+     * @returns {Promise<Map & { failures: Array<{hash: string, error: string}> }>}
+     */
     async _fetchManifests(hashes) {
       const map = new Map();
+      const failures = [];
       const results = await Promise.all(
         hashes.map((h) =>
           contractService.getManifest(h).catch((err) => {
-            if (import.meta.env.DEV) console.warn("Failed to load manifest for", h, err);
+            failures.push({ hash: h, error: err?.message ?? String(err) });
             return null;
           })
         )
       );
       hashes.forEach((h, i) => map.set(h, results[i]));
+
+      if (failures.length > 0 && import.meta.env.DEV) {
+        console.warn(`[executionService] ${failures.length}/${hashes.length} manifest(s) failed:`, failures);
+      }
+
+      map.failures = failures;
       return map;
     },
 

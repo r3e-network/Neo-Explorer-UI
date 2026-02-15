@@ -47,7 +47,7 @@
         >
           <p class="text-sm text-text-secondary dark:text-gray-300">
             {{ activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT Collection List" }}
-            <span v-if="total > 0" class="text-text-muted">({{ formatNumber(total) }} total)</span>
+            <span v-if="totalCount > 0" class="text-text-muted">({{ formatNumber(totalCount) }} total)</span>
           </p>
           <div class="relative w-full sm:w-64">
             <input
@@ -81,7 +81,7 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Unable to load tokens" :message="error" @retry="loadPage" />
+          <ErrorState title="Unable to load tokens" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty -->
@@ -202,7 +202,7 @@
             :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
-            :total="total"
+            :total="totalCount"
             @update:page="goToPage"
             @update:page-size="changePageSize"
           />
@@ -213,12 +213,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
-import { getCache, getCacheKey } from "@/services/cache";
-import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
+import { getCacheKey } from "@/services/cache";
+import { useI18n } from "vue-i18n";
+import { SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatNumber, formatSupply as formatSupplyRaw } from "@/utils/explorerFormat";
+import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -227,31 +229,50 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
-// --- State ---
-const tokens = ref([]);
-const loading = ref(false);
-const error = ref(null);
 const activeTab = ref("nep17");
 const searchQuery = ref("");
+const VALID_TABS = ["nep17", "nep11"];
 
-// Pagination
-const currentPage = ref(1);
-const pageSize = ref(DEFAULT_PAGE_SIZE);
-const total = ref(0);
+// Dynamic fetch: reads activeTab and searchQuery at call time
+function fetchTokens(limit, skip) {
+  const query = searchQuery.value.trim();
+  if (query) {
+    return activeTab.value === "nep11"
+      ? tokenService.searchNep11ByName(query, limit, skip)
+      : tokenService.searchNep17ByName(query, limit, skip);
+  }
+  return activeTab.value === "nep11" ? tokenService.getNep11List(limit, skip) : tokenService.getNep17List(limit, skip);
+}
 
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
-const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value);
+// Cache key depends on tab + search
+function tokenCacheKey(limit, skip) {
+  const query = searchQuery.value.trim();
+  if (query) {
+    return getCacheKey(activeTab.value === "nep11" ? "token_nep11_search" : "token_nep17_search", {
+      name: query,
+      limit,
+      skip,
+    });
+  }
+  return getCacheKey(activeTab.value === "nep11" ? "token_nep11_list" : "token_nep17_list", { limit, skip });
+}
+
+const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
+  fetchTokens,
+  {
+    cacheKeyFn: tokenCacheKey,
+    errorMessage: t("errors.loadTokens"),
+  }
+);
 
 // --- Search debounce ---
 let searchTimer = null;
-let currentRequestId = 0;
 function handleSearchDebounced() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
-    currentPage.value = 1;
     router.push(`/tokens/${activeTab.value}/1`).catch(() => {});
-    loadPage();
   }, SEARCH_DEBOUNCE_MS);
 }
 
@@ -268,55 +289,6 @@ function formatMarketCap(token) {
   if (cap >= 1e6) return "$" + (cap / 1e6).toFixed(2) + "M";
   if (cap >= 1e3) return "$" + (cap / 1e3).toFixed(2) + "K";
   return "$" + cap.toFixed(2);
-}
-
-async function loadPage() {
-  const myRequestId = ++currentRequestId;
-  const query = searchQuery.value.trim();
-  const skip = paginationOffset.value;
-  const cacheKey = query
-    ? getCacheKey(activeTab.value === "nep11" ? "token_nep11_search" : "token_nep17_search", {
-        name: query,
-        limit: pageSize.value,
-        skip,
-      })
-    : getCacheKey(activeTab.value === "nep11" ? "token_nep11_list" : "token_nep17_list", {
-        limit: pageSize.value,
-        skip,
-      });
-  const hasCachedData = getCache(cacheKey) !== null;
-
-  loading.value = !hasCachedData;
-  error.value = null;
-
-  try {
-    let response;
-
-    if (query) {
-      response =
-        activeTab.value === "nep11"
-          ? await tokenService.searchNep11ByName(query, pageSize.value, skip)
-          : await tokenService.searchNep17ByName(query, pageSize.value, skip);
-    } else {
-      response =
-        activeTab.value === "nep11"
-          ? await tokenService.getNep11List(pageSize.value, skip)
-          : await tokenService.getNep17List(pageSize.value, skip);
-    }
-
-    if (myRequestId !== currentRequestId) return;
-    total.value = response?.totalCount || 0;
-    tokens.value = response?.result || [];
-  } catch (err) {
-    if (myRequestId !== currentRequestId) return;
-    if (import.meta.env.DEV) console.error("Failed to load tokens:", err);
-    error.value = "Failed to load tokens. Please try again.";
-    tokens.value = [];
-  } finally {
-    if (myRequestId === currentRequestId) {
-      loading.value = false;
-    }
-  }
 }
 
 function switchTab(tab) {
@@ -342,16 +314,19 @@ function changePageSize(size) {
 watch(
   () => route.params.tab,
   (tab) => {
-    if (tab && tab !== activeTab.value) activeTab.value = tab;
+    if (tab) {
+      const validTab = VALID_TABS.includes(tab) ? tab : "nep17";
+      if (validTab !== activeTab.value) activeTab.value = validTab;
+    }
   }
 );
 
 watch(
   () => route.params.page,
   (page) => {
-    const parsed = parseInt(page) || 1;
-    currentPage.value = Math.max(1, parsed);
-    loadPage();
+    const parsed = Math.max(1, parseInt(page) || 1);
+    currentPage.value = parsed;
+    loadPage(parsed);
   },
   { immediate: true }
 );

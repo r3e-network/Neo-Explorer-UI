@@ -103,7 +103,7 @@
 import { ref, watch } from "vue";
 import { tokenService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
-import { convertToken, scriptHashToAddress } from "@/store/util";
+import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
 import { usePagination } from "@/composables/usePagination";
 import { NULL_ADDRESS } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";

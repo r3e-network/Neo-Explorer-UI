@@ -33,7 +33,7 @@
 
         <!-- Error state -->
         <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load candidates" :message="error" @retry="loadPage" />
+          <ErrorState title="Failed to load candidates" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty state -->
@@ -85,7 +85,7 @@
             :page="currentPage"
             :total-pages="totalPages"
             :page-size="pageSize"
-            :total="total"
+            :total="totalCount"
             @update:page="goToPage"
             @update:page-size="changePageSize"
           />
@@ -96,12 +96,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { candidateService } from "@/services";
-import { getCache, getCacheKey } from "@/services/cache";
+import { getCacheKey } from "@/services/cache";
 import { truncateHash } from "@/utils/explorerFormat";
-import { DEFAULT_PAGE_SIZE } from "@/constants";
+import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -109,72 +108,31 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 
-const route = useRoute();
-const router = useRouter();
+const { t } = useI18n();
 
-const loading = ref(true);
-const error = ref(null);
-const candidates = ref([]);
-const currentPage = ref(1);
-const pageSize = ref(DEFAULT_PAGE_SIZE);
-const total = ref(0);
-let currentRequestId = 0;
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
-const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value);
-
-async function loadPage() {
-  const myRequestId = ++currentRequestId;
-  const skip = paginationOffset.value;
-  const cacheKey = getCacheKey("candidate_list", { limit: pageSize.value, skip });
-  const hasCachedData = getCache(cacheKey) !== null;
-
-  loading.value = !hasCachedData;
-  error.value = null;
-
-  try {
-    const res = await candidateService.getList(pageSize.value, skip);
-    if (myRequestId !== currentRequestId) return;
-    const count = res?.totalCount || (res?.result || []).length;
-    total.value = count || 0;
-    candidates.value = res?.result || [];
-  } catch (err) {
-    if (myRequestId !== currentRequestId) return;
-    if (import.meta.env.DEV) console.error("Failed to load candidates:", err);
-    error.value = "Failed to load candidates. Please try again.";
-    candidates.value = [];
-  } finally {
-    if (myRequestId === currentRequestId) {
-      loading.value = false;
-    }
-  }
-}
-
-function goToPage(page) {
-  if (page >= 1 && page <= totalPages.value) {
-    router.push(`/candidates/${page}`).catch(() => {});
-  }
-}
-
-function changePageSize(size) {
-  pageSize.value = size;
-  router.push("/candidates/1").catch(() => {});
-}
+const {
+  items: candidates,
+  loading,
+  error,
+  totalCount,
+  currentPage,
+  pageSize,
+  totalPages,
+  loadPage,
+  goToPage,
+  changePageSize,
+} = usePagination((limit, skip) => candidateService.getList(limit, skip), {
+  routeSync: { basePath: "/candidates" },
+  cacheKeyFn: (limit, skip) => getCacheKey("candidate_list", { limit, skip }),
+  errorMessage: t("errors.loadCandidates"),
+});
 
 function formatVotes(value) {
-  return Number(value || 0).toLocaleString();
+  const num = Number(value || 0);
+  return Number.isFinite(num) ? num.toLocaleString() : "0";
 }
 
 function candidateStatus(state) {
   return state === "Consensus" ? "success" : "pending";
 }
-
-watch(
-  () => route.params.page,
-  (page) => {
-    const parsed = parseInt(page) || 1;
-    currentPage.value = Math.max(1, parsed);
-    loadPage();
-  },
-  { immediate: true }
-);
 </script>

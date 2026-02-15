@@ -24,7 +24,7 @@
 
       <!-- Stats Bar -->
       <div
-        v-if="total > 0"
+        v-if="totalCount > 0"
         class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-900/20"
       >
         <svg class="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@
           />
         </svg>
         <span class="text-sm text-blue-800 dark:text-blue-300">
-          More than {{ formatNumber(total) }} transactions found
+          More than {{ formatNumber(totalCount) }} transactions found
         </span>
       </div>
 
@@ -45,7 +45,7 @@
         <!-- Card Header -->
         <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-sm text-text-secondary dark:text-gray-400">
-            Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(total) }} transactions
+            Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(totalCount) }} transactions
           </p>
           <button
             v-if="transactions.length > 0"
@@ -81,7 +81,7 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Failed to load transactions" :message="error" @retry="loadPage" />
+          <ErrorState title="Failed to load transactions" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty State -->
@@ -102,15 +102,6 @@
           class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
         >
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
-          <EtherscanPagination
-            v-if="false"
-            :page="currentPage"
-            :total-pages="totalPages"
-            :page-size="pageSize"
-            :total="total"
-            @update:page="goToPage"
-            @update:page-size="changePageSize"
-          />
         </div>
       </div>
     </section>
@@ -118,12 +109,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, watch, onMounted } from "vue";
 import { transactionService } from "@/services";
-import { getCache, getCacheKey } from "@/services/cache";
-import { DEFAULT_PAGE_SIZE } from "@/constants";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { getCacheKey } from "@/services/cache";
+import { useI18n } from "vue-i18n";
+import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { usePagination } from "@/composables/usePagination";
 import { formatNumber } from "@/utils/explorerFormat";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
@@ -131,86 +122,45 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import TransactionTable from "./components/TransactionTable.vue";
 
-const route = useRoute();
-const router = useRouter();
-
-// State
-const transactions = ref([]);
-const loading = ref(false);
-const loadingMore = ref(false);
-const error = ref(null);
 const showAbsoluteTime = ref(false);
-const currentPage = ref(1);
-const pageSize = ref(DEFAULT_PAGE_SIZE);
-const total = ref(0);
-let currentRequestId = 0;
-let refreshTimer = null;
+const loadingMore = ref(false);
+const { t } = useI18n();
 
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 
-// Computed
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
-const startRecord = computed(() => (total.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1));
-const endRecord = computed(() => Math.min(currentPage.value * pageSize.value, total.value));
-
 const breadcrumbs = [{ label: "Home", to: "/homepage" }, { label: "Transactions" }];
 
-// Data loading
-async function loadPage({ silent = false, forceRefresh = false } = {}) {
-  const myRequestId = ++currentRequestId;
-  const skip = (currentPage.value - 1) * pageSize.value;
-  const cacheKey = getCacheKey("tx_list", { limit: pageSize.value, skip });
-  const hasCachedData = getCache(cacheKey) !== null;
-  const shouldShowLoading = !silent && !hasCachedData;
+// --- Pagination via composable (route-synced, cache-aware) ---
+const {
+  items: transactions,
+  loading,
+  error,
+  totalCount,
+  currentPage,
+  pageSize,
+  totalPages,
+  startRecord,
+  endRecord,
+  loadPage,
+} = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {
+  routeSync: { basePath: "/transactions" },
+  cacheKeyFn: (limit, skip) => getCacheKey("tx_list", { limit, skip }),
+  errorMessage: t("errors.loadTransactions"),
+});
 
-  if (shouldShowLoading) {
-    loading.value = true;
-  }
-
-  if (!silent) {
-    error.value = null;
-  }
-
-  try {
-    const res = await transactionService.getList(pageSize.value, skip, {
-      forceRefresh,
-    });
-    if (myRequestId !== currentRequestId) return;
-    total.value = res?.totalCount || 0;
-    transactions.value = res?.result || [];
-    enrichTransactions(transactions.value).catch((err) => {
+// Enrich transactions after each page load
+watch(transactions, (txs) => {
+  if (txs?.length) {
+    enrichTransactions(txs).catch((err) => {
       if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
     });
-  } catch (err) {
-    if (myRequestId !== currentRequestId) return;
-    if (import.meta.env.DEV) console.error("Failed to load transactions:", err);
-
-    if (!silent || transactions.value.length === 0) {
-      error.value = "Failed to load transactions. Please try again.";
-      transactions.value = [];
-    }
-  } finally {
-    if (myRequestId === currentRequestId && shouldShowLoading) {
-      loading.value = false;
-    }
   }
-}
+});
 
-function goToPage(page) {
-  if (page >= 1 && page <= totalPages.value) {
-    router.push("/transactions/" + page).catch(() => {});
-  }
-}
-
-function changePageSize(size) {
-  pageSize.value = size;
-  router.push("/transactions/1").catch(() => {});
-}
-
+// --- Load more (infinite scroll) ---
 async function loadMore() {
   if (loadingMore.value || currentPage.value >= totalPages.value) return;
 
@@ -219,60 +169,33 @@ async function loadMore() {
   const skip = (nextPage - 1) * pageSize.value;
 
   try {
-    const res = await transactionService.getList(pageSize.value, skip, {
-      forceRefresh: true,
-    });
+    const res = await transactionService.getList(pageSize.value, skip, { forceRefresh: true });
     if (res?.result?.length > 0) {
       transactions.value = [...transactions.value, ...res.result];
       currentPage.value = nextPage;
-      total.value = res.totalCount || total.value;
+      totalCount.value = res.totalCount || totalCount.value;
       enrichTransactions(res.result).catch((err) => {
         if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
       });
     }
   } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error("Failed to load more transactions:", err);
-    }
+    if (import.meta.env.DEV) console.error("Failed to load more transactions:", err);
   } finally {
     loadingMore.value = false;
   }
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh();
-  refreshTimer = setInterval(() => {
-    loadPage({ silent: true, forceRefresh: true });
-  }, getNetworkRefreshIntervalMs());
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
+// Auto-refresh via composable (handles cleanup + visibility pause)
+const { start: startAutoRefresh } = useAutoRefresh(() => {
+  loadPage(currentPage.value, { silent: true, forceRefresh: true });
+});
 
 function exportData() {
   if (!transactions.value || transactions.value.length === 0) return;
   exportTransactionsToCSV(transactions.value);
 }
 
-// Watch route param for page changes
-watch(
-  () => route.params.page,
-  (page) => {
-    currentPage.value = Math.max(1, parseInt(page) || 1);
-    loadPage();
-  },
-  { immediate: true }
-);
-
 onMounted(() => {
   startAutoRefresh();
-});
-
-onBeforeUnmount(() => {
-  stopAutoRefresh();
 });
 </script>

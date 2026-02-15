@@ -1,46 +1,70 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+/**
+ * Wraps dynamic imports with ChunkLoadError retry.
+ * On chunk load failure (stale deployment), reloads the page once.
+ */
+function lazyLoad(importFn) {
+  return () =>
+    importFn().catch((error) => {
+      if (
+        error.name === "ChunkLoadError" ||
+        error.message?.includes("Failed to fetch dynamically imported module") ||
+        error.message?.includes("Loading chunk")
+      ) {
+        const reloadKey = "chunk-reload";
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, "1");
+          window.location.reload();
+          return; // unreachable, but satisfies linter
+        }
+        sessionStorage.removeItem(reloadKey);
+      }
+      throw error;
+    });
+}
+
 // Core pages - lazy loaded
-const HomePage = () => import("../views/Home/HomePage.vue");
+const HomePage = lazyLoad(() => import("../views/Home/HomePage.vue"));
 
 // Block module
-const Blocks = () => import("../views/Block/Blocks.vue");
-const BlockDetail = () => import("../views/Block/BlockDetail.vue");
+const Blocks = lazyLoad(() => import("../views/Block/Blocks.vue"));
+const BlockDetail = lazyLoad(() => import("../views/Block/BlockDetail.vue"));
 
 // Transaction module
-const Transactions = () => import("../views/Transaction/Transactions.vue");
-const TxDetail = () => import("../views/Transaction/TxDetail.vue");
-const TxExecutionTrace = () => import("../views/Transaction/TxExecutionTrace.vue");
+const Transactions = lazyLoad(() => import("../views/Transaction/Transactions.vue"));
+const TxDetail = lazyLoad(() => import("../views/Transaction/TxDetail.vue"));
+const TxExecutionTrace = lazyLoad(() => import("../views/Transaction/TxExecutionTrace.vue"));
 
 // Token module
-const Tokens = () => import("../views/Token/Tokens.vue");
-const TokenDetail = () => import("../views/Token/TokenDetail.vue");
-const TokenInfoNep11 = () => import("../views/Token/TokenInfonNep11.vue");
-const NFTInfo = () => import("../views/Token/NFTInfo.vue");
+const Tokens = lazyLoad(() => import("../views/Token/Tokens.vue"));
+const TokenDetail = lazyLoad(() => import("../views/Token/TokenDetail.vue"));
+const TokenInfoNep11 = lazyLoad(() => import("../views/Token/TokenInfoNep11.vue"));
+const NFTInfo = lazyLoad(() => import("../views/Token/NFTInfo.vue"));
 
 // Contract module
-const Contracts = () => import("../views/Contract/Contracts.vue");
-const ContractDetail = () => import("../views/Contract/ContractDetail.vue");
-const VerifyContract = () => import("../views/Contract/VerifyContract.vue");
-const SourceCode = () => import("../views/Contract/SourceCode.vue");
+const Contracts = lazyLoad(() => import("../views/Contract/Contracts.vue"));
+const ContractDetail = lazyLoad(() => import("../views/Contract/ContractDetail.vue"));
+const VerifyContract = lazyLoad(() => import("../views/Contract/VerifyContract.vue"));
+const SourceCode = lazyLoad(() => import("../views/Contract/SourceCode.vue"));
 
 // Account module
-const Accounts = () => import("../views/Account/Accounts.vue");
-const AddressDetail = () => import("../views/Account/AddressDetail.vue");
+const Accounts = lazyLoad(() => import("../views/Account/Accounts.vue"));
+const AddressDetail = lazyLoad(() => import("../views/Account/AddressDetail.vue"));
 
 // Other pages
-const Candidates = () => import("../views/Candidate/Candidates.vue");
-const BurnFee = () => import("../views/BurnGas/BurnFee.vue");
-const DailyTransaction = () => import("../views/BurnGas/DailyTransaction.vue");
-const ApiDocs = () => import("../views/Developer/ApiDocs.vue");
+const Candidates = lazyLoad(() => import("../views/Candidate/Candidates.vue"));
+const BurnFee = lazyLoad(() => import("../views/BurnGas/BurnFee.vue"));
+const DailyTransaction = lazyLoad(() => import("../views/BurnGas/DailyTransaction.vue"));
+const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 
 // New placeholder pages
-const GasTracker = () => import("../views/GasTracker/GasTracker.vue");
-const AdvancedSearch = () => import("../views/Search/AdvancedSearch.vue");
+const GasTracker = lazyLoad(() => import("../views/GasTracker/GasTracker.vue"));
+const AdvancedSearch = lazyLoad(() => import("../views/Search/AdvancedSearch.vue"));
 
 // Error pages
-const Search = () => import("../views/NotFound/SearchNotFound.vue");
-const PageNotFound = () => import("../views/NotFound/PageNotFound.vue");
+const Search = lazyLoad(() => import("../views/NotFound/SearchNotFound.vue"));
+const PageNotFound = lazyLoad(() => import("../views/NotFound/PageNotFound.vue"));
 
 import MainLayout from "../components/layout/MainLayout.vue";
 
@@ -57,6 +81,10 @@ const routes = [
         component: HomePage,
       },
       {
+        path: "/blocks",
+        redirect: "/blocks/1",
+      },
+      {
         path: "/blocks/:page",
         name: "blocks",
         meta: { title: "Blocks" },
@@ -69,6 +97,10 @@ const routes = [
         component: BlockDetail,
       },
       {
+        path: "/transactions",
+        redirect: "/transactions/1",
+      },
+      {
         path: "/transactions/:page",
         name: "transactions",
         meta: { title: "Transactions" },
@@ -79,6 +111,10 @@ const routes = [
         name: "transactionDetail",
         meta: { title: "Transaction Detail" },
         component: TxDetail,
+      },
+      {
+        path: "/contracts",
+        redirect: "/contracts/1",
       },
       {
         path: "/contracts/:page",
@@ -135,7 +171,7 @@ const routes = [
         component: BurnFee,
       },
       {
-        path: "/verify-contract/:contractHash",
+        path: "/verify-contract/:contractHash?",
         name: "verifyContract",
         meta: { title: "Verify Contract" },
         component: VerifyContract,
@@ -210,11 +246,6 @@ const router = createRouter({
   },
 });
 
-// Reset error state on navigation
-router.beforeEach(() => {
-  // Allow navigation to proceed; clears any stale error context
-});
-
 // Catch lazy-load and navigation failures
 router.onError((error) => {
   if (import.meta.env.DEV) {
@@ -222,8 +253,9 @@ router.onError((error) => {
   }
 });
 
-// Dynamic document title from route meta
+// Clear chunk reload flag on successful navigation & set document title
 router.afterEach((to) => {
+  sessionStorage.removeItem("chunk-reload");
   const title = to.meta?.title;
   document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
 });

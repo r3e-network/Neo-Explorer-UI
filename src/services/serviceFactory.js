@@ -103,13 +103,9 @@ export function createService(methods, overrides = {}) {
   const service = {};
 
   for (const [name, config] of Object.entries(methods)) {
-    if (config._type === "list") {
-      const { _type, ...rest } = config;
-      service[name] = createRpcListMethod(rest);
-    } else {
-      const { _type, ...rest } = config;
-      service[name] = createRpcMethod(rest);
-    }
+    // eslint-disable-next-line no-unused-vars
+    const { _type, ...rest } = config;
+    service[name] = _type === "list" ? createRpcListMethod(rest) : createRpcMethod(rest);
   }
 
   // Apply overrides — they can reference `this` via the service object

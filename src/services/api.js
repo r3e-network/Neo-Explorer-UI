@@ -49,15 +49,21 @@ api.interceptors.response.use(
 // Incrementing RPC ID for unique request identification
 let _rpcId = 0;
 
-// Base RPC call
-export const rpc = async (method, params = {}) => {
+/**
+ * Base RPC call.
+ * @param {string} method - RPC method name
+ * @param {object} params - RPC parameters
+ * @param {{ signal?: AbortSignal }} [options] - Optional request options
+ * @param {AbortSignal} [options.signal] - AbortController signal to cancel the request
+ * @returns {Promise<any>}
+ */
+export const rpc = async (method, params = {}, { signal } = {}) => {
   try {
-    const response = await api.post("", {
-      jsonrpc: "2.0",
-      id: ++_rpcId,
-      method,
-      params,
-    });
+    const response = await api.post(
+      "",
+      { jsonrpc: "2.0", id: ++_rpcId, method, params },
+      signal ? { signal } : undefined
+    );
     if (response.data?.error) {
       const rpcErr = response.data.error;
       throw new Error(`RPC Error ${rpcErr.code || ""}: ${rpcErr.message || "Unknown RPC error"}`);
