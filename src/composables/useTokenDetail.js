@@ -1,7 +1,8 @@
-import { ref, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { tokenService, contractService } from "@/services";
+import { useAsync } from "@/composables/useAsync";
 import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import { responseConverter } from "@/utils/neoHelpers";
 import { invokeContractFunction } from "@/utils/contractInvocation";
@@ -27,16 +28,53 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // Reactive state
   // ---------------------------------------------------------------------------
   const tokenId = ref("");
-  const isLoading = ref(true);
-  const error = ref(null);
-  const tokenInfo = ref({});
   const manifest = ref({});
   const manifestError = ref(null);
   const decimal = ref("");
   const activeName = ref(defaultTab);
   const updateCounter = ref(0);
   const copied = ref(false);
-  const abortController = ref(null);
+
+  // ---------------------------------------------------------------------------
+  // Async data fetching via useAsync (handles abort, loading, error, cleanup)
+  // ---------------------------------------------------------------------------
+  const {
+    data: tokenInfo,
+    loading: tokenLoading,
+    error: tokenError,
+    execute: executeTokenFetch,
+    abort: abortTokenFetch,
+  } = useAsync((id, { signal }) => tokenService.getByHash(id, { signal }), {
+    initialData: {},
+    onSuccess: (res) => {
+      decimal.value = res?.decimals;
+      onTokenLoaded?.(res || {});
+    },
+    onError: (err) => {
+      if (import.meta.env.DEV) console.error("Failed to load token:", err);
+    },
+  });
+
+  const { execute: executeContractFetch, abort: abortContractFetch } = useAsync(
+    (id, { signal }) => contractService.getByHash(id, { signal }),
+    {
+      onSuccess: (res) => {
+        manifest.value = JSON.parse(res?.manifest || "{}");
+        updateCounter.value = res?.updatecounter ?? 0;
+        manifestError.value = null;
+      },
+      onError: (err) => {
+        manifestError.value = "Failed to load contract data.";
+        if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
+      },
+    }
+  );
+
+  // Unified loading: true while either fetch is in-flight
+  const isLoading = computed(() => tokenLoading.value);
+
+  // Map token error to user-facing message
+  const error = computed(() => (tokenError.value ? t("errors.loadTokens") : null));
 
   // ---------------------------------------------------------------------------
   // Internal timers
@@ -45,7 +83,6 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
 
   onBeforeUnmount(() => {
     if (copyTimer) clearTimeout(copyTimer);
-    abortController.value?.abort();
   });
 
   // ---------------------------------------------------------------------------
@@ -94,7 +131,6 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
     const method = manifest.value["abi"]["methods"][index];
     invokeContractFunction(tokenId.value, method["name"], method["parameters"])
       .then((res) => {
-        if (abortController.value?.signal.aborted) return;
         if (res?.["exception"] != null) {
           patchMethod(index, { error: res["exception"] });
         } else {
@@ -109,7 +145,6 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
         }
       })
       .catch((err) => {
-        if (abortController.value?.signal.aborted) return;
         patchMethod(index, {
           error: err?.message || err?.toString?.() || "Failed to invoke function",
         });
@@ -117,62 +152,22 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   }
 
   // ---------------------------------------------------------------------------
-  // Data fetching
+  // Data fetching orchestration
   // ---------------------------------------------------------------------------
 
-  function getToken(id) {
-    error.value = null;
-    tokenService
-      .getByHash(id, { signal: abortController.value?.signal })
-      .then((res) => {
-        if (abortController.value?.signal.aborted) return;
-        decimal.value = res?.decimals;
-        tokenInfo.value = res || {};
-        isLoading.value = false;
-        onTokenLoaded?.(tokenInfo.value);
-      })
-      .catch((err) => {
-        if (abortController.value?.signal.aborted) return;
-        error.value = t("errors.loadTokens");
-        isLoading.value = false;
-        if (import.meta.env.DEV) console.error("Failed to load token:", err);
-      });
-  }
-
-  function loadContractData(id) {
-    contractService
-      .getByHash(id, { signal: abortController.value?.signal })
-      .then((res) => {
-        if (abortController.value?.signal.aborted) return;
-        manifest.value = JSON.parse(res?.manifest || "{}");
-        updateCounter.value = res?.updatecounter ?? 0;
-        manifestError.value = null;
-      })
-      .catch((err) => {
-        if (abortController.value?.signal.aborted) return;
-        manifestError.value = "Failed to load contract data.";
-        if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
-      });
-  }
-
   function loadAllData() {
-    abortController.value?.abort();
-    abortController.value = new AbortController();
-
-    isLoading.value = true;
     activeName.value = defaultTab;
     manifest.value = null;
     manifestError.value = null;
     updateCounter.value = 0;
-    getToken(tokenId.value);
-    loadContractData(tokenId.value);
+    executeTokenFetch(tokenId.value);
+    executeContractFetch(tokenId.value);
   }
 
   function reloadToken() {
     const hash = route.params.hash;
     if (hash) {
-      isLoading.value = true;
-      getToken(hash);
+      executeTokenFetch(hash);
     }
   }
 

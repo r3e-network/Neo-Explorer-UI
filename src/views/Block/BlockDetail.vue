@@ -54,7 +54,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { blockService } from "@/services";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
-import { NETWORK_CHANGE_EVENT, getNetworkRefreshIntervalMs } from "@/utils/env";
+import { NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -75,7 +76,6 @@ const error = ref(null);
 const showWitnesses = ref(false);
 const latestBlockHeight = ref(Infinity);
 const BLOCK_TX_FETCH_BATCH_SIZE = 100;
-let refreshTimer = null;
 let isBackgroundRefreshing = false;
 let blockRequestId = 0;
 let txRequestId = 0;
@@ -311,20 +311,10 @@ async function refreshCurrentBlockSilently() {
   }
 }
 
-function startAutoRefresh() {
-  stopAutoRefresh();
-
-  refreshTimer = setInterval(() => {
-    void refreshCurrentBlockSilently();
-  }, getNetworkRefreshIntervalMs());
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-}
+// Auto-refresh via composable (handles cleanup + visibility pause)
+const { start: startAutoRefresh } = useAutoRefresh(() => {
+  void refreshCurrentBlockSilently();
+});
 
 function handleNetworkChange() {
   startAutoRefresh();
@@ -354,7 +344,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  stopAutoRefresh();
   window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   abortController.value?.abort();
 });

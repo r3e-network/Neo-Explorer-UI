@@ -213,14 +213,20 @@
 </template>
 
 <script setup>
-import { ref, watch, onBeforeUnmount } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { SEARCH_DEBOUNCE_MS } from "@/constants";
-import { truncateHash, formatNumber, formatSupply as formatSupplyRaw } from "@/utils/explorerFormat";
+import {
+  truncateHash,
+  formatNumber,
+  formatSupply as formatSupplyRaw,
+  formatMarketCap as formatMarketCapRaw,
+} from "@/utils/explorerFormat";
 import { usePagination } from "@/composables/usePagination";
+import { useDebounceFn } from "@/composables/useVueUtils";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -267,14 +273,10 @@ const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalP
   }
 );
 
-// --- Search debounce ---
-let searchTimer = null;
-function handleSearchDebounced() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    router.push(`/tokens/${activeTab.value}/1`).catch(() => {});
-  }, SEARCH_DEBOUNCE_MS);
-}
+// --- Search debounce (auto-cleanup via useDebounceFn) ---
+const { debouncedFn: handleSearchDebounced, cancel: cancelSearch } = useDebounceFn(() => {
+  router.push(`/tokens/${activeTab.value}/1`).catch(() => {});
+}, SEARCH_DEBOUNCE_MS);
 
 // --- Methods ---
 function formatSupply(token) {
@@ -282,18 +284,12 @@ function formatSupply(token) {
 }
 
 function formatMarketCap(token) {
-  if (!token.market_cap && !token.marketcap) return "-";
-  const cap = parseFloat(token.market_cap || token.marketcap || 0);
-  if (cap <= 0) return "-";
-  if (cap >= 1e9) return "$" + (cap / 1e9).toFixed(2) + "B";
-  if (cap >= 1e6) return "$" + (cap / 1e6).toFixed(2) + "M";
-  if (cap >= 1e3) return "$" + (cap / 1e3).toFixed(2) + "K";
-  return "$" + cap.toFixed(2);
+  return formatMarketCapRaw(token.market_cap || token.marketcap);
 }
 
 function switchTab(tab) {
   if (tab === activeTab.value) return;
-  if (searchTimer) clearTimeout(searchTimer);
+  cancelSearch();
   activeTab.value = tab;
   searchQuery.value = "";
   router.push(`/tokens/${tab}/1`).catch(() => {});
@@ -330,8 +326,4 @@ watch(
   },
   { immediate: true }
 );
-
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer);
-});
 </script>

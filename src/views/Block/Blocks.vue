@@ -194,6 +194,7 @@ import { blockService, statsService } from "@/services";
 import { getCacheKey } from "@/services/cache";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { usePagination } from "@/composables/usePagination";
+import { useLoadMore } from "@/composables/useLoadMore";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -205,7 +206,6 @@ import { exportBlocksToCSV } from "@/utils/dataExport";
 
 const { t } = useI18n();
 const showAbsoluteTime = ref(false);
-const loadingMore = ref(false);
 
 // Stats bar
 const statsLoading = ref(true);
@@ -213,14 +213,24 @@ const totalBlocks = ref(0);
 const latestHeight = ref(0);
 
 // --- Pagination via composable (route-synced, cache-aware) ---
+const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, opts);
+
 const { items: blocks, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
-  (limit, skip, opts) => blockService.getList(limit, skip, opts),
+  blockFetchFn,
   {
     routeSync: { basePath: "/blocks" },
     cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
     errorMessage: t("errors.loadBlocks"),
   }
 );
+
+const { loadingMore, loadMore } = useLoadMore(blockFetchFn, {
+  items: blocks,
+  currentPage,
+  pageSize,
+  totalPages,
+  totalCount,
+});
 
 // Range display
 const rangeStart = computed(() => {
@@ -243,32 +253,6 @@ async function loadStats(forceRefresh = false) {
     if (import.meta.env.DEV) console.warn("Failed to load block stats:", err);
   } finally {
     statsLoading.value = false;
-  }
-}
-
-// --- Load more (infinite scroll) ---
-let loadMoreRequestId = 0;
-
-async function loadMore() {
-  if (loadingMore.value || currentPage.value >= totalPages.value) return;
-
-  const myRequestId = ++loadMoreRequestId;
-  loadingMore.value = true;
-  const nextPage = currentPage.value + 1;
-  const skip = (nextPage - 1) * pageSize.value;
-
-  try {
-    const res = await blockService.getList(pageSize.value, skip, { forceRefresh: true });
-    if (myRequestId !== loadMoreRequestId) return;
-    if (res?.result?.length > 0) {
-      blocks.value = [...blocks.value, ...res.result];
-      currentPage.value = nextPage;
-      totalCount.value = res.totalCount || totalCount.value;
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) console.error("Failed to load more blocks:", err);
-  } finally {
-    if (myRequestId === loadMoreRequestId) loadingMore.value = false;
   }
 }
 

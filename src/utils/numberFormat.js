@@ -89,3 +89,18 @@ export function formatSupply(totalSupply, decimals = 0) {
   if (!totalSupply) return "0";
   return (totalSupply / Math.pow(10, decimals)).toLocaleString();
 }
+
+/**
+ * Format a market cap value with $K/M/B suffix.
+ * @param {number|string|null} value - Raw market cap value.
+ * @returns {string}
+ */
+export function formatMarketCap(value) {
+  if (!value) return "-";
+  const cap = parseFloat(value);
+  if (!Number.isFinite(cap) || cap <= 0) return "-";
+  if (cap >= 1e9) return "$" + (cap / 1e9).toFixed(2) + "B";
+  if (cap >= 1e6) return "$" + (cap / 1e6).toFixed(2) + "M";
+  if (cap >= 1e3) return "$" + (cap / 1e3).toFixed(2) + "K";
+  return "$" + cap.toFixed(2);
+}

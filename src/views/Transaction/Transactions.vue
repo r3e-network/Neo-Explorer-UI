@@ -115,6 +115,7 @@ import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { usePagination } from "@/composables/usePagination";
+import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
@@ -126,7 +127,6 @@ import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import TransactionTable from "./components/TransactionTable.vue";
 
 const showAbsoluteTime = ref(false);
-const loadingMore = ref(false);
 const { t } = useI18n();
 
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
@@ -134,6 +134,12 @@ const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 const breadcrumbs = [{ label: "Home", to: "/homepage" }, { label: "Transactions" }];
 
 // --- Pagination via composable (route-synced, cache-aware) ---
+const paginationState = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {
+  routeSync: { basePath: "/transactions" },
+  cacheKeyFn: (limit, skip) => getCacheKey("tx_list", { limit, skip }),
+  errorMessage: t("errors.loadTransactions"),
+});
+
 const {
   items: transactions,
   loading,
@@ -145,11 +151,7 @@ const {
   startRecord,
   endRecord,
   loadPage,
-} = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {
-  routeSync: { basePath: "/transactions" },
-  cacheKeyFn: (limit, skip) => getCacheKey("tx_list", { limit, skip }),
-  errorMessage: t("errors.loadTransactions"),
-});
+} = paginationState;
 
 // Enrich transactions after each page load
 watch(transactions, (txs) => {
@@ -160,30 +162,18 @@ watch(transactions, (txs) => {
   }
 });
 
-// --- Load more (infinite scroll) ---
-async function loadMore() {
-  if (loadingMore.value || currentPage.value >= totalPages.value) return;
-
-  loadingMore.value = true;
-  const nextPage = currentPage.value + 1;
-  const skip = (nextPage - 1) * pageSize.value;
-
-  try {
-    const res = await transactionService.getList(pageSize.value, skip, { forceRefresh: true });
-    if (res?.result?.length > 0) {
-      transactions.value = [...transactions.value, ...res.result];
-      currentPage.value = nextPage;
-      totalCount.value = res.totalCount || totalCount.value;
-      enrichTransactions(res.result).catch((err) => {
+// --- Load more (infinite scroll) via composable ---
+const { loadingMore, loadMore } = useLoadMore(
+  (limit, skip, opts) => transactionService.getList(limit, skip, opts),
+  paginationState,
+  {
+    onAppend: (newItems) => {
+      enrichTransactions(newItems).catch((err) => {
         if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
       });
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) console.error("Failed to load more transactions:", err);
-  } finally {
-    loadingMore.value = false;
+    },
   }
-}
+);
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {

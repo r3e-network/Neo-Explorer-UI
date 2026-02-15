@@ -26,6 +26,7 @@ export {
   priceChangeClass,
   formatBalance,
   formatSupply,
+  formatMarketCap,
 } from "./numberFormat";
 export {
   formatGas,
