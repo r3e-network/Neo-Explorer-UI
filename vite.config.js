@@ -50,6 +50,10 @@ export default defineConfig({
   css: {
     devSourcemap: true,
   },
+  esbuild: {
+    drop: ["debugger"],
+    pure: ["console.log", "console.warn", "console.info"],
+  },
   build: {
     rollupOptions: {
       output: {

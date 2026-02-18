@@ -111,7 +111,7 @@ export const statsService = createService(
           try {
             const [latestTxRes, feeRes] = await Promise.all([
               rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null),
-              rpc("GetNetworkFee", {}).catch(() => null),
+              rpc("GetNetFeeRange", {}).catch(() => null),
             ]);
 
             const latestTx = Array.isArray(latestTxRes?.result) ? latestTxRes.result[0] : null;

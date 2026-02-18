@@ -41,7 +41,12 @@
               <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">To</th>
               <th
                 class="cursor-pointer select-none px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400 hover:text-primary-500"
+                role="button"
+                tabindex="0"
+                aria-label="Toggle time format"
                 @click="showAbsoluteTime = !showAbsoluteTime"
+                @keydown.enter.prevent="showAbsoluteTime = !showAbsoluteTime"
+                @keydown.space.prevent="showAbsoluteTime = !showAbsoluteTime"
               >
                 {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
                 <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

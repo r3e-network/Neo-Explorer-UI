@@ -59,7 +59,7 @@ function calculateSuggestions() {
 async function updateOracle() {
   try {
     const [feeRes, txRes] = await Promise.all([
-      safeRpc("GetNetworkFee", {}, null),
+      safeRpc("GetNetFeeRange", {}, null),
       safeRpc("GetTransactionCount", {}, 0),
     ]);
 

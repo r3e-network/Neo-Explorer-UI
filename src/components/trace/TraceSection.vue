@@ -12,6 +12,7 @@
           :class="{ 'rotate-90': open }"
           fill="currentColor"
           viewBox="0 0 20 20"
+          aria-hidden="true"
         >
           <path
             fill-rule="evenodd"

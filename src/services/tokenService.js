@@ -139,20 +139,9 @@ export const tokenService = {
    * @param {number} [skip=0] - 跳过数量
    * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
    */
-  async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
-    const key = getCacheKey("token_nep11_transfers", { hash, limit, skip });
-    return cachedRequest(
-      key,
-      () =>
-        safeRpcList(
-          "GetNep11TransferByContractHash",
-          { ContractHash: hash, Limit: limit, Skip: skip },
-          "get NEP11 transfers"
-        ),
-      CACHE_TTL.chart,
-      getRealtimeListCacheOptions(options)
-    );
-  },
+  // NOTE: No backend endpoint GetNep11TransferByContractHash exists.
+  // Use getNep11TransfersByTokenId for token-specific transfers,
+  // or accountService.getNep11Transfers for address-based queries.
 
   /**
    * 获取指定 TokenId 的 NEP11 转账记录

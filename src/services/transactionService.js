@@ -54,15 +54,8 @@ export const transactionService = createService(
       buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
-    getNotificationsByTx: {
-      _type: "list",
-      cacheKey: "tx_notifications",
-      rpcMethod: "GetNotificationByTransactionHash",
-      errorLabel: "get notifications by tx",
-      ttl: CACHE_TTL.trace,
-      buildParams: ([txHash, limit = 20, skip = 0]) => ({ TransactionHash: txHash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([txHash, limit = 20, skip = 0]) => ({ txHash, limit, skip }),
-    },
+    // NOTE: Notifications are extracted from GetApplicationLogByTransactionHash
+    // via executionService — no dedicated backend endpoint exists.
   },
   {
     /**

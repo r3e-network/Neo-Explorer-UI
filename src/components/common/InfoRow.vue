@@ -2,7 +2,7 @@
   <div class="info-row">
     <div class="info-row-label">
       <span>{{ label }}</span>
-      <span v-if="tooltip" class="tooltip-trigger" :title="tooltip">?</span>
+      <button v-if="tooltip" type="button" class="tooltip-trigger" :title="tooltip" aria-label="More info">?</button>
     </div>
     <div class="info-row-value">
       <slot>{{ value }}</slot>
@@ -40,7 +40,7 @@ defineProps({
 }
 
 .tooltip-trigger {
-  @apply ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full
+  @apply ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border-0 p-0
          bg-gray-200 text-[10px] text-gray-500 transition-colors
          hover:bg-gray-300 hover:text-gray-600
          dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-gray-300;
