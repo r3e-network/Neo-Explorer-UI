@@ -16,7 +16,7 @@
       <div class="flex items-center justify-between">
         <p class="text-sm text-text-secondary dark:text-gray-400">
           Latest {{ transactions.length }} from a total of
-          <span class="font-medium text-text-primary dark:text-gray-300">{{ formatNumber(totalCount) }}</span>
+          <span class="font-semibold text-text-primary dark:text-gray-300">{{ formatNumber(totalCount) }}</span>
           transactions
         </p>
         <button class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs" @click="$emit('exportCsv')">
@@ -31,9 +31,9 @@
           CSV Export
         </button>
       </div>
-      <div class="overflow-x-auto">
+      <div class="surface-panel overflow-x-auto">
         <table class="w-full min-w-[900px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="bg-white/90 text-xs uppercase tracking-wide backdrop-blur-sm dark:bg-gray-900/90">
             <tr>
               <th class="table-header-cell">Txn Hash</th>
               <th class="table-header-cell">Method</th>
@@ -46,11 +46,11 @@
               <th class="table-header-cell-right">Txn Fee</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody class="divide-y soft-divider">
             <tr
               v-for="tx in transactions"
               :key="tx.hash"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              class="transition-colors hover:bg-white/50 dark:hover:bg-gray-800/55"
             >
               <td class="table-cell">
                 <router-link

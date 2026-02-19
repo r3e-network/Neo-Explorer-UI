@@ -1,9 +1,9 @@
 <template>
   <div class="etherscan-card">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
+      <h2 class="text-base font-bold text-text-primary dark:text-gray-100">Overview</h2>
     </div>
-    <div class="divide-y divide-card-border dark:divide-card-border-dark">
+    <div class="divide-y soft-divider">
       <InfoRow
         label="Contract Hash"
         tooltip="The unique identifier for this smart contract"
@@ -29,7 +29,10 @@
         :value="String(contract.updatecounter ?? 0)"
       />
       <InfoRow label="Verified">
-        <span v-if="isVerified" class="inline-flex items-center gap-1 text-sm text-success">
+        <span
+          v-if="isVerified"
+          class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-success dark:border-emerald-800 dark:bg-emerald-900/25"
+        >
           <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <path
               fill-rule="evenodd"
@@ -37,9 +40,14 @@
               clip-rule="evenodd"
             />
           </svg>
-          Yes
+          Verified
         </span>
-        <span v-else class="text-sm text-text-secondary">No</span>
+        <span
+          v-else
+          class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 px-2 py-1 text-xs font-semibold text-text-secondary dark:border-gray-700 dark:bg-gray-800/80"
+        >
+          Not Verified
+        </span>
       </InfoRow>
       <InfoRow v-if="supportedStandards.length" label="Supported Standards">
         <div class="flex flex-wrap gap-1.5">

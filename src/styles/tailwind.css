@@ -217,6 +217,36 @@
     color: var(--text-high);
   }
 
+  .detail-hero {
+    @apply mb-6 rounded-2xl border p-4 md:p-5;
+    border-color: color-mix(in srgb, var(--link) 16%, var(--line-soft));
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--link) 8%, #ffffff 92%) 0%,
+      color-mix(in srgb, var(--surface-elevated) 88%, transparent) 100%
+    );
+  }
+
+  .dark .detail-hero {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--link) 16%, rgba(15, 35, 61, 0.95) 84%) 0%,
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent) 100%
+    );
+  }
+
+  .detail-metadata {
+    @apply mt-1 flex flex-wrap items-center gap-2 text-xs font-medium;
+    color: var(--text-mid);
+  }
+
+  .detail-chip {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold;
+    border-color: var(--line-soft);
+    background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+    color: var(--text-mid);
+  }
+
   .page-subtitle {
     @apply mt-1 text-sm;
     color: var(--text-mid);

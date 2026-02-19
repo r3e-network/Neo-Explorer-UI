@@ -1,6 +1,6 @@
 <template>
   <div class="contract-detail-page">
-    <div class="mx-auto max-w-[1400px] px-4 py-6">
+    <div class="page-container py-6">
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[
@@ -33,12 +33,12 @@
       />
 
       <!-- Tabs Card -->
-      <div v-if="!error" class="etherscan-card">
-        <div class="border-b border-card-border dark:border-card-border-dark">
+      <div v-if="!error" class="etherscan-card overflow-hidden">
+        <div class="p-3 pb-0">
           <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
-        <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 md:p-5">
+        <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
           <div v-if="!contract.hash" class="py-8 text-center text-text-secondary dark:text-gray-400">
             Loading contract details...
           </div>

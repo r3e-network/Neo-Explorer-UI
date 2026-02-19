@@ -1,6 +1,6 @@
 <template>
   <div class="tx-detail-page">
-    <div class="mx-auto max-w-[1400px] px-4 py-6">
+    <div class="page-container py-6">
       <!-- Breadcrumb -->
       <Breadcrumb :items="breadcrumbs" />
 
@@ -10,7 +10,7 @@
       <!-- Action Summary Banner -->
       <div
         v-if="!loading && tx.hash && actionSummary"
-        class="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+        class="mb-6 flex items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/80 p-4 backdrop-blur-sm dark:border-blue-800/70 dark:bg-blue-900/20"
       >
         <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -28,7 +28,7 @@
       <!-- Complex Transaction Banner -->
       <div
         v-if="!loading && isComplexTx"
-        class="mb-6 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
+        class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/80 p-4 backdrop-blur-sm dark:border-amber-800/70 dark:bg-amber-900/20"
       >
         <div class="flex items-center gap-2">
           <svg class="h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
@@ -70,13 +70,13 @@
       <ErrorState v-else-if="error" title="Transaction not found" :message="error" @retry="loadTx(txHash)" />
 
       <!-- Tabbed Content -->
-      <div v-else-if="tx.hash" class="etherscan-card">
+      <div v-else-if="tx.hash" class="etherscan-card overflow-hidden">
         <!-- Tab Navigation -->
-        <div class="border-b border-card-border dark:border-card-border-dark">
+        <div class="p-3 pb-0">
           <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
-        <div class="p-4 md:p-5">
+        <div class="p-4 pt-5 md:p-5">
           <!-- Overview -->
           <TxOverviewTab
             v-if="activeTab === 'overview'"

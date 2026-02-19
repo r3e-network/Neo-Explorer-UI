@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-6">
     <div
-      class="flex flex-col gap-3 rounded-md border border-card-border bg-gray-50 p-3 dark:border-card-border-dark dark:bg-gray-800/40 md:flex-row md:items-center md:justify-between"
+      class="surface-panel flex flex-col gap-3 rounded-xl p-3 md:flex-row md:items-center md:justify-between"
     >
       <p class="text-sm text-text-secondary dark:text-gray-300">Verified source files and contract artifacts.</p>
       <router-link
         :to="sourceCodeLocation"
-        class="btn-outline inline-flex items-center justify-center rounded px-3 py-2 text-sm font-medium transition-colors"
+        class="btn-outline inline-flex items-center justify-center px-3 py-2 text-sm font-semibold"
       >
         Open Full Source Page
       </router-link>
@@ -51,7 +51,7 @@
           <div
             v-for="method in abiMethods"
             :key="'abi-m-' + method.name"
-            class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
+            class="rounded-lg border p-3 soft-divider"
           >
             <div class="flex items-center gap-2">
               <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
@@ -84,7 +84,7 @@
           <div
             v-for="evt in abiEvents"
             :key="'abi-e-' + evt.name"
-            class="rounded-md border border-card-border p-3 dark:border-card-border-dark"
+            class="rounded-lg border p-3 soft-divider"
           >
             <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
               {{ evt.name }}

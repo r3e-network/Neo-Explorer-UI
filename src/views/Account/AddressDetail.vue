@@ -1,6 +1,6 @@
 <template>
   <div class="address-detail-page">
-    <div class="mx-auto max-w-[1400px] px-4 py-6">
+    <div class="page-container py-6">
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
@@ -16,12 +16,12 @@
         :token-count="tokenCount"
       />
 
-      <div class="etherscan-card">
-        <div class="card-header">
+      <div class="etherscan-card overflow-hidden">
+        <div class="p-3 pb-0">
           <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
-        <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 md:p-5">
+        <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
           <AddressTransactionsTab
             v-if="activeTab === 'transactions'"
             :address="address"

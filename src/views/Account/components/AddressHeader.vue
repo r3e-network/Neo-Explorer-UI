@@ -1,58 +1,61 @@
 <template>
-  <div class="mb-6 flex items-center gap-3">
-    <div class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400">
-      <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-        <path
-          d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-        />
-      </svg>
-    </div>
-    <div>
-      <div class="flex items-center gap-2">
-        <h1 class="page-title">Address</h1>
-        <span
-          v-if="isContract"
-          class="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
-        >
-          Contract
-        </span>
+  <div class="detail-hero">
+    <div class="flex items-start gap-3">
+      <div class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400">
+        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+          />
+        </svg>
       </div>
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <span class="font-hash break-all text-sm text-text-secondary dark:text-gray-400">{{ address }}</span>
-        <CopyButton :text="address" />
-        <button
-          class="p-1 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-          title="Show QR Code"
-          aria-label="Toggle QR code display"
-          @click="$emit('update:showQr', !showQr)"
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <h1 class="page-title">Address</h1>
+          <span
+            v-if="isContract"
+            class="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
+          >
+            Contract
+          </span>
+        </div>
+        <div class="detail-metadata">
+          <span class="detail-chip font-hash break-all">{{ address }}</span>
+          <CopyButton :text="address" />
+          <button
+            class="detail-chip hover:text-primary-600 dark:hover:text-primary-300"
+            title="Show QR Code"
+            aria-label="Toggle QR code display"
+            @click="$emit('update:showQr', !showQr)"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
+              />
+            </svg>
+            QR
+          </button>
+        </div>
+        <!-- QR code placeholder -->
+        <div
+          v-if="showQr"
+          class="surface-panel mt-3 inline-block rounded-xl p-4"
         >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
-            />
-          </svg>
-        </button>
-      </div>
-      <!-- QR code placeholder -->
-      <div
-        v-if="showQr"
-        class="mt-2 inline-block rounded-lg border border-card-border bg-white p-4 dark:border-card-border-dark dark:bg-gray-800"
-      >
-        <div class="flex flex-col items-center gap-2">
-          <svg class="h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
-            />
-          </svg>
-          <p class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400">
-            {{ address }}
-          </p>
+          <div class="flex flex-col items-center gap-2">
+            <svg class="h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
+              />
+            </svg>
+            <p class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400">
+              {{ address }}
+            </p>
+          </div>
         </div>
       </div>
     </div>

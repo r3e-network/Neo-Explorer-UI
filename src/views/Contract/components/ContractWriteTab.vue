@@ -3,7 +3,7 @@
     <!-- Wallet Connection Banner -->
     <div
       v-if="!walletConnected"
-      class="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
+      class="rounded-xl border border-amber-200 bg-amber-50/85 p-4 backdrop-blur-sm dark:border-amber-800 dark:bg-amber-900/20"
     >
       <div class="flex items-start gap-3">
         <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
@@ -20,7 +20,7 @@
             <button
               v-for="provider in ['NeoLine', 'O3', 'WalletConnect']"
               :key="provider"
-              class="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
+              class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
               :disabled="walletConnecting"
               @click="emit('connectWallet', provider)"
             >
@@ -38,7 +38,7 @@
     <!-- Connected wallet banner -->
     <div
       v-if="walletConnected"
-      class="flex items-center justify-between rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
+      class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50/85 p-3 backdrop-blur-sm dark:border-green-800 dark:bg-green-900/20"
     >
       <div class="flex items-center gap-2">
         <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -75,11 +75,11 @@
       <div
         v-for="(method, wIdx) in writeMethods"
         :key="'wm-' + method.name"
-        class="rounded-lg border border-card-border dark:border-card-border-dark"
+        class="surface-panel overflow-hidden rounded-xl"
       >
         <!-- Method header (clickable) -->
         <button
-          class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/40"
+          class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-white/40 dark:hover:bg-gray-800/35"
           :aria-expanded="writeMethodState[wIdx]?.open"
           @click="emit('toggleMethod', wIdx)"
         >
@@ -111,7 +111,7 @@
         <!-- Expandable method body -->
         <div
           v-if="writeMethodState[wIdx]?.open"
-          class="border-t border-card-border px-4 pb-4 dark:border-card-border-dark"
+          class="border-t px-4 pb-4 soft-divider"
         >
           <!-- Parameters -->
           <div v-if="method.parameters && method.parameters.length" class="mt-3 space-y-2">
@@ -141,7 +141,7 @@
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <!-- Gas Estimate button -->
             <button
-              class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              class="btn-outline inline-flex items-center gap-1 px-3 py-2 text-xs disabled:opacity-50"
               :disabled="writeMethodState[wIdx]?.estimating"
               @click="emit('estimateGas', wIdx, method)"
             >
@@ -149,7 +149,7 @@
             </button>
             <!-- Write button -->
             <button
-              class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'"
               :disabled="!walletConnected || writeMethodState[wIdx]?.loading"
               @click="emit('invokeMethod', wIdx, method, signerScopes[wIdx] || 1)"
@@ -173,7 +173,7 @@
           <!-- Result with tx tracking -->
           <div
             v-if="writeMethodState[wIdx]?.result !== undefined"
-            class="mt-3 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
+            class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
           >
             <h5 class="mb-1 text-xs font-semibold text-green-700 dark:text-green-400">Transaction Submitted</h5>
             <p class="break-all font-mono text-xs text-green-800 dark:text-green-300">
@@ -199,7 +199,7 @@
           <!-- Error -->
           <div
             v-if="writeMethodState[wIdx]?.error"
-            class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+            class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
           >
             <p class="text-xs text-red-600 dark:text-red-400">{{ writeMethodState[wIdx].error }}</p>
           </div>
