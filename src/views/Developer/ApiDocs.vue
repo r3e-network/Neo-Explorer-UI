@@ -1,7 +1,6 @@
 <template>
   <div class="api-docs">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'API Documentation' }]" />
 
       <div class="mb-6 flex items-center gap-3">
@@ -17,8 +16,17 @@
         </div>
         <div>
           <h1 class="page-title">API Documentation</h1>
-          <p class="page-subtitle">Neo N3 Explorer API reference and endpoints</p>
+          <p class="page-subtitle">
+            JSON-RPC methods used by this explorer on <span class="font-medium">{{ networkLabel }}</span>
+          </p>
         </div>
+      </div>
+
+      <div class="mb-4 rounded-lg border border-card-border bg-card px-4 py-3 text-sm dark:border-card-border-dark">
+        <p class="text-text-secondary dark:text-gray-300">
+          Endpoint:
+          <span class="font-mono text-text-primary dark:text-gray-100">POST {{ rpcBasePath }}</span>
+        </p>
       </div>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -50,18 +58,28 @@
                 class="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
                 >RPC</span
               >
+              <span
+                class="rounded px-2 py-0.5 text-xs font-semibold"
+                :class="
+                  method.type === 'passthrough'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                "
+              >
+                {{ method.type === "passthrough" ? "Native Pass-through" : "Indexed API" }}
+              </span>
               <h3 class="font-mono text-sm font-semibold text-text-primary dark:text-gray-100">
                 {{ method.name }}
               </h3>
             </div>
+
             <p class="mb-3 text-sm text-text-secondary dark:text-gray-400">
               {{ method.desc }}
             </p>
-            <div
-              class="rounded border border-card-border bg-gray-50 p-3 font-mono text-sm text-text-primary dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
-            >
-              /api/{{ method.endpoint }}
-            </div>
+
+            <pre
+              class="overflow-x-auto rounded border border-card-border bg-gray-50 p-3 text-xs text-text-primary dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+            ><code>{{ buildRequestBody(method) }}</code></pre>
           </article>
         </main>
       </div>
@@ -72,56 +90,27 @@
 <script setup>
 import { ref, computed } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
+import { getCurrentEnv, getNetworkLabel, getRpcApiBasePath } from "@/utils/env";
 
-const activeCategory = ref("blocks");
+const categories = API_DOCS_RPC_CATEGORIES;
+const methods = API_DOCS_RPC_METHODS;
+const activeCategory = ref(categories[0]?.key || "");
+const networkLabel = computed(() => getNetworkLabel(getCurrentEnv()));
+const rpcBasePath = computed(() => getRpcApiBasePath());
 
-const categories = [
-  { key: "blocks", label: "Blocks" },
-  { key: "transactions", label: "Transactions" },
-  { key: "addresses", label: "Addresses" },
-  { key: "contracts", label: "Contracts" },
-];
+const filteredMethods = computed(() => methods.filter((method) => method.category === activeCategory.value));
 
-const methods = [
-  {
-    name: "GetBlockCount",
-    endpoint: "blocks/count",
-    desc: "Get current block height",
-    category: "blocks",
-  },
-  {
-    name: "GetBlockByHash",
-    endpoint: "blocks/{hash}",
-    desc: "Get block by hash",
-    category: "blocks",
-  },
-  {
-    name: "GetTransactionList",
-    endpoint: "transactions",
-    desc: "Get transaction list",
-    category: "transactions",
-  },
-  {
-    name: "GetTransactionByHash",
-    endpoint: "transactions/{hash}",
-    desc: "Get transaction by hash",
-    category: "transactions",
-  },
-  {
-    name: "GetAddressInfo",
-    endpoint: "addresses/{address}",
-    desc: "Get address info",
-    category: "addresses",
-  },
-  {
-    name: "GetContractInfo",
-    endpoint: "contracts/{hash}",
-    desc: "Get contract info",
-    category: "contracts",
-  },
-];
-
-const filteredMethods = computed(() => {
-  return methods.filter((method) => method.category === activeCategory.value);
-});
+function buildRequestBody(method) {
+  return JSON.stringify(
+    {
+      jsonrpc: "2.0",
+      id: 1,
+      method: method.name,
+      params: method.params,
+    },
+    null,
+    2
+  );
+}
 </script>

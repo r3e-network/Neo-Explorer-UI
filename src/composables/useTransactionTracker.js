@@ -1,6 +1,30 @@
 import { ref, onUnmounted } from "vue";
 import { rpc } from "@/services/api";
 
+const MAX_POLL_ATTEMPTS = 8;
+const POLL_INTERVAL_MS = 15000;
+
+function isMethodNotFoundError(error) {
+  const msg = String(error?.message || "").toLowerCase();
+  return msg.includes("method not found") || msg.includes("-32601");
+}
+
+async function fetchApplicationLog(txid) {
+  try {
+    return await rpc("GetApplicationLogByTransactionHash", { TransactionHash: txid });
+  } catch (error) {
+    // Some deployments proxy native RPC methods but do not expose the indexed method.
+    if (!isMethodNotFoundError(error)) throw error;
+    return rpc("getapplicationlog", [txid]);
+  }
+}
+
+function getTxStatusFromApplicationLog(result) {
+  const vmState = result?.executions?.[0]?.vmstate;
+  if (!vmState) return null;
+  return vmState === "HALT" ? "confirmed" : "failed";
+}
+
 /**
  * Composable that polls for transaction confirmation after write tx submission.
  */
@@ -16,11 +40,12 @@ export function useTransactionTracker() {
     const poll = async () => {
       attempts++;
       try {
-        const result = await rpc("getapplicationlog", [txid]);
-        if (result?.executions?.length) {
+        const result = await fetchApplicationLog(txid);
+        const status = getTxStatusFromApplicationLog(result);
+        if (status) {
           txStatuses.value = {
             ...txStatuses.value,
-            [txid]: result.executions[0].vmstate === "HALT" ? "confirmed" : "failed",
+            [txid]: status,
           };
           clearInterval(_timers[txid]);
           delete _timers[txid];
@@ -29,14 +54,14 @@ export function useTransactionTracker() {
       } catch {
         /* not yet on chain */
       }
-      if (attempts >= 8) {
+      if (attempts >= MAX_POLL_ATTEMPTS) {
         txStatuses.value = { ...txStatuses.value, [txid]: "unknown" };
         clearInterval(_timers[txid]);
         delete _timers[txid];
       }
     };
 
-    _timers[txid] = setInterval(poll, 15000);
+    _timers[txid] = setInterval(poll, POLL_INTERVAL_MS);
     poll();
   }
 

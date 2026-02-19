@@ -1,4 +1,4 @@
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount, getCurrentInstance } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
@@ -110,9 +110,11 @@ export function usePagination(
     );
   }
 
-  onBeforeUnmount(() => {
-    if (stopRouteWatch) stopRouteWatch();
-  });
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      if (stopRouteWatch) stopRouteWatch();
+    });
+  }
 
   return {
     items,

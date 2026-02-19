@@ -10,6 +10,7 @@ export default defineConfig({
       algorithm: "gzip",
       ext: ".gz",
       threshold: 10240,
+      verbose: false,
     }),
   ],
   resolve: {
@@ -58,7 +59,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          "chunk-echarts": ["echarts"],
           "chunk-neon-js": ["@cityofzion/neon-js"],
         },
       },

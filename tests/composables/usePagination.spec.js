@@ -15,6 +15,13 @@ function flushPromises() {
 
 describe("usePagination", () => {
   describe("initial state", () => {
+    it("does not register lifecycle hooks when used outside setup", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      usePagination(vi.fn());
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
     it("returns correct default initial state", () => {
       const fetchFn = vi.fn();
       const p = usePagination(fetchFn);

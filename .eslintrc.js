@@ -1,5 +1,6 @@
 module.exports = {
   root: true,
+  ignorePatterns: ["dist/"],
   env: {
     node: true,
     browser: true,
@@ -21,4 +22,22 @@ module.exports = {
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "vue/multi-word-component-names": "off",
   },
+  overrides: [
+    {
+      files: ["tests/**/*.spec.js", "tests/**/*.test.js"],
+      globals: {
+        describe: "readonly",
+        it: "readonly",
+        expect: "readonly",
+        vi: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+      },
+      rules: {
+        "no-unused-vars": "off",
+      },
+    },
+  ],
 };
