@@ -27,7 +27,17 @@ const variantClass = computed(() => {
   return map[props.variant] || "rounded";
 });
 
-const skeletonClass = computed(() => ["animate-pulse", "bg-gray-200", "dark:bg-gray-700", variantClass.value]);
+const skeletonClass = computed(() => [
+  "animate-pulse",
+  "bg-gradient-to-r",
+  "from-gray-200/90",
+  "via-gray-100/80",
+  "to-gray-200/90",
+  "dark:from-gray-700/80",
+  "dark:via-gray-600/70",
+  "dark:to-gray-700/80",
+  variantClass.value,
+]);
 
 const customStyle = computed(() => ({
   width: props.variant === "circle" ? props.height : props.width,

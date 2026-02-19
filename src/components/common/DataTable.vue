@@ -27,16 +27,16 @@ defineProps({
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-    <table role="table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-      <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
+  <div class="surface-panel overflow-x-auto">
+    <table role="table" class="min-w-full divide-y divide-card-border/70 dark:divide-card-border-dark/70">
+      <thead class="sticky top-0 bg-white/92 backdrop-blur-sm dark:bg-gray-900/92">
         <tr role="row">
           <th
             v-for="col in columns"
             :key="col.key"
             scope="col"
             :class="[
-              'px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
+              'px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary dark:text-gray-400',
               col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
             ]"
           >
@@ -44,7 +44,7 @@ defineProps({
           </th>
         </tr>
       </thead>
-      <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+      <tbody class="divide-y divide-card-border/70 bg-transparent dark:divide-card-border-dark/70">
         <template v-if="loading">
           <tr role="row">
             <td :colspan="columns.length" class="px-4 py-3">
@@ -67,13 +67,13 @@ defineProps({
           <tr
             v-for="(row, idx) in data"
             :key="rowKey && row[rowKey] != null ? row[rowKey] : idx"
-            class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            class="transition-colors hover:bg-white/50 dark:hover:bg-gray-800/55"
           >
             <td
               v-for="col in columns"
               :key="col.key"
               :class="[
-                'px-4 py-3 text-sm text-gray-700 dark:text-gray-300',
+                'px-4 py-3 text-sm text-text-primary dark:text-gray-200',
                 col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
               ]"
             >

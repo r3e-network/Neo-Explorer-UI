@@ -1,10 +1,8 @@
 <template>
-  <div
-    class="min-h-screen bg-gray-50 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-  >
+  <div class="app-shell">
     <div class="flex min-h-screen flex-col">
       <AppHeader />
-      <main class="w-full flex-1">
+      <main class="page-shell w-full flex-1">
         <router-view :key="routerViewKey" />
       </main>
       <AppFooter />
@@ -20,7 +18,7 @@
     <transition name="network-toast">
       <div
         v-show="networkToastVisible"
-        class="fixed right-4 top-[72px] z-[70] rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+        class="surface-panel fixed right-4 top-[76px] z-[70] px-3 py-2"
         role="status"
         aria-live="polite"
       >
@@ -71,7 +69,7 @@
       <button
         v-show="showBackToTop"
         @click="scrollToTop"
-        class="fixed bottom-6 right-6 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-colors hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-500"
+        class="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-primary-600"
         aria-label="Back to top"
       >
         <svg

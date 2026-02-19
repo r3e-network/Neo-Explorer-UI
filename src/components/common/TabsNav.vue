@@ -44,7 +44,7 @@ watch(
 </script>
 
 <template>
-  <div role="tablist" class="flex border-b border-gray-200 dark:border-gray-700 gap-1">
+  <div role="tablist" class="surface-panel flex gap-1 overflow-x-auto p-1">
     <button
       v-for="(tab, index) in tabs"
       :key="tab.key"
@@ -54,11 +54,11 @@ watch(
       :aria-label="tab.label"
       :tabindex="modelValue === tab.key ? 0 : -1"
       :class="[
-        'px-4 py-2.5 text-sm font-medium transition-colors relative',
+        'relative whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
         modelValue === tab.key
-          ? 'text-primary-600 dark:text-primary-400'
-          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
+          ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/35 dark:text-primary-300'
+          : 'text-text-secondary hover:bg-white/60 hover:text-text-primary dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-gray-200',
       ]"
       @click="$emit('update:modelValue', tab.key)"
       @keydown.left.prevent="onArrowKey(-1)"
@@ -70,7 +70,7 @@ watch(
       </span>
       <span
         v-if="modelValue === tab.key"
-        class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-t"
+        class="absolute inset-x-2 bottom-0.5 h-0.5 rounded bg-primary-500"
       />
     </button>
   </div>

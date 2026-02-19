@@ -1,16 +1,16 @@
 <template>
-  <footer class="app-footer mt-12 border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+  <footer class="app-footer mt-12 border-t border-card-border/70 bg-white/65 backdrop-blur-sm dark:border-card-border-dark/70 dark:bg-gray-900/45">
     <div class="mx-auto max-w-[1400px] px-4 py-10">
       <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         <!-- Brand Column -->
         <div>
           <div class="mb-3 flex items-center gap-2">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-neo-green text-xs font-bold text-gray-900"
+              class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-primary-300 text-xs font-extrabold text-gray-900 shadow-sm"
             >
               N3
             </div>
-            <span class="text-lg font-semibold text-text-primary dark:text-gray-100">Neo Explorer</span>
+            <span class="text-lg font-extrabold tracking-tight text-text-primary dark:text-gray-100">Neo Explorer</span>
           </div>
           <p class="mb-4 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
             A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~15s finality.
@@ -127,14 +127,19 @@ function scrollTop() {
 
 <style scoped>
 .social-icon {
-  @apply flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-500
-         transition-colors hover:bg-primary-500 hover:text-white
-         dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-primary-600;
+  @apply flex h-8 w-8 items-center justify-center rounded-xl border border-card-border bg-white text-text-secondary transition;
+}
+
+.social-icon:hover {
+  @apply border-primary-400 text-white;
+  background: linear-gradient(135deg, rgb(20 152 221) 0%, rgb(15 120 176) 100%);
+}
+
+.dark .social-icon {
+  @apply border-card-border-dark bg-gray-800/80 text-gray-400;
 }
 
 .footer-link {
-  @apply text-text-secondary no-underline transition-colors
-         hover:text-primary-500
-         dark:text-gray-400 dark:hover:text-primary-400;
+  @apply text-text-secondary no-underline transition-colors hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-300;
 }
 </style>

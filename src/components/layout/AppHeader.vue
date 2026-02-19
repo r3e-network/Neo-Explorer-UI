@@ -16,14 +16,16 @@
     />
 
     <!-- Main Nav Bar -->
-    <nav class="main-nav bg-header-bg backdrop-blur-sm dark:bg-header-bg-dark">
+    <nav class="main-nav border-b border-white/10 bg-header-bg/95 shadow-card backdrop-blur-md dark:bg-header-bg-dark/95">
       <div class="mx-auto flex h-[60px] max-w-[1400px] items-center px-4">
         <!-- Logo -->
         <router-link to="/homepage" class="mr-8 flex items-center gap-2 no-underline">
-          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-neo-green text-sm font-bold text-gray-900">
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-primary-300 text-xs font-extrabold text-gray-900 shadow-sm"
+          >
             N3
           </div>
-          <span class="text-lg font-bold text-white">Neo Explorer</span>
+          <span class="text-lg font-extrabold tracking-tight text-white">Neo Explorer</span>
         </router-link>
 
         <!-- Desktop Nav -->
@@ -42,7 +44,7 @@
       <transition name="slide">
         <div
           v-show="mobileMenuOpen"
-          class="border-t border-white/10 bg-header-bg px-4 py-3 dark:bg-header-bg-dark lg:hidden"
+          class="border-t border-white/10 bg-header-bg/95 px-4 py-3 backdrop-blur-md dark:bg-header-bg-dark/95 lg:hidden"
         >
           <div class="mb-3">
             <SearchBox mode="compact" @search="handleMobileSearch" />
@@ -208,8 +210,12 @@ onBeforeUnmount(() => {
 
 <style>
 .mobile-link {
-  @apply rounded border border-white/20 px-2 py-2 text-center text-white/80
-         no-underline transition-colors hover:bg-white/10 hover:text-white;
+  @apply rounded-lg border border-white/20 px-2 py-2 text-center text-white/80 no-underline transition;
+}
+
+.mobile-link:hover {
+  @apply text-white;
+  background: rgba(255, 255, 255, 0.13);
 }
 
 .slide-enter-active,

@@ -1,8 +1,8 @@
 <template>
-  <div class="text-center py-12 px-4">
+  <div class="py-12 px-4 text-center">
     <div
       v-once
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-700"
+      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-card-border/70 bg-white/70 text-text-secondary shadow-card dark:border-card-border-dark/70 dark:bg-gray-800/70 dark:text-gray-400"
     >
       <!-- Block icon -->
       <svg
@@ -82,12 +82,12 @@
       </svg>
     </div>
 
-    <p class="font-medium text-gray-500 dark:text-gray-400">{{ message }}</p>
+    <p class="font-semibold text-text-secondary dark:text-gray-300">{{ message }}</p>
 
     <router-link
       v-if="actionLabel && actionTo"
       :to="actionTo"
-      class="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+      class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600"
     >
       {{ actionLabel }}
     </router-link>

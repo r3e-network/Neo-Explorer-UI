@@ -179,12 +179,17 @@ function handleFocusOut(name) {
 
 <style scoped>
 .nav-link {
-  @apply inline-flex items-center rounded px-3 py-2 text-sm font-medium text-white/80
-         transition-colors hover:text-white;
+  @apply inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-white/80 transition;
+}
+
+.nav-link:hover {
+  @apply text-white;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .nav-link-active {
   @apply text-white;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .nav-dropdown {
@@ -192,13 +197,15 @@ function handleFocusOut(name) {
 }
 
 .dropdown-panel {
-  @apply absolute left-0 top-full z-50 mt-1 w-52 rounded border border-gray-200
-         bg-white p-1.5 shadow-dropdown dark:border-gray-700 dark:bg-gray-800;
+  @apply absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/20 bg-header-bg p-1.5 shadow-dropdown;
 }
 
 .dropdown-link {
-  @apply block rounded px-3 py-2 text-sm text-gray-700 no-underline
-         transition-colors hover:bg-gray-50 hover:text-primary-500
-         dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-primary-400;
+  @apply block rounded-lg px-3 py-2 text-sm font-medium text-white/80 no-underline transition;
+}
+
+.dropdown-link:hover {
+  @apply text-white;
+  background: rgba(255, 255, 255, 0.12);
 }
 </style>

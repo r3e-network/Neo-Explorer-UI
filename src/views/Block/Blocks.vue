@@ -1,6 +1,6 @@
 <template>
   <div class="blocks-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+    <section class="page-container py-6 md:py-8">
       <!-- Breadcrumb -->
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Blocks' }]" />
 
@@ -23,7 +23,7 @@
 
       <!-- Stats Bar -->
       <div class="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-2">
-        <div class="etherscan-card flex items-center gap-3 p-4">
+        <div class="surface-panel flex items-center gap-3 p-4">
           <div
             class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30"
           >
@@ -38,7 +38,7 @@
             </p>
           </div>
         </div>
-        <div class="etherscan-card flex items-center gap-3 p-4">
+        <div class="surface-panel flex items-center gap-3 p-4">
           <div
             class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/30"
           >
@@ -70,7 +70,7 @@
           <button
             v-if="blocks.length > 0"
             @click="exportData"
-            class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
             title="Export to CSV"
           >
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
         <!-- Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[800px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="bg-white/90 text-xs uppercase tracking-wide backdrop-blur-sm dark:bg-gray-900/90">
               <tr>
                 <th class="table-header-cell">Block</th>
                 <th

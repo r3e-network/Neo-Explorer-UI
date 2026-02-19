@@ -1,6 +1,6 @@
 <template>
   <nav aria-label="Breadcrumb" class="mb-4">
-    <ol class="flex flex-wrap items-center gap-1 text-sm">
+    <ol class="surface-panel inline-flex flex-wrap items-center gap-1 px-2 py-1 text-sm">
       <li v-for="(item, index) in items" :key="index" class="flex items-center">
         <!-- Separator -->
         <svg
@@ -17,7 +17,7 @@
         <!-- Last item: current page (no link) -->
         <span
           v-if="index === items.length - 1"
-          class="font-medium text-gray-800 dark:text-gray-200"
+          class="font-semibold text-text-primary dark:text-gray-200"
           aria-current="page"
         >
           {{ item.label }}
@@ -27,7 +27,7 @@
         <router-link
           v-else
           :to="item.to"
-          class="text-gray-500 transition-colors hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
+          class="rounded px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-white/60 hover:text-primary-500 dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-primary-300"
         >
           {{ item.label }}
         </router-link>

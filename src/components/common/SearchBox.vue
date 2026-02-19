@@ -4,15 +4,15 @@
       :class="[
         'relative flex items-center transition-all duration-200',
         mode === 'full'
-          ? 'rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent'
-          : 'rounded border border-white/20 bg-white/10 focus-within:border-white/40 focus-within:bg-white/15',
+          ? 'surface-panel rounded-2xl border border-card-border/70 bg-white/85 px-0 focus-within:border-primary-300/70 focus-within:bg-white'
+          : 'rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm focus-within:border-white/45 focus-within:bg-white/15',
       ]"
     >
       <!-- Filter Dropdown (full mode only) -->
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full appearance-none border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-300 pl-3 pr-7 py-4 rounded-l-xl cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+        class="h-full cursor-pointer appearance-none rounded-l-2xl border-r border-card-border/70 bg-gray-50/95 py-4 pl-3 pr-7 text-xs font-semibold text-text-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-card-border-dark/70 dark:bg-gray-800/80 dark:text-gray-300"
         aria-label="Search filter"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value">{{ f.label }}</option>
@@ -52,7 +52,7 @@
         :class="[
           'flex-1 bg-transparent focus:outline-none',
           mode === 'full'
-            ? 'px-3 py-4 pr-28 text-gray-800 dark:text-gray-100 placeholder-gray-400 text-base'
+            ? 'px-3 py-4 pr-28 text-base font-medium text-text-primary placeholder:text-text-muted dark:text-gray-100'
             : 'px-2.5 py-2 pr-16 text-sm text-white placeholder-white/50',
         ]"
         @keyup.enter="handleSearch"
@@ -79,7 +79,7 @@
         :class="[
           'absolute right-1.5 top-1/2 -translate-y-1/2 font-medium transition-colors duration-200 flex items-center gap-1.5',
           mode === 'full'
-            ? 'px-5 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg text-sm'
+            ? 'rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 disabled:bg-gray-300 dark:disabled:bg-gray-600'
             : 'px-2.5 py-1 bg-primary-500 hover:bg-primary-600 disabled:bg-white/10 text-white rounded text-xs',
         ]"
       >
@@ -106,11 +106,11 @@
         id="search-dropdown"
         role="listbox"
         aria-label="Search suggestions"
-        class="absolute w-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-dropdown border border-gray-100 dark:border-gray-700 overflow-hidden z-50 max-h-96 overflow-y-auto"
+        class="surface-panel absolute z-50 mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border border-card-border/70 bg-white/92 shadow-dropdown dark:border-card-border-dark/70 dark:bg-gray-900/88"
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0">
-          <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+          <div class="flex items-center justify-between bg-gray-50/80 px-4 py-2 dark:bg-gray-800/65">
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
               >Recent Searches</span
             >
@@ -131,8 +131,8 @@
             :class="[
               'px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors',
               selectedIndex === index
-                ? 'bg-primary-50 dark:bg-primary-900/20'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-700',
+                ? 'bg-primary-50 dark:bg-primary-900/25'
+                : 'hover:bg-white/70 dark:hover:bg-gray-800/70',
             ]"
             @click="selectHistoryItem(item)"
           >
@@ -151,7 +151,7 @@
 
         <!-- Search Suggestions -->
         <div v-if="query && suggestions.length > 0">
-          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+          <div class="bg-gray-50/80 px-4 py-2 dark:bg-gray-800/65">
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
               >Suggestions</span
             >
@@ -165,8 +165,8 @@
             :class="[
               'px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors',
               selectedIndex === index
-                ? 'bg-primary-50 dark:bg-primary-900/20'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-700',
+                ? 'bg-primary-50 dark:bg-primary-900/25'
+                : 'hover:bg-white/70 dark:hover:bg-gray-800/70',
             ]"
             @click="selectSuggestion(item)"
           >
@@ -194,21 +194,21 @@
                 class="w-6 h-6 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-500 flex items-center justify-center text-xs"
                 >Bk</span
               >
-              <span>Block height: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">12345678</code></span>
+              <span>Block height: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">12345678</code></span>
             </div>
             <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span
                 class="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center text-xs"
                 >Tx</span
               >
-              <span>Transaction hash: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">0x...</code></span>
+              <span>Transaction hash: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">0x...</code></span>
             </div>
             <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span
                 class="w-6 h-6 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center text-xs"
                 >Ad</span
               >
-              <span>Address: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">N...</code></span>
+              <span>Address: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">N...</code></span>
             </div>
           </div>
         </div>

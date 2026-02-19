@@ -1,212 +1,308 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Etherscan-style component classes */
-@layer components {
-  /* ── Card ── */
-  .etherscan-card {
-    @apply bg-white border border-card-border rounded-lg shadow-card;
-  }
-  .dark .etherscan-card {
-    @apply bg-gray-800 border-card-border-dark;
-  }
-
-  /* Legacy .card alias */
-  .card {
-    @apply etherscan-card p-6 transition-shadow duration-200;
-  }
-  .card:hover {
-    @apply shadow-card-hover;
-  }
-
-  /* ── Links ── */
-  .etherscan-link {
-    @apply text-primary-500 hover:text-primary-600 hover:underline transition-colors duration-150;
-  }
-  .dark .etherscan-link {
-    @apply text-primary-400 hover:text-primary-300;
-  }
-
-  /* ── Buttons ── */
-  .btn-outline {
-    @apply inline-flex items-center justify-center rounded-md border border-primary-500 bg-transparent px-3 py-1.5 text-sm font-medium text-primary-500 transition-colors duration-150 hover:bg-primary-50;
-  }
-  .dark .btn-outline {
-    @apply hover:bg-primary-900/30;
-  }
-  .btn-mini {
-    @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium text-primary-500 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/30 dark:hover:bg-primary-900/50 transition-colors cursor-pointer;
-  }
-
-  /* ── Form Controls ── */
-  .form-label {
-    @apply mb-1.5 block text-sm font-medium text-text-primary;
-  }
-  .dark .form-label {
-    @apply text-gray-300;
-  }
-  .form-input {
-    @apply w-full rounded-md border border-card-border bg-white px-3 py-2 text-sm text-text-primary placeholder-gray-400 transition-colors duration-150;
-    @apply focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
-  }
-  .dark .form-input {
-    @apply border-card-border-dark bg-gray-800 text-gray-200 placeholder-gray-500;
-  }
-  .form-error {
-    @apply mt-1 text-xs text-red-500;
-  }
-
-  /* ── Info Row (detail pages) ── */
-  .info-row {
-    @apply flex flex-col sm:flex-row border-b border-gray-100 py-3;
-  }
-  .dark .info-row {
-    @apply border-gray-800;
-  }
-  .info-row-label {
-    @apply sm:w-1/4 text-text-secondary text-sm mb-1 sm:mb-0;
-  }
-  .info-row-value {
-    @apply sm:w-3/4 text-sm text-gray-800 break-all;
-  }
-  .dark .info-row-value {
-    @apply text-gray-200;
-  }
-
-  /* ── Page Header ── */
-  .page-title {
-    @apply text-2xl font-bold text-text-primary;
-  }
-  .dark .page-title {
-    @apply text-gray-100;
-  }
-  .page-subtitle {
-    @apply text-sm text-text-secondary mt-0.5;
-  }
-
-  /* ── Footer link ── */
-  .footer-link {
-    @apply text-gray-500 hover:text-primary-500 transition-colors duration-150 no-underline hover:no-underline;
-  }
-  .dark .footer-link {
-    @apply text-gray-400 hover:text-primary-400;
-  }
-
-  /* ── Page Header Icon ── */
-  .page-header-icon {
-    @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl;
-  }
-
-  /* ── Stat Cards ── */
-  .stat-card {
-    @apply etherscan-card p-5;
-  }
-  .stat-label {
-    @apply text-xs font-medium uppercase tracking-wide text-text-secondary;
-  }
-  .dark .stat-label {
-    @apply text-gray-400;
-  }
-  .stat-value {
-    @apply mt-1 text-xl font-bold text-text-primary;
-  }
-  .dark .stat-value {
-    @apply text-gray-100;
-  }
-
-  /* ── Card Header ── */
-  .card-header {
-    @apply flex items-center justify-between border-b border-card-border px-4 py-3;
-  }
-  .dark .card-header {
-    @apply border-card-border-dark;
-  }
-
-  /* ── Table ── */
-  .table-header-cell {
-    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-secondary;
-  }
-  .dark .table-header-cell {
-    @apply text-gray-400;
-  }
-  .table-header-cell-right {
-    @apply table-header-cell text-right;
-  }
-  .table-cell {
-    @apply px-4 py-3 text-sm text-text-primary;
-  }
-  .dark .table-cell {
-    @apply text-gray-200;
-  }
-  .table-cell-secondary {
-    @apply px-4 py-3 text-sm text-text-secondary;
-  }
-  .dark .table-cell-secondary {
-    @apply text-gray-400;
-  }
-  .table-cell-mono {
-    @apply table-cell font-hash;
-  }
-
-  /* ── Tabs ── */
-  .tab-btn {
-    @apply rounded-md px-3 py-1.5 text-sm font-medium transition-colors;
-  }
-  .tab-btn-active {
-    @apply bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300;
-  }
-  .tab-btn-inactive {
-    @apply text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100;
-  }
-}
-
-/* Etherscan-style base styles */
 @layer base {
+  :root {
+    --page-bg: linear-gradient(180deg, #f4f8fd 0%, #eef3fb 60%, #edf5fa 100%);
+    --surface-elevated: rgba(255, 255, 255, 0.82);
+    --surface-glass: rgba(255, 255, 255, 0.72);
+    --line-soft: rgba(31, 56, 90, 0.1);
+    --text-high: #0d223d;
+    --text-mid: #5f738d;
+    --link: #1498dd;
+    --ring-focus: rgba(20, 152, 221, 0.28);
+  }
+
+  .dark {
+    --page-bg: linear-gradient(180deg, #0a1426 0%, #0b1a2f 55%, #0d1f35 100%);
+    --surface-elevated: rgba(20, 33, 53, 0.82);
+    --surface-glass: rgba(17, 31, 50, 0.72);
+    --line-soft: rgba(178, 203, 235, 0.16);
+    --text-high: #e3eefc;
+    --text-mid: #9ab1ce;
+    --link: #59c2ff;
+    --ring-focus: rgba(89, 194, 255, 0.3);
+  }
+
   html {
     scroll-behavior: smooth;
-    font-size: 14px;
+    font-size: 15px;
   }
 
   body {
-    @apply bg-gray-50 text-gray-700;
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    @apply min-h-screen antialiased;
+    background: var(--page-bg);
+    color: var(--text-mid);
+    font-family: "Plus Jakarta Sans", "Manrope", ui-sans-serif, sans-serif;
+    line-height: 1.55;
+    letter-spacing: 0.002em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  .dark body {
-    @apply bg-gray-900 text-gray-300;
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle at 8% 0%, rgba(20, 152, 221, 0.14), transparent 30%),
+      radial-gradient(circle at 90% 8%, rgba(0, 229, 153, 0.08), transparent 26%),
+      linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: auto, auto, 28px 28px, 28px 28px;
+    opacity: 0.4;
+    z-index: 0;
   }
 
-  /* Etherscan-style link defaults */
+  .dark body::before {
+    background-image: radial-gradient(circle at 7% 0%, rgba(89, 194, 255, 0.12), transparent 28%),
+      radial-gradient(circle at 88% 9%, rgba(0, 229, 153, 0.08), transparent 24%),
+      linear-gradient(rgba(140, 181, 229, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140, 181, 229, 0.08) 1px, transparent 1px);
+    opacity: 0.5;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+  }
+
   a {
-    @apply text-primary-500 no-underline transition-colors duration-150;
+    color: var(--link);
+    @apply no-underline transition-colors duration-150;
   }
+
   a:hover {
-    @apply text-primary-600 underline;
-  }
-  .dark a {
-    @apply text-primary-400;
-  }
-  .dark a:hover {
-    @apply text-primary-300;
+    @apply underline;
+    color: color-mix(in srgb, var(--link) 86%, #ffffff 14%);
   }
 
-  /* Monospace for hashes and addresses */
   .font-hash {
-    font-family: "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.8125rem;
+    letter-spacing: 0.01em;
   }
 
-  /* Table row hover */
-  tbody tr {
-    @apply transition-colors;
+  ::selection {
+    background: color-mix(in srgb, var(--link) 24%, transparent);
+    color: var(--text-high);
   }
-  tbody tr:hover {
-    @apply bg-gray-50/70;
+
+  *:focus-visible {
+    outline: 2px solid var(--ring-focus);
+    outline-offset: 2px;
   }
-  .dark tbody tr:hover {
-    @apply bg-gray-800/40;
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen text-gray-700 dark:text-gray-300;
+  }
+
+  .page-shell {
+    @apply relative w-full py-6 md:py-8;
+  }
+
+  .page-container {
+    @apply mx-auto max-w-[1400px] px-4;
+  }
+
+  .surface-panel {
+    background: var(--surface-glass);
+    border: 1px solid var(--line-soft);
+    @apply rounded-2xl shadow-card backdrop-blur-md;
+  }
+
+  .etherscan-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--line-soft);
+    @apply rounded-2xl shadow-card backdrop-blur-sm;
+  }
+
+  .card {
+    @apply etherscan-card p-6 transition duration-200;
+    transition-property: box-shadow, transform, border-color;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover;
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--link) 24%, var(--line-soft));
+  }
+
+  .etherscan-link {
+    @apply font-medium transition-colors duration-150;
+    color: var(--link);
+  }
+
+  .etherscan-link:hover {
+    color: color-mix(in srgb, var(--link) 86%, #ffffff 14%);
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border px-3 py-1.5 text-sm font-semibold transition;
+    border-color: color-mix(in srgb, var(--link) 42%, transparent);
+    color: var(--link);
+    background: color-mix(in srgb, var(--link) 9%, #ffffff 91%);
+  }
+
+  .btn-outline:hover {
+    background: color-mix(in srgb, var(--link) 16%, #ffffff 84%);
+  }
+
+  .dark .btn-outline {
+    background: color-mix(in srgb, var(--link) 18%, transparent);
+  }
+
+  .dark .btn-outline:hover {
+    background: color-mix(in srgb, var(--link) 28%, transparent);
+  }
+
+  .btn-mini {
+    @apply inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold transition-colors;
+    color: var(--link);
+    background: color-mix(in srgb, var(--link) 10%, #ffffff 90%);
+  }
+
+  .btn-mini:hover {
+    background: color-mix(in srgb, var(--link) 16%, #ffffff 84%);
+  }
+
+  .form-label {
+    @apply mb-1.5 block text-sm font-semibold;
+    color: var(--text-high);
+  }
+
+  .form-input {
+    @apply w-full rounded-lg border px-3 py-2.5 text-sm transition;
+    border-color: var(--line-soft);
+    background: var(--surface-elevated);
+    color: var(--text-high);
+  }
+
+  .form-input::placeholder {
+    color: color-mix(in srgb, var(--text-mid) 74%, transparent);
+  }
+
+  .form-input:focus {
+    border-color: color-mix(in srgb, var(--link) 50%, transparent);
+    box-shadow: 0 0 0 3px var(--ring-focus);
+  }
+
+  .form-error {
+    @apply mt-1 text-xs font-medium text-error;
+  }
+
+  .info-row {
+    @apply flex flex-col border-b py-3 sm:flex-row;
+    border-color: var(--line-soft);
+  }
+
+  .info-row-label {
+    @apply mb-1 text-sm sm:mb-0 sm:w-1/4;
+    color: var(--text-mid);
+  }
+
+  .info-row-value {
+    @apply break-all text-sm sm:w-3/4;
+    color: var(--text-high);
+  }
+
+  .page-title {
+    @apply text-[1.7rem] font-extrabold tracking-tight;
+    color: var(--text-high);
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm;
+    color: var(--text-mid);
+  }
+
+  .footer-link {
+    @apply no-underline transition-colors duration-150;
+    color: var(--text-mid);
+  }
+
+  .footer-link:hover {
+    color: var(--link);
+  }
+
+  .page-header-icon {
+    @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl;
+    background: color-mix(in srgb, var(--link) 12%, #ffffff 88%);
+  }
+
+  .stat-card {
+    @apply etherscan-card p-5;
+  }
+
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-[0.08em];
+    color: var(--text-mid);
+  }
+
+  .stat-value {
+    @apply mt-1 text-[1.35rem] font-extrabold;
+    color: var(--text-high);
+  }
+
+  .card-header {
+    @apply flex items-center justify-between px-4 py-3;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .table-header-cell {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em];
+    color: color-mix(in srgb, var(--text-mid) 88%, transparent);
+  }
+
+  .table-header-cell-right {
+    @apply table-header-cell text-right;
+  }
+
+  .table-cell {
+    @apply px-4 py-3 text-sm;
+    color: var(--text-high);
+  }
+
+  .table-cell-secondary {
+    @apply px-4 py-3 text-sm;
+    color: var(--text-mid);
+  }
+
+  .table-cell-mono {
+    @apply table-cell font-hash;
+  }
+
+  .tab-btn {
+    @apply rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors;
+  }
+
+  .tab-btn-active {
+    color: var(--link);
+    background: color-mix(in srgb, var(--link) 12%, #ffffff 88%);
+  }
+
+  .tab-btn-inactive {
+    color: var(--text-mid);
+  }
+
+  .tab-btn-inactive:hover {
+    color: var(--text-high);
+    background: color-mix(in srgb, var(--line-soft) 62%, transparent);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .soft-divider {
+    border-color: var(--line-soft);
   }
 }

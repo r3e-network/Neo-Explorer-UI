@@ -1,12 +1,14 @@
 <template>
   <div class="home-page">
     <!-- Hero Section -->
-    <section class="hero-section bg-header-bg relative overflow-hidden">
+    <section class="hero-section relative overflow-hidden border-b border-white/10 bg-header-bg/95">
       <div class="hero-overlay"></div>
-      <div class="mx-auto max-w-[1400px] px-4 py-10 md:py-14 relative z-10">
+      <div class="page-container relative z-10 py-10 md:py-14">
         <div v-once class="mx-auto max-w-3xl text-center">
-          <h1 class="text-3xl font-bold text-white md:text-4xl">The Neo N3 Blockchain Explorer</h1>
-          <p class="mt-2 text-sm text-white/60">Search transactions, blocks, addresses, tokens and more on Neo N3</p>
+          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+            The Neo N3 Blockchain Explorer
+          </h1>
+          <p class="mt-2 text-sm text-white/70">Search transactions, blocks, addresses, tokens and more on Neo N3</p>
           <div class="mt-6">
             <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
           </div>
@@ -27,10 +29,12 @@
     />
 
     <!-- Latest Blocks + Latest Transactions -->
-    <section class="mx-auto max-w-[1400px] px-4 py-5 md:py-6">
+    <section class="page-shell">
+      <div class="page-container py-1">
       <div class="grid gap-4 lg:grid-cols-2">
         <LatestBlocks :blocks="latestBlocks" :loading="loading" :error="blocksError" @retry="loadLatestData" />
         <LatestTransactions :transactions="latestTxs" :loading="loading" :error="txsError" @retry="loadLatestData" />
+      </div>
       </div>
     </section>
   </div>
@@ -205,9 +209,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .hero-section {
-  background-image: radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.12), transparent 36%),
-    radial-gradient(circle at 80% 10%, rgba(56, 189, 248, 0.15), transparent 30%),
-    linear-gradient(180deg, #21325b 0%, #2a3f6e 100%);
+  background-image: radial-gradient(circle at 15% 20%, rgba(74, 180, 238, 0.26), transparent 36%),
+    radial-gradient(circle at 78% 8%, rgba(0, 229, 153, 0.16), transparent 28%),
+    linear-gradient(180deg, #0f1f3d 0%, #162a4b 100%);
 }
 
 .hero-overlay {
@@ -216,6 +220,6 @@ onBeforeUnmount(() => {
   background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 26px 26px;
-  opacity: 0.35;
+  opacity: 0.28;
 }
 </style>
