@@ -19,6 +19,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  caption: {
+    type: String,
+    default: "",
+  },
   rowKey: {
     type: String,
     default: "",
@@ -28,15 +32,23 @@ defineProps({
 
 <template>
   <div class="surface-panel overflow-x-auto">
-    <table role="table" class="min-w-full divide-y divide-card-border/70 dark:divide-card-border-dark/70">
-      <thead class="sticky top-0 bg-white/92 backdrop-blur-sm dark:bg-gray-900/92">
+    <table
+      role="table"
+      class="min-w-full divide-y"
+      style="border-color: var(--line-soft)"
+      :aria-busy="loading ? 'true' : 'false'"
+    >
+      <caption v-if="caption" class="sr-only">
+        {{ caption }}
+      </caption>
+      <thead class="sticky top-0 backdrop-blur-sm" style="background: var(--surface-elevated)">
         <tr role="row">
           <th
             v-for="col in columns"
             :key="col.key"
             scope="col"
             :class="[
-              'px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary dark:text-gray-400',
+              'px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-mid',
               col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
             ]"
           >
@@ -44,7 +56,7 @@ defineProps({
           </th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-card-border/70 bg-transparent dark:divide-card-border-dark/70">
+      <tbody class="divide-y bg-transparent" style="border-color: var(--line-soft)">
         <template v-if="loading">
           <tr role="row">
             <td :colspan="columns.length" class="px-4 py-3">
@@ -67,13 +79,13 @@ defineProps({
           <tr
             v-for="(row, idx) in data"
             :key="rowKey && row[rowKey] != null ? row[rowKey] : idx"
-            class="transition-colors hover:bg-white/50 dark:hover:bg-gray-800/55"
+            class="list-row transition-colors"
           >
             <td
               v-for="col in columns"
               :key="col.key"
               :class="[
-                'px-4 py-3 text-sm text-text-primary dark:text-gray-200',
+                'px-4 py-3 text-sm text-high',
                 col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
               ]"
             >

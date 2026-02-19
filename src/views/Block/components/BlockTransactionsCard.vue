@@ -18,14 +18,14 @@ defineProps({
 <template>
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
+      <h2 class="text-base font-semibold text-high">
         Transactions
-        <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ blockTransactionCount }}) </span>
+        <span class="ml-1.5 text-sm font-normal text-mid"> ({{ blockTransactionCount }}) </span>
       </h2>
     </div>
 
     <!-- Tx Loading -->
-    <div v-if="txLoading" class="divide-y divide-card-border dark:divide-card-border-dark">
+    <div v-if="txLoading" class="soft-divider divide-y">
       <div v-for="i in 3" :key="i" class="flex items-center gap-4 px-4 py-3">
         <Skeleton width="50%" height="18px" />
         <Skeleton width="20%" height="18px" />
@@ -37,9 +37,12 @@ defineProps({
     <EmptyState v-else-if="transactions.length === 0" :message="emptyTransactionsMessage" icon="tx" />
 
     <!-- Tx Table -->
-    <div v-else class="overflow-x-auto">
-      <table class="w-full min-w-[700px]">
-        <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+    <div v-else class="surface-panel overflow-x-auto">
+      <table class="w-full min-w-[700px]" aria-label="Block transactions">
+        <caption class="sr-only">
+          Transactions included in this block
+        </caption>
+        <thead class="table-head">
           <tr>
             <th class="table-header-cell">Txn Hash</th>
             <th class="table-header-cell">Sender</th>
@@ -48,18 +51,18 @@ defineProps({
             <th class="table-header-cell-right">Size</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+        <tbody class="soft-divider divide-y">
           <tr
             v-for="tx in transactions"
             :key="tx.hash"
-            class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            class="list-row transition-colors"
           >
             <td class="table-cell">
               <HashLink :hash="tx.hash" type="tx" />
             </td>
             <td class="table-cell">
               <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
-              <span v-else class="text-sm text-text-secondary">--</span>
+              <span v-else class="text-sm text-mid">--</span>
             </td>
             <td class="table-cell text-right font-mono">
               {{ formatGas(tx.sysfee || 0) }}

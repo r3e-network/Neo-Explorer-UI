@@ -5,7 +5,7 @@
         <!-- Separator -->
         <svg
           v-if="index > 0"
-          class="mx-1.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500"
+          class="text-low mx-1.5 h-3.5 w-3.5 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -17,7 +17,7 @@
         <!-- Last item: current page (no link) -->
         <span
           v-if="index === items.length - 1"
-          class="font-semibold text-text-primary dark:text-gray-200"
+          class="text-high font-semibold"
           aria-current="page"
         >
           {{ item.label }}
@@ -27,7 +27,7 @@
         <router-link
           v-else
           :to="item.to"
-          class="rounded px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-white/60 hover:text-primary-500 dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-primary-300"
+          class="crumb-link text-mid rounded px-1.5 py-0.5 transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         >
           {{ item.label }}
         </router-link>
@@ -45,3 +45,9 @@ defineProps({
   },
 });
 </script>
+
+<style scoped>
+.crumb-link:hover {
+  background: var(--surface-hover);
+}
+</style>

@@ -2,7 +2,7 @@
   <div class="script-viewer">
     <!-- Header with toggle -->
     <div class="flex items-center justify-between mb-3">
-      <h4 class="text-sm font-semibold text-text-primary dark:text-gray-200">
+      <h4 class="text-high text-sm font-semibold">
         {{ label }}
       </h4>
       <div class="flex items-center gap-2">
@@ -10,8 +10,8 @@
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           :class="
             showRaw
-              ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
+              : 'badge-soft hover:text-high'
           "
           @click="showRaw = !showRaw"
         >
@@ -37,44 +37,44 @@
     <!-- Raw hex view -->
     <pre
       v-if="showRaw"
-      class="max-h-48 overflow-auto rounded-lg bg-gray-50 dark:bg-gray-900 p-3 font-mono text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 break-all whitespace-pre-wrap"
+      class="panel-muted text-mid max-h-48 overflow-auto rounded-lg break-all whitespace-pre-wrap p-3 font-mono text-xs"
       >{{ rawHex }}</pre
     >
 
     <!-- Decoded opcodes table -->
     <div
       v-else
-      class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700"
+      class="soft-divider overflow-x-auto rounded-lg border"
     >
       <table class="w-full text-xs">
         <thead>
           <tr
-            class="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700"
+            class="table-head soft-divider border-b"
           >
             <th
-              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-16"
+              class="text-low w-16 px-3 py-2 text-left font-medium"
             >
               Offset
             </th>
             <th
-              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400 w-32"
+              class="text-low w-32 px-3 py-2 text-left font-medium"
             >
               Opcode
             </th>
             <th
-              class="px-3 py-2 text-left font-medium text-text-secondary dark:text-gray-400"
+              class="text-low px-3 py-2 text-left font-medium"
             >
               Operand
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        <tbody class="soft-divider divide-y">
           <tr
             v-for="(inst, idx) in visibleInstructions"
             :key="idx"
-            class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"
+            class="list-row transition-colors"
           >
-            <td class="px-3 py-1.5 font-mono text-gray-400 dark:text-gray-500">
+            <td class="text-low px-3 py-1.5 font-mono">
               {{ formatOffset(inst.offset) }}
             </td>
             <td class="px-3 py-1.5">
@@ -86,7 +86,7 @@
               </span>
             </td>
             <td
-              class="px-3 py-1.5 font-mono text-gray-700 dark:text-gray-300 break-all"
+              class="text-high break-all px-3 py-1.5 font-mono"
             >
               <span v-if="inst.operand" :class="operandClass(inst)">{{
                 inst.operand
@@ -99,7 +99,7 @@
       <!-- Show more -->
       <button
         v-if="instructions.length > maxVisible && !showAllOps"
-        class="w-full py-2 text-xs font-medium text-primary-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-200 dark:border-gray-700"
+        class="soft-divider w-full border-t py-2 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20"
         @click="showAllOps = true"
       >
         Show all {{ instructions.length }} instructions
@@ -171,7 +171,7 @@ function opcodeColor(opcode) {
     return "text-purple-600 dark:text-purple-400";
   if (opcode === "ABORT" || opcode === "THROW" || opcode === "FAULT")
     return "text-red-600 dark:text-red-400";
-  return "text-gray-800 dark:text-gray-200";
+  return "text-high";
 }
 
 function operandClass(inst) {

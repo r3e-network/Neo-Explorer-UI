@@ -5,7 +5,7 @@
         <!-- NEO Price -->
         <div class="stat-block">
           <div class="flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-icon-primary">
               <svg
                 class="h-4 w-4 text-primary-500"
                 fill="none"
@@ -26,17 +26,21 @@
               <div class="stat-value">${{ formatPrice(neoPrice) }}</div>
             </div>
           </div>
-          <div class="mt-1 text-xs" :class="priceChangeClass(neoPriceChange)">
-            {{ formatPriceChange(neoPriceChange) }} <span class="text-text-secondary dark:text-gray-500">(24h)</span>
+          <div
+            class="mt-1 text-xs"
+            :class="priceChangeClass(neoPriceChange)"
+            :aria-label="`NEO 24h change ${describePriceChange(neoPriceChange)}`"
+          >
+            {{ formatPriceChange(neoPriceChange) }} <span class="text-low">(24h)</span>
           </div>
         </div>
 
         <!-- GAS Price -->
         <div class="stat-block">
           <div class="flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-icon-green">
               <svg
-                class="h-4 w-4 text-green-500"
+                class="h-4 w-4 text-success"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -50,17 +54,21 @@
               <div class="stat-value">${{ formatPrice(gasPrice) }}</div>
             </div>
           </div>
-          <div class="mt-1 text-xs" :class="priceChangeClass(gasPriceChange)">
-            {{ formatPriceChange(gasPriceChange) }} <span class="text-text-secondary dark:text-gray-500">(24h)</span>
+          <div
+            class="mt-1 text-xs"
+            :class="priceChangeClass(gasPriceChange)"
+            :aria-label="`GAS 24h change ${describePriceChange(gasPriceChange)}`"
+          >
+            {{ formatPriceChange(gasPriceChange) }} <span class="text-low">(24h)</span>
           </div>
         </div>
 
         <!-- Transactions -->
         <div class="stat-block">
           <div class="flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-icon-orange">
               <svg
-                class="h-4 w-4 text-orange-500"
+                class="h-4 w-4 text-warning"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -79,15 +87,15 @@
               <div class="stat-value">{{ formatLargeNumber(txCount) }}</div>
             </div>
           </div>
-          <div class="mt-1 text-xs text-text-secondary dark:text-gray-400">{{ tps.toFixed(2) }} TPS</div>
+          <div class="mt-1 text-xs text-mid">{{ tps.toFixed(2) }} TPS</div>
         </div>
 
         <!-- Block Height -->
         <div class="stat-block">
           <div class="flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-icon-purple">
               <svg
-                class="h-4 w-4 text-purple-500"
+                class="h-4 w-4 text-violet-500 dark:text-violet-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -106,12 +114,12 @@
               <div class="stat-value">{{ formatNumber(blockCount) }}</div>
             </div>
           </div>
-          <div class="mt-1 text-xs text-text-secondary dark:text-gray-400">~15s finality (dBFT)</div>
+          <div class="mt-1 text-xs text-mid">~15s finality (dBFT)</div>
         </div>
       </div>
 
       <!-- Secondary stats row -->
-      <div class="mt-4 border-t border-card-border pt-4 dark:border-card-border-dark">
+      <div class="mt-4 border-t pt-4" style="border-color: var(--line-soft)">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="mini-stat">
             <span class="mini-label">Market Cap</span>
@@ -167,11 +175,19 @@ const gasCostUsd = computed(() => {
   const price = Number(props.gasPrice) || 0;
   return (price * 0.02).toFixed(2);
 });
+
+function describePriceChange(value) {
+  const change = Number(value) || 0;
+  if (change > 0) return `up ${Math.abs(change).toFixed(2)} percent`;
+  if (change < 0) return `down ${Math.abs(change).toFixed(2)} percent`;
+  return "unchanged";
+}
 </script>
 
 <style scoped>
 .stat-block {
-  @apply rounded-lg border border-card-border p-3 dark:border-card-border-dark;
+  @apply rounded-lg border p-3;
+  border-color: var(--line-soft);
 }
 
 .mini-stat {
@@ -179,14 +195,20 @@ const gasCostUsd = computed(() => {
 }
 
 .mini-label {
-  @apply text-sm text-text-secondary dark:text-gray-400;
+  @apply text-sm;
+  color: var(--text-mid);
 }
 
 .mini-value {
-  @apply text-sm font-semibold text-text-primary dark:text-gray-200;
+  @apply text-sm font-semibold;
+  color: var(--text-high);
 }
 
 .mini-value-link {
-  @apply text-sm font-semibold text-text-primary hover:text-primary-500 dark:text-gray-200 dark:hover:text-primary-400;
+  @apply text-sm font-semibold;
+  color: var(--text-high);
+}
+.mini-value-link:hover {
+  color: var(--link-hover);
 }
 </style>

@@ -2,21 +2,19 @@
   <div>
     <div
       v-if="showToolbar"
-      class="mb-4 flex flex-col gap-3 rounded-md border border-card-border bg-gray-50 p-3 dark:border-card-border-dark dark:bg-gray-900/40 md:flex-row md:items-center md:justify-between"
+      class="panel-muted mb-4 flex flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between"
     >
-      <div class="text-sm text-text-secondary dark:text-gray-400">
+      <div class="text-mid text-sm">
         <span v-if="contractHash"> Contract: {{ truncateHash(contractHash, 14, 10) }} </span>
         <span v-else>Provide a contract hash to load source files.</span>
       </div>
 
       <div class="flex items-center gap-2">
-        <span
-          class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-text-secondary dark:bg-gray-800 dark:text-gray-300"
-        >
+        <span class="badge-soft rounded-full px-3 py-1">
           Files: {{ totalCount }}
         </span>
         <button
-          class="rounded border border-card-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          class="btn-outline px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh source code"
           :disabled="!contractHash || isLoading"
           @click="loadSourceCode"
@@ -51,17 +49,18 @@
 
     <div v-else class="space-y-4">
       <article v-for="(item, index) in sourceCodeList" :key="`${item.filename}-${index}`" :class="fileCardClass">
-        <header class="border-b border-card-border px-4 py-3 dark:border-card-border-dark">
-          <h2 class="truncate text-sm font-semibold text-text-primary dark:text-gray-100">
+        <header class="soft-divider border-b px-4 py-3">
+          <h2 class="text-high truncate text-sm font-semibold">
             {{ item.filename || `File ${index + 1}` }}
           </h2>
         </header>
 
         <div
-          class="overflow-auto bg-gray-50 dark:bg-gray-900/40"
+          class="overflow-auto"
+          style="background: color-mix(in srgb, var(--surface-hover) 78%, transparent)"
           :style="{ height: viewerHeight(item.code) }"
         >
-          <pre class="min-h-full p-4 text-xs leading-5 text-text-primary dark:text-gray-200"><code class="font-mono whitespace-pre">{{ item.code || "" }}</code></pre>
+          <pre class="text-high min-h-full p-4 text-xs leading-5"><code class="font-mono whitespace-pre">{{ item.code || "" }}</code></pre>
         </div>
       </article>
     </div>
@@ -105,9 +104,9 @@ const safeUpdateCounter = computed(() => normalizeUpdateCounter(props.updatecoun
 
 const fileCardClass = computed(() => {
   if (props.compact) {
-    return "overflow-hidden rounded-md border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
+    return "panel-muted overflow-hidden rounded-md shadow-card";
   }
-  return "overflow-hidden rounded-lg border border-card-border bg-white shadow-card dark:border-card-border-dark dark:bg-gray-800";
+  return "panel-muted overflow-hidden rounded-lg shadow-card";
 });
 
 async function fetchIfReady() {

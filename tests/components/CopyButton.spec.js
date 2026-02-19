@@ -37,6 +37,9 @@ describe("CopyButton", () => {
     await wrapper.find("button").trigger("click");
     await vi.dynamicImportSettled();
     expect(wrapper.find("button").attributes("title")).toBe("Copied!");
+    const tooltip = wrapper.find('[role="tooltip"]');
+    expect(tooltip.exists()).toBe(true);
+    expect(wrapper.find("button").attributes("aria-describedby")).toBe(tooltip.attributes("id"));
   });
 
   it("handles clipboard failure gracefully", async () => {
@@ -55,5 +58,14 @@ describe("CopyButton", () => {
     wrapper.unmount();
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
+  });
+
+  it("updates screen-reader live text for feedback", async () => {
+    const wrapper = mount(CopyButton, { props: { text: "hello" } });
+    await wrapper.find("button").trigger("click");
+    await vi.dynamicImportSettled();
+    const liveRegion = wrapper.find('span[aria-live="polite"]');
+    expect(liveRegion.exists()).toBe(true);
+    expect(liveRegion.text()).toContain("Copied to clipboard");
   });
 });

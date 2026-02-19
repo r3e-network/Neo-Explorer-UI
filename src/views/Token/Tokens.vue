@@ -43,11 +43,11 @@
 
         <!-- Search + Info bar -->
         <div
-          class="flex flex-col gap-3 border-b border-card-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-card-border-dark"
+          class="soft-divider flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
-          <p class="text-sm text-text-secondary dark:text-gray-300">
+          <p class="text-mid text-sm">
             {{ activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT Collection List" }}
-            <span v-if="totalCount > 0" class="text-text-muted">({{ formatNumber(totalCount) }} total)</span>
+            <span v-if="totalCount > 0" class="text-low">({{ formatNumber(totalCount) }} total)</span>
           </p>
           <div class="relative w-full sm:w-64">
             <input
@@ -59,7 +59,7 @@
               @input="handleSearchDebounced"
             />
             <svg
-              class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted"
+              class="text-low absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -90,51 +90,51 @@
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="table-head text-xs uppercase tracking-wide">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Token</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Symbol</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Contract</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Holders</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Total Supply</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Market Cap</th>
+                <th class="table-header-cell">#</th>
+                <th class="table-header-cell">Token</th>
+                <th class="table-header-cell">Symbol</th>
+                <th class="table-header-cell">Contract</th>
+                <th class="table-header-cell-right">Holders</th>
+                <th class="table-header-cell-right">Total Supply</th>
+                <th class="table-header-cell-right">Market Cap</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="(token, index) in tokens"
                 :key="token.hash"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
-                <td class="px-4 py-3 text-sm text-text-muted">
+                <td class="text-low px-4 py-3 text-sm">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="px-4 py-3">
                   <router-link :to="`/nep17-token-info/${token.hash}`" class="flex items-center gap-3">
                     <div
-                      class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-text-primary dark:bg-gray-700 dark:text-gray-100"
+                      class="soft-divider text-high flex h-8 w-8 items-center justify-center rounded-full border bg-slate-50 text-sm font-semibold dark:bg-slate-800/70"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="font-medium text-text-primary hover:text-primary-500 dark:text-gray-100">
+                    <span class="text-high font-medium hover:text-primary-500">
                       {{ token.tokenname || "Unknown Token" }}
                     </span>
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">{{ token.symbol || "-" }}</td>
+                <td class="text-high px-4 py-3 text-sm">{{ token.symbol || "-" }}</td>
                 <td class="px-4 py-3">
                   <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(token.hash) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="text-high px-4 py-3 text-right text-sm">
                   {{ formatNumber(token.holders || 0) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="text-high px-4 py-3 text-right text-sm">
                   {{ formatSupply(token) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-muted">
+                <td class="text-mid px-4 py-3 text-right text-sm">
                   {{ formatMarketCap(token) }}
                 </td>
               </tr>
@@ -145,23 +145,23 @@
         <!-- NEP-11 Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="table-head text-xs uppercase tracking-wide">
               <tr>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">#</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Collection</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Symbol</th>
-                <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Contract</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Items</th>
-                <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Holders</th>
+                <th class="table-header-cell">#</th>
+                <th class="table-header-cell">Collection</th>
+                <th class="table-header-cell">Symbol</th>
+                <th class="table-header-cell">Contract</th>
+                <th class="table-header-cell-right">Items</th>
+                <th class="table-header-cell-right">Holders</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="(token, index) in tokens"
                 :key="token.hash"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
-                <td class="px-4 py-3 text-sm text-text-muted">
+                <td class="text-low px-4 py-3 text-sm">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="px-4 py-3">
@@ -171,21 +171,21 @@
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="font-medium text-text-primary hover:text-primary-500 dark:text-gray-100">
+                    <span class="text-high font-medium hover:text-primary-500">
                       {{ token.tokenname || "Unknown Collection" }}
                     </span>
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-sm text-text-primary dark:text-gray-300">{{ token.symbol || "-" }}</td>
+                <td class="text-high px-4 py-3 text-sm">{{ token.symbol || "-" }}</td>
                 <td class="px-4 py-3">
                   <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
                     {{ truncateHash(token.hash) }}
                   </router-link>
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="text-high px-4 py-3 text-right text-sm">
                   {{ formatSupply(token) }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+                <td class="text-high px-4 py-3 text-right text-sm">
                   {{ formatNumber(token.holders || 0) }}
                 </td>
               </tr>
@@ -196,7 +196,7 @@
         <!-- Pagination -->
         <div
           v-if="!loading && tokens.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <EtherscanPagination
             :page="currentPage"

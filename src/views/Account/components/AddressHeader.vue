@@ -44,7 +44,7 @@
           class="surface-panel mt-3 inline-block rounded-xl p-4"
         >
           <div class="flex flex-col items-center gap-2">
-            <svg class="h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="text-low h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -52,7 +52,7 @@
                 d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14h1v1h-1zM14 17h1v1h-1zM20 17h1v1h-1zM17 20h1v1h-1z"
               />
             </svg>
-            <p class="max-w-[200px] break-all text-center font-hash text-xs text-text-secondary dark:text-gray-400">
+            <p class="text-mid max-w-[200px] break-all text-center font-hash text-xs">
               {{ address }}
             </p>
           </div>

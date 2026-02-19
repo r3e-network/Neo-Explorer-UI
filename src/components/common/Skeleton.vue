@@ -27,20 +27,16 @@ const variantClass = computed(() => {
   return map[props.variant] || "rounded";
 });
 
-const skeletonClass = computed(() => [
-  "animate-pulse",
-  "bg-gradient-to-r",
-  "from-gray-200/90",
-  "via-gray-100/80",
-  "to-gray-200/90",
-  "dark:from-gray-700/80",
-  "dark:via-gray-600/70",
-  "dark:to-gray-700/80",
-  variantClass.value,
-]);
+const skeletonClass = computed(() => ["animate-pulse", "skeleton-shimmer", variantClass.value]);
 
 const customStyle = computed(() => ({
   width: props.variant === "circle" ? props.height : props.width,
   height: props.height,
 }));
 </script>
+
+<style scoped>
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--surface-hover) 0%, var(--surface-elevated) 50%, var(--surface-hover) 100%);
+}
+</style>

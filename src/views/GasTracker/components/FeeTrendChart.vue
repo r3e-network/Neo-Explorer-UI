@@ -1,14 +1,14 @@
 <template>
   <div class="etherscan-card mb-6 p-5">
-    <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Fee Trend</h2>
-    <p class="mb-4 text-xs text-text-muted dark:text-gray-500">Average total fee per block from the last 20 blocks</p>
+    <h2 class="text-high mb-1 text-base font-semibold">Fee Trend</h2>
+    <p class="text-low mb-4 text-xs">Average total fee per block from the last 20 blocks</p>
     <div v-if="loading" class="space-y-2">
       <Skeleton v-for="i in 4" :key="i" height="44px" />
     </div>
     <div v-else-if="blocks.length" class="h-[280px]">
       <canvas ref="feeTrendCanvas"></canvas>
     </div>
-    <div v-else class="py-8 text-center text-sm text-text-muted dark:text-gray-500">
+    <div v-else class="text-low py-8 text-center text-sm">
       No block data available for chart
     </div>
   </div>

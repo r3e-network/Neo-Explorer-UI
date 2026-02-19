@@ -1,13 +1,22 @@
 <template>
   <button
     @click="copyText"
-    class="relative inline-flex items-center justify-center rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+    class="relative inline-flex items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
     :class="sizeClass"
     :title="copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy'"
     :aria-label="copied ? 'Copied to clipboard' : copyFailed ? 'Copy to clipboard failed' : 'Copy to clipboard'"
+    :aria-describedby="copied ? successTooltipId : copyFailed ? failTooltipId : undefined"
   >
     <!-- Copy icon -->
-    <svg v-if="!copied && !copyFailed" :class="iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      v-if="!copied && !copyFailed"
+      :class="iconSize"
+      :style="iconStyle"
+      class="transition-colors"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path
         stroke-linecap="round"
         stroke-linejoin="round"
@@ -16,25 +25,51 @@
       />
     </svg>
     <!-- Check icon -->
-    <svg v-else-if="copied" :class="iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      v-else-if="copied"
+      :class="iconSize"
+      :style="iconStyle"
+      class="transition-colors"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
     </svg>
     <!-- Fail icon -->
-    <svg v-else :class="iconClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg
+      v-else
+      :class="iconSize"
+      :style="iconStyle"
+      class="transition-colors"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
     </svg>
+
+    <span class="sr-only" aria-live="polite">
+      {{ copied ? "Copied to clipboard" : copyFailed ? "Copy to clipboard failed" : "" }}
+    </span>
 
     <!-- Tooltip -->
     <transition name="tooltip">
       <span
         v-if="copied"
-        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white shadow dark:bg-gray-600"
+        :id="successTooltipId"
+        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs shadow"
+        style="background: var(--surface-elevated); color: var(--text-high)"
+        role="tooltip"
       >
         Copied!
       </span>
       <span
         v-else-if="copyFailed"
-        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-red-600 px-2 py-1 text-xs text-white shadow"
+        :id="failTooltipId"
+        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs text-white shadow"
+        style="background: var(--status-error)"
+        role="tooltip"
       >
         Failed!
       </span>
@@ -57,25 +92,27 @@ const props = defineProps({
 
 const copied = ref(false);
 const copyFailed = ref(false);
+const tooltipSeed = Math.random().toString(36).slice(2, 10);
+const successTooltipId = `copy-success-${tooltipSeed}`;
+const failTooltipId = `copy-fail-${tooltipSeed}`;
 let feedbackTimer = null;
 
 const sizeClass = computed(() => (props.size === "md" ? "p-1.5" : "p-1"));
 
-const iconClass = computed(() => [
-  props.size === "md" ? "w-5 h-5" : "w-3.5 h-3.5",
-  copied.value
-    ? "text-green-500 dark:text-green-400"
-    : copyFailed.value
-    ? "text-red-500 dark:text-red-400"
-    : "text-gray-400 dark:text-gray-500",
-  "transition-colors",
-]);
+const iconSize = computed(() => (props.size === "md" ? "w-5 h-5" : "w-3.5 h-3.5"));
+
+const iconStyle = computed(() => ({
+  color: copied.value ? "var(--status-success)" : copyFailed.value ? "var(--status-error)" : "var(--text-low)",
+}));
 
 function fallbackCopy(text) {
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.style.position = "fixed";
   textarea.style.opacity = "0";
+  textarea.setAttribute("readonly", "");
+  textarea.setAttribute("aria-hidden", "true");
+  textarea.setAttribute("tabindex", "-1");
   document.body.appendChild(textarea);
   textarea.select();
   try {
@@ -124,5 +161,9 @@ onBeforeUnmount(() => {
 .tooltip-leave-to {
   opacity: 0;
   transform: translate(-50%, 4px);
+}
+
+button:hover {
+  background: var(--surface-hover);
 }
 </style>

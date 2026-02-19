@@ -18,7 +18,7 @@
       <p class="stat-value text-2xl">
         {{ formatGas(feeEstimates.low) }}
       </p>
-      <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (slow)</p>
+      <p class="text-low mt-1 text-xs">GAS / transaction (slow)</p>
     </div>
 
     <!-- Average Fee -->
@@ -36,7 +36,7 @@
       <p class="stat-value text-2xl text-primary-600 dark:text-primary-400">
         {{ formatGas(feeEstimates.average) }}
       </p>
-      <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (standard)</p>
+      <p class="text-low mt-1 text-xs">GAS / transaction (standard)</p>
     </div>
 
     <!-- High Fee -->
@@ -59,7 +59,7 @@
       <p class="stat-value text-2xl">
         {{ formatGas(feeEstimates.high) }}
       </p>
-      <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / transaction (fast)</p>
+      <p class="text-low mt-1 text-xs">GAS / transaction (fast)</p>
     </div>
   </div>
 </template>

@@ -18,16 +18,17 @@
           <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">To write to this contract, connect a wallet.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button
+              type="button"
               v-for="provider in ['NeoLine', 'O3', 'WalletConnect']"
               :key="provider"
-              class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
+              class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/45"
               :disabled="walletConnecting"
               @click="emit('connectWallet', provider)"
             >
               {{ walletConnecting ? "Connecting..." : provider }}
             </button>
           </div>
-          <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ walletError }}</p>
+          <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">{{ walletError }}</p>
         </div>
       </div>
     </div>
@@ -58,6 +59,7 @@
         </span>
       </div>
       <button
+        type="button"
         class="text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400"
         @click="emit('disconnectWallet')"
       >
@@ -65,10 +67,10 @@
       </button>
     </div>
 
-    <div v-if="!manifest" class="py-8 text-center text-text-secondary dark:text-gray-400">
+    <div v-if="!manifest" class="text-mid py-8 text-center">
       Loading contract manifest...
     </div>
-    <div v-else-if="!writeMethods.length" class="py-8 text-center text-text-secondary dark:text-gray-400">
+    <div v-else-if="!writeMethods.length" class="text-mid py-8 text-center">
       No write methods found in this contract.
     </div>
     <div v-else class="space-y-3">
@@ -79,7 +81,9 @@
       >
         <!-- Method header (clickable) -->
         <button
-          class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-white/40 dark:hover:bg-gray-800/35"
+          type="button"
+          class="list-row flex w-full items-center justify-between p-4 text-left transition-colors"
+          :aria-label="`Toggle ${method.name} write method details`"
           :aria-expanded="writeMethodState[wIdx]?.open"
           @click="emit('toggleMethod', wIdx)"
         >
@@ -89,7 +93,7 @@
             >
               {{ wIdx + 1 }}
             </span>
-            <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+            <span class="text-high font-mono text-sm font-medium">
               {{ method.name }}
             </span>
             <span
@@ -99,7 +103,7 @@
             </span>
           </div>
           <svg
-            class="h-4 w-4 text-gray-400 transition-transform duration-200 dark:text-gray-500"
+            class="text-low h-4 w-4 transition-transform duration-200"
             :class="{ 'rotate-180': writeMethodState[wIdx]?.open }"
             fill="none"
             stroke="currentColor"
@@ -124,12 +128,12 @@
               @update:model-value="emit('updateParam', wIdx, pIdx, $event)"
             />
           </div>
-          <div v-else class="mt-3 text-xs text-text-secondary dark:text-gray-400">No parameters required.</div>
+          <div v-else class="text-mid mt-3 text-xs">No parameters required.</div>
 
           <!-- Signer Scope -->
           <div class="mt-3 flex flex-col gap-1">
-            <label class="text-xs font-medium text-text-secondary dark:text-gray-400">Signer Scope</label>
-            <select v-model="signerScopes[wIdx]" class="form-input text-sm">
+            <label class="text-mid text-xs font-medium" :for="`signer-scope-${wIdx}`">Signer Scope</label>
+            <select :id="`signer-scope-${wIdx}`" v-model="signerScopes[wIdx]" class="form-input text-sm">
               <option :value="1">CalledByEntry (default)</option>
               <option :value="128">Global</option>
               <option :value="16">CustomContracts</option>
@@ -141,6 +145,7 @@
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <!-- Gas Estimate button -->
             <button
+              type="button"
               class="btn-outline inline-flex items-center gap-1 px-3 py-2 text-xs disabled:opacity-50"
               :disabled="writeMethodState[wIdx]?.estimating"
               @click="emit('estimateGas', wIdx, method)"
@@ -149,8 +154,9 @@
             </button>
             <!-- Write button -->
             <button
+              type="button"
               class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'"
+              :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-400 cursor-not-allowed'"
               :disabled="!walletConnected || writeMethodState[wIdx]?.loading"
               @click="emit('invokeMethod', wIdx, method, signerScopes[wIdx] || 1)"
             >
@@ -163,9 +169,9 @@
           </div>
 
           <!-- Gas estimate display -->
-          <p v-if="writeMethodState[wIdx]?.gasEstimate" class="mt-2 text-xs text-text-secondary dark:text-gray-400">
+          <p v-if="writeMethodState[wIdx]?.gasEstimate" class="text-mid mt-2 text-xs">
             Estimated GAS:
-            <span class="font-mono font-medium text-text-primary dark:text-gray-200">
+            <span class="text-high font-mono font-medium">
               {{ writeMethodState[wIdx].gasEstimate }}
             </span>
           </p>
@@ -180,18 +186,24 @@
               TxID: {{ writeMethodState[wIdx].result?.txid || writeMethodState[wIdx].result }}
             </p>
             <!-- Tx tracking status -->
-            <div v-if="getTxStatus(writeMethodState[wIdx].result?.txid)" class="mt-1.5 flex items-center gap-1.5">
+            <div
+              v-if="getTxStatus(writeMethodState[wIdx].result?.txid)"
+              class="mt-1.5 flex items-center gap-1.5"
+              role="status"
+              aria-live="polite"
+            >
               <span
+                aria-hidden="true"
                 class="inline-block h-2 w-2 rounded-full"
                 :class="
                   getTxStatus(writeMethodState[wIdx].result?.txid) === 'confirmed'
                     ? 'bg-green-500'
                     : getTxStatus(writeMethodState[wIdx].result?.txid) === 'pending'
                     ? 'bg-yellow-400 animate-pulse'
-                    : 'bg-gray-400'
+                    : 'bg-slate-400'
                 "
               />
-              <span class="text-[10px] font-medium capitalize text-text-secondary dark:text-gray-400">
+              <span class="text-mid text-[10px] font-medium capitalize">
                 {{ getTxStatus(writeMethodState[wIdx].result?.txid) }}
               </span>
             </div>
@@ -200,6 +212,7 @@
           <div
             v-if="writeMethodState[wIdx]?.error"
             class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+            role="alert"
           >
             <p class="text-xs text-red-600 dark:text-red-400">{{ writeMethodState[wIdx].error }}</p>
           </div>

@@ -2,9 +2,9 @@
   <div class="verify-contract-page">
     <!-- Loading overlay -->
     <div v-if="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="flex flex-col items-center rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div class="panel-muted flex flex-col items-center p-6 shadow-xl">
         <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
-        <p class="mt-3 text-sm text-text-secondary dark:text-gray-400">{{ t("verify.verifying") }}</p>
+        <p class="text-mid mt-3 text-sm">{{ t("verify.verifying") }}</p>
       </div>
     </div>
 
@@ -91,12 +91,12 @@
 
             <!-- Java Package Name (conditional) -->
             <div v-if="form.version === JAVA_COMPILER_VERSION" class="space-y-1">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Java Package Name</label>
+              <label class="form-label mb-0">Java Package Name</label>
               <input
                 v-model="form.javaPackage"
                 type="text"
                 placeholder="e.g., io.examples.HelloWorld"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                class="form-input"
               />
             </div>
 
@@ -132,9 +132,9 @@
                 <div
                   v-for="(file, idx) in fileList"
                   :key="idx"
-                  class="flex items-center gap-2 text-sm text-text-primary dark:text-gray-300"
+                  class="text-high flex items-center gap-2 text-sm"
                 >
-                  <svg class="h-4 w-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="text-mid h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -157,11 +157,9 @@
           </form>
 
           <!-- Sidebar Tips -->
-          <aside
-            class="rounded-lg border border-card-border bg-gray-50 p-4 text-sm dark:border-card-border-dark dark:bg-gray-900/40"
-          >
-            <h2 class="mb-3 font-semibold text-text-primary dark:text-gray-100">Submission Tips</h2>
-            <ul class="space-y-2 text-text-secondary dark:text-gray-300">
+          <aside class="panel-muted p-4 text-sm">
+            <h2 class="text-high mb-3 font-semibold">Submission Tips</h2>
+            <ul class="text-mid space-y-2">
               <li>{{ compilerUploadHint }}</li>
               <li>Contract hash must be a 40-character hex string.</li>
               <li>

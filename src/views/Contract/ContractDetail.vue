@@ -39,7 +39,7 @@
         </div>
 
         <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
-          <div v-if="!contract.hash" class="py-8 text-center text-text-secondary dark:text-gray-400">
+          <div v-if="!contract.hash" class="py-8 text-center text-mid">
             Loading contract details...
           </div>
 

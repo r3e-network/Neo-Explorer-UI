@@ -27,7 +27,7 @@
           <h1 class="page-title">Execution Trace</h1>
           <div class="flex items-center gap-2">
             <span class="page-subtitle">Transaction:</span>
-            <HashLink :hash="txHash" type="tx" :truncate="false" />
+            <HashLink :hash="txHash" type="tx" :truncated="false" />
           </div>
         </div>
       </div>

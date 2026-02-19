@@ -24,15 +24,17 @@
 
       <!-- Day Range Toggle -->
       <div class="mb-6 flex flex-wrap items-center gap-2">
-        <span class="text-sm font-medium text-text-secondary dark:text-gray-400">Time Range:</span>
+        <span class="text-mid text-sm font-medium">Time Range:</span>
         <button
           v-for="option in dayOptions"
           :key="option"
-          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          type="button"
+          class="tab-btn focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          :aria-pressed="selectedDays === option"
           :class="
             selectedDays === option
-              ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30 dark:text-primary-400'
-              : 'bg-gray-100 text-text-secondary hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              ? 'tab-btn-active'
+              : 'tab-btn-inactive'
           "
           @click="changeDays(option)"
         >
@@ -56,7 +58,7 @@
         <div class="stat-card p-4">
           <p class="stat-label">Peak Day</p>
           <p class="stat-value text-xl">{{ formatNumber(peakTxns) }}</p>
-          <p class="text-xs text-text-muted dark:text-gray-500">{{ peakDate }}</p>
+          <p class="text-low text-xs">{{ peakDate }}</p>
         </div>
         <div class="stat-card p-4">
           <p class="stat-label">Data Points</p>
@@ -66,8 +68,8 @@
 
       <!-- Daily Transactions Chart -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Daily Transactions</h2>
-        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+        <h2 class="text-high mb-1 text-base font-semibold">Daily Transactions</h2>
+        <p class="text-low mb-4 text-xs">
           Number of transactions confirmed on the Neo N3 network per day
         </p>
         <div v-if="loading" class="space-y-2">
@@ -83,8 +85,8 @@
 
       <!-- Active Addresses Chart -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Active Addresses</h2>
-        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+        <h2 class="text-high mb-1 text-base font-semibold">Active Addresses</h2>
+        <p class="text-low mb-4 text-xs">
           Unique addresses that sent or received transactions per day
         </p>
         <div v-if="loading" class="space-y-2">
@@ -100,8 +102,8 @@
 
       <!-- Transaction Volume (Bar Chart) -->
       <div class="etherscan-card p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Transaction Volume</h2>
-        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+        <h2 class="text-high mb-1 text-base font-semibold">Transaction Volume</h2>
+        <p class="text-low mb-4 text-xs">
           Daily transaction volume represented as a bar chart
         </p>
         <div v-if="loading" class="space-y-2">

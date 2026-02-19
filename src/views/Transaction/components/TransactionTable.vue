@@ -1,7 +1,7 @@
 <template>
   <div class="overflow-x-auto">
     <table class="w-full min-w-[900px]">
-      <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+      <thead class="text-xs uppercase tracking-wide text-mid" style="background: var(--surface-elevated)">
         <tr>
           <th class="table-header-cell">Txn Hash</th>
           <th class="table-header-cell">Method</th>
@@ -26,18 +26,14 @@
           <th class="table-header-cell-right hidden xl:table-cell">Net / Sys Fee</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
-        <tr
-          v-for="tx in transactions"
-          :key="tx.hash"
-          class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
-        >
+      <tbody class="soft-divider divide-y">
+        <tr v-for="tx in transactions" :key="tx.hash" class="list-row transition-colors">
           <!-- Txn Hash -->
           <td class="table-cell">
             <div class="flex items-center gap-1.5">
               <svg
                 class="h-4 w-4 flex-shrink-0"
-                :class="tx.vmstate === 'FAULT' ? 'text-red-400' : 'text-green-400'"
+                :class="tx.vmstate === 'FAULT' ? 'text-error' : 'text-success'"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -52,7 +48,8 @@
           <!-- Method -->
           <td class="table-cell">
             <span
-              class="inline-block max-w-[100px] truncate rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-text-primary dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+              class="soft-divider text-high inline-block max-w-[100px] truncate rounded-md border px-2 py-0.5 text-xs font-medium"
+              style="background: var(--surface-elevated)"
               :title="getMethodName(tx)"
             >
               {{ getMethodName(tx) }}
@@ -76,25 +73,25 @@
           <!-- From -->
           <td class="table-cell hidden md:table-cell">
             <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
-            <span v-else class="text-xs text-text-secondary">-</span>
+            <span v-else class="text-xs text-low">-</span>
           </td>
 
           <!-- To -->
           <td class="table-cell hidden lg:table-cell">
             <span v-if="getRecipient(tx)" class="flex items-center gap-1">
-              <svg class="h-3 w-3 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="h-3 w-3 flex-shrink-0 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
               <HashLink :hash="getRecipient(tx)" type="contract" />
             </span>
-            <span v-else class="text-xs text-text-secondary">-</span>
+            <span v-else class="text-xs text-low">-</span>
           </td>
 
           <!-- Value -->
           <td class="table-cell hidden text-right font-mono lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
               <span class="max-w-[180px] truncate" :title="getValueSummary(tx)">{{ getValueSummary(tx) }}</span>
-              <span class="text-[11px] text-text-secondary">{{ formatTxGas(tx) }} GAS</span>
+              <span class="text-low text-[11px]">{{ formatTxGas(tx) }} GAS</span>
             </div>
           </td>
 

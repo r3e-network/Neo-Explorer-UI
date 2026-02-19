@@ -1,7 +1,7 @@
 <template>
   <article class="etherscan-card overflow-hidden">
     <header class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Latest Transactions</h2>
+      <h2 class="text-high text-base font-semibold">Latest Transactions</h2>
       <router-link to="/transactions/1" class="btn-outline text-xs">View all</router-link>
     </header>
 

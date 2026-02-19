@@ -13,25 +13,28 @@
     />
 
     <div v-else class="space-y-4">
-      <p class="text-sm text-text-secondary dark:text-gray-400">Latest {{ transfers.length }} NEP-11 (NFT) transfers</p>
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[850px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+      <p class="text-mid text-sm">Latest {{ transfers.length }} NEP-11 (NFT) transfers</p>
+      <div class="surface-panel overflow-x-auto">
+        <table class="w-full min-w-[850px]" aria-label="Address NEP-11 token transfers">
+          <caption class="sr-only">
+            NEP-11 transfer records involving this address
+          </caption>
+          <thead class="table-head text-xs uppercase tracking-wide">
             <tr>
               <th class="table-header-cell">Txn Hash</th>
               <th class="table-header-cell">Age</th>
               <th class="table-header-cell">From</th>
-              <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+              <th class="text-low w-12 px-2 py-3 text-center font-medium"></th>
               <th class="table-header-cell">To</th>
               <th class="table-header-cell">Token ID</th>
               <th class="table-header-cell">Collection</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody class="soft-divider divide-y">
             <tr
               v-for="(transfer, idx) in transfers"
               :key="`nep11-${transfer.txHash}-${idx}`"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              class="list-row transition-colors"
             >
               <td class="table-cell">
                 <router-link
@@ -53,7 +56,7 @@
                 >
                   {{ truncateHash(transfer.from, 10, 6) }}
                 </router-link>
-                <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                <span v-else class="text-low text-sm">-</span>
               </td>
               <td class="px-4 py-3 text-center">
                 <span
@@ -71,7 +74,7 @@
                 >
                   {{ truncateHash(transfer.to, 10, 6) }}
                 </router-link>
-                <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                <span v-else class="text-low text-sm">-</span>
               </td>
               <td class="table-cell-secondary font-hash">
                 {{ transfer.tokenId ? truncateHash(transfer.tokenId, 8, 4) : "-" }}
@@ -84,14 +87,14 @@
                 >
                   {{ transfer.tokenName }}
                 </router-link>
-                <span v-else class="table-cell-secondary">{{ transfer.tokenName }}</span>
+                <span v-else class="text-mid text-sm">{{ transfer.tokenName }}</span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+      <div class="soft-divider border-t pt-3">
         <EtherscanPagination
           :page="page"
           :total-pages="totalPages"

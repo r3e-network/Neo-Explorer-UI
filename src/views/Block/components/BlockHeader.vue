@@ -14,7 +14,7 @@ const emit = defineEmits(["navigate"]);
 <template>
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center gap-3">
-      <div class="page-header-icon bg-primary-100 dark:bg-primary-900/40">
+      <div class="page-header-icon bg-icon-primary">
         <svg class="h-6 w-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
         </svg>
@@ -25,10 +25,11 @@ const emit = defineEmits(["navigate"]);
       </div>
     </div>
     <!-- Prev / Next Navigation -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2" role="group" aria-label="Block navigation">
       <button
+        type="button"
         :disabled="block.index == null || block.index <= 0"
-        class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+        class="panel-muted list-row inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-mid transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="Previous block"
         @click="emit('navigate', (block.index ?? 0) - 1)"
       >
@@ -38,8 +39,9 @@ const emit = defineEmits(["navigate"]);
         Prev
       </button>
       <button
+        type="button"
         :disabled="block.index == null || block.index >= latestBlockHeight"
-        class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+        class="panel-muted list-row inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-mid transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="Next block"
         @click="emit('navigate', (block.index ?? 0) + 1)"
       >

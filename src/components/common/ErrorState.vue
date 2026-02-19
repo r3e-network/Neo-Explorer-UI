@@ -1,9 +1,10 @@
 <template>
   <div class="error-state py-12 px-4 text-center">
     <div
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/25"
+      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+      style="background: var(--status-error-bg); border: 1px solid var(--status-error)"
     >
-      <svg class="w-8 h-8 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-8 h-8" style="color: var(--status-error)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -12,15 +13,16 @@
         />
       </svg>
     </div>
-    <p class="mb-1 font-semibold text-text-primary dark:text-gray-200">
+    <p class="mb-1 font-semibold text-high">
       {{ title }}
     </p>
-    <p class="mb-4 text-sm text-text-secondary dark:text-gray-400">{{ message }}</p>
+    <p class="mb-4 text-sm text-mid">{{ message }}</p>
     <button
       v-if="showRetry"
+      type="button"
       @click="$emit('retry')"
       aria-label="Retry"
-      class="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600"
+      class="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
     >
       Try Again
     </button>

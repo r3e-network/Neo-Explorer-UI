@@ -22,8 +22,8 @@
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
-          <p class="text-sm text-text-secondary dark:text-gray-300">Candidate list</p>
-          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
+          <p class="text-mid text-sm">Candidate list</p>
+          <p class="text-low text-sm">Page {{ currentPage }} / {{ totalPages }}</p>
         </div>
 
         <!-- Loading state -->
@@ -44,7 +44,7 @@
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[760px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
                 <th class="table-header-cell">Address</th>
@@ -52,11 +52,11 @@
                 <th class="table-header-cell text-center">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="(candidate, index) in candidates"
                 :key="candidate.candidate"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -79,7 +79,7 @@
 
         <div
           v-if="!loading && candidates.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <EtherscanPagination
             :page="currentPage"

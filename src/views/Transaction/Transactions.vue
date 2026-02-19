@@ -6,7 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -25,9 +25,10 @@
       <!-- Stats Bar -->
       <div
         v-if="totalCount > 0"
-        class="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 dark:border-blue-800 dark:bg-blue-900/20"
+        class="soft-divider mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5"
+        style="background: var(--status-warning-bg)"
       >
-        <svg class="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-4 w-4 flex-shrink-0 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -35,22 +36,20 @@
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span class="text-sm text-blue-800 dark:text-blue-300">
-          More than {{ formatNumber(totalCount) }} transactions found
-        </span>
+        <span class="text-sm text-mid"> More than {{ formatNumber(totalCount) }} transactions found </span>
       </div>
 
       <!-- Main Card -->
       <div class="etherscan-card overflow-hidden">
         <!-- Card Header -->
         <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-text-secondary dark:text-gray-400">
+          <p class="text-sm text-mid">
             Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(totalCount) }} transactions
           </p>
           <button
             v-if="transactions.length > 0"
             @click="exportData"
-            class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            class="btn-outline gap-1.5 text-xs"
             title="Export to CSV"
           >
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +65,7 @@
         </div>
 
         <!-- Loading Skeletons -->
-        <div v-if="loading" class="divide-y divide-card-border dark:divide-card-border-dark">
+        <div v-if="loading" class="soft-divider divide-y">
           <div v-for="i in pageSize" :key="'skel-' + i" class="flex items-center gap-4 px-4 py-3.5">
             <Skeleton width="180px" height="16px" />
             <Skeleton width="60px" height="24px" variant="rounded" />
@@ -99,7 +98,7 @@
         <!-- Pagination -->
         <div
           v-if="!loading && transactions.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
         </div>

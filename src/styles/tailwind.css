@@ -9,22 +9,50 @@
     --page-bg: linear-gradient(180deg, #f4f8fd 0%, #eef3fb 60%, #edf5fa 100%);
     --surface-elevated: rgba(255, 255, 255, 0.82);
     --surface-glass: rgba(255, 255, 255, 0.72);
+    --surface-hover: rgba(255, 255, 255, 0.55);
     --line-soft: rgba(31, 56, 90, 0.1);
+    --line-hover: rgba(31, 56, 90, 0.18);
     --text-high: #0d223d;
     --text-mid: #5f738d;
+    --text-low: #8797aa;
     --link: #1498dd;
+    --link-hover: #0f78b0;
     --ring-focus: rgba(20, 152, 221, 0.28);
+    --status-success: #0f9f72;
+    --status-success-bg: rgba(15, 159, 114, 0.1);
+    --status-error: #d64949;
+    --status-error-bg: rgba(214, 73, 73, 0.1);
+    --status-warning: #c67a12;
+    --status-warning-bg: rgba(198, 122, 18, 0.1);
+    --icon-bg-primary: rgba(20, 152, 221, 0.1);
+    --icon-bg-green: rgba(15, 159, 114, 0.1);
+    --icon-bg-orange: rgba(234, 138, 30, 0.1);
+    --icon-bg-purple: rgba(139, 92, 246, 0.1);
   }
 
   .dark {
     --page-bg: linear-gradient(180deg, #0a1426 0%, #0b1a2f 55%, #0d1f35 100%);
     --surface-elevated: rgba(20, 33, 53, 0.82);
     --surface-glass: rgba(17, 31, 50, 0.72);
+    --surface-hover: rgba(30, 48, 72, 0.6);
     --line-soft: rgba(178, 203, 235, 0.16);
+    --line-hover: rgba(178, 203, 235, 0.26);
     --text-high: #e3eefc;
     --text-mid: #9ab1ce;
+    --text-low: #6b84a3;
     --link: #59c2ff;
+    --link-hover: #7dd1ff;
     --ring-focus: rgba(89, 194, 255, 0.3);
+    --status-success: #34d399;
+    --status-success-bg: rgba(52, 211, 153, 0.15);
+    --status-error: #f87171;
+    --status-error-bg: rgba(248, 113, 113, 0.15);
+    --status-warning: #fbbf24;
+    --status-warning-bg: rgba(251, 191, 36, 0.15);
+    --icon-bg-primary: rgba(89, 194, 255, 0.15);
+    --icon-bg-green: rgba(52, 211, 153, 0.15);
+    --icon-bg-orange: rgba(251, 191, 36, 0.15);
+    --icon-bg-purple: rgba(167, 139, 250, 0.15);
   }
 
   html {
@@ -141,6 +169,14 @@
 
   .etherscan-link:hover {
     color: color-mix(in srgb, var(--link) 86%, #ffffff 14%);
+  }
+
+  .etherscan-link:focus-visible {
+    color: var(--link-hover);
+    text-decoration: underline;
+    outline: 2px solid var(--ring-focus);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
   }
 
   .btn-outline {
@@ -261,6 +297,13 @@
     color: var(--link);
   }
 
+  .footer-link:focus-visible {
+    color: var(--link-hover);
+    outline: 2px solid var(--ring-focus);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
   .page-header-icon {
     @apply flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl;
     background: color-mix(in srgb, var(--link) 12%, #ffffff 88%);
@@ -285,6 +328,10 @@
     border-bottom: 1px solid var(--line-soft);
   }
 
+  .table-head {
+    background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+  }
+
   .table-header-cell {
     @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em];
     color: color-mix(in srgb, var(--text-mid) 88%, transparent);
@@ -306,6 +353,23 @@
 
   .table-cell-mono {
     @apply table-cell font-hash;
+  }
+
+  .panel-muted {
+    @apply rounded-lg border;
+    border-color: var(--line-soft);
+    background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  }
+
+  .progress-track {
+    background: color-mix(in srgb, var(--line-soft) 72%, transparent);
+  }
+
+  .badge-soft {
+    @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium;
+    border: 1px solid var(--line-soft);
+    background: color-mix(in srgb, var(--surface-hover) 75%, transparent);
+    color: var(--text-mid);
   }
 
   .tab-btn {
@@ -334,5 +398,46 @@
 
   .soft-divider {
     border-color: var(--line-soft);
+  }
+
+  .text-high {
+    color: var(--text-high);
+  }
+
+  .text-mid {
+    color: var(--text-mid);
+  }
+
+  .text-low {
+    color: var(--text-low);
+  }
+
+  .bg-icon-primary {
+    background: var(--icon-bg-primary);
+  }
+
+  .bg-icon-green {
+    background: var(--icon-bg-green);
+  }
+
+  .bg-icon-orange {
+    background: var(--icon-bg-orange);
+  }
+
+  .bg-icon-purple {
+    background: var(--icon-bg-purple);
+  }
+
+  .list-row {
+    border-color: var(--line-soft);
+    transition: background-color 0.15s ease;
+  }
+
+  .list-row:hover {
+    background: var(--surface-hover);
+  }
+
+  .list-row:focus-within {
+    background: color-mix(in srgb, var(--surface-hover) 88%, transparent);
   }
 }

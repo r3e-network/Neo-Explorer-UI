@@ -6,10 +6,10 @@
       <div class="w-full max-w-lg etherscan-card p-8 text-center">
         <!-- 404 SVG Icon -->
         <div
-          class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+          class="bg-icon-primary mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full"
         >
           <svg
-            class="h-12 w-12 text-gray-400 dark:text-gray-500"
+            class="text-mid h-12 w-12"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -22,9 +22,9 @@
             />
           </svg>
         </div>
-        <p class="text-7xl font-bold text-gray-300 dark:text-gray-600">404</p>
+        <p class="text-low text-7xl font-bold">404</p>
         <h1 class="mt-2 page-title">Page Not Found</h1>
-        <p class="mt-2 text-sm text-text-secondary dark:text-gray-400">
+        <p class="text-mid mt-2 text-sm">
           The requested page does not exist or may have been moved.
         </p>
 

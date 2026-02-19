@@ -1,8 +1,8 @@
 <template>
-  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="panel-muted overflow-hidden">
     <!-- Event header -->
     <div
-      class="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600"
+      class="table-head soft-divider flex items-center gap-2 border-b px-4 py-3"
     >
       <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold" :class="eventBadgeClass">
         {{ notification.eventName ?? "Unknown" }}
@@ -12,15 +12,15 @@
         :hash="notification.contract"
         type="contract"
       />
-      <span v-if="contractName" class="text-xs text-gray-500 dark:text-gray-400">({{ contractName }})</span>
+      <span v-if="contractName" class="text-low text-xs">({{ contractName }})</span>
       <!-- Raw / Decoded toggle -->
       <button
         v-if="notification.rawState || decodedParams.length > 0"
         class="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors"
         :class="
           viewMode === 'raw'
-            ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
-            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
+            : 'badge-soft hover:text-high'
         "
         @click="viewMode = viewMode === 'decoded' ? 'raw' : 'decoded'"
       >
@@ -40,7 +40,7 @@
       <!-- Raw JSON view -->
       <pre
         v-if="viewMode === 'raw' && notification.rawState"
-        class="max-h-48 overflow-auto rounded bg-gray-50 dark:bg-gray-900 p-3 font-mono text-xs text-gray-600 dark:text-gray-400"
+        class="panel-muted text-mid max-h-48 overflow-auto rounded p-3 font-mono text-xs"
         >{{ formatRaw(notification.rawState) }}</pre
       >
 
@@ -58,22 +58,22 @@
         </div>
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-gray-100 dark:border-gray-700">
-              <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 w-8">#</th>
+            <tr class="soft-divider border-b">
+              <th class="text-low w-8 px-2 py-1.5 text-left text-xs font-medium">#</th>
               <th
                 v-if="hasParamNames"
-                class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400"
+                class="text-low px-2 py-1.5 text-left text-xs font-medium"
               >
                 Name
               </th>
-              <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Type</th>
-              <th class="px-2 py-1.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Decoded Value</th>
+              <th class="text-low px-2 py-1.5 text-left text-xs font-medium">Type</th>
+              <th class="text-low px-2 py-1.5 text-left text-xs font-medium">Decoded Value</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody class="soft-divider divide-y">
             <tr v-for="param in decodedParams" :key="param.index">
-              <td class="px-2 py-2 text-xs text-gray-400">{{ param.index }}</td>
-              <td v-if="hasParamNames" class="px-2 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+              <td class="text-low px-2 py-2 text-xs">{{ param.index }}</td>
+              <td v-if="hasParamNames" class="text-high px-2 py-2 text-xs font-medium">
                 {{ param.name ?? "-" }}
               </td>
               <td class="px-2 py-2">
@@ -81,7 +81,7 @@
                   {{ param.type }}
                 </span>
               </td>
-              <td class="px-2 py-2 font-mono text-xs text-gray-700 dark:text-gray-300 max-w-xs">
+              <td class="text-high max-w-xs px-2 py-2 font-mono text-xs">
                 <!-- Hash160 as clickable address link with copy -->
                 <span
                   v-if="param.type === 'Hash160' && param.decoded.decodedValue"
@@ -121,7 +121,7 @@
       </div>
 
       <!-- Empty state -->
-      <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">No parameters</div>
+      <div v-else class="text-mid text-sm italic">No parameters</div>
     </div>
   </div>
 </template>
@@ -154,7 +154,7 @@ const eventBadgeClass = computed(() => {
   if (name === "transfer") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
   if (name === "approval") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
   if (name === "deploy") return "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300";
-  return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+  return "badge-soft";
 });
 
 function typeBadgeClass(type) {
@@ -166,7 +166,7 @@ function typeBadgeClass(type) {
     Array: "bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400",
     Map: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400",
   };
-  return map[type] ?? "bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
+  return map[type] ?? "badge-soft";
 }
 
 function formatInteger(val) {

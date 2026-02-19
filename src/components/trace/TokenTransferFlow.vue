@@ -13,11 +13,11 @@
       <div
         v-for="(t, idx) in transfers"
         :key="idx"
-        class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3"
+        class="panel-muted flex flex-wrap items-center gap-2 px-4 py-3"
       >
         <!-- Step number -->
         <span
-          class="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400"
+          class="badge-soft flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full px-0 py-0 text-xs font-semibold"
         >
           {{ idx + 1 }}
         </span>
@@ -34,7 +34,7 @@
 
         <!-- From -->
         <div class="flex items-center gap-1">
-          <span class="text-xs text-gray-500 dark:text-gray-400">From</span>
+          <span class="text-mid text-xs">From</span>
           <HashLink v-if="t.from && t.from !== 'null'" :hash="t.from" type="address" />
           <span
             v-else
@@ -46,17 +46,17 @@
 
         <!-- Arrow with amount -->
         <div class="flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
-          <span class="font-semibold text-sm text-gray-800 dark:text-gray-200">
+          <span class="text-high text-sm font-semibold">
             {{ formatAmount(t) }}
           </span>
         </div>
 
         <!-- To -->
         <div class="flex items-center gap-1">
-          <span class="text-xs text-gray-500 dark:text-gray-400">To</span>
+          <span class="text-mid text-xs">To</span>
           <HashLink v-if="t.to && t.to !== 'null'" :hash="t.to" type="address" />
           <span
             v-else
@@ -74,14 +74,14 @@
         >
           ID: {{ t.tokenId.length > 16 ? t.tokenId.slice(0, 16) + "…" : t.tokenId }}
         </span>
-        <span v-if="t.contractName" class="ml-auto text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">
+        <span v-if="t.contractName" class="text-low ml-auto hidden text-xs sm:inline">
           via {{ t.contractName }}
         </span>
       </div>
 
       <!-- Total summary -->
       <div
-        class="flex items-center justify-end px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 mt-1"
+        class="soft-divider text-mid mt-1 flex items-center justify-end border-t px-4 py-2 text-xs"
       >
         Total: {{ transfers.length }} {{ transfers.length === 1 ? "transfer" : "transfers" }}
       </div>
@@ -115,7 +115,7 @@ function tokenStandardClass(transfer) {
 
 function tokenBadgeClass(transfer) {
   if (transfer.tokenDecimals === undefined || transfer.tokenDecimals === null) {
-    return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+    return "badge-soft";
   }
   return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
 }

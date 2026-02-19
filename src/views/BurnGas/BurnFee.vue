@@ -33,7 +33,7 @@
           <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
             {{ formatGasDisplay(totalBurned) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS</p>
+          <p class="text-low mt-1 text-xs">GAS</p>
         </div>
 
         <!-- Daily Burn Rate -->
@@ -42,7 +42,7 @@
           <p class="stat-value text-2xl">
             {{ formatGasDisplay(avgDailyBurn) }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS / day</p>
+          <p class="text-low mt-1 text-xs">GAS / day</p>
         </div>
 
         <!-- Burn Trend -->
@@ -51,14 +51,14 @@
           <p class="stat-value text-2xl">
             {{ BURN_RATE }}
           </p>
-          <p class="mt-1 text-xs text-text-muted dark:text-gray-500">GAS (system fee burn)</p>
+          <p class="text-low mt-1 text-xs">GAS (system fee burn)</p>
         </div>
       </div>
 
       <!-- Cumulative Burn Chart (Area) -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Cumulative GAS Burned</h2>
-        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">Running total of estimated GAS burned over time</p>
+        <h2 class="text-high mb-1 text-base font-semibold">Cumulative GAS Burned</h2>
+        <p class="text-low mb-4 text-xs">Running total of estimated GAS burned over time</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 5" :key="i" height="44px" />
         </div>
@@ -72,8 +72,8 @@
 
       <!-- Daily Burn Chart (Bar) -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="mb-1 text-base font-semibold text-text-primary dark:text-gray-200">Daily GAS Burned</h2>
-        <p class="mb-4 text-xs text-text-muted dark:text-gray-500">
+        <h2 class="text-high mb-1 text-base font-semibold">Daily GAS Burned</h2>
+        <p class="text-low mb-4 text-xs">
           Estimated daily GAS burn based on transaction count
         </p>
         <div v-if="loading" class="space-y-2">
@@ -89,16 +89,16 @@
 
       <!-- Info Card -->
       <div class="etherscan-card p-5">
-        <h2 class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200">About GAS Burning</h2>
-        <div class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+        <h2 class="text-high mb-2 text-base font-semibold">About GAS Burning</h2>
+        <div class="text-mid space-y-2 text-sm leading-relaxed">
           <p>
             In Neo N3, system fees paid for smart contract execution are
-            <strong class="text-text-primary dark:text-gray-300">burned</strong> (permanently removed from circulation),
+            <strong class="text-high">burned</strong> (permanently removed from circulation),
             creating deflationary pressure on the GAS token supply.
           </p>
           <p>
             The burn rate is approximately
-            <strong class="text-text-primary dark:text-gray-300">{{ BURN_RATE }} GAS</strong>
+            <strong class="text-high">{{ BURN_RATE }} GAS</strong>
             per transaction. Actual burn amounts vary based on contract complexity and computational resources consumed.
           </p>
         </div>

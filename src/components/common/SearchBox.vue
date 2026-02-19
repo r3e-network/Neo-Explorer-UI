@@ -4,7 +4,7 @@
       :class="[
         'relative flex items-center transition-all duration-200',
         mode === 'full'
-          ? 'surface-panel rounded-2xl border border-card-border/70 bg-white/85 px-0 focus-within:border-primary-300/70 focus-within:bg-white'
+          ? 'surface-panel rounded-2xl px-0 focus-within:border-primary-300/70'
           : 'rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm focus-within:border-white/45 focus-within:bg-white/15',
       ]"
     >
@@ -12,7 +12,7 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full cursor-pointer appearance-none rounded-l-2xl border-r border-card-border/70 bg-gray-50/95 py-4 pl-3 pr-7 text-xs font-semibold text-text-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-card-border-dark/70 dark:bg-gray-800/80 dark:text-gray-300"
+        class="search-filter h-full cursor-pointer appearance-none rounded-l-2xl border-r py-4 pl-3 pr-7 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
         aria-label="Search filter"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value">{{ f.label }}</option>
@@ -22,7 +22,7 @@
       <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-3' : 'pl-2.5'">
         <svg
           class="w-4 h-4"
-          :class="mode === 'full' ? 'text-gray-400 dark:text-gray-500' : 'text-white/50'"
+          :class="mode === 'full' ? 'text-low' : 'text-white/60'"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -37,7 +37,7 @@
         </svg>
         <kbd
           v-if="!isFocused && mode === 'full'"
-          class="hidden sm:inline-flex h-5 w-5 items-center justify-center rounded border border-gray-300 bg-gray-100 text-[10px] font-medium text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
+          class="search-shortcut hidden sm:inline-flex h-5 w-5 items-center justify-center rounded border text-[10px] font-medium"
           title="Press / to search"
           >/</kbd
         >
@@ -52,10 +52,10 @@
         :class="[
           'flex-1 bg-transparent focus:outline-none',
           mode === 'full'
-            ? 'px-3 py-4 pr-28 text-base font-medium text-text-primary placeholder:text-text-muted dark:text-gray-100'
+            ? 'text-high px-3 py-4 pr-28 text-base font-medium placeholder:text-low'
             : 'px-2.5 py-2 pr-16 text-sm text-white placeholder-white/50',
         ]"
-        @keyup.enter="handleSearch"
+        @keyup.enter="handleEnter"
         @input="handleInput"
         @focus="handleFocus"
         @blur="handleBlur"
@@ -79,8 +79,8 @@
         :class="[
           'absolute right-1.5 top-1/2 -translate-y-1/2 font-medium transition-colors duration-200 flex items-center gap-1.5',
           mode === 'full'
-            ? 'rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 disabled:bg-gray-300 dark:disabled:bg-gray-600'
-            : 'px-2.5 py-1 bg-primary-500 hover:bg-primary-600 disabled:bg-white/10 text-white rounded text-xs',
+            ? 'rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50'
+            : 'px-2.5 py-1 bg-primary-500 hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-white/10 text-white rounded text-xs',
         ]"
       >
         <svg v-if="loading" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -106,18 +106,18 @@
         id="search-dropdown"
         role="listbox"
         aria-label="Search suggestions"
-        class="surface-panel absolute z-50 mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border border-card-border/70 bg-white/92 shadow-dropdown dark:border-card-border-dark/70 dark:bg-gray-900/88"
+        class="surface-panel soft-divider absolute z-50 mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-dropdown"
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0">
-          <div class="flex items-center justify-between bg-gray-50/80 px-4 py-2 dark:bg-gray-800/65">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+          <div class="search-group-header flex items-center justify-between px-4 py-2">
+            <span class="text-mid text-xs font-medium uppercase tracking-wide"
               >Recent Searches</span
             >
             <button
               @click.stop="clearHistory"
               aria-label="Clear search history"
-              class="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              class="text-low hover:text-error text-xs transition-colors"
             >
               Clear
             </button>
@@ -130,13 +130,11 @@
             :aria-selected="selectedIndex === index"
             :class="[
               'px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors',
-              selectedIndex === index
-                ? 'bg-primary-50 dark:bg-primary-900/25'
-                : 'hover:bg-white/70 dark:hover:bg-gray-800/70',
+              selectedIndex === index ? 'bg-primary-50 dark:bg-primary-900/25' : 'list-row',
             ]"
             @click="selectHistoryItem(item)"
           >
-            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="text-low w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -144,15 +142,15 @@
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span class="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">{{ item.query }}</span>
+            <span class="text-high truncate flex-1 text-sm">{{ item.query }}</span>
             <span :class="getTypeBadgeClass(item.type)" class="text-xs px-2 py-0.5 rounded-full">{{ item.type }}</span>
           </div>
         </div>
 
         <!-- Search Suggestions -->
         <div v-if="query && suggestions.length > 0">
-          <div class="bg-gray-50/80 px-4 py-2 dark:bg-gray-800/65">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+          <div class="search-group-header px-4 py-2">
+            <span class="text-mid text-xs font-medium uppercase tracking-wide"
               >Suggestions</span
             >
           </div>
@@ -164,9 +162,7 @@
             :aria-selected="selectedIndex === index"
             :class="[
               'px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors',
-              selectedIndex === index
-                ? 'bg-primary-50 dark:bg-primary-900/25'
-                : 'hover:bg-white/70 dark:hover:bg-gray-800/70',
+              selectedIndex === index ? 'bg-primary-50 dark:bg-primary-900/25' : 'list-row',
             ]"
             @click="selectSuggestion(item)"
           >
@@ -176,10 +172,10 @@
               >{{ getTypeIcon(item.type) }}</span
             >
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{{ item.label }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">{{ item.value }}</p>
+              <p class="text-high truncate text-sm font-medium">{{ item.label }}</p>
+              <p class="text-mid truncate font-mono text-xs">{{ item.value }}</p>
             </div>
-            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="text-low w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -187,35 +183,35 @@
 
         <!-- Quick Search Tips -->
         <div v-if="!query && searchHistory.length === 0" class="p-4">
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Search Tips</p>
+          <p class="text-mid mb-3 text-xs font-medium uppercase tracking-wide">Search Tips</p>
           <div class="space-y-2">
-            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-500 flex items-center justify-center text-xs"
                 >Bk</span
               >
-              <span>Block height: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">12345678</code></span>
+              <span>Block height: <code class="search-tip-code rounded px-1">12345678</code></span>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center text-xs"
                 >Tx</span
               >
-              <span>Transaction hash: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">0x...</code></span>
+              <span>Transaction hash: <code class="search-tip-code rounded px-1">0x...</code></span>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center text-xs"
                 >Ad</span
               >
-              <span>Address: <code class="rounded bg-gray-100 px-1 dark:bg-gray-700">N...</code></span>
+              <span>Address: <code class="search-tip-code rounded px-1">N...</code></span>
             </div>
           </div>
         </div>
 
         <!-- No Results -->
         <div v-if="query && suggestions.length === 0 && !isSearching" class="p-4 text-center">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Press Enter to search</p>
+          <p class="text-mid text-sm">Press Enter to search</p>
         </div>
       </div>
     </transition>
@@ -286,6 +282,23 @@ function handleSearch() {
     addToHistory(query.value.trim(), detectType(query.value.trim()));
     emit("search", query.value.trim());
   }
+}
+
+function handleEnter() {
+  if (selectedIndex.value >= 0) {
+    const items = query.value ? suggestions.value : searchHistory.value.slice(0, MAX_HISTORY_DISPLAY);
+    const picked = items[selectedIndex.value];
+    if (picked) {
+      if (query.value) {
+        selectSuggestion(picked);
+      } else {
+        selectHistoryItem(picked);
+      }
+      return;
+    }
+  }
+
+  handleSearch();
 }
 
 function handleInput() {
@@ -426,6 +439,33 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.search-filter {
+  border-color: var(--line-soft);
+  background: var(--surface-hover);
+  color: var(--text-mid);
+}
+
+.search-filter option {
+  background: var(--surface-elevated);
+  color: var(--text-high);
+}
+
+.search-shortcut {
+  border-color: var(--line-soft);
+  background: var(--surface-hover);
+  color: var(--text-low);
+}
+
+.search-group-header {
+  background: color-mix(in srgb, var(--surface-hover) 88%, transparent);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.search-tip-code {
+  background: var(--surface-hover);
+  color: var(--text-high);
+}
+
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: all 0.2s ease;

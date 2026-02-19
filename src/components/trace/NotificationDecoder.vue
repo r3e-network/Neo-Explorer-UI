@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="notification-decoder rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3"
-  >
+  <div class="notification-decoder panel-muted p-3">
     <!-- Event header -->
     <div class="flex items-center gap-2 mb-2">
       <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold" :class="eventBadgeClass">
@@ -15,11 +13,11 @@
       <!-- Raw toggle -->
       <button
         v-if="notification.state"
-        class="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors"
+        class="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
         :class="
           showRawState
-            ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
-            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+            ? 'soft-divider text-high'
+            : 'badge-soft hover:text-high'
         "
         @click="showRawState = !showRawState"
       >
@@ -30,13 +28,13 @@
     <!-- Raw JSON view -->
     <pre
       v-if="showRawState && notification.state"
-      class="max-h-32 overflow-auto rounded bg-gray-50 dark:bg-gray-900 p-2 font-mono text-xs text-gray-600 dark:text-gray-400"
+      class="soft-divider text-mid max-h-32 overflow-auto rounded border p-2 font-mono text-xs"
       >{{ formatRawState(notification.state) }}</pre
     >
 
     <!-- Decoded Transfer -->
     <div v-else-if="isTransfer" class="transfer-summary flex items-center gap-2 text-sm flex-wrap">
-      <span class="text-gray-500 dark:text-gray-400">From</span>
+      <span class="text-mid">From</span>
       <HashLink v-if="isAddress(fromAddress)" :hash="fromAddress" type="address" />
       <span
         v-else-if="fromAddress === 'null'"
@@ -46,11 +44,11 @@
       </span>
       <span
         v-else
-        class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+        class="badge-soft font-mono"
       >
         {{ fromAddress }}
       </span>
-      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
       </svg>
       <HashLink v-if="isAddress(toAddress)" :hash="toAddress" type="address" />
@@ -62,49 +60,49 @@
       </span>
       <span
         v-else
-        class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+        class="badge-soft font-mono"
       >
         {{ toAddress }}
       </span>
-      <span class="font-semibold text-gray-800 dark:text-gray-200">
+      <span class="text-high font-semibold">
         {{ transferAmount }}
       </span>
     </div>
 
     <!-- Decoded Approval -->
     <div v-else-if="isApproval" class="approval-summary flex items-center gap-2 text-sm flex-wrap">
-      <span class="text-gray-500 dark:text-gray-400">Owner</span>
+      <span class="text-mid">Owner</span>
       <HashLink v-if="isAddress(approvalOwner)" :hash="approvalOwner" type="address" />
       <span
         v-else
-        class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+        class="badge-soft font-mono"
       >
         {{ approvalOwner }}
       </span>
-      <span class="text-gray-500 dark:text-gray-400">approved</span>
+      <span class="text-mid">approved</span>
       <HashLink v-if="isAddress(approvalSpender)" :hash="approvalSpender" type="address" />
       <span
         v-else
-        class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+        class="badge-soft font-mono"
       >
         {{ approvalSpender }}
       </span>
-      <span class="font-semibold text-gray-800 dark:text-gray-200">
+      <span class="text-high font-semibold">
         {{ approvalAmount }}
       </span>
     </div>
 
     <!-- Raw state fallback -->
     <div v-else-if="notification.state" class="mt-1">
-      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Event State:</div>
+      <div class="text-mid mb-1 text-xs">Event State:</div>
       <div class="space-y-1">
         <div v-for="(param, i) in stateParams" :key="i" class="flex items-center gap-2 text-xs font-mono">
-          <span class="text-gray-400 dark:text-gray-500 w-4 text-right flex-shrink-0">{{ i }}</span>
+          <span class="text-low w-4 flex-shrink-0 text-right">{{ i }}</span>
           <span class="type-badge px-1 py-0.5 rounded text-xs" :class="paramTypeBadge(param.type)">
             {{ param.type }}
           </span>
           <HashLink v-if="isAddress(formatParam(param))" :hash="formatParam(param)" type="address" />
-          <span v-else class="text-gray-700 dark:text-gray-300 truncate">
+          <span v-else class="text-high truncate">
             {{ formatParam(param) }}
           </span>
         </div>
@@ -196,7 +194,7 @@ const eventBadgeClass = computed(() => {
   const name = props.notification.eventName?.toLowerCase();
   if (name === "transfer") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
   if (name === "approval") return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
-  return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+  return "badge-soft";
 });
 
 function decodeStackValue(param) {
@@ -212,7 +210,7 @@ function paramTypeBadge(type) {
     Boolean: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
     Array: "bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400",
   };
-  return map[type] ?? "bg-gray-50 text-gray-500 dark:bg-gray-700 dark:text-gray-400";
+  return map[type] ?? "badge-soft";
 }
 
 function isAddress(val) {

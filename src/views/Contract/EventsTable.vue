@@ -13,7 +13,7 @@
     <template v-else>
       <div class="overflow-x-auto">
         <table class="w-full min-w-[750px]">
-          <thead class="bg-gray-50 dark:bg-gray-800">
+          <thead class="table-head">
             <tr>
               <th class="table-header-cell">Txn Hash</th>
               <th class="table-header-cell">Event Name</th>
@@ -25,15 +25,15 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody class="soft-divider divide-y">
             <tr
               v-for="item in items"
               :key="item.txid + item.eventname"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              class="list-row transition-colors"
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted"> Null Transaction </span>
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> Null Transaction </span>
                   <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
@@ -70,7 +70,7 @@
       </div>
     </template>
 
-    <div v-if="!loading && totalCount > pageSize" class="card-header border-t border-b-0">
+    <div v-if="!loading && totalCount > pageSize" class="card-header soft-divider border-t border-b-0">
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"

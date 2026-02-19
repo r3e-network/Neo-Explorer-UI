@@ -12,9 +12,12 @@
       description="No NEP-11 balances were found for this address."
     />
 
-    <div v-else class="overflow-x-auto">
-      <table class="w-full min-w-[700px]">
-        <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+    <div v-else class="surface-panel overflow-x-auto">
+      <table class="w-full min-w-[700px]" aria-label="Address NFT holdings">
+        <caption class="sr-only">
+          NEP-11 token holdings for this address
+        </caption>
+        <thead class="table-head text-xs uppercase tracking-wide">
           <tr>
             <th class="table-header-cell">Collection</th>
             <th class="table-header-cell">Standard</th>
@@ -22,11 +25,11 @@
             <th class="table-header-cell">Contract</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+        <tbody class="soft-divider divide-y">
           <tr
             v-for="asset in assets"
             :key="assetKey(asset)"
-            class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            class="list-row transition-colors"
           >
             <td class="table-cell font-medium">
               {{ assetDisplayName(asset) }}
@@ -45,7 +48,7 @@
               >
                 {{ truncateHash(assetHash(asset), 12, 8) }}
               </router-link>
-              <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+              <span v-else class="text-low text-sm">-</span>
             </td>
           </tr>
         </tbody>

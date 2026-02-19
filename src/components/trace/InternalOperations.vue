@@ -31,17 +31,17 @@
     <!-- Summary bar -->
     <div
       v-if="!loading && operations.length > 0"
-      class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5"
+      class="panel-muted mb-4 flex flex-wrap items-center gap-3 px-4 py-2.5"
     >
-      <span class="text-sm text-gray-700 dark:text-gray-300">
+      <span class="text-mid text-sm">
         <span class="font-semibold">{{ operations.length }}</span>
         {{ operations.length === 1 ? "operation" : "operations" }}
         across
         <span class="font-semibold">{{ uniqueContracts }}</span>
         {{ uniqueContracts === 1 ? "contract" : "contracts" }}
       </span>
-      <span class="text-gray-300 dark:text-gray-600">|</span>
-      <span class="text-sm font-mono text-gray-500 dark:text-gray-400"> Total Gas: {{ totalGas }} </span>
+      <span class="text-low">|</span>
+      <span class="text-mid text-sm font-mono"> Total Gas: {{ totalGas }} </span>
     </div>
 
     <!-- Empty state -->
@@ -54,14 +54,18 @@
     <!-- Timeline -->
     <div v-else-if="!loading" class="relative">
       <!-- Vertical connecting line -->
-      <div v-if="visibleOps.length > 1" class="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+      <div
+        v-if="visibleOps.length > 1"
+        class="absolute bottom-3 left-3 top-3 w-0.5"
+        style="background: var(--line-soft)"
+      ></div>
 
       <div class="space-y-0">
         <div
           v-for="(op, oi) in visibleOps"
           :key="op.index"
           class="relative flex gap-3 px-3 py-3 rounded-lg"
-          :class="oi % 2 === 1 ? 'bg-gray-50/50 dark:bg-gray-800/30' : ''"
+          :class="oi % 2 === 1 ? 'list-row' : ''"
         >
           <!-- Step indicator -->
           <div class="relative z-10 flex-shrink-0">
@@ -84,7 +88,7 @@
                 {{ opTypeLabel(op.operationType) }}
               </span>
               <HashLink :hash="op.contract" type="contract" />
-              <span v-if="op.contractName" class="text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="op.contractName" class="text-mid text-xs">
                 ({{ op.contractName }})
               </span>
               <span
@@ -96,7 +100,7 @@
 
             <!-- Transfer rendering -->
             <div v-if="op.operationType === 'transfer'" class="flex flex-wrap items-center gap-2 text-sm mt-1">
-              <span class="text-gray-500 dark:text-gray-400 text-xs">From</span>
+              <span class="text-mid text-xs">From</span>
               <HashLink v-if="op.from && op.from !== 'null'" :hash="op.from" type="address" />
               <span
                 v-else
@@ -104,16 +108,16 @@
               >
                 Mint
               </span>
-              <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <span class="font-semibold text-gray-800 dark:text-gray-200">
+              <span class="text-high font-semibold">
                 {{ formatAmount(op) }} {{ op.tokenSymbol || "" }}
               </span>
-              <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <span class="text-gray-500 dark:text-gray-400 text-xs">To</span>
+              <span class="text-mid text-xs">To</span>
               <HashLink v-if="op.to && op.to !== 'null'" :hash="op.to" type="address" />
               <span
                 v-else
@@ -137,7 +141,7 @@
                 :key="param.index"
                 class="flex items-center gap-2 text-xs font-mono py-0.5"
               >
-                <span class="text-gray-400 dark:text-gray-500 w-20 truncate flex-shrink-0">
+                <span class="text-low w-20 truncate flex-shrink-0">
                   {{ param.name || `arg${param.index}` }}:
                 </span>
                 <HashLink
@@ -145,7 +149,7 @@
                   :hash="param.decoded.decodedValue"
                   type="address"
                 />
-                <span v-else class="text-gray-700 dark:text-gray-300 truncate">
+                <span v-else class="text-high truncate">
                   {{ param.decoded.displayValue }}
                 </span>
               </div>
@@ -157,7 +161,7 @@
       <!-- Show all toggle -->
       <button
         v-if="operations.length > maxInline"
-        class="mt-4 w-full rounded-lg border border-gray-200 dark:border-gray-700 py-2 text-sm font-medium text-primary-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        class="soft-divider list-row mt-4 w-full rounded-lg border py-2 text-sm font-medium text-primary-500 transition-colors"
         @click="showAll = !showAll"
       >
         {{ showAll ? "Show less" : `Show all ${operations.length} operations` }}
@@ -217,7 +221,7 @@ function stepClass(opType) {
     vote: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     destroy: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
-  return map[opType] ?? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+  return map[opType] ?? "badge-soft";
 }
 
 function opTypeBadge(opType) {
@@ -227,7 +231,7 @@ function opTypeBadge(opType) {
     blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-    gray: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400",
+    gray: "badge-soft",
   };
   return map[color] ?? map.gray;
 }

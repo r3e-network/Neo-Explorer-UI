@@ -14,7 +14,7 @@
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-sm text-text-secondary dark:text-gray-300">
+        <p class="text-mid text-sm">
           A total of {{ formatNumber(totalCount) }} transfers found
         </p>
       </div>
@@ -22,17 +22,17 @@
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full min-w-[960px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="table-head text-xs uppercase tracking-wide">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Token ID</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Type</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">From</th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400">Amount</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">To</th>
+              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell">Token ID</th>
+              <th class="table-header-cell">Type</th>
+              <th class="table-header-cell">From</th>
+              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]"></th>
+              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]">Amount</th>
+              <th class="table-header-cell">To</th>
               <th
-                class="cursor-pointer select-none px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400 hover:text-primary-500"
+                class="table-header-cell-right cursor-pointer select-none hover:text-primary-500"
                 @click="showAbsoluteTime = !showAbsoluteTime"
               >
                 {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
@@ -47,16 +47,16 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody class="soft-divider divide-y">
             <tr
               v-for="(item, index) in transfers"
               :key="item.txid + index"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              class="list-row transition-colors"
             >
               <!-- Txn Hash -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted">System</span>
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm">System</span>
                   <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
@@ -83,7 +83,7 @@
               <!-- From -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.from === null" class="text-sm text-text-muted">Null Address</span>
+                  <span v-if="item.from === null" class="text-low text-sm">Null Address</span>
                   <router-link v-else :to="'/account-profile/' + item.from" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.from) : truncateHash(item.from) }}
                   </router-link>
@@ -120,14 +120,14 @@
               <!-- To -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.to === null" class="text-sm text-text-muted">Null Address</span>
+                  <span v-if="item.to === null" class="text-low text-sm">Null Address</span>
                   <router-link v-else :to="'/account-profile/' + item.to" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.to) : truncateHash(item.to) }}
                   </router-link>
                 </div>
               </td>
               <!-- Time -->
-              <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+              <td class="text-mid px-4 py-3 text-right text-sm">
                 {{ showAbsoluteTime ? formatDateTime(item.timestamp) : formatAge(item.timestamp) }}
               </td>
             </tr>
@@ -143,7 +143,7 @@
     <!-- Pagination -->
     <div
       v-if="!loading && totalCount > resultsPerPage"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+      class="soft-divider border-t px-4 py-3"
     >
       <EtherscanPagination
         :page="currentPage"

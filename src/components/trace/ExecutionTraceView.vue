@@ -25,25 +25,25 @@
       <StateChangeSummary :enriched-trace="enrichedTrace" :loading="enrichedLoading" />
 
       <!-- Gas Breakdown -->
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div class="panel-muted p-4">
         <GasBreakdown :executions="enrichedTrace?.executions ?? []" :total-gas="totalGas" :loading="enrichedLoading" />
       </div>
 
       <div
         v-for="(exec, ei) in callTree"
         :key="exec.trigger + '-' + exec.vmState + '-' + ei"
-        class="trace-execution rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
+        class="trace-execution panel-muted overflow-hidden rounded-xl"
       >
         <!-- Collapsible execution header -->
         <button
           :aria-label="`Toggle execution ${ei + 1}: ${exec.trigger} (${exec.vmState})`"
-          class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors cursor-pointer"
+          class="soft-divider list-row flex w-full cursor-pointer items-center justify-between border-b px-4 py-3 transition-colors"
           :aria-expanded="!!expandedExecs[ei]"
           @click="toggleExec(ei)"
         >
           <div class="flex items-center gap-3">
             <svg
-              class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0"
+              class="text-low h-4 w-4 flex-shrink-0 transition-transform"
               :class="{ 'rotate-90': expandedExecs[ei] }"
               fill="currentColor"
               viewBox="0 0 20 20"
@@ -61,11 +61,11 @@
               <span class="w-1.5 h-1.5 rounded-full" :class="vmStateDot(exec.vmState)"></span>
               {{ exec.vmState }}
             </span>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-mid text-sm">
               Trigger: <span class="font-medium">{{ exec.trigger }}</span>
             </span>
           </div>
-          <span class="text-sm font-mono text-gray-500 dark:text-gray-400">
+          <span class="text-low text-sm font-mono">
             {{ formatGasDecimal(exec.gasConsumed) }} GAS
           </span>
         </button>
@@ -93,13 +93,13 @@
         </div>
 
         <!-- Collapsible body -->
-        <div v-if="expandedExecs[ei]" class="divide-y divide-gray-100 dark:divide-gray-700">
+        <div v-if="expandedExecs[ei]" class="soft-divider divide-y">
           <!-- Contract calls section -->
           <TraceSection title="Contract Calls" :count="(exec.children ?? []).length" default-open>
             <div class="space-y-2">
               <div v-for="(node, ni) in exec.children ?? []" :key="ni" class="contract-group">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Contract</span>
+                  <span class="text-mid text-xs font-medium">Contract</span>
                   <HashLink :hash="node.contract" type="contract" />
                 </div>
                 <div class="space-y-2 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
@@ -121,25 +121,25 @@
             :count="execStepsMap[ei].length"
             :default-open="false"
           >
-            <div class="max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="soft-divider max-h-[500px] overflow-y-auto rounded-lg border">
               <table class="w-full text-sm">
-                <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <thead class="table-head sticky top-0 z-10">
                   <tr>
-                    <th class="w-16 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
-                    <th class="w-28 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <th class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">#</th>
+                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">
                       OpCode
                     </th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Operand</th>
-                    <th class="w-24 px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Gas</th>
+                    <th class="text-mid px-3 py-2 text-left text-xs font-medium">Operand</th>
+                    <th class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">Gas</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody class="soft-divider divide-y">
                   <tr
                     v-for="(step, si) in execStepsMap[ei]"
                     :key="step.opcode + '-' + (step.offset ?? si)"
-                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    class="list-row"
                   >
-                    <td class="px-3 py-1.5 font-mono text-xs text-gray-400">{{ step.offset ?? si }}</td>
+                    <td class="text-low px-3 py-1.5 font-mono text-xs">{{ step.offset ?? si }}</td>
                     <td class="px-3 py-1.5">
                       <span
                         class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
@@ -148,10 +148,10 @@
                         {{ step.opcode }}
                       </span>
                     </td>
-                    <td class="px-3 py-1.5 font-mono text-xs text-gray-600 dark:text-gray-400 truncate max-w-xs">
+                    <td class="text-mid max-w-xs truncate px-3 py-1.5 font-mono text-xs">
                       {{ step.operand || step.instruction || "-" }}
                     </td>
-                    <td class="px-3 py-1.5 text-right font-mono text-xs text-gray-400">
+                    <td class="text-low px-3 py-1.5 text-right font-mono text-xs">
                       {{ step.gasConsumed ?? step.gas ?? "-" }}
                     </td>
                   </tr>
@@ -171,7 +171,7 @@
               <div
                 v-for="(call, ci) in execContractCallsMap[ei]"
                 :key="ci"
-                class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-3 py-2"
+                class="panel-muted flex items-start gap-3 px-3 py-2"
               >
                 <span
                   class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300"
@@ -188,7 +188,7 @@
                       {{ call.method || call.operation }}
                     </span>
                   </div>
-                  <div v-if="call.caller" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div v-if="call.caller" class="text-mid mt-1 text-xs">
                     Called by: <HashLink :hash="call.caller" type="contract" />
                   </div>
                 </div>

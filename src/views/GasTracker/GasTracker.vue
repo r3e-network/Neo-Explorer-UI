@@ -43,13 +43,13 @@
 
       <!-- About Neo N3 Fees -->
       <div class="etherscan-card mt-6 p-5">
-        <h2 class="mb-2 text-base font-semibold text-text-primary dark:text-gray-200">About Neo N3 Fees</h2>
-        <div class="space-y-2 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+        <h2 class="text-high mb-2 text-base font-semibold">About Neo N3 Fees</h2>
+        <div class="text-mid space-y-2 text-sm leading-relaxed">
           <p>
             Neo N3 transactions incur two types of fees:
-            <strong class="text-text-primary dark:text-gray-300">System Fee</strong>
+            <strong class="text-high">System Fee</strong>
             (consumed for on-chain operations like contract invocations) and
-            <strong class="text-text-primary dark:text-gray-300">Network Fee</strong>
+            <strong class="text-high">Network Fee</strong>
             (paid to Consensus Nodes for transaction verification and inclusion).
           </p>
           <p>

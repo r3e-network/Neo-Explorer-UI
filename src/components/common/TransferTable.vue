@@ -17,30 +17,23 @@
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-sm text-text-secondary dark:text-gray-300">
-          A total of {{ formatNumber(totalCount) }} transfers found
-        </p>
+        <p class="text-sm text-mid">A total of {{ formatNumber(totalCount) }} transfers found</p>
       </div>
 
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full min-w-[960px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="text-xs uppercase tracking-wide" style="background: var(--surface-elevated)">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Txn Hash</th>
+              <th class="px-4 py-3 text-left font-medium text-mid">Txn Hash</th>
+              <th v-if="type === 'nep11'" class="px-4 py-3 text-left font-medium text-mid">Token ID</th>
+              <th class="px-4 py-3 text-left font-medium text-mid">Type</th>
+              <th class="px-4 py-3 text-left font-medium text-mid">From</th>
+              <th class="px-4 py-3 text-center font-medium text-mid"></th>
+              <th class="px-4 py-3 text-center font-medium text-mid">Amount</th>
+              <th class="px-4 py-3 text-left font-medium text-mid">To</th>
               <th
-                v-if="type === 'nep11'"
-                class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400"
-              >
-                Token ID
-              </th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Type</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">From</th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
-              <th class="px-4 py-3 text-center font-medium text-text-secondary dark:text-gray-400">Amount</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">To</th>
-              <th
-                class="cursor-pointer select-none px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400 hover:text-primary-500"
+                class="cursor-pointer select-none px-4 py-3 text-right font-medium text-mid hover:text-primary-500"
                 role="button"
                 tabindex="0"
                 aria-label="Toggle time format"
@@ -60,16 +53,12 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
-            <tr
-              v-for="(item, index) in transfers"
-              :key="item.txid + index"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
-            >
+          <tbody class="divide-y" style="border-color: var(--line-soft)">
+            <tr v-for="(item, index) in transfers" :key="item.txid + index" class="list-row transition-colors">
               <!-- Txn Hash -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-sm text-text-muted">System</span>
+                  <span v-if="isNullTx(item.txid)" class="text-sm text-low">System</span>
                   <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
@@ -99,7 +88,7 @@
               <!-- From -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.from === null" class="text-sm text-text-muted">Null Address</span>
+                  <span v-if="item.from === null" class="text-sm text-low">Null Address</span>
                   <router-link v-else :to="'/account-profile/' + item.from" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.from) : truncateHash(item.from) }}
                   </router-link>
@@ -109,13 +98,7 @@
               <td class="px-4 py-3 text-center">
                 <span
                   class="inline-flex h-5 w-5 items-center justify-center rounded-full"
-                  :class="
-                    item.from === null
-                      ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                      : item.to === null
-                      ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                      : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  "
+                  :style="getDirectionStyle(item)"
                 >
                   <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -129,22 +112,22 @@
               </td>
               <!-- Amount -->
               <td class="px-4 py-3 text-center">
-                <span class="text-sm font-medium text-green-600 dark:text-green-400">
+                <span class="text-success text-sm font-medium">
                   {{ convertToken(item.value, decimal) }}
-                  <span v-if="type === 'nep17' && symbol" class="text-text-secondary">{{ symbol }}</span>
+                  <span v-if="type === 'nep17' && symbol" class="text-mid">{{ symbol }}</span>
                 </span>
               </td>
               <!-- To -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.to === null" class="text-sm text-text-muted">Null Address</span>
+                  <span v-if="item.to === null" class="text-sm text-low">Null Address</span>
                   <router-link v-else :to="'/account-profile/' + item.to" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.to) : truncateHash(item.to) }}
                   </router-link>
                 </div>
               </td>
               <!-- Time -->
-              <td class="px-4 py-3 text-right text-sm text-text-secondary dark:text-gray-400">
+              <td class="px-4 py-3 text-right text-sm text-mid">
                 {{ showAbsoluteTime ? formatDateTime(item.timestamp) : formatAge(item.timestamp) }}
               </td>
             </tr>
@@ -158,10 +141,7 @@
     </template>
 
     <!-- Pagination -->
-    <div
-      v-if="!loading && totalCount > resultsPerPage"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
-    >
+    <div v-if="!loading && totalCount > resultsPerPage" class="border-t px-4 py-3 soft-divider">
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"
@@ -201,6 +181,16 @@ const props = defineProps({
 
 const showAbsoluteTime = ref(false);
 const showAddress = ref(true);
+
+function getDirectionStyle(item) {
+  if (item.from === null) {
+    return { background: "var(--status-success-bg)", color: "var(--status-success)" };
+  }
+  if (item.to === null) {
+    return { background: "var(--status-error-bg)", color: "var(--status-error)" };
+  }
+  return { background: "var(--status-warning-bg)", color: "var(--status-warning)" };
+}
 
 function fetchTransfers(limit, skip) {
   if (props.type === "nep11") {

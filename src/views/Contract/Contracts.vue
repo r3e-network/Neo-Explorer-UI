@@ -24,7 +24,7 @@
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="relative max-w-md flex-1">
           <svg
-            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            class="text-low absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -63,10 +63,10 @@
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
-          <p class="text-sm text-text-secondary dark:text-gray-300">
+          <p class="text-mid text-sm">
             {{ isSearchMode ? "Search results" : "Contract registry" }}
           </p>
-          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} / {{ totalPages }}</p>
+          <p class="text-low text-sm">Page {{ currentPage }} / {{ totalPages }}</p>
         </div>
 
         <!-- Loading State -->
@@ -87,7 +87,7 @@
         <!-- Data Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="bg-gray-50 dark:bg-gray-800">
+            <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
                 <th class="table-header-cell">Contract</th>
@@ -98,11 +98,11 @@
                 <th class="table-header-cell-right">Created</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="(contract, index) in contracts"
                 :key="contract.hash"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -110,7 +110,7 @@
                 <td class="table-cell">
                   <router-link
                     :to="`/contract-info/${contract.hash}`"
-                    class="font-medium text-text-primary etherscan-link dark:text-gray-100"
+                    class="text-high etherscan-link font-medium"
                   >
                     {{ contract.name || "Unknown Contract" }}
                   </router-link>
@@ -133,7 +133,7 @@
                     >
                       {{ std }}
                     </span>
-                    <span v-if="!getStandards(contract).length" class="text-xs text-text-muted">-</span>
+                    <span v-if="!getStandards(contract).length" class="text-low text-xs">-</span>
                   </div>
                 </td>
                 <td class="table-cell text-center">
@@ -149,7 +149,7 @@
                       clip-rule="evenodd"
                     />
                   </svg>
-                  <span v-else class="text-xs text-text-muted">-</span>
+                  <span v-else class="text-low text-xs">-</span>
                 </td>
                 <td class="table-cell-secondary text-right">
                   {{ formatTime(contract.createtime) }}
@@ -162,7 +162,7 @@
         <!-- Pagination -->
         <div
           v-if="!loading && contracts.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <EtherscanPagination
             :page="currentPage"
@@ -228,7 +228,7 @@ function nepBadgeClass(std) {
   if (upper.includes("NEP-11") || upper.includes("NEP11")) {
     return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";
   }
-  return "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600";
+  return "badge-soft";
 }
 
 function formatTime(timestamp) {

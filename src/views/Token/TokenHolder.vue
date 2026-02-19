@@ -13,7 +13,7 @@
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-sm text-text-secondary dark:text-gray-300">
+        <p class="text-mid text-sm">
           A total of {{ formatNumber(totalCount) }} holders found
         </p>
       </div>
@@ -21,22 +21,22 @@
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full min-w-[700px]">
-          <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+          <thead class="table-head text-xs uppercase tracking-wide">
             <tr>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Rank</th>
-              <th class="px-4 py-3 text-left font-medium text-text-secondary dark:text-gray-400">Address</th>
-              <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Balance</th>
-              <th class="px-4 py-3 text-right font-medium text-text-secondary dark:text-gray-400">Percentage</th>
+              <th class="table-header-cell">Rank</th>
+              <th class="table-header-cell">Address</th>
+              <th class="table-header-cell-right">Balance</th>
+              <th class="table-header-cell-right">Percentage</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+          <tbody class="soft-divider divide-y">
             <tr
               v-for="(item, index) in holders"
               :key="item.address"
-              class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+              class="list-row transition-colors"
             >
               <!-- Rank -->
-              <td class="px-4 py-3 text-sm text-text-muted">
+              <td class="text-low px-4 py-3 text-sm">
                 <span v-if="rankIndex(index) <= 3" class="font-medium">
                   {{ rankIndex(index) }}
                   <span v-if="rankIndex(index) === 1">&#129351;</span>
@@ -48,26 +48,26 @@
               <!-- Address -->
               <td class="px-4 py-3">
                 <div class="max-w-[220px] truncate">
-                  <span v-if="item.address === NULL_ADDRESS" class="text-sm text-text-muted"> Null Address </span>
+                  <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> Null Address </span>
                   <router-link v-else :to="'/account-profile/' + item.address" class="font-hash text-sm etherscan-link">
                     {{ showAddress ? scriptHashToAddress(item.address) : truncateHash(item.address) }}
                   </router-link>
                 </div>
               </td>
               <!-- Balance -->
-              <td class="px-4 py-3 text-right text-sm text-text-primary dark:text-gray-300">
+              <td class="text-high px-4 py-3 text-right text-sm">
                 {{ formatBalance ? convertToken(item.balance, decimal) : item.balance }}
               </td>
               <!-- Percentage -->
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <div class="hidden h-1.5 w-16 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 sm:block">
+                  <div class="progress-track hidden h-1.5 w-16 overflow-hidden rounded-full sm:block">
                     <div
                       class="h-full rounded-full bg-primary-500"
                       :style="{ width: Math.min(item.percentage * 100, 100) + '%' }"
                     ></div>
                   </div>
-                  <span class="text-sm text-text-primary dark:text-gray-300">
+                  <span class="text-high text-sm">
                     {{ toPercentage(item.percentage) }}
                   </span>
                 </div>
@@ -85,7 +85,7 @@
     <!-- Pagination -->
     <div
       v-if="!loading && totalCount > resultsPerPage"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+      class="soft-divider border-t px-4 py-3"
     >
       <EtherscanPagination
         :page="currentPage"

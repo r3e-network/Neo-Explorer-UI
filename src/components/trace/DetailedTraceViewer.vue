@@ -2,7 +2,7 @@
   <div class="detailed-trace-viewer">
     <!-- Header -->
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <h3 class="text-high text-lg font-semibold">
         Execution Trace
       </h3>
       <div class="flex items-center gap-2">
@@ -18,7 +18,7 @@
         </span>
         <button
           @click="toggleView"
-          class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+          class="soft-divider list-row text-mid rounded-md border px-3 py-1.5 text-xs font-medium"
         >
           {{ showOpcodes ? "Hide Opcodes" : "Show Opcodes" }}
         </button>
@@ -27,37 +27,29 @@
 
     <!-- Summary -->
     <div class="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <div
-        class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
-      >
-        <div class="text-xs text-gray-500 dark:text-gray-400">Trigger</div>
-        <div class="font-medium text-gray-900 dark:text-gray-100">
+      <div class="panel-muted p-3">
+        <div class="text-mid text-xs">Trigger</div>
+        <div class="text-high font-medium">
           {{ trace.trigger }}
         </div>
       </div>
-      <div
-        class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
-      >
-        <div class="text-xs text-gray-500 dark:text-gray-400">Gas Consumed</div>
-        <div class="font-medium text-gray-900 dark:text-gray-100">
+      <div class="panel-muted p-3">
+        <div class="text-mid text-xs">Gas Consumed</div>
+        <div class="text-high font-medium">
           {{ formatGas(trace.gasConsumed) }} GAS
         </div>
       </div>
-      <div
-        class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
-      >
-        <div class="text-xs text-gray-500 dark:text-gray-400">Steps</div>
-        <div class="font-medium text-gray-900 dark:text-gray-100">
+      <div class="panel-muted p-3">
+        <div class="text-mid text-xs">Steps</div>
+        <div class="text-high font-medium">
           {{ trace.steps?.length || 0 }}
         </div>
       </div>
-      <div
-        class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
-      >
-        <div class="text-xs text-gray-500 dark:text-gray-400">
+      <div class="panel-muted p-3">
+        <div class="text-mid text-xs">
           Notifications
         </div>
-        <div class="font-medium text-gray-900 dark:text-gray-100">
+        <div class="text-high font-medium">
           {{ trace.notifications?.length || 0 }}
         </div>
       </div>
@@ -66,10 +58,10 @@
     <!-- Opcode Steps -->
     <div v-if="showOpcodes" class="space-y-2">
       <div class="flex items-center justify-between">
-        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h4 class="text-high text-sm font-medium">
           Execution Steps
         </h4>
-        <div class="flex items-center gap-2 text-xs text-gray-500">
+        <div class="text-mid flex items-center gap-2 text-xs">
           <span class="flex items-center gap-1">
             <span class="h-2 w-2 rounded bg-green-500"></span>
             PUSH
@@ -85,41 +77,39 @@
         </div>
       </div>
 
-      <div
-        class="max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700"
-      >
+      <div class="soft-divider max-h-[500px] overflow-y-auto rounded-lg border">
         <table class="w-full text-sm">
-          <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800">
+          <thead class="table-head sticky top-0">
             <tr>
               <th
-                class="w-16 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400"
+                class="text-mid w-16 px-3 py-2 text-left text-xs font-medium"
               >
                 #
               </th>
               <th
-                class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400"
+                class="text-mid w-24 px-3 py-2 text-left text-xs font-medium"
               >
                 OpCode
               </th>
               <th
-                class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400"
+                class="text-mid px-3 py-2 text-left text-xs font-medium"
               >
                 Instruction
               </th>
               <th
-                class="w-24 px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400"
+                class="text-mid w-24 px-3 py-2 text-right text-xs font-medium"
               >
                 Gas
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <tbody class="soft-divider divide-y">
             <tr
               v-for="(step, index) in trace.steps"
               :key="index"
-              class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              class="list-row"
             >
-              <td class="px-3 py-2 font-mono text-xs text-gray-500">
+              <td class="text-low px-3 py-2 font-mono text-xs">
                 {{ index }}
               </td>
               <td class="px-3 py-2">
@@ -130,20 +120,18 @@
                   {{ step.opcode }}
                 </span>
               </td>
-              <td
-                class="px-3 py-2 font-mono text-xs text-gray-700 dark:text-gray-300"
-              >
+              <td class="text-high px-3 py-2 font-mono text-xs">
                 {{ step.instruction || "-" }}
               </td>
-              <td class="px-3 py-2 text-right font-mono text-xs text-gray-500">
+              <td class="text-low px-3 py-2 text-right font-mono text-xs">
                 {{ step.gasConsumed }}
               </td>
             </tr>
             <tr v-if="!trace.steps || trace.steps.length === 0">
-              <td colspan="4" class="px-3 py-8 text-center text-gray-500">
+              <td colspan="4" class="text-mid px-3 py-8 text-center">
                 <div class="flex flex-col items-center gap-2">
                   <svg
-                    class="h-8 w-8 text-gray-300"
+                    class="text-low h-8 w-8"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -170,21 +158,21 @@
 
     <!-- Notifications -->
     <div class="mt-4">
-      <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <h4 class="text-high mb-2 text-sm font-medium">
         Notifications ({{ trace.notifications?.length || 0 }})
       </h4>
       <div class="space-y-2">
         <div
           v-for="(notification, index) in trace.notifications"
           :key="index"
-          class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+          class="panel-muted p-3"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-gray-500">{{
+              <span class="text-low font-mono text-xs">{{
                 truncateHash(notification.contract, 8, 6)
               }}</span>
-              <span class="text-gray-300">→</span>
+              <span class="text-low">→</span>
               <span
                 class="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
               >
@@ -194,7 +182,7 @@
           </div>
           <div
             v-if="notification.state"
-            class="mt-2 font-mono text-xs text-gray-600 dark:text-gray-400"
+            class="text-mid mt-2 font-mono text-xs"
           >
             {{ JSON.stringify(notification.state).substring(0, 200)
             }}{{ JSON.stringify(notification.state).length > 200 ? "..." : "" }}
@@ -202,7 +190,7 @@
         </div>
         <div
           v-if="!trace.notifications || trace.notifications.length === 0"
-          class="text-center text-sm text-gray-500"
+          class="text-mid text-center text-sm"
         >
           No notifications
         </div>
@@ -211,13 +199,11 @@
 
     <!-- Stack -->
     <div v-if="trace.stack && trace.stack.length > 0" class="mt-4">
-      <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <h4 class="text-high mb-2 text-sm font-medium">
         Final Stack ({{ trace.stack.length }} items)
       </h4>
-      <div
-        class="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900"
-      >
-        <pre class="font-mono text-xs text-gray-700 dark:text-gray-300">{{
+      <div class="panel-muted max-h-48 overflow-y-auto p-3">
+        <pre class="text-mid font-mono text-xs">{{
           JSON.stringify(trace.stack, null, 2)
         }}</pre>
       </div>
@@ -265,18 +251,17 @@ function vmStateClass(state) {
   if (state === "FAULT") {
     return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800";
   }
-  return "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600";
+  return "badge-soft";
 }
 
 function vmStateDot(state) {
   if (state === "HALT") return "bg-emerald-500";
   if (state === "FAULT") return "bg-red-500";
-  return "bg-gray-500";
+  return "bg-slate-500";
 }
 
 function getOpCodeClass(opcode) {
-  if (!opcode)
-    return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+  if (!opcode) return "badge-soft";
 
   const op = opcode.toUpperCase();
 
@@ -318,6 +303,6 @@ function getOpCodeClass(opcode) {
     return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
   }
 
-  return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+  return "badge-soft";
 }
 </script>

@@ -2,8 +2,8 @@
   <div class="search-not-found">
     <section class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8">
       <div class="w-full max-w-xl etherscan-card p-8 text-center">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-          <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-icon-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+          <svg class="text-mid h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -13,14 +13,12 @@
           </svg>
         </div>
         <h1 class="page-title">No Results Found</h1>
-        <p class="mx-auto mt-2 max-w-md text-sm text-text-secondary dark:text-gray-400">
+        <p class="text-mid mx-auto mt-2 max-w-md text-sm">
           Try searching by transaction hash, block hash/height, contract hash, or Neo address.
         </p>
 
-        <div
-          class="mt-6 rounded-md border border-card-border bg-gray-50 p-4 text-left dark:border-card-border-dark dark:bg-gray-800"
-        >
-          <ul class="space-y-2 text-sm text-text-secondary dark:text-gray-300">
+        <div class="panel-muted mt-6 p-4 text-left">
+          <ul class="text-mid space-y-2 text-sm">
             <li>• Block height or block hash</li>
             <li>• Transaction hash</li>
             <li>• Neo address (N...)</li>

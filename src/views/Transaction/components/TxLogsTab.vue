@@ -1,18 +1,18 @@
 <template>
   <div>
     <!-- Loading -->
-    <div v-if="appLogLoading" class="py-8 text-center">
-      <div class="animate-pulse space-y-3">
-        <div class="mx-auto h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-        <div class="mx-auto h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+    <div v-if="appLogLoading" class="py-8 text-center" role="status" aria-live="polite">
+      <div class="space-y-3">
+        <Skeleton class="mx-auto" width="75%" height="16px" />
+        <Skeleton class="mx-auto" width="50%" height="16px" />
       </div>
     </div>
     <!-- Error -->
-    <div v-else-if="appLogError" class="py-8 text-center">
+    <div v-else-if="appLogError" class="py-8 text-center" role="alert">
       <p class="text-sm text-red-500">{{ appLogError }}</p>
     </div>
     <!-- Empty -->
-    <div v-else-if="!appLog" class="py-8 text-center text-text-secondary dark:text-gray-400">
+    <div v-else-if="!appLog" class="panel-muted text-mid px-4 py-8 text-center text-sm">
       No application log available for this transaction.
     </div>
     <!-- Content -->
@@ -20,11 +20,13 @@
       <!-- Raw JSON toggle -->
       <div class="flex justify-end">
         <button
+          type="button"
+          :aria-pressed="showRawAppLog"
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           :class="
             showRawAppLog
-              ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
+              : 'badge-soft hover:text-high'
           "
           @click="$emit('update:showRawAppLog', !showRawAppLog)"
         >
@@ -43,7 +45,7 @@
       <!-- Full raw JSON view -->
       <pre
         v-if="showRawAppLog"
-        class="max-h-[600px] overflow-auto rounded-lg bg-gray-50 dark:bg-gray-900 p-4 font-mono text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+        class="panel-muted text-mid max-h-[600px] overflow-auto rounded-lg p-4 font-mono text-xs"
         >{{ formatState(appLog) }}</pre
       >
 
@@ -52,7 +54,7 @@
           <!-- Execution badges -->
           <div class="mb-3 flex flex-wrap items-center gap-3">
             <span
-              class="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-text-primary dark:bg-gray-700 dark:text-gray-200"
+              class="badge-soft rounded px-2 py-1 text-xs font-medium text-high"
             >
               Trigger: {{ exec.trigger || "Application" }}
             </span>
@@ -76,25 +78,25 @@
           <!-- Stack Result -->
           <div
             v-if="exec.stack && exec.stack.length"
-            class="mb-4 rounded-lg border border-card-border p-3 dark:border-card-border-dark"
+            class="panel-muted mb-4 p-3"
           >
-            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">
+            <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
               Stack Result
             </h4>
-            <pre class="max-h-32 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200">{{
+            <pre class="text-high max-h-32 overflow-auto font-mono text-xs">{{
               JSON.stringify(exec.stack, null, 2)
             }}</pre>
           </div>
 
           <!-- Notifications -->
           <div v-if="exec.notifications && exec.notifications.length">
-            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">
+            <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
               Notifications ({{ exec.notifications.length }})
             </h4>
             <!-- Enriched display when available -->
             <div v-if="enrichedTrace && enrichedTrace.executions[eIdx]" class="space-y-3">
               <EnrichedNotification
-                v-for="(op, opIdx) in enrichedTrace.executions[eIdx].operations"
+                v-for="(op, opIdx) in enrichedTrace.executions[eIdx].operations || []"
                 :key="'enriched-' + opIdx"
                 :notification="op"
                 :event-def="op.eventDef"
@@ -103,32 +105,35 @@
             <!-- Raw fallback -->
             <div v-else class="overflow-x-auto">
               <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-card-border dark:border-card-border-dark">
+                <caption class="sr-only">
+                  Raw VM notifications
+                </caption>
+                <thead class="table-head">
+                  <tr class="soft-divider border-b">
                     <th class="table-header-cell">#</th>
                     <th class="table-header-cell">Contract</th>
                     <th class="table-header-cell">Event</th>
                     <th class="table-header-cell">State</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
-                  <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx">
+                <tbody class="soft-divider divide-y">
+                  <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx" class="list-row transition-colors">
                     <td class="table-cell-secondary text-xs">
-                      {{ nIdx }}
+                      {{ nIdx + 1 }}
                     </td>
                     <td class="table-cell">
                       <HashLink :hash="n.contract" type="contract" />
                     </td>
                     <td class="table-cell">
                       <span
-                        class="rounded bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                        class="badge-soft text-high rounded px-2 py-0.5 text-xs font-medium"
                       >
                         {{ n.eventname || "unknown" }}
                       </span>
                     </td>
                     <td class="table-cell">
                       <pre
-                        class="max-h-24 max-w-xs overflow-auto font-mono text-xs text-text-primary dark:text-gray-300"
+                        class="text-high max-h-24 max-w-xs overflow-auto font-mono text-xs"
                         >{{ formatState(n.state) }}</pre
                       >
                     </td>
@@ -137,7 +142,7 @@
               </table>
             </div>
           </div>
-          <div v-else class="py-4 text-center text-sm text-text-secondary dark:text-gray-400">
+          <div v-else class="text-mid py-4 text-center text-sm">
             No notifications emitted.
           </div>
         </div>
@@ -149,6 +154,7 @@
 <script setup>
 import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
 import { formatGasDecimal } from "@/utils/explorerFormat";
 
 defineProps({

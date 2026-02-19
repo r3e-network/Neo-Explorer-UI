@@ -43,7 +43,9 @@
           </span>
         </div>
         <button
-          class="text-sm font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+          type="button"
+          class="rounded-md text-sm font-medium text-amber-600 transition-colors hover:text-amber-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
+          aria-label="Switch to execution trace tab"
           @click="activeTab = 'trace'"
         >
           View Execution Trace &rarr;
@@ -73,62 +75,116 @@
       <div v-else-if="tx.hash" class="etherscan-card overflow-hidden">
         <!-- Tab Navigation -->
         <div class="p-3 pb-0">
-          <TabsNav :tabs="tabs" v-model="activeTab" />
+          <TabsNav
+            :tabs="tabs"
+            v-model="activeTab"
+            aria-label="Transaction detail sections"
+            id-base="tx-detail"
+          />
         </div>
 
         <div class="p-4 pt-5 md:p-5">
           <!-- Overview -->
-          <TxOverviewTab
+          <section
             v-if="activeTab === 'overview'"
-            :tx="tx"
-            :tx-status="txStatus"
-            :is-success="isSuccess"
-            :confirmations="confirmations"
-            :total-fee="totalFee"
-            :is-complex-tx="isComplexTx"
-            :enriched-trace="enrichedTrace"
-            :enriched-loading="enrichedLoading"
-            :total-gas="totalGas"
-            v-model:show-more="showMore"
-          />
+            id="tx-detail-overview-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-overview-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <TxOverviewTab
+              :tx="tx"
+              :tx-status="txStatus"
+              :is-success="isSuccess"
+              :confirmations="confirmations"
+              :total-fee="totalFee"
+              :is-complex-tx="isComplexTx"
+              :enriched-trace="enrichedTrace"
+              :enriched-loading="enrichedLoading"
+              :total-gas="totalGas"
+              v-model:show-more="showMore"
+            />
+          </section>
 
           <!-- Script & Witnesses -->
-          <TxScriptTab v-else-if="activeTab === 'script'" :tx="tx" />
+          <section
+            v-else-if="activeTab === 'script'"
+            id="tx-detail-script-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-script-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <TxScriptTab :tx="tx" />
+          </section>
 
           <!-- Logs -->
-          <TxLogsTab
+          <section
             v-else-if="activeTab === 'logs'"
-            :app-log="appLog"
-            :app-log-loading="appLogLoading"
-            :app-log-error="appLogError"
-            v-model:show-raw-app-log="showRawAppLog"
-            :enriched-trace="enrichedTrace"
-          />
+            id="tx-detail-logs-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-logs-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <TxLogsTab
+              :app-log="appLog"
+              :app-log-loading="appLogLoading"
+              :app-log-error="appLogError"
+              v-model:show-raw-app-log="showRawAppLog"
+              :enriched-trace="enrichedTrace"
+            />
+          </section>
 
           <!-- Token Transfers -->
-          <TxTransfersTab
+          <section
             v-else-if="activeTab === 'transfers'"
-            :all-transfers="allTransfers"
-            :transfers-loading="transfersLoading"
-          />
+            id="tx-detail-transfers-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-transfers-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <TxTransfersTab
+              :all-transfers="allTransfers"
+              :transfers-loading="transfersLoading"
+            />
+          </section>
 
           <!-- Internal Ops -->
-          <InternalOperations
+          <section
             v-else-if="activeTab === 'internal'"
-            :enriched-trace="enrichedTrace"
-            :loading="enrichedLoading"
-          />
+            id="tx-detail-internal-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-internal-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <InternalOperations
+              :enriched-trace="enrichedTrace"
+              :loading="enrichedLoading"
+            />
+          </section>
 
           <!-- Execution Trace -->
-          <TxExecutionTraceTab
+          <section
             v-else-if="activeTab === 'trace'"
-            :app-log="appLog"
-            :app-log-loading="appLogLoading"
-            :call-tree="callTree"
-            :enriched-trace="enrichedTrace"
-            :is-complex-tx="isComplexTx"
-            :tx-hash="txHash"
-          />
+            id="tx-detail-trace-panel"
+            role="tabpanel"
+            aria-labelledby="tx-detail-trace-tab"
+            tabindex="0"
+            class="focus:outline-none"
+          >
+            <TxExecutionTraceTab
+              :app-log="appLog"
+              :app-log-loading="appLogLoading"
+              :call-tree="callTree"
+              :enriched-trace="enrichedTrace"
+              :is-complex-tx="isComplexTx"
+              :tx-hash="txHash"
+            />
+          </section>
         </div>
       </div>
     </div>

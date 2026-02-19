@@ -54,4 +54,21 @@ describe("SearchBox", () => {
     await wrapper.find("input").trigger("focus");
     expect(wrapper.find("#search-dropdown").exists()).toBe(true);
   });
+
+  it("selects highlighted suggestion with Enter", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("123");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    await input.trigger("keydown.down");
+    await input.trigger("keyup.enter");
+
+    const searchEvents = wrapper.emitted("search");
+    expect(searchEvents).toBeTruthy();
+    expect(searchEvents[0]).toEqual(["123"]);
+  });
 });

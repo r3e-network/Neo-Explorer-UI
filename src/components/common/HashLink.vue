@@ -2,7 +2,7 @@
   <div class="inline-flex items-center gap-1.5">
     <router-link
       :to="linkPath"
-      class="font-mono text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+      class="etherscan-link font-hash break-all text-sm"
       :title="hash"
     >
       {{ displayHash }}
@@ -13,7 +13,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { truncateHash as truncate } from "@/utils/explorerFormat";
+import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 
 const props = defineProps({
@@ -24,14 +24,20 @@ const props = defineProps({
     validator: (v) => ["tx", "block", "address", "contract", "token"].includes(v),
   },
   tokenStandard: { type: String, default: "" },
+  // Backward-compatible alias used in some existing views.
+  truncate: { type: [Boolean, null], default: null },
   truncated: { type: Boolean, default: true },
   copyable: { type: Boolean, default: true },
 });
 
+const shouldTruncate = computed(() =>
+  props.truncate === null ? props.truncated : props.truncate
+);
+
 const displayHash = computed(() => {
   if (!props.hash) return "";
-  if (!props.truncated) return props.hash;
-  return truncate(props.hash, 8, 6);
+  if (!shouldTruncate.value) return props.hash;
+  return truncateHashValue(props.hash, 8, 6);
 });
 
 const linkPath = computed(() => {

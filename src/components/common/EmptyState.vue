@@ -2,23 +2,18 @@
   <div class="py-12 px-4 text-center">
     <div
       v-once
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-card-border/70 bg-white/70 text-text-secondary shadow-card dark:border-card-border-dark/70 dark:bg-gray-800/70 dark:text-gray-400"
+      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-card text-mid"
+      style="background: var(--surface-glass); border: 1px solid var(--line-soft)"
     >
       <!-- Block icon -->
-      <svg
-        v-if="icon === 'block'"
-        aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
+      <svg v-if="icon === 'block'" aria-hidden="true" class="h-8 w-8 text-low" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
       </svg>
       <!-- Transaction icon -->
       <svg
         v-else-if="icon === 'tx'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
+        class="h-8 w-8 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -30,7 +25,7 @@
       <svg
         v-else-if="icon === 'token'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
+        class="h-8 w-8 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -40,7 +35,7 @@
       <svg
         v-else-if="icon === 'contract'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
+        class="h-8 w-8 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -52,7 +47,7 @@
       <svg
         v-else-if="icon === 'search'"
         aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
+        class="h-8 w-8 text-low"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -65,14 +60,7 @@
         />
       </svg>
       <!-- Default inbox icon -->
-      <svg
-        v-else
-        aria-hidden="true"
-        class="h-8 w-8 text-gray-400 dark:text-gray-500"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+      <svg v-else aria-hidden="true" class="h-8 w-8 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -82,12 +70,12 @@
       </svg>
     </div>
 
-    <p class="font-semibold text-text-secondary dark:text-gray-300">{{ message }}</p>
+    <p class="font-semibold text-mid">{{ message }}</p>
 
     <router-link
       v-if="actionLabel && actionTo"
       :to="actionTo"
-      class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600"
+      class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
     >
       {{ actionLabel }}
     </router-link>

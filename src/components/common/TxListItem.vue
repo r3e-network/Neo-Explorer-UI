@@ -1,19 +1,17 @@
 <template>
-  <div
-    class="border-b border-card-border px-4 py-3 transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800/60"
-  >
+  <div class="list-row border-b px-4 py-3">
     <div class="flex items-center justify-between gap-4">
       <div class="flex min-w-0 items-center gap-3">
         <!-- Tx circle icon -->
         <div
           class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-          :class="iconClass"
+          :style="statusStyle"
         >
           Tx
         </div>
         <div class="min-w-0">
           <HashLink :hash="tx.hash" type="tx" :copyable="false" />
-          <p class="mt-0.5 text-xs text-text-secondary dark:text-gray-400">
+          <p class="mt-0.5 text-xs text-mid">
             {{ formatAge(tx.blocktime) }}
           </p>
         </div>
@@ -22,21 +20,16 @@
       <!-- From -> To (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
         <div class="min-w-0 text-right">
-          <p class="text-xs text-text-secondary dark:text-gray-400">From</p>
+          <p class="text-xs text-mid">From</p>
           <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
         </div>
-        <svg
-          class="h-4 w-4 flex-shrink-0 text-text-muted dark:text-gray-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
         <div class="min-w-0 text-left">
-          <p class="text-xs text-text-secondary dark:text-gray-400">To</p>
+          <p class="text-xs text-mid">To</p>
           <HashLink v-if="toAddress" :hash="toAddress" type="address" :copyable="false" />
-          <span v-else class="text-sm text-text-muted dark:text-gray-500">Contract Call</span>
+          <span v-else class="text-sm text-low">Contract Call</span>
         </div>
       </div>
 
@@ -45,7 +38,8 @@
         <div class="flex items-center justify-end gap-1.5">
           <span
             v-if="isComplex"
-            class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+            style="background: var(--status-warning-bg); color: var(--status-warning)"
           >
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -57,11 +51,11 @@
             </svg>
             Complex
           </span>
-          <span :class="statusBadgeClass" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
+          <span :style="statusStyle" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
             {{ statusText }}
           </span>
         </div>
-        <p class="mt-1 text-xs text-text-secondary dark:text-gray-400">{{ txFee }} GAS</p>
+        <p class="mt-1 text-xs text-mid">{{ txFee }} GAS</p>
       </div>
     </div>
   </div>
@@ -82,17 +76,11 @@ const isSuccess = computed(() => {
   return state === "HALT" || state === undefined || state === null;
 });
 
-const iconClass = computed(() =>
-  isSuccess.value
-    ? "bg-green-100 text-success dark:bg-green-900/30 dark:text-green-300"
-    : "bg-red-100 text-error dark:bg-red-900/30 dark:text-red-300"
-);
-
-const statusBadgeClass = computed(() =>
-  isSuccess.value
-    ? "bg-green-100 text-success dark:bg-green-900/30 dark:text-green-300"
-    : "bg-red-100 text-error dark:bg-red-900/30 dark:text-red-300"
-);
+const statusStyle = computed(() => {
+  const c = isSuccess.value ? "var(--status-success)" : "var(--status-error)";
+  const bg = isSuccess.value ? "var(--status-success-bg)" : "var(--status-error-bg)";
+  return { background: bg, color: c };
+});
 
 const statusText = computed(() => (isSuccess.value ? "Success" : "Failed"));
 

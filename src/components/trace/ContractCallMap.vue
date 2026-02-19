@@ -1,6 +1,6 @@
 <template>
   <div class="contract-call-map">
-    <div v-if="!callTree || callTree.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic py-4">
+    <div v-if="!callTree || callTree.length === 0" class="text-mid py-4 text-sm italic">
       No contract calls to display
     </div>
 
@@ -15,8 +15,8 @@
             <span class="w-1.5 h-1.5 rounded-full" :class="vmStateDot(exec.vmState)"></span>
             {{ exec.vmState }}
           </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">Trigger: {{ exec.trigger }}</span>
-          <span class="text-xs font-mono text-gray-500 dark:text-gray-400"
+          <span class="text-low text-xs">Trigger: {{ exec.trigger }}</span>
+          <span class="text-low text-xs font-mono"
             >{{ formatGasDecimal(exec.gasConsumed) }} GAS</span
           >
         </div>
@@ -27,7 +27,7 @@
             <!-- Arrow between contracts (desktop) -->
             <div v-if="ni > 0" class="hidden md:flex items-center justify-center px-2 self-center">
               <svg
-                class="w-6 h-6 text-gray-400 dark:text-gray-500"
+                class="text-low h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -39,7 +39,7 @@
             <!-- Arrow between contracts (mobile) -->
             <div v-if="ni > 0" class="flex md:hidden items-center justify-center py-1">
               <svg
-                class="w-5 h-5 text-gray-400 dark:text-gray-500"
+                class="text-low h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -50,15 +50,15 @@
 
             <!-- Contract box -->
             <div
-              class="contract-node flex-shrink-0 w-full md:w-64 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 overflow-hidden"
+              class="contract-node panel-muted flex-shrink-0 w-full md:w-64 overflow-hidden"
             >
               <!-- Contract header -->
-              <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+              <div class="table-head soft-divider border-b px-3 py-2">
                 <div class="flex items-center gap-2">
                   <HashLink :hash="node.contract" type="contract" />
                   <span
                     v-if="node.contractName || getNodeName(node.contract)"
-                    class="text-xs text-gray-500 dark:text-gray-400"
+                    class="text-low text-xs"
                   >
                     ({{ node.contractName || getNodeName(node.contract) }})
                   </span>
@@ -76,24 +76,24 @@
                 <div
                   v-for="(evt, evi) in node.events"
                   :key="evi"
-                  class="event-badge flex items-center gap-1.5 px-2 py-1.5 rounded bg-gray-50 dark:bg-gray-700/30 text-xs"
+                  class="event-badge badge-soft flex items-center gap-1.5 rounded px-2 py-1.5 text-xs"
                 >
                   <span
                     class="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     :class="evt.eventName?.toLowerCase() === 'transfer' ? 'bg-emerald-400' : 'bg-primary-400'"
                   ></span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">
+                  <span class="text-high font-medium">
                     {{ evt.eventName }}
                   </span>
                   <!-- Compact transfer summary -->
                   <span
                     v-if="evt.eventName?.toLowerCase() === 'transfer' && getTransferSummary(evt)"
-                    class="text-gray-500 dark:text-gray-400 truncate"
+                    class="text-mid truncate"
                   >
                     {{ getTransferSummary(evt) }}
                   </span>
                 </div>
-                <div v-if="!node.events || node.events.length === 0" class="text-xs text-gray-400 italic px-2 py-1">
+                <div v-if="!node.events || node.events.length === 0" class="text-low px-2 py-1 text-xs italic">
                   No events
                 </div>
               </div>

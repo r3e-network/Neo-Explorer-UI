@@ -1,6 +1,6 @@
 <template>
   <div class="stack-viewer">
-    <div v-if="!stack || stack.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+    <div v-if="!stack || stack.length === 0" class="text-mid py-2 text-sm italic">
       No stack items
     </div>
     <div v-else class="space-y-1">
@@ -8,16 +8,16 @@
       <div
         v-for="(item, index) in stack"
         :key="index"
-        class="stack-item rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+        class="stack-item panel-muted"
       >
         <button
-          class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors rounded-lg"
+          class="list-row w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
           aria-label="Toggle stack item details"
           @click="toggle(index)"
         >
           <svg
             v-if="isExpandable(item)"
-            class="w-3.5 h-3.5 text-gray-400 transition-transform flex-shrink-0"
+            class="text-low h-3.5 w-3.5 flex-shrink-0 transition-transform"
             :class="{ 'rotate-90': expanded[index] }"
             fill="currentColor"
             viewBox="0 0 20 20"
@@ -34,7 +34,7 @@
             {{ item.type ?? "Unknown" }}
           </span>
 
-          <span class="font-mono text-xs text-gray-700 dark:text-gray-300 truncate">
+          <span class="text-high truncate font-mono text-xs">
             {{ formatPreview(item) }}
           </span>
         </button>
@@ -50,12 +50,12 @@
             <div
               v-for="(entry, mi) in item.value"
               :key="mi"
-              class="flex gap-2 py-1 border-b border-gray-100 dark:border-gray-700 last:border-0"
+              class="soft-divider flex gap-2 border-b py-1 last:border-0"
             >
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 flex-shrink-0">Key:</span>
-              <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ formatMapKey(entry.key) }}</span>
-              <span class="text-xs text-gray-400 mx-1">-></span>
-              <span class="font-mono text-xs text-gray-700 dark:text-gray-300 truncate">{{
+              <span class="text-mid shrink-0 text-xs font-medium">Key:</span>
+              <span class="text-high font-mono text-xs">{{ formatMapKey(entry.key) }}</span>
+              <span class="text-low mx-1 text-xs">-></span>
+              <span class="text-high truncate font-mono text-xs">{{
                 formatMapValue(entry.value)
               }}</span>
             </div>
@@ -65,12 +65,12 @@
           <template v-else-if="item.type === 'ByteString' || item.type === 'Buffer'">
             <div class="space-y-1.5 text-xs font-mono">
               <div class="flex gap-2">
-                <span class="text-gray-500 dark:text-gray-400 flex-shrink-0">Hex:</span>
-                <span class="text-gray-700 dark:text-gray-300 break-all">{{ toHex(item.value) }}</span>
+                <span class="text-mid shrink-0">Hex:</span>
+                <span class="text-high break-all">{{ toHex(item.value) }}</span>
               </div>
               <div class="flex gap-2">
-                <span class="text-gray-500 dark:text-gray-400 flex-shrink-0">UTF-8:</span>
-                <span class="text-gray-700 dark:text-gray-300 break-all">{{ tryUtf8(item.value) }}</span>
+                <span class="text-mid shrink-0">UTF-8:</span>
+                <span class="text-high break-all">{{ tryUtf8(item.value) }}</span>
               </div>
               <div v-if="isNeoAddress(item.value)" class="flex gap-2">
                 <span class="text-primary-500 flex-shrink-0">Address:</span>
@@ -115,7 +115,7 @@ function typeBadgeClass(type) {
     Array: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
     Map: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
   };
-  return map[type] ?? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+  return map[type] ?? "badge-soft";
 }
 
 function formatPreview(item) {

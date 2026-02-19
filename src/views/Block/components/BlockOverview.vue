@@ -37,7 +37,7 @@ const timeAgo = computed(() => {
   <!-- Overview Card -->
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
+      <h2 class="text-base font-semibold text-high">Overview</h2>
     </div>
     <div class="p-4 md:p-6">
       <!-- Block Height -->
@@ -47,12 +47,7 @@ const timeAgo = computed(() => {
 
       <!-- Timestamp -->
       <InfoRow label="Timestamp">
-        <svg
-          class="mr-1.5 inline h-4 w-4 text-gray-400 dark:text-gray-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="mr-1.5 inline h-4 w-4 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -61,7 +56,7 @@ const timeAgo = computed(() => {
           />
         </svg>
         <span>{{ formatTimestamp(block.timestamp) }}</span>
-        <span class="ml-1.5 text-text-secondary">({{ timeAgo }})</span>
+        <span class="ml-1.5 text-mid">({{ timeAgo }})</span>
       </InfoRow>
 
       <!-- Transactions -->
@@ -72,13 +67,13 @@ const timeAgo = computed(() => {
         >
           {{ blockTransactionCount }} transaction{{ blockTransactionCount !== 1 ? "s" : "" }}
         </span>
-        <span v-else class="text-text-secondary">0 transactions</span>
+        <span v-else class="text-mid">0 transactions</span>
       </InfoRow>
 
       <!-- Validator / Next Consensus -->
       <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
         <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
-        <span v-else class="text-text-secondary">--</span>
+        <span v-else class="text-mid">--</span>
       </InfoRow>
 
       <!-- Size -->
@@ -91,7 +86,7 @@ const timeAgo = computed(() => {
   <!-- Details Card -->
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
+      <h2 class="text-high text-base font-semibold">Details</h2>
     </div>
     <div class="p-4 md:p-6">
       <!-- Block Hash -->
@@ -108,20 +103,20 @@ const timeAgo = computed(() => {
         >
           {{ block.prevhash }}
         </router-link>
-        <span v-else class="font-mono text-sm text-text-secondary">Genesis Block (no previous)</span>
+        <span v-else class="font-mono text-sm text-mid">Genesis Block (no previous)</span>
       </InfoRow>
 
       <!-- Merkle Root -->
       <InfoRow label="Merkle Root">
-        <span class="font-mono text-sm break-all text-text-primary dark:text-gray-300">
+        <span class="text-high font-mono text-sm break-all">
           {{ block.merkleroot || "--" }}
         </span>
       </InfoRow>
 
       <!-- Next Consensus -->
       <InfoRow label="Next Consensus" tooltip="Address of the next consensus node">
-        <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" :truncate="false" />
-        <span v-else class="text-text-secondary">--</span>
+        <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" :truncated="false" />
+        <span v-else class="text-mid">--</span>
       </InfoRow>
 
       <!-- Version -->
@@ -130,7 +125,7 @@ const timeAgo = computed(() => {
       </InfoRow>
 
       <!-- Nonce -->
-      <InfoRow v-if="block.nonce" label="Nonce">
+      <InfoRow v-if="block.nonce !== undefined && block.nonce !== null" label="Nonce">
         <span class="font-mono text-sm">{{ block.nonce }}</span>
       </InfoRow>
     </div>
@@ -139,7 +134,7 @@ const timeAgo = computed(() => {
   <!-- Fees & Reward Card -->
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Fees &amp; Reward</h2>
+      <h2 class="text-high text-base font-semibold">Fees &amp; Reward</h2>
     </div>
     <div class="p-4 md:p-6">
       <InfoRow label="System Fee Total">
@@ -157,17 +152,19 @@ const timeAgo = computed(() => {
   <!-- Witnesses (Collapsible) -->
   <div v-if="block.witnesses && block.witnesses.length > 0" class="etherscan-card overflow-hidden">
     <button
+      type="button"
       aria-label="Toggle witnesses section"
       :aria-expanded="showWitnesses"
-      class="flex w-full items-center justify-between border-b border-card-border px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:border-card-border-dark dark:hover:bg-gray-800/60"
+      aria-controls="block-witnesses-panel"
+      class="soft-divider list-row flex w-full items-center justify-between border-b px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
       @click="emit('update:showWitnesses', !showWitnesses)"
     >
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">
+      <h2 class="text-high text-base font-semibold">
         Witnesses
-        <span class="ml-1.5 text-sm font-normal text-text-secondary"> ({{ block.witnesses.length }}) </span>
+        <span class="ml-1.5 text-sm font-normal text-mid"> ({{ block.witnesses.length }}) </span>
       </h2>
       <svg
-        class="h-5 w-5 text-gray-400 transition-transform dark:text-gray-500"
+        class="text-low h-5 w-5 transition-transform"
         :class="{ 'rotate-180': showWitnesses }"
         fill="none"
         stroke="currentColor"
@@ -176,19 +173,19 @@ const timeAgo = computed(() => {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
     </button>
-    <div v-if="showWitnesses" class="divide-y divide-card-border dark:divide-card-border-dark">
+    <div v-if="showWitnesses" id="block-witnesses-panel" class="soft-divider divide-y">
       <div v-for="(w, idx) in block.witnesses" :key="idx" class="p-4">
-        <p class="mb-1 text-xs font-medium text-text-secondary">Witness #{{ idx + 1 }}</p>
+        <p class="text-mid mb-1 text-xs font-medium">Witness #{{ idx + 1 }}</p>
         <div class="space-y-2">
           <div>
-            <span class="text-xs text-text-secondary">Invocation:</span>
-            <p class="mt-0.5 break-all font-mono text-xs text-gray-700 dark:text-gray-300">
+            <span class="text-mid text-xs">Invocation:</span>
+            <p class="text-high mt-0.5 break-all font-mono text-xs">
               {{ w.invocation }}
             </p>
           </div>
           <div>
-            <span class="text-xs text-text-secondary">Verification:</span>
-            <p class="mt-0.5 break-all font-mono text-xs text-gray-700 dark:text-gray-300">
+            <span class="text-mid text-xs">Verification:</span>
+            <p class="text-high mt-0.5 break-all font-mono text-xs">
               {{ w.verification }}
             </p>
           </div>
@@ -200,7 +197,7 @@ const timeAgo = computed(() => {
   <!-- dBFT Consensus Info -->
   <div v-once class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">dBFT 2.0 Consensus</h2>
+      <h2 class="text-high text-base font-semibold">dBFT 2.0 Consensus</h2>
     </div>
     <div class="p-4 md:p-6">
       <InfoRow label="Consensus Model">

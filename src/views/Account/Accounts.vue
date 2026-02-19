@@ -22,11 +22,11 @@
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
-          <p class="text-sm text-text-secondary dark:text-gray-300">
+          <p class="text-mid text-sm">
             <span v-if="!loading && total > 0"> More than {{ formatNumber(total) }} addresses found </span>
             <span v-else>Loading addresses...</span>
           </p>
-          <p class="text-sm text-text-muted dark:text-gray-400">Page {{ currentPage }} of {{ totalPages }}</p>
+          <p class="text-low text-sm">Page {{ currentPage }} of {{ totalPages }}</p>
         </div>
 
         <!-- Loading state -->
@@ -47,7 +47,7 @@
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="bg-gray-50 text-xs uppercase tracking-wide dark:bg-gray-800">
+            <thead class="table-head text-xs uppercase tracking-wide">
               <tr>
                 <th class="table-header-cell w-16">Rank</th>
                 <th class="table-header-cell">Address</th>
@@ -57,11 +57,11 @@
                 <th class="table-header-cell-right">Last Active</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="(account, index) in accounts"
                 :key="account.address || index"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -94,7 +94,7 @@
 
         <div
           v-if="!loading && accounts.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <EtherscanPagination
             :page="currentPage"

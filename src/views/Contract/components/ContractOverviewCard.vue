@@ -1,7 +1,7 @@
 <template>
   <div class="etherscan-card">
     <div class="card-header">
-      <h2 class="text-base font-bold text-text-primary dark:text-gray-100">Overview</h2>
+      <h2 class="text-high text-base font-bold">Overview</h2>
     </div>
     <div class="divide-y soft-divider">
       <InfoRow
@@ -20,7 +20,7 @@
         >
           {{ contract.creator }}
         </router-link>
-        <span v-else class="text-text-secondary">-</span>
+        <span v-else class="text-mid">-</span>
       </InfoRow>
       <InfoRow label="Invocations" :value="formatNumber(contract.invocations)" />
       <InfoRow
@@ -44,7 +44,7 @@
         </span>
         <span
           v-else
-          class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 px-2 py-1 text-xs font-semibold text-text-secondary dark:border-gray-700 dark:bg-gray-800/80"
+          class="badge-soft inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold"
         >
           Not Verified
         </span>

@@ -31,7 +31,7 @@
       <div class="divide-y divide-card-border dark:divide-card-border-dark">
         <details v-for="(item, index) in manifest['abi']['events']" :key="'event-' + index" class="group">
           <summary
-            class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
+            class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-gray-200 dark:hover:bg-gray-800/60"
           >
             <svg
               class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90 dark:text-gray-500"
@@ -56,16 +56,19 @@
         </details>
       </div>
     </div>
+    <div v-else class="text-low panel-muted mb-4 border-dashed px-4 py-8 text-center text-sm">
+      No events published by this contract.
+    </div>
 
     <!-- ABI: Methods -->
-    <div v-if="manifest.abi && manifest.abi.methods" class="etherscan-card">
+    <div v-if="manifest.abi && manifest.abi.methods && manifest.abi.methods.length > 0" class="etherscan-card">
       <div class="card-header">
         <h3 class="text-sm font-semibold text-text-primary dark:text-gray-100">Methods</h3>
       </div>
       <div class="divide-y divide-card-border dark:divide-card-border-dark">
         <details v-for="(item, index) in manifest['abi']['methods']" :key="'method-' + index" class="group">
           <summary
-            class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60"
+            class="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-gray-200 dark:hover:bg-gray-800/60"
           >
             <svg
               class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90 dark:text-gray-500"
@@ -85,7 +88,7 @@
           <div class="px-4 pb-4 pl-10">
             <!-- Query button for safe methods -->
             <div v-if="item['safe']" class="mb-3">
-              <button class="btn-outline text-xs" aria-label="Query method" @click="$emit('query', index)">
+              <button type="button" class="btn-outline text-xs" aria-label="Query method" @click="$emit('query', index)">
                 Query
               </button>
             </div>
@@ -138,6 +141,8 @@
             <!-- Error / Response -->
             <div
               class="mt-3"
+              role="status"
+              aria-live="assertive"
               v-if="manifest['abi']['methods'][index]['error'] && manifest['abi']['methods'][index]['error'] !== ''"
             >
               <div class="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">Error</div>
@@ -147,11 +152,12 @@
             </div>
             <div
               class="mt-3"
+              aria-live="polite"
               v-else-if="manifest['abi']['methods'][index]['raw'] && manifest['abi']['methods'][index]['raw'] !== ''"
             >
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-semibold text-text-primary dark:text-gray-100">Response</span>
-                <button class="btn-mini" aria-label="Decode response" @click="$emit('decode', index)">
+                <button type="button" class="btn-mini" aria-label="Decode response" @click="$emit('decode', index)">
                   {{ manifest["abi"]["methods"][index]["button"] }}
                 </button>
               </div>
@@ -164,6 +170,9 @@
           </div>
         </details>
       </div>
+    </div>
+    <div v-else class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm">
+      No callable methods are exposed by this contract.
     </div>
   </div>
 </template>

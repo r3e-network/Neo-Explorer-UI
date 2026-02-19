@@ -1,7 +1,7 @@
 <template>
   <article class="etherscan-card overflow-hidden">
     <header class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Latest Blocks</h2>
+      <h2 class="text-high text-base font-semibold">Latest Blocks</h2>
       <router-link to="/blocks/1" class="btn-outline text-xs">View all</router-link>
     </header>
 

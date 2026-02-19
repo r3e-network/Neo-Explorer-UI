@@ -50,7 +50,7 @@
                 type="button"
                 @click="clearSearch"
                 aria-label="Clear search query"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                class="text-low absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:text-mid"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -77,11 +77,11 @@
           </p>
 
           <!-- Search Hints -->
-          <div class="flex flex-wrap gap-2 text-xs text-text-muted dark:text-gray-500">
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-700"> Block: height or hash </span>
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-700"> Tx: 0x + 64 hex chars </span>
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-700"> Address: starts with N </span>
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-700"> Contract: script hash </span>
+          <div class="text-low flex flex-wrap gap-2 text-xs">
+            <span class="badge-soft rounded px-2 py-1"> Block: height or hash </span>
+            <span class="badge-soft rounded px-2 py-1"> Tx: 0x + 64 hex chars </span>
+            <span class="badge-soft rounded px-2 py-1"> Address: starts with N </span>
+            <span class="badge-soft rounded px-2 py-1"> Contract: script hash </span>
           </div>
         </form>
       </div>
@@ -105,7 +105,7 @@
         <!-- Result Found -->
         <template v-if="result.type">
           <div class="card-header">
-            <p class="text-sm font-semibold text-text-primary dark:text-gray-200">Search Result</p>
+            <p class="text-high text-sm font-semibold">Search Result</p>
             <span
               class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
               :class="resultBadgeClass"
@@ -124,13 +124,13 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm text-text-muted dark:text-gray-500">Block Height</p>
-                  <p class="font-semibold text-text-primary dark:text-gray-200">
+                  <p class="text-low text-sm">Block Height</p>
+                  <p class="text-high font-semibold">
                     {{ formatNumber(result.data.index) }}
                   </p>
                 </div>
               </div>
-              <HashLink :hash="result.data.hash" type="block" :truncate="false" />
+              <HashLink :hash="result.data.hash" type="block" :truncated="false" />
               <router-link
                 :to="`/block-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
@@ -153,13 +153,13 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm text-text-muted dark:text-gray-500">Transaction</p>
-                  <p class="font-semibold text-text-primary dark:text-gray-200">
+                  <p class="text-low text-sm">Transaction</p>
+                  <p class="text-high font-semibold">
                     {{ truncateHash(result.data.hash) }}
                   </p>
                 </div>
               </div>
-              <HashLink :hash="result.data.hash" type="tx" :truncate="false" />
+              <HashLink :hash="result.data.hash" type="tx" :truncated="false" />
               <router-link
                 :to="`/transaction-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
@@ -182,13 +182,13 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm text-text-muted dark:text-gray-500">Address</p>
-                  <p class="font-semibold text-text-primary dark:text-gray-200">
+                  <p class="text-low text-sm">Address</p>
+                  <p class="text-high font-semibold">
                     {{ truncateHash(query.trim(), 12, 10) }}
                   </p>
                 </div>
               </div>
-              <HashLink :hash="query.trim()" type="address" :truncate="false" />
+              <HashLink :hash="query.trim()" type="address" :truncated="false" />
               <router-link
                 :to="`/account-profile/${query.trim()}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
@@ -219,13 +219,13 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm text-text-muted dark:text-gray-500">Contract</p>
-                  <p class="font-semibold text-text-primary dark:text-gray-200">
+                  <p class="text-low text-sm">Contract</p>
+                  <p class="text-high font-semibold">
                     {{ result.data.name || truncateHash(result.data.hash) }}
                   </p>
                 </div>
               </div>
-              <HashLink :hash="result.data.hash" type="contract" :truncate="false" />
+              <HashLink :hash="result.data.hash" type="contract" :truncated="false" />
               <router-link
                 :to="`/contract-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
@@ -254,8 +254,8 @@
 
       <!-- Initial Empty State (before any search) -->
       <div v-else class="etherscan-card p-8 text-center">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-          <svg class="h-8 w-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-icon-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+          <svg class="text-mid h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -264,8 +264,8 @@
             />
           </svg>
         </div>
-        <h2 class="mb-2 text-lg font-semibold text-text-primary dark:text-gray-200">Search the Neo N3 Blockchain</h2>
-        <p class="mx-auto max-w-md text-sm text-text-secondary dark:text-gray-400">
+        <h2 class="text-high mb-2 text-lg font-semibold">Search the Neo N3 Blockchain</h2>
+        <p class="text-mid mx-auto max-w-md text-sm">
           Enter a block height, transaction hash, address, or contract hash above to search. Use the type filter to
           narrow your search scope.
         </p>

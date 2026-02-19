@@ -10,7 +10,7 @@
     <!-- Empty -->
     <div
       v-else-if="!contractGasData || contractGasData.length === 0"
-      class="py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+      class="text-mid py-6 text-center text-sm"
     >
       No gas data available
     </div>
@@ -19,16 +19,16 @@
     <div v-else>
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Gas Distribution (estimated)<span class="text-xs text-gray-400 dark:text-gray-500 ml-2 font-normal"
+        <h3 class="text-high text-sm font-semibold">
+          Gas Distribution (estimated)<span class="text-low ml-2 text-xs font-normal"
             >Gas estimated by operation count</span
           >
         </h3>
-        <span class="text-sm font-mono font-medium text-gray-600 dark:text-gray-300"> {{ formattedTotal }} GAS </span>
+        <span class="text-mid text-sm font-mono font-medium"> {{ formattedTotal }} GAS </span>
       </div>
 
       <!-- Stacked bar -->
-      <div class="h-6 w-full rounded-full overflow-hidden flex bg-gray-100 dark:bg-gray-700 mb-4">
+      <div class="soft-divider mb-4 flex h-6 w-full overflow-hidden rounded-full border">
         <div
           v-for="(item, idx) in contractGasData"
           :key="idx"
@@ -48,13 +48,13 @@
         >
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-3 h-3 rounded-full flex-shrink-0" :class="barColorClass(idx)" />
-            <span class="text-gray-700 dark:text-gray-300 truncate">
+            <span class="text-high truncate">
               {{ item.name }}
             </span>
           </div>
           <div class="flex items-center gap-3 flex-shrink-0 ml-2">
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400"> {{ item.gasFormatted }} GAS </span>
-            <span class="font-mono text-xs font-medium text-gray-700 dark:text-gray-300 w-14 text-right">
+            <span class="text-mid font-mono text-xs"> {{ item.gasFormatted }} GAS </span>
+            <span class="text-high w-14 text-right font-mono text-xs font-medium">
               {{ item.percentage.toFixed(1) }}%
             </span>
           </div>

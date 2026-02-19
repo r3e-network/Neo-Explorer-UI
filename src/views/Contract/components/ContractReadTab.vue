@@ -1,9 +1,9 @@
 <template>
   <div class="space-y-4">
-    <div v-if="!manifest" class="py-8 text-center text-text-secondary dark:text-gray-400">
+    <div v-if="!manifest" class="panel-muted text-mid px-4 py-8 text-center text-sm">
       Loading contract manifest...
     </div>
-    <div v-else-if="!readMethods.length" class="py-8 text-center text-text-secondary dark:text-gray-400">
+    <div v-else-if="!readMethods.length" class="panel-muted text-mid px-4 py-8 text-center text-sm">
       No read-only (Safe) methods found in this contract.
     </div>
     <div v-else class="space-y-3">
@@ -13,7 +13,8 @@
         class="surface-panel overflow-hidden rounded-xl"
       >
         <button
-          class="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-white/40 dark:hover:bg-gray-800/35"
+          type="button"
+          class="list-row flex w-full items-center justify-between p-4 text-left transition-colors"
           :aria-label="`Toggle ${method.name} method details`"
           :aria-expanded="readMethodState[mIdx]?.open"
           @click="emit('toggleMethod', mIdx)"
@@ -24,12 +25,12 @@
             >
               {{ mIdx + 1 }}
             </span>
-            <span class="font-mono text-sm font-medium text-text-primary dark:text-gray-100">
+            <span class="text-high font-mono text-sm font-medium">
               {{ method.name }}
             </span>
           </div>
           <svg
-            class="h-4 w-4 text-gray-400 transition-transform dark:text-gray-500"
+            class="text-low h-4 w-4 transition-transform"
             :class="{ 'rotate-180': readMethodState[mIdx]?.open }"
             fill="none"
             stroke="currentColor"
@@ -53,31 +54,44 @@
               @update:model-value="emit('updateParam', mIdx, pIdx, $event)"
             />
           </div>
-          <div v-else class="mt-3 text-xs text-text-secondary dark:text-gray-400">No parameters required.</div>
+          <div v-else class="text-mid mt-3 text-xs">No parameters required.</div>
           <!-- Query button -->
           <button
+            type="button"
             class="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="readMethodState[mIdx]?.loading"
+            :aria-label="`Query ${method.name}`"
             @click="emit('invokeMethod', mIdx, method)"
           >
-            <svg v-if="readMethodState[mIdx]?.loading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg
+              v-if="readMethodState[mIdx]?.loading"
+              aria-hidden="true"
+              class="h-4 w-4 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
+            <span v-if="readMethodState[mIdx]?.loading" class="sr-only">Loading</span>
             Query
           </button>
           <!-- Result -->
           <div
             v-if="readMethodState[mIdx]?.result !== undefined"
-            class="mt-3 rounded-lg border bg-white/70 p-3 soft-divider dark:bg-gray-800/55"
+            class="panel-muted mt-3 p-3"
+            role="status"
+            aria-live="polite"
           >
             <div class="mb-2 flex items-center justify-between">
-              <h5 class="text-xs font-semibold text-text-secondary dark:text-gray-400">Result:</h5>
+              <h5 class="text-mid text-xs font-semibold">Result:</h5>
               <button
+                type="button"
                 class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors"
+                :aria-pressed="!!showRaw[mIdx]"
                 :class="
                   showRaw[mIdx]
-                    ? 'bg-gray-200 dark:bg-gray-700 text-text-primary dark:text-gray-200'
+                    ? 'badge-soft text-high'
                     : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                 "
                 @click="showRaw[mIdx] = !showRaw[mIdx]"
@@ -88,7 +102,7 @@
             <!-- Raw view -->
             <pre
               v-if="showRaw[mIdx]"
-              class="max-h-48 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200"
+              class="text-high max-h-48 overflow-auto font-mono text-xs"
               >{{ formatRaw(readMethodState[mIdx].result) }}</pre
             >
             <!-- Decoded view -->
@@ -103,13 +117,13 @@
                 >
                   {{ item.type }}
                 </span>
-                <span class="break-all font-mono text-xs text-text-primary dark:text-gray-200">
+                <span class="text-high break-all font-mono text-xs">
                   {{ formatDecodedValue(item) }}
                 </span>
               </div>
               <p
                 v-if="getDecoded(readMethodState[mIdx].result).stack.length === 0"
-                class="text-xs text-text-secondary dark:text-gray-400"
+                class="text-mid text-xs"
               >
                 (empty result)
               </p>
@@ -119,6 +133,7 @@
           <div
             v-if="readMethodState[mIdx]?.error"
             class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
+            role="alert"
           >
             <p class="text-xs text-red-600 dark:text-red-400">{{ readMethodState[mIdx].error }}</p>
           </div>

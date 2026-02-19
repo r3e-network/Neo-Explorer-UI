@@ -24,7 +24,7 @@
 
     <div
       v-else-if="transfers.length === 0"
-      class="py-8 text-center text-sm text-gray-500"
+      class="text-mid py-8 text-center text-sm"
     >
       No token transfers found
     </div>
@@ -56,18 +56,19 @@
           </div>
           <div
             v-if="index < transfers.length - 1"
-            class="h-4 w-0.5 bg-gray-200 dark:bg-gray-700"
+            class="h-4 w-0.5"
+            style="background: var(--line-soft)"
           ></div>
         </div>
 
         <div
-          class="flex-1 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+          class="panel-muted flex-1 p-3"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <HashLink :hash="transfer.from" type="address" :truncate="true" />
+              <HashLink :hash="transfer.from" type="address" :truncated="true" />
               <svg
-                class="h-4 w-4 text-gray-400"
+                class="text-low h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -79,17 +80,17 @@
                   d="M14 5l7 7m0 0l-7 7m7-7H3"
                 />
               </svg>
-              <HashLink :hash="transfer.to" type="address" :truncate="true" />
+              <HashLink :hash="transfer.to" type="address" :truncated="true" />
             </div>
             <div class="text-right">
-              <div class="font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-high font-medium">
                 {{ formatAmount(transfer.amount, transfer.decimals) }}
               </div>
-              <div class="text-xs text-gray-500">{{ transfer.symbol }}</div>
+              <div class="text-mid text-xs">{{ transfer.symbol }}</div>
             </div>
           </div>
 
-          <div v-if="transfer.tokenId" class="mt-2 text-xs text-gray-500">
+          <div v-if="transfer.tokenId" class="text-mid mt-2 text-xs">
             Token ID:
             <span class="font-mono">{{
               truncateTokenId(transfer.tokenId)
@@ -126,15 +127,14 @@ function truncateTokenId(tokenId) {
 }
 
 function getDirectionClass(transfer) {
-  if (!props.address)
-    return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+  if (!props.address) return "soft-divider border text-mid";
   if (transfer.from === props.address) {
     return "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400";
   }
   if (transfer.to === props.address) {
     return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
   }
-  return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
+  return "soft-divider border text-mid";
 }
 </script>
 

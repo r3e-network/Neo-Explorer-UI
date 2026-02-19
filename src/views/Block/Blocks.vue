@@ -32,8 +32,8 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="text-xs text-text-secondary">Total Blocks</p>
-            <p class="truncate text-sm font-semibold text-text-primary dark:text-gray-100">
+            <p class="text-mid text-xs">Total Blocks</p>
+            <p class="text-high truncate text-sm font-semibold">
               {{ statsLoading ? "..." : formatNumber(totalBlocks) }}
             </p>
           </div>
@@ -52,8 +52,8 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="text-xs text-text-secondary">Latest Block</p>
-            <p class="truncate text-sm font-semibold text-text-primary dark:text-gray-100">
+            <p class="text-mid text-xs">Latest Block</p>
+            <p class="text-high truncate text-sm font-semibold">
               {{ statsLoading ? "..." : "#" + formatNumber(latestHeight) }}
             </p>
           </div>
@@ -63,7 +63,7 @@
       <!-- Block List Card -->
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
-          <p class="text-sm text-text-secondary dark:text-gray-300">
+          <p class="text-mid text-sm">
             Block #{{ formatNumber(rangeStart) }} to #{{ formatNumber(rangeEnd) }}
             <span class="hidden sm:inline">(Total of {{ formatNumber(totalCount) }} blocks)</span>
           </p>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Loading Skeleton -->
-        <div v-if="loading" class="divide-y divide-card-border dark:divide-card-border-dark">
+        <div v-if="loading" class="soft-divider divide-y">
           <div v-for="i in pageSize" :key="i" class="flex items-center gap-4 px-4 py-3">
             <Skeleton width="60px" height="18px" />
             <Skeleton width="40%" height="18px" />
@@ -107,7 +107,7 @@
         <!-- Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[800px]">
-            <thead class="bg-white/90 text-xs uppercase tracking-wide backdrop-blur-sm dark:bg-gray-900/90">
+            <thead class="table-head">
               <tr>
                 <th class="table-header-cell">Block</th>
                 <th
@@ -130,11 +130,11 @@
                 <th class="table-header-cell-right">Size</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+            <tbody class="soft-divider divide-y">
               <tr
                 v-for="block in blocks"
                 :key="block.hash"
-                class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                class="list-row transition-colors"
               >
                 <!-- Block Height -->
                 <td class="table-cell">
@@ -160,7 +160,7 @@
                 <!-- Validator -->
                 <td class="table-cell">
                   <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
-                  <span v-else class="text-sm text-text-secondary">--</span>
+                  <span v-else class="text-sm text-mid">--</span>
                 </td>
                 <!-- GAS Reward -->
                 <td class="table-cell text-right font-mono">
@@ -178,7 +178,7 @@
         <!-- Pagination -->
         <div
           v-if="!loading && blocks.length > 0"
-          class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+          class="soft-divider border-t px-4 py-3"
         >
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
         </div>

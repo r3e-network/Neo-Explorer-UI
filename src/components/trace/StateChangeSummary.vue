@@ -8,9 +8,7 @@
     <!-- Stats grid (only when data available) -->
     <div v-else-if="enrichedTrace" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <!-- Contracts -->
-      <div
-        class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3"
-      >
+      <div class="panel-muted flex items-center gap-3 px-4 py-3">
         <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/40">
           <svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -22,15 +20,13 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ contractCount }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Contracts</p>
+          <p class="text-high text-lg font-bold leading-tight">{{ contractCount }}</p>
+          <p class="text-mid text-xs">Contracts</p>
         </div>
       </div>
 
       <!-- Transfers -->
-      <div
-        class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3"
-      >
+      <div class="panel-muted flex items-center gap-3 px-4 py-3">
         <div
           class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40"
         >
@@ -44,15 +40,13 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ transferCount }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Transfers</p>
+          <p class="text-high text-lg font-bold leading-tight">{{ transferCount }}</p>
+          <p class="text-mid text-xs">Transfers</p>
         </div>
       </div>
 
       <!-- Events -->
-      <div
-        class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3"
-      >
+      <div class="panel-muted flex items-center gap-3 px-4 py-3">
         <div
           class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/40"
         >
@@ -66,15 +60,13 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ eventCount }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">Events</p>
+          <p class="text-high text-lg font-bold leading-tight">{{ eventCount }}</p>
+          <p class="text-mid text-xs">Events</p>
         </div>
       </div>
 
       <!-- Gas -->
-      <div
-        class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3"
-      >
+      <div class="panel-muted flex items-center gap-3 px-4 py-3">
         <div
           class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40"
         >
@@ -88,8 +80,8 @@
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formattedGas }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">GAS Used</p>
+          <p class="text-high text-lg font-bold leading-tight">{{ formattedGas }}</p>
+          <p class="text-mid text-xs">GAS Used</p>
         </div>
       </div>
     </div>

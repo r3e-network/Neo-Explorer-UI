@@ -1,7 +1,7 @@
 <template>
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-sm font-semibold text-text-primary dark:text-gray-200">Recent Blocks - Fee Data</h2>
+      <h2 class="text-high text-sm font-semibold">Recent Blocks - Fee Data</h2>
       <button
         @click="$emit('refresh')"
         aria-label="Refresh data"
@@ -29,7 +29,7 @@
     <!-- Table -->
     <div v-else class="overflow-x-auto">
       <table class="w-full min-w-[700px]">
-        <thead class="bg-gray-50 dark:bg-gray-800">
+        <thead class="table-head">
           <tr>
             <th class="table-header-cell">Block</th>
             <th class="table-header-cell">Age</th>
@@ -38,11 +38,11 @@
             <th class="table-header-cell-right">Total Fees</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-card-border dark:divide-card-border-dark">
+        <tbody class="soft-divider divide-y">
           <tr
             v-for="block in blocks"
             :key="block.hash"
-            class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+            class="list-row transition-colors"
           >
             <td class="table-cell">
               <router-link :to="`/block-info/${block.hash}`" class="font-medium etherscan-link">
@@ -58,7 +58,7 @@
             <td class="table-cell text-right">
               {{ formatGas(avgFee(block)) }}
             </td>
-            <td class="table-cell text-right font-medium text-text-primary dark:text-gray-200">
+            <td class="table-cell text-high text-right font-medium">
               {{ formatGas(totalFee(block)) }}
             </td>
           </tr>

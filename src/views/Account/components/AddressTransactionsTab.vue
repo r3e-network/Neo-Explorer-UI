@@ -14,12 +14,17 @@
 
     <div v-else class="space-y-4">
       <div class="flex items-center justify-between">
-        <p class="text-sm text-text-secondary dark:text-gray-400">
+        <p class="text-mid text-sm">
           Latest {{ transactions.length }} from a total of
-          <span class="font-semibold text-text-primary dark:text-gray-300">{{ formatNumber(totalCount) }}</span>
+          <span class="text-high font-semibold">{{ formatNumber(totalCount) }}</span>
           transactions
         </p>
-        <button class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs" @click="$emit('exportCsv')">
+        <button
+          type="button"
+          class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs"
+          aria-label="Export transactions to CSV"
+          @click="$emit('exportCsv')"
+        >
           <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -32,15 +37,18 @@
         </button>
       </div>
       <div class="surface-panel overflow-x-auto">
-        <table class="w-full min-w-[900px]">
-          <thead class="bg-white/90 text-xs uppercase tracking-wide backdrop-blur-sm dark:bg-gray-900/90">
+        <table class="w-full min-w-[900px]" aria-label="Address transactions">
+          <caption class="sr-only">
+            Address transaction history
+          </caption>
+          <thead class="table-head text-xs uppercase tracking-wide backdrop-blur-sm">
             <tr>
               <th class="table-header-cell">Txn Hash</th>
               <th class="table-header-cell">Method</th>
               <th class="table-header-cell">Block</th>
               <th class="table-header-cell">Age</th>
               <th class="table-header-cell">From</th>
-              <th class="w-12 px-2 py-3 text-center font-medium text-text-secondary dark:text-gray-400"></th>
+              <th class="text-low w-12 px-2 py-3 text-center font-medium"></th>
               <th class="table-header-cell">To</th>
               <th class="table-header-cell-right">Value</th>
               <th class="table-header-cell-right">Txn Fee</th>
@@ -50,7 +58,7 @@
             <tr
               v-for="tx in transactions"
               :key="tx.hash"
-              class="transition-colors hover:bg-white/50 dark:hover:bg-gray-800/55"
+              class="list-row transition-colors"
             >
               <td class="table-cell">
                 <router-link
@@ -62,9 +70,7 @@
                 </router-link>
               </td>
               <td class="table-cell">
-                <span
-                  class="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                >
+                <span class="badge-soft">
                   {{ getTxMethod(tx) }}
                 </span>
               </td>
@@ -72,7 +78,7 @@
                 <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="text-sm etherscan-link">
                   {{ tx.blockIndex != null ? formatNumber(tx.blockIndex) : truncateHash(tx.blockhash, 8, 6) }}
                 </router-link>
-                <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                <span v-else class="text-low text-sm">-</span>
               </td>
               <td class="table-cell-secondary">
                 {{ formatAge(tx.blocktime) }}
@@ -85,10 +91,10 @@
                 >
                   {{ truncateHash(tx.sender, 8, 6) }}
                 </router-link>
-                <span v-else-if="tx.sender" class="font-hash text-sm text-text-primary dark:text-gray-300">
+                <span v-else-if="tx.sender" class="text-high font-hash text-sm">
                   {{ truncateHash(tx.sender, 8, 6) }}
                 </span>
-                <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+                <span v-else class="text-low text-sm">-</span>
               </td>
               <td class="px-2 py-3 text-center">
                 <span
@@ -99,7 +105,7 @@
                 </span>
               </td>
               <td class="table-cell">
-                <span class="font-hash text-sm text-text-primary dark:text-gray-300">
+                <span class="text-high font-hash text-sm">
                   {{ truncateHash(address, 8, 6) }}
                 </span>
               </td>
@@ -114,7 +120,7 @@
         </table>
       </div>
 
-      <div class="border-t border-card-border pt-3 dark:border-card-border-dark">
+      <div class="soft-divider border-t pt-3">
         <EtherscanPagination
           :page="page"
           :total-pages="totalPages"

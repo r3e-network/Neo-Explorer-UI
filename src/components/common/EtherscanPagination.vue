@@ -1,8 +1,6 @@
 <template>
   <nav aria-label="Pagination" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="text-sm text-text-secondary dark:text-gray-400">
-      Showing {{ startRecord }} to {{ endRecord }} of {{ total }} records
-    </div>
+    <div class="text-sm text-mid">Showing {{ startRecord }} to {{ endRecord }} of {{ total }} records</div>
     <div class="flex items-center gap-1">
       <!-- First -->
       <button class="btn-page" :disabled="page <= 1" aria-label="First page" @click="goTo(1)">First</button>
@@ -11,13 +9,11 @@
 
       <!-- Page numbers -->
       <template v-for="p in visiblePages" :key="p">
-        <span v-if="p === '...'" class="px-1 text-xs text-gray-400 dark:text-gray-500">...</span>
+        <span v-if="p === '...'" class="px-1 text-xs text-low">...</span>
         <button
           v-else
           class="btn-page"
-          :class="
-            p === page ? 'bg-primary-500 text-white border-primary-500 dark:bg-primary-600 dark:border-primary-600' : ''
-          "
+          :class="p === page ? 'bg-primary-500 text-white border-primary-500' : ''"
           :aria-current="p === page ? 'page' : undefined"
           @click="goTo(p)"
         >
@@ -39,7 +35,8 @@
         v-if="showPageSize"
         :value="pageSize"
         aria-label="Results per page"
-        class="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+        class="ml-2 rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 soft-divider"
+        style="background: var(--surface-elevated); color: var(--text-mid)"
         @change="onPageSizeChange"
       >
         <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} / page</option>
@@ -116,10 +113,15 @@ function onPageSizeChange(e) {
 
 <style scoped>
 .btn-page {
-  @apply rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600
-         transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40
-         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
-         dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700
-         dark:focus-visible:ring-offset-gray-900;
+  @apply rounded border px-2.5 py-1 text-xs font-medium
+         transition-colors disabled:cursor-not-allowed disabled:opacity-40
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1;
+  border-color: var(--line-soft);
+  background: var(--surface-elevated);
+  color: var(--text-mid);
+}
+
+.btn-page:hover:not(:disabled) {
+  background: var(--surface-hover);
 }
 </style>

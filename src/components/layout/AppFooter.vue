@@ -1,5 +1,8 @@
 <template>
-  <footer class="app-footer mt-12 border-t border-card-border/70 bg-white/65 backdrop-blur-sm dark:border-card-border-dark/70 dark:bg-gray-900/45">
+  <footer
+    class="app-footer soft-divider mt-12 border-t backdrop-blur-sm"
+    style="background: var(--surface-glass)"
+  >
     <div class="mx-auto max-w-[1400px] px-4 py-10">
       <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         <!-- Brand Column -->
@@ -10,9 +13,9 @@
             >
               N3
             </div>
-            <span class="text-lg font-extrabold tracking-tight text-text-primary dark:text-gray-100">Neo Explorer</span>
+            <span class="text-high text-lg font-extrabold tracking-tight">Neo Explorer</span>
           </div>
-          <p class="mb-4 text-sm leading-relaxed text-text-secondary dark:text-gray-400">
+          <p class="text-mid mb-4 text-sm leading-relaxed">
             A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~15s finality.
           </p>
           <div class="flex items-center gap-3">
@@ -51,7 +54,10 @@
             </a>
           </div>
           <div
-            class="mt-4 inline-flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2.5 py-1 text-xs text-text-secondary dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+            class="soft-divider text-mid mt-4 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs"
+            :style="{
+              background: 'var(--surface-elevated)',
+            }"
           >
             Powered by <strong class="text-neo-green">Neo N3</strong>
           </div>
@@ -59,7 +65,7 @@
 
         <!-- Blockchain Column -->
         <div>
-          <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
             Blockchain
           </h3>
           <ul class="space-y-2 text-sm">
@@ -73,7 +79,7 @@
 
         <!-- Resources Column -->
         <div>
-          <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
             Resources
           </h3>
           <ul class="space-y-2 text-sm">
@@ -86,7 +92,7 @@
 
         <!-- Developers Column -->
         <div>
-          <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-text-primary dark:text-gray-100">
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
             Developers
           </h3>
           <ul class="space-y-2 text-sm">
@@ -99,12 +105,12 @@
 
       <!-- Bottom Bar -->
       <div
-        class="mt-8 flex flex-col items-start justify-between gap-3 border-t border-gray-200 pt-5 text-xs text-text-secondary dark:border-gray-800 dark:text-gray-400 sm:flex-row sm:items-center"
+        class="soft-divider text-mid mt-8 flex flex-col items-start justify-between gap-3 border-t pt-5 text-xs sm:flex-row sm:items-center"
       >
         <p>&copy; {{ currentYear }} Neo Explorer</p>
         <p class="hidden sm:block">Powered by <strong class="text-neo-green">neo3fura</strong></p>
         <button
-          class="font-medium text-text-secondary transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400"
+          class="text-mid font-medium transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500"
           aria-label="Back to top"
           @click="scrollTop"
         >
@@ -127,19 +133,15 @@ function scrollTop() {
 
 <style scoped>
 .social-icon {
-  @apply flex h-8 w-8 items-center justify-center rounded-xl border border-card-border bg-white text-text-secondary transition;
+  @apply flex h-8 w-8 items-center justify-center rounded-xl border transition;
+  border-color: var(--line-soft);
+  background: var(--surface-elevated);
+  color: var(--text-mid);
 }
 
 .social-icon:hover {
-  @apply border-primary-400 text-white;
-  background: linear-gradient(135deg, rgb(20 152 221) 0%, rgb(15 120 176) 100%);
-}
-
-.dark .social-icon {
-  @apply border-card-border-dark bg-gray-800/80 text-gray-400;
-}
-
-.footer-link {
-  @apply text-text-secondary no-underline transition-colors hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-300;
+  background: var(--link);
+  color: white;
+  border-color: var(--link);
 }
 </style>
