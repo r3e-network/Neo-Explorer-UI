@@ -21,7 +21,8 @@ export function formatBytes(value) {
  */
 export function formatNumber(value) {
   if (value === null || value === undefined) return "0";
-  return Number(value).toLocaleString();
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toLocaleString() : "0";
 }
 
 /**
@@ -30,11 +31,12 @@ export function formatNumber(value) {
  * @returns {string}
  */
 export function formatLargeNumber(num) {
-  if (!num) return "0";
-  if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
-  if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
-  if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
-  return Number(num).toFixed(0);
+  const n = Number(num);
+  if (!Number.isFinite(n)) return "0";
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + "K";
+  return n.toFixed(0);
 }
 
 /**

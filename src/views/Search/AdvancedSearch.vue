@@ -131,7 +131,10 @@
                 </div>
               </div>
               <HashLink :hash="result.data.hash" type="block" :truncate="false" />
-              <router-link :to="`/block-info/${result.data.hash}`" class="inline-flex items-center gap-1 text-sm font-medium etherscan-link">
+              <router-link
+                :to="`/block-info/${result.data.hash}`"
+                class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
+              >
                 View Block Details
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -272,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount } from "vue";
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -292,11 +295,7 @@ const searchError = ref(null);
 const hasSearched = ref(false);
 const validationError = ref(null);
 const result = ref({ type: null, data: null });
-const abortController = ref(null);
-
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
+let searchGeneration = 0;
 
 const inputPlaceholder = computed(() => {
   const placeholders = {
@@ -377,8 +376,7 @@ function validate() {
 async function performSearch() {
   if (!validate()) return;
 
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++searchGeneration;
 
   searching.value = true;
   searchError.value = null;
@@ -386,14 +384,14 @@ async function performSearch() {
 
   try {
     const res = await searchService.search(query.value.trim());
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== searchGeneration) return;
     result.value = res || { type: null, data: null };
   } catch (e) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== searchGeneration) return;
     searchError.value = e.message || "An unexpected error occurred during search.";
     result.value = { type: null, data: null };
   } finally {
-    searching.value = false;
+    if (myGeneration === searchGeneration) searching.value = false;
   }
 }
 

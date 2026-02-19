@@ -90,10 +90,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
+import { resolveImageUrl } from "@/utils/neoHelpers";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -108,11 +109,8 @@ const error = ref(null);
 const nftName = ref("");
 const image = ref("");
 const description = ref("");
-const abortController = ref(null);
 
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
+let fetchGeneration = 0;
 
 // computed
 const tokenId = computed(() => route.params.tokenId);
@@ -125,26 +123,25 @@ function handleImageError() {
 }
 
 async function loadNFT() {
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++fetchGeneration;
 
   loading.value = true;
   error.value = null;
   try {
     const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value]);
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     const data = result?.result?.[0];
     if (data) {
       nftName.value = data.name || "Unknown NFT";
-      image.value = data.image?.replace(/^ipfs:\/\//, "https://ipfs.io/ipfs/") || "";
+      image.value = resolveImageUrl(data.image);
       description.value = data.description || "";
     }
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
     error.value = t("errors.loadNftDetails");
   } finally {
-    loading.value = false;
+    if (myGeneration === fetchGeneration) loading.value = false;
   }
 }
 

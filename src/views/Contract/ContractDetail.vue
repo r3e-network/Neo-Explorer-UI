@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
@@ -118,7 +118,7 @@ import ContractWriteTab from "@/views/Contract/components/ContractWriteTab.vue";
 
 const route = useRoute();
 const { t } = useI18n();
-const abortController = ref(null);
+let fetchGeneration = 0;
 const contract = ref({});
 const manifest = ref(null);
 const loading = ref(false);
@@ -192,26 +192,25 @@ const {
 
 // Data loading
 async function loadContract(hash) {
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++fetchGeneration;
   loading.value = true;
   error.value = null;
   manifest.value = null;
   try {
     contract.value = (await contractService.getByHash(hash)) || {};
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     const [, manifestData] = await Promise.all([
       checkVerification(hash),
       contractService.getManifest(hash).catch(() => null),
     ]);
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     manifest.value = manifestData;
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);
     error.value = t("errors.loadContractDetails");
   } finally {
-    loading.value = false;
+    if (myGeneration === fetchGeneration) loading.value = false;
   }
 }
 
@@ -228,10 +227,6 @@ async function checkVerification(hash) {
 function copyHash() {
   if (contract.value?.hash) navigator.clipboard.writeText(contract.value.hash).catch(() => {});
 }
-
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
 
 // Route watcher - load contract on hash change
 watch(

@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
@@ -166,7 +166,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-import { base64ToHex } from "@/utils/neoHelpers";
+import { base64ToHex, resolveImageUrl } from "@/utils/neoHelpers";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -182,11 +182,6 @@ const loading = ref(true);
 const { t } = useI18n();
 const error = ref(null);
 const viewMode = ref("grid");
-const abortController = ref(null);
-
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
 
 const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / resultsPerPage)));
 
@@ -195,22 +190,11 @@ const CONCURRENCY_LIMIT = 5;
 
 let fetchGeneration = 0;
 
-/** Resolve an IPFS / data URI to a displayable URL. */
-function resolveImageUrl(raw) {
-  if (!raw) return "";
-  let url = raw;
-  if (url.startsWith("ipfs")) {
-    url = url.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/");
-  }
-  return url.startsWith("https://") || url.startsWith("data:image/") ? url : "";
-}
-
 /**
  * Fetch NFT properties in batches of CONCURRENCY_LIMIT to avoid
  * saturating the browser connection pool.
  */
-async function fetchNftProperties() {
-  const myGeneration = ++fetchGeneration;
+async function fetchNftProperties(generation) {
   const items = tableData.value;
   if (items.length === 0) {
     loading.value = false;
@@ -218,14 +202,14 @@ async function fetchNftProperties() {
   }
 
   for (let i = 0; i < items.length; i += CONCURRENCY_LIMIT) {
-    if (myGeneration !== fetchGeneration) return; // stale
+    if (generation !== fetchGeneration) return; // stale
 
     const chunk = items.slice(i, i + CONCURRENCY_LIMIT);
     const results = await Promise.allSettled(
       chunk.map((item) => tokenService.getNep11Properties(item.asset, [item.tokenid]))
     );
 
-    if (myGeneration !== fetchGeneration) return; // stale
+    if (generation !== fetchGeneration) return; // stale
 
     results.forEach((res, j) => {
       if (res.status !== "fulfilled") return;
@@ -241,23 +225,24 @@ async function fetchNftProperties() {
     });
   }
 
-  if (myGeneration === fetchGeneration) loading.value = false;
+  if (generation === fetchGeneration) loading.value = false;
 }
 
 async function loadNftItems(skip = 0) {
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++fetchGeneration;
 
   loading.value = true;
   error.value = null;
   try {
     const res = await tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip);
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     tableData.value = res?.result || [];
     totalCount.value = res?.totalCount || 0;
-    fetchNftProperties();
+    fetchNftProperties(myGeneration).catch(() => {
+      if (myGeneration === fetchGeneration) loading.value = false;
+    });
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
     error.value = t("errors.loadNftItems");
     tableData.value = [];

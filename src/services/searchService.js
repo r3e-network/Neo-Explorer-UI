@@ -47,7 +47,7 @@ async function _classifyAndDispatch(query) {
   // Block height (pure digits)
   if (/^\d+$/.test(query)) {
     const blockHeight = parseInt(query);
-    if (blockHeight >= 0) {
+    if (blockHeight >= 0 && blockHeight < 100_000_000) {
       const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null);
       if (block) hits.block = block;
     }

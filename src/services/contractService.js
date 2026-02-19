@@ -81,11 +81,11 @@ export const contractService = createService(
     },
     invokeRead: {
       cacheKey: "contract_invoke_read",
-      rpcMethod: "InvokeFunction",
+      rpcMethod: "invokefunction",
       fallback: null,
       ttl: CACHE_TTL.contract,
-      buildParams: ([hash, method, params = []]) => ({ ContractHash: hash, Operation: method, Args: params }),
-      buildCacheParams: ([hash, method, params = []]) => ({ hash, method, params }),
+      buildParams: ([hash, operation, args = []]) => [hash, operation, args],
+      buildCacheParams: ([hash, operation, args = []]) => ({ hash, operation, args }),
     },
   },
   {
@@ -116,6 +116,16 @@ export const contractService = createService(
      * @returns {Promise<Object>} 验证结果
      */
     async uploadVerification(nodeUrl, formData) {
+      const ALLOWED_HOSTS = ["n3magnet.xyz", "ngd.network"];
+      try {
+        const host = new URL(nodeUrl).hostname;
+        if (!ALLOWED_HOSTS.some((d) => host === d || host.endsWith("." + d))) {
+          throw new Error("Verification node URL not in allowlist");
+        }
+      } catch (e) {
+        if (e.message.includes("allowlist")) throw e;
+        throw new Error("Invalid verification node URL");
+      }
       try {
         const { data } = await axios.post(nodeUrl, formData, {
           headers: { "Content-Type": "multipart/form-data" },

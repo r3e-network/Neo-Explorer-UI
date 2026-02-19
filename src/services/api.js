@@ -48,6 +48,7 @@ api.interceptors.response.use(
 
 // Incrementing RPC ID for unique request identification
 let _rpcId = 0;
+const nextRpcId = () => (_rpcId = (_rpcId + 1) % 2147483647);
 
 /**
  * Base RPC call.
@@ -61,7 +62,7 @@ export const rpc = async (method, params = {}, { signal } = {}) => {
   try {
     const response = await api.post(
       "",
-      { jsonrpc: "2.0", id: ++_rpcId, method, params },
+      { jsonrpc: "2.0", id: nextRpcId(), method, params },
       signal ? { signal } : undefined
     );
     if (response.data?.error) {
@@ -82,12 +83,13 @@ export const rpc = async (method, params = {}, { signal } = {}) => {
  * @param {any} defaultValue - Default value on error
  * @returns {Promise<any>}
  */
-export const safeRpc = async (method, params = {}, defaultValue = null) => {
+export const safeRpc = async (method, params = {}, defaultValue = null, { signal } = {}) => {
   try {
-    const result = await rpc(method, params);
+    const result = await rpc(method, params, { signal });
     const normalized = normalizeItem(result);
     return normalized ?? defaultValue;
   } catch (error) {
+    if (signal?.aborted) throw error;
     if (import.meta.env.DEV) console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;
   }
@@ -146,11 +148,12 @@ export const formatListResponse = (result) => {
  * @param {string} errorMsg - Error message prefix
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
-export const safeRpcList = async (method, params = {}, errorMsg = "API call") => {
+export const safeRpcList = async (method, params = {}, errorMsg = "API call", { signal } = {}) => {
   try {
-    const result = await rpc(method, params);
+    const result = await rpc(method, params, { signal });
     return formatListResponse(result);
   } catch (error) {
+    if (signal?.aborted) throw error;
     if (import.meta.env.DEV) console.error(`Failed to ${errorMsg}:`, error.message);
     return { result: [], totalCount: 0 };
   }

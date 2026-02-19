@@ -60,6 +60,8 @@ export function normalizeAddressTransactions(transactions = []) {
 
   return normalized.map((tx) => ({
     hash: tx?.hash || tx?.txid || "",
+    blockhash: tx?.blockhash || tx?.blockHash || "",
+    blockIndex: toNumber(tx?.blockIndex ?? tx?.blockindex, null),
     blocktime: tx?.blocktime ?? tx?.timestamp ?? tx?.time ?? 0,
     sender: tx?.sender || tx?.from || tx?.fromAddress || "",
     vmstate: tx?.vmstate || tx?.Vmstate || tx?.VMState || "",

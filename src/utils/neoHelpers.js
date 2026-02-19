@@ -144,6 +144,22 @@ export function scriptHashBase64ToAddress(base64ScriptHash = "") {
   return scriptHashHexToAddress(scriptHashHexBigEndian);
 }
 
+/**
+ * Resolve an IPFS / data URI to a displayable HTTPS URL.
+ * @param {string} raw - Raw image URL (ipfs://, ipfs-video://, https://, data:image/*)
+ * @returns {string} Resolved URL or empty string
+ */
+export function resolveImageUrl(raw) {
+  if (!raw) return "";
+  let url = raw;
+  if (url.startsWith("ipfs")) {
+    url = url.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/");
+  }
+  if (url.startsWith("https://")) return url;
+  if (url.startsWith("data:image/") && !url.startsWith("data:image/svg")) return url;
+  return "";
+}
+
 // ---------------------------------------------------------------------------
 // Migrated from @/store/util — kept here so every consumer imports from one
 // canonical location.
@@ -156,7 +172,9 @@ function numFormat(num) {
 }
 
 export function convertToken(token, decimal) {
-  return numFormat(parseFloat((token * Math.pow(10, -decimal)).toFixed(8)));
+  const num = Number(token);
+  if (!Number.isFinite(num)) return "0";
+  return numFormat(parseFloat((num * Math.pow(10, -(decimal || 0))).toFixed(8)));
 }
 
 export function scriptHashToAddress(hash) {

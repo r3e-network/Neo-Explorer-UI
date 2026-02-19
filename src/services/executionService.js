@@ -125,9 +125,9 @@ export const executionService = createService(
         }
       }
 
-      const manifestMap = await this._fetchManifests([...contractHashes]);
+      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes]);
 
-      const detailedExecs = detailedTrace?.executions ?? [];
+      const detailedExecs = detailedTrace?.executions ?? (detailedTrace?.steps ? [detailedTrace] : []);
       const enrichedExecutions = executions.map((exec, i) =>
         this._enrichExecution(exec, manifestMap, detailedExecs[i])
       );
@@ -197,10 +197,10 @@ export const executionService = createService(
      * Fetch contract manifests in parallel, collecting partial failures.
      * @private
      * @param {string[]} hashes
-     * @returns {Promise<Map & { failures: Array<{hash: string, error: string}> }>}
+     * @returns {Promise<{manifests: Map, failures: Array<{hash: string, error: string}>}>}
      */
     async _fetchManifests(hashes) {
-      const map = new Map();
+      const manifests = new Map();
       const failures = [];
       const results = await Promise.all(
         hashes.map((h) =>
@@ -210,14 +210,13 @@ export const executionService = createService(
           })
         )
       );
-      hashes.forEach((h, i) => map.set(h, results[i]));
+      hashes.forEach((h, i) => manifests.set(h, results[i]));
 
       if (failures.length > 0 && import.meta.env.DEV) {
         console.warn(`[executionService] ${failures.length}/${hashes.length} manifest(s) failed:`, failures);
       }
 
-      map.failures = failures;
-      return map;
+      return { manifests, failures };
     },
 
     /** @private */

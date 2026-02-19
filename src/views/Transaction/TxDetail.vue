@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
@@ -159,7 +159,7 @@ const route = useRoute();
 const { t } = useI18n();
 
 // --- Reactive State ---
-const abortController = ref(null);
+let fetchGeneration = 0;
 const tx = ref({});
 const loading = ref(false);
 const error = ref(null);
@@ -299,65 +299,66 @@ function resetState() {
 
 async function loadTx(hash) {
   if (!hash) return;
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++fetchGeneration;
   loading.value = true;
   resetState();
   try {
     tx.value = (await transactionService.getByHash(hash)) || {};
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     // Fire secondary loads in parallel
-    loadTransfers(hash).catch((err) => {
+    loadTransfers(hash, myGeneration).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadTransfers failed:", err);
     });
     loadBlockHeight().catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadBlockHeight failed:", err);
     });
-    loadEnrichedTrace(hash).catch((err) => {
+    loadEnrichedTrace(hash, myGeneration).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadEnrichedTrace failed:", err);
     });
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load transaction:", err);
     error.value = t("errors.loadTxDetails");
   } finally {
-    loading.value = false;
+    if (myGeneration === fetchGeneration) loading.value = false;
   }
 }
 
-async function loadEnrichedTrace(hash) {
+async function loadEnrichedTrace(hash, gen) {
   enrichedLoading.value = true;
   appLogLoading.value = true;
   appLogError.value = "";
   try {
     enrichedTrace.value = await executionService.getEnrichedTrace(hash);
-    if (abortController.value?.signal.aborted) return;
+    if (gen !== fetchGeneration) return;
     appLog.value = enrichedTrace.value?.raw ?? null;
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (gen !== fetchGeneration) return;
     enrichedTrace.value = null;
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
     try {
       const fallback = await executionService.getExecutionTrace(hash);
-      if (abortController.value?.signal.aborted) return;
+      if (gen !== fetchGeneration) return;
       appLog.value = fallback;
     } catch {
       appLogError.value = t("errors.loadAppLog");
     }
   } finally {
-    enrichedLoading.value = false;
-    appLogLoading.value = false;
+    if (gen === fetchGeneration) {
+      enrichedLoading.value = false;
+      appLogLoading.value = false;
+    }
   }
 }
 
-async function loadTransfers(hash) {
+async function loadTransfers(hash, gen) {
   transfersLoading.value = true;
   try {
     const [nep17Res, nep11Res] = await Promise.all([
       tokenService.getTransfersByTxHash(hash).catch(() => ({ result: [] })),
       tokenService.getNep11TransfersByTxHash(hash).catch(() => ({ result: [] })),
     ]);
-    if (abortController.value?.signal.aborted) return;
+    if (gen !== fetchGeneration) return;
     nep17Transfers.value = (nep17Res?.result || []).map((t) => ({
       ...t,
       _standard: "NEP-17",
@@ -369,7 +370,7 @@ async function loadTransfers(hash) {
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load token transfers:", err);
   } finally {
-    transfersLoading.value = false;
+    if (gen === fetchGeneration) transfersLoading.value = false;
   }
 }
 
@@ -381,10 +382,6 @@ async function loadBlockHeight() {
     if (import.meta.env.DEV) console.warn("Failed to load block height:", err);
   }
 }
-
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
 
 watch(
   () => route.params.txhash,

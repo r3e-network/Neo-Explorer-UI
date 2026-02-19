@@ -18,12 +18,12 @@ describe("tokenService", () => {
     it("calls rpc with NEP17 type", async () => {
       const mockData = { result: [], totalCount: 0 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
-      
+
       await tokenService.getNep17List(10, 5);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetInfos",
-        { Limit: 10, Skip: 5, Type: "NEP17" },
-        "get NEP17 list"
+        { Limit: 10, Skip: 5, Standard: "NEP17" },
+        "get token list"
       );
     });
 
@@ -38,12 +38,12 @@ describe("tokenService", () => {
     it("calls rpc with NEP11 type", async () => {
       const mockData = { result: [], totalCount: 0 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
-      
+
       await tokenService.getNep11List(10, 5);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetInfos",
-        { Limit: 10, Skip: 5, Type: "NEP11" },
-        "get NEP11 list"
+        { Limit: 10, Skip: 5, Standard: "NEP11" },
+        "get token list"
       );
     });
   });
@@ -60,7 +60,7 @@ describe("tokenService", () => {
     it("calls rpc with hash and pagination", async () => {
       const mockData = { result: [], totalCount: 0 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
-      
+
       await tokenService.getHolders("0xhash", 10, 5);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetHoldersByContractHash",

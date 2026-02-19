@@ -64,6 +64,8 @@ describe("addressDetail utils", () => {
     expect(txs).toEqual([
       {
         hash: "0xabc",
+        blockhash: "",
+        blockIndex: null,
         blocktime: 1700000000,
         sender: "Nabc",
         vmstate: "HALT",

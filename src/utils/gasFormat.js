@@ -14,7 +14,9 @@ import { GAS_DIVISOR } from "@/constants";
  */
 export function formatGas(value, decimals = 8) {
   if (!value) return "0";
-  return (Number(value) / GAS_DIVISOR).toFixed(decimals);
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "0";
+  return (num / GAS_DIVISOR).toFixed(decimals);
 }
 
 /**

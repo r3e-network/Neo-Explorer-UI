@@ -38,37 +38,35 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // ---------------------------------------------------------------------------
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
   // ---------------------------------------------------------------------------
-  const {
-    data: tokenInfo,
-    loading: tokenLoading,
-    error: tokenError,
-    execute: executeTokenFetch,
-    abort: abortTokenFetch,
-  } = useAsync((id, { signal }) => tokenService.getByHash(id, { signal }), {
-    initialData: {},
-    onSuccess: (res) => {
-      decimal.value = res?.decimals;
-      onTokenLoaded?.(res || {});
-    },
-    onError: (err) => {
-      if (import.meta.env.DEV) console.error("Failed to load token:", err);
-    },
-  });
-
-  const { execute: executeContractFetch, abort: abortContractFetch } = useAsync(
-    (id, { signal }) => contractService.getByHash(id, { signal }),
+  const { data: tokenInfo, loading: tokenLoading, error: tokenError, execute: executeTokenFetch } = useAsync(
+    (id, { signal }) => tokenService.getByHash(id, { signal }),
     {
+      initialData: {},
       onSuccess: (res) => {
-        manifest.value = JSON.parse(res?.manifest || "{}");
-        updateCounter.value = res?.updatecounter ?? 0;
-        manifestError.value = null;
+        decimal.value = res?.decimals;
+        onTokenLoaded?.(res || {});
       },
       onError: (err) => {
-        manifestError.value = "Failed to load contract data.";
-        if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
+        if (import.meta.env.DEV) console.error("Failed to load token:", err);
       },
     }
   );
+
+  const { execute: executeContractFetch } = useAsync((id, { signal }) => contractService.getByHash(id, { signal }), {
+    onSuccess: (res) => {
+      try {
+        manifest.value = JSON.parse(res?.manifest || "{}");
+      } catch {
+        manifest.value = {};
+      }
+      updateCounter.value = res?.updatecounter ?? 0;
+      manifestError.value = null;
+    },
+    onError: (err) => {
+      manifestError.value = "Failed to load contract data.";
+      if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
+    },
+  });
 
   // Unified loading: true while either fetch is in-flight
   const isLoading = computed(() => tokenLoading.value);
@@ -95,40 +93,40 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
    * @param {Object} patch - Properties to merge into the method object.
    */
   function patchMethod(index, patch) {
-    const methods = [...manifest.value["abi"]["methods"]];
+    const abi = manifest.value?.abi;
+    if (!abi?.methods) return;
+    const methods = [...abi.methods];
     methods[index] = { ...methods[index], ...patch };
-    manifest.value = {
-      ...manifest.value,
-      abi: { ...manifest.value["abi"], methods },
-    };
+    manifest.value = { ...manifest.value, abi: { ...abi, methods } };
   }
 
   /** Toggle raw / decoded display for a contract method result. */
   function decode(index) {
-    const isRaw = manifest.value["abi"]["methods"][index]["isRaw"];
+    const method = manifest.value?.abi?.methods?.[index];
+    if (!method) return;
     patchMethod(index, {
-      isRaw: !isRaw,
-      button: isRaw ? "Raw" : "Decode",
+      isRaw: !method.isRaw,
+      button: method.isRaw ? "Raw" : "Decode",
     });
   }
 
   /** Update a single parameter value on a contract method. */
   function onUpdateParam({ methodIndex, paramIndex, value }) {
-    const methods = [...manifest.value["abi"]["methods"]];
-    const params = [...methods[methodIndex]["parameters"]];
+    const abi = manifest.value?.abi;
+    if (!abi?.methods?.[methodIndex]?.parameters) return;
+    const methods = [...abi.methods];
+    const params = [...methods[methodIndex].parameters];
     params[paramIndex] = { ...params[paramIndex], value };
     methods[methodIndex] = { ...methods[methodIndex], parameters: params };
-    manifest.value = {
-      ...manifest.value,
-      abi: { ...manifest.value["abi"], methods },
-    };
+    manifest.value = { ...manifest.value, abi: { ...abi, methods } };
   }
 
   /** Invoke a contract method and store the result immutably. */
   function onQuery(index) {
     patchMethod(index, { result: "", error: "" });
 
-    const method = manifest.value["abi"]["methods"][index];
+    const method = manifest.value?.abi?.methods?.[index];
+    if (!method) return;
     invokeContractFunction(tokenId.value, method["name"], method["parameters"])
       .then((res) => {
         if (res?.["exception"] != null) {

@@ -279,7 +279,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load block transactions:", err);
   } finally {
-    txLoading.value = false;
+    if (requestId === txRequestId) txLoading.value = false;
   }
 }
 

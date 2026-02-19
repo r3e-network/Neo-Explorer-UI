@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { executionService } from "@/services";
@@ -106,7 +106,7 @@ const { t } = useI18n();
 const loading = ref(false);
 const error = ref(null);
 const enrichedData = ref(null);
-const abortController = ref(null);
+let fetchGeneration = 0;
 
 const txHash = computed(() => route.params.txhash || "");
 
@@ -130,19 +130,20 @@ const totalGas = computed(() => {
 async function loadTrace(hash) {
   const h = hash || txHash.value;
   if (!h) return;
-  abortController.value?.abort();
-  abortController.value = new AbortController();
+  const myGeneration = ++fetchGeneration;
   loading.value = true;
   error.value = null;
   enrichedData.value = null;
   try {
-    enrichedData.value = await executionService.getEnrichedTrace(h);
+    const result = await executionService.getEnrichedTrace(h);
+    if (myGeneration !== fetchGeneration) return;
+    enrichedData.value = result;
   } catch (err) {
-    if (abortController.value?.signal.aborted) return;
+    if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load trace:", err);
     error.value = t("errors.loadExecutionTrace");
   } finally {
-    loading.value = false;
+    if (myGeneration === fetchGeneration) loading.value = false;
   }
 }
 
@@ -153,8 +154,4 @@ watch(
   },
   { immediate: true }
 );
-
-onBeforeUnmount(() => {
-  abortController.value?.abort();
-});
 </script>
