@@ -15,37 +15,25 @@
         </svg>
         <div>
           <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Connect Wallet to Interact</h3>
-          <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">
-            To write to this contract, connect a NeoLine or O3 wallet.
-          </p>
+          <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">To write to this contract, connect a wallet.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button
+              v-for="provider in ['NeoLine', 'O3', 'WalletConnect']"
+              :key="provider"
               class="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
               :disabled="walletConnecting"
-              @click="emit('connectWallet', 'NeoLine')"
+              @click="emit('connectWallet', provider)"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                />
-              </svg>
-              {{ walletConnecting ? "Connecting..." : "NeoLine" }}
-            </button>
-            <button
-              class="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-gray-800 dark:text-amber-400 dark:hover:bg-gray-700"
-              :disabled="walletConnecting"
-              @click="emit('connectWallet', 'O3')"
-            >
-              {{ walletConnecting ? "Connecting..." : "O3 Wallet" }}
+              {{ walletConnecting ? "Connecting..." : provider }}
             </button>
           </div>
           <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ walletError }}</p>
         </div>
       </div>
     </div>
+
+    <!-- WalletConnect URI Modal -->
+    <WalletConnectModal v-if="wcUri" :uri="wcUri" :visible="!!wcUri" @close="emit('clearWcUri')" />
 
     <!-- Connected wallet banner -->
     <div
@@ -127,35 +115,62 @@
         >
           <!-- Parameters -->
           <div v-if="method.parameters && method.parameters.length" class="mt-3 space-y-2">
-            <div v-for="(param, pIdx) in method.parameters" :key="'wp-' + pIdx" class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-text-secondary dark:text-gray-400">
-                {{ param.name }} <span class="text-[10px]">({{ param.type }})</span>
-              </label>
-              <input
-                :value="writeMethodState[wIdx].params[pIdx]"
-                type="text"
-                :placeholder="param.type"
-                :aria-label="`Parameter ${param.name}`"
-                class="form-input font-mono"
-                @input="emit('updateParam', wIdx, pIdx, $event.target.value)"
-              />
-            </div>
+            <ParamInput
+              v-for="(param, pIdx) in method.parameters"
+              :key="'wp-' + pIdx"
+              :type="param.type"
+              :name="param.name"
+              :model-value="writeMethodState[wIdx].params[pIdx] || ''"
+              @update:model-value="emit('updateParam', wIdx, pIdx, $event)"
+            />
           </div>
           <div v-else class="mt-3 text-xs text-text-secondary dark:text-gray-400">No parameters required.</div>
-          <!-- Invoke button -->
-          <button
-            class="mt-3 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'"
-            :disabled="!walletConnected || writeMethodState[wIdx]?.loading"
-            @click="emit('invokeMethod', wIdx, method)"
-          >
-            <svg v-if="writeMethodState[wIdx]?.loading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            {{ !walletConnected ? "Connect Wallet First" : writeMethodState[wIdx]?.loading ? "Sending..." : "Write" }}
-          </button>
-          <!-- Result -->
+
+          <!-- Signer Scope -->
+          <div class="mt-3 flex flex-col gap-1">
+            <label class="text-xs font-medium text-text-secondary dark:text-gray-400">Signer Scope</label>
+            <select v-model="signerScopes[wIdx]" class="form-input text-sm">
+              <option :value="1">CalledByEntry (default)</option>
+              <option :value="128">Global</option>
+              <option :value="16">CustomContracts</option>
+              <option :value="32">CustomGroups</option>
+            </select>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <!-- Gas Estimate button -->
+            <button
+              class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              :disabled="writeMethodState[wIdx]?.estimating"
+              @click="emit('estimateGas', wIdx, method)"
+            >
+              {{ writeMethodState[wIdx]?.estimating ? "Estimating..." : "Estimate GAS" }}
+            </button>
+            <!-- Write button -->
+            <button
+              class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              :class="walletConnected ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-400 cursor-not-allowed'"
+              :disabled="!walletConnected || writeMethodState[wIdx]?.loading"
+              @click="emit('invokeMethod', wIdx, method, signerScopes[wIdx] || 1)"
+            >
+              <svg v-if="writeMethodState[wIdx]?.loading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {{ !walletConnected ? "Connect Wallet First" : writeMethodState[wIdx]?.loading ? "Sending..." : "Write" }}
+            </button>
+          </div>
+
+          <!-- Gas estimate display -->
+          <p v-if="writeMethodState[wIdx]?.gasEstimate" class="mt-2 text-xs text-text-secondary dark:text-gray-400">
+            Estimated GAS:
+            <span class="font-mono font-medium text-text-primary dark:text-gray-200">
+              {{ writeMethodState[wIdx].gasEstimate }}
+            </span>
+          </p>
+
+          <!-- Result with tx tracking -->
           <div
             v-if="writeMethodState[wIdx]?.result !== undefined"
             class="mt-3 rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
@@ -164,6 +179,22 @@
             <p class="break-all font-mono text-xs text-green-800 dark:text-green-300">
               TxID: {{ writeMethodState[wIdx].result?.txid || writeMethodState[wIdx].result }}
             </p>
+            <!-- Tx tracking status -->
+            <div v-if="getTxStatus(writeMethodState[wIdx].result?.txid)" class="mt-1.5 flex items-center gap-1.5">
+              <span
+                class="inline-block h-2 w-2 rounded-full"
+                :class="
+                  getTxStatus(writeMethodState[wIdx].result?.txid) === 'confirmed'
+                    ? 'bg-green-500'
+                    : getTxStatus(writeMethodState[wIdx].result?.txid) === 'pending'
+                    ? 'bg-yellow-400 animate-pulse'
+                    : 'bg-gray-400'
+                "
+              />
+              <span class="text-[10px] font-medium capitalize text-text-secondary dark:text-gray-400">
+                {{ getTxStatus(writeMethodState[wIdx].result?.txid) }}
+              </span>
+            </div>
           </div>
           <!-- Error -->
           <div
@@ -179,9 +210,12 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { truncateHash } from "@/utils/explorerFormat";
+import ParamInput from "@/components/contract/ContractParamInput.vue";
+import WalletConnectModal from "./WalletConnectModal.vue";
 
-defineProps({
+const props = defineProps({
   writeMethods: { type: Array, required: true },
   writeMethodState: { type: Array, required: true },
   manifest: { type: Object, default: null },
@@ -190,7 +224,24 @@ defineProps({
   walletProvider: { type: String, default: "" },
   walletConnecting: { type: Boolean, default: false },
   walletError: { type: String, default: "" },
+  wcUri: { type: String, default: "" },
+  txStatuses: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(["connectWallet", "disconnectWallet", "toggleMethod", "invokeMethod", "updateParam"]);
+const emit = defineEmits([
+  "connectWallet",
+  "disconnectWallet",
+  "clearWcUri",
+  "toggleMethod",
+  "invokeMethod",
+  "updateParam",
+  "estimateGas",
+]);
+
+const signerScopes = ref({});
+
+function getTxStatus(txid) {
+  if (!txid) return null;
+  return props.txStatuses[txid] || "pending";
+}
 </script>

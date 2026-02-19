@@ -85,11 +85,15 @@
             :wallet-provider="walletProvider"
             :wallet-connecting="walletConnecting"
             :wallet-error="walletError"
+            :wc-uri="wcUri"
+            :tx-statuses="txStatuses"
             @connect-wallet="connectWallet"
             @disconnect-wallet="disconnectWallet"
+            @clear-wc-uri="wcUri = ''"
             @toggle-method="toggleWriteMethod"
             @invoke-method="invokeWriteMethod"
             @update-param="updateWriteParam"
+            @estimate-gas="estimateGas"
           />
         </div>
       </div>
@@ -105,6 +109,7 @@ import { contractService } from "@/services";
 import { walletService } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
+import { useTransactionTracker } from "@/composables/useTransactionTracker";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import EventsTable from "@/views/Contract/EventsTable.vue";
@@ -133,6 +138,8 @@ const walletAccount = ref(null);
 const walletProvider = ref(null);
 const walletConnecting = ref(false);
 const walletError = ref("");
+const wcUri = ref("");
+const { txStatuses, track: trackTx } = useTransactionTracker();
 
 // Computed - source code link
 const sourceCodeLocation = computed(() =>
@@ -176,19 +183,31 @@ const {
   methodState: writeMethodState,
   toggleMethod: toggleWriteMethod,
   updateParam: updateWriteParam,
-  invokeMethod: invokeWriteMethod,
+  invokeMethod: _invokeWriteMethod,
+  estimateGas: estimateWriteGas,
 } = useMethodInteraction(
   writeMethods,
-  async (name, params) => {
+  async (name, params, { scope } = {}) => {
     const args = params.map((p) => ({ type: p.type, value: p.value }));
-    return walletService.invoke({
+    const result = await walletService.invoke({
       scriptHash: contract.value.hash,
       operation: name,
       args,
+      scope: scope || 1,
     });
+    if (result?.txid) trackTx(result.txid);
+    return result;
   },
   { errorFallback: t("contract.txFailed") }
 );
+
+function invokeWriteMethod(idx, method, scope) {
+  _invokeWriteMethod(idx, method, { scope });
+}
+
+function estimateGas(idx, method) {
+  estimateWriteGas(idx, method, (name, params) => contractService.invokeRead(contract.value.hash, name, params));
+}
 
 // Data loading
 async function loadContract(hash) {
@@ -242,11 +261,22 @@ async function connectWallet(providerName) {
   walletConnecting.value = true;
   walletError.value = "";
   try {
-    const account = await walletService.connect(providerName);
+    const result = await walletService.connect(providerName);
+    if (result?.uri && result?.approval) {
+      wcUri.value = result.uri;
+      walletConnecting.value = false;
+      const account = await result.approval;
+      wcUri.value = "";
+      walletConnected.value = true;
+      walletAccount.value = account;
+      walletProvider.value = providerName;
+      return;
+    }
     walletConnected.value = true;
-    walletAccount.value = account;
+    walletAccount.value = result;
     walletProvider.value = providerName;
   } catch (err) {
+    wcUri.value = "";
     walletError.value = err?.message || t("contract.walletConnectFailed");
   } finally {
     walletConnecting.value = false;

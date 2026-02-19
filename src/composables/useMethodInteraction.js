@@ -26,6 +26,8 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
         params: [],
         loading: false,
         result: undefined,
+        gasEstimate: null,
+        estimating: false,
         error: "",
       }));
     },
@@ -43,7 +45,7 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
     }
   }
 
-  async function invokeMethod(idx, method) {
+  async function invokeMethod(idx, method, options) {
     const state = methodState.value[idx];
     if (!state) return;
     const capturedGen = generation;
@@ -55,8 +57,8 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
         type: p.type,
         value: state.params[i] || "",
       }));
-      const result = await invokeFn(method.name, params);
-      if (capturedGen !== generation) return; // stale — methods list changed
+      const result = await invokeFn(method.name, params, options);
+      if (capturedGen !== generation) return;
       state.result = result;
     } catch (err) {
       if (capturedGen !== generation) return;
@@ -68,10 +70,29 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
     }
   }
 
+  async function estimateGas(idx, method, testInvokeFn) {
+    const state = methodState.value[idx];
+    if (!state || !testInvokeFn) return;
+    state.estimating = true;
+    try {
+      const params = (method.parameters || []).map((p, i) => ({
+        type: p.type,
+        value: state.params[i] || "",
+      }));
+      const result = await testInvokeFn(method.name, params);
+      state.gasEstimate = result?.gasconsumed || result?.gas_consumed || null;
+    } catch {
+      state.gasEstimate = null;
+    } finally {
+      state.estimating = false;
+    }
+  }
+
   return {
     methodState,
     toggleMethod,
     updateParam,
     invokeMethod,
+    estimateGas,
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "neo-explorer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@walletconnect/sign-client": "^2.23.6",
     "axios": "^1.7.9",
     "bignumber.js": "^9.1.1",
     "bs58": "^6.0.0",

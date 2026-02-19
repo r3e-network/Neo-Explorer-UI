@@ -44,19 +44,14 @@
         >
           <!-- Parameters -->
           <div v-if="method.parameters && method.parameters.length" class="mt-3 space-y-2">
-            <div v-for="(param, pIdx) in method.parameters" :key="'rp-' + pIdx" class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-text-secondary dark:text-gray-400">
-                {{ param.name }} <span class="text-[10px]">({{ param.type }})</span>
-              </label>
-              <input
-                :value="readMethodState[mIdx].params[pIdx]"
-                type="text"
-                :placeholder="param.type"
-                :aria-label="`Parameter ${param.name}`"
-                class="form-input font-mono"
-                @input="emit('updateParam', mIdx, pIdx, $event.target.value)"
-              />
-            </div>
+            <ParamInput
+              v-for="(param, pIdx) in method.parameters"
+              :key="'rp-' + pIdx"
+              :type="param.type"
+              :name="param.name"
+              :model-value="readMethodState[mIdx].params[pIdx] || ''"
+              @update:model-value="emit('updateParam', mIdx, pIdx, $event)"
+            />
           </div>
           <div v-else class="mt-3 text-xs text-text-secondary dark:text-gray-400">No parameters required.</div>
           <!-- Query button -->
@@ -76,10 +71,49 @@
             v-if="readMethodState[mIdx]?.result !== undefined"
             class="mt-3 rounded-md border border-card-border bg-gray-50 p-3 dark:border-card-border-dark dark:bg-gray-800/40"
           >
-            <h5 class="mb-1 text-xs font-semibold text-text-secondary dark:text-gray-400">Result:</h5>
-            <pre class="max-h-48 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200">{{
-              formatInvokeResult(readMethodState[mIdx].result)
-            }}</pre>
+            <div class="mb-2 flex items-center justify-between">
+              <h5 class="text-xs font-semibold text-text-secondary dark:text-gray-400">Result:</h5>
+              <button
+                class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors"
+                :class="
+                  showRaw[mIdx]
+                    ? 'bg-gray-200 dark:bg-gray-700 text-text-primary dark:text-gray-200'
+                    : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                "
+                @click="showRaw[mIdx] = !showRaw[mIdx]"
+              >
+                {{ showRaw[mIdx] ? "Decoded" : "Raw" }}
+              </button>
+            </div>
+            <!-- Raw view -->
+            <pre
+              v-if="showRaw[mIdx]"
+              class="max-h-48 overflow-auto font-mono text-xs text-text-primary dark:text-gray-200"
+              >{{ formatRaw(readMethodState[mIdx].result) }}</pre
+            >
+            <!-- Decoded view -->
+            <div v-else class="space-y-1">
+              <div
+                v-for="(item, sIdx) in getDecoded(readMethodState[mIdx].result).stack"
+                :key="sIdx"
+                class="flex items-start gap-2"
+              >
+                <span
+                  class="mt-0.5 shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                >
+                  {{ item.type }}
+                </span>
+                <span class="break-all font-mono text-xs text-text-primary dark:text-gray-200">
+                  {{ formatDecodedValue(item) }}
+                </span>
+              </div>
+              <p
+                v-if="getDecoded(readMethodState[mIdx].result).stack.length === 0"
+                class="text-xs text-text-secondary dark:text-gray-400"
+              >
+                (empty result)
+              </p>
+            </div>
           </div>
           <!-- Error -->
           <div
@@ -95,6 +129,10 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
+import { decodeInvokeResult } from "@/utils/resultDecoder";
+import ParamInput from "@/components/contract/ContractParamInput.vue";
+
 defineProps({
   readMethods: { type: Array, required: true },
   readMethodState: { type: Array, required: true },
@@ -102,8 +140,29 @@ defineProps({
 });
 
 const emit = defineEmits(["toggleMethod", "invokeMethod", "updateParam"]);
+const showRaw = ref({});
 
-function formatInvokeResult(result) {
+function getDecoded(result) {
+  return decodeInvokeResult(result);
+}
+
+function formatDecodedValue(item) {
+  if (item.type === "Array")
+    return JSON.stringify(
+      item.value.map((i) => i.value),
+      null,
+      2
+    );
+  if (item.type === "Map")
+    return JSON.stringify(
+      item.value.map((e) => [e.key.value, e.value.value]),
+      null,
+      2
+    );
+  return String(item.value ?? "null");
+}
+
+function formatRaw(result) {
   if (result === null || result === undefined) return "null";
   if (typeof result === "string") return result;
   try {

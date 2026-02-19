@@ -4,10 +4,13 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
+import { walletConnectService } from "./walletConnectService";
+
 /** Supported wallet providers */
 const PROVIDERS = {
   NEOLINE: "NeoLine",
   O3: "O3",
+  WALLETCONNECT: "WalletConnect",
 };
 
 /** Internal state */
@@ -84,6 +87,7 @@ export const walletService = {
     const providers = [];
     if (isNeoLineAvailable()) providers.push(PROVIDERS.NEOLINE);
     if (isO3Available()) providers.push(PROVIDERS.O3);
+    providers.push(PROVIDERS.WALLETCONNECT); // always available
     return providers;
   },
 
@@ -111,11 +115,28 @@ export const walletService = {
       return _account;
     }
 
+    if (providerName === PROVIDERS.WALLETCONNECT) {
+      await walletConnectService.init(import.meta.env.VITE_WC_PROJECT_ID || "");
+      const { uri, approval } = await walletConnectService.connect();
+      // Return URI + approval promise so caller can show modal while waiting
+      return {
+        uri,
+        approval: approval.then(() => {
+          _connectedProvider = PROVIDERS.WALLETCONNECT;
+          _account = walletConnectService.account;
+          return _account;
+        }),
+      };
+    }
+
     throw new Error(`Unknown provider: ${providerName}`);
   },
 
   /** Disconnect wallet */
   disconnect() {
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+      walletConnectService.disconnect();
+    }
     _connectedProvider = null;
     _account = null;
     _neolineN3 = null;
@@ -129,10 +150,9 @@ export const walletService = {
    * @param {Array} params.args - Method arguments [{type, value}]
    * @returns {Promise<{txid: string}>}
    */
-  async invoke({ scriptHash, operation, args = [] }) {
+  async invoke({ scriptHash, operation, args = [], scope = 1 }) {
     if (!_account) throw new Error("Wallet not connected");
 
-    // Convert args to dapi format
     const dapiArgs = args.map((a) => ({
       type: mapParamType(a.type),
       value: a.value,
@@ -144,7 +164,7 @@ export const walletService = {
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: [{ account: _account.address, scopes: 1 }],
+        signers: [{ account: _account.address, scopes: scope }],
       });
       return { txid: result.txid };
     }
@@ -155,9 +175,13 @@ export const walletService = {
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: [{ account: _account.address, scopes: 1 }],
+        signers: [{ account: _account.address, scopes: scope }],
       });
       return { txid: result.txid };
+    }
+
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+      return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
     }
 
     throw new Error("No wallet connected");
