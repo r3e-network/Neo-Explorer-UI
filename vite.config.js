@@ -57,11 +57,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      output: {
-        manualChunks: {
-          "chunk-neon-js": ["@cityofzion/neon-js"],
-        },
-      },
+      output: {},
     },
   },
 });
