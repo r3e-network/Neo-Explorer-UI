@@ -16,40 +16,42 @@
     />
 
     <!-- Main Nav Bar -->
-    <nav class="main-nav border-b border-white/10 bg-header-bg/95 shadow-card backdrop-blur-md dark:bg-header-bg-dark/95">
-      <div class="mx-auto flex h-[60px] max-w-[1400px] items-center px-4">
+    <nav class="main-nav relative border-b border-white/10 dark:border-neo-green/10 bg-white/70 dark:bg-[#071520]/70 shadow-lg backdrop-blur-xl transition-all duration-300">
+      <div class="mx-auto flex h-[70px] max-w-[1400px] items-center px-4">
         <!-- Logo -->
-        <router-link to="/homepage" class="mr-8 flex items-center gap-2 no-underline">
+        <router-link to="/homepage" class="mr-8 flex items-center gap-2.5 no-underline group">
           <div
-            class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-primary-300 text-xs font-extrabold text-gray-900 shadow-sm"
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-[#00b377] text-xs font-extrabold text-gray-900 shadow-[0_0_15px_rgba(0,229,153,0.3)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.5)]"
           >
             N3
           </div>
-          <span class="text-lg font-extrabold tracking-tight text-white">Neo Explorer</span>
+          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-neo-green bg-clip-text text-transparent transition-all duration-300">
+            Neo Explorer
+          </span>
         </router-link>
 
         <!-- Desktop Nav -->
         <DesktopNav :active-dropdown="activeDropdown" @open-dropdown="openDropdown" @close-dropdown="closeDropdown" />
 
         <!-- Header Search (compact mode) -->
-        <div class="ml-auto hidden w-full max-w-sm items-center md:flex lg:ml-8">
+        <div class="ml-auto hidden w-full max-w-sm items-center lg:flex lg:ml-8">
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
         <!-- Mobile Hamburger -->
-        <MobileMenu :open="mobileMenuOpen" @toggle="mobileMenuOpen = !mobileMenuOpen" />
+        <MobileMenu :open="mobileMenuOpen" @toggle="mobileMenuOpen = !mobileMenuOpen" class="ml-auto lg:hidden" />
       </div>
 
       <!-- Mobile Slide-out Menu -->
       <transition name="slide">
         <div
           v-show="mobileMenuOpen"
-          class="border-t border-white/10 bg-header-bg/95 px-4 py-3 backdrop-blur-md dark:bg-header-bg-dark/95 lg:hidden"
+          class="border-t border-white/10 dark:border-neo-green/10 bg-white/90 dark:bg-[#071520]/95 px-4 py-4 backdrop-blur-xl lg:hidden absolute w-full shadow-2xl"
         >
-          <div class="mb-3">
+          <div class="mb-4">
             <SearchBox mode="compact" @search="handleMobileSearch" />
           </div>
-          <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="grid grid-cols-2 gap-3 text-sm">
             <router-link to="/homepage" class="mobile-link" @click="closeMobile">Home</router-link>
             <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">Blocks</router-link>
             <router-link to="/transactions/1" class="mobile-link" @click="closeMobile">Transactions</router-link>

@@ -6,52 +6,52 @@
 
 @layer base {
   :root {
-    --page-bg: linear-gradient(180deg, #f4f8fd 0%, #eef3fb 60%, #edf5fa 100%);
-    --surface-elevated: rgba(255, 255, 255, 0.82);
-    --surface-glass: rgba(255, 255, 255, 0.72);
-    --surface-hover: rgba(255, 255, 255, 0.55);
-    --line-soft: rgba(31, 56, 90, 0.1);
-    --line-hover: rgba(31, 56, 90, 0.18);
+    --page-bg: radial-gradient(circle at top right, #e2f1ea 0%, #f4f8fd 40%, #eef3fb 100%);
+    --surface-elevated: rgba(255, 255, 255, 0.7);
+    --surface-glass: rgba(255, 255, 255, 0.5);
+    --surface-hover: rgba(255, 255, 255, 0.9);
+    --line-soft: rgba(0, 229, 153, 0.2);
+    --line-hover: rgba(0, 229, 153, 0.4);
     --text-high: #0d223d;
-    --text-mid: #5f738d;
+    --text-mid: #4a5c73;
     --text-low: #8797aa;
-    --link: #1498dd;
-    --link-hover: #0f78b0;
-    --ring-focus: rgba(20, 152, 221, 0.28);
+    --link: #00E599;
+    --link-hover: #00b377;
+    --ring-focus: rgba(0, 229, 153, 0.4);
     --status-success: #0f9f72;
-    --status-success-bg: rgba(15, 159, 114, 0.1);
+    --status-success-bg: rgba(15, 159, 114, 0.15);
     --status-error: #d64949;
-    --status-error-bg: rgba(214, 73, 73, 0.1);
+    --status-error-bg: rgba(214, 73, 73, 0.15);
     --status-warning: #c67a12;
-    --status-warning-bg: rgba(198, 122, 18, 0.1);
-    --icon-bg-primary: rgba(20, 152, 221, 0.1);
-    --icon-bg-green: rgba(15, 159, 114, 0.1);
-    --icon-bg-orange: rgba(234, 138, 30, 0.1);
-    --icon-bg-purple: rgba(139, 92, 246, 0.1);
+    --status-warning-bg: rgba(198, 122, 18, 0.15);
+    --icon-bg-primary: rgba(20, 152, 221, 0.15);
+    --icon-bg-green: rgba(15, 159, 114, 0.15);
+    --icon-bg-orange: rgba(234, 138, 30, 0.15);
+    --icon-bg-purple: rgba(139, 92, 246, 0.15);
   }
 
   .dark {
-    --page-bg: linear-gradient(180deg, #0a1426 0%, #0b1a2f 55%, #0d1f35 100%);
-    --surface-elevated: rgba(20, 33, 53, 0.82);
-    --surface-glass: rgba(17, 31, 50, 0.72);
-    --surface-hover: rgba(30, 48, 72, 0.6);
-    --line-soft: rgba(178, 203, 235, 0.16);
-    --line-hover: rgba(178, 203, 235, 0.26);
-    --text-high: #e3eefc;
-    --text-mid: #9ab1ce;
-    --text-low: #6b84a3;
-    --link: #59c2ff;
-    --link-hover: #7dd1ff;
-    --ring-focus: rgba(89, 194, 255, 0.3);
-    --status-success: #34d399;
-    --status-success-bg: rgba(52, 211, 153, 0.15);
-    --status-error: #f87171;
-    --status-error-bg: rgba(248, 113, 113, 0.15);
-    --status-warning: #fbbf24;
-    --status-warning-bg: rgba(251, 191, 36, 0.15);
-    --icon-bg-primary: rgba(89, 194, 255, 0.15);
-    --icon-bg-green: rgba(52, 211, 153, 0.15);
-    --icon-bg-orange: rgba(251, 191, 36, 0.15);
+    --page-bg: linear-gradient(to bottom right, #050a14, #0a1122, #071520);
+    --surface-elevated: rgba(13, 22, 40, 0.65);
+    --surface-glass: rgba(10, 17, 32, 0.5);
+    --surface-hover: rgba(20, 32, 55, 0.8);
+    --line-soft: rgba(0, 229, 153, 0.15);
+    --line-hover: rgba(0, 229, 153, 0.35);
+    --text-high: #f0fdf6;
+    --text-mid: #94b8a3;
+    --text-low: #547864;
+    --link: #00E599;
+    --link-hover: #33ffbb;
+    --ring-focus: rgba(0, 229, 153, 0.5);
+    --status-success: #00E599;
+    --status-success-bg: rgba(0, 229, 153, 0.15);
+    --status-error: #ff4d4d;
+    --status-error-bg: rgba(255, 77, 77, 0.15);
+    --status-warning: #ffb84d;
+    --status-warning-bg: rgba(255, 184, 77, 0.15);
+    --icon-bg-primary: rgba(0, 229, 153, 0.15);
+    --icon-bg-green: rgba(0, 229, 153, 0.15);
+    --icon-bg-orange: rgba(255, 184, 77, 0.15);
     --icon-bg-purple: rgba(167, 139, 250, 0.15);
   }
 
@@ -116,13 +116,13 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--link) 24%, transparent);
+    background: color-mix(in srgb, var(--link) 30%, transparent);
     color: var(--text-high);
   }
 
   *:focus-visible {
-    outline: 2px solid var(--ring-focus);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring-focus);
   }
 }
 
@@ -142,24 +142,23 @@
   .surface-panel {
     background: var(--surface-glass);
     border: 1px solid var(--line-soft);
-    @apply rounded-2xl shadow-card backdrop-blur-md;
+    @apply rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-[12px] backdrop-saturate-[180%];
   }
 
   .etherscan-card {
     background: var(--surface-elevated);
     border: 1px solid var(--line-soft);
-    @apply rounded-2xl shadow-card backdrop-blur-sm;
+    @apply rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-[16px] backdrop-saturate-[180%];
   }
 
   .card {
-    @apply etherscan-card p-6 transition duration-200;
-    transition-property: box-shadow, transform, border-color;
+    @apply etherscan-card p-6 transition-all duration-300 ease-out;
   }
 
   .card:hover {
-    @apply shadow-card-hover;
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--link) 24%, var(--line-soft));
+    @apply shadow-[0_16px_40px_0_rgba(0,229,153,0.15)];
+    transform: translateY(-3px) scale(1.01);
+    border-color: var(--link);
   }
 
   .etherscan-link {
@@ -180,22 +179,27 @@
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center rounded-lg border px-3 py-1.5 text-sm font-semibold transition;
-    border-color: color-mix(in srgb, var(--link) 42%, transparent);
+    @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-bold transition-all duration-300;
+    border-color: color-mix(in srgb, var(--link) 50%, transparent);
     color: var(--link);
-    background: color-mix(in srgb, var(--link) 9%, #ffffff 91%);
+    background: color-mix(in srgb, var(--link) 5%, transparent);
+    box-shadow: 0 0 10px rgba(0, 229, 153, 0.05);
   }
 
   .btn-outline:hover {
-    background: color-mix(in srgb, var(--link) 16%, #ffffff 84%);
+    background: color-mix(in srgb, var(--link) 15%, transparent);
+    box-shadow: 0 0 15px rgba(0, 229, 153, 0.2);
+    border-color: var(--link);
+    transform: translateY(-1px);
   }
 
   .dark .btn-outline {
-    background: color-mix(in srgb, var(--link) 18%, transparent);
+    background: color-mix(in srgb, var(--link) 10%, transparent);
   }
 
   .dark .btn-outline:hover {
-    background: color-mix(in srgb, var(--link) 28%, transparent);
+    background: color-mix(in srgb, var(--link) 20%, transparent);
+    box-shadow: 0 0 20px rgba(0, 229, 153, 0.3);
   }
 
   .btn-mini {
@@ -209,24 +213,26 @@
   }
 
   .form-label {
-    @apply mb-1.5 block text-sm font-semibold;
+    @apply mb-2 block text-sm font-bold;
     color: var(--text-high);
   }
 
   .form-input {
-    @apply w-full rounded-lg border px-3 py-2.5 text-sm transition;
+    @apply w-full rounded-xl border px-4 py-3 text-sm transition-all duration-300;
     border-color: var(--line-soft);
-    background: var(--surface-elevated);
+    background: color-mix(in srgb, var(--surface-elevated) 80%, transparent);
     color: var(--text-high);
+    backdrop-filter: blur(8px);
   }
 
   .form-input::placeholder {
-    color: color-mix(in srgb, var(--text-mid) 74%, transparent);
+    color: var(--text-low);
   }
 
   .form-input:focus {
-    border-color: color-mix(in srgb, var(--link) 50%, transparent);
-    box-shadow: 0 0 0 3px var(--ring-focus);
+    border-color: var(--link);
+    box-shadow: 0 0 0 3px var(--ring-focus), 0 0 15px rgba(0, 229, 153, 0.2);
+    transform: translateY(-1px);
   }
 
   .form-error {

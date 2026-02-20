@@ -4,7 +4,7 @@
       <router-link to="/homepage" class="nav-link" active-class="nav-link-active">Home</router-link>
     </li>
     <li
-      class="nav-dropdown"
+      class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'blockchain')"
       @mouseleave="$emit('close-dropdown', 'blockchain')"
       @focusout="handleFocusOut('blockchain')"
@@ -44,7 +44,7 @@
       </div>
     </li>
     <li
-      class="nav-dropdown"
+      class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'tokens')"
       @mouseleave="$emit('close-dropdown', 'tokens')"
       @focusout="handleFocusOut('tokens')"
@@ -81,7 +81,7 @@
       <router-link to="/contracts/1" class="nav-link" active-class="nav-link-active">Contracts</router-link>
     </li>
     <li
-      class="nav-dropdown"
+      class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'resources')"
       @mouseleave="$emit('close-dropdown', 'resources')"
       @focusout="handleFocusOut('resources')"
@@ -116,7 +116,7 @@
       </div>
     </li>
     <li
-      class="nav-dropdown"
+      class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'developers')"
       @mouseleave="$emit('close-dropdown', 'developers')"
       @focusout="handleFocusOut('developers')"
@@ -179,17 +179,19 @@ function handleFocusOut(name) {
 
 <style scoped>
 .nav-link {
-  @apply inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-white/80 transition;
+  @apply inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold text-gray-800 dark:text-gray-200 transition-all duration-300;
 }
 
 .nav-link:hover {
-  @apply text-white;
-  background: rgba(255, 255, 255, 0.1);
+  @apply text-[#00E599];
+  background: rgba(0, 229, 153, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 229, 153, 0.1);
 }
 
 .nav-link-active {
-  @apply text-white;
-  background: rgba(255, 255, 255, 0.14);
+  @apply text-[#00E599];
+  background: rgba(0, 229, 153, 0.15);
+  box-shadow: inset 0 0 10px rgba(0, 229, 153, 0.15);
 }
 
 .nav-dropdown {
@@ -197,15 +199,14 @@ function handleFocusOut(name) {
 }
 
 .dropdown-panel {
-  @apply absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/20 bg-header-bg p-1.5 shadow-dropdown;
+  @apply absolute left-0 top-full z-50 mt-4 w-56 rounded-2xl border border-white/20 dark:border-[#00E599]/20 bg-white/60 dark:bg-[#071520]/80 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl backdrop-saturate-[180%] transform transition-all duration-300;
 }
 
 .dropdown-link {
-  @apply block rounded-lg px-3 py-2 text-sm font-medium text-white/80 no-underline transition;
+  @apply block rounded-xl px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 no-underline transition-all duration-200;
 }
 
 .dropdown-link:hover {
-  @apply text-white;
-  background: rgba(255, 255, 255, 0.12);
+  @apply text-[#00E599] bg-[#00E599]/10 translate-x-1;
 }
 </style>

@@ -1,17 +1,17 @@
 <template>
   <div class="overflow-x-auto">
     <table class="w-full min-w-[900px]">
-      <thead class="text-xs uppercase tracking-wide text-mid" style="background: var(--surface-elevated)">
+      <thead class="text-[11px] font-bold uppercase tracking-widest text-[#94b8a3] dark:text-[#547864] bg-white/50 dark:bg-[#071520]/80 backdrop-blur-md">
         <tr>
-          <th class="table-header-cell">Txn Hash</th>
-          <th class="table-header-cell">Method</th>
-          <th class="table-header-cell">Block</th>
+          <th class="px-5 py-4 text-left">Txn Hash</th>
+          <th class="px-5 py-4 text-left">Method</th>
+          <th class="px-5 py-4 text-left">Block</th>
           <th
-            class="table-header-cell cursor-pointer select-none transition-colors hover:text-primary-500"
+            class="px-5 py-4 text-left cursor-pointer select-none transition-colors hover:text-[#00E599]"
             @click="$emit('toggle-time')"
           >
             {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
-            <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="ml-1 inline h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -20,36 +20,31 @@
               />
             </svg>
           </th>
-          <th class="table-header-cell hidden md:table-cell">From</th>
-          <th class="table-header-cell hidden lg:table-cell">To</th>
-          <th class="table-header-cell-right hidden lg:table-cell">Value / Gas</th>
-          <th class="table-header-cell-right hidden xl:table-cell">Net / Sys Fee</th>
+          <th class="px-5 py-4 text-left hidden md:table-cell">From</th>
+          <th class="px-5 py-4 text-left hidden lg:table-cell">To</th>
+          <th class="px-5 py-4 text-right hidden lg:table-cell">Value / Gas</th>
+          <th class="px-5 py-4 text-right hidden xl:table-cell">Net / Sys Fee</th>
         </tr>
       </thead>
-      <tbody class="soft-divider divide-y">
-        <tr v-for="tx in transactions" :key="tx.hash" class="list-row transition-colors">
+      <tbody class="divide-y border-t border-white/10 dark:border-neo-green/10 divide-white/10 dark:divide-neo-green/10">
+        <tr v-for="tx in transactions" :key="tx.hash" class="group transition-all duration-300 hover:bg-[#00E599]/5 dark:hover:bg-[#00E599]/10 cursor-pointer">
           <!-- Txn Hash -->
-          <td class="table-cell">
-            <div class="flex items-center gap-1.5">
-              <svg
-                class="h-4 w-4 flex-shrink-0"
-                :class="tx.vmstate === 'FAULT' ? 'text-error' : 'text-success'"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <circle cx="10" cy="10" r="10" />
-              </svg>
-              <router-link :to="`/transaction-info/${tx.hash}`" :title="tx.hash" class="etherscan-link font-mono">
+          <td class="px-5 py-4 text-sm whitespace-nowrap">
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-3 w-3">
+                <span v-if="tx.vmstate !== 'FAULT'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E599] opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3" :class="tx.vmstate === 'FAULT' ? 'bg-[#ff4d4d]' : 'bg-[#00E599]'"></span>
+              </span>
+              <router-link :to="`/transaction-info/${tx.hash}`" :title="tx.hash" class="font-mono text-[#00E599] hover:text-[#33ffbb] hover:underline transition-colors font-semibold">
                 {{ truncateHash(tx.hash) }}
               </router-link>
             </div>
           </td>
 
           <!-- Method -->
-          <td class="table-cell">
+          <td class="px-5 py-4 text-sm">
             <span
-              class="soft-divider text-high inline-block max-w-[100px] truncate rounded-md border px-2 py-0.5 text-xs font-medium"
-              style="background: var(--surface-elevated)"
+              class="inline-flex items-center justify-center max-w-[120px] truncate rounded-lg border border-[#00E599]/30 bg-[#00E599]/10 px-2.5 py-1 text-xs font-bold text-[#00E599] shadow-[0_0_10px_rgba(0,229,153,0.1)] group-hover:shadow-[0_0_15px_rgba(0,229,153,0.2)] transition-shadow"
               :title="getMethodName(tx)"
             >
               {{ getMethodName(tx) }}
@@ -57,46 +52,46 @@
           </td>
 
           <!-- Block -->
-          <td class="table-cell">
-            <router-link :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
+          <td class="px-5 py-4 text-sm">
+            <router-link :to="`/block-info/${tx.blockhash}`" class="text-gray-800 dark:text-gray-100 font-bold hover:text-[#00E599] transition-colors">
               {{ tx.blockIndex }}
             </router-link>
           </td>
 
           <!-- Age -->
-          <td class="table-cell-secondary">
+          <td class="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 font-medium">
             <span :title="formatUnixTime(tx.blocktime)">
               {{ showAbsoluteTime ? formatUnixTime(tx.blocktime) : formatAge(tx.blocktime) }}
             </span>
           </td>
 
           <!-- From -->
-          <td class="table-cell hidden md:table-cell">
-            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
-            <span v-else class="text-xs text-low">-</span>
+          <td class="px-5 py-4 text-sm hidden md:table-cell">
+            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" class="text-gray-700 dark:text-gray-300 hover:text-[#00E599] transition-colors" />
+            <span v-else class="text-xs text-gray-400">-</span>
           </td>
 
           <!-- To -->
-          <td class="table-cell hidden lg:table-cell">
-            <span v-if="getRecipient(tx)" class="flex items-center gap-1">
-              <svg class="h-3 w-3 flex-shrink-0 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <td class="px-5 py-4 text-sm hidden lg:table-cell">
+            <span v-if="getRecipient(tx)" class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <HashLink :hash="getRecipient(tx)" type="contract" />
+              <HashLink :hash="getRecipient(tx)" type="contract" class="text-gray-700 dark:text-gray-300 hover:text-[#00E599] transition-colors" />
             </span>
-            <span v-else class="text-xs text-low">-</span>
+            <span v-else class="text-xs text-gray-400">-</span>
           </td>
 
           <!-- Value -->
-          <td class="table-cell hidden text-right font-mono lg:table-cell">
+          <td class="px-5 py-4 text-sm hidden text-right font-mono lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
-              <span class="max-w-[180px] truncate" :title="getValueSummary(tx)">{{ getValueSummary(tx) }}</span>
-              <span class="text-low text-[11px]">{{ formatTxGas(tx) }} GAS</span>
+              <span class="max-w-[180px] truncate font-bold text-gray-900 dark:text-gray-50" :title="getValueSummary(tx)">{{ getValueSummary(tx) }}</span>
+              <span class="text-[11px] font-semibold text-gray-500 dark:text-[#94b8a3] mt-0.5">{{ formatTxGas(tx) }} GAS</span>
             </div>
           </td>
 
           <!-- Fee -->
-          <td class="table-cell-secondary hidden text-right text-xs xl:table-cell">
+          <td class="px-5 py-4 text-sm hidden text-right text-xs xl:table-cell text-gray-500 dark:text-gray-400 font-mono">
             {{ formatTxFeeBreakdown(tx) }}
           </td>
         </tr>

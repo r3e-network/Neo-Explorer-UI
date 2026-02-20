@@ -1,28 +1,26 @@
 <template>
-  <div ref="searchContainer" class="search-box relative" :class="{ 'w-full': mode === 'full' }">
+  <div ref="searchContainer" class="search-box relative group" :class="{ 'w-full': mode === 'full' }">
     <div
       :class="[
-        'relative flex items-center transition-all duration-200',
-        mode === 'full'
-          ? 'surface-panel rounded-2xl px-0 focus-within:border-primary-300/70'
-          : 'rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm focus-within:border-white/45 focus-within:bg-white/15',
+        'relative flex items-center transition-all duration-300 rounded-xl',
+        'border border-white/20 dark:border-neo-green/20 bg-white/40 dark:bg-[#0a1122]/60 backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.1)] focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)] focus-within:border-neo-green/80 hover:border-neo-green/50',
+        mode === 'full' ? 'h-[64px]' : 'h-[44px]',
       ]"
     >
       <!-- Filter Dropdown (full mode only) -->
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="search-filter h-full cursor-pointer appearance-none rounded-l-2xl border-r py-4 pl-3 pr-7 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+        class="search-filter h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 dark:border-neo-green/20 bg-transparent py-4 pl-4 pr-8 text-sm font-bold text-gray-800 dark:text-gray-200 transition-colors focus:outline-none"
         aria-label="Search filter"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value">{{ f.label }}</option>
       </select>
 
       <!-- Search Icon -->
-      <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-3' : 'pl-2.5'">
+      <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-4' : 'pl-3'">
         <svg
-          class="w-4 h-4"
-          :class="mode === 'full' ? 'text-low' : 'text-white/60'"
+          class="w-4 h-4 text-gray-500 dark:text-neo-green/80 transition-colors duration-300 group-focus-within:text-neo-green"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -37,7 +35,7 @@
         </svg>
         <kbd
           v-if="!isFocused && mode === 'full'"
-          class="search-shortcut hidden sm:inline-flex h-5 w-5 items-center justify-center rounded border text-[10px] font-medium"
+          class="search-shortcut hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-gray-500 dark:text-gray-400"
           title="Press / to search"
           >/</kbd
         >
@@ -50,10 +48,10 @@
         type="text"
         :placeholder="currentPlaceholder"
         :class="[
-          'flex-1 bg-transparent focus:outline-none',
+          'flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 font-medium',
           mode === 'full'
-            ? 'text-high px-3 py-4 pr-28 text-base font-medium placeholder:text-low'
-            : 'px-2.5 py-2 pr-16 text-sm text-white placeholder-white/50',
+            ? 'px-4 py-4 pr-28 text-base'
+            : 'px-3 py-2 pr-12 text-sm',
         ]"
         @keyup.enter="handleEnter"
         @input="handleInput"
@@ -77,17 +75,17 @@
         :disabled="loading || !query.trim()"
         aria-label="Submit search"
         :class="[
-          'absolute right-1.5 top-1/2 -translate-y-1/2 font-medium transition-colors duration-200 flex items-center gap-1.5',
+          'absolute right-2 top-1/2 -translate-y-1/2 font-bold transition-all duration-300 flex items-center justify-center gap-1.5 rounded-lg shadow-md hover:shadow-[0_0_15px_rgba(0,229,153,0.5)] disabled:cursor-not-allowed disabled:opacity-50',
           mode === 'full'
-            ? 'rounded-xl bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50'
-            : 'px-2.5 py-1 bg-primary-500 hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-white/10 text-white rounded text-xs',
+            ? 'px-6 py-2.5 text-sm bg-gradient-to-r from-[#00E599] to-[#00b377] text-white'
+            : 'h-[32px] w-[32px] bg-gradient-to-r from-[#00E599] to-[#00b377] text-white p-0',
         ]"
       >
-        <svg v-if="loading" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+        <svg v-if="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <svg v-if="mode === 'compact'" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg v-else-if="mode === 'compact'" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
