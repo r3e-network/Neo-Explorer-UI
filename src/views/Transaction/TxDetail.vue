@@ -261,8 +261,9 @@ const txStatus = computed(() => {
 });
 
 const confirmations = computed(() => {
-  if (!currentBlockHeight.value || !tx.value.blockIndex) return 0;
-  return Math.max(0, currentBlockHeight.value - tx.value.blockIndex);
+  const bIndex = tx.value.blockIndex ?? tx.value.blockindex;
+  if (!currentBlockHeight.value || !bIndex) return 0;
+  return Math.max(0, currentBlockHeight.value - bIndex);
 });
 
 const totalFee = computed(() => {

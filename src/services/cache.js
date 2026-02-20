@@ -19,18 +19,51 @@ const pendingRequests = new Map();
 let hitCount = 0;
 let missCount = 0;
 
+// Session storage persistence
+const SESSION_CACHE_KEY = "neo_explorer_session_cache";
+let saveTimeout = null;
+
+if (typeof window !== "undefined" && window.sessionStorage) {
+  try {
+    const data = sessionStorage.getItem(SESSION_CACHE_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      const now = Date.now();
+      parsed.forEach(([k, v]) => {
+        if (v.expiry > now) cache.set(k, v);
+      });
+    }
+  } catch (e) {
+    console.warn("Restoring cache from session storage failed", e);
+  }
+}
+
+function persistCache() {
+  if (typeof window === "undefined" || !window.sessionStorage) return;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    try {
+      // Avoid DOM quota exceeded errors by limiting to 100 items for persistence
+      const entries = Array.from(cache.entries()).slice(-100);
+      sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(entries));
+    } catch (e) {
+      sessionStorage.removeItem(SESSION_CACHE_KEY);
+    }
+  }, 1000);
+}
+
 // 默认缓存时间（毫秒）
 const DEFAULT_TTL = {
-  block: 15 * 1000, // 区块数据 15秒
-  txList: 10 * 1000, // 交易列表 10秒
-  txDetail: 60 * 1000, // 交易详情 60秒
-  contract: 300 * 1000, // 合约数据 300秒（极少变更）
-  token: 120 * 1000, // 代币数据 120秒
-  stats: 30 * 1000, // 统计数据 30秒
-  trace: 120 * 1000, // 执行追踪 120秒（确认后不可变）
-  address: 20 * 1000, // 地址数据 20秒
-  price: 60 * 1000, // 价格数据 60秒
-  chart: 5 * 60 * 1000, // 图表数据 5分钟
+  block: 15 * 1000,
+  txList: 10 * 1000,
+  txDetail: 60 * 1000,
+  contract: 300 * 1000,
+  token: 120 * 1000,
+  stats: 30 * 1000,
+  trace: 120 * 1000,
+  address: 20 * 1000,
+  price: 60 * 1000,
+  chart: 5 * 60 * 1000,
 };
 
 // Legacy aliases - deprecated, will be removed in a future version
@@ -62,6 +95,7 @@ function touchCacheItem(key, item) {
   // LRU refresh: move to end of Map iteration order
   cache.delete(key);
   cache.set(key, item);
+  persistCache();
 }
 
 function getValidCacheItem(key, { touch = false } = {}) {
@@ -70,6 +104,7 @@ function getValidCacheItem(key, { touch = false } = {}) {
 
   if (Date.now() > item.expiry) {
     cache.delete(key);
+    persistCache();
     return null;
   }
 
@@ -179,6 +214,7 @@ export const setCache = (key, data, ttl = DEFAULT_TTL.block) => {
     timestamp,
     ttl,
   });
+  persistCache();
 };
 
 /**
@@ -187,6 +223,7 @@ export const setCache = (key, data, ttl = DEFAULT_TTL.block) => {
  */
 export const clearCache = (key) => {
   cache.delete(key);
+  persistCache();
 };
 
 /**
@@ -194,6 +231,7 @@ export const clearCache = (key) => {
  */
 export const clearAllCache = () => {
   cache.clear();
+  persistCache();
 };
 
 /**
@@ -206,6 +244,7 @@ export const clearCacheByPrefix = (prefix) => {
       cache.delete(key);
     }
   }
+  persistCache();
 };
 
 /**

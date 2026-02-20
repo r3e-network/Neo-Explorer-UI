@@ -54,7 +54,7 @@
           <!-- Block -->
           <td class="px-5 py-4 text-sm">
             <router-link :to="`/block-info/${tx.blockhash}`" class="text-gray-800 dark:text-gray-100 font-bold hover:text-[#00E599] transition-colors">
-              {{ tx.blockIndex }}
+              {{ tx.blockIndex ?? tx.blockindex }}
             </router-link>
           </td>
 

@@ -76,7 +76,7 @@
               </td>
               <td class="table-cell">
                 <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="text-sm etherscan-link">
-                  {{ tx.blockIndex != null ? formatNumber(tx.blockIndex) : truncateHash(tx.blockhash, 8, 6) }}
+                  {{ (tx.blockIndex ?? tx.blockindex) != null ? formatNumber(tx.blockIndex ?? tx.blockindex) : truncateHash(tx.blockhash, 8, 6) }}
                 </router-link>
                 <span v-else class="text-low text-sm">-</span>
               </td>

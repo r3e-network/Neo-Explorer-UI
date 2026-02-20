@@ -15,7 +15,7 @@
 
       <InfoRow label="Block">
         <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
-          #{{ tx.blockIndex }}
+          #{{ tx.blockIndex ?? tx.blockindex }}
         </router-link>
         <span v-else class="text-mid">Pending confirmation</span>
       </InfoRow>
