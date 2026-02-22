@@ -22,8 +22,8 @@ This repository includes a `vercel.json` configuration ready for Vue SPA deploym
 
 - Builds with `npm run build`
 - Serves static output from `dist/`
-- Rewrites `/api/mainnet` to `https://neofura.ngd.network/api`
-- Rewrites `/api/testnet` to `https://testmagnet.ngd.network/api`
+- Rewrites `/api/mainnet` to `http://198.244.215.132:1927`
+- Rewrites `/api/testnet` to `http://198.244.215.132:1926`
 - Keeps `/api` as a backward-compatible alias to mainnet
 - Falls back all non-file SPA routes to `/index.html`
 
@@ -120,11 +120,15 @@ Configure build-time variables in `.env`, `.env.production`, or Vercel project s
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VUE_APP_RPC_BASE_URL` | Optional fixed RPC base URL. Leave unset to follow UI network switch. | unset |
+| `VITE_RPC_BASE_URL` | Optional fixed RPC base URL. Leave unset to follow UI network switch. | unset |
+| `VITE_MAINNET_RPC_PROXY_TARGET` | Optional Vite dev proxy target for `/api/mainnet`. | `http://198.244.215.132:1927` |
+| `VITE_TESTNET_RPC_PROXY_TARGET` | Optional Vite dev proxy target for `/api/testnet`. | `http://198.244.215.132:1926` |
+| `VITE_MAINNET_BPI_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/mainnet`. | `http://198.244.215.132:1927` |
+| `VITE_TESTNET_BPI_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/testnet`. | `http://198.244.215.132:1926` |
 
 Notes:
 
-- If `VUE_APP_RPC_BASE_URL` is set to a custom value (e.g. external URL), it overrides the runtime switch.
+- If `VITE_RPC_BASE_URL` is set to a custom value (e.g. external URL), it overrides the runtime switch.
 - Keep it unset to use Mainnet/Testnet switching in UI.
 
 ## Health Checks

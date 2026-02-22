@@ -48,12 +48,12 @@ The frontend connects to neo3fura via proxy configuration in `vite.config.js`:
 server: {
   proxy: {
     "/api/mainnet": {
-      target: "https://neofura.ngd.network",
-      rewrite: (p) => p.replace(/^\/api\/mainnet/, "/api"),
+      target: "http://198.244.215.132:1927",
+      rewrite: () => "/",
     },
     "/api/testnet": {
-      target: "https://testmagnet.ngd.network",
-      rewrite: (p) => p.replace(/^\/api\/testnet/, "/api"),
+      target: "http://198.244.215.132:1926",
+      rewrite: () => "/",
     },
   },
 }
@@ -63,8 +63,8 @@ server: {
 
 | Network | RPC Endpoint | WebSocket |
 |---------|--------------|-----------|
-| Mainnet | `https://neofura.ngd.network` | - |
-| Testnet | `https://testmagnet.ngd.network` | - |
+| Mainnet | `http://198.244.215.132:1927` (self-hosted neo3fura) | - |
+| Testnet | `http://198.244.215.132:1926` (self-hosted neo3fura) | - |
 
 ### Service Layer
 
@@ -137,11 +137,13 @@ npx vercel --prod
 Optional build-time environment variable:
 
 - `VITE_RPC_BASE_URL` (optional fixed override; default uses the in-app network switch)
+- `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET` (optional Vite dev proxy overrides)
+- `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET` (optional Vite dev BPI proxy overrides)
 
 Vercel routing is defined in `vercel.json`:
 
-- `/api/mainnet` → `https://neofura.ngd.network/api`
-- `/api/testnet` → `https://testmagnet.ngd.network/api`
+- `/api/mainnet` → `http://198.244.215.132:1927`
+- `/api/testnet` → `http://198.244.215.132:1926`
 - `/api` aliases to mainnet (backward compatible)
 - SPA fallback (`/:path*` → `/index.html`)
 
