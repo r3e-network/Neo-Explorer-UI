@@ -1,5 +1,5 @@
 import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
-import { blockService, statsService, tokenService } from "@/services";
+import { blockService, statsService } from "@/services";
 
 const isWarmedUp = ref(false);
 const prefetchQueue = ref(new Set());
@@ -24,7 +24,6 @@ export function useCacheWarming() {
         blockService.getList(1, 0),
         blockService.getCount(),
         statsService.getDashboardStats(),
-        tokenService.getTokenList("NEP17", 50, 0),
       ]);
 
       isWarmedUp.value = true;
