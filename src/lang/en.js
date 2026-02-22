@@ -1,4 +1,26 @@
 const en = {
+    nav: {
+      "home": "Home",
+      "blockchain": "Blockchain",
+      "blocks": "Blocks",
+      "transactions": "Transactions",
+      "accounts": "Accounts",
+      "consensusNodes": "Consensus Nodes",
+      "governance": "Governance",
+      "tokens": "Tokens",
+      "nep17": "NEP-17 Tokens",
+      "nep11": "NEP-11 NFTs",
+      "contracts": "Contracts",
+      "resources": "Resources",
+      "chartsStats": "Charts & Stats",
+      "gasTracker": "Gas Tracker",
+      "burnedGas": "Burned GAS",
+      "developers": "Developers",
+      "apiDocs": "API Docs",
+      "verifyContract": "Verify Contract",
+      "sourceCode": "Source Code"
+  },
+
   homePage: {
     recentBlocks: "Latest Blocks",
     recentTxs: "Latest Transactions",

@@ -41,14 +41,14 @@
           <caption class="sr-only">
             Address transaction history
           </caption>
-          <thead class="table-head text-xs uppercase tracking-wide backdrop-blur-sm">
+          <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Txn Hash</th>
-              <th class="table-header-cell">Method</th>
-              <th class="table-header-cell">Block</th>
+              <th class="table-header-cell w-[180px]">Txn Hash</th>
+              <th class="table-header-cell w-[120px]">Method</th>
+              <th class="table-header-cell w-[100px]">Block</th>
               <th class="table-header-cell">Age</th>
               <th class="table-header-cell">From</th>
-              <th class="text-low w-12 px-2 py-3 text-center font-medium"></th>
+              <th class="table-header-cell w-16 text-center"></th>
               <th class="table-header-cell">To</th>
               <th class="table-header-cell-right">Value</th>
               <th class="table-header-cell-right">Txn Fee</th>
@@ -58,27 +58,27 @@
             <tr
               v-for="tx in transactions"
               :key="tx.hash"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <td class="table-cell">
                 <router-link
                   :to="`/transaction-info/${tx.hash}`"
                   :title="tx.hash"
-                  class="font-hash text-sm etherscan-link"
+                  class="font-hash etherscan-link"
                 >
                   {{ truncateHash(tx.hash, 10, 6) }}
                 </router-link>
               </td>
               <td class="table-cell">
-                <span class="badge-soft">
+                <span class="badge-soft max-w-[120px] truncate" :title="getTxMethod(tx)">
                   {{ getTxMethod(tx) }}
                 </span>
               </td>
               <td class="table-cell">
-                <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="text-sm etherscan-link">
+                <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
                   {{ (tx.blockIndex ?? tx.blockindex) != null ? formatNumber(tx.blockIndex ?? tx.blockindex) : truncateHash(tx.blockhash, 8, 6) }}
                 </router-link>
-                <span v-else class="text-low text-sm">-</span>
+                <span v-else class="text-low">-</span>
               </td>
               <td class="table-cell-secondary">
                 {{ formatAge(tx.blocktime) }}
@@ -87,32 +87,32 @@
                 <router-link
                   v-if="tx.sender && tx.sender !== address"
                   :to="`/account-profile/${tx.sender}`"
-                  class="font-hash text-sm etherscan-link"
+                  class="font-hash etherscan-link"
                 >
                   {{ truncateHash(tx.sender, 8, 6) }}
                 </router-link>
-                <span v-else-if="tx.sender" class="text-high font-hash text-sm">
+                <span v-else-if="tx.sender" class="text-high font-hash">
                   {{ truncateHash(tx.sender, 8, 6) }}
                 </span>
-                <span v-else class="text-low text-sm">-</span>
+                <span v-else class="text-low">-</span>
               </td>
-              <td class="px-2 py-3 text-center">
+              <td class="table-cell text-center p-0">
                 <span
-                  class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-xs font-semibold"
+                  class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
                   :class="getDirection(tx.sender, address).cssClass"
                 >
                   {{ getDirection(tx.sender, address).label }}
                 </span>
               </td>
               <td class="table-cell">
-                <span class="text-high font-hash text-sm">
+                <span class="text-high font-hash">
                   {{ truncateHash(address, 8, 6) }}
                 </span>
               </td>
-              <td class="table-cell text-right">
+              <td class="table-cell-right text-high font-medium">
                 {{ formatTxValue(tx) }}
               </td>
-              <td class="table-cell-secondary text-right">
+              <td class="table-cell-right text-mid">
                 {{ formatTxFee(tx) }}
               </td>
             </tr>

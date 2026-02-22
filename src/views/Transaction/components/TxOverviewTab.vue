@@ -9,6 +9,10 @@
         :copy-value="tx.hash"
       />
 
+      <InfoRow v-if="txMethod" label="Method" tooltip="The function executed by this transaction">
+        <span class="badge-soft">{{ txMethod }}</span>
+      </InfoRow>
+
       <InfoRow label="Status" tooltip="The execution status of the transaction">
         <StatusBadge :status="txStatus" />
       </InfoRow>
@@ -42,6 +46,11 @@
       <InfoRow label="From" tooltip="The sending address of this transaction">
         <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
         <span v-else class="text-mid">-</span>
+      </InfoRow>
+
+      <InfoRow label="To / Interacted With" tooltip="The receiving address or the primary contract invoked">
+        <HashLink v-if="toAddress" :hash="toAddress" type="contract" />
+        <span v-else class="text-mid">Contract Invocation</span>
       </InfoRow>
 
       <InfoRow label="Network Fee" :value="`${formatGas(tx.netfee)} GAS`" />
@@ -115,13 +124,14 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { formatGas, formatAge, formatTime } from "@/utils/explorerFormat";
 
-defineProps({
+const props = defineProps({
   tx: { type: Object, required: true },
   txStatus: { type: String, default: "pending" },
   isSuccess: { type: [Boolean, null], default: null },
@@ -135,4 +145,14 @@ defineProps({
 });
 
 defineEmits(["update:showMore"]);
+
+const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
+
+const txMethod = computed(() => {
+  if (props.tx?.method) return props.tx.method;
+  if (props.tx?.notifications?.length > 0) {
+    return props.tx.notifications[0].eventname || "Transfer";
+  }
+  return "Transfer";
+});
 </script>

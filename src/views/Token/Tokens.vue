@@ -16,7 +16,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Tokens</h1>
+          <h1 class="page-title">{{ $t("nav.tokens") || "Tokens" }}</h1>
           <p class="page-subtitle">NEP-17 fungible tokens on Neo N3</p>
         </div>
       </div>
@@ -90,9 +90,9 @@
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
-            <thead class="table-head text-xs uppercase tracking-wide">
+            <thead class="table-head">
               <tr>
-                <th class="table-header-cell">#</th>
+                <th class="table-header-cell w-16">#</th>
                 <th class="table-header-cell">Token</th>
                 <th class="table-header-cell">Symbol</th>
                 <th class="table-header-cell">Contract</th>
@@ -105,36 +105,36 @@
               <tr
                 v-for="(token, index) in tokens"
                 :key="token.hash"
-                class="list-row transition-colors"
+                class="list-row group"
               >
-                <td class="text-low px-4 py-3 text-sm">
+                <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/nep17-token-info/${token.hash}`" class="flex items-center gap-3">
                     <div
                       class="soft-divider text-high flex h-8 w-8 items-center justify-center rounded-full border bg-slate-50 text-sm font-semibold dark:bg-slate-800/70"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500">
+                    <span class="text-high font-medium hover:text-primary-500 transition-colors">
                       {{ token.tokenname || "Unknown Token" }}
                     </span>
                   </router-link>
                 </td>
-                <td class="text-high px-4 py-3 text-sm">{{ token.symbol || "-" }}</td>
-                <td class="px-4 py-3">
-                  <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
+                <td class="table-cell font-medium">{{ token.symbol || "-" }}</td>
+                <td class="table-cell">
+                  <router-link :to="`/contract-info/${token.hash}`" class="etherscan-link font-hash">
                     {{ truncateHash(token.hash) }}
                   </router-link>
                 </td>
-                <td class="text-high px-4 py-3 text-right text-sm">
+                <td class="table-cell-right font-medium">
                   {{ formatNumber(token.holders || 0) }}
                 </td>
-                <td class="text-high px-4 py-3 text-right text-sm">
+                <td class="table-cell-right font-medium">
                   {{ formatSupply(token) }}
                 </td>
-                <td class="text-mid px-4 py-3 text-right text-sm">
+                <td class="table-cell-secondary-right">
                   {{ formatMarketCap(token) }}
                 </td>
               </tr>
@@ -145,9 +145,9 @@
         <!-- NEP-11 Table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[920px]">
-            <thead class="table-head text-xs uppercase tracking-wide">
+            <thead class="table-head">
               <tr>
-                <th class="table-header-cell">#</th>
+                <th class="table-header-cell w-16">#</th>
                 <th class="table-header-cell">Collection</th>
                 <th class="table-header-cell">Symbol</th>
                 <th class="table-header-cell">Contract</th>
@@ -159,33 +159,33 @@
               <tr
                 v-for="(token, index) in tokens"
                 :key="token.hash"
-                class="list-row transition-colors"
+                class="list-row group"
               >
-                <td class="text-low px-4 py-3 text-sm">
+                <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
-                <td class="px-4 py-3">
+                <td class="table-cell">
                   <router-link :to="`/nft-token-info/${token.hash}`" class="flex items-center gap-3">
                     <div
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500">
+                    <span class="text-high font-medium hover:text-primary-500 transition-colors">
                       {{ token.tokenname || "Unknown Collection" }}
                     </span>
                   </router-link>
                 </td>
-                <td class="text-high px-4 py-3 text-sm">{{ token.symbol || "-" }}</td>
-                <td class="px-4 py-3">
-                  <router-link :to="`/contract-info/${token.hash}`" class="font-hash text-sm etherscan-link">
+                <td class="table-cell font-medium">{{ token.symbol || "-" }}</td>
+                <td class="table-cell">
+                  <router-link :to="`/contract-info/${token.hash}`" class="etherscan-link font-hash">
                     {{ truncateHash(token.hash) }}
                   </router-link>
                 </td>
-                <td class="text-high px-4 py-3 text-right text-sm">
+                <td class="table-cell-right font-medium">
                   {{ formatSupply(token) }}
                 </td>
-                <td class="text-high px-4 py-3 text-right text-sm">
+                <td class="table-cell-right font-medium">
                   {{ formatNumber(token.holders || 0) }}
                 </td>
               </tr>
@@ -241,34 +241,29 @@ const activeTab = ref("nep17");
 const searchQuery = ref("");
 const VALID_TABS = ["nep17", "nep11"];
 
-// Dynamic fetch: reads activeTab and searchQuery at call time
-function fetchTokens(limit, skip) {
-  const query = searchQuery.value.trim();
-  if (query) {
-    return activeTab.value === "nep11"
-      ? tokenService.searchNep11ByName(query, limit, skip)
-      : tokenService.searchNep17ByName(query, limit, skip);
-  }
-  return activeTab.value === "nep11" ? tokenService.getNep11List(limit, skip) : tokenService.getNep17List(limit, skip);
-}
-
-// Cache key depends on tab + search
-function tokenCacheKey(limit, skip) {
-  const query = searchQuery.value.trim();
-  if (query) {
-    return getCacheKey(activeTab.value === "nep11" ? "token_nep11_search" : "token_nep17_search", {
-      name: query,
-      limit,
-      skip,
-    });
-  }
-  return getCacheKey(activeTab.value === "nep11" ? "token_nep11_list" : "token_nep17_list", { limit, skip });
-}
-
 const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
-  fetchTokens,
+  (limit, skip) => {
+    const query = searchQuery.value.trim();
+    if (query) {
+      return activeTab.value === "nep11"
+        ? tokenService.searchNep11ByName(query, limit, skip)
+        : tokenService.searchNep17ByName(query, limit, skip);
+    }
+    return activeTab.value === "nep11" 
+      ? tokenService.getNep11List(limit, skip) 
+      : tokenService.getNep17List(limit, skip);
+  },
   {
-    cacheKeyFn: tokenCacheKey,
+    cacheKeyFn: (limit, skip) => {
+      const query = searchQuery.value.trim();
+      const tab = activeTab.value;
+      if (query) {
+        return getCacheKey(tab === "nep11" ? "token_nep11_search" : "token_nep17_search", {
+          name: query, limit, skip,
+        });
+      }
+      return getCacheKey(tab === "nep11" ? "token_nep11_list" : "token_nep17_list", { limit, skip });
+    },
     errorMessage: t("errors.loadTokens"),
   }
 );
@@ -292,7 +287,11 @@ function switchTab(tab) {
   cancelSearch();
   activeTab.value = tab;
   searchQuery.value = "";
-  router.push(`/tokens/${tab}/1`).catch(() => {});
+  if (currentPage.value === 1) {
+    loadPage(1);
+  } else {
+    router.push(`/tokens/${tab}/1`).catch(() => {});
+  }
 }
 
 function goToPage(page) {

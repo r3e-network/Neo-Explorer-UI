@@ -1,4 +1,26 @@
 const zh = {
+    nav: {
+      "home": "首页",
+      "blockchain": "区块链",
+      "blocks": "区块",
+      "transactions": "交易",
+      "accounts": "账户",
+      "consensusNodes": "共识节点",
+      "governance": "治理",
+      "tokens": "代币",
+      "nep17": "NEP-17 代币",
+      "nep11": "NEP-11 NFT",
+      "contracts": "合约",
+      "resources": "资源",
+      "chartsStats": "图表与统计",
+      "gasTracker": "GAS 追踪器",
+      "burnedGas": "已销毁 GAS",
+      "developers": "开发者",
+      "apiDocs": "API 文档",
+      "verifyContract": "验证合约",
+      "sourceCode": "源代码"
+  },
+
   homePage: {
     recentBlocks: "区块",
     recentTxs: "交易",

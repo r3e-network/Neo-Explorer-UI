@@ -80,7 +80,7 @@
           <div class="text-low flex flex-wrap gap-2 text-xs">
             <span class="badge-soft rounded px-2 py-1"> Block: height or hash </span>
             <span class="badge-soft rounded px-2 py-1"> Tx: 0x + 64 hex chars </span>
-            <span class="badge-soft rounded px-2 py-1"> Address: starts with N </span>
+            <span class="badge-soft rounded px-2 py-1"> Address: starts with N or ends with .neo </span>
             <span class="badge-soft rounded px-2 py-1"> Contract: script hash </span>
           </div>
         </form>
@@ -300,7 +300,7 @@ let searchGeneration = 0;
 const inputPlaceholder = computed(() => {
   const placeholders = {
     all: "Search by address, tx hash, block height, or contract hash...",
-    address: "Enter Neo N3 address (starts with N)...",
+    address: "Enter Neo N3 address (starts with N) or NNS (.neo)...",
     transaction: "Enter transaction hash (0x + 64 hex chars)...",
     block: "Enter block height or block hash...",
     contract: "Enter contract script hash...",
@@ -352,8 +352,8 @@ function validate() {
     return false;
   }
 
-  if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q)) {
-    validationError.value = "Invalid Neo N3 address format. Must start with N followed by 33 alphanumeric characters.";
+  if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q) && !(q.endsWith(".neo") && q.length > 4)) {
+    validationError.value = "Invalid address format. Must be a 34-char address starting with N, or a .neo domain.";
     return false;
   }
   if (searchType.value === "transaction" && !/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {

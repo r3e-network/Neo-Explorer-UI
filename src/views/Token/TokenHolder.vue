@@ -21,7 +21,7 @@
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full min-w-[700px]">
-          <thead class="table-head text-xs uppercase tracking-wide">
+          <thead class="table-head">
             <tr>
               <th class="table-header-cell">Rank</th>
               <th class="table-header-cell">Address</th>
@@ -33,7 +33,7 @@
             <tr
               v-for="(item, index) in holders"
               :key="item.address"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <!-- Rank -->
               <td class="text-low px-4 py-3 text-sm">
@@ -49,9 +49,7 @@
               <td class="px-4 py-3">
                 <div class="max-w-[220px] truncate">
                   <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> Null Address </span>
-                  <router-link v-else :to="'/account-profile/' + item.address" class="font-hash text-sm etherscan-link">
-                    {{ showAddress ? scriptHashToAddress(item.address) : truncateHash(item.address) }}
-                  </router-link>
+                  <HashLink v-else :hash="showAddress ? scriptHashToAddress(item.address) : item.address" type="address" :truncated="true" />
                 </div>
               </td>
               <!-- Balance -->
@@ -102,7 +100,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import { tokenService } from "@/services";
-import { truncateHash, formatNumber } from "@/utils/explorerFormat";
+import { formatNumber } from "@/utils/explorerFormat";
 import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
 import { usePagination } from "@/composables/usePagination";
 import { NULL_ADDRESS } from "@/constants";
@@ -110,6 +108,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   contractHash: { type: String, required: true },

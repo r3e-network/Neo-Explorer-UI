@@ -15,7 +15,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Top Accounts</h1>
+          <h1 class="page-title">{{ $t("nav.accounts") || "Top Accounts" }}</h1>
           <p class="page-subtitle">Neo N3 accounts ranked by balance</p>
         </div>
       </div>
@@ -47,7 +47,7 @@
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]">
-            <thead class="table-head text-xs uppercase tracking-wide">
+            <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">Rank</th>
                 <th class="table-header-cell">Address</th>
@@ -61,7 +61,7 @@
               <tr
                 v-for="(account, index) in accounts"
                 :key="account.address || index"
-                class="list-row transition-colors"
+                class="list-row group"
               >
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -75,16 +75,16 @@
                     {{ displayAddress(account.address) }}
                   </router-link>
                 </td>
-                <td class="table-cell text-right font-medium">
+                <td class="table-cell-right font-medium">
                   {{ formatBalance(account.neobalance) }}
                 </td>
-                <td class="table-cell text-right font-medium">
+                <td class="table-cell-right font-medium">
                   {{ formatGasBalance(account.gasbalance) }}
                 </td>
-                <td class="table-cell-secondary text-right">
+                <td class="table-cell-secondary-right">
                   {{ formatNumber(getTxnCount(account)) }}
                 </td>
-                <td class="table-cell-secondary text-right">
+                <td class="table-cell-secondary-right">
                   {{ formatLastActive(account) }}
                 </td>
               </tr>

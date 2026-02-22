@@ -17,7 +17,7 @@
         <caption class="sr-only">
           NEP-17 token balances for this address
         </caption>
-        <thead class="table-head text-xs uppercase tracking-wide">
+        <thead class="table-head">
           <tr>
             <th class="table-header-cell">Token</th>
             <th class="table-header-cell">Standard</th>
@@ -30,7 +30,7 @@
           <tr
             v-for="asset in sortedAssets"
             :key="assetKey(asset)"
-            class="list-row transition-colors"
+            class="list-row group"
           >
             <td class="table-cell">
               <div class="flex items-center gap-2">
@@ -48,10 +48,10 @@
             <td class="table-cell-secondary">
               {{ assetStandard(asset) }}
             </td>
-            <td class="table-cell text-right">
+            <td class="table-cell-right">
               {{ assetBalance(asset) }}
             </td>
-            <td class="table-cell-secondary text-right italic">-</td>
+            <td class="table-cell-secondary-right italic">-</td>
             <td class="table-cell">
               <router-link
                 v-if="assetHash(asset)"

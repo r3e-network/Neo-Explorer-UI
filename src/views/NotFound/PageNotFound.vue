@@ -31,7 +31,7 @@
         <div class="mt-6 flex items-center justify-center gap-3">
           <router-link
             to="/homepage"
-            class="rounded-md bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+            class="btn-primary"
           >
             Back to Homepage
           </router-link>

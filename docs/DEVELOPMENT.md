@@ -27,6 +27,8 @@ The app runs at `http://localhost:5173`.
 - `VITE_RPC_BASE_URL`: optional fixed RPC base URL override.
   - If unset, the UI uses network-aware base paths (`/api/mainnet` and `/api/testnet`).
   - If set, it bypasses the in-app network switch.
+- `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET`: optional Vite dev proxy target overrides.
+- `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET`: optional Vite dev BPI proxy target overrides.
 
 ## Architecture Notes
 

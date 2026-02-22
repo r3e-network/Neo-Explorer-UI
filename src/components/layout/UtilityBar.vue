@@ -4,7 +4,7 @@
       <div class="flex items-center gap-3 text-white/70">
         <span>NEO:</span>
         <span class="font-semibold text-white">${{ formatPrice(neoPrice) }}</span>
-        <span :class="priceChangeClass(neoPriceChange)">({{ formatPriceChange(neoPriceChange) }})</span>
+        <span :class="Number(neoPriceChange || 0) >= 0 ? 'text-green-400' : 'text-red-400'">({{ formatPriceChange(neoPriceChange) }})</span>
         <span class="hidden text-white/30 sm:inline">|</span>
         <span class="hidden sm:inline">GAS:</span>
         <span class="hidden font-semibold text-white sm:inline">${{ formatPrice(gasPrice) }}</span>
@@ -45,6 +45,7 @@
             </button>
           </div>
         </div>
+        <LanguageSelector />
         <ThemeToggle />
       </div>
     </div>
@@ -54,7 +55,8 @@
 <script setup>
 import { ref } from "vue";
 import ThemeToggle from "@/components/common/ThemeToggle.vue";
-import { formatPrice, formatPriceChange, priceChangeClass } from "@/utils/explorerFormat";
+import LanguageSelector from "@/components/common/LanguageSelector.vue";
+import { formatPrice, formatPriceChange } from "@/utils/explorerFormat";
 
 defineProps({
   neoPrice: { type: Number, default: 0 },

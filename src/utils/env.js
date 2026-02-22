@@ -82,8 +82,8 @@ export const AI_API = {
 
 // RPC Node URLs (neofura endpoints used by Neon RPC client)
 export const RPC_URLS = {
-  [NET_ENV.Mainnet]: "https://neofura.ngd.network",
-  [NET_ENV.TestT5]: "https://testmagnet.ngd.network",
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
 };
 
 export const RPC_API_BASE_PATHS = {
@@ -96,3 +96,19 @@ export const getRpcUrl = () => RPC_URLS[getCurrentEnv()] || RPC_URLS[NET_ENV.Mai
 
 // Get API base path (proxied in dev + Vercel rewrites)
 export const getRpcApiBasePath = () => RPC_API_BASE_PATHS[getCurrentEnv()] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+
+const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i;
+
+export const toAbsoluteUrl = (value) => {
+  if (typeof value !== "string") return "";
+
+  const normalized = value.trim();
+  if (!normalized) return "";
+  if (ABSOLUTE_HTTP_URL_PATTERN.test(normalized)) return normalized;
+  if (typeof window === "undefined" || !window.location?.origin) return normalized;
+
+  return new URL(normalized, window.location.origin).toString();
+};
+
+// RPC clients from neon-js require absolute http(s) endpoints.
+export const getRpcClientUrl = () => toAbsoluteUrl(getRpcApiBasePath());

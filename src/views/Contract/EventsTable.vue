@@ -29,7 +29,7 @@
             <tr
               v-for="item in items"
               :key="item.txid + item.eventname"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">

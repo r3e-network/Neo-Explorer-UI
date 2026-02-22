@@ -58,7 +58,7 @@
           <!-- Query button -->
           <button
             type="button"
-            class="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+            class="btn-primary mt-3 gap-2"
             :disabled="readMethodState[mIdx]?.loading"
             :aria-label="`Query ${method.name}`"
             @click="emit('invokeMethod', mIdx, method)"

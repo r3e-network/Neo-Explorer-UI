@@ -42,7 +42,7 @@
           <tr
             v-for="block in blocks"
             :key="block.hash"
-            class="list-row transition-colors"
+            class="list-row group"
           >
             <td class="table-cell">
               <router-link :to="`/block-info/${block.hash}`" class="font-medium etherscan-link">
@@ -55,10 +55,10 @@
             <td class="table-cell text-center">
               {{ block.txcount || 0 }}
             </td>
-            <td class="table-cell text-right">
+            <td class="table-cell-right">
               {{ formatGas(avgFee(block)) }}
             </td>
-            <td class="table-cell text-high text-right font-medium">
+            <td class="table-cell-right text-high font-medium">
               {{ formatGas(totalFee(block)) }}
             </td>
           </tr>

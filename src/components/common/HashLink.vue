@@ -12,9 +12,10 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
+import nnsService from "@/services/nnsService";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -34,8 +35,25 @@ const shouldTruncate = computed(() =>
   props.truncate === null ? props.truncated : props.truncate
 );
 
+const nnsName = ref("");
+
+watch(
+  () => props.hash,
+  async (newHash) => {
+    nnsName.value = "";
+    if (props.type === "address" && newHash) {
+      const res = await nnsService.resolveAddressToNNS(newHash);
+      if (res && res.nns) {
+        nnsName.value = res.nns;
+      }
+    }
+  },
+  { immediate: true }
+);
+
 const displayHash = computed(() => {
   if (!props.hash) return "";
+  if (nnsName.value) return nnsName.value; // Prefer NNS if available
   if (!shouldTruncate.value) return props.hash;
   return truncateHashValue(props.hash, 8, 6);
 });

@@ -30,7 +30,7 @@
             <tr
               v-for="item in items"
               :key="item.txid + item.method"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">

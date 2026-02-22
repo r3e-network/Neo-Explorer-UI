@@ -1,5 +1,6 @@
 import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
+import nnsService from "./nnsService";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -72,6 +73,18 @@ async function _classifyAndDispatch(query) {
   if (/^N[A-Za-z0-9]{33}$/.test(query)) {
     const account = await safeRpc("GetAddressByAddress", { Address: query }, null);
     if (account) hits.address = account;
+  }
+
+  // NNS Domain (.neo)
+  if (query.endsWith(".neo") && query.length > 4) {
+    const resolvedAddress = await nnsService.resolveDomain(query);
+    if (resolvedAddress && /^N[A-Za-z0-9]{33}$/.test(resolvedAddress)) {
+      const account = await safeRpc("GetAddressByAddress", { Address: resolvedAddress }, null);
+      if (account) {
+        account.resolvedNns = query; // Add custom property
+        hits.address = account;
+      }
+    }
   }
 
   return hits;

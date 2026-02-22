@@ -39,7 +39,7 @@ const BADGE_MAP = {
   "Transfer Reward": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   Mint: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   Burn: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  Transfer: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  Transfer: "bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400",
 };
 
 /**

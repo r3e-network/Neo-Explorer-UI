@@ -117,7 +117,7 @@
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">
-                  <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx" class="list-row transition-colors">
+                  <tr v-for="(n, nIdx) in exec.notifications" :key="'notif-' + nIdx" class="list-row group">
                     <td class="table-cell-secondary text-xs">
                       {{ nIdx + 1 }}
                     </td>

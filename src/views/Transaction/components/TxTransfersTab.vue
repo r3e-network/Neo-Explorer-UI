@@ -49,7 +49,7 @@
               <HashLink v-if="t.to" :hash="t.to" type="address" />
               <span v-else class="text-mid text-xs italic">Burn</span>
             </td>
-            <td class="table-cell text-right font-mono text-xs">
+            <td class="table-cell-right font-mono text-xs">
               {{ formatTransferAmount(t) }}
             </td>
             <td class="table-cell">

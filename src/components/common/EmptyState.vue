@@ -75,7 +75,7 @@
     <router-link
       v-if="actionLabel && actionTo"
       :to="actionTo"
-      class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+      class="btn-primary mt-4 gap-1.5"
     >
       {{ actionLabel }}
     </router-link>

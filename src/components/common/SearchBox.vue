@@ -3,7 +3,7 @@
     <div
       :class="[
         'relative flex items-center transition-all duration-300 rounded-xl',
-        'border border-white/20 dark:border-neo-green/20 bg-white/40 dark:bg-[#0a1122]/60 backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.1)] focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)] focus-within:border-neo-green/80 hover:border-neo-green/50',
+        'border border-line-soft bg-surface-glass backdrop-blur-md shadow-card focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)] focus-within:border-primary-500 hover:border-primary-400',
         mode === 'full' ? 'h-[64px]' : 'h-[44px]',
       ]"
     >
@@ -11,16 +11,16 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="search-filter h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 dark:border-neo-green/20 bg-transparent py-4 pl-4 pr-8 text-sm font-bold text-gray-800 dark:text-gray-200 transition-colors focus:outline-none"
+        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 py-4 pl-4 pr-10 text-sm font-bold text-gray-800 dark:text-gray-200 transition-colors focus:outline-none focus:ring-0 focus:border-r-white/10 flex-shrink-0"
         aria-label="Search filter"
       >
-        <option v-for="f in filters" :key="f.value" :value="f.value">{{ f.label }}</option>
+        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-white dark:bg-[#071520] text-gray-900 dark:text-white">{{ f.label }}</option>
       </select>
 
       <!-- Search Icon -->
-      <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-4' : 'pl-3'">
+      <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-5' : 'pl-4'">
         <svg
-          class="w-4 h-4 text-gray-500 dark:text-neo-green/80 transition-colors duration-300 group-focus-within:text-neo-green"
+          class="w-4 h-4 text-gray-500 dark:text-primary-400 transition-colors duration-300 group-focus-within:text-primary-500"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -34,8 +34,11 @@
           />
         </svg>
         <kbd
-          v-if="!isFocused && mode === 'full'"
-          class="search-shortcut hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-gray-500 dark:text-gray-400"
+          v-if="mode === 'full'"
+          :class="[
+            'border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-gray-500 dark:text-gray-400 border bg-black/5 dark:bg-white/5 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
+            isFocused ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
+          ]"
           title="Press / to search"
           >/</kbd
         >
@@ -48,10 +51,10 @@
         type="text"
         :placeholder="currentPlaceholder"
         :class="[
-          'flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 font-medium',
+          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 font-medium',
           mode === 'full'
-            ? 'px-4 py-4 pr-28 text-base'
-            : 'px-3 py-2 pr-12 text-sm',
+            ? 'px-4 py-4 pr-28 text-base border-none'
+            : 'px-3 py-2 pr-12 text-sm border-none',
         ]"
         @keyup.enter="handleEnter"
         @input="handleInput"
@@ -75,10 +78,10 @@
         :disabled="loading || !query.trim()"
         aria-label="Submit search"
         :class="[
-          'absolute right-2 top-1/2 -translate-y-1/2 font-bold transition-all duration-300 flex items-center justify-center gap-1.5 rounded-lg shadow-md hover:shadow-[0_0_15px_rgba(0,229,153,0.5)] disabled:cursor-not-allowed disabled:opacity-50',
+          'absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5',
           mode === 'full'
-            ? 'px-6 py-2.5 text-sm bg-gradient-to-r from-[#00E599] to-[#00b377] text-white'
-            : 'h-[32px] w-[32px] bg-gradient-to-r from-[#00E599] to-[#00b377] text-white p-0',
+            ? 'btn-primary'
+            : 'btn-primary h-[32px] w-[32px] !px-0 rounded-lg',
         ]"
       >
         <svg v-if="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -228,7 +231,7 @@ const MAX_HISTORY_DISPLAY = 5;
 const props = defineProps({
   placeholder: {
     type: String,
-    default: "Search by Address / Txn Hash / Block / Token / Contract",
+    default: "Search by Address / NNS / Txn Hash / Block / Token / Contract",
   },
   loading: { type: Boolean, default: false },
   mode: {
@@ -265,7 +268,7 @@ const currentPlaceholder = computed(() => {
   if (props.mode === "compact") return "Search by Address / Txn Hash / Block";
   const map = {
     all: props.placeholder,
-    addresses: "Search by Neo N3 address (N...)",
+    addresses: "Search by Neo N3 address (N...) or NNS (.neo)",
     transactions: "Search by transaction hash (0x...)",
     blocks: "Search by block height or hash",
     tokens: "Search by token name or hash",
@@ -358,7 +361,7 @@ function navigateSuggestion(direction) {
 function detectType(q) {
   if (/^\d+$/.test(q)) return "block";
   if (/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) return "transaction";
-  if (/^N[A-Za-z0-9]{20,33}$/.test(q)) return "address";
+  if (/^N[A-Za-z0-9]{20,33}$/.test(q) || (q.endsWith(".neo") && q.length > 4)) return "address";
   return "unknown";
 }
 
@@ -376,8 +379,8 @@ function fetchSuggestions() {
         { type: "contract", label: "Contract", value: hash }
       );
     }
-    if (/^N[A-Za-z0-9]{20,33}$/.test(q)) {
-      result.push({ type: "address", label: "Address", value: q });
+    if (/^N[A-Za-z0-9]{20,33}$/.test(q) || (q.endsWith(".neo") && q.length > 4)) {
+      result.push({ type: "address", label: "Address/NNS", value: q });
     }
     suggestions.value = result;
   } catch (err) {
@@ -437,17 +440,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.search-filter {
-  border-color: var(--line-soft);
-  background: var(--surface-hover);
-  color: var(--text-mid);
-}
-
-.search-filter option {
-  background: var(--surface-elevated);
-  color: var(--text-high);
-}
-
 .search-shortcut {
   border-color: var(--line-soft);
   background: var(--surface-hover);

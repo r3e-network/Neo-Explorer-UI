@@ -52,18 +52,19 @@
             <SearchBox mode="compact" @search="handleMobileSearch" />
           </div>
           <div class="grid grid-cols-2 gap-3 text-sm">
-            <router-link to="/homepage" class="mobile-link" @click="closeMobile">Home</router-link>
-            <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">Blocks</router-link>
-            <router-link to="/transactions/1" class="mobile-link" @click="closeMobile">Transactions</router-link>
-            <router-link to="/tokens/nep17/1" class="mobile-link" @click="closeMobile">Tokens</router-link>
-            <router-link to="/contracts/1" class="mobile-link" @click="closeMobile">Contracts</router-link>
-            <router-link to="/account/1" class="mobile-link" @click="closeMobile">Accounts</router-link>
-            <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">Consensus</router-link>
-            <router-link to="/echarts" class="mobile-link" @click="closeMobile">Charts</router-link>
-            <router-link to="/burn" class="mobile-link" @click="closeMobile">Burned GAS</router-link>
-            <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">Gas Tracker</router-link>
-            <router-link to="/api-docs" class="mobile-link" @click="closeMobile">API Docs</router-link>
-            <router-link to="/verify-contract/" class="mobile-link" @click="closeMobile">Verify Contract</router-link>
+            <router-link to="/homepage" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
+            <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">{{ $t("nav.blocks") }}</router-link>
+            <router-link to="/transactions/1" class="mobile-link" @click="closeMobile">{{ $t("nav.transactions") }}</router-link>
+            <router-link to="/tokens/nep17/1" class="mobile-link" @click="closeMobile">{{ $t("nav.tokens") }}</router-link>
+            <router-link to="/contracts/1" class="mobile-link" @click="closeMobile">{{ $t("nav.contracts") }}</router-link>
+            <router-link to="/account/1" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
+            <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">{{ $t("nav.consensusNodes") }}</router-link>
+            <router-link to="/governance" class="mobile-link" @click="closeMobile">{{ $t("nav.governance") }}</router-link>
+            <router-link to="/echarts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
+            <router-link to="/burn" class="mobile-link" @click="closeMobile">{{ $t("nav.burnedGas") }}</router-link>
+            <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">{{ $t("nav.gasTracker") }}</router-link>
+            <router-link to="/api-docs" class="mobile-link" @click="closeMobile">{{ $t("nav.apiDocs") }}</router-link>
+            <router-link to="/verify-contract/" class="mobile-link" @click="closeMobile">{{ $t("nav.verifyContract") }}</router-link>
           </div>
         </div>
       </transition>

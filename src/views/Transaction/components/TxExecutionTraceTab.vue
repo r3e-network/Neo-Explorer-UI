@@ -163,22 +163,20 @@
               <table class="w-full text-sm">
                 <thead class="table-head sticky top-0 z-10">
                   <tr>
-                    <th class="text-low w-16 px-3 py-2 text-left text-xs font-medium">#</th>
-                    <th class="text-low w-28 px-3 py-2 text-left text-xs font-medium">
-                      OpCode
-                    </th>
-                    <th class="text-low px-3 py-2 text-left text-xs font-medium">Operand</th>
-                    <th class="text-low w-24 px-3 py-2 text-right text-xs font-medium">Gas</th>
+                    <th class="table-header-cell w-16">#</th>
+                    <th class="table-header-cell w-28">OpCode</th>
+                    <th class="table-header-cell">Operand</th>
+                    <th class="table-header-cell-right w-24">Gas</th>
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">
                   <tr
                     v-for="(step, si) in traceSteps(nIdx)"
                     :key="'step-' + si"
-                    class="list-row"
+                    class="list-row group"
                   >
-                    <td class="text-low px-3 py-1.5 font-mono text-xs">{{ step.offset ?? si }}</td>
-                    <td class="px-3 py-1.5">
+                    <td class="table-cell-secondary font-mono">{{ step.offset ?? si }}</td>
+                    <td class="table-cell">
                       <span
                         class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
                         :class="opcodeColorClass(step.opcode)"
@@ -186,10 +184,10 @@
                         {{ step.opcode }}
                       </span>
                     </td>
-                    <td class="text-mid max-w-xs truncate px-3 py-1.5 font-mono text-xs">
+                    <td class="table-cell-secondary max-w-xs truncate font-mono">
                       {{ step.operand || step.instruction || "-" }}
                     </td>
-                    <td class="text-low px-3 py-1.5 text-right font-mono text-xs">
+                    <td class="table-cell-secondary-right font-mono">
                       {{ step.gasConsumed ?? step.gas ?? "-" }}
                     </td>
                   </tr>

@@ -17,7 +17,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Transactions</h1>
+          <h1 class="page-title">{{ $t("nav.transactions") || "Transactions" }}</h1>
           <p class="page-subtitle">Neo N3 network transactions</p>
         </div>
       </div>

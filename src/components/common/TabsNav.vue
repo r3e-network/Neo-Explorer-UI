@@ -81,11 +81,9 @@ watch(
       :aria-controls="tabPanelId(tab.key)"
       :tabindex="modelValue === tab.key ? 0 : -1"
       :class="[
-        'relative whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-        modelValue === tab.key
-          ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/35 dark:text-primary-300'
-          : 'text-mid hover:bg-white/60 hover:text-high dark:hover:bg-gray-800/70',
+        'tab-btn relative whitespace-nowrap',
+        'focus-visible:ring-2 focus-visible:ring-primary-500',
+        modelValue === tab.key ? 'tab-btn-active' : 'tab-btn-inactive'
       ]"
       @click="$emit('update:modelValue', tab.key)"
       @keydown.left.prevent="onArrowKey(-1)"

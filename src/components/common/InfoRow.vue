@@ -24,25 +24,14 @@ defineProps({
 </script>
 
 <style scoped>
-.info-row {
-  @apply flex flex-col gap-1 border-b border-card-border py-3 dark:border-card-border-dark
-         sm:flex-row sm:items-start sm:gap-0;
-}
-
-.info-row-label {
-  @apply flex items-center text-sm text-text-secondary dark:text-gray-400
-         sm:w-1/3 sm:flex-shrink-0;
-}
-
-.info-row-value {
-  @apply flex flex-wrap items-center text-sm text-text-primary dark:text-gray-200
-         sm:w-2/3;
-}
-
 .tooltip-trigger {
-  @apply ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border-0 p-0
-         bg-gray-200 text-[10px] text-gray-500 transition-colors
-         hover:bg-gray-300 hover:text-gray-600
-         dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-gray-300;
+  @apply ml-1.5 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full text-[10px] transition-colors;
+  color: var(--text-mid);
+  background: color-mix(in srgb, var(--surface-hover) 80%, transparent);
+}
+
+.tooltip-trigger:hover {
+  color: var(--text-high);
+  background: color-mix(in srgb, var(--surface-hover) 100%, transparent);
 }
 </style>

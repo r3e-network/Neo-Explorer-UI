@@ -9,15 +9,17 @@
         ]"
       />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400">
-          <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
-        </div>
-        <div>
-          <h1 class="page-title">{{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})</h1>
-          <p class="page-subtitle">
-            {{ token.type ? `NEP-${token.type} Token` : "Token" }}
-          </p>
+      <div class="detail-hero">
+        <div class="flex items-start gap-3">
+          <div class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400">
+            <span class="text-lg font-bold">{{ token.symbol?.charAt(0) || "?" }}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h1 class="page-title">{{ token.tokenname || "Token" }} ({{ token.symbol || "-" }})</h1>
+            <p class="page-subtitle">
+              {{ token.type ? `NEP-${token.type} Token` : "Token" }}
+            </p>
+          </div>
         </div>
       </div>
 

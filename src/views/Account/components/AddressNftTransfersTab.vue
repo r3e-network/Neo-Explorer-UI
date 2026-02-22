@@ -19,12 +19,12 @@
           <caption class="sr-only">
             NEP-11 transfer records involving this address
           </caption>
-          <thead class="table-head text-xs uppercase tracking-wide">
+          <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell w-[180px]">Txn Hash</th>
               <th class="table-header-cell">Age</th>
               <th class="table-header-cell">From</th>
-              <th class="text-low w-12 px-2 py-3 text-center font-medium"></th>
+              <th class="table-header-cell w-16 text-center"></th>
               <th class="table-header-cell">To</th>
               <th class="table-header-cell">Token ID</th>
               <th class="table-header-cell">Collection</th>
@@ -34,13 +34,13 @@
             <tr
               v-for="(transfer, idx) in transfers"
               :key="`nep11-${transfer.txHash}-${idx}`"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <td class="table-cell">
                 <router-link
                   :to="`/transaction-info/${transfer.txHash}`"
                   :title="transfer.txHash"
-                  class="font-hash text-sm etherscan-link"
+                  class="font-hash etherscan-link"
                 >
                   {{ truncateHash(transfer.txHash, 12, 8) }}
                 </router-link>
@@ -52,15 +52,15 @@
                 <router-link
                   v-if="transfer.from"
                   :to="`/account-profile/${transfer.from}`"
-                  class="font-hash text-sm etherscan-link"
+                  class="font-hash etherscan-link"
                 >
                   {{ truncateHash(transfer.from, 10, 6) }}
                 </router-link>
-                <span v-else class="text-low text-sm">-</span>
+                <span v-else class="text-low">-</span>
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="table-cell text-center p-0">
                 <span
-                  class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold"
+                  class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
                   :class="getDirection(transfer.from, transfer.to).cssClass"
                 >
                   {{ getDirection(transfer.from, transfer.to).label }}
@@ -70,11 +70,11 @@
                 <router-link
                   v-if="transfer.to"
                   :to="`/account-profile/${transfer.to}`"
-                  class="font-hash text-sm etherscan-link"
+                  class="font-hash etherscan-link"
                 >
                   {{ truncateHash(transfer.to, 10, 6) }}
                 </router-link>
-                <span v-else class="text-low text-sm">-</span>
+                <span v-else class="text-low">-</span>
               </td>
               <td class="table-cell-secondary font-hash">
                 {{ transfer.tokenId ? truncateHash(transfer.tokenId, 8, 4) : "-" }}
@@ -83,11 +83,11 @@
                 <router-link
                   v-if="transfer.tokenHash"
                   :to="`/nft-token-info/${transfer.tokenHash}`"
-                  class="text-sm etherscan-link"
+                  class="etherscan-link font-medium"
                 >
                   {{ transfer.tokenName }}
                 </router-link>
-                <span v-else class="text-mid text-sm">{{ transfer.tokenName }}</span>
+                <span v-else class="text-mid font-medium">{{ transfer.tokenName }}</span>
               </td>
             </tr>
           </tbody>

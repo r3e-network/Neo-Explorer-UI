@@ -16,7 +16,7 @@
           :class="boolValue ? 'translate-x-5' : 'translate-x-0'"
         />
       </button>
-      <span class="text-xs text-text-secondary dark:text-gray-400">{{ boolValue }}</span>
+      <span class="text-xs text-mid dark:text-gray-400">{{ boolValue }}</span>
     </div>
 
     <!-- Integer -->
@@ -43,7 +43,7 @@
       <span
         v-if="modelValue"
         class="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-        :class="hash160Valid ? 'text-green-500' : 'text-red-400'"
+        :class="hash160Valid ? 'text-status-success' : 'text-status-error'"
       >
         {{ hash160Valid ? "✓" : "✗" }}
       </span>
@@ -62,7 +62,7 @@
       <span
         v-if="modelValue"
         class="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-        :class="hash256Valid ? 'text-green-500' : 'text-red-400'"
+        :class="hash256Valid ? 'text-status-success' : 'text-status-error'"
       >
         {{ hash256Valid ? "✓" : "✗" }}
       </span>

@@ -16,7 +16,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Blocks</h1>
+          <h1 class="page-title">{{ $t("nav.blocks") || "Blocks" }}</h1>
           <p class="page-subtitle">Blocks confirmed on the Neo N3 blockchain (dBFT 2.0 consensus)</p>
         </div>
       </div>
@@ -134,7 +134,7 @@
               <tr
                 v-for="block in blocks"
                 :key="block.hash"
-                class="list-row transition-colors"
+                class="list-row group"
               >
                 <!-- Block Height -->
                 <td class="table-cell">
@@ -155,19 +155,19 @@
                   >
                     {{ block.txcount }}
                   </router-link>
-                  <span v-else class="table-cell-secondary p-0">0</span>
+                  <span v-else class="text-sm text-low">0</span>
                 </td>
                 <!-- Validator -->
                 <td class="table-cell">
                   <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
-                  <span v-else class="text-sm text-mid">--</span>
+                  <span v-else class="text-xs text-low">--</span>
                 </td>
                 <!-- GAS Reward -->
-                <td class="table-cell text-right font-mono">
+                <td class="table-cell-right font-hash">
                   {{ formatGas(block.gasconsumed || block.reward || 0) }}
                 </td>
                 <!-- Size -->
-                <td class="table-cell text-right">
+                <td class="table-cell-right text-xs">
                   {{ formatBytes(block.size) }}
                 </td>
               </tr>

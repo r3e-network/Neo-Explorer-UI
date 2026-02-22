@@ -17,7 +17,7 @@
         <caption class="sr-only">
           NEP-11 token holdings for this address
         </caption>
-        <thead class="table-head text-xs uppercase tracking-wide">
+        <thead class="table-head">
           <tr>
             <th class="table-header-cell">Collection</th>
             <th class="table-header-cell">Standard</th>
@@ -29,7 +29,7 @@
           <tr
             v-for="asset in assets"
             :key="assetKey(asset)"
-            class="list-row transition-colors"
+            class="list-row group"
           >
             <td class="table-cell font-medium">
               {{ assetDisplayName(asset) }}
@@ -37,18 +37,18 @@
             <td class="table-cell-secondary">
               {{ assetStandard(asset) }}
             </td>
-            <td class="table-cell text-right">
+            <td class="table-cell-right">
               {{ assetBalance(asset) }}
             </td>
             <td class="table-cell">
               <router-link
                 v-if="assetHash(asset)"
                 :to="assetTokenRoute(asset)"
-                class="font-hash text-sm etherscan-link"
+                class="font-hash etherscan-link"
               >
                 {{ truncateHash(assetHash(asset), 12, 8) }}
               </router-link>
-              <span v-else class="text-low text-sm">-</span>
+              <span v-else class="text-low">-</span>
             </td>
           </tr>
         </tbody>

@@ -23,7 +23,10 @@
             </div>
             <div>
               <div class="stat-label">NEO Price</div>
-              <div class="stat-value">${{ formatPrice(neoPrice) }}</div>
+              <div class="stat-value">
+                <Skeleton v-if="loading && !neoPrice" width="80px" height="28px" class="mt-1 inline-block" />
+                <span v-else>${{ formatPrice(neoPrice) }}</span>
+              </div>
             </div>
           </div>
           <div
@@ -51,7 +54,10 @@
             </div>
             <div>
               <div class="stat-label">GAS Price</div>
-              <div class="stat-value">${{ formatPrice(gasPrice) }}</div>
+              <div class="stat-value">
+                <Skeleton v-if="loading && !gasPrice" width="80px" height="28px" class="mt-1 inline-block" />
+                <span v-else>${{ formatPrice(gasPrice) }}</span>
+              </div>
             </div>
           </div>
           <div
@@ -84,7 +90,10 @@
             </div>
             <div>
               <div class="stat-label">Transactions</div>
-              <div class="stat-value">{{ formatLargeNumber(txCount) }}</div>
+              <div class="stat-value">
+                <Skeleton v-if="loading && !txCount" width="80px" height="28px" class="mt-1 inline-block" />
+                <span v-else>{{ formatLargeNumber(txCount) }}</span>
+              </div>
             </div>
           </div>
           <div class="mt-1 text-xs text-mid">{{ tps.toFixed(2) }} TPS</div>
@@ -111,7 +120,10 @@
             </div>
             <div>
               <div class="stat-label">Block Height</div>
-              <div class="stat-value">{{ formatNumber(blockCount) }}</div>
+              <div class="stat-value">
+                <Skeleton v-if="loading && !blockCount" width="80px" height="28px" class="mt-1 inline-block" />
+                <span v-else>{{ formatNumber(blockCount) }}</span>
+              </div>
             </div>
           </div>
           <div class="mt-1 text-xs text-mid">~15s finality (dBFT)</div>
@@ -154,6 +166,7 @@ import {
   priceChangeClass,
   formatLargeNumber,
 } from "@/utils/explorerFormat";
+import Skeleton from "@/components/common/Skeleton.vue";
 
 const props = defineProps({
   neoPrice: { type: Number, default: 0 },
@@ -164,6 +177,7 @@ const props = defineProps({
   txCount: { type: Number, default: 0 },
   blockCount: { type: Number, default: 0 },
   tps: { type: Number, default: 0 },
+  loading: { type: Boolean, default: false },
 });
 
 const networkFeeDisplay = computed(() => {

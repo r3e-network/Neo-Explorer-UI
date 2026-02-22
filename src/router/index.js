@@ -61,6 +61,7 @@ const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 // New placeholder pages
 const GasTracker = lazyLoad(() => import("../views/GasTracker/GasTracker.vue"));
 const AdvancedSearch = lazyLoad(() => import("../views/Search/AdvancedSearch.vue"));
+const Governance = lazyLoad(() => import("../views/Governance/Governance.vue"));
 
 // Error pages
 const Search = lazyLoad(() => import("../views/NotFound/SearchNotFound.vue"));
@@ -211,6 +212,12 @@ const routes = [
         name: "advancedSearch",
         meta: { title: "Advanced Search" },
         component: AdvancedSearch,
+      },
+      {
+        path: "/governance",
+        name: "governance",
+        meta: { title: "Governance" },
+        component: Governance,
       },
       {
         path: "/tx/:txhash/trace",

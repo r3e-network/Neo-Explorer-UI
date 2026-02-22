@@ -22,7 +22,7 @@
       <!-- Table -->
       <div class="overflow-x-auto">
         <table class="w-full min-w-[960px]">
-          <thead class="table-head text-xs uppercase tracking-wide">
+          <thead class="table-head">
             <tr>
               <th class="table-header-cell">Txn Hash</th>
               <th class="table-header-cell">Type</th>
@@ -50,7 +50,7 @@
             <tr
               v-for="(item, index) in transfers"
               :key="item.txid + index"
-              class="list-row transition-colors"
+              class="list-row group"
             >
               <!-- Txn Hash -->
               <td class="px-4 py-3">

@@ -19,7 +19,7 @@
       <div class="flex items-center gap-2">
         <input :value="uri" readonly class="form-input flex-1 font-mono text-xs" @focus="$event.target.select()" />
         <button
-          class="shrink-0 rounded-md bg-primary-500 px-3 py-2 text-xs font-medium text-white hover:bg-primary-600"
+          class="btn-primary shrink-0 !py-2 !text-xs"
           @click="copyUri"
         >
           {{ copied ? "Copied" : "Copy" }}

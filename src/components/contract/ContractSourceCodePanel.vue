@@ -49,10 +49,11 @@
 
     <div v-else class="space-y-4">
       <article v-for="(item, index) in sourceCodeList" :key="`${item.filename}-${index}`" :class="fileCardClass">
-        <header class="soft-divider border-b px-4 py-3">
+        <header class="soft-divider flex items-center justify-between border-b px-4 py-3">
           <h2 class="text-high truncate text-sm font-semibold">
             {{ item.filename || `File ${index + 1}` }}
           </h2>
+          <CopyButton :text="item.code || ''" size="sm" />
         </header>
 
         <div
@@ -75,6 +76,7 @@ import { normalizeUpdateCounter } from "@/utils/detailRouting";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
+import CopyButton from "@/components/common/CopyButton.vue";
 
 const props = defineProps({
   contractHash: {

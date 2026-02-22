@@ -15,7 +15,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Consensus Candidates</h1>
+          <h1 class="page-title">{{ $t("nav.consensusNodes") || "Consensus Candidates" }}</h1>
           <p class="page-subtitle">Neo N3 consensus node candidates and voting</p>
         </div>
       </div>
@@ -56,17 +56,15 @@
               <tr
                 v-for="(candidate, index) in candidates"
                 :key="candidate.candidate"
-                class="list-row transition-colors"
+                class="list-row group"
               >
-                <td class="table-cell-secondary">
+                <td class="table-cell-secondary w-16">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
-                  <router-link :to="`/account-profile/${candidate.candidate}`" class="font-hash text-sm etherscan-link">
-                    {{ truncateHash(candidate.candidate, 10, 6) }}
-                  </router-link>
+                  <HashLink :hash="candidate.candidate" type="address" :truncated="true" />
                 </td>
-                <td class="table-cell text-right">
+                <td class="table-cell-right font-medium">
                   {{ formatVotes(candidate.votes) }}
                 </td>
                 <td class="table-cell text-center">
@@ -99,7 +97,6 @@
 import { useI18n } from "vue-i18n";
 import { candidateService } from "@/services";
 import { getCacheKey } from "@/services/cache";
-import { truncateHash } from "@/utils/explorerFormat";
 import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -107,6 +104,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const { t } = useI18n();
 

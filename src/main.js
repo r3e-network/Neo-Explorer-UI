@@ -3,11 +3,15 @@ import App from "./App.vue";
 import router from "./router";
 import i18n from "./lang/i18n.js";
 import directives from "./directives";
+import { useTheme } from "@/composables/useTheme";
 
 import "./styles/tailwind.css";
 
 const appInstance = createApp(App);
 appInstance.config.devtools = import.meta.env.DEV;
+
+const { initTheme } = useTheme();
+initTheme();
 
 // Global error handler — prevents silent failures in components
 appInstance.config.errorHandler = (err, _instance, info) => {

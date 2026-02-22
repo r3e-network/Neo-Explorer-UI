@@ -72,7 +72,7 @@
           <tr
             v-for="(inst, idx) in visibleInstructions"
             :key="idx"
-            class="list-row transition-colors"
+            class="list-row group"
           >
             <td class="text-low px-3 py-1.5 font-mono">
               {{ formatOffset(inst.offset) }}

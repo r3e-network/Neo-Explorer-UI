@@ -4,8 +4,7 @@
       <div class="flex min-w-0 items-center gap-3">
         <!-- Tx circle icon -->
         <div
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-          :style="statusStyle"
+          class="bg-icon-primary text-primary-500 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
         >
           Tx
         </div>

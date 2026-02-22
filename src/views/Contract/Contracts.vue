@@ -15,7 +15,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Contracts</h1>
+          <h1 class="page-title">{{ $t("nav.contracts") || "Contracts" }}</h1>
           <p class="page-subtitle">Smart contracts deployed on Neo N3</p>
         </div>
       </div>
@@ -47,7 +47,7 @@
         </div>
         <router-link
           to="/verify-contract"
-          class="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600"
+          class="btn-primary gap-2"
         >
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -102,7 +102,7 @@
               <tr
                 v-for="(contract, index) in contracts"
                 :key="contract.hash"
-                class="list-row transition-colors"
+                class="list-row group"
               >
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
@@ -120,7 +120,7 @@
                     {{ truncateHash(contract.hash) }}
                   </router-link>
                 </td>
-                <td class="table-cell text-right">
+                <td class="table-cell-right">
                   {{ formatNumber(contract.invocations || 0) }}
                 </td>
                 <td class="table-cell text-center">
@@ -151,7 +151,7 @@
                   </svg>
                   <span v-else class="text-low text-xs">-</span>
                 </td>
-                <td class="table-cell-secondary text-right">
+                <td class="table-cell-secondary-right">
                   {{ formatTime(contract.createtime) }}
                 </td>
               </tr>

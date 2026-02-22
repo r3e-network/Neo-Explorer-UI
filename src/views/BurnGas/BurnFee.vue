@@ -17,7 +17,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Burned GAS</h1>
+          <h1 class="page-title">{{ $t("nav.burnedGas") || "Burned GAS" }}</h1>
           <p class="page-subtitle">GAS burn statistics from Neo N3 system fee consumption</p>
         </div>
       </div>

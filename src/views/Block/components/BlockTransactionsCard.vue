@@ -55,7 +55,7 @@ defineProps({
           <tr
             v-for="tx in transactions"
             :key="tx.hash"
-            class="list-row transition-colors"
+            class="list-row group"
           >
             <td class="table-cell">
               <HashLink :hash="tx.hash" type="tx" />
@@ -64,13 +64,13 @@ defineProps({
               <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
               <span v-else class="text-sm text-mid">--</span>
             </td>
-            <td class="table-cell text-right font-mono">
+            <td class="table-cell-right font-mono">
               {{ formatGas(tx.sysfee || 0) }}
             </td>
-            <td class="table-cell text-right font-mono">
+            <td class="table-cell-right font-mono">
               {{ formatGas(tx.netfee || 0) }}
             </td>
-            <td class="table-cell-secondary text-right">
+            <td class="table-cell-secondary-right">
               {{ formatBytes(tx.size) }}
             </td>
           </tr>

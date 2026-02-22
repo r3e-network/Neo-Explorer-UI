@@ -1,7 +1,7 @@
 <template>
   <ul class="hidden items-center gap-0.5 lg:flex">
     <li>
-      <router-link to="/homepage" class="nav-link" active-class="nav-link-active">Home</router-link>
+      <router-link to="/homepage" class="nav-link" active-class="nav-link-active">{{ $t("nav.home") }}</router-link>
     </li>
     <li
       class="nav-dropdown group"
@@ -23,7 +23,7 @@
         "
         @keydown.escape="$emit('close-dropdown', 'blockchain')"
       >
-        Blockchain
+        {{ $t("nav.blockchain") }}
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path
             fill-rule="evenodd"
@@ -37,10 +37,11 @@
         class="dropdown-panel"
         @keydown.escape="$emit('close-dropdown', 'blockchain')"
       >
-        <router-link to="/blocks/1" class="dropdown-link">Blocks</router-link>
-        <router-link to="/transactions/1" class="dropdown-link">Transactions</router-link>
-        <router-link to="/account/1" class="dropdown-link">Accounts</router-link>
-        <router-link to="/candidates/1" class="dropdown-link">Consensus Nodes</router-link>
+        <router-link to="/blocks/1" class="dropdown-link">{{ $t("nav.blocks") }}</router-link>
+        <router-link to="/transactions/1" class="dropdown-link">{{ $t("nav.transactions") }}</router-link>
+        <router-link to="/account/1" class="dropdown-link">{{ $t("nav.accounts") }}</router-link>
+        <router-link to="/candidates/1" class="dropdown-link">{{ $t("nav.consensusNodes") }}</router-link>
+        <router-link to="/governance" class="dropdown-link">{{ $t("nav.governance") }}</router-link>
       </div>
     </li>
     <li
@@ -59,7 +60,7 @@
         @keydown.space.prevent="$emit(activeDropdown === 'tokens' ? 'close-dropdown' : 'open-dropdown', 'tokens')"
         @keydown.escape="$emit('close-dropdown', 'tokens')"
       >
-        Tokens
+        {{ $t("nav.tokens") }}
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path
             fill-rule="evenodd"
@@ -73,12 +74,12 @@
         class="dropdown-panel"
         @keydown.escape="$emit('close-dropdown', 'tokens')"
       >
-        <router-link to="/tokens/nep17/1" class="dropdown-link">NEP-17 Tokens</router-link>
-        <router-link to="/tokens/nep11/1" class="dropdown-link">NEP-11 NFTs</router-link>
+        <router-link to="/tokens/nep17/1" class="dropdown-link">{{ $t("nav.nep17") }}</router-link>
+        <router-link to="/tokens/nep11/1" class="dropdown-link">{{ $t("nav.nep11") }}</router-link>
       </div>
     </li>
     <li>
-      <router-link to="/contracts/1" class="nav-link" active-class="nav-link-active">Contracts</router-link>
+      <router-link to="/contracts/1" class="nav-link" active-class="nav-link-active">{{ $t("nav.contracts") }}</router-link>
     </li>
     <li
       class="nav-dropdown group"
@@ -96,7 +97,7 @@
         @keydown.space.prevent="$emit(activeDropdown === 'resources' ? 'close-dropdown' : 'open-dropdown', 'resources')"
         @keydown.escape="$emit('close-dropdown', 'resources')"
       >
-        Resources
+        {{ $t("nav.resources") }}
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path
             fill-rule="evenodd"
@@ -110,9 +111,9 @@
         class="dropdown-panel"
         @keydown.escape="$emit('close-dropdown', 'resources')"
       >
-        <router-link to="/echarts" class="dropdown-link">Charts &amp; Stats</router-link>
-        <router-link to="/gas-tracker" class="dropdown-link">Gas Tracker</router-link>
-        <router-link to="/burn" class="dropdown-link">Burned GAS</router-link>
+        <router-link to="/echarts" class="dropdown-link">{{ $t("nav.chartsStats") }}</router-link>
+        <router-link to="/gas-tracker" class="dropdown-link">{{ $t("nav.gasTracker") }}</router-link>
+        <router-link to="/burn" class="dropdown-link">{{ $t("nav.burnedGas") }}</router-link>
       </div>
     </li>
     <li
@@ -135,7 +136,7 @@
         "
         @keydown.escape="$emit('close-dropdown', 'developers')"
       >
-        Developers
+        {{ $t("nav.developers") }}
         <svg class="ml-0.5 h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
           <path
             fill-rule="evenodd"
@@ -149,9 +150,9 @@
         class="dropdown-panel"
         @keydown.escape="$emit('close-dropdown', 'developers')"
       >
-        <router-link to="/api-docs" class="dropdown-link">API Docs</router-link>
-        <router-link to="/verify-contract/" class="dropdown-link">Verify Contract</router-link>
-        <router-link to="/source-code" class="dropdown-link">Source Code</router-link>
+        <router-link to="/api-docs" class="dropdown-link">{{ $t("nav.apiDocs") }}</router-link>
+        <router-link to="/verify-contract/" class="dropdown-link">{{ $t("nav.verifyContract") }}</router-link>
+        <router-link to="/source-code" class="dropdown-link">{{ $t("nav.sourceCode") }}</router-link>
       </div>
     </li>
   </ul>
@@ -183,15 +184,15 @@ function handleFocusOut(name) {
 }
 
 .nav-link:hover {
-  @apply text-[#00E599];
-  background: rgba(0, 229, 153, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 229, 153, 0.1);
+  color: var(--link);
+  background: color-mix(in srgb, var(--link) 10%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--link) 10%, transparent);
 }
 
 .nav-link-active {
-  @apply text-[#00E599];
-  background: rgba(0, 229, 153, 0.15);
-  box-shadow: inset 0 0 10px rgba(0, 229, 153, 0.15);
+  color: var(--link);
+  background: color-mix(in srgb, var(--link) 15%, transparent);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--link) 15%, transparent);
 }
 
 .nav-dropdown {
@@ -199,7 +200,8 @@ function handleFocusOut(name) {
 }
 
 .dropdown-panel {
-  @apply absolute left-0 top-full z-50 mt-4 w-56 rounded-2xl border border-white/20 dark:border-[#00E599]/20 bg-white/60 dark:bg-[#071520]/80 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl backdrop-saturate-[180%] transform transition-all duration-300;
+  @apply absolute left-0 top-full z-50 mt-4 w-56 rounded-2xl border bg-white/60 dark:bg-[#071520]/80 p-2 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-xl backdrop-saturate-[180%] transform transition-all duration-300;
+  border-color: color-mix(in srgb, var(--line-soft) 80%, transparent);
 }
 
 .dropdown-link {
@@ -207,6 +209,8 @@ function handleFocusOut(name) {
 }
 
 .dropdown-link:hover {
-  @apply text-[#00E599] bg-[#00E599]/10 translate-x-1;
+  color: var(--link);
+  background: color-mix(in srgb, var(--link) 10%, transparent);
+  @apply translate-x-1;
 }
 </style>
