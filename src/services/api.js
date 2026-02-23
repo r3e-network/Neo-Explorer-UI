@@ -108,6 +108,17 @@ const normalizeItem = (item) => {
     out.txcount = out.transactioncount;
   }
 
+  // Handle camelCase from DB
+  if ("networkFee" in out && !("netfee" in out)) {
+    out.netfee = out.networkFee;
+  }
+  if ("systemFee" in out && !("sysfee" in out)) {
+    out.sysfee = out.systemFee;
+  }
+  if ("nextConsensus" in out && !("nextconsensus" in out)) {
+    out.nextconsensus = out.nextConsensus;
+  }
+
   // Block fields: nextconsensus → speaker (fee recipient)
   if ("nextconsensus" in out && !("speaker" in out)) {
     out.speaker = out.nextconsensus;

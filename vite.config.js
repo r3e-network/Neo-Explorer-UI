@@ -3,10 +3,10 @@ import vue from "@vitejs/plugin-vue";
 import compression from "vite-plugin-compression";
 import path from "path";
 
-const DEFAULT_MAINNET_RPC_PROXY_TARGET = "http://198.244.215.132:1927";
-const DEFAULT_TESTNET_RPC_PROXY_TARGET = "http://198.244.215.132:1926";
-const DEFAULT_MAINNET_BPI_PROXY_TARGET = "http://198.244.215.132:1927";
-const DEFAULT_TESTNET_BPI_PROXY_TARGET = "http://198.244.215.132:1926";
+const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";
+const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testneofura.ngd.network";
+const DEFAULT_MAINNET_BPI_PROXY_TARGET = "https://neofura.ngd.network";
+const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testneofura.ngd.network";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");

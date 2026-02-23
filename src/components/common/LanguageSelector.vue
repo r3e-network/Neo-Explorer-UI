@@ -11,7 +11,7 @@
     </button>
     <div
       v-show="dropdownOpen"
-      class="absolute right-0 top-full mt-1 w-24 rounded-lg border border-white/20 bg-header-bg p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] z-50 text-white"
+      class="absolute right-0 top-full mt-1 w-24 rounded-lg border border-white/20 bg-header-bg p-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] z-[100] text-white"
     >
       <button
         v-for="lang in supportedLangs"

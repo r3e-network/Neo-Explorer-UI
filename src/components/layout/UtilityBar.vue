@@ -27,7 +27,7 @@
           </button>
           <div
             v-show="networkDropdownOpen"
-            class="absolute right-0 mt-1 w-36 rounded-lg border border-white/20 bg-header-bg p-1.5 shadow-dropdown"
+            class="absolute right-0 mt-1 z-[100] w-36 rounded-lg border border-white/20 bg-header-bg p-1.5 shadow-dropdown"
           >
             <button
               v-for="net in networks"
