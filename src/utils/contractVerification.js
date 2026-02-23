@@ -1,15 +1,23 @@
 import { getCurrentEnv, NET_ENV } from "./env";
 
 export const CSHARP_COMPILER_VERSIONS = [
-  "Neo.Compiler.CSharp 3.0.0",
-  "Neo.Compiler.CSharp 3.0.2",
-  "Neo.Compiler.CSharp 3.0.3",
-  "Neo.Compiler.CSharp 3.1.0",
-  "Neo.Compiler.CSharp 3.3.0",
-  "Neo.Compiler.CSharp 3.4.0",
-  "Neo.Compiler.CSharp 3.5.0",
-  "Neo.Compiler.CSharp 3.6.0",
+  "Neo.Compiler.CSharp 3.9.1",
+  "Neo.Compiler.CSharp 3.9.0",
+  "Neo.Compiler.CSharp 3.8.0",
+  "Neo.Compiler.CSharp 3.7.4",
+  "Neo.Compiler.CSharp 3.7.3",
+  "Neo.Compiler.CSharp 3.7.2",
+  "Neo.Compiler.CSharp 3.7.1",
+  "Neo.Compiler.CSharp 3.7.0",
   "Neo.Compiler.CSharp 3.6.2",
+  "Neo.Compiler.CSharp 3.6.0",
+  "Neo.Compiler.CSharp 3.5.0",
+  "Neo.Compiler.CSharp 3.4.0",
+  "Neo.Compiler.CSharp 3.3.0",
+  "Neo.Compiler.CSharp 3.1.0",
+  "Neo.Compiler.CSharp 3.0.3",
+  "Neo.Compiler.CSharp 3.0.2",
+  "Neo.Compiler.CSharp 3.0.0",
 ];
 
 export const BOA_COMPILER_VERSIONS = [

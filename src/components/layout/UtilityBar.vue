@@ -83,6 +83,6 @@ function formatGasValue(value) {
 
 <style scoped>
 .utility-bar {
-  @apply bg-header-bg/95 backdrop-blur-md dark:bg-header-bg-dark/95;
+  @apply relative z-[60] bg-header-bg/95 backdrop-blur-md dark:bg-header-bg-dark/95;
 }
 </style>
