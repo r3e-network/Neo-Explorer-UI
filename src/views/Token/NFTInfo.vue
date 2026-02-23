@@ -5,20 +5,22 @@
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'NFT Detail' }]" />
 
       <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        </div>
-        <div>
-          <h1 class="page-title">{{ nftName || "NFT Detail" }}</h1>
-          <p class="page-subtitle">Non-Fungible Token</p>
+      <div class="detail-hero">
+        <div class="flex items-start gap-3">
+          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h1 class="page-title">{{ nftName || "NFT Detail" }}</h1>
+            <p class="page-subtitle">Non-Fungible Token</p>
+          </div>
         </div>
       </div>
 
@@ -45,7 +47,7 @@
                 class="h-full w-full object-cover"
                 @error="handleImageError"
               />
-              <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
+              <div v-else class="flex h-full items-center justify-center text-low">
                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     stroke-linecap="round"
@@ -62,11 +64,11 @@
         <div class="space-y-6 lg:col-span-2">
           <div class="etherscan-card overflow-hidden">
             <div class="card-header">
-              <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Details</h2>
+              <h2 class="text-base font-semibold text-high">Details</h2>
             </div>
-            <div class="divide-y divide-card-border dark:divide-card-border-dark">
+            <div class="soft-divider divide-y">
               <InfoRow label="Token ID">
-                <span class="break-all font-hash text-sm text-text-primary dark:text-gray-300">{{ tokenId }}</span>
+                <span class="break-all font-hash text-sm">{{ tokenId }}</span>
               </InfoRow>
               <InfoRow label="Contract">
                 <router-link :to="`/contract-info/${contractHash}`" class="break-all font-hash text-sm etherscan-link">
@@ -79,7 +81,7 @@
                 </router-link>
               </InfoRow>
               <InfoRow v-if="description" label="Description">
-                <p class="text-text-primary dark:text-gray-300">{{ description }}</p>
+                <p>{{ description }}</p>
               </InfoRow>
             </div>
           </div>

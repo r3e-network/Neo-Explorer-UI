@@ -22,16 +22,17 @@
             <th class="table-header-cell">From</th>
             <th class="table-header-cell">To</th>
             <th class="table-header-cell-right">Amount</th>
+            <th class="table-header-cell">Token ID</th>
             <th class="table-header-cell">Token</th>
             <th class="table-header-cell">Contract</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
-          <tr v-for="(t, tIdx) in allTransfers" :key="'xfer-' + tIdx" class="list-row">
+          <tr v-for="(t, tIdx) in allTransfers" :key="'xfer-' + tIdx" class="list-row group">
             <td class="table-cell-secondary text-xs">{{ tIdx + 1 }}</td>
             <td class="table-cell">
               <span
-                class="badge-soft rounded px-2 py-0.5 text-xs font-medium"
+                class="badge-soft rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                 :class="
                   t._standard === 'NEP-11'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
@@ -53,6 +54,18 @@
               {{ formatTransferAmount(t) }}
             </td>
             <td class="table-cell">
+              <div v-if="t._standard === 'NEP-11' && t.tokenId" class="max-w-[120px] truncate">
+                <router-link
+                  :to="`/nft-info/${t.contract || t.contractHash}/${t.to || t.from}/${t.tokenId}`"
+                  class="font-hash etherscan-link"
+                  :title="t.tokenId"
+                >
+                  #{{ t.tokenId }}
+                </router-link>
+              </div>
+              <span v-else class="text-low">-</span>
+            </td>
+            <td class="table-cell">
               <span
                 class="badge-soft rounded px-2 py-0.5 text-xs font-medium text-high"
               >
@@ -61,7 +74,7 @@
             </td>
             <td class="table-cell">
               <HashLink v-if="t.contract || t.contractHash" :hash="t.contract || t.contractHash" type="contract" />
-              <span v-else class="text-mid text-xs">-</span>
+              <span v-else class="text-low">-</span>
             </td>
           </tr>
         </tbody>

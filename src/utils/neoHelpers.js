@@ -151,12 +151,12 @@ export function scriptHashBase64ToAddress(base64ScriptHash = "") {
  */
 export function resolveImageUrl(raw) {
   if (!raw) return "";
-  let url = raw;
+  let url = String(raw).trim();
   if (url.startsWith("ipfs")) {
     url = url.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/");
   }
-  if (url.startsWith("https://")) return url;
-  if (url.startsWith("data:image/") && !url.startsWith("data:image/svg")) return url;
+  if (url.startsWith("https://") || url.startsWith("http://")) return url;
+  if (url.startsWith("data:image/")) return url;
   return "";
 }
 

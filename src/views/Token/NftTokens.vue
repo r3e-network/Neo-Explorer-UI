@@ -13,7 +13,7 @@
     <template v-else>
       <!-- View Toggle + Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-sm text-text-secondary dark:text-gray-300">
+        <p class="text-sm text-mid">
           A total of {{ formatNumber(totalCount) }} NFT items found
         </p>
         <div class="flex items-center gap-1">
@@ -23,7 +23,7 @@
               'rounded p-1.5 transition-colors',
               viewMode === 'grid'
                 ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30'
-                : 'text-text-muted hover:text-text-primary',
+                : 'text-mid hover:text-high',
             ]"
             title="Grid view"
           >
@@ -42,7 +42,7 @@
               'rounded p-1.5 transition-colors',
               viewMode === 'list'
                 ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30'
-                : 'text-text-muted hover:text-text-primary',
+                : 'text-mid hover:text-high',
             ]"
             title="List view"
           >
@@ -59,19 +59,18 @@
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
           :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHex(item.tokenid)"
-          class="group overflow-hidden rounded-lg border border-card-border transition-shadow hover:shadow-md dark:border-card-border-dark"
+          class="group overflow-hidden rounded-lg border soft-divider transition-shadow hover:shadow-card"
         >
           <!-- Image -->
           <div class="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
             <img
               v-if="item.image"
-              :src="item.image"
+              v-lazy-image="item.image"
               :alt="item.nftname || 'NFT'"
               class="h-full w-full object-cover transition-transform group-hover:scale-105"
-              loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
+            <div v-else class="flex h-full items-center justify-center text-low">
               <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -84,32 +83,31 @@
           </div>
           <!-- Info -->
           <div class="p-2.5">
-            <p class="truncate text-sm font-medium text-text-primary dark:text-gray-200">
+            <p class="truncate text-sm font-medium text-high">
               {{ item.nftname || "Unnamed" }}
             </p>
-            <p class="mt-0.5 truncate font-hash text-xs text-text-muted">#{{ item.tokenid }}</p>
+            <p class="mt-0.5 truncate font-hash text-xs text-low">#{{ item.tokenid }}</p>
           </div>
         </router-link>
       </div>
 
       <!-- List View -->
-      <div v-else class="divide-y divide-card-border dark:divide-card-border-dark">
+      <div v-else class="soft-divider divide-y">
         <router-link
           v-for="(item, index) in tableData"
           :key="item.tokenid + index"
           :to="'/nft-info/' + item.asset + '/' + item.address + '/' + base64ToHex(item.tokenid)"
-          class="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+          class="list-row group flex items-center gap-4 px-4 py-3"
         >
           <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
             <img
               v-if="item.image"
-              :src="item.image"
+              v-lazy-image="item.image"
               :alt="item.nftname || 'NFT'"
               class="h-full w-full object-cover"
-              loading="lazy"
               @error="$event.target.style.display = 'none'"
             />
-            <div v-else class="flex h-full items-center justify-center text-gray-400 dark:text-gray-500">
+            <div v-else class="flex h-full items-center justify-center text-low">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -121,12 +119,12 @@
             </div>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-text-primary dark:text-gray-200">
+            <p class="truncate text-sm font-medium text-high">
               {{ item.nftname || "Unnamed" }}
             </p>
-            <p class="truncate font-hash text-xs text-text-muted">#{{ item.tokenid }}</p>
+            <p class="truncate font-hash text-xs text-low">#{{ item.tokenid }}</p>
           </div>
-          <div class="hidden text-right text-xs text-text-muted sm:block">
+          <div class="hidden text-right text-xs text-mid sm:block">
             <p class="font-hash truncate max-w-[140px]">
               {{ truncateHash(item.address) }}
             </p>
@@ -142,7 +140,7 @@
     <!-- Pagination -->
     <div
       v-if="!loading && totalCount > resultsPerPage"
-      class="border-t border-card-border px-4 py-3 dark:border-card-border-dark"
+      class="border-t soft-divider px-4 py-3"
     >
       <EtherscanPagination
         :page="currentPage"

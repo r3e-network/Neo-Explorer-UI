@@ -1,7 +1,7 @@
 <template>
   <div class="etherscan-card mb-6">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-text-primary dark:text-gray-100">Overview</h2>
+      <h2 class="text-base font-semibold text-high">Overview</h2>
     </div>
 
     <!-- Token Image -->
@@ -13,74 +13,40 @@
       />
     </div>
 
-    <div class="divide-y divide-card-border dark:divide-card-border-dark">
+    <div class="soft-divider divide-y px-4 md:px-5 pb-2">
       <!-- Name -->
-      <div class="info-row">
-        <div class="info-label">Name</div>
-        <div class="info-value">
+      <InfoRow label="Name">
+        <span>
           {{ tokenInfo["tokenname"] }}
-          <span v-if="tokenInfo.ispopular" class="ml-1">&#x1F525;</span>
-        </div>
-      </div>
+          <span v-if="tokenInfo.ispopular" class="ml-1" title="Popular Token">&#x1F525;</span>
+        </span>
+      </InfoRow>
       <!-- Hash -->
-      <div class="info-row">
-        <div class="info-label">Hash</div>
-        <div class="info-value flex items-center gap-2">
-          <span class="font-hash text-primary-500 break-all">{{ tokenInfo["hash"] }}</span>
-          <button
-            class="shrink-0 text-gray-400 transition-colors hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400"
-            title="Copy to clipboard"
-            @click="$emit('copy-hash', tokenInfo['hash'])"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-          </button>
-          <span v-if="copied" class="text-xs text-green-500">Copied!</span>
-        </div>
-      </div>
+      <InfoRow
+        label="Hash"
+        :value="tokenInfo['hash']"
+        :copyable="!!tokenInfo['hash']"
+        :copy-value="tokenInfo['hash']"
+      >
+        <span class="font-hash text-primary-500 break-all">{{ tokenInfo["hash"] }}</span>
+      </InfoRow>
       <!-- Symbol -->
-      <div class="info-row">
-        <div class="info-label">Symbol</div>
-        <div class="info-value">{{ tokenInfo["symbol"] }}</div>
-      </div>
+      <InfoRow label="Symbol" :value="tokenInfo['symbol']" />
       <!-- Decimals -->
-      <div class="info-row">
-        <div class="info-label">Decimals</div>
-        <div class="info-value">{{ tokenInfo["decimals"] }}</div>
-      </div>
+      <InfoRow label="Decimals" :value="String(tokenInfo['decimals'])" />
       <!-- Standard -->
-      <div class="info-row">
-        <div class="info-label">Standard</div>
-        <div class="info-value">NEP-{{ tokenInfo["type"] }}</div>
-      </div>
+      <InfoRow label="Standard" :value="`NEP-${tokenInfo['type']}`" />
       <!-- First Transfer -->
-      <div class="info-row">
-        <div class="info-label">First Transfer</div>
-        <div class="info-value">
-          <span v-if="tokenInfo.firsttransfertime">
-            {{ formatTime(tokenInfo["firsttransfertime"]) }}
-          </span>
-          <span v-else class="text-text-muted">&mdash;</span>
-        </div>
-      </div>
+      <InfoRow label="First Transfer">
+        <span v-if="tokenInfo.firsttransfertime">
+          {{ formatTime(tokenInfo["firsttransfertime"]) }}
+        </span>
+        <span v-else class="text-mid">&mdash;</span>
+      </InfoRow>
       <!-- Total Supply -->
-      <div class="info-row">
-        <div class="info-label">Total Supply</div>
-        <div class="info-value">
-          {{ convertToken(tokenInfo["totalsupply"], decimal) }}
-        </div>
-      </div>
+      <InfoRow label="Total Supply" :value="convertToken(tokenInfo['totalsupply'], decimal)" />
       <!-- Holders -->
-      <div class="info-row">
-        <div class="info-label">Holders</div>
-        <div class="info-value">{{ tokenInfo["holders"] }}</div>
-      </div>
+      <InfoRow label="Holders" :value="String(tokenInfo['holders'])" />
     </div>
   </div>
 </template>
@@ -88,6 +54,7 @@
 <script setup>
 import { convertToken } from "@/utils/neoHelpers";
 import { formatTime } from "@/utils/timeFormat";
+import InfoRow from "@/components/common/InfoRow.vue";
 
 defineProps({
   tokenInfo: {
