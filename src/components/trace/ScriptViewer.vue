@@ -175,12 +175,15 @@ function opcodeColor(opcode) {
 }
 
 function operandClass(inst) {
-  if (inst.opcode === "SYSCALL")
-    return "text-amber-700 dark:text-amber-300 font-semibold";
-  if (inst.operand.startsWith('"'))
-    return "text-emerald-600 dark:text-emerald-400";
-  if (inst.operand.includes("Hash160"))
-    return "text-blue-600 dark:text-blue-400";
+  if (inst.opcode === "SYSCALL") return "text-amber-600 dark:text-amber-400 font-semibold";
+  if (inst.operand.startsWith('"')) return "text-emerald-600 dark:text-emerald-400";
+  if (
+    inst.operand.includes("Hash160") ||
+    inst.operand.includes("Account:") ||
+    inst.operand.includes("Native:")
+  ) {
+    return "text-blue-600 dark:text-blue-400 font-semibold";
+  }
   return "";
 }
 </script>

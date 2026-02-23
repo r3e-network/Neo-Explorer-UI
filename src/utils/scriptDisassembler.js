@@ -4,6 +4,8 @@
  * @description Parses base64-encoded NeoVM scripts into human-readable opcode sequences
  */
 import { OPCODES, SYSCALL_HASHES } from "./neoOpcodes";
+import { NEO_HASH, GAS_HASH, CONTRACT_MANAGEMENT_HASH } from "../constants";
+import { scriptHashHexToAddress } from "./neoHelpers";
 
 /**
  * Decode a base64 string to a Uint8Array.
@@ -28,6 +30,22 @@ function bytesToHex(bytes) {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function reverseHexStr(hex) {
+  let out = "";
+  for (let i = hex.length - 2; i >= 0; i -= 2) {
+    out += hex.substr(i, 2);
+  }
+  return out;
+}
+
+function getNativeContractName(hash) {
+  const lower = hash.toLowerCase();
+  if (lower === NEO_HASH) return "NEO";
+  if (lower === GAS_HASH) return "GAS";
+  if (lower === CONTRACT_MANAGEMENT_HASH) return "ContractManagement";
+  return null;
 }
 
 /**
@@ -76,8 +94,9 @@ function formatOperand(opDef, operandBytes) {
 
   // SYSCALL: resolve 4-byte hash to name
   if (name === "SYSCALL") {
-    const syscallName = SYSCALL_HASHES[hex];
-    return syscallName ? syscallName : `0x${hex}`;
+    const reversedHex = reverseHexStr(hex);
+    const syscallName = SYSCALL_HASHES[reversedHex];
+    return syscallName ? syscallName : `0x${reversedHex}`;
   }
 
   // PUSHDATA: try UTF-8, then show hex with length
@@ -85,9 +104,21 @@ function formatOperand(opDef, operandBytes) {
     const utf8 = tryUtf8(operandBytes);
     if (utf8) return `"${utf8}"`;
     // 20-byte = likely script hash
-    if (operandBytes.length === 20) return `0x${hex} (Hash160)`;
+    if (operandBytes.length === 20) {
+      const reversedHash = "0x" + reverseHexStr(hex);
+      const nativeName = getNativeContractName(reversedHash);
+      if (nativeName) {
+        return `${reversedHash} (Native: ${nativeName})`;
+      }
+      try {
+        const addr = scriptHashHexToAddress(reversedHash);
+        return addr ? `${reversedHash} (Account: ${addr})` : `${reversedHash} (Hash160)`;
+      } catch {
+        return `${reversedHash} (Hash160)`;
+      }
+    }
     // 32-byte = likely Hash256
-    if (operandBytes.length === 32) return `0x${hex} (Hash256)`;
+    if (operandBytes.length === 32) return `0x${reverseHexStr(hex)} (Hash256)`;
     return `0x${hex} (${operandBytes.length} bytes)`;
   }
 

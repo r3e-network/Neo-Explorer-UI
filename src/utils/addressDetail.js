@@ -1,3 +1,5 @@
+import { scriptHashToAddress } from "./neoHelpers";
+
 /**
  * Address detail page helpers: normalization, transfer direction, CSV export.
  */
@@ -79,8 +81,8 @@ export function normalizeNep17Transfers(transfers = []) {
   return list.map((t) => ({
     txHash: t?.txid || t?.hash || t?.txHash || "",
     timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
-    from: t?.from || t?.fromAddress || t?.sender || "",
-    to: t?.to || t?.toAddress || t?.receiver || "",
+    from: scriptHashToAddress(t?.from || t?.fromAddress || t?.sender || ""),
+    to: scriptHashToAddress(t?.to || t?.toAddress || t?.receiver || ""),
     amount: t?.value ?? t?.amount ?? t?.transferamount ?? "0",
     tokenName: t?.tokenname || t?.symbol || t?.name || "Unknown",
     tokenHash: t?.contract || t?.contractHash || t?.assethash || "",
@@ -98,8 +100,8 @@ export function normalizeNep11Transfers(transfers = []) {
   return list.map((t) => ({
     txHash: t?.txid || t?.hash || t?.txHash || "",
     timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
-    from: t?.from || t?.fromAddress || t?.sender || "",
-    to: t?.to || t?.toAddress || t?.receiver || "",
+    from: scriptHashToAddress(t?.from || t?.fromAddress || t?.sender || ""),
+    to: scriptHashToAddress(t?.to || t?.toAddress || t?.receiver || ""),
     tokenId: t?.tokenid || t?.tokenId || t?.token_id || "",
     tokenName: t?.tokenname || t?.symbol || t?.name || "Unknown",
     tokenHash: t?.contract || t?.contractHash || t?.assethash || "",

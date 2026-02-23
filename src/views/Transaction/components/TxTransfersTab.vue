@@ -43,11 +43,15 @@
               </span>
             </td>
             <td class="table-cell">
-              <HashLink v-if="t.from" :hash="t.from" type="address" />
+              <div v-if="t.from" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
+                <HashLink :hash="scriptHashToAddress(t.from)" type="address" :truncated="false" />
+              </div>
               <span v-else class="text-mid text-xs italic">Mint</span>
             </td>
             <td class="table-cell">
-              <HashLink v-if="t.to" :hash="t.to" type="address" />
+              <div v-if="t.to" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
+                <HashLink :hash="scriptHashToAddress(t.to)" type="address" :truncated="false" />
+              </div>
               <span v-else class="text-mid text-xs italic">Burn</span>
             </td>
             <td class="table-cell-right font-mono text-xs">
@@ -88,6 +92,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { GAS_DECIMALS } from "@/constants";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 defineProps({
   allTransfers: { type: Array, default: () => [] },
