@@ -36,7 +36,7 @@
           txns
         </p>
         <p class="mt-0.5 text-xs text-mid">
-          {{ formatGas(block.netfee || block.sysfee || block.reward || 0, 4) }} GAS
+          {{ formatNumber(block.size || 0) }} bytes
         </p>
       </div>
     </div>
@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { formatAge, formatGas, formatNumber } from "@/utils/explorerFormat";
+import { formatAge, formatNumber } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 
 defineProps({

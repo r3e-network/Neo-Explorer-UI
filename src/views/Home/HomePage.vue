@@ -1,7 +1,7 @@
 <template>
   <div class="home-page">
     <!-- Hero Section -->
-    <section class="hero-section relative overflow-hidden border-b border-white/10 bg-header-bg/95">
+    <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
       <div class="hero-overlay"></div>
       <div class="page-container relative z-10 py-10 md:py-14">
         <div v-once class="mx-auto max-w-3xl text-center">
@@ -220,6 +220,7 @@ onBeforeUnmount(() => {
 .hero-overlay {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 26px 26px;

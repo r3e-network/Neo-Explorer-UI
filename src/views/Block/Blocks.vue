@@ -126,7 +126,6 @@
                 </th>
                 <th class="table-header-cell">Txn</th>
                 <th class="table-header-cell">Validator</th>
-                <th class="table-header-cell-right">GAS Reward</th>
                 <th class="table-header-cell-right">Size</th>
               </tr>
             </thead>
@@ -162,10 +161,6 @@
                   <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
                   <span v-else class="text-xs text-low">--</span>
                 </td>
-                <!-- GAS Reward -->
-                <td class="table-cell-right font-hash">
-                  {{ formatGas(block.gasconsumed || block.reward || block.netfee || block.sysfee || 0) }}
-                </td>
                 <!-- Size -->
                 <td class="table-cell-right text-xs">
                   {{ formatBytes(block.size) }}
@@ -195,7 +190,7 @@ import { getCacheKey } from "@/services/cache";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
-import { formatAge, formatBytes, formatUnixTime, formatNumber, formatGas } from "@/utils/explorerFormat";
+import { formatAge, formatBytes, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

@@ -101,6 +101,7 @@ export const safeRpc = async (method, params = {}, defaultValue = null, { signal
  */
 const normalizeItem = (item) => {
   if (!item || typeof item !== "object") return item;
+  if (Array.isArray(item)) return item.map(normalizeItem);
   const out = { ...item };
 
   // Block fields: transactioncount → txcount
