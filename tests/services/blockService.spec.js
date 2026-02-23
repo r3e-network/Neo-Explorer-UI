@@ -17,9 +17,9 @@ describe("blockService", () => {
 
   describe("getCount", () => {
     it("calls safeRpc with correct params", async () => {
-      api.safeRpc.mockResolvedValueOnce(12345);
+      api.safeRpc.mockResolvedValueOnce({ "total counts": 12345 });
       const result = await blockService.getCount();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockCount", {}, 0);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockCount", {}, null, {});
       expect(result).toBe(12345);
     });
   });
