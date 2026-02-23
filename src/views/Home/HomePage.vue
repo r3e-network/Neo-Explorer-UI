@@ -42,6 +42,8 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'HomePage' });
+
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";

@@ -1,9 +1,9 @@
-import { onBeforeUnmount, ref } from "vue";
+import { onBeforeUnmount, ref, onActivated, onDeactivated } from "vue";
 import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 /**
  * Composable for auto-refreshing data at network-specific intervals.
- * Handles cleanup on unmount and pauses when the browser tab is hidden.
+ * Handles cleanup on unmount and pauses when the browser tab is hidden or component is deactivated via keep-alive.
  *
  * @param {Function} callback - Async or sync function to call on each tick
  * @param {Object} [options]
@@ -22,19 +22,28 @@ export function useAutoRefresh(callback, options = {}) {
     return intervalMs ?? getNetworkRefreshIntervalMs();
   }
 
-  function start() {
-    stop();
-    isIntentionallyActive.value = true;
+  function _startTimer() {
+    if (timerId !== null) return;
     timerId = setInterval(callback, getInterval());
     isActive.value = true;
   }
 
-  function stop() {
+  function _stopTimer() {
     if (timerId !== null) {
       clearInterval(timerId);
       timerId = null;
     }
     isActive.value = false;
+  }
+
+  function start() {
+    _stopTimer();
+    isIntentionallyActive.value = true;
+    _startTimer();
+  }
+
+  function stop() {
+    _stopTimer();
     isIntentionallyActive.value = false;
   }
 
@@ -42,14 +51,9 @@ export function useAutoRefresh(callback, options = {}) {
   if (pauseWhenHidden && typeof document !== "undefined") {
     const onVisibilityChange = () => {
       if (document.hidden) {
-        if (timerId !== null) {
-          clearInterval(timerId);
-          timerId = null;
-        }
-        isActive.value = false;
-      } else if (isIntentionallyActive.value && !timerId) {
-        timerId = setInterval(callback, getInterval());
-        isActive.value = true;
+        _stopTimer();
+      } else if (isIntentionallyActive.value) {
+        _startTimer();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -57,6 +61,17 @@ export function useAutoRefresh(callback, options = {}) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     });
   }
+
+  onDeactivated(() => {
+    _stopTimer();
+  });
+
+  onActivated(() => {
+    if (isIntentionallyActive.value) {
+      _startTimer();
+      callback(); // trigger immediate refresh on return
+    }
+  });
 
   onBeforeUnmount(stop);
 

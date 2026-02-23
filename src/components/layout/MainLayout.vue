@@ -3,7 +3,11 @@
     <div class="flex min-h-screen flex-col">
       <AppHeader />
       <main class="page-shell w-full flex-1">
-        <router-view :key="routerViewKey" />
+        <router-view v-slot="{ Component, route }">
+          <keep-alive include="HomePage">
+            <component :is="Component" :key="`${route.fullPath}:${activeNetwork}`" />
+          </keep-alive>
+        </router-view>
       </main>
       <AppFooter />
     </div>
@@ -91,8 +95,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { useRoute } from "vue-router";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import AppHeader from "./AppHeader.vue";
 import AppFooter from "./AppFooter.vue";
 import {
@@ -102,7 +105,6 @@ import {
 } from "@/utils/env";
 import { useCacheWarming } from "@/composables/useCacheWarming";
 
-const route = useRoute();
 const showBackToTop = ref(false);
 const activeNetwork = ref(getCurrentEnv());
 const { warmCriticalCache } = useCacheWarming();
@@ -113,10 +115,6 @@ const networkToastMessage = ref("");
 
 let switchTimer = null;
 let toastTimer = null;
-
-const routerViewKey = computed(
-  () => `${route.fullPath}:${activeNetwork.value}`
-);
 
 function clearSwitchTimers() {
   if (switchTimer) {
