@@ -109,7 +109,7 @@
                         {{ getKnownName(candidate) }}
                       </span>
                       <router-link 
-                        :to="`/account-profile/${candidate.address || candidate.publickey}`" 
+                        :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`" 
                         class="etherscan-link font-hash text-xs break-all" 
                         :title="candidate.publickey"
                       >
@@ -164,6 +164,7 @@ import ErrorState from '@/components/common/ErrorState.vue';
 import { useToast } from 'vue-toastification';
 import { usePriceCache } from '@/composables/usePriceCache';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
+import { publicKeyToAddress } from '@/utils/neoHelpers';
 
 const toast = useToast();
 const { fetchPrices } = usePriceCache();

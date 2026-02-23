@@ -1,5 +1,6 @@
 import bs58 from "bs58";
 import { sha256 } from "ethereum-cryptography/sha256";
+import { wallet } from "@cityofzion/neon-js";
 
 const ADDRESS_VERSION = 0x35;
 
@@ -15,6 +16,15 @@ export function isScriptHashHex(value = "") {
 export function isPublicKeyHex(value = "") {
   const normalized = strip0x(value);
   return /^(02|03)[0-9a-fA-F]{64}$/.test(normalized) || /^04[0-9a-fA-F]{128}$/.test(normalized);
+}
+
+export function publicKeyToAddress(publicKey = "") {
+  try {
+    const acct = new wallet.Account(publicKey);
+    return acct.address;
+  } catch (err) {
+    return publicKey;
+  }
 }
 
 export function reverseHex(value = "") {
