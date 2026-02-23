@@ -53,6 +53,23 @@
         <span v-else class="text-mid">Contract Invocation</span>
       </InfoRow>
 
+      <InfoRow v-if="allTransfers && allTransfers.length" label="Tokens Transferred" tooltip="Tokens sent during this transaction">
+        <div class="space-y-3 mt-1">
+          <div v-for="(t, tIdx) in allTransfers" :key="'overview-xfer-' + tIdx" class="flex items-center flex-wrap gap-2 text-sm bg-surface-elevated px-3 py-2 rounded-lg border border-line-soft">
+            <span class="text-low font-medium">From</span>
+            <HashLink v-if="t.from" :hash="scriptHashToAddress(t.from)" type="address" class="max-w-[100px] truncate" />
+            <span v-else class="text-mid italic text-xs">Mint</span>
+            <span class="text-low font-medium px-1">To</span>
+            <HashLink v-if="t.to" :hash="scriptHashToAddress(t.to)" type="address" class="max-w-[100px] truncate" />
+            <span v-else class="text-mid italic text-xs">Burn</span>
+            <span class="text-high font-semibold font-mono pl-2">For</span>
+            <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
+            <span class="badge-soft">{{ t.tokenname || t.symbol || "Token" }}</span>
+            <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low">#{{ t.tokenId.length > 8 ? t.tokenId.slice(0,8)+'…' : t.tokenId }}</span>
+          </div>
+        </div>
+      </InfoRow>
+
       <InfoRow label="Network Fee" :value="`${formatGas(tx.netfee)} GAS`" />
       <InfoRow label="System Fee" :value="`${formatGas(tx.sysfee)} GAS`" />
 
@@ -126,6 +143,8 @@ import HashLink from "@/components/common/HashLink.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { formatGas, formatAge, formatTime } from "@/utils/explorerFormat";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { GAS_DECIMALS } from "@/constants";
 
 const props = defineProps({
   tx: { type: Object, required: true },
@@ -137,10 +156,18 @@ const props = defineProps({
   enrichedTrace: { type: Object, default: null },
   enrichedLoading: { type: Boolean, default: false },
   totalGas: { type: String, default: "0" },
+  allTransfers: { type: Array, default: () => [] },
   showMore: { type: Boolean, default: false },
 });
 
 defineEmits(["update:showMore"]);
+
+function formatTransferAmount(t) {
+  const raw = Number(t.value || t.amount || 0);
+  const decimals = Number(t.decimals ?? GAS_DECIMALS);
+  if (decimals === 0) return String(raw);
+  return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
+}
 
 const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
 

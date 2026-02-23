@@ -103,6 +103,7 @@
               :enriched-trace="enrichedTrace"
               :enriched-loading="enrichedLoading"
               :total-gas="totalGas"
+              :all-transfers="allTransfers"
               v-model:show-more="showMore"
             />
           </section>
