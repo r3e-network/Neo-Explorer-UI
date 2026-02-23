@@ -32,6 +32,38 @@
         </div>
       </div>
 
+      <!-- Voting Reward Calculator -->
+      <div class="etherscan-card mb-6 overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 gap-4">
+          <div class="flex items-center gap-4">
+            <label for="neo-amount" class="text-sm font-semibold text-high whitespace-nowrap">
+              My NEO to Vote:
+            </label>
+            <div class="relative max-wxs">
+              <input
+                id="neo-amount"
+                type="number"
+                v-model.number="userNeoAmount"
+                min="1"
+                class="form-input w-32 py-2 pr-12 text-sm font-semibold text-high"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-mid">NEO</span>
+            </div>
+            <span class="hidden md:inline-block text-xs text-mid">
+              Estimated rewards based on network total votes and 15s block time.
+            </span>
+          </div>
+          <div v-if="neoPrice && gasPrice" class="flex items-center gap-4 text-xs font-semibold text-mid">
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5">
+              NEO: <span class="text-high">${{ neoPrice.toFixed(2) }}</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5">
+              GAS: <span class="text-high">${{ gasPrice.toFixed(2) }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div class="etherscan-card overflow-hidden">
         <div class="card-header flex justify-between items-center">
           <div>
@@ -49,13 +81,15 @@
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[760px]">
+          <table class="w-full min-w-[960px]">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">Public Key</th>
+                <th class="table-header-cell">Public Key / Name</th>
                 <th class="table-header-cell-right">Votes</th>
                 <th class="table-header-cell text-center">Status</th>
+                <th class="table-header-cell-right">Est. GAS / Month</th>
+                <th class="table-header-cell-right">APR</th>
                 <th class="table-header-cell-right">Action</th>
               </tr>
             </thead>
@@ -63,8 +97,13 @@
               <tr v-for="(candidate, index) in candidates" :key="candidate.publickey" class="list-row group">
                 <td class="table-cell-secondary">{{ index + 1 }}</td>
                 <td class="table-cell">
-                  <div class="font-hash text-sm text-high w-[120px] sm:w-[200px] md:w-[300px] lg:w-full truncate" :title="candidate.publickey">
-                    {{ candidate.publickey }}
+                  <div class="flex items-center gap-2">
+                    <span v-if="getKnownName(candidate.publickey)" class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                      {{ getKnownName(candidate.publickey) }}
+                    </span>
+                    <div class="font-hash text-sm text-high w-[120px] sm:w-[150px] lg:w-full truncate" :title="candidate.publickey">
+                      {{ candidate.publickey }}
+                    </div>
                   </div>
                 </td>
                 <td class="table-cell-right font-medium text-high">
@@ -77,6 +116,12 @@
                   ]">
                     {{ candidate.active ? 'Active' : 'Standby' }}
                   </span>
+                </td>
+                <td class="table-cell-right font-medium text-status-success">
+                  {{ calculateMonthlyGas(candidate.votes, index).toFixed(4) }} GAS
+                </td>
+                <td class="table-cell-right font-medium text-primary-500">
+                  {{ calculateAPR(candidate.votes, index).toFixed(2) }}%
                 </td>
                 <td class="table-cell-right">
                   <button 
@@ -97,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { rpc } from '@cityofzion/neon-js';
 import { getRpcClientUrl } from '@/utils/env';
 import { connectedAccount, connectWallet, disconnectWallet, voteForCandidate } from '@/utils/wallet';
@@ -105,13 +150,81 @@ import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import { useToast } from 'vue-toastification';
+import { usePriceCache } from '@/composables/usePriceCache';
+import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 
 const toast = useToast();
+const { fetchPrices } = usePriceCache();
+
 const candidates = ref([]);
 const loading = ref(true);
 const error = ref('');
 const account = connectedAccount;
 const voting = ref(false);
+
+const userNeoAmount = ref(1000);
+const neoPrice = ref(0);
+const gasPrice = ref(0);
+
+// Neo N3 specific constants
+const TOTAL_NEO_SUPPLY = 100_000_000;
+const BLOCKS_PER_YEAR = 2_102_400; // Assuming exactly 15 seconds per block
+const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
+
+const totalNetworkVotes = computed(() => {
+  return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
+});
+
+function getKnownName(publicKey) {
+  // Try to find a match in KNOWN_ADDRESSES. The mapping contains public keys for nodes.
+  return KNOWN_ADDRESSES[publicKey] || null;
+}
+
+function calculateMonthlyGas(candidateVotesStr, index) {
+  const amount = Number(userNeoAmount.value) || 0;
+  if (amount <= 0 || totalNetworkVotes.value <= 0) return 0;
+  
+  const candidateVotes = Number(candidateVotesStr) || 0;
+  const isCommittee = index < 21; // The top 21 candidates form the committee
+  
+  // Base generation: 10% of 5 GAS per block is divided across all 100M NEO (actually divided among voters)
+  // Neo N3 rule: 0.5 GAS per block distributed to all NEO holders who voted
+  const baseRewardPerBlock = amount * (0.5 / TOTAL_NEO_SUPPLY);
+  
+  // Committee generation: 80% of 5 GAS = 4.0 GAS per block. 
+  // Divided equally among 21 committee members = 4.0 / 21
+  // Distributed to voters of that member proportionally
+  let committeeRewardPerBlock = 0;
+  if (isCommittee && candidateVotes > 0) {
+    const candidateBlockReward = 4.0 / 21;
+    committeeRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
+  }
+  
+  const totalRewardPerBlock = baseRewardPerBlock + committeeRewardPerBlock;
+  return totalRewardPerBlock * BLOCKS_PER_MONTH;
+}
+
+function calculateAPR(candidateVotesStr, index) {
+  if (neoPrice.value <= 0 || gasPrice.value <= 0 || userNeoAmount.value <= 0) return 0;
+  
+  const monthlyGas = calculateMonthlyGas(candidateVotesStr, index);
+  const annualGas = monthlyGas * 12;
+  
+  const annualUsdYield = annualGas * gasPrice.value;
+  const initialUsdInvestment = userNeoAmount.value * neoPrice.value;
+  
+  return (annualUsdYield / initialUsdInvestment) * 100;
+}
+
+async function loadPrices() {
+  try {
+    const data = await fetchPrices();
+    neoPrice.value = data.neo || 0;
+    gasPrice.value = data.gas || 0;
+  } catch (err) {
+    if (import.meta.env.DEV) console.error("Failed to load prices", err);
+  }
+}
 
 async function loadCandidates() {
   loading.value = true;
@@ -167,6 +280,7 @@ async function handleVote(candidate) {
 }
 
 onMounted(() => {
+  loadPrices();
   loadCandidates();
 });
 </script>
