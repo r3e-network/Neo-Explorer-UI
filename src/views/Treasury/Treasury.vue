@@ -104,7 +104,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { usePriceCache } from '@/composables/usePriceCache';
-import { accountService } from '@/services';
 import { formatNumber, formatLargeNumber } from '@/utils/explorerFormat';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
@@ -156,6 +155,9 @@ async function loadPrices() {
   }
 }
 
+import { rpc } from '@cityofzion/neon-js';
+import { getRpcClientUrl } from '@/utils/env';
+
 async function loadTreasuryData() {
   loading.value = true;
   try {
@@ -163,24 +165,34 @@ async function loadTreasuryData() {
       .filter(([_, name]) => name.includes("Neo Foundation") || name.includes("Neo Bond") || name.includes("NF Binance Deposit"))
       .map(([addr, name]) => ({ address: addr, name }));
 
-    const BATCH_SIZE = 10;
+    const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+    const BATCH_SIZE = 5; // Reduced batch size for direct RPC
     const results = [];
+    
+    // NEO and GAS script hashes
+    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     
     for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
       const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
       const responses = await Promise.allSettled(
-        batch.map(item => accountService.getByAddress(item.address).catch(() => null))
+        batch.map(item => rpcClient.execute(new rpc.Query({ method: "getnep17balances", params: [item.address] })))
       );
       
       batch.forEach((item, index) => {
         const res = responses[index];
-        const data = res.status === 'fulfilled' && res.value ? res.value : {};
+        let neo = 0;
+        let gas = 0;
+
+        if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.balance)) {
+          const balances = res.value.balance;
+          const neoToken = balances.find(b => b.assethash === NEO_HASH);
+          const gasToken = balances.find(b => b.assethash === GAS_HASH);
+          
+          neo = neoToken ? Number(neoToken.amount) : 0;
+          gas = gasToken ? Number(gasToken.amount) / 100000000 : 0; // GAS has 8 decimals
+        }
         
-        const neoStr = data.neoBalance ?? data.neo ?? data.NEO ?? data.neo_balance ?? "0";
-        const gasStr = data.gasBalance ?? data.gas ?? data.GAS ?? data.gas_balance ?? "0";
-        
-        const neo = Number(neoStr);
-        const gas = Number(gasStr);
         const usdValue = (neo * neoPrice.value) + (gas * gasPrice.value);
         
         results.push({
