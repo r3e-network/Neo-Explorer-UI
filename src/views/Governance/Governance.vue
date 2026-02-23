@@ -97,12 +97,24 @@
               <tr v-for="(candidate, index) in candidates" :key="candidate.publickey" class="list-row group">
                 <td class="table-cell-secondary">{{ index + 1 }}</td>
                 <td class="table-cell">
-                  <div class="flex items-center gap-2">
-                    <span v-if="getKnownName(candidate.publickey)" class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                      {{ getKnownName(candidate.publickey) }}
-                    </span>
-                    <div class="font-hash text-sm text-high w-[120px] sm:w-[150px] lg:w-full truncate" :title="candidate.publickey">
-                      {{ candidate.publickey }}
+                  <div class="flex items-center gap-3">
+                    <img 
+                      :src="getLogo(candidate.publickey)" 
+                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
+                      alt="Logo"
+                      @error="$event.target.src = '/img/brand/neo.png'"
+                    />
+                    <div class="min-w-0 flex flex-col gap-0.5">
+                      <span v-if="getKnownName(candidate.publickey)" class="inline-block font-semibold text-high text-sm">
+                        {{ getKnownName(candidate.publickey) }}
+                      </span>
+                      <router-link 
+                        :to="`/account-profile/${candidate.address || candidate.publickey}`" 
+                        class="etherscan-link font-hash text-xs break-all" 
+                        :title="candidate.publickey"
+                      >
+                        {{ candidate.publickey }}
+                      </router-link>
                     </div>
                   </div>
                 </td>
@@ -180,27 +192,45 @@ function getKnownName(publicKey) {
   return KNOWN_ADDRESSES[publicKey] || null;
 }
 
+function getLogo(publicKey) {
+  // Try to load candidate logo from standard Neo governance sources if possible, otherwise fallback image handler catches it
+  return `https://governance.neo.org/logo/${publicKey}.png`;
+}
+
 function calculateMonthlyGas(candidateVotesStr, index) {
   const amount = Number(userNeoAmount.value) || 0;
   if (amount <= 0 || totalNetworkVotes.value <= 0) return 0;
   
   const candidateVotes = Number(candidateVotesStr) || 0;
-  const isCommittee = index < 21; // The top 21 candidates form the committee
   
-  // Base generation: 10% of 5 GAS per block is divided across all 100M NEO (actually divided among voters)
-  // Neo N3 rule: 0.5 GAS per block distributed to all NEO holders who voted
+  // Total GAS minted per block is 5
+  // - 10% (0.5 GAS) goes to all NEO holders evenly (regardless of voting)
+  // - 10% (0.5 GAS) goes to the 21 Neo Council members directly
+  // - 80% (4.0 GAS) goes to voters of the 21 Neo Council members:
+  //    - 40% (2.0 GAS) split among voters of the Top 7 (Consensus Nodes)
+  //    - 40% (2.0 GAS) split among voters of the Next 14 (Council Members)
+
+  const isConsensusNode = index < 7;
+  const isCouncilNode = index >= 7 && index < 21;
+  
+  // Base generation: 10% of 5 GAS per block is divided across all 100M NEO
   const baseRewardPerBlock = amount * (0.5 / TOTAL_NEO_SUPPLY);
   
-  // Committee generation: 80% of 5 GAS = 4.0 GAS per block. 
-  // Divided equally among 21 committee members = 4.0 / 21
-  // Distributed to voters of that member proportionally
-  let committeeRewardPerBlock = 0;
-  if (isCommittee && candidateVotes > 0) {
-    const candidateBlockReward = 4.0 / 21;
-    committeeRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
+  // Voter generation
+  let voterRewardPerBlock = 0;
+  if (candidateVotes > 0) {
+    if (isConsensusNode) {
+      // 2.0 GAS split equally among 7 nodes = ~0.2857 GAS per node per block
+      const candidateBlockReward = 2.0 / 7;
+      voterRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
+    } else if (isCouncilNode) {
+      // 2.0 GAS split equally among 14 nodes = ~0.1428 GAS per node per block
+      const candidateBlockReward = 2.0 / 14;
+      voterRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
+    }
   }
   
-  const totalRewardPerBlock = baseRewardPerBlock + committeeRewardPerBlock;
+  const totalRewardPerBlock = baseRewardPerBlock + voterRewardPerBlock;
   return totalRewardPerBlock * BLOCKS_PER_MONTH;
 }
 
