@@ -420,7 +420,10 @@ async function initializeData(addr) {
   if (activeTab.value === 'voters') {
     activeTab.value = 'transactions';
   }
-  const results = await Promise.allSettled([loadSummary(addr), loadAssets(addr), loadTxPage(1)]);
+  
+  // Load assets first so loadSummary can use them to extract NEO/GAS balances
+  await loadAssets(addr);
+  const results = await Promise.allSettled([loadSummary(addr), loadTxPage(1)]);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);

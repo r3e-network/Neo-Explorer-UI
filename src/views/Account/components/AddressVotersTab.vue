@@ -32,7 +32,7 @@
           <tbody class="divide-y divide-line-soft">
             <tr v-for="voter in voters" :key="voter.voter" class="hover:bg-surface-hover/50 transition-colors">
               <td class="px-4 py-3 font-medium">
-                <HashLink :hash="voter.voterAddress" type="address" />
+                <HashLink :hash="voter.voterAddress" type="address" :truncated="false" />
               </td>
               <td class="px-4 py-3 text-right text-high font-medium">
                 {{ formatNumber(voter.balanceOfVoter) }}

@@ -78,6 +78,7 @@
                         {{ candidate.metaName || getKnownName(candidate.candidate) }}
                       </span>
                       <HashLink :hash="candidate.candidate" type="address" :truncated="true" />
+                      <span v-if="candidate.publickey || candidate.metaPubkey" class="text-low text-[10px] font-mono break-all">{{ candidate.publickey || candidate.metaPubkey }}</span>
                     </div>
                   </div>
                 </td>
@@ -114,7 +115,7 @@
 import { ref, watch, computed } from 'vue';
 import { useI18n } from "vue-i18n";
 import { candidateService } from "@/services";
-import { getCacheKey } from "@/services/cache";
+import { getCacheKey, cachedRequest } from "@/services/cache";
 import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -125,7 +126,7 @@ import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { getCurrentEnv, NET_ENV } from '@/utils/env';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
-import { cachedRequest } from '@/services/cache';
+import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
 
 const { t } = useI18n();
 
@@ -164,10 +165,15 @@ async function loadDoraMetadata() {
     if (Array.isArray(data)) {
       for (const item of data) {
         if (item.pubkey) {
-          metaMap[item.pubkey] = {
-            name: item.name,
-            logo: item.logo,
-          };
+          try {
+             const addr = publicKeyToAddress(item.pubkey);
+             const scriptHash = addressToScriptHash(addr);
+             metaMap[item.pubkey] = item;
+             metaMap[addr] = item;
+             metaMap[scriptHash] = item;
+          } catch(e) {
+             // Ignore error mapping individual public keys
+          }
         }
       }
     }
@@ -185,11 +191,13 @@ watch(candidates, () => {
 
 const candidatesWithMeta = computed(() => {
   return candidates.value.map(c => {
-    const meta = doraMetadata.value[c.publickey] || {};
+    // c.candidate is the script hash.
+    const meta = doraMetadata.value[c.candidate] || doraMetadata.value[c.publickey] || {};
     return {
       ...c,
       metaName: meta.name || null,
       metaLogo: meta.logo || null,
+      metaPubkey: meta.pubkey || null,
     };
   });
 });
@@ -205,8 +213,9 @@ function getLogo(candidate) {
   }
   
   const env = getCurrentEnv();
-  if (env === NET_ENV.Mainnet && candidate.publickey) {
-    return `https://governance.neo.org/logo/${candidate.publickey}.png`;
+  const pubkey = candidate.publickey || candidate.metaPubkey;
+  if (env === NET_ENV.Mainnet && pubkey) {
+    return `https://governance.neo.org/logo/${pubkey}.png`;
   }
   return null;
 }

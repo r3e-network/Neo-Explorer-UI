@@ -322,6 +322,8 @@ function formatTransferAmount(t) {
   return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
 }
 
+import { scriptHashToAddress } from "@/utils/neoHelpers";
+
 function buildActionSummary() {
   if (!tx.value.hash) return "";
   const transfers = allTransfers.value;
@@ -329,8 +331,8 @@ function buildActionSummary() {
     const t = transfers[0];
     const amount = formatTransferAmount(t);
     const token = t.tokenname || t.symbol || "Token";
-    const from = t.from ? truncateHash(t.from, 6, 4) : "Mint";
-    const to = t.to ? truncateHash(t.to, 6, 4) : "Burn";
+    const from = t.from ? truncateHash(scriptHashToAddress(t.from), 6, 4) : "Mint";
+    const to = t.to ? truncateHash(scriptHashToAddress(t.to), 6, 4) : "Burn";
     return `Transfer ${amount} ${token} from ${from} to ${to}`;
   }
   if (transfers.length > 1) {

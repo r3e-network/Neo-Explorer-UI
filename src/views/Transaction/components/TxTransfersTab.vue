@@ -44,13 +44,13 @@
             </td>
             <td class="table-cell">
               <div v-if="t.from" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
-                <HashLink :hash="scriptHashToAddress(t.from)" type="address" :truncated="false" :show-neo-chat="true" />
+                <HashLink :hash="scriptHashToAddress(t.from)" type="address" :truncated="false" />
               </div>
               <span v-else class="text-mid text-xs italic">Mint</span>
             </td>
             <td class="table-cell">
               <div v-if="t.to" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
-                <HashLink :hash="scriptHashToAddress(t.to)" type="address" :truncated="false" :show-neo-chat="true" />
+                <HashLink :hash="scriptHashToAddress(t.to)" type="address" :truncated="false" />
               </div>
               <span v-else class="text-mid text-xs italic">Burn</span>
             </td>

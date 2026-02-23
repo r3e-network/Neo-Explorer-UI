@@ -26,9 +26,17 @@ export function getAddressDetailTabs(isCandidate = false) {
 export function normalizeAccountSummary(account = {}, assets = []) {
   const normalizedAssets = Array.isArray(assets) ? assets : [];
 
-  const neoBalance = account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance ?? "0";
+  let neoBalance = account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance;
+  let gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance;
 
-  const gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance ?? "0";
+  if (neoBalance === undefined) {
+    const neoToken = normalizedAssets.find(a => a.asset === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5");
+    neoBalance = neoToken ? String(neoToken.balance) : "0";
+  }
+  if (gasBalance === undefined) {
+    const gasToken = normalizedAssets.find(a => a.asset === "0xd2a4cff31913016155e38e474a2c06d08be276cf");
+    gasBalance = gasToken ? String(gasToken.balance) : "0";
+  }
 
   const txCount = toNumber(
     account.txCount ?? account.txcount ?? account.transactioncount ?? account.transactionCount,

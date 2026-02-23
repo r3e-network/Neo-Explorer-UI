@@ -5,7 +5,7 @@
  */
 import { OPCODES, SYSCALL_HASHES } from "./neoOpcodes";
 import { NEO_HASH, GAS_HASH, CONTRACT_MANAGEMENT_HASH } from "../constants";
-import { scriptHashHexToAddress } from "./neoHelpers";
+import { scriptHashHexToAddress, publicKeyToAddress } from "./neoHelpers";
 
 /**
  * Decode a base64 string to a Uint8Array.
@@ -94,9 +94,11 @@ function formatOperand(opDef, operandBytes) {
 
   // SYSCALL: resolve 4-byte hash to name
   if (name === "SYSCALL") {
-    const reversedHex = reverseHexStr(hex);
-    const syscallName = SYSCALL_HASHES[reversedHex];
-    return syscallName ? syscallName : `0x${reversedHex}`;
+    let syscallName = SYSCALL_HASHES[hex];
+    if (!syscallName) {
+      syscallName = SYSCALL_HASHES[reverseHexStr(hex)];
+    }
+    return syscallName ? syscallName : `0x${hex}`;
   }
 
   // PUSHDATA: try UTF-8, then show hex with length
@@ -115,6 +117,15 @@ function formatOperand(opDef, operandBytes) {
         return addr ? `${reversedHash} (Account: ${addr})` : `${reversedHash} (Hash160)`;
       } catch {
         return `${reversedHash} (Hash160)`;
+      }
+    }
+    // 33-byte = likely compressed public key
+    if (operandBytes.length === 33 && (operandBytes[0] === 0x02 || operandBytes[0] === 0x03)) {
+      try {
+        const addr = publicKeyToAddress(hex);
+        return addr ? `0x${hex} (Account: ${addr})` : `0x${hex}`;
+      } catch {
+        return `0x${hex}`;
       }
     }
     // 32-byte = likely Hash256

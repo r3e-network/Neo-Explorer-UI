@@ -57,10 +57,10 @@
         <div class="space-y-3 mt-1">
           <div v-for="(t, tIdx) in allTransfers" :key="'overview-xfer-' + tIdx" class="flex items-center flex-wrap gap-2 text-sm bg-surface-elevated px-3 py-2 rounded-lg border border-line-soft">
             <span class="text-low font-medium">From</span>
-            <HashLink v-if="t.from" :hash="scriptHashToAddress(t.from)" type="address" class="max-w-[100px] truncate" :show-neo-chat="true" />
+            <HashLink v-if="t.from" :hash="scriptHashToAddress(t.from)" type="address" class="max-w-[100px] truncate" />
             <span v-else class="text-mid italic text-xs">Mint</span>
             <span class="text-low font-medium px-1">To</span>
-            <HashLink v-if="t.to" :hash="scriptHashToAddress(t.to)" type="address" class="max-w-[100px] truncate" :show-neo-chat="true" />
+            <HashLink v-if="t.to" :hash="scriptHashToAddress(t.to)" type="address" class="max-w-[100px] truncate" />
             <span v-else class="text-mid italic text-xs">Burn</span>
             <span class="text-high font-semibold font-mono pl-2">For</span>
             <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
@@ -83,7 +83,7 @@
       <InfoRow label="Signers" tooltip="Accounts that authorized this transaction and their authorization scope">
         <div v-if="tx.signers && tx.signers.length" class="space-y-2">
           <div v-for="(signer, idx) in tx.signers" :key="idx" class="flex items-center gap-2 flex-wrap">
-            <HashLink :hash="signer.account" type="address" :truncated="false" :show-neo-chat="true" />
+            <HashLink :hash="scriptHashToAddress(signer.account)" type="address" :truncated="false" :show-neo-chat="true" />
             <span class="badge-soft text-[10px] uppercase font-semibold tracking-wide text-mid">{{ signer.scopes }}</span>
           </div>
         </div>

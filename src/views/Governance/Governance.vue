@@ -65,10 +65,20 @@
       </div>
 
       <div class="etherscan-card overflow-hidden">
-        <div class="card-header flex justify-between items-center">
+        <div class="card-header flex justify-between items-center flex-wrap gap-3">
           <div>
             <p class="text-mid text-sm">Node Candidates</p>
             <p class="text-low text-sm">Select a candidate below to cast your NEO votes</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-mid font-medium uppercase tracking-wide">Sort by:</span>
+            <select 
+              v-model="sortBy"
+              class="bg-surface-elevated border border-line-soft rounded-lg px-3 py-1.5 text-sm text-high focus:outline-none focus:border-primary-500 transition-colors"
+            >
+              <option value="votes">Votes (High to Low)</option>
+              <option value="apr">APR (High to Low)</option>
+            </select>
           </div>
         </div>
 
@@ -94,8 +104,8 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
-              <tr v-for="(candidate, index) in candidates" :key="candidate.publickey" class="list-row group">
-                <td class="table-cell-secondary">{{ index + 1 }}</td>
+              <tr v-for="(candidate) in sortedCandidates" :key="candidate.publickey" class="list-row group">
+                <td class="table-cell-secondary">{{ candidates.indexOf(candidate) + 1 }}</td>
                 <td class="table-cell">
                   <div class="flex items-center gap-3">
                     <img 
@@ -117,8 +127,9 @@
                         class="etherscan-link font-hash text-xs break-all" 
                         :title="candidate.publickey"
                       >
-                        {{ candidate.publickey }}
+                        {{ publicKeyToAddress(candidate.publickey) }}
                       </router-link>
+                      <span class="text-low text-[10px] font-mono break-all">{{ candidate.publickey }}</span>
                     </div>
                   </div>
                 </td>
@@ -134,10 +145,10 @@
                   </span>
                 </td>
                 <td class="table-cell-right font-medium text-status-success">
-                  {{ calculateMonthlyGas(candidate.votes, index).toFixed(4) }} GAS
+                  {{ calculateMonthlyGas(candidate.votes, candidates.indexOf(candidate)).toFixed(4) }} GAS
                 </td>
                 <td class="table-cell-right font-medium text-primary-500">
-                  {{ calculateAPR(candidate.votes, index).toFixed(2) }}%
+                  {{ calculateAPR(candidate.votes, candidates.indexOf(candidate)).toFixed(2) }}%
                 </td>
                 <td class="table-cell-right">
                   <button 
@@ -174,6 +185,7 @@ const toast = useToast();
 const { fetchPrices } = usePriceCache();
 
 const candidates = ref([]);
+const sortBy = ref('votes');
 const loading = ref(true);
 const error = ref('');
 const account = connectedAccount;
@@ -190,6 +202,19 @@ const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
 
 const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
+});
+
+const sortedCandidates = computed(() => {
+  const list = [...candidates.value];
+  if (sortBy.value === 'apr') {
+    return list.sort((a, b) => {
+      // original index is needed for calculateAPR to know if it's consensus node
+      const aIndex = candidates.value.indexOf(a);
+      const bIndex = candidates.value.indexOf(b);
+      return calculateAPR(b.votes, bIndex) - calculateAPR(a.votes, aIndex);
+    });
+  }
+  return list; // Already sorted by votes from loadCandidates
 });
 
 function getKnownName(candidate) {
