@@ -56,12 +56,10 @@
               {{ block.txcount || 0 }}
             </td>
             <td class="table-cell-right">
-              <span v-if="avgFee(block) !== null">{{ formatGas(avgFee(block)) }}</span>
-              <span v-else class="text-mid" title="Fee data not provided in block list">--</span>
+              {{ formatGas(avgFee(block)) }}
             </td>
             <td class="table-cell-right text-high font-medium">
-              <span v-if="totalFee(block) !== null">{{ formatGas(totalFee(block)) }}</span>
-              <span v-else class="text-mid" title="Fee data not provided in block list">--</span>
+              {{ formatGas(totalFee(block)) }}
             </td>
           </tr>
         </tbody>
@@ -94,13 +92,11 @@ defineProps({
 defineEmits(["refresh", "retry"]);
 
 function totalFee(block) {
-  if (block.sysfee === undefined && block.netfee === undefined) return null;
   return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
 }
 
 function avgFee(block) {
   const total = totalFee(block);
-  if (total === null) return null;
   const txCount = Number(block.txcount) || 1;
   return Math.round(total / txCount);
 }

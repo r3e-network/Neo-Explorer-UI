@@ -68,15 +68,16 @@
 
           <!-- From -->
           <td class="table-cell hidden md:table-cell">
-            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
+            <div v-if="tx.sender" class="max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
+              <HashLink :hash="tx.sender" type="address" :truncated="false" />
+            </div>
             <span v-else class="text-xs text-low">-</span>
           </td>
 
           <!-- To -->
           <td class="table-cell hidden lg:table-cell">
-            <div class="flex items-center gap-2">
+            <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
               <svg
-                v-if="getRecipient(tx)"
                 class="h-4 w-4 flex-shrink-0 text-low"
                 fill="none"
                 stroke="currentColor"
@@ -84,9 +85,9 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <HashLink v-if="getRecipient(tx)" :hash="getRecipient(tx)" type="contract" />
-              <span v-else class="text-xs text-low">-</span>
+              <HashLink :hash="getRecipient(tx)" type="contract" :truncated="false" />
             </div>
+            <span v-else class="text-xs text-low">-</span>
           </td>
 
           <!-- Value / Gas -->

@@ -44,12 +44,12 @@
       <div class="py-1" />
 
       <InfoRow label="From" tooltip="The sending address of this transaction">
-        <HashLink v-if="tx.sender" :hash="tx.sender" type="address" />
+        <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :truncated="false" />
         <span v-else class="text-mid">-</span>
       </InfoRow>
 
       <InfoRow label="To / Interacted With" tooltip="The receiving address or the primary contract invoked">
-        <HashLink v-if="toAddress" :hash="toAddress" type="contract" />
+        <HashLink v-if="toAddress" :hash="toAddress" type="contract" :truncated="false" />
         <span v-else class="text-mid">Contract Invocation</span>
       </InfoRow>
 
@@ -60,7 +60,15 @@
         <span class="text-high font-medium">{{ totalFee }} GAS</span>
       </InfoRow>
 
-      <InfoRow label="Size" :value="`${tx.size || 0} bytes`" />
+      <InfoRow label="Signers" tooltip="Accounts that authorized this transaction and their authorization scope">
+        <div v-if="tx.signers && tx.signers.length" class="space-y-2">
+          <div v-for="(signer, idx) in tx.signers" :key="idx" class="flex items-center gap-2 flex-wrap">
+            <HashLink :hash="signer.account" type="address" :truncated="false" />
+            <span class="badge-soft text-[10px] uppercase font-semibold tracking-wide text-mid">{{ signer.scopes }}</span>
+          </div>
+        </div>
+        <span v-else class="text-mid">-</span>
+      </InfoRow>
     </div>
 
     <!-- Gas Breakdown (complex transactions) -->
@@ -95,27 +103,15 @@
       <transition name="expand">
         <div id="tx-overview-extra" v-show="showMore" class="soft-divider border-t">
           <div class="soft-divider divide-y">
+            <InfoRow label="Size" :value="`${tx.size || 0} bytes`" />
+            <InfoRow label="Valid Until Block">
+              <router-link v-if="tx.validUntilBlock || tx.validuntilblock" :to="`/block-info/${tx.validUntilBlock || tx.validuntilblock}`" class="etherscan-link">
+                #{{ tx.validUntilBlock || tx.validuntilblock }}
+              </router-link>
+              <span v-else class="text-mid">-</span>
+            </InfoRow>
             <InfoRow label="Nonce" :value="tx.nonce != null ? String(tx.nonce) : '-'" />
             <InfoRow label="Version" :value="tx.version != null ? String(tx.version) : '-'" />
-            <InfoRow label="Script">
-              <pre
-                v-if="tx.script"
-                class="panel-muted text-high max-h-40 overflow-auto rounded p-2 font-mono text-xs"
-                >{{ tx.script }}</pre
-              >
-              <span v-else class="text-mid">-</span>
-            </InfoRow>
-            <InfoRow label="Witnesses">
-              <div v-if="tx.witnesses && tx.witnesses.length">
-                <div v-for="(w, i) in tx.witnesses" :key="i" class="panel-muted mb-2 p-2">
-                  <p class="text-mid text-xs">Witness {{ i + 1 }}</p>
-                  <p class="text-high mt-1 break-all font-mono text-xs">
-                    {{ w.invocation || w }}
-                  </p>
-                </div>
-              </div>
-              <span v-else class="text-mid">-</span>
-            </InfoRow>
           </div>
         </div>
       </transition>

@@ -36,10 +36,7 @@
           txns
         </p>
         <p class="mt-0.5 text-xs text-mid">
-          <span v-if="block.netfee !== undefined || block.sysfee !== undefined || block.reward !== undefined">
-            {{ formatGas(block.netfee || block.sysfee || block.reward || 0, 4) }} GAS
-          </span>
-          <span v-else title="Fee data not provided in block list">-- GAS</span>
+          {{ formatGas(block.netfee || block.sysfee || block.reward || 0, 4) }} GAS
         </p>
       </div>
     </div>

@@ -164,10 +164,7 @@
                 </td>
                 <!-- GAS Reward -->
                 <td class="table-cell-right font-hash">
-                  <span v-if="block.gasconsumed !== undefined || block.reward !== undefined || block.netfee !== undefined || block.sysfee !== undefined">
-                    {{ formatGas(block.gasconsumed || block.reward || block.netfee || block.sysfee || 0) }}
-                  </span>
-                  <span v-else class="text-mid" title="Fee data not provided in block list">--</span>
+                  {{ formatGas(block.gasconsumed || block.reward || block.netfee || block.sysfee || 0) }}
                 </td>
                 <!-- Size -->
                 <td class="table-cell-right text-xs">

@@ -94,16 +94,11 @@ let isRefreshing = false;
 
 // --- Fee estimation from block data ---
 function totalFee(block) {
-  if (block.sysfee === undefined && block.netfee === undefined) return null;
   return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
 }
 
 function computeFeeEstimates() {
-  const feeBearing = blocks.value.filter((b) => {
-    const fee = totalFee(b);
-    return fee !== null && fee > 0;
-  });
-  
+  const feeBearing = blocks.value.filter((b) => totalFee(b) > 0);
   if (!feeBearing.length) {
     feeEstimates.value = { low: 0, average: 0, high: 0 };
     return;
