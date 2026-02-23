@@ -94,9 +94,8 @@ function formatOperand(opDef, operandBytes) {
 
   // SYSCALL: resolve 4-byte hash to name
   if (name === "SYSCALL") {
-    const reversedHex = reverseHexStr(hex);
-    const syscallName = SYSCALL_HASHES[reversedHex];
-    return syscallName ? syscallName : `0x${reversedHex}`;
+    const syscallName = SYSCALL_HASHES[hex];
+    return syscallName ? syscallName : `0x${hex}`;
   }
 
   // PUSHDATA: try UTF-8, then show hex with length
