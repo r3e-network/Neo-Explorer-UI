@@ -64,7 +64,10 @@
             <span v-else class="text-mid italic text-xs">Burn</span>
             <span class="text-high font-semibold font-mono pl-2">For</span>
             <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
-            <span class="badge-soft">{{ t.tokenname || t.symbol || "Token" }}</span>
+            <span class="badge-soft inline-flex items-center gap-1.5 px-2 py-1">
+              <img :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
+              {{ t.tokenname || t.symbol || "Token" }}
+            </span>
             <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low">#{{ t.tokenId.length > 8 ? t.tokenId.slice(0,8)+'…' : t.tokenId }}</span>
           </div>
         </div>
@@ -161,6 +164,21 @@ const props = defineProps({
 });
 
 defineEmits(["update:showMore"]);
+
+const localImages = import.meta.glob('@/assets/gui/*.png', { eager: true, import: 'default' });
+
+function getTokenLogo(t) {
+  const hash = (t.contract || t.contractHash || "").toLowerCase();
+  const path = `/src/assets/gui/${hash}.png`;
+  
+  if (localImages[path]) {
+    return localImages[path];
+  }
+  
+  const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
+  const fallbackPath = isNep11 ? "/src/assets/gui/defaultNep11.png" : "/src/assets/gui/defaultNep17.png";
+  return localImages[fallbackPath] || "";
+}
 
 function formatTransferAmount(t) {
   const raw = Number(t.value || t.amount || 0);
