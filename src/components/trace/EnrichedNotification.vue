@@ -56,62 +56,56 @@
             {{ notification.tokenId.length > 32 ? notification.tokenId.slice(0, 32) + "…" : notification.tokenId }}
           </span>
         </div>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="soft-divider border-b">
-              <th class="text-low w-8 px-2 py-1.5 text-left text-xs font-medium">#</th>
-              <th
-                v-if="hasParamNames"
-                class="text-low px-2 py-1.5 text-left text-xs font-medium"
-              >
-                Name
-              </th>
-              <th class="text-low px-2 py-1.5 text-left text-xs font-medium">Type</th>
-              <th class="text-low px-2 py-1.5 text-left text-xs font-medium">Decoded Value</th>
+        <table class="w-full min-w-[500px]">
+          <thead class="table-head">
+            <tr>
+              <th class="table-header-cell w-8">#</th>
+              <th v-if="hasParamNames" class="table-header-cell">Name</th>
+              <th class="table-header-cell w-28">Type</th>
+              <th class="table-header-cell">Decoded Value</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">
-            <tr v-for="param in decodedParams" :key="param.index">
-              <td class="text-low px-2 py-2 text-xs">{{ param.index }}</td>
-              <td v-if="hasParamNames" class="text-high px-2 py-2 text-xs font-medium">
+            <tr v-for="param in decodedParams" :key="param.index" class="list-row group">
+              <td class="table-cell-secondary">{{ param.index }}</td>
+              <td v-if="hasParamNames" class="table-cell font-medium">
                 {{ param.name ?? "-" }}
               </td>
-              <td class="px-2 py-2">
+              <td class="table-cell">
                 <span class="inline-flex px-1.5 py-0.5 rounded text-xs" :class="typeBadgeClass(param.type)">
                   {{ param.type }}
                 </span>
               </td>
-              <td class="text-high max-w-xs px-2 py-2 font-mono text-xs">
+              <td class="table-cell">
                 <!-- Hash160 as clickable address link with copy -->
                 <span
                   v-if="param.type === 'Hash160' && param.decoded.decodedValue"
                   class="inline-flex items-center gap-1"
                 >
                   <HashLink :hash="param.decoded.decodedValue" type="address" />
-                  <CopyButton :text="param.decoded.decodedValue" size="sm" />
                 </span>
                 <!-- Integer with locale formatting -->
-                <span v-else-if="param.type === 'Integer'" :title="param.decoded.rawValue">
+                <span v-else-if="param.type === 'Integer'" :title="param.decoded.rawValue" class="font-mono text-sm">
                   {{ formatInteger(param.decoded.decodedValue) }}
                 </span>
                 <!-- ByteString with hex toggle -->
-                <span v-else-if="param.type === 'ByteString'" class="inline-flex items-center gap-1.5">
-                  <span class="truncate max-w-[200px]">{{
+                <span v-else-if="param.type === 'ByteString'" class="inline-flex items-center gap-1.5 font-mono text-sm">
+                  <span class="break-all">{{
                     showHex[param.index]
                       ? toHexDisplay(param.decoded.rawValue) || param.decoded.displayValue
                       : param.decoded.displayValue
                   }}</span>
                   <button
                     v-if="param.decoded.rawValue"
-                    class="text-primary-500 hover:text-primary-600 text-xs flex-shrink-0"
+                    class="text-primary-500 hover:text-primary-600 flex-shrink-0 text-xs font-semibold uppercase tracking-wide"
                     :title="showHex[param.index] ? 'Show decoded' : 'Show hex'"
                     @click="toggleHex(param.index)"
                   >
-                    {{ showHex[param.index] ? "abc" : "0x" }}
+                    {{ showHex[param.index] ? "txt" : "hex" }}
                   </button>
                 </span>
                 <!-- Default -->
-                <span v-else class="truncate block max-w-[200px]" :title="param.decoded.displayValue">
+                <span v-else class="block break-all font-mono text-sm" :title="param.decoded.displayValue">
                   {{ param.decoded.displayValue }}
                 </span>
               </td>
@@ -129,7 +123,6 @@
 <script setup>
 import { ref, computed, reactive } from "vue";
 import HashLink from "@/components/common/HashLink.vue";
-import CopyButton from "@/components/common/CopyButton.vue";
 import { base64ToHex } from "@/utils/neoCodec";
 
 import { getContractDisplayName } from "@/utils/explorerFormat";
