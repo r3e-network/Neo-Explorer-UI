@@ -27,6 +27,7 @@
       :block-count="blockCount"
       :latest-block-timestamp="latestBlocks[0]?.timestamp"
       :tps="tps"
+      @fetch-latest="handleFetchLatest"
     />
 
     <!-- Latest Blocks + Latest Transactions -->
@@ -75,6 +76,17 @@ const gasPriceChange = ref(0);
 const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
+let lastFetchLatestTime = 0;
+
+function handleFetchLatest() {
+  const now = Date.now();
+  // Throttle aggressively when overdue, to prevent spamming the node
+  // only fetch once every 3 seconds while waiting for a late block
+  if (now - lastFetchLatestTime > 3000) {
+    lastFetchLatestTime = now;
+    loadLatestData(true);
+  }
+}
 
 function hasSameOrderedHashes(currentList = [], nextList = []) {
   if (currentList.length !== nextList.length) return false;

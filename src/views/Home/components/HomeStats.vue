@@ -187,6 +187,8 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 });
 
+const emit = defineEmits(["fetch-latest"]);
+
 const nextBlockCountdown = ref(null);
 const targetTime = ref(15);
 let countdownTimer = null;
@@ -206,6 +208,10 @@ function updateCountdown() {
   
   const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
   nextBlockCountdown.value = targetTime.value - ageSecs;
+
+  if (nextBlockCountdown.value <= 0) {
+    emit("fetch-latest");
+  }
 }
 
 watch(() => props.latestBlockTimestamp, updateCountdown);
