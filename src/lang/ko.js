@@ -11,6 +11,7 @@ const ko = {
       "nep17": "NEP-17 토큰",
       "nep11": "NEP-11 NFT",
       "contracts": "컨트랙트",
+      "treasury": "트레저리",
       "resources": "리소스",
       "chartsStats": "차트 및 통계",
       "gasTracker": "GAS 트래커",

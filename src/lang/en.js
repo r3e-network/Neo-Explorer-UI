@@ -11,6 +11,7 @@ const en = {
       "nep17": "NEP-17 Tokens",
       "nep11": "NEP-11 NFTs",
       "contracts": "Contracts",
+      "treasury": "Treasury",
       "resources": "Resources",
       "chartsStats": "Charts & Stats",
       "gasTracker": "Gas Tracker",

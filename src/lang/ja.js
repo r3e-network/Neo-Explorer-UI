@@ -11,6 +11,7 @@ const ja = {
       "nep17": "NEP-17 トークン",
       "nep11": "NEP-11 NFT",
       "contracts": "コントラクト",
+      "treasury": "トレジャリー",
       "resources": "リソース",
       "chartsStats": "チャートと統計",
       "gasTracker": "GASトラッカー",

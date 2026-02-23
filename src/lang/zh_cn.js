@@ -11,6 +11,7 @@ const zh = {
       "nep17": "NEP-17 代币",
       "nep11": "NEP-11 NFT",
       "contracts": "合约",
+      "treasury": "基金会",
       "resources": "资源",
       "chartsStats": "图表与统计",
       "gasTracker": "GAS 追踪器",
