@@ -6,11 +6,11 @@
   "routes": [
     {
       "src": "/api/mainnet",
-      "dest": "http://198.244.215.132:1927"
+      "dest": "https://neofura.ngd.network"
     },
     {
       "src": "/api/testnet",
-      "dest": "http://198.244.215.132:1926"
+      "dest": "https://testneofura.ngd.network"
     },
     {
       "src": "/api",
@@ -18,11 +18,11 @@
     },
     {
       "src": "/bpi/mainnet/(.*)",
-      "dest": "http://198.244.215.132:1927/bpi/$1"
+      "dest": "https://neofura.ngd.network/bpi/$1"
     },
     {
       "src": "/bpi/testnet/(.*)",
-      "dest": "http://198.244.215.132:1926/bpi/$1"
+      "dest": "https://testneofura.ngd.network/bpi/$1"
     },
     {
       "src": "/bpi/(.*)",
