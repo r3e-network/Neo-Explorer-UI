@@ -99,14 +99,14 @@
                 <td class="table-cell">
                   <div class="flex items-center gap-3">
                     <img 
-                      :src="getLogo(candidate.publickey)" 
+                      :src="getLogo(candidate)" 
                       class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
                       alt="Logo"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div class="min-w-0 flex flex-col gap-0.5">
-                      <span v-if="getKnownName(candidate.publickey)" class="inline-block font-semibold text-high text-sm">
-                        {{ getKnownName(candidate.publickey) }}
+                      <span v-if="getKnownName(candidate)" class="inline-block font-semibold text-high text-sm">
+                        {{ getKnownName(candidate) }}
                       </span>
                       <router-link 
                         :to="`/account-profile/${candidate.address || candidate.publickey}`" 
@@ -156,7 +156,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { rpc } from '@cityofzion/neon-js';
-import { getRpcClientUrl } from '@/utils/env';
+import { getRpcClientUrl, getCurrentEnv, NET_ENV } from '@/utils/env';
 import { connectedAccount, connectWallet, disconnectWallet, voteForCandidate } from '@/utils/wallet';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
@@ -187,14 +187,18 @@ const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
 });
 
-function getKnownName(publicKey) {
-  // Try to find a match in KNOWN_ADDRESSES. The mapping contains public keys for nodes.
-  return KNOWN_ADDRESSES[publicKey] || null;
+function getKnownName(candidate) {
+  // 1. Check if Dora committee API provided a custom name
+  if (candidate.name) return candidate.name;
+  // 2. Fallback to hardcoded constants map
+  return KNOWN_ADDRESSES[candidate.publickey] || null;
 }
 
-function getLogo(publicKey) {
-  // Try to load candidate logo from standard Neo governance sources if possible, otherwise fallback image handler catches it
-  return `https://governance.neo.org/logo/${publicKey}.png`;
+function getLogo(candidate) {
+  // 1. Check if Dora committee API provided a specific logo URL
+  if (candidate.logo) return candidate.logo;
+  // 2. Try to load candidate logo from standard Neo governance sources
+  return `https://governance.neo.org/logo/${candidate.publickey}.png`;
 }
 
 function calculateMonthlyGas(candidateVotesStr, index) {
@@ -261,14 +265,46 @@ async function loadCandidates() {
   error.value = '';
   try {
     const rpcClient = new rpc.RPCClient(getRpcClientUrl());
-    // Get all candidates
-    const res = await rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] }));
-    if (res && res.length > 0) {
-      // Sort by votes descending
-      candidates.value = res.sort((a, b) => Number(b.votes) - Number(a.votes));
+    
+    // Determine the environment string for Dora API
+    const env = getCurrentEnv().toLowerCase();
+    const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
+
+    const [rpcRes, doraRes] = await Promise.allSettled([
+      rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] })),
+      fetch(`https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`).then(r => r.ok ? r.json() : [])
+    ]);
+
+    let rawCandidates = [];
+    if (rpcRes.status === 'fulfilled' && rpcRes.value && rpcRes.value.length > 0) {
+       rawCandidates = rpcRes.value;
     } else {
-      candidates.value = [];
+       throw new Error("Failed to fetch candidates from RPC node.");
     }
+
+    const doraData = (doraRes.status === 'fulfilled' && Array.isArray(doraRes.value)) ? doraRes.value : [];
+    
+    // Create a map of pubkey -> Dora metadata
+    const metadataMap = {};
+    for (const item of doraData) {
+      if (item.pubkey) {
+        metadataMap[item.pubkey] = {
+          name: item.name,
+          logo: item.logo,
+          description: item.description,
+          location: item.location
+        };
+      }
+    }
+
+    // Merge RPC candidate list with Dora API metadata, sorting by votes descending
+    candidates.value = rawCandidates.map(c => ({
+      ...c,
+      name: metadataMap[c.publickey]?.name || null,
+      logo: metadataMap[c.publickey]?.logo || null,
+      location: metadataMap[c.publickey]?.location || null
+    })).sort((a, b) => Number(b.votes) - Number(a.votes));
+    
   } catch (err) {
     console.error("Failed to load candidates", err);
     error.value = err.message || "Failed to fetch candidates from RPC node.";
