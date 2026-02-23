@@ -51,6 +51,7 @@ const SourceCode = lazyLoad(() => import("../views/Contract/SourceCode.vue"));
 // Account module
 const Accounts = lazyLoad(() => import("../views/Account/Accounts.vue"));
 const AddressDetail = lazyLoad(() => import("../views/Account/AddressDetail.vue"));
+const Treasury = lazyLoad(() => import("../views/Treasury/Treasury.vue"));
 
 // Other pages
 const Candidates = lazyLoad(() => import("../views/Candidate/Candidates.vue"));
@@ -134,6 +135,12 @@ const routes = [
         name: "accounts",
         meta: { title: "Accounts" },
         component: Accounts,
+      },
+      {
+        path: "/treasury",
+        name: "treasury",
+        meta: { title: "Treasury" },
+        component: Treasury,
       },
       {
         path: "/account-profile/:accountAddress",

@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { sc } from "@cityofzion/neon-js";
 import { useToast } from "vue-toastification";
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
 export const connectedAccount = ref("");
 
@@ -9,6 +10,20 @@ export async function connectWallet() {
     if (typeof window !== "undefined" && window.NEOLineN3) {
         try {
             const neoline = new window.NEOLineN3.Init();
+            
+            // Check network matching
+            const network = await neoline.getNetworks();
+            const walletNet = (network?.defaultNetwork || "").toLowerCase();
+            const explorerNet = getCurrentEnv().toLowerCase();
+            
+            const isMainnetMatch = walletNet === "mainnet" && explorerNet === NET_ENV.Mainnet.toLowerCase();
+            const isTestnetMatch = walletNet === "testnet" && explorerNet === NET_ENV.TestT5.toLowerCase();
+            
+            if (!isMainnetMatch && !isTestnetMatch) {
+                toast.error(`Network mismatch. Please switch your wallet to ${getCurrentEnv()} and try again.`);
+                return null;
+            }
+
             const account = await neoline.getAccount();
             connectedAccount.value = account.address;
             toast.success("Wallet connected: " + account.address.slice(0, 5) + "..." + account.address.slice(-4));
