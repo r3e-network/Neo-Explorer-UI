@@ -195,8 +195,12 @@ function getKnownName(candidate) {
 }
 
 function getLogo(candidate) {
-  // 1. Check if Dora committee API provided a specific logo URL
-  if (candidate.logo) return candidate.logo;
+  // 1. Check if Dora committee API provided a specific logo URL or NeoFS object ID
+  if (candidate.logo) {
+    if (candidate.logo.startsWith("http")) return candidate.logo;
+    // Assume NeoFS object ID
+    return `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${candidate.logo}`;
+  }
   // 2. Try to load candidate logo from standard Neo governance sources
   return `https://governance.neo.org/logo/${candidate.publickey}.png`;
 }
