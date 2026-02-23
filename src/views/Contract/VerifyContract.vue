@@ -221,7 +221,7 @@ const form = ref({
 // Constants exposed to template
 const compilerVersionOptions = COMPILER_VERSION_OPTIONS;
 const compileCommandOptions = COMPILE_COMMAND_OPTIONS;
-const acceptedExtensions = ".cs,.csproj,.py,.java,.gradle,.go";
+const acceptedExtensions = ".cs,.csproj,.py,.sln";
 
 // Computed
 const showCompileCommand = computed(() => requiresCompileCommand(form.value.version));

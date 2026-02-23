@@ -54,8 +54,8 @@ export const COMPILER_VERSION_OPTIONS = [
     label: version.replace("neo3-boa", "Neo3-boa"),
     value: version,
   })),
-  { label: "Neow3j (java)", value: JAVA_COMPILER_VERSION },
-  { label: "Neo-go (go)", value: GO_COMPILER_VERSION },
+  // { label: "Neow3j (java)", value: JAVA_COMPILER_VERSION }, // Not supported by backend
+  // { label: "Neo-go (go)", value: GO_COMPILER_VERSION }, // Not supported by backend
 ];
 
 export const COMPILE_COMMAND_OPTIONS = [
