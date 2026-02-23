@@ -266,7 +266,7 @@ async function handleSearch() {
 }
 
 import { sc, wallet } from "@cityofzion/neon-js";
-import { invokeContract } from "@/utils/contractInvocation";
+import { invokeContract } from '@/utils/wallet';
 
 async function registerDomain() {
   if (!account.value) {

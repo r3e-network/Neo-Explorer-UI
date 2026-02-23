@@ -80,3 +80,18 @@ export async function voteForCandidate(candidatePubkey) {
         toast.error("NeoLine N3 wallet not found.");
     }
 }
+
+export async function invokeContract(scriptHash, operation, args, signers) {
+    if (typeof window !== 'undefined' && window.NEOLineN3) {
+        const neoline = new window.NEOLineN3.Init();
+        const result = await neoline.invoke({
+            scriptHash,
+            operation,
+            args,
+            signers
+        });
+        return result.txid;
+    } else {
+        throw new Error('NeoLine N3 wallet not found.');
+    }
+}
