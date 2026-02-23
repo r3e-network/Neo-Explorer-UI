@@ -11,10 +11,10 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft bg-surface-base hover:bg-surface-hover py-4 pl-4 pr-10 text-sm font-bold text-high transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
+        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 py-4 pl-4 pr-10 text-sm font-bold text-gray-900 dark:text-gray-100 transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         aria-label="Search filter"
       >
-        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-surface-base text-high">{{ f.label }}</option>
+        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ f.label }}</option>
       </select>
 
       <!-- Search Icon -->

@@ -1,40 +1,58 @@
-import { rpc, sc } from "@cityofzion/neon-js";
-import { getRpcApiBasePath, getRpcClientUrl } from "../utils/env";
+import { safeRpc } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
+import { getCurrentEnv, NET_ENV } from "../utils/env";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
-// Note: testnet might be different. 
-// For testnet, you can check import.meta.env.VITE_NETWORK or similar to switch.
-const IS_TESTNET = import.meta.env.VITE_NETWORK === "testnet" || getRpcApiBasePath().includes("test");
-
-// The Profile API URL is hardcoded in neo3fura megaoasis.
-const PROFILE_API_BASE = IS_TESTNET
-    ? "https://megaoasis.ngd.network:8889/profile/get?address="
-    : "https://megaoasis.ngd.network:8893/profile/get?address=";
 
 export const nnsService = {
     /**
      * Resolve an address to a Name Service profile (NNS domain name)
-     * @param {string} address The base58 NEO address or script hash
-     * @returns {Promise<{ nns: string, userName: string } | null>}
+     * @param {string} address The base58 NEO address
+     * @returns {Promise<{ nns: string } | null>}
      */
     async resolveAddressToNNS(address) {
         if (!address) return null;
-        try {
-            // Using the same API that neo3fura uses for "GetNNSByAddress"
-            const res = await fetch(`${PROFILE_API_BASE}${address}`);
-            if (!res.ok) return null;
-            const data = await res.json();
-            if (data && data.nns) {
-                return {
-                    nns: data.nns,
-                    userName: data.username || "",
-                };
-            }
-            return null;
-        } catch (e) {
-            if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
-            return null;
-        }
+        const env = getCurrentEnv();
+        if (env !== NET_ENV.Mainnet) return null;
+
+        const key = getCacheKey("nns_address_to_name", { address });
+        return cachedRequest(
+            key,
+            async () => {
+                try {
+                    const result = await safeRpc("GetNNSNameByOwner", {
+                        Asset: NNS_CONTRACT_HASH,
+                        Owner: address
+                    }, []);
+
+                    if (Array.isArray(result) && result.length > 0) {
+                        const now = Date.now();
+                        // Find first valid, unexpired domain
+                        const validDomains = result.filter(domain => {
+                            if (domain.name && domain.expiration) {
+                                // expiration from neo3fura can be in seconds or ms.
+                                // NNS usually stores expiration in milliseconds.
+                                let exp = Number(domain.expiration);
+                                if (exp < 1000000000000) {
+                                    exp = exp * 1000;
+                                }
+                                return exp > now;
+                            }
+                            return false;
+                        });
+
+                        if (validDomains.length > 0) {
+                            return { nns: validDomains[0].name };
+                        }
+                    }
+                    return null;
+                } catch (e) {
+                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
+                    return null;
+                }
+            },
+            CACHE_TTL.chart // Cache for 5 mins
+        );
     },
 
     /**
@@ -44,27 +62,25 @@ export const nnsService = {
      */
     async resolveDomain(domain) {
         if (!domain || !domain.endsWith(".neo")) return null;
-        try {
-            // Using node RPC 
-            const rpcClient = new rpc.RPCClient(getRpcClientUrl());
-            const res = await rpcClient.invokeFunction(
-                NNS_CONTRACT_HASH,
-                "resolve",
-                [
-                    sc.ContractParam.string(domain),
-                    sc.ContractParam.integer(16) // TXT record for N3 NNS usually holds the address
-                ]
-            );
-            if (res.state === "HALT" && res.stack && res.stack.length > 0) {
-                const value = res.stack[0].value;
-                if (value) {
-                    return atob(value); // base64 decode if string returned
+        const env = getCurrentEnv();
+        if (env !== NET_ENV.Mainnet) return null;
+
+        const key = getCacheKey("nns_domain_to_address", { domain });
+        return cachedRequest(
+            key,
+            async () => {
+                try {
+                    const res = await safeRpc("GetNNSResolve", { Domain: domain }, null);
+                    if (res && res.address) {
+                        return res.address;
+                    }
+                } catch (e) {
+                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain:", domain, e);
                 }
-            }
-        } catch (e) {
-            if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain:", domain, e);
-        }
-        return null;
+                return null;
+            },
+            CACHE_TTL.chart // Cache for 5 mins locally, backend handles long-term expiration caching
+        );
     }
 };
 

@@ -112,6 +112,7 @@
         @keydown.escape="$emit('close-dropdown', 'resources')"
       >
         <router-link to="/treasury" class="dropdown-link">{{ $t("nav.treasury") || "Treasury" }}</router-link>
+        <router-link to="/nns" class="dropdown-link">Neo Name Service</router-link>
         <router-link to="/echarts" class="dropdown-link">{{ $t("nav.chartsStats") }}</router-link>
         <router-link to="/gas-tracker" class="dropdown-link">{{ $t("nav.gasTracker") }}</router-link>
         <router-link to="/burn" class="dropdown-link">{{ $t("nav.burnedGas") }}</router-link>

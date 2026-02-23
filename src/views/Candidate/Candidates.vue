@@ -47,14 +47,14 @@
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
-                <th class="table-header-cell">Address</th>
+                <th class="table-header-cell">Candidate / Address</th>
                 <th class="table-header-cell-right">Votes</th>
                 <th class="table-header-cell text-center">Status</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
               <tr
-                v-for="(candidate, index) in candidates"
+                v-for="(candidate, index) in candidatesWithMeta"
                 :key="candidate.candidate"
                 class="list-row group"
               >
@@ -62,13 +62,30 @@
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
-                  <HashLink :hash="candidate.candidate" type="address" :truncated="true" />
+                  <div class="flex items-center gap-3">
+                    <img 
+                      v-if="getLogo(candidate)"
+                      :src="getLogo(candidate)" 
+                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
+                      alt="Logo"
+                      @error="$event.target.src = '/img/brand/neo.png'"
+                    />
+                    <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
+                      N3
+                    </div>
+                    <div class="min-w-0 flex flex-col gap-0.5">
+                      <span v-if="candidate.metaName || getKnownName(candidate.candidate)" class="inline-block font-semibold text-high text-sm">
+                        {{ candidate.metaName || getKnownName(candidate.candidate) }}
+                      </span>
+                      <HashLink :hash="candidate.candidate" type="address" :truncated="true" />
+                    </div>
+                  </div>
                 </td>
-                <td class="table-cell-right font-medium">
+                <td class="table-cell-right font-medium text-high">
                   {{ formatVotes(candidate.votes) }}
                 </td>
                 <td class="table-cell text-center">
-                  <StatusBadge :status="candidateStatus(candidate.state)" />
+                  <StatusBadge :status="candidate.isCommittee ? 'success' : 'pending'" :text="candidate.isCommittee ? 'Consensus' : 'Standby'" />
                 </td>
               </tr>
             </tbody>
@@ -94,6 +111,7 @@
 </template>
 
 <script setup>
+import { ref, watch, computed } from 'vue';
 import { useI18n } from "vue-i18n";
 import { candidateService } from "@/services";
 import { getCacheKey } from "@/services/cache";
@@ -105,6 +123,9 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { getCurrentEnv, NET_ENV } from '@/utils/env';
+import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
+import { cachedRequest } from '@/services/cache';
 
 const { t } = useI18n();
 
@@ -125,12 +146,73 @@ const {
   errorMessage: t("errors.loadCandidates"),
 });
 
+const doraMetadata = ref({});
+
+async function loadDoraMetadata() {
+  const env = getCurrentEnv().toLowerCase();
+  const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
+  const url = `https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`;
+  
+  try {
+    const data = await cachedRequest(
+      `dora_metadata_${doraEnv}`,
+      () => fetch(url).then(r => r.ok ? r.json() : []),
+      300000 // 5 minutes cache
+    );
+    
+    const metaMap = {};
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        if (item.pubkey) {
+          metaMap[item.pubkey] = {
+            name: item.name,
+            logo: item.logo,
+          };
+        }
+      }
+    }
+    doraMetadata.value = metaMap;
+  } catch (err) {
+    if (import.meta.env.DEV) console.error("Failed to load Dora metadata", err);
+  }
+}
+
+watch(candidates, () => {
+  if (candidates.value.length > 0 && Object.keys(doraMetadata.value).length === 0) {
+    loadDoraMetadata();
+  }
+}, { immediate: true });
+
+const candidatesWithMeta = computed(() => {
+  return candidates.value.map(c => {
+    const meta = doraMetadata.value[c.publickey] || {};
+    return {
+      ...c,
+      metaName: meta.name || null,
+      metaLogo: meta.logo || null,
+    };
+  });
+});
+
+function getKnownName(address) {
+  return KNOWN_ADDRESSES[address] || null;
+}
+
+function getLogo(candidate) {
+  if (candidate.metaLogo) {
+    if (candidate.metaLogo.startsWith("http")) return candidate.metaLogo;
+    return `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${candidate.metaLogo}`;
+  }
+  
+  const env = getCurrentEnv();
+  if (env === NET_ENV.Mainnet && candidate.publickey) {
+    return `https://governance.neo.org/logo/${candidate.publickey}.png`;
+  }
+  return null;
+}
+
 function formatVotes(value) {
   const num = Number(value || 0);
   return Number.isFinite(num) ? num.toLocaleString() : "0";
-}
-
-function candidateStatus(state) {
-  return state === "Consensus" ? "success" : "pending";
 }
 </script>

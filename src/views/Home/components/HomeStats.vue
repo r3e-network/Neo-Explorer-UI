@@ -127,10 +127,10 @@
             </div>
           </div>
           <div class="mt-1 flex items-center justify-between text-xs text-mid">
-            <span>~15s block time</span>
-            <span v-if="nextBlockCountdown !== null" class="font-medium whitespace-nowrap text-status-success">
+            <span>~{{ targetTime }}s block time</span>
+            <span v-if="nextBlockCountdown !== null" class="font-medium whitespace-nowrap" :class="nextBlockCountdown < 0 ? 'text-warning' : 'text-status-success'">
               <span v-if="nextBlockCountdown > 0">Next in {{ nextBlockCountdown }}s</span>
-              <span v-else class="animate-pulse">Producing...</span>
+              <span v-else>Producing ({{ nextBlockCountdown }}s)</span>
             </span>
           </div>
         </div>
@@ -188,18 +188,24 @@ const props = defineProps({
 });
 
 const nextBlockCountdown = ref(null);
+const targetTime = ref(15);
 let countdownTimer = null;
 
+import { getCurrentEnv, NET_ENV } from '@/utils/env';
+
 function updateCountdown() {
+  const network = getCurrentEnv();
+  targetTime.value = network === NET_ENV.TestT5 ? 3 : 15;
+
   if (!props.latestBlockTimestamp) {
     nextBlockCountdown.value = null;
     return;
   }
   // Convert timestamp to ms if needed
   const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
+  
   const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
-  // Neo N3 target block time is ~15s
-  nextBlockCountdown.value = Math.max(0, 15 - ageSecs);
+  nextBlockCountdown.value = targetTime.value - ageSecs;
 }
 
 watch(() => props.latestBlockTimestamp, updateCountdown);

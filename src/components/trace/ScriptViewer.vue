@@ -88,6 +88,9 @@
             <td
               class="text-high break-all px-3 py-1.5 font-mono"
             >
+              <div v-if="inst.semantic" class="mb-1 text-[11px] font-bold text-primary-600 dark:text-primary-400">
+                // Call: {{ inst.semantic }}
+              </div>
               <span v-if="inst.operand" :class="operandClass(inst)">{{
                 inst.operand
               }}</span>

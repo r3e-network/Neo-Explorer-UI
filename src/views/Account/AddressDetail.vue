@@ -14,6 +14,7 @@
         :gas-balance="gasBalance"
         :tx-count="txCount"
         :token-count="tokenCount"
+        :candidate-data="candidateData"
       />
 
       <div class="etherscan-card overflow-hidden">
@@ -82,6 +83,21 @@
             :error="assetsError"
             @retry="loadAssets(address)"
           />
+
+          <AddressVotersTab
+            v-else-if="activeTab === 'voters'"
+            :address="address"
+            :voters="voters"
+            :loading="votersLoading"
+            :error="votersError"
+            :page="votersPage"
+            :total-pages="votersTotalPages"
+            :page-size="votersPageSize"
+            :total-count="votersTotalCount"
+            @go-to-page="goToVotersPage"
+            @change-page-size="changeVotersPageSize"
+            @retry="loadVotersPage(1)"
+          />
         </div>
       </div>
     </div>
@@ -92,7 +108,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { accountService, transactionService, contractService } from "@/services";
+import { accountService, transactionService, contractService, candidateService } from "@/services";
 import {
   getAddressDetailTabs,
   normalizeAccountSummary,
@@ -111,6 +127,10 @@ import AddressTokenTransfersTab from "./components/AddressTokenTransfersTab.vue"
 import AddressNftTransfersTab from "./components/AddressNftTransfersTab.vue";
 import AddressTokensTab from "./components/AddressTokensTab.vue";
 import AddressNftsTab from "./components/AddressNftsTab.vue";
+import AddressVotersTab from "./components/AddressVotersTab.vue";
+import { addressToScriptHash, scriptHashHexToAddress, publicKeyToAddress } from "@/utils/neoHelpers";
+import { getCurrentEnv, NET_ENV } from '@/utils/env';
+import { cachedRequest } from '@/services/cache';
 
 const route = useRoute();
 const { t } = useI18n();
@@ -121,7 +141,9 @@ const gasBalance = ref("0");
 const txCount = ref(0);
 const tokenCount = ref(0);
 const activeTab = ref("transactions");
-const tabs = getAddressDetailTabs();
+const isCandidate = ref(false);
+const candidateData = ref(null);
+const tabs = computed(() => getAddressDetailTabs(isCandidate.value));
 const assets = ref([]);
 const fungibleAssets = ref([]);
 const nftAssets = ref([]);
@@ -204,6 +226,49 @@ const {
   { defaultPageSize: 10, errorMessage: t("errors.loadNftDetails") }
 );
 
+// Voters via composable
+const {
+  items: voters,
+  loading: votersLoading,
+  error: votersError,
+  currentPage: votersPage,
+  pageSize: votersPageSize,
+  totalCount: votersTotalCount,
+  totalPages: votersTotalPages,
+  loadPage: loadVotersPage,
+  goToPage: goToVotersPage,
+  changePageSize: changeVotersPageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+    
+    const scriptHash = addressToScriptHash(addr);
+    if (!scriptHash) return { result: [], totalCount: 0 };
+
+    const response = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+    
+    // Map script hashes back to base58 addresses
+    const mappedResult = (response?.result || []).map(v => {
+      let voterAddress = v.voter;
+      try {
+        if (voterAddress.startsWith('0x')) {
+          voterAddress = scriptHashHexToAddress(voterAddress.slice(2));
+        }
+      } catch (e) {
+        // keep original if fails
+      }
+      return { ...v, voterAddress };
+    });
+
+    return {
+      result: mappedResult,
+      totalCount: Number(response?.totalCount || 0),
+    };
+  },
+  { defaultPageSize: 10, errorMessage: "Failed to load voters" }
+);
+
 // --- Computed ---
 const address = computed(() => route.params.accountAddress);
 
@@ -231,6 +296,79 @@ async function loadSummary(addr) {
       isContract.value = !!(contract && contract.hash);
     } catch {
       isContract.value = false;
+    }
+
+    try {
+      const scriptHash = addressToScriptHash(addr);
+      if (scriptHash) {
+        const candidate = await candidateService.getByAddress(scriptHash);
+        if (currentRequestId !== addressRequestId) return;
+        
+        if (candidate && candidate.candidate) {
+          isCandidate.value = true;
+          candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || '' };
+          
+          const env = getCurrentEnv().toLowerCase();
+          if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
+             candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
+          }
+          
+          // Fetch Dora metadata
+          const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
+          const url = `https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`;
+          
+          cachedRequest(
+            `dora_metadata_${doraEnv}`,
+            () => fetch(url).then(r => r.ok ? r.json() : []),
+            300000 // 5 mins
+          ).then((data) => {
+            if (currentRequestId !== addressRequestId) return;
+            if (Array.isArray(data)) {
+              // Try to find by converting pubkey to address
+              let meta = null;
+              let foundPubKey = null;
+              for (const item of data) {
+                if (item.pubkey) {
+                  try {
+                    const itemAddr = publicKeyToAddress(item.pubkey);
+                    if (itemAddr === addr || addressToScriptHash(itemAddr) === addressToScriptHash(addr)) {
+                      meta = item;
+                      foundPubKey = item.pubkey;
+                      break;
+                    }
+                  } catch (e) {
+                    // Ignore decode errors
+                  }
+                }
+              }
+              
+              if (foundPubKey && !candidateData.value.publickey) {
+                candidateData.value.publickey = foundPubKey;
+              }
+              
+              if (meta) {
+                candidateData.value.metaName = meta.name;
+                candidateData.value.metaLocation = meta.location;
+                if (meta.logo) {
+                  candidateData.value.metaLogo = meta.logo.startsWith("http") 
+                    ? meta.logo 
+                    : `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${meta.logo}`;
+                } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
+                  candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
+                }
+              } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
+                candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
+              }
+            }
+          }).catch(() => {});
+        } else {
+          isCandidate.value = false;
+          candidateData.value = null;
+        }
+      }
+    } catch {
+      isCandidate.value = false;
+      candidateData.value = null;
     }
   } catch {
     if (currentRequestId !== addressRequestId) return;
@@ -277,6 +415,11 @@ async function initializeData(addr) {
   abortController.value?.abort();
   abortController.value = new AbortController();
   txPage.value = 1;
+  isCandidate.value = false;
+  candidateData.value = null;
+  if (activeTab.value === 'voters') {
+    activeTab.value = 'transactions';
+  }
   const results = await Promise.allSettled([loadSummary(addr), loadAssets(addr), loadTxPage(1)]);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
@@ -305,6 +448,9 @@ watch(activeTab, (tab) => {
   }
   if (tab === "nftTransfers" && !nep11Transfers.value.length && !nep11Loading.value) {
     loadNep11Page(1);
+  }
+  if (tab === "voters" && !voters.value.length && !votersLoading.value && isCandidate.value) {
+    loadVotersPage(1);
   }
 });
 </script>

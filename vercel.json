@@ -5,12 +5,28 @@
   "outputDirectory": "dist",
   "routes": [
     {
-      "src": "/api/mainnet",
+      "src": "/api/mainnet/primary",
+      "dest": "http://198.244.215.132:1927"
+    },
+    {
+      "src": "/api/mainnet/fallback",
       "dest": "https://neofura.ngd.network"
     },
     {
-      "src": "/api/testnet",
+      "src": "/api/testnet/primary",
+      "dest": "http://198.244.215.132:1926"
+    },
+    {
+      "src": "/api/testnet/fallback",
       "dest": "https://testneofura.ngd.network"
+    },
+    {
+      "src": "/api/mainnet",
+      "dest": "http://198.244.215.132:1927"
+    },
+    {
+      "src": "/api/testnet",
+      "dest": "http://198.244.215.132:1926"
     },
     {
       "src": "/api",

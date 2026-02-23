@@ -27,6 +27,9 @@ export function detectSearchType(query) {
   // Partial hex without 0x prefix (40-64 chars) -> likely contract hash
   if (/^[0-9a-fA-F]{40,64}$/.test(q)) return "contract";
 
+  // NNS Domain
+  if (q.endsWith(".neo") && q.length > 4) return "address";
+
   return "unknown";
 }
 
@@ -56,7 +59,7 @@ export function resolveSearchLocation(query, result) {
   }
 
   if (type === "address") {
-    return { path: `/account-profile/${q}` };
+    return { path: `/account-profile/${data.address || q}` };
   }
 
   if (type === "token") {

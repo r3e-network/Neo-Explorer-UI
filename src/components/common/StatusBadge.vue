@@ -23,11 +23,15 @@ const props = defineProps({
     default: "success",
     validator: (v) => ["success", "failed", "pending"].includes(v.toLowerCase()),
   },
+  text: {
+    type: String,
+    default: "",
+  },
 });
 
 const normalizedStatus = computed(() => String(props.status || "success").toLowerCase());
 const config = computed(() => STATUS_MAP[normalizedStatus.value] || STATUS_MAP.success);
-const label = computed(() => config.value.label);
+const label = computed(() => props.text || config.value.label);
 const statusColor = computed(() => config.value.color);
 const badgeStyle = computed(() => ({
   borderColor: config.value.color,

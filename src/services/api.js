@@ -28,9 +28,16 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+import { checkAndSetEndpoints } from "../utils/healthCheck";
+
+// Initialize health checks (this returns a promise)
+let healthCheckPromise = checkAndSetEndpoints();
+
 // Request interceptor
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Ensure health check is completed before resolving the base URL
+    await healthCheckPromise;
     config.baseURL = resolveRpcBaseUrl();
     return config;
   },

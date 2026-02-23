@@ -22,21 +22,17 @@
         </div>
       </div>
 
-      <!-- Validator / Fee Recipient (hidden on mobile) -->
+      <!-- Block Size (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-center md:block">
-        <p class="text-xs text-mid">Fee Recipient</p>
-        <HashLink v-if="block.speaker" :hash="block.speaker" type="address" :copyable="false" />
-        <span v-else class="text-sm text-low">-</span>
+        <p class="text-xs text-mid">Block Size</p>
+        <p class="text-sm font-medium text-high">{{ formatNumber(block.size || 0) }} bytes</p>
       </div>
 
-      <!-- Tx count + reward -->
+      <!-- Tx count -->
       <div class="flex-shrink-0 text-right">
         <p class="text-sm text-high">
-          <span class="font-medium">{{ block.txcount || 0 }}</span>
+          <span class="font-medium">{{ formatNumber(block.transactioncount || block.txcount || 0) }}</span>
           txns
-        </p>
-        <p class="mt-0.5 text-xs text-mid">
-          {{ formatNumber(block.size || 0) }} bytes
         </p>
       </div>
     </div>
@@ -44,10 +40,13 @@
 </template>
 
 <script setup>
-import { formatAge, formatNumber } from "@/utils/explorerFormat";
-import HashLink from "./HashLink.vue";
+import { useNow } from "@vueuse/core";
+import { formatAge as _formatAge, formatNumber } from "@/utils/explorerFormat";
 
 defineProps({
   block: { type: Object, default: () => ({}) },
 });
+
+const now = useNow({ interval: 1000 });
+const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 </script>

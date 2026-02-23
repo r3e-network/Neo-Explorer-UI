@@ -52,7 +52,7 @@
       <div class="etherscan-card overflow-hidden">
         <div class="card-header flex items-center justify-between">
           <p class="text-mid text-sm">Treasury Addresses</p>
-          <button @click="loadTreasuryData" class="btn-mini text-xs px-3 py-1.5" :disabled="loading">
+          <button @click="loadTreasuryData(true)" class="btn-mini text-xs px-3 py-1.5" :disabled="loading">
             {{ loading ? 'Updating...' : 'Refresh' }}
           </button>
         </div>
@@ -109,6 +109,7 @@ import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import HashLink from '@/components/common/HashLink.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
+import { cachedRequest, CACHE_TTL } from '@/services/cache';
 
 const { fetchPrices } = usePriceCache();
 const loading = ref(true);
@@ -156,55 +157,73 @@ async function loadPrices() {
 }
 
 import { rpc } from '@cityofzion/neon-js';
-import { getRpcClientUrl } from '@/utils/env';
+import { getRpcClientUrl, getCurrentEnv } from '@/utils/env';
 
-async function loadTreasuryData() {
+async function fetchTreasuryDataFromRpc() {
+  const treasuryAddresses = Object.entries(KNOWN_ADDRESSES)
+    .filter(([_, name]) => name.includes("Neo Foundation") || name.includes("Neo Bond") || name.includes("NF Binance Deposit"))
+    .map(([addr, name]) => ({ address: addr, name }));
+
+  const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+  const BATCH_SIZE = 5; // Reduced batch size for direct RPC
+  const results = [];
+  
+  // NEO and GAS script hashes
+  const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+  const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+  
+  for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
+    const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
+    const responses = await Promise.allSettled(
+      batch.map(item => rpcClient.execute(new rpc.Query({ method: "getnep17balances", params: [item.address] })))
+    );
+    
+    batch.forEach((item, index) => {
+      const res = responses[index];
+      let neo = 0;
+      let gas = 0;
+
+      if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.balance)) {
+        const balances = res.value.balance;
+        const neoToken = balances.find(b => b.assethash === NEO_HASH);
+        const gasToken = balances.find(b => b.assethash === GAS_HASH);
+        
+        neo = neoToken ? Number(neoToken.amount) : 0;
+        gas = gasToken ? Number(gasToken.amount) / 100000000 : 0; // GAS has 8 decimals
+      }
+      
+      results.push({
+        ...item,
+        neo: Number.isFinite(neo) ? neo : 0,
+        gas: Number.isFinite(gas) ? gas : 0,
+        usdValue: 0 // calculated later with reactive prices
+      });
+    });
+  }
+  
+  return results;
+}
+
+async function loadTreasuryData(forceRefresh = false) {
   loading.value = true;
   try {
-    const treasuryAddresses = Object.entries(KNOWN_ADDRESSES)
-      .filter(([_, name]) => name.includes("Neo Foundation") || name.includes("Neo Bond") || name.includes("NF Binance Deposit"))
-      .map(([addr, name]) => ({ address: addr, name }));
-
-    const rpcClient = new rpc.RPCClient(getRpcClientUrl());
-    const BATCH_SIZE = 5; // Reduced batch size for direct RPC
-    const results = [];
+    const network = getCurrentEnv();
+    const cacheKey = `${network}:treasury_data`;
     
-    // NEO and GAS script hashes
-    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+    const results = await cachedRequest(
+      cacheKey,
+      fetchTreasuryDataFromRpc,
+      CACHE_TTL.chart, // Use chart TTL for longer caching (5 mins)
+      { forceRefresh }
+    );
     
-    for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
-      const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
-      const responses = await Promise.allSettled(
-        batch.map(item => rpcClient.execute(new rpc.Query({ method: "getnep17balances", params: [item.address] })))
-      );
-      
-      batch.forEach((item, index) => {
-        const res = responses[index];
-        let neo = 0;
-        let gas = 0;
-
-        if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.balance)) {
-          const balances = res.value.balance;
-          const neoToken = balances.find(b => b.assethash === NEO_HASH);
-          const gasToken = balances.find(b => b.assethash === GAS_HASH);
-          
-          neo = neoToken ? Number(neoToken.amount) : 0;
-          gas = gasToken ? Number(gasToken.amount) / 100000000 : 0; // GAS has 8 decimals
-        }
-        
-        const usdValue = (neo * neoPrice.value) + (gas * gasPrice.value);
-        
-        results.push({
-          ...item,
-          neo: Number.isFinite(neo) ? neo : 0,
-          gas: Number.isFinite(gas) ? gas : 0,
-          usdValue: Number.isFinite(usdValue) ? usdValue : 0
-        });
-      });
-    }
+    // Update USD values based on current prices
+    const withUsd = results.map(item => ({
+      ...item,
+      usdValue: (item.neo * neoPrice.value) + (item.gas * gasPrice.value)
+    }));
     
-    balances.value = results.sort((a, b) => b.usdValue - a.usdValue);
+    balances.value = withUsd.sort((a, b) => b.usdValue - a.usdValue);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load treasury data", err);
   } finally {

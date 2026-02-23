@@ -62,13 +62,17 @@
 
 <script setup>
 import { computed } from "vue";
-import { formatAge, formatGas, getTransactionTotalFee } from "@/utils/explorerFormat";
+import { useNow } from "@vueuse/core";
+import { formatAge as _formatAge, formatGas, getTransactionTotalFee } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 
 const props = defineProps({
   tx: { type: Object, default: () => ({}) },
   isComplex: { type: Boolean, default: false },
 });
+
+const now = useNow({ interval: 1000 });
+const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const isSuccess = computed(() => {
   const state = props.tx?.vmstate;

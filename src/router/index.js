@@ -70,6 +70,8 @@ const PageNotFound = lazyLoad(() => import("../views/NotFound/PageNotFound.vue")
 
 import MainLayout from "../components/layout/MainLayout.vue";
 
+const NNS = lazyLoad(() => import("../views/NNS/NNS.vue"));
+
 const routes = [
   {
     path: "/",
@@ -81,6 +83,12 @@ const routes = [
         name: "homepage",
         meta: { title: "Neo Explorer" },
         component: HomePage,
+      },
+      {
+        path: "/nns",
+        name: "nns",
+        meta: { title: "Neo Name Service" },
+        component: NNS,
       },
       {
         path: "/blocks",

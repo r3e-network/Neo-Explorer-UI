@@ -19,6 +19,17 @@
       {{ displayHash }}
     </router-link>
     <CopyButton v-if="copyable" :text="hash" size="sm" class="flex-shrink-0" />
+    
+    <a 
+      v-if="type === 'address' && showNeoChat" 
+      :href="`https://chat.neo.org/?to=${hash}`" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      class="flex-shrink-0 transition-transform hover:scale-110"
+      title="Chat via NeoChat"
+    >
+      <img src="@/assets/neochat.svg" class="w-4 h-4" alt="NeoChat" />
+    </a>
   </div>
 </template>
 
@@ -40,6 +51,7 @@ const props = defineProps({
   truncate: { type: [Boolean, null], default: null },
   truncated: { type: Boolean, default: true },
   copyable: { type: Boolean, default: true },
+  showNeoChat: { type: Boolean, default: false },
 });
 
 const shouldTruncate = computed(() =>

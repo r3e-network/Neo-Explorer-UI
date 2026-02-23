@@ -3,10 +3,10 @@ import vue from "@vitejs/plugin-vue";
 import compression from "vite-plugin-compression";
 import path from "path";
 
-const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testneofura.ngd.network";
-const DEFAULT_MAINNET_BPI_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testneofura.ngd.network";
+const DEFAULT_MAINNET_RPC_PROXY_TARGET = "http://198.244.215.132:1927";
+const DEFAULT_TESTNET_RPC_PROXY_TARGET = "http://198.244.215.132:1926";
+const DEFAULT_MAINNET_BPI_PROXY_TARGET = "http://198.244.215.132:1927";
+const DEFAULT_TESTNET_BPI_PROXY_TARGET = "http://198.244.215.132:1926";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -34,6 +34,26 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/api/mainnet/primary": {
+          target: "http://198.244.215.132:1927",
+          changeOrigin: true,
+          rewrite: () => "/",
+        },
+        "/api/mainnet/fallback": {
+          target: "https://neofura.ngd.network",
+          changeOrigin: true,
+          rewrite: () => "/",
+        },
+        "/api/testnet/primary": {
+          target: "http://198.244.215.132:1926",
+          changeOrigin: true,
+          rewrite: () => "/",
+        },
+        "/api/testnet/fallback": {
+          target: "https://testneofura.ngd.network",
+          changeOrigin: true,
+          rewrite: () => "/",
+        },
         "/api/mainnet": {
           target: mainnetRpcTarget,
           changeOrigin: true,

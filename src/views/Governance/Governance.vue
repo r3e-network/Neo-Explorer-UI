@@ -99,11 +99,15 @@
                 <td class="table-cell">
                   <div class="flex items-center gap-3">
                     <img 
+                      v-if="getLogo(candidate)"
                       :src="getLogo(candidate)" 
                       class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
                       alt="Logo"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
+                    <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
+                      N3
+                    </div>
                     <div class="min-w-0 flex flex-col gap-0.5">
                       <span v-if="getKnownName(candidate)" class="inline-block font-semibold text-high text-sm">
                         {{ getKnownName(candidate) }}
@@ -202,8 +206,15 @@ function getLogo(candidate) {
     // Assume NeoFS object ID
     return `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${candidate.logo}`;
   }
-  // 2. Try to load candidate logo from standard Neo governance sources
-  return `https://governance.neo.org/logo/${candidate.publickey}.png`;
+  
+  const env = getCurrentEnv();
+  // Mainnet fallback to governance.neo.org
+  if (env === NET_ENV.Mainnet) {
+    return `https://governance.neo.org/logo/${candidate.publickey}.png`;
+  }
+  
+  // Testnet or others: no logo by default
+  return null;
 }
 
 function calculateMonthlyGas(candidateVotesStr, index) {

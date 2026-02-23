@@ -94,8 +94,9 @@ function formatOperand(opDef, operandBytes) {
 
   // SYSCALL: resolve 4-byte hash to name
   if (name === "SYSCALL") {
-    const syscallName = SYSCALL_HASHES[hex];
-    return syscallName ? syscallName : `0x${hex}`;
+    const reversedHex = reverseHexStr(hex);
+    const syscallName = SYSCALL_HASHES[reversedHex];
+    return syscallName ? syscallName : `0x${reversedHex}`;
   }
 
   // PUSHDATA: try UTF-8, then show hex with length
@@ -222,7 +223,48 @@ export function disassembleScript(base64Script) {
       operand: formatOperand(opDef, operandBytes),
       rawHex,
       desc: opDef.desc,
+      semantic: null,
     });
+  }
+
+  // Second pass: Enrich with semantic meaning for contract calls
+  for (let i = 0; i < instructions.length; i++) {
+    const inst = instructions[i];
+    
+    // Check for System.Contract.Call or CallNative
+    if (inst.opcode === "SYSCALL" && (inst.operand === "System.Contract.Call" || inst.operand === "System.Contract.CallNative")) {
+      // The N3 calling convention typically pushes args, then flags, then method name, then contract hash
+      // So the instruction right before SYSCALL is usually the contract hash
+      // And the one before that is the method name
+      if (i >= 2) {
+        const hashInst = instructions[i - 1];
+        const methodInst = instructions[i - 2];
+        
+        let contractRef = hashInst.operand || "";
+        let methodName = methodInst.operand || "";
+        
+        // Clean up string quotes
+        if (methodName.startsWith('"') && methodName.endsWith('"')) {
+          methodName = methodName.slice(1, -1);
+        }
+        
+        // Extract native name if available
+        const nativeMatch = contractRef.match(/Native:\s*([^)]+)/);
+        if (nativeMatch) {
+          contractRef = nativeMatch[1];
+        } else {
+          // Keep it short if it's just a hash
+          const hashMatch = contractRef.match(/0x[a-f0-9]{40}/i);
+          if (hashMatch) {
+            contractRef = `${hashMatch[0].slice(0, 6)}...${hashMatch[0].slice(-4)}`;
+          }
+        }
+        
+        if (contractRef && methodName && !methodName.includes("0x")) {
+          inst.semantic = `${contractRef}.${methodName}(...)`;
+        }
+      }
+    }
   }
 
   return instructions;

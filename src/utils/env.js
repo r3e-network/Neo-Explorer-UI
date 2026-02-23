@@ -91,11 +91,23 @@ export const RPC_API_BASE_PATHS = {
   [NET_ENV.TestT5]: "/api/testnet",
 };
 
+// Store active endpoint paths dynamically
+const activeBasePaths = {
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
+};
+
+export const setActiveBasePath = (env, path) => {
+  if (activeBasePaths[env]) {
+    activeBasePaths[env] = path;
+  }
+};
+
 // Get RPC URL based on selected environment
-export const getRpcUrl = () => RPC_URLS[getCurrentEnv()] || RPC_URLS[NET_ENV.Mainnet];
+export const getRpcUrl = () => activeBasePaths[getCurrentEnv()] || RPC_URLS[NET_ENV.Mainnet];
 
 // Get API base path (proxied in dev + Vercel rewrites)
-export const getRpcApiBasePath = () => RPC_API_BASE_PATHS[getCurrentEnv()] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+export const getRpcApiBasePath = () => activeBasePaths[getCurrentEnv()] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
 
 const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i;
 

@@ -27,6 +27,14 @@ export function publicKeyToAddress(publicKey = "") {
   }
 }
 
+export function addressToScriptHash(address = "") {
+  try {
+    return "0x" + wallet.getScriptHashFromAddress(address);
+  } catch (err) {
+    return null;
+  }
+}
+
 export function reverseHex(value = "") {
   const normalized = strip0x(value);
 

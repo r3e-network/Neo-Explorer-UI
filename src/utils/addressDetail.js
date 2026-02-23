@@ -9,14 +9,18 @@ function toNumber(value, defaultValue = 0) {
   return Number.isFinite(parsed) ? parsed : defaultValue;
 }
 
-export function getAddressDetailTabs() {
-  return [
+export function getAddressDetailTabs(isCandidate = false) {
+  const tabs = [
     { key: "transactions", label: "Transactions" },
     { key: "tokenTransfers", label: "Token Transfers" },
     { key: "nftTransfers", label: "NFT Transfers" },
     { key: "tokens", label: "Token Holdings" },
     { key: "nfts", label: "NFTs" },
   ];
+  if (isCandidate) {
+    tabs.splice(1, 0, { key: "voters", label: "Voters" });
+  }
+  return tabs;
 }
 
 export function normalizeAccountSummary(account = {}, assets = []) {
