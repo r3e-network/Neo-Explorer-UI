@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/img/brand/oneGate.png",
+      "src": "/img/brand/neo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/img/brand/oneGate.png",
+      "src": "/img/brand/neo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

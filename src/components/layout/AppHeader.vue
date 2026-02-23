@@ -21,9 +21,9 @@
         <!-- Logo -->
         <router-link to="/homepage" class="mr-8 flex items-center gap-2.5 no-underline group">
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neo-green to-[#00b377] text-xs font-extrabold text-gray-900 shadow-[0_0_15px_rgba(0,229,153,0.3)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.5)]"
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 p-1.5 shadow-[0_0_15px_rgba(0,229,153,0.1)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.3)]"
           >
-            N3
+            <img src="/img/brand/neo.png" alt="Neo N3 Logo" class="h-full w-full object-contain" />
           </div>
           <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-neo-green bg-clip-text text-transparent transition-all duration-300">
             Neo Explorer
