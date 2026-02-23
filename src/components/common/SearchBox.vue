@@ -11,10 +11,10 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 py-4 pl-4 pr-10 text-sm font-bold text-gray-800 dark:text-gray-200 transition-colors focus:outline-none focus:ring-0 focus:border-r-white/10 flex-shrink-0"
+        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft bg-surface-base hover:bg-surface-hover py-4 pl-4 pr-10 text-sm font-bold text-high transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         aria-label="Search filter"
       >
-        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-white dark:bg-[#071520] text-gray-900 dark:text-white">{{ f.label }}</option>
+        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-surface-base text-high">{{ f.label }}</option>
       </select>
 
       <!-- Search Icon -->
@@ -107,7 +107,7 @@
         id="search-dropdown"
         role="listbox"
         aria-label="Search suggestions"
-        class="surface-panel soft-divider absolute z-50 mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-dropdown"
+        class="surface-panel soft-divider absolute z-[100] mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-[0_10px_40px_rgba(0,0,0,0.2)]"
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0">
