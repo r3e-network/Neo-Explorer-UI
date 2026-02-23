@@ -1,13 +1,24 @@
 <template>
-  <div class="inline-flex items-center gap-1.5">
+  <div class="inline-flex items-center gap-1.5 min-w-0">
+    <!-- Known Address Badge -->
     <router-link
+      v-if="knownName"
       :to="linkPath"
-      class="etherscan-link font-hash break-all text-sm"
+      class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+      :title="hash"
+    >
+      {{ knownName }}
+    </router-link>
+
+    <router-link
+      v-else
+      :to="linkPath"
+      class="etherscan-link font-hash truncate text-sm"
       :title="hash"
     >
       {{ displayHash }}
     </router-link>
-    <CopyButton v-if="copyable" :text="hash" size="sm" />
+    <CopyButton v-if="copyable" :text="hash" size="sm" class="flex-shrink-0" />
   </div>
 </template>
 
@@ -16,6 +27,7 @@ import { computed, ref, watch } from "vue";
 import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
+import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -25,7 +37,6 @@ const props = defineProps({
     validator: (v) => ["tx", "block", "address", "contract", "token"].includes(v),
   },
   tokenStandard: { type: String, default: "" },
-  // Backward-compatible alias used in some existing views.
   truncate: { type: [Boolean, null], default: null },
   truncated: { type: Boolean, default: true },
   copyable: { type: Boolean, default: true },
@@ -37,11 +48,18 @@ const shouldTruncate = computed(() =>
 
 const nnsName = ref("");
 
+const knownName = computed(() => {
+  if (props.type === "address" && props.hash) {
+    return KNOWN_ADDRESSES[props.hash] || null;
+  }
+  return null;
+});
+
 watch(
   () => props.hash,
   async (newHash) => {
     nnsName.value = "";
-    if (props.type === "address" && newHash) {
+    if (props.type === "address" && newHash && !knownName.value) {
       const res = await nnsService.resolveAddressToNNS(newHash);
       if (res && res.nns) {
         nnsName.value = res.nns;
@@ -53,7 +71,7 @@ watch(
 
 const displayHash = computed(() => {
   if (!props.hash) return "";
-  if (nnsName.value) return nnsName.value; // Prefer NNS if available
+  if (nnsName.value) return nnsName.value;
   if (!shouldTruncate.value) return props.hash;
   return truncateHashValue(props.hash, 8, 6);
 });

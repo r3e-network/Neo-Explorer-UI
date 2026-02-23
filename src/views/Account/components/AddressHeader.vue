@@ -19,6 +19,9 @@
           </span>
         </div>
         <div class="detail-metadata">
+          <span v-if="knownName" class="detail-chip font-bold text-blue-600 dark:text-blue-400">
+            {{ knownName }}
+          </span>
           <span v-if="nnsName" class="detail-chip font-bold text-primary-600 dark:text-primary-400">
             {{ nnsName }}
           </span>
@@ -86,10 +89,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { formatNumber, formatBalance } from "@/utils/explorerFormat";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
+import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -105,11 +109,15 @@ defineEmits(["update:showQr"]);
 
 const nnsName = ref("");
 
+const knownName = computed(() => {
+  return KNOWN_ADDRESSES[props.address] || null;
+});
+
 watch(
   () => props.address,
   async (newAddr) => {
     nnsName.value = "";
-    if (newAddr && !props.isContract) {
+    if (newAddr && !props.isContract && !knownName.value) {
       const res = await nnsService.resolveAddressToNNS(newAddr);
       if (res && res.nns) {
         nnsName.value = res.nns;

@@ -64,6 +64,6 @@ describe("HashLink", () => {
   it("applies standard link classes for focus and wrapping safety", () => {
     const wrapper = mountHashLink({ hash: HASH, type: "tx" });
     const link = wrapper.find("a");
-    expect(link.classes()).toEqual(expect.arrayContaining(["etherscan-link", "font-hash", "break-all"]));
+    expect(link.classes()).toEqual(expect.arrayContaining(["etherscan-link", "font-hash", "truncate", "text-sm"]));
   });
 });
