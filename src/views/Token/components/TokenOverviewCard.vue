@@ -33,7 +33,7 @@
       <!-- Symbol -->
       <InfoRow label="Symbol" :value="tokenInfo['symbol']" />
       <!-- Decimals -->
-      <InfoRow label="Decimals" :value="String(tokenInfo['decimals'])" />
+      <InfoRow label="Decimals" :value="String(tokenInfo['decimals'] ?? 0)" />
       <!-- Standard -->
       <InfoRow label="Standard" :value="`NEP-${tokenInfo['type']}`" />
       <!-- First Transfer -->
@@ -46,7 +46,7 @@
       <!-- Total Supply -->
       <InfoRow label="Total Supply" :value="convertToken(tokenInfo['totalsupply'], decimal)" />
       <!-- Holders -->
-      <InfoRow label="Holders" :value="String(tokenInfo['holders'])" />
+      <InfoRow label="Holders" :value="String(tokenInfo['holders'] ?? 0)" />
     </div>
   </div>
 </template>

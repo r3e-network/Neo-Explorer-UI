@@ -51,7 +51,7 @@
                 <span class="text-text-primary dark:text-gray-300">{{ param["type"] }}</span>
               </div>
             </div>
-            <div v-else class="text-sm text-text-muted">null</div>
+            <div v-else class="text-sm text-mid">null</div>
           </div>
         </details>
       </div>
@@ -113,7 +113,7 @@
                     />
                   </div>
                 </div>
-                <div v-else class="text-sm text-text-muted">No parameters</div>
+                <div v-else class="text-sm text-mid">No parameters</div>
               </div>
               <!-- Return Type -->
               <div>

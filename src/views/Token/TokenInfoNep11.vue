@@ -64,6 +64,15 @@
           </div>
         </div>
 
+        <!-- Tab: Recent Transfers -->
+        <div v-show="activeName === 'transfers'">
+          <tokens-tx-nep11
+            type="nep11"
+            :contractHash="tokenId"
+            :decimal="decimal === '' ? 0 : decimal"
+          />
+        </div>
+
         <!-- Tab: NFT Tokens -->
         <div v-show="activeName === 'nfts'">
           <nft-token
@@ -71,13 +80,13 @@
             :contract-hash="tokenId"
             :decimal="decimal === '' ? 0 : decimal"
           />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No NFT tokens found</div>
+          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">No NFT tokens found</div>
         </div>
 
         <!-- Tab: Top Holders -->
         <div v-show="activeName === 'holders'">
           <token-holder v-if="tokenInfo['holders']" :contract-hash="tokenId" :format-balance="false" />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-text-muted">No holders found</div>
+          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">No holders found</div>
         </div>
 
         <!-- Tab: Contract Info -->
@@ -92,8 +101,9 @@
 <script setup>
 import { useTokenDetail } from "@/composables/useTokenDetail";
 import TabsNav from "@/components/common/TabsNav.vue";
-import NftToken from "./NftTokens";
-import TokenHolder from "./TokenHolder";
+import NftToken from "./NftTokens.vue";
+import TokensTxNep11 from "@/components/common/TransferTable.vue";
+import TokenHolder from "./TokenHolder.vue";
 import TokenOverviewCard from "./components/TokenOverviewCard.vue";
 import ContractInfoTab from "./components/ContractInfoTab.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -117,8 +127,9 @@ const {
   copyHash,
   reloadToken,
 } = useTokenDetail({
-  defaultTab: "nfts",
+  defaultTab: "transfers",
   tabs: [
+    { key: "transfers", label: "Recent Transfers" },
     { key: "nfts", label: "NFT Tokens" },
     { key: "holders", label: "Top Holders" },
     { key: "contract", label: "Contract Info" },
