@@ -25,6 +25,7 @@
       :market-cap="marketCap"
       :tx-count="txCount"
       :block-count="blockCount"
+      :latest-block-timestamp="latestBlocks[0]?.timestamp"
       :tps="tps"
     />
 

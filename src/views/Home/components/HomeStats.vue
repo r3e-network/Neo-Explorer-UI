@@ -126,7 +126,13 @@
               </div>
             </div>
           </div>
-          <div class="mt-1 text-xs text-mid">~15s finality (dBFT)</div>
+          <div class="mt-1 flex items-center justify-between text-xs text-mid">
+            <span>~15s block time</span>
+            <span v-if="nextBlockCountdown !== null" class="font-medium whitespace-nowrap text-status-success">
+              <span v-if="nextBlockCountdown > 0">Next in {{ nextBlockCountdown }}s</span>
+              <span v-else class="animate-pulse">Producing...</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -158,7 +164,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import {
   formatNumber,
   formatPrice,
@@ -177,7 +183,34 @@ const props = defineProps({
   txCount: { type: Number, default: 0 },
   blockCount: { type: Number, default: 0 },
   tps: { type: Number, default: 0 },
+  latestBlockTimestamp: { type: Number, default: null },
   loading: { type: Boolean, default: false },
+});
+
+const nextBlockCountdown = ref(null);
+let countdownTimer = null;
+
+function updateCountdown() {
+  if (!props.latestBlockTimestamp) {
+    nextBlockCountdown.value = null;
+    return;
+  }
+  // Convert timestamp to ms if needed
+  const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
+  const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
+  // Neo N3 target block time is ~15s
+  nextBlockCountdown.value = Math.max(0, 15 - ageSecs);
+}
+
+watch(() => props.latestBlockTimestamp, updateCountdown);
+
+onMounted(() => {
+  updateCountdown();
+  countdownTimer = setInterval(updateCountdown, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
 });
 
 const networkFeeDisplay = computed(() => {
