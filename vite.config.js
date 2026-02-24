@@ -3,8 +3,8 @@ import vue from "@vitejs/plugin-vue";
 import compression from "vite-plugin-compression";
 import path from "path";
 
-const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://dora.coz.io/api/v1/neo3/mainnet";
-const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://dora.coz.io/api/v1/neo3/testnet";
+const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";
+const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testmagnet.ngd.network";
 const DEFAULT_MAINNET_BPI_PROXY_TARGET = "https://neofura.ngd.network";
 const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testmagnet.ngd.network";
 
@@ -35,22 +35,22 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         "/api/mainnet/primary": {
-          target: "https://dora.coz.io/api/v1/neo3/mainnet",
+          target: "https://neofura.ngd.network",
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/mainnet/fallback": {
-          target: "https://dora.coz.io/api/v1/neo3/mainnet",
+          target: "https://neofura.ngd.network",
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet/primary": {
-          target: "https://dora.coz.io/api/v1/neo3/testnet",
+          target: "https://testmagnet.ngd.network",
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet/fallback": {
-          target: "https://dora.coz.io/api/v1/neo3/testnet",
+          target: "https://testmagnet.ngd.network",
           changeOrigin: true,
           rewrite: () => "/",
         },

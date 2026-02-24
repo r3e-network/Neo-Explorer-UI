@@ -11,8 +11,8 @@ describe("endpoint defaults", () => {
   it("keeps vite proxy defaults on external non-self-hosted endpoints", () => {
     const viteConfig = readFile("vite.config.js");
 
-    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://dora.coz.io/api/v1/neo3/mainnet";');
-    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://dora.coz.io/api/v1/neo3/testnet";');
+    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testmagnet.ngd.network";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PROXY_TARGET = "https://neofura.ngd.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testmagnet.ngd.network";');
 
@@ -26,12 +26,12 @@ describe("endpoint defaults", () => {
 
     const routeDest = (src) => routes.find((route) => route.src === src)?.dest;
 
-    expect(routeDest("/api/mainnet/primary")).toBe("https://dora.coz.io/api/v1/neo3/mainnet");
-    expect(routeDest("/api/mainnet/fallback")).toBe("https://dora.coz.io/api/v1/neo3/mainnet");
-    expect(routeDest("/api/testnet/primary")).toBe("https://dora.coz.io/api/v1/neo3/testnet");
-    expect(routeDest("/api/testnet/fallback")).toBe("https://dora.coz.io/api/v1/neo3/testnet");
-    expect(routeDest("/api/mainnet")).toBe("https://dora.coz.io/api/v1/neo3/mainnet");
-    expect(routeDest("/api/testnet")).toBe("https://dora.coz.io/api/v1/neo3/testnet");
+    expect(routeDest("/api/mainnet/primary")).toBe("https://neofura.ngd.network");
+    expect(routeDest("/api/mainnet/fallback")).toBe("https://neofura.ngd.network");
+    expect(routeDest("/api/testnet/primary")).toBe("https://testmagnet.ngd.network");
+    expect(routeDest("/api/testnet/fallback")).toBe("https://testmagnet.ngd.network");
+    expect(routeDest("/api/mainnet")).toBe("https://neofura.ngd.network");
+    expect(routeDest("/api/testnet")).toBe("https://testmagnet.ngd.network");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://neofura.ngd.network/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://testmagnet.ngd.network/bpi/$1");
 
