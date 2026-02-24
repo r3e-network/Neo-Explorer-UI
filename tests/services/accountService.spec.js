@@ -37,16 +37,16 @@ describe("accountService", () => {
   describe("getByAddress", () => {
     it("calls safeRpc with address", async () => {
       api.safeRpc.mockResolvedValueOnce({ balance: 100 });
-      await accountService.getByAddress("NAddr");
-      expect(api.safeRpc).toHaveBeenCalledWith("GetAddressByAddress", { Address: "NAddr" }, null);
+      await accountService.getByAddress("0xNAddr");
+      expect(api.safeRpc).toHaveBeenCalledWith("GetAddressByAddress", { Address: "0xNAddr" }, null);
     });
   });
 
   describe("getAssets", () => {
     it("calls safeRpc with address", async () => {
       api.safeRpc.mockResolvedValueOnce([{ asset: "NEO" }]);
-      await accountService.getAssets("NAddr");
-      expect(api.safeRpc).toHaveBeenCalledWith("GetAssetsHeldByAddress", { Address: "NAddr" }, []);
+      await accountService.getAssets("0xNAddr");
+      expect(api.safeRpc).toHaveBeenCalledWith("GetAssetsHeldByAddress", { Address: "0xNAddr" }, []);
     });
   });
 });

@@ -19,86 +19,86 @@ Transform Neo-Explorer-UI into a production-grade, Etherscan-quality blockchain 
 
 **Owner**: services-agent
 
-- [ ] Add `getApplicationLog(txHash)` to transactionService
-- [ ] Add `getInternalTransactions(txHash)` to transactionService
-- [ ] Add `getExecutionTrace(txHash)` to new executionService
-- [ ] Add `getContractManifest(hash)` to contractService
-- [ ] Add `getContractABI(hash)` to contractService
-- [ ] Add `invokeContractRead(hash, method, params)` to contractService
-- [ ] Add `getTokenTransfersByTx(txHash)` to tokenService
-- [ ] Add `getAddressTokenHoldings(address)` to accountService
-- [ ] Add `getGasTracker()` to statsService
-- [ ] Add `getDailyAddressGrowth()` to statsService
-- [ ] Create `src/services/executionService.js` for trace APIs
-- [ ] Update `src/services/cache.js` with trace cache TTL
+- [x] Add `getApplicationLog(txHash)` to transactionService
+- [x] Add `getInternalTransactions(txHash)` to transactionService
+- [x] Add `getExecutionTrace(txHash)` to new executionService
+- [x] Add `getContractManifest(hash)` to contractService
+- [x] Add `getContractABI(hash)` to contractService
+- [x] Add `invokeContractRead(hash, method, params)` to contractService
+- [x] Add `getTokenTransfersByTx(txHash)` to tokenService
+- [x] Add `getAddressTokenHoldings(address)` to accountService
+- [x] Add `getGasTracker()` to statsService
+- [x] Add `getDailyAddressGrowth()` to statsService
+- [x] Create `src/services/executionService.js` for trace APIs
+- [x] Update `src/services/cache.js` with trace cache TTL
 
 ### Stream 2: Transaction Detail Enhancement (P0)
 
 **Owner**: tx-detail-agent
 
-- [ ] Add Application Log section to TxDetailNew.vue
-- [ ] Add Notifications/Events tab with decoded parameters
-- [ ] Add Token Transfers section (NEP-17 + NEP-11)
-- [ ] Add "Transaction Action" human-readable summary line
-- [ ] Add confirmation count display
-- [ ] Add tabbed interface (Overview | Logs | State | Execution Trace)
-- [ ] Add "More Details" expandable section
+- [x] Add Application Log section to TxDetailNew.vue
+- [x] Add Notifications/Events tab with decoded parameters
+- [x] Add Token Transfers section (NEP-17 + NEP-11)
+- [x] Add "Transaction Action" human-readable summary line
+- [x] Add confirmation count display
+- [x] Add tabbed interface (Overview | Logs | State | Execution Trace)
+- [x] Add "More Details" expandable section
 
 ### Stream 3: Execution Trace Feature (P1 — Flagship)
 
 **Owner**: trace-agent
 
-- [ ] Create `src/components/trace/ExecutionTraceView.vue` — tree visualization
-- [ ] Create `src/components/trace/ContractCallMap.vue` — invocation graph
-- [ ] Create `src/components/trace/StackViewer.vue` — NeoVM stack display
-- [ ] Create `src/components/trace/NotificationDecoder.vue` — event decoder
-- [ ] Create `src/views/Transaction/TxExecutionTrace.vue` — full page view
-- [ ] Integrate trace tab into TxDetailNew.vue
-- [ ] Smart detection: only show trace for complex transactions (>1 contract call)
-- [ ] Simple transfers: show clean, minimal view
+- [x] Create `src/components/trace/ExecutionTraceView.vue` — tree visualization
+- [x] Create `src/components/trace/ContractCallMap.vue` — invocation graph
+- [x] Create `src/components/trace/StackViewer.vue` — NeoVM stack display
+- [x] Create `src/components/trace/NotificationDecoder.vue` — event decoder
+- [x] Create `src/views/Transaction/TxExecutionTrace.vue` — full page view
+- [x] Integrate trace tab into TxDetailNew.vue
+- [x] Smart detection: only show trace for complex transactions (>1 contract call)
+- [x] Simple transfers: show clean, minimal view
 
 ### Stream 4: Contract Detail Enhancement (P1)
 
 **Owner**: contract-agent
 
-- [ ] Add Read Contract tab with method invocation UI
-- [ ] Add Write Contract tab (wallet connection placeholder)
-- [ ] Add Contract Manifest viewer (formatted JSON + ABI browser)
-- [ ] Add Analytics tab with invocation charts
-- [ ] Add Internal Transactions tab
-- [ ] Enhance Code tab with compiler info display
-- [ ] Add NEP standard detection badges (NEP-17, NEP-11, NEP-27)
+- [x] Add Read Contract tab with method invocation UI
+- [x] Add Write Contract tab (wallet connection placeholder)
+- [x] Add Contract Manifest viewer (formatted JSON + ABI browser)
+- [x] Add Analytics tab with invocation charts
+- [x] Add Internal Transactions tab
+- [x] Enhance Code tab with compiler info display
+- [x] Add NEP standard detection badges (NEP-17, NEP-11, NEP-27)
 
 ### Stream 5: Address Detail Enhancement (P1)
 
 **Owner**: address-agent
 
-- [ ] Add balance display (NEO + GAS) to AddressDetailNew.vue
-- [ ] Add token holdings panel with USD values
-- [ ] Add NFT holdings grid view
-- [ ] Add tabbed interface: Transactions | Token Transfers | NFT Transfers | Contract
-- [ ] Add transaction table with Method column and direction badges (IN/OUT)
-- [ ] Add CSV export button
+- [x] Add balance display (NEO + GAS) to AddressDetailNew.vue
+- [x] Add token holdings panel with USD values
+- [x] Add NFT holdings grid view
+- [x] Add tabbed interface: Transactions | Token Transfers | NFT Transfers | Contract
+- [x] Add transaction table with Method column and direction badges (IN/OUT)
+- [x] Add CSV export button
 
 ### Stream 6: Navigation & Layout Polish (P2)
 
 **Owner**: layout-agent
 
-- [ ] Add Developers dropdown to AppHeader (API Docs, Verify Contract, Contract Search)
-- [ ] Add "More" mega-menu (Tools: Unit Converter, CSV Export; Explore: Gas Tracker)
-- [ ] Add search filter dropdown to SearchBox component
-- [ ] Add keyboard shortcut `/` to focus search
-- [ ] Polish AppFooter with 4-column layout
-- [ ] Add breadcrumb component (reusable)
-- [ ] Add "Back to Top" button
-- [ ] Ensure all pages have consistent breadcrumb navigation
+- [x] Add Developers dropdown to AppHeader (API Docs, Verify Contract, Contract Search)
+- [x] Add "More" mega-menu (Tools: Unit Converter, CSV Export; Explore: Gas Tracker)
+- [x] Add search filter dropdown to SearchBox component
+- [x] Add keyboard shortcut `/` to focus search
+- [x] Polish AppFooter with 4-column layout
+- [x] Add breadcrumb component (reusable)
+- [x] Add "Back to Top" button
+- [x] Ensure all pages have consistent breadcrumb navigation
 
 ### Stream 7: New Pages & Features (P2)
 
 **Owner**: pages-agent
 
-- [ ] Create Gas Tracker page (`/gas-tracker`)
-- [ ] Create Charts & Analytics page with multiple chart types
+- [x] Create Gas Tracker page (`/gas-tracker`)
+- [x] Create Charts & Analytics page with multiple chart types
 - [ ] Create Advanced Search page (`/advanced-search`)
 - [ ] Add address growth chart
 - [ ] Add contract deployment chart

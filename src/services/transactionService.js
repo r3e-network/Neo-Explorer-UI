@@ -36,6 +36,15 @@ export const transactionService = createService(
       buildParams: ([hash]) => ({ TransactionHash: hash }),
       buildCacheParams: ([hash]) => ({ hash }),
     },
+    getInternalTransactions: {
+      _type: "list",
+      cacheKey: "tx_internal",
+      rpcMethod: "GetInternalTransactionsByTransactionHash",
+      errorLabel: "get internal transactions",
+      ttl: CACHE_TTL.trace,
+      buildParams: ([hash, limit = 20, skip = 0]) => ({ TransactionHash: hash, Limit: limit, Skip: skip }),
+      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
+    },
     getCountByAddress: {
       cacheKey: "tx_count_address",
       rpcMethod: "GetTransactionCountByAddress",

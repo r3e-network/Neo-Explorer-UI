@@ -43,6 +43,14 @@ export const statsService = createService(
       buildParams: ([days = 30]) => ({ Days: days }),
       buildCacheParams: ([days = 30]) => ({ days }),
     },
+    getDailyAddressGrowth: {
+      cacheKey: "daily_address_growth",
+      rpcMethod: "GetDailyAddressGrowth",
+      fallback: [],
+      ttl: CACHE_TTL.chart,
+      buildParams: ([days = 30]) => ({ Days: days }),
+      buildCacheParams: ([days = 30]) => ({ days }),
+    },
   },
   {
     /**

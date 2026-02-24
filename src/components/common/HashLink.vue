@@ -39,6 +39,7 @@ import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
+import { NATIVE_CONTRACTS } from "@/constants/index";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -61,8 +62,13 @@ const shouldTruncate = computed(() =>
 const nnsName = ref("");
 
 const knownName = computed(() => {
-  if (props.type === "address" && props.hash) {
+  if (!props.hash) return null;
+  if (props.type === "address") {
     return KNOWN_ADDRESSES[props.hash] || null;
+  }
+  if (props.type === "contract") {
+    const native = NATIVE_CONTRACTS[props.hash.toLowerCase()];
+    if (native && native.name) return native.name;
   }
   return null;
 });

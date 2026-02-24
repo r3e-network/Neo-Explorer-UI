@@ -57,10 +57,10 @@ describe("transactionService", () => {
       const mockData = { result: [], totalCount: 0 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
       
-      await transactionService.getByAddress("NAddr", 15, 10);
+      await transactionService.getByAddress("0xNAddr", 15, 10);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByAddress",
-        { Address: "NAddr", Limit: 15, Skip: 10 },
+        { Address: "0xNAddr", Limit: 15, Skip: 10 },
         "get transactions by address"
       );
     });
