@@ -7,7 +7,7 @@
       class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
       :title="hash"
     >
-      <img v-if="knownLogo" :src="knownLogo" class="w-3.5 h-3.5 rounded-full object-cover bg-white" alt="" />
+      <img v-if="knownLogo" :src="knownLogo" class="w-3.5 h-3.5 rounded-full object-cover bg-white" :alt="knownName" />
       {{ knownName }}
     </router-link>
 
@@ -78,7 +78,7 @@ const knownName = computed(() => {
     const known = KNOWN_CONTRACTS[hash];
     if (known && known.name) return known.name;
   }
-  return null;
+  return fetchedContractName.value || null;
 });
 
 const knownLogo = computed(() => {
@@ -87,6 +87,11 @@ const knownLogo = computed(() => {
     const hash = props.hash.toLowerCase();
     const known = KNOWN_CONTRACTS[hash];
     if (known && known.logo) return known.logo;
+    
+    // Auto-detect Flamingo contracts by name if we dynamically fetched it
+    if (fetchedContractName.value && fetchedContractName.value.toLowerCase().includes('flamingo')) {
+      return "https://flamingo.finance/favicon.ico";
+    }
   }
   return null;
 });
