@@ -20,7 +20,7 @@ export const transactionService = createService(
       realtime: true,
       buildParams: () => ({}),
     },
-    getList: {
+    _getList: {
       _type: "list",
       cacheKey: "tx_list",
       rpcMethod: "GetTransactionList",
