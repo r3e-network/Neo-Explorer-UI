@@ -55,6 +55,24 @@ describe("SearchBox", () => {
     expect(wrapper.find("#search-dropdown").exists()).toBe(true);
   });
 
+  it("raises search container z-index when dropdown is visible", async () => {
+    const wrapper = factory();
+    await wrapper.find("input").trigger("focus");
+    expect(wrapper.find(".search-box").classes()).toContain("z-[140]");
+  });
+
+  it("uses theme text tokens for input readability", () => {
+    const wrapper = factory();
+    const classAttr = wrapper.find("input").attributes("class");
+    expect(classAttr).toContain("text-high");
+    expect(classAttr).toContain("placeholder:text-mid");
+  });
+
+  it("applies dedicated class to keep submit button vertically aligned", () => {
+    const wrapper = factory();
+    expect(wrapper.find("button[aria-label='Submit search']").classes()).toContain("search-submit-btn");
+  });
+
   it("selects highlighted suggestion with Enter", async () => {
     const wrapper = factory();
     const input = wrapper.find("input");

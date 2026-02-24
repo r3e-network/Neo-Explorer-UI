@@ -3,13 +3,13 @@
     <!-- Hero Section -->
     <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
       <div class="hero-overlay"></div>
-      <div class="page-container relative z-10 py-10 md:py-14">
+      <div class="page-container relative z-30 py-10 md:py-14">
         <div v-once class="mx-auto max-w-3xl text-center">
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl">
             The Neo N3 Blockchain Explorer
           </h1>
           <p class="mt-2 text-sm text-white/70">Search transactions, blocks, addresses, tokens and more on Neo N3</p>
-          <div class="mt-6">
+          <div class="relative z-30 mt-6">
             <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
           </div>
         </div>

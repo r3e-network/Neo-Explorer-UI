@@ -1,5 +1,9 @@
 <template>
-  <div ref="searchContainer" class="search-box relative group" :class="{ 'w-full': mode === 'full' }">
+  <div
+    ref="searchContainer"
+    class="search-box relative group overflow-visible"
+    :class="[mode === 'full' ? 'w-full' : '', showDropdown ? 'z-[140]' : 'z-20']"
+  >
     <div
       :class="[
         'relative flex items-center transition-all duration-300 rounded-xl',
@@ -11,16 +15,18 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 py-4 pl-4 pr-10 text-sm font-bold text-gray-900 dark:text-gray-100 transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
+        class="search-filter h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft py-4 pl-4 pr-10 text-sm font-bold transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         aria-label="Search filter"
       >
-        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">{{ f.label }}</option>
+        <option v-for="f in filters" :key="f.value" :value="f.value" class="search-filter-option">
+          {{ f.label }}
+        </option>
       </select>
 
       <!-- Search Icon -->
       <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-5' : 'pl-4'">
         <svg
-          class="w-4 h-4 text-gray-500 dark:text-primary-400 transition-colors duration-300 group-focus-within:text-primary-500"
+          class="w-4 h-4 text-mid transition-colors duration-300 group-focus-within:text-primary-500"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -36,7 +42,7 @@
         <kbd
           v-if="mode === 'full'"
           :class="[
-            'border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-gray-500 dark:text-gray-400 border bg-black/5 dark:bg-white/5 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
+            'border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-mid border bg-black/5 dark:bg-white/5 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
             isFocused ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
           ]"
           title="Press / to search"
@@ -51,7 +57,7 @@
         type="text"
         :placeholder="currentPlaceholder"
         :class="[
-          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 font-medium',
+          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent text-high placeholder:text-mid font-medium',
           mode === 'full'
             ? 'px-4 py-4 pr-28 text-base border-none'
             : 'px-3 py-2 pr-12 text-sm border-none',
@@ -78,7 +84,7 @@
         :disabled="loading || !query.trim()"
         aria-label="Submit search"
         :class="[
-          'absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5',
+          'search-submit-btn absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5',
           mode === 'full'
             ? 'btn-primary'
             : 'btn-primary h-[32px] w-[32px] !px-0 rounded-lg',
@@ -107,7 +113,7 @@
         id="search-dropdown"
         role="listbox"
         aria-label="Search suggestions"
-        class="surface-panel soft-divider absolute z-[100] mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-[0_10px_40px_rgba(0,0,0,0.2)]"
+        class="surface-panel soft-divider absolute z-[150] mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-[0_10px_40px_rgba(0,0,0,0.2)]"
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0">
@@ -449,6 +455,25 @@ onBeforeUnmount(() => {
 .search-group-header {
   background: color-mix(in srgb, var(--surface-hover) 88%, transparent);
   border-bottom: 1px solid var(--line-soft);
+}
+
+.search-filter {
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  color: var(--text-high);
+}
+
+.search-filter:hover {
+  background: color-mix(in srgb, var(--surface-hover) 88%, transparent);
+}
+
+.search-filter-option {
+  background: var(--surface-elevated);
+  color: var(--text-high);
+}
+
+.search-submit-btn:hover:not(:disabled),
+.search-submit-btn:active:not(:disabled) {
+  transform: translateY(-50%);
 }
 
 .search-tip-code {
