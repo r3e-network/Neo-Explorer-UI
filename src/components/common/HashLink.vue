@@ -39,6 +39,7 @@ import { computed, ref, watch } from "vue";
 import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
+import { contractService } from "@/services";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
@@ -63,6 +64,7 @@ const shouldTruncate = computed(() =>
 );
 
 const nnsName = ref("");
+const fetchedContractName = ref("");
 
 const knownName = computed(() => {
   if (!props.hash) return null;
@@ -93,11 +95,23 @@ watch(
   () => [props.hash, props.type, props.resolveNns],
   async ([newHash, type, resolveNns]) => {
     nnsName.value = "";
+    fetchedContractName.value = "";
+    
     if (resolveNns && type === "address" && newHash && !knownName.value) {
       const res = await nnsService.resolveAddressToNNS(newHash);
       if (res && res.nns) {
         nnsName.value = res.nns;
       }
+    }
+
+    if ((type === "contract" || type === "token") && newHash && !knownName.value) {
+      const hash = newHash.startsWith('0x') ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
+      try {
+        const contract = await contractService.getByHash(hash);
+        if (contract && contract.name) {
+          fetchedContractName.value = contract.name;
+        }
+      } catch (e) {}
     }
   },
   { immediate: true }
@@ -106,6 +120,7 @@ watch(
 const displayHash = computed(() => {
   if (!props.hash) return "";
   if (nnsName.value) return nnsName.value;
+  if (fetchedContractName.value) return fetchedContractName.value;
   if (!shouldTruncate.value) return props.hash;
   return truncateHashValue(props.hash, 8, 6);
 });

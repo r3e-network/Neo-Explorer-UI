@@ -24,6 +24,7 @@ export const transactionService = createService(
       _type: "list",
       cacheKey: "tx_list",
       rpcMethod: "GetTransactionList",
+      realtime: true,
       errorLabel: "get transaction list",
       ttl: CACHE_TTL.chart,
       buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
@@ -55,7 +56,7 @@ export const transactionService = createService(
       buildParams: ([address]) => ({ Address: addressToScriptHash(address) || address }),
       buildCacheParams: ([address]) => ({ address }),
     },
-    getByAddress: {
+    _getByAddress: {
       _type: "list",
       cacheKey: "tx_address_list",
       rpcMethod: "GetRawTransactionByAddress",
@@ -96,7 +97,46 @@ export const transactionService = createService(
     async getApplicationLog(txHash) {
       return executionService.getExecutionTrace(txHash);
     },
+
+    async getList(limit = 20, skip = 0, options = {}) {
+      const { enrichMissingFields = true, ...requestOptions } = options;
+      const res = await this._getList(limit, skip, requestOptions);
+      if (!res || !res.result) return res;
+
+      const enriched = await Promise.all(
+        res.result.map(async (tx) => {
+          if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
+            try {
+              const full = await this.getByHash(tx.hash, requestOptions);
+              if (full && full.vmstate) tx.vmstate = full.vmstate;
+            } catch (e) {}
+          }
+          return tx;
+        })
+      );
+      return { ...res, result: enriched };
+    },
+
+    async getByAddress(address, limit = 20, skip = 0, options = {}) {
+      const { enrichMissingFields = true, ...requestOptions } = options;
+      const res = await this._getByAddress(address, limit, skip, requestOptions);
+      if (!res || !res.result) return res;
+
+      const enriched = await Promise.all(
+        res.result.map(async (tx) => {
+          if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
+            try {
+              const full = await this.getByHash(tx.hash, requestOptions);
+              if (full && full.vmstate) tx.vmstate = full.vmstate;
+            } catch (e) {}
+          }
+          return tx;
+        })
+      );
+      return { ...res, result: enriched };
+    }
   }
+
 );
 
 export default transactionService;

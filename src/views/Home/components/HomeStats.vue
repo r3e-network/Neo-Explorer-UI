@@ -215,8 +215,8 @@ function updateCountdown() {
   const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
   nextBlockCountdown.value = Math.max(0, targetTime.value - ageSecs);
 
-  if (nextBlockCountdown.value <= 0 && lastFetchRequestedForTimestamp.value !== tsMs) {
-    lastFetchRequestedForTimestamp.value = tsMs;
+  // If block is overdue, emit fetch-latest. HomePage will throttle this to once every 3 seconds.
+  if (nextBlockCountdown.value <= 0) {
     emit("fetch-latest");
   }
 }

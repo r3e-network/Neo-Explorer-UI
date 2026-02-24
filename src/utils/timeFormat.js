@@ -30,6 +30,8 @@ export function formatAge(timestamp, nowMs = Date.now()) {
   const ts = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
   const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts));
 
+  // Neo N3 block time is 15s. A newly received block will already be ~15-20s old.
+  if (seconds < 25) return "just now";
   if (seconds < 60) return `${seconds} secs ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
