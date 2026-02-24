@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { formatNumber, formatAge, formatBytes, formatGas } from "@/utils/explorerFormat";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { NULL_TX_HASH } from "@/constants";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -72,7 +73,7 @@ const timeAgo = computed(() => {
 
       <!-- Validator / Next Consensus -->
       <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
-        <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
+        <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" />
         <span v-else class="text-mid">--</span>
       </InfoRow>
 
@@ -115,7 +116,7 @@ const timeAgo = computed(() => {
 
       <!-- Next Consensus -->
       <InfoRow label="Next Consensus" tooltip="Address of the next consensus node">
-        <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" :truncated="false" />
+        <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" :truncated="false" />
         <span v-else class="text-mid">--</span>
       </InfoRow>
 
