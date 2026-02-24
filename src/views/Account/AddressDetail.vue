@@ -43,6 +43,7 @@
             :total-pages="txTotalPages"
             :page-size="txPageSize"
             :total-count="txTotalCount"
+            :transfer-summary-by-hash="transferSummaryByHash"
             @go-to-page="goToTxPage"
             @change-page-size="changeTxPageSize"
             @export-csv="exportCsv"
@@ -131,6 +132,7 @@ import {
   downloadTransactionsCsv,
 } from "@/utils/addressDetail";
 import { usePagination } from "@/composables/usePagination";
+import { useTransferSummary } from "@/composables/useTransferSummary";
 import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import AddressHeader from "./components/AddressHeader.vue";
@@ -161,6 +163,7 @@ const fungibleAssets = ref([]);
 const nftAssets = ref([]);
 const assetsLoading = ref(false);
 const assetsError = ref("");
+const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 // Transactions pagination via composable
 const {
   items: transactions,
@@ -178,8 +181,10 @@ const {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
     const response = await transactionService.getByAddress(addr, pageSize, skip);
+    const result = normalizeAddressTransactions(response?.result || []);
+    enrichTransactions(result);
     return {
-      result: normalizeAddressTransactions(response?.result || []),
+      result,
       totalCount: Number(response?.totalCount || 0),
     };
   },

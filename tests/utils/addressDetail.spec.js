@@ -72,6 +72,11 @@ describe("addressDetail utils", () => {
         sender: "Nabc",
         vmstate: "HALT",
         size: 244,
+        netfee: 0,
+        sysfee: 0,
+        script: "",
+        value: 0,
+        notifications: [],
       },
     ]);
   });

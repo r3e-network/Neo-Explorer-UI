@@ -141,6 +141,11 @@ export function normalizeAddressTransactions(transactions = []) {
     sender: tx?.sender || tx?.from || tx?.fromAddress || "",
     vmstate: tx?.vmstate || tx?.Vmstate || tx?.VMState || "",
     size: toNumber(tx?.size, 0),
+    netfee: tx?.netfee || tx?.networkFee || 0,
+    sysfee: tx?.sysfee || tx?.systemFee || 0,
+    script: tx?.script || "",
+    value: tx?.value || 0,
+    notifications: tx?.notifications || [],
   }));
 }
 

@@ -135,8 +135,9 @@
 </template>
 
 <script setup>
-import { formatAge, truncateHash, formatNumber } from "@/utils/explorerFormat";
-import { getTransferDirection, parseTxMethod } from "@/utils/addressDetail";
+import { formatAge, truncateHash, formatNumber, getContractDisplayName, formatGas } from "@/utils/explorerFormat";
+import { getTransferDirection } from "@/utils/addressDetail";
+import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -151,6 +152,7 @@ const props = defineProps({
   totalPages: { type: Number, default: 1 },
   pageSize: { type: Number, default: 10 },
   totalCount: { type: Number, default: 0 },
+  transferSummaryByHash: { type: Object, default: () => ({}) },
 });
 
 defineEmits(["goToPage", "changePageSize", "exportCsv"]);
@@ -160,21 +162,46 @@ function getDirection(from, to) {
 }
 
 function getTxMethod(tx) {
-  return parseTxMethod(tx);
+  if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
+    return "Oracle Callback";
+  }
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.method) {
+        const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
+        if (govMethods.includes(inv.method) && (inv.contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || inv.contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || inv.contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
+            return `Governance: ${inv.method}`;
+        }
+        const cName = getContractDisplayName(inv.contractHash);
+        if (cName && !cName.startsWith("0x")) {
+           return `${cName}: ${inv.method}`;
+        }
+        return inv.method;
+     }
+  }
+  if (tx.method) return tx.method;
+  if (tx.notifications?.length > 0) {
+    return tx.notifications[0].eventname || "Transfer";
+  }
+  return "Transfer";
 }
 
 function formatTxValue(tx) {
-  const val = Number(tx?.value ?? tx?.amount ?? 0);
-  if (!val) return "-";
-  return val.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  const summary = props.transferSummaryByHash[tx.hash];
+  if (summary && summary !== "\u2014") return summary;
+
+  const transferValue = Number(tx.value || tx.amount || 0);
+  if (transferValue > 0) {
+    return `${formatGas(transferValue)} GAS`;
+  }
+  return "-";
 }
 
 function formatTxFee(tx) {
   const net = Number(tx?.netfee || 0);
   const sys = Number(tx?.sysfee || 0);
   const total = net + sys;
-  if (!total) return "-";
-  const decimals = 8;
-  return (total / Math.pow(10, decimals)).toFixed(Math.min(decimals, 6));
+  if (!total) return "0";
+  return formatGas(total);
 }
 </script>
