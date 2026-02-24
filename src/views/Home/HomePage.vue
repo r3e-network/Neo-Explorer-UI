@@ -54,6 +54,7 @@ import LatestTransactions from "./components/LatestTransactions.vue";
 import { statsService, blockService, transactionService, searchService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
+import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
@@ -77,6 +78,8 @@ const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
+let lastStatsRefreshTime = 0;
+const STATS_REFRESH_INTERVAL_MS = 60_000;
 
 function handleFetchLatest() {
   const now = Date.now();
@@ -104,8 +107,7 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
 async function loadData() {
   latestLoading.value = true;
 
-  // Stats and prices should not block first render of latest blocks/transactions.
-  void loadStats();
+  // Prices are external and lightweight; keep non-blocking.
   void loadPrices();
 
   try {
@@ -115,6 +117,9 @@ async function loadData() {
   } finally {
     latestLoading.value = false;
   }
+
+  // Defer heavy dashboard stats until latest blocks/transactions are rendered.
+  void loadStats();
 }
 
 async function loadStats(forceRefresh = false) {
@@ -122,6 +127,7 @@ async function loadStats(forceRefresh = false) {
     const stats = await statsService.getDashboardStats(forceRefresh);
     blockCount.value = stats.blocks || 0;
     txCount.value = stats.txs || 0;
+    lastStatsRefreshTime = Date.now();
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load dashboard stats:", err);
   }
@@ -191,7 +197,7 @@ async function handleSearch(inputValue) {
 
   searchLoading.value = true;
   try {
-    const result = await searchService.search(query);
+    const result = await resolveSearchResultWithTimeout((q) => searchService.search(q), query);
     const location = resolveSearchLocation(query, result);
     if (location) router.push(location).catch(() => {});
   } catch (err) {
@@ -205,13 +211,16 @@ async function handleSearch(inputValue) {
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {
-  loadLatestData(true);
-  loadStats(true);
+  void loadLatestData(true);
+  const now = Date.now();
+  if (now - lastStatsRefreshTime >= STATS_REFRESH_INTERVAL_MS) {
+    void loadStats(true);
+  }
 });
 
 function handleNetworkChange() {
-  loadLatestData(true);
-  loadStats(true);
+  void loadLatestData(true);
+  void loadStats(true);
   startAutoRefresh();
 }
 

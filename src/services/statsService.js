@@ -45,7 +45,7 @@ export const statsService = createService(
     },
     getDailyAddressGrowth: {
       cacheKey: "daily_address_growth",
-      rpcMethod: "GetDailyAddressGrowth",
+      rpcMethod: "GetNewAddresses",
       fallback: [],
       ttl: CACHE_TTL.chart,
       buildParams: ([days = 30]) => ({ Days: days }),

@@ -40,8 +40,8 @@ export const transactionService = createService(
     getInternalTransactions: {
       _type: "list",
       cacheKey: "tx_internal",
-      rpcMethod: "GetInternalTransactionsByTransactionHash",
-      errorLabel: "get internal transactions",
+      rpcMethod: "GetScCallByTransactionHash",
+      errorLabel: "get internal transaction calls",
       ttl: CACHE_TTL.trace,
       buildParams: ([hash, limit = 20, skip = 0]) => ({ TransactionHash: hash, Limit: limit, Skip: skip }),
       buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),

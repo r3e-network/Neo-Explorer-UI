@@ -55,6 +55,7 @@ const props = defineProps({
   truncated: { type: Boolean, default: true },
   copyable: { type: Boolean, default: true },
   showNeoChat: { type: Boolean, default: false },
+  resolveNns: { type: Boolean, default: true },
 });
 
 const shouldTruncate = computed(() =>
@@ -89,10 +90,10 @@ const knownLogo = computed(() => {
 });
 
 watch(
-  () => props.hash,
-  async (newHash) => {
+  () => [props.hash, props.type, props.resolveNns],
+  async ([newHash, type, resolveNns]) => {
     nnsName.value = "";
-    if (props.type === "address" && newHash && !knownName.value) {
+    if (resolveNns && type === "address" && newHash && !knownName.value) {
       const res = await nnsService.resolveAddressToNNS(newHash);
       if (res && res.nns) {
         nnsName.value = res.nns;

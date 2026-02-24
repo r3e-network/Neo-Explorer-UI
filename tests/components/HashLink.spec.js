@@ -1,5 +1,17 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const { resolveAddressToNNS } = vi.hoisted(() => ({
+  resolveAddressToNNS: vi.fn(async () => null),
+}));
+
+const UNKNOWN_ADDRESS = "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+vi.mock("@/services/nnsService", () => ({
+  default: {
+    resolveAddressToNNS,
+  },
+}));
 
 import HashLink from "@/components/common/HashLink.vue";
 
@@ -20,6 +32,10 @@ const mountHashLink = (props = {}) =>
   });
 
 describe("HashLink", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("truncates hash by default", () => {
     const wrapper = mountHashLink({ hash: HASH, type: "tx" });
     expect(wrapper.text()).toContain("0x123456...abcdef");
@@ -65,5 +81,26 @@ describe("HashLink", () => {
     const wrapper = mountHashLink({ hash: HASH, type: "tx" });
     const link = wrapper.find("a");
     expect(link.classes()).toEqual(expect.arrayContaining(["etherscan-link", "font-hash", "truncate", "text-sm"]));
+  });
+
+  it("skips NNS resolution when resolveNns is false", async () => {
+    mountHashLink({
+      hash: UNKNOWN_ADDRESS,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    expect(resolveAddressToNNS).not.toHaveBeenCalled();
+  });
+
+  it("resolves NNS for address links by default", async () => {
+    mountHashLink({
+      hash: UNKNOWN_ADDRESS,
+      type: "address",
+    });
+
+    await flushPromises();
+    expect(resolveAddressToNNS).toHaveBeenCalledWith(UNKNOWN_ADDRESS);
   });
 });

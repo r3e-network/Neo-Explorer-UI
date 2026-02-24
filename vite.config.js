@@ -95,7 +95,37 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
-        output: {},
+        output: {
+          manualChunks(id) {
+            if (id.includes("commonjsHelpers.js") || id.startsWith("\u0000commonjsHelpers")) {
+              return "vendor";
+            }
+
+            if (!id.includes("node_modules")) return null;
+
+            if (id.includes("node_modules/@walletconnect")) {
+              return "walletconnect";
+            }
+
+            if (id.includes("node_modules/@cityofzion/neon-dappkit")) {
+              return "neon-dappkit";
+            }
+
+            if (id.includes("node_modules/@cityofzion/neon-js")) {
+              return "neon-js";
+            }
+
+            if (id.includes("node_modules/ox")) {
+              return "ox-core";
+            }
+
+            if (id.includes("node_modules/axios")) {
+              return "axios";
+            }
+
+            return "vendor";
+          },
+        },
       },
     },
   };

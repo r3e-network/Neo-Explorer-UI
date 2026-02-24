@@ -82,6 +82,7 @@ import DesktopNav from "@/components/layout/DesktopNav.vue";
 import MobileMenu from "@/components/layout/MobileMenu.vue";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
+import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
 import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
 
@@ -158,7 +159,7 @@ async function handleSearch(query) {
   if (!query) return;
   try {
     const searchService = await loadSearchService();
-    const result = await searchService.search(query);
+    const result = await resolveSearchResultWithTimeout((q) => searchService.search(q), query);
     const location = resolveSearchLocation(query, result);
     if (location) router.push(location).catch(() => {});
   } catch (err) {

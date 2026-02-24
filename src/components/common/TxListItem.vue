@@ -20,7 +20,7 @@
       <div class="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
         <div class="min-w-0 text-right">
           <p class="text-xs text-mid">From</p>
-          <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
+          <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" :resolve-nns="false" />
         </div>
         <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />

@@ -1,8 +1,9 @@
 import bs58 from "bs58";
 import { sha256 } from "ethereum-cryptography/sha256";
-import { wallet } from "@cityofzion/neon-js";
+import { ripemd160 } from "ethereum-cryptography/ripemd160";
 
 const ADDRESS_VERSION = 0x35;
+const CHECKSIG_SCRIPT_SUFFIX = "4156e7b327";
 
 export function strip0x(value = "") {
   return String(value).replace(/^0x/i, "");
@@ -20,17 +21,54 @@ export function isPublicKeyHex(value = "") {
 
 export function publicKeyToAddress(publicKey = "") {
   try {
-    const acct = new wallet.Account(publicKey);
-    return acct.address;
+    const normalized = strip0x(publicKey).toLowerCase();
+    let compressed = normalized;
+
+    if (/^04[0-9a-f]{128}$/.test(normalized)) {
+      const x = normalized.slice(2, 66);
+      const y = normalized.slice(66);
+      const yLastByte = Number.parseInt(y.slice(-2), 16);
+      compressed = `${yLastByte % 2 === 0 ? "02" : "03"}${x}`;
+    }
+
+    if (!/^(02|03)[0-9a-f]{64}$/.test(compressed)) {
+      return publicKey;
+    }
+
+    const verificationScript = hexToBytes(`0c21${compressed}${CHECKSIG_SCRIPT_SUFFIX}`);
+    const scriptHashLittleEndian = bytesToHex(ripemd160(sha256(verificationScript)));
+    const scriptHashBigEndian = reverseHex(scriptHashLittleEndian);
+    const address = scriptHashHexToAddress(scriptHashBigEndian);
+    return address || publicKey;
   } catch (err) {
     return publicKey;
   }
 }
 
 export function addressToScriptHash(address = "") {
-  if (address.startsWith("0x")) return address;
+  const normalized = String(address || "").trim();
+  if (!normalized) return null;
+  if (normalized.startsWith("0x")) return normalized;
+
   try {
-    return "0x" + wallet.getScriptHashFromAddress(address);
+    const decoded = bs58.decode(normalized);
+    if (decoded.length !== 25 || decoded[0] !== ADDRESS_VERSION) {
+      return null;
+    }
+
+    const payload = decoded.slice(0, 21);
+    const checksum = decoded.slice(21);
+    const expectedChecksum = sha256(sha256(payload)).slice(0, 4);
+    const isValidChecksum =
+      checksum.length === expectedChecksum.length && checksum.every((byte, index) => byte === expectedChecksum[index]);
+
+    if (!isValidChecksum) return null;
+
+    const scriptHashLittleEndian = bytesToHex(payload.slice(1));
+    const scriptHashBigEndian = reverseHex(scriptHashLittleEndian);
+    if (!isScriptHashHex(scriptHashBigEndian)) return null;
+
+    return `0x${scriptHashBigEndian}`;
   } catch (err) {
     return null;
   }
