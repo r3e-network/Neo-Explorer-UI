@@ -12,7 +12,7 @@
         v-model:show-qr="showQr"
         :neo-balance="neoBalance"
         :gas-balance="gasBalance"
-        :tx-count="txCount"
+        :tx-count="txTotalCount"
         :token-count="tokenCount"
         :candidate-data="candidateData"
       />
@@ -308,6 +308,13 @@ async function loadSummary(addr) {
           isCandidate.value = true;
           candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || '' };
           
+          try {
+            const votes = await candidateService.getVotesByAddress(scriptHash);
+            if (currentRequestId === addressRequestId) {
+               candidateData.value.votes = typeof votes === 'object' && votes !== null ? (votes.votesOfCandidate || votes.votes || 0) : votes;
+            }
+          } catch(e) {}
+          
           const env = getCurrentEnv().toLowerCase();
           if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
              candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
@@ -384,9 +391,16 @@ async function loadAssets(addr) {
   assetsError.value = "";
 
   try {
-    const result = await accountService.getAssets(addr);
+    const response = await accountService.getAssets(addr);
     if (currentRequestId !== addressRequestId) return;
-    assets.value = Array.isArray(result) ? result : [];
+    
+    let rawAssets = [];
+    if (Array.isArray(response)) {
+      rawAssets = response;
+    } else if (response && Array.isArray(response.result)) {
+      rawAssets = response.result;
+    }
+    assets.value = rawAssets;
 
     const split = splitAddressAssets(assets.value);
     fungibleAssets.value = split.fungibleAssets;

@@ -91,9 +91,44 @@
               <div v-if="inst.semantic" class="mb-1 text-[11px] font-bold text-primary-600 dark:text-primary-400">
                 // Call: {{ inst.semantic }}
               </div>
-              <span v-if="inst.operand" :class="operandClass(inst)">{{
-                inst.operand
-              }}</span>
+              <template v-if="inst.operand">
+                <span v-if="parseOperand(inst.operand)" :class="operandClass(inst)">
+                  {{ parseOperand(inst.operand).hash }}
+                  <span class="text-mid font-normal">(</span>
+                  <span v-if="parseOperand(inst.operand).type === 'account'" class="text-mid font-normal">Account: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-mid font-normal">Native: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'contract'" class="text-mid font-normal">Hash160: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'tx'" class="text-mid font-normal">Hash256: </span>
+                  <HashLink
+                    v-if="parseOperand(inst.operand).type === 'account'"
+                    :hash="parseOperand(inst.operand).address"
+                    type="address"
+                    :copyable="false"
+                    :truncate="false"
+                    class="inline-flex"
+                  />
+                  <HashLink
+                    v-else-if="parseOperand(inst.operand).type === 'contract' || parseOperand(inst.operand).type === 'native'"
+                    :hash="parseOperand(inst.operand).hash"
+                    type="contract"
+                    :copyable="false"
+                    :truncate="false"
+                    class="inline-flex"
+                  />
+                  <HashLink
+                    v-else-if="parseOperand(inst.operand).type === 'tx'"
+                    :hash="parseOperand(inst.operand).hash"
+                    type="tx"
+                    :copyable="false"
+                    :truncate="false"
+                    class="inline-flex"
+                  />
+                  <span class="text-mid font-normal">)</span>
+                </span>
+                <span v-else :class="operandClass(inst)">{{
+                  inst.operand
+                }}</span>
+              </template>
             </td>
           </tr>
         </tbody>
@@ -115,6 +150,7 @@
 import { ref, computed } from "vue";
 import { disassembleScript } from "@/utils/scriptDisassembler";
 import CopyButton from "@/components/common/CopyButton.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   /** Base64-encoded script */
@@ -122,6 +158,28 @@ const props = defineProps({
   /** Display label */
   label: { type: String, default: "Script" },
 });
+
+function parseOperand(operandStr) {
+  if (!operandStr) return null;
+  
+  // Try matching "0x... (Account: N...)"
+  let m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Account:\s+(N[a-zA-Z0-9]+)\)$/);
+  if (m) return { type: 'account', hash: m[1], address: m[2] };
+
+  // Try matching "0x... (Native: XXX)"
+  m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Native:\s+([^)]+)\)$/);
+  if (m) return { type: 'native', hash: m[1], name: m[2] };
+
+  // Try matching "0x... (Hash160)"
+  m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Hash160\)$/);
+  if (m) return { type: 'contract', hash: m[1] };
+  
+  // Try matching "0x... (Hash256)"
+  m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Hash256\)$/);
+  if (m) return { type: 'tx', hash: m[1] };
+
+  return null;
+}
 
 const showRaw = ref(false);
 const showAllOps = ref(false);

@@ -28,6 +28,7 @@ export function publicKeyToAddress(publicKey = "") {
 }
 
 export function addressToScriptHash(address = "") {
+  if (address.startsWith("0x")) return address;
   try {
     return "0x" + wallet.getScriptHashFromAddress(address);
   } catch (err) {
