@@ -32,7 +32,16 @@ export const accountService = createService(
       fallback: null,
       ttl: CACHE_TTL.address,
       realtime: true,
-      buildParams: ([address]) => ({ Address: address }),
+      buildParams: ([address]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash };
+      },
       buildCacheParams: ([address]) => ({ address }),
     },
     getAssets: {
@@ -41,7 +50,16 @@ export const accountService = createService(
       fallback: [],
       ttl: CACHE_TTL.token,
       realtime: true,
-      buildParams: ([address]) => ({ Address: address }),
+      buildParams: ([address]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash };
+      },
       buildCacheParams: ([address]) => ({ address }),
     },
     getNep17Transfers: {
@@ -50,7 +68,16 @@ export const accountService = createService(
       rpcMethod: "GetNep17TransferByAddress",
       errorLabel: "get NEP17 transfers by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
+      buildParams: ([address, limit = 20, skip = 0]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash, Limit: limit, Skip: skip };
+      },
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
     getNep11Transfers: {
@@ -59,7 +86,16 @@ export const accountService = createService(
       rpcMethod: "GetNep11TransferByAddress",
       errorLabel: "get NEP11 transfers by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
+      buildParams: ([address, limit = 20, skip = 0]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash, Limit: limit, Skip: skip };
+      },
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
   },

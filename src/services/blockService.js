@@ -1,3 +1,4 @@
+import { safeRpc } from "./api";
 import { CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 
@@ -92,7 +93,6 @@ export const blockService = createService(
      * Get latest block height as a number
      */
     async getCount(options = {}) {
-      const { safeRpc } = await import("./api");
       const res = await safeRpc("GetBlockCount", {}, null, options);
       if (!res) return 0;
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;

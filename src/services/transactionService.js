@@ -42,7 +42,16 @@ export const transactionService = createService(
       fallback: 0,
       ttl: CACHE_TTL.address,
       realtime: true,
-      buildParams: ([address]) => ({ Address: address }),
+      buildParams: ([address]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash };
+      },
       buildCacheParams: ([address]) => ({ address }),
     },
     getByAddress: {
@@ -51,7 +60,16 @@ export const transactionService = createService(
       rpcMethod: "GetRawTransactionByAddress",
       errorLabel: "get transactions by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ Address: address, Limit: limit, Skip: skip }),
+      buildParams: ([address, limit = 20, skip = 0]) => {
+         let hash = address;
+         try {
+             if (address && !address.startsWith("0x")) {
+                 const { wallet } = require("@cityofzion/neon-js");
+                 hash = "0x" + wallet.getScriptHashFromAddress(address);
+             }
+         } catch(e) { /* ignore */ }
+         return { Address: hash, Limit: limit, Skip: skip };
+      },
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
     // NOTE: Notifications are extracted from GetApplicationLogByTransactionHash
