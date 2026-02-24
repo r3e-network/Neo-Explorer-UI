@@ -112,9 +112,9 @@ async function loadData() {
   }
 }
 
-async function loadStats() {
+async function loadStats(forceRefresh = false) {
   try {
-    const stats = await statsService.getDashboardStats();
+    const stats = await statsService.getDashboardStats(forceRefresh);
     blockCount.value = stats.blocks || 0;
     txCount.value = stats.txs || 0;
   } catch (err) {
@@ -201,11 +201,12 @@ async function handleSearch(inputValue) {
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {
   loadLatestData(true);
+  loadStats(true);
 });
 
 function handleNetworkChange() {
   loadLatestData(true);
-  loadStats();
+  loadStats(true);
   startAutoRefresh();
 }
 
