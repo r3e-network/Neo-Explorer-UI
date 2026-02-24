@@ -97,4 +97,44 @@ describe("HomePage initial loading", () => {
     expect(getTxList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
     wrapper.unmount();
   });
+
+  it("does not block latest blocks rendering on slow transactions response", async () => {
+    let resolveTxList;
+    getBlockList.mockResolvedValue({
+      result: [{ hash: "0xblock", timestamp: Date.now(), txcount: 1 }],
+      totalCount: 1,
+    });
+    getTxList.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTxList = resolve;
+        })
+    );
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("true");
+
+    resolveTxList({
+      result: [{ hash: "0xtx" }],
+      totalCount: 1,
+    });
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
 });

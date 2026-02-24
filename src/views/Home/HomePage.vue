@@ -34,8 +34,8 @@
     <section class="page-shell">
       <div class="page-container py-1">
       <div class="grid gap-4 lg:grid-cols-2">
-        <LatestBlocks :blocks="latestBlocks" :loading="latestLoading" :error="blocksError" @retry="loadLatestData" />
-        <LatestTransactions :transactions="latestTxs" :loading="latestLoading" :error="txsError" @retry="loadLatestData" />
+        <LatestBlocks :blocks="latestBlocks" :loading="blocksLoading" :error="blocksError" @retry="loadLatestData" />
+        <LatestTransactions :transactions="latestTxs" :loading="txsLoading" :error="txsError" @retry="loadLatestData" />
       </div>
       </div>
     </section>
@@ -62,7 +62,8 @@ const router = useRouter();
 const { fetchPrices } = usePriceCache();
 
 // State
-const latestLoading = ref(true);
+const blocksLoading = ref(true);
+const txsLoading = ref(true);
 const searchLoading = ref(false);
 const blocksError = ref(false);
 const txsError = ref(false);
@@ -80,6 +81,7 @@ let isRefreshing = false;
 let lastFetchLatestTime = 0;
 let lastStatsRefreshTime = 0;
 const STATS_REFRESH_INTERVAL_MS = 60_000;
+const blockDetailsByHash = new Map();
 
 function handleFetchLatest() {
   const now = Date.now();
@@ -105,7 +107,8 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
 
 // Data loading
 async function loadData() {
-  latestLoading.value = true;
+  blocksLoading.value = true;
+  txsLoading.value = true;
 
   // Prices are external and lightweight; keep non-blocking.
   void loadPrices();
@@ -114,8 +117,6 @@ async function loadData() {
     await loadLatestData();
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load homepage data:", err);
-  } finally {
-    latestLoading.value = false;
   }
 
   // Defer heavy dashboard stats until latest blocks/transactions are rendered.
@@ -139,46 +140,119 @@ async function loadLatestData(forceRefresh = false) {
   try {
     blocksError.value = false;
     txsError.value = false;
+    blocksLoading.value = true;
+    txsLoading.value = true;
 
-    const [blocksRes, txsRes] = await Promise.all([
-      blockService.getList(6, 0, { forceRefresh, enrichMissingFields: false }).catch(() => {
+    const requestOptions = { forceRefresh };
+
+    const blocksPromise = blockService
+      .getList(6, 0, { ...requestOptions, enrichMissingFields: false })
+      .then((blocksRes) => {
+        if (!blocksRes) return;
+        const nextBlocks = (blocksRes?.result || []).map((block) => {
+          const cachedDetails = blockDetailsByHash.get(block.hash);
+          return cachedDetails ? { ...block, ...cachedDetails } : block;
+        });
+        if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
+          latestBlocks.value = nextBlocks;
+        } else {
+          latestBlocks.value = nextBlocks;
+        }
+
+        updateTps();
+        void hydrateLatestBlocks(nextBlocks, requestOptions);
+      })
+      .catch(() => {
         blocksError.value = true;
-        return null;
-      }),
-      transactionService.getList(6, 0, { forceRefresh }).catch(() => {
+      })
+      .finally(() => {
+        blocksLoading.value = false;
+      });
+
+    const txsPromise = transactionService
+      .getList(6, 0, requestOptions)
+      .then((txsRes) => {
+        if (!txsRes) return;
+        const nextTxs = txsRes?.result || [];
+        if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
+          latestTxs.value = nextTxs;
+        }
+      })
+      .catch(() => {
         txsError.value = true;
-        return null;
-      }),
-    ]);
+      })
+      .finally(() => {
+        txsLoading.value = false;
+      });
 
-    if (blocksRes) {
-      const nextBlocks = blocksRes?.result || [];
-      if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
-        latestBlocks.value = nextBlocks;
-      }
-    }
-
-    if (txsRes) {
-      const nextTxs = txsRes?.result || [];
-      if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
-        latestTxs.value = nextTxs;
-      }
-    }
-
-    // Calculate TPS from latest blocks
-    if (latestBlocks.value.length >= 2) {
-      const newest = latestBlocks.value[0];
-      const oldest = latestBlocks.value[latestBlocks.value.length - 1];
-      let timeDiff = (newest.timestamp || 0) - (oldest.timestamp || 0);
-      if (timeDiff > 1e10) timeDiff = timeDiff / 1000;
-      const totalTxs = latestBlocks.value.reduce((sum, b) => sum + (b.txcount || 0), 0);
-      tps.value = timeDiff > 0 ? totalTxs / timeDiff : 0;
-    }
+    await Promise.allSettled([blocksPromise, txsPromise]);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load latest blocks/transactions:", err);
   } finally {
     isRefreshing = false;
   }
+}
+
+function updateTps() {
+  if (latestBlocks.value.length < 2) {
+    tps.value = 0;
+    return;
+  }
+
+  const newest = latestBlocks.value[0];
+  const oldest = latestBlocks.value[latestBlocks.value.length - 1];
+  let timeDiff = (newest.timestamp || 0) - (oldest.timestamp || 0);
+  if (timeDiff > 1e10) timeDiff = timeDiff / 1000;
+  const totalTxs = latestBlocks.value.reduce((sum, b) => sum + (b.txcount || b.transactioncount || 0), 0);
+  tps.value = timeDiff > 0 ? totalTxs / timeDiff : 0;
+}
+
+async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
+  const missing = blocks.filter((block) => {
+    if (!block?.hash || blockDetailsByHash.has(block.hash)) return false;
+    const missingConsensus = !block.nextconsensus && !block.nextConsensus && !block.speaker && !block.validator;
+    const missingFees = block.sysfee === undefined && block.systemFee === undefined;
+    const missingNetFee = block.netfee === undefined && block.networkFee === undefined;
+    return missingConsensus || missingFees || missingNetFee;
+  });
+
+  if (!missing.length) return;
+
+  const hydratedEntries = await Promise.all(
+    missing.map(async (block) => {
+      try {
+        const full = await blockService.getByHeight(block.index, requestOptions);
+        if (!full) return null;
+
+        return {
+          hash: block.hash,
+          details: {
+            primary: full.primary,
+            nextconsensus: full.nextconsensus ?? full.nextConsensus ?? full.speaker ?? full.validator,
+            speaker: full.speaker ?? full.nextconsensus ?? full.nextConsensus ?? full.validator,
+            validator: full.validator ?? full.speaker ?? full.nextconsensus ?? full.nextConsensus,
+            sysfee: full.sysfee ?? full.systemFee,
+            netfee: full.netfee ?? full.networkFee,
+          },
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const validEntries = hydratedEntries.filter((entry) => entry && entry.hash);
+  if (!validEntries.length) return;
+
+  for (const entry of validEntries) {
+    blockDetailsByHash.set(entry.hash, entry.details);
+  }
+
+  latestBlocks.value = latestBlocks.value.map((block) => {
+    const details = blockDetailsByHash.get(block.hash);
+    return details ? { ...block, ...details } : block;
+  });
+  updateTps();
 }
 
 async function loadPrices() {

@@ -27,8 +27,8 @@
         <p class="text-xs text-mid">Validator <span v-if="block.primary !== undefined" class="text-xs ml-1">(Primary: {{ block.primary }})</span></p>
         <div class="text-sm font-medium text-high truncate">
           <HashLink
-            v-if="block.nextconsensus"
-            :hash="scriptHashToAddress(block.nextconsensus)"
+            v-if="validatorAddress"
+            :hash="validatorAddress"
             type="address"
             :copyable="false"
             :resolve-nns="false"
@@ -68,6 +68,19 @@ const props = defineProps({
 
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
+
+const validatorAddress = computed(() => {
+  const raw =
+    props.block.nextconsensus ??
+    props.block.nextConsensus ??
+    props.block.speaker ??
+    props.block.validator ??
+    "";
+
+  if (!raw) return "";
+  if (String(raw).startsWith("N")) return String(raw);
+  return scriptHashToAddress(String(raw));
+});
 
 const blockFee = computed(() => {
   const sys = Number(props.block.sysfee || 0);

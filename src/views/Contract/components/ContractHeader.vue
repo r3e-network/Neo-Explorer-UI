@@ -35,8 +35,8 @@
           </span>
         </div>
         <div class="detail-metadata">
-          <span class="detail-chip font-mono">
-            {{ truncateHash(contract.hash, 12, 8) }}
+          <span class="detail-chip detail-chip-hash font-mono" :title="contract.hash">
+            {{ contract.hash || "-" }}
           </span>
           <button
             aria-label="Copy contract hash"
@@ -60,7 +60,6 @@
 </template>
 
 <script setup>
-import { truncateHash } from "@/utils/explorerFormat";
 import { nepBadgeClass, nepTooltip } from "@/utils/nepBadges";
 
 defineProps({
@@ -71,3 +70,12 @@ defineProps({
 
 const emit = defineEmits(["copyHash"]);
 </script>
+
+<style scoped>
+.detail-chip-hash {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-all;
+}
+</style>

@@ -67,6 +67,8 @@ import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatGas, getTransactionTotalFee, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 
 const props = defineProps({
   tx: { type: Object, default: () => ({}) },
@@ -89,17 +91,56 @@ const statusStyle = computed(() => {
 
 const statusText = computed(() => (isSuccess.value ? "Success" : "Failed"));
 
+const toPrefixedHash = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("0x")) return raw.toLowerCase();
+  if (/^[0-9a-fA-F]{40}$/.test(raw)) return `0x${raw.toLowerCase()}`;
+  return raw;
+};
+
+const reverseScriptHash = (value) => {
+  const hash = toPrefixedHash(value).replace(/^0x/i, "");
+  if (!/^[0-9a-f]{40}$/.test(hash)) return "";
+  const bytes = hash.match(/.{2}/g) || [];
+  return `0x${bytes.reverse().join("")}`;
+};
+
+const getKnownContractName = (value) => {
+  const hash = toPrefixedHash(value);
+  return NATIVE_CONTRACTS[hash]?.name || KNOWN_CONTRACTS[hash]?.name || null;
+};
+
+const canonicalizeContractHash = (value) => {
+  const direct = toPrefixedHash(value);
+  if (!direct || direct.startsWith("N")) return direct;
+  if (getKnownContractName(direct)) return direct;
+
+  const reversed = reverseScriptHash(direct);
+  if (reversed && getKnownContractName(reversed)) return reversed;
+  return direct;
+};
+
+const invocation = computed(() => {
+  if (!props.tx?.script) return null;
+  return extractContractInvocation(props.tx.script);
+});
+
 const recipient = computed(() => {
   const tx = props.tx;
-  if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+  if (invocation.value?.contractHash) {
+    const hash = canonicalizeContractHash(invocation.value.contractHash);
+    return { hash, type: "contract" };
   }
   const to = tx.contractHash || tx.to;
   if (to) {
-     // If it's a script hash, it's a contract. Otherwise, it's an address.
-     const isAddress = to.startsWith("N");
-     return { hash: to, type: isAddress ? "address" : "contract" };
+    // If it's a script hash, it's a contract. Otherwise, it's an address.
+    const isAddress = String(to).startsWith("N");
+    if (isAddress) {
+      return { hash: to, type: "address" };
+    }
+    const hash = canonicalizeContractHash(to);
+    return { hash, type: "contract" };
   }
   return null;
 });
@@ -109,19 +150,38 @@ const methodName = computed(() => {
   if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
     return "Oracle Callback";
   }
-  if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.method) {
-        const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
-        if (govMethods.includes(inv.method) && (inv.contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || inv.contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || inv.contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
-            return `Governance: ${inv.method}`;
-        }
-        const cName = getContractDisplayName(inv.contractHash);
-        if (cName && !cName.startsWith("0x")) {
-           return `${cName}: ${inv.method}`;
-        }
-        return inv.method;
-     }
+  if (invocation.value?.method) {
+    const contractHash = canonicalizeContractHash(invocation.value.contractHash);
+    const method = invocation.value.method;
+    const govMethods = [
+      "designateAsRole",
+      "setFeePerByte",
+      "setExecFeeFactor",
+      "setStoragePrice",
+      "setGasPerBlock",
+      "setRegisterPrice",
+      "update",
+      "destroy",
+    ];
+    if (
+      govMethods.includes(method) &&
+      (contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" ||
+        contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" ||
+        contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+    ) {
+      return `Governance: ${method}`;
+    }
+
+    const knownContract = getKnownContractName(contractHash);
+    if (knownContract) {
+      return `${knownContract}: ${method}`;
+    }
+
+    const cName = getContractDisplayName(contractHash);
+    if (cName && !cName.startsWith("0x")) {
+      return `${cName}: ${method}`;
+    }
+    return method;
   }
   if (tx.method) return tx.method;
   return null;
