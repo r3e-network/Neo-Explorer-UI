@@ -159,7 +159,7 @@
                 <!-- Validator -->
                 <td class="table-cell">
                   <div class="flex flex-col">
-                    <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
+                    <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" />
                     <span v-else class="text-xs text-low">--</span>
                     <span v-if="block.primary !== undefined" class="text-[10px] text-mid">Primary: {{ block.primary }}</span>
                   </div>
@@ -194,6 +194,7 @@ import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
 import { formatAge, formatBytes, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

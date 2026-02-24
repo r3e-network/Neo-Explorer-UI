@@ -26,7 +26,7 @@
       <div class="hidden min-w-0 flex-1 text-center md:block">
         <p class="text-xs text-mid">Validator <span v-if="block.primary !== undefined" class="text-xs ml-1">(Primary: {{ block.primary }})</span></p>
         <div class="text-sm font-medium text-high truncate">
-          <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" :copyable="false" />
+          <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" :copyable="false" />
           <span v-else class="text-low">--</span>
         </div>
       </div>
@@ -53,6 +53,7 @@
 import { computed } from "vue";
 import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatNumber, formatGas } from "@/utils/explorerFormat";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import HashLink from "./HashLink.vue";
 
 const props = defineProps({
