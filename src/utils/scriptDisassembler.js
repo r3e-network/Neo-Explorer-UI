@@ -264,10 +264,9 @@ export function disassembleScript(base64Script) {
         if (nativeMatch) {
           contractRef = nativeMatch[1];
         } else {
-          // Keep it short if it's just a hash
           const hashMatch = contractRef.match(/0x[a-f0-9]{40}/i);
           if (hashMatch) {
-            contractRef = `${hashMatch[0].slice(0, 6)}...${hashMatch[0].slice(-4)}`;
+             contractRef = hashMatch[0]; // keep full hash so HashLink can resolve it
           }
         }
         

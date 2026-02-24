@@ -88,8 +88,11 @@
             <td
               class="text-high break-all px-3 py-1.5 font-mono"
             >
-              <div v-if="inst.semantic" class="mb-1 text-[11px] font-bold text-primary-600 dark:text-primary-400">
-                // Call: {{ inst.semantic }}
+              <div v-if="inst.semantic" class="mb-1 text-[11px] font-bold text-primary-600 dark:text-primary-400 inline-flex items-center gap-1">
+                // Call: 
+                <HashLink v-if="inst.semantic.startsWith('0x')" :hash="inst.semantic.split('.')[0]" type="contract" :truncate="true" />
+                <span v-else>{{ inst.semantic.split('.')[0] }}</span>
+                <span>.{{ inst.semantic.split('.').slice(1).join('.') }}</span>
               </div>
               <template v-if="inst.operand">
                 <span v-if="parseOperand(inst.operand)" :class="operandClass(inst)">
