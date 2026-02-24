@@ -71,7 +71,7 @@
         <div v-if="candidateData" class="flex items-center gap-4 mt-3 text-sm flex-wrap">
           <div class="flex items-center gap-1.5">
             <span class="text-mid">Votes:</span>
-            <span class="font-bold text-high">{{ formatNumber(candidateData.votesOfCandidate || candidateData.votes) }}</span>
+            <span class="font-bold text-high">{{ formatNumber(candidateVotesDisplay) }}</span>
           </div>
           <div v-if="candidateData.metaLocation" class="flex items-center gap-1.5">
             <span class="text-mid">Location:</span>
@@ -127,6 +127,7 @@
 import { ref, computed, watch } from "vue";
 import QrcodeVue from 'qrcode.vue';
 import { formatNumber, formatBalance } from "@/utils/explorerFormat";
+import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
@@ -155,6 +156,8 @@ const isNeoFoundation = computed(() => {
   const name = knownName.value.toLowerCase();
   return name.includes("neo foundation") || name.includes("neo bond") || name.includes("nf binance");
 });
+
+const candidateVotesDisplay = computed(() => pickBestCandidateVotes(props.candidateData));
 
 watch(
   () => props.address,

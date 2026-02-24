@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   getAddressDetailTabs,
   normalizeAccountSummary,
+  pickBestCandidateVotes,
+  sumCandidateVoterBalances,
   splitAddressAssets,
   normalizeAddressTransactions,
   getPageCount,
@@ -78,5 +80,30 @@ describe("addressDetail utils", () => {
     expect(getPageCount(0, 10)).toBe(1);
     expect(getPageCount(19, 10)).toBe(2);
     expect(getPageCount(30, 10)).toBe(3);
+  });
+
+  it("prefers non-zero candidate votes over string zero fallback values", () => {
+    expect(
+      pickBestCandidateVotes(
+        { votesOfCandidate: "0" },
+        { votes: "542781" },
+        { votesOfCandidate: "12" }
+      )
+    ).toBe("542781");
+  });
+
+  it("returns zero when all candidate vote sources are empty", () => {
+    expect(pickBestCandidateVotes({ votesOfCandidate: "0" }, null, undefined)).toBe("0");
+  });
+
+  it("sums voter balances safely for fallback candidate vote totals", () => {
+    expect(
+      sumCandidateVoterBalances([
+        { balanceOfVoter: "100000" },
+        { balanceOfVoter: "4097" },
+        { balanceOfVoter: "0" },
+        { balanceOfVoter: "40" },
+      ])
+    ).toBe("104137");
   });
 });

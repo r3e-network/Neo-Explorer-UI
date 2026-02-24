@@ -17,6 +17,16 @@
         :candidate-data="candidateData"
       />
 
+      <div
+        v-if="showMainnetHint"
+        class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      >
+        No activity was found for this address on N3 Testnet.
+        <button class="ml-1 font-semibold underline" @click="switchToMainnet">
+          Switch to N3 Mainnet
+        </button>
+      </div>
+
       <div class="etherscan-card overflow-hidden">
         <div class="p-3 pb-0">
           <TabsNav :tabs="tabs" v-model="activeTab" />
@@ -112,6 +122,8 @@ import { accountService, transactionService, contractService, candidateService }
 import {
   getAddressDetailTabs,
   normalizeAccountSummary,
+  pickBestCandidateVotes,
+  sumCandidateVoterBalances,
   splitAddressAssets,
   normalizeAddressTransactions,
   normalizeNep17Transfers,
@@ -129,7 +141,7 @@ import AddressTokensTab from "./components/AddressTokensTab.vue";
 import AddressNftsTab from "./components/AddressNftsTab.vue";
 import AddressVotersTab from "./components/AddressVotersTab.vue";
 import { addressToScriptHash, scriptHashHexToAddress, publicKeyToAddress } from "@/utils/neoHelpers";
-import { getCurrentEnv, NET_ENV } from '@/utils/env';
+import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
 import { cachedRequest } from '@/services/cache';
 
 const route = useRoute();
@@ -175,6 +187,7 @@ const {
 );
 const isContract = ref(false);
 const showQr = ref(false);
+const networkHintDismissed = ref(false);
 
 // NEP-17 Token Transfers via composable
 const {
@@ -278,6 +291,88 @@ const truncateAddr = computed(() => {
   return `${value.slice(0, 10)}...${value.slice(-8)}`;
 });
 
+const showMainnetHint = computed(() => {
+  if (networkHintDismissed.value) return false;
+  if (getCurrentEnv() !== NET_ENV.TestT5) return false;
+  if (isCandidate.value) return false;
+  if (assetsLoading.value || transactionsLoading.value) return false;
+
+  const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
+  return !hasBalance && txTotalCount.value === 0 && tokenCount.value === 0 && assets.value.length === 0;
+});
+
+async function switchToMainnet() {
+  const addr = address.value;
+  if (!addr) return;
+  networkHintDismissed.value = true;
+  setCurrentEnv(NET_ENV.Mainnet);
+  await initializeData(addr);
+}
+
+async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
+  let resolvedVotes = pickBestCandidateVotes(candidate);
+
+  try {
+    const votesResponse = await candidateService.getVotesByAddress(scriptHash);
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+    resolvedVotes = pickBestCandidateVotes(resolvedVotes, votesResponse);
+  } catch {
+    // Ignore and fallback to other sources.
+  }
+
+  if (resolvedVotes !== "0") return resolvedVotes;
+
+  try {
+    const countRaw = await candidateService.getCount();
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+    const count = Number(countRaw || 0);
+    const limit = Number.isFinite(count) && count > 0 ? Math.min(count, 2000) : 500;
+    const listResponse = await candidateService.getList(limit, 0);
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+    const list = Array.isArray(listResponse?.result) ? listResponse.result : [];
+    const matched = list.find(
+      (item) => String(item?.candidate || "").toLowerCase() === String(scriptHash || "").toLowerCase()
+    );
+    resolvedVotes = pickBestCandidateVotes(resolvedVotes, matched);
+  } catch {
+    // Ignore list fallback failures.
+  }
+
+  if (resolvedVotes !== "0") return resolvedVotes;
+
+  try {
+    const pageSize = 200;
+    let skip = 0;
+    let accumulatedVotes = 0n;
+
+    for (let page = 0; page < 25; page += 1) {
+      const votersResponse = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+      if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+      const votersList = Array.isArray(votersResponse?.result) ? votersResponse.result : [];
+      if (!votersList.length) break;
+
+      accumulatedVotes += BigInt(sumCandidateVoterBalances(votersList));
+      skip += votersList.length;
+
+      const totalCount = Number(votersResponse?.totalCount || 0);
+      if (votersList.length < pageSize || (Number.isFinite(totalCount) && totalCount > 0 && skip >= totalCount)) {
+        break;
+      }
+    }
+
+    if (accumulatedVotes > 0n) {
+      resolvedVotes = accumulatedVotes.toString();
+    }
+  } catch {
+    // Ignore voter-sum fallback failures.
+  }
+
+  return resolvedVotes;
+}
+
 // --- Data loading methods ---
 async function loadSummary(addr) {
   const currentRequestId = addressRequestId;
@@ -307,14 +402,11 @@ async function loadSummary(addr) {
         if (candidate && candidate.candidate) {
           isCandidate.value = true;
           candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || '' };
-          
-          try {
-            const votes = await candidateService.getVotesByAddress(scriptHash);
-            if (currentRequestId === addressRequestId) {
-               candidateData.value.votes = typeof votes === 'object' && votes !== null ? (votes.votesOfCandidate || votes.votes || 0) : votes;
-            }
-          } catch(e) {
-            // Ignore error, votes will be 0 or undefined
+
+          const votes = await resolveCandidateVotes(scriptHash, candidateData.value, currentRequestId);
+          if (currentRequestId === addressRequestId && candidateData.value) {
+            candidateData.value.votes = votes;
+            candidateData.value.votesOfCandidate = votes;
           }
           
           const env = getCurrentEnv().toLowerCase();
@@ -430,6 +522,7 @@ async function initializeData(addr) {
   ++addressRequestId;
   abortController.value?.abort();
   abortController.value = new AbortController();
+  networkHintDismissed.value = false;
   txPage.value = 1;
   isCandidate.value = false;
   candidateData.value = null;

@@ -9,6 +9,67 @@ function toNumber(value, defaultValue = 0) {
   return Number.isFinite(parsed) ? parsed : defaultValue;
 }
 
+function toBigInt(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return BigInt(Math.trunc(value));
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) return null;
+  if (/^-?\d+$/.test(normalized)) return BigInt(normalized);
+  if (/^-?\d+(\.\d+)?$/.test(normalized)) {
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) return BigInt(Math.trunc(parsed));
+  }
+  return null;
+}
+
+/**
+ * Choose the best candidate vote value from multiple API sources.
+ * Returns a stringified integer and ignores empty/invalid values.
+ */
+export function pickBestCandidateVotes(...sources) {
+  let best = 0n;
+
+  const readCandidates = (source) => {
+    if (source && typeof source === "object" && !Array.isArray(source)) {
+      return [source.votesOfCandidate, source.votes, source.totalVotes, source.balanceOfVoter];
+    }
+    return [source];
+  };
+
+  for (const source of sources) {
+    for (const candidate of readCandidates(source)) {
+      const parsed = toBigInt(candidate);
+      if (parsed !== null && parsed > best) {
+        best = parsed;
+      }
+    }
+  }
+
+  return best.toString();
+}
+
+/**
+ * Sum voter balances for a candidate (used as fallback vote total).
+ */
+export function sumCandidateVoterBalances(voters = []) {
+  const list = Array.isArray(voters) ? voters : [];
+  let total = 0n;
+
+  for (const voter of list) {
+    const parsed = toBigInt(voter?.balanceOfVoter ?? voter?.votes ?? voter);
+    if (parsed !== null && parsed > 0n) {
+      total += parsed;
+    }
+  }
+
+  return total.toString();
+}
+
 export function getAddressDetailTabs(isCandidate = false) {
   const tabs = [
     { key: "transactions", label: "Transactions" },
