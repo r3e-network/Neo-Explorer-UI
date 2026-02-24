@@ -212,7 +212,8 @@ function updateCountdown() {
   // Convert timestamp to ms if needed
   const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
   
-  const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
+  const delayOffset = network === NET_ENV.TestT5 ? 2 : 10;
+  const ageSecs = Math.max(0, Math.floor((Date.now() - tsMs) / 1000) - delayOffset);
   nextBlockCountdown.value = Math.max(0, targetTime.value - ageSecs);
 
   // If block is overdue, emit fetch-latest. HomePage will throttle this to once every 3 seconds.

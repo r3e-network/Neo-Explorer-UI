@@ -109,7 +109,7 @@ export const transactionService = createService(
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
               if (full && full.vmstate) tx.vmstate = full.vmstate;
-            } catch (e) {}
+            } catch (e) { /* ignore */ }
           }
           return tx;
         })
@@ -128,7 +128,7 @@ export const transactionService = createService(
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
               if (full && full.vmstate) tx.vmstate = full.vmstate;
-            } catch (e) {}
+            } catch (e) { /* ignore */ }
           }
           return tx;
         })

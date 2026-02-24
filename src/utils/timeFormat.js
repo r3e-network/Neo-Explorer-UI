@@ -1,3 +1,5 @@
+import { getCurrentEnv, NET_ENV } from "./env";
+
 /**
  * Time and date formatting utilities for Neo N3 explorer.
  */
@@ -28,10 +30,13 @@ export function formatAge(timestamp, nowMs = Date.now()) {
   if (!timestamp) return "";
 
   const ts = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
-  const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts));
+  
+  const network = getCurrentEnv();
+  const delayOffset = network === NET_ENV.TestT5 ? 2 : 10;
+  
+  const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts) - delayOffset);
 
-  // Neo N3 block time is 15s. A newly received block will already be ~15-20s old.
-  if (seconds < 25) return "just now";
+  if (seconds === 0) return "just now";
   if (seconds < 60) return `${seconds} secs ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;

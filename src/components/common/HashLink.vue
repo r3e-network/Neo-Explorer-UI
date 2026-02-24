@@ -107,11 +107,17 @@ watch(
     if ((type === "contract" || type === "token") && newHash && !knownName.value) {
       const hash = newHash.startsWith('0x') ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
       try {
-        const contract = await contractService.getByHash(hash);
+        let contract = await contractService.getByHash(hash);
+        if (!contract || !contract.name) {
+          // Try reversing the hash (endianness fallback)
+          const cleanHash = hash.replace(/^0x/i, '');
+          const reversed = '0x' + (cleanHash.match(/.{2}/g) || []).reverse().join('');
+          contract = await contractService.getByHash(reversed);
+        }
         if (contract && contract.name) {
           fetchedContractName.value = contract.name;
         }
-      } catch (e) {}
+      } catch (e) { /* ignore */ }
     }
   },
   { immediate: true }
