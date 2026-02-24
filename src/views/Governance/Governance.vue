@@ -132,7 +132,7 @@
                 </td>
                 <td class="table-cell text-center">
                   <span class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                    Auto-Compound
+                    Optimized
                   </span>
                 </td>
                 <td class="table-cell-right font-medium text-status-success">
@@ -259,15 +259,13 @@ const totalNetworkVotes = computed(() => {
 
 const neoBurgerApr = computed(() => {
   if (candidates.value.length === 0) return 0;
-  // NeoBurger optimizes votes across top 21 nodes and compounds, 
-  // so its APR is roughly equal to or slightly higher than the maximum council node APR.
+  // NeoBurger optimizes votes across top nodes, so its APR is roughly equal to the maximum council node APR.
   let maxApr = 0;
   for (let i = 0; i < Math.min(21, candidates.value.length); i++) {
     const apr = calculateAPR(candidates.value[i].votes, i);
     if (apr > maxApr) maxApr = apr;
   }
-  // Add 0.5% optimization/compounding premium
-  return maxApr > 0 ? maxApr + 0.5 : 0;
+  return maxApr;
 });
 
 const neoBurgerMonthlyGas = computed(() => {
@@ -277,10 +275,7 @@ const neoBurgerMonthlyGas = computed(() => {
     const gas = calculateMonthlyGas(candidates.value[i].votes, i);
     if (gas > maxGas) maxGas = gas;
   }
-  // Reflect the +0.5% APR premium in the GAS output estimate proportionally
-  if (maxGas === 0 || neoBurgerApr.value === 0) return maxGas;
-  const baseMaxApr = neoBurgerApr.value - 0.5;
-  return baseMaxApr > 0 ? maxGas * (neoBurgerApr.value / baseMaxApr) : maxGas;
+  return maxGas;
 });
 
 const sortedCandidates = computed(() => {
