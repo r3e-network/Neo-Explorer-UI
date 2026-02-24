@@ -11,7 +11,7 @@ vi.mock("../../src/services/api.js", () => ({
 
 describe("transactionService", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks(); vi.resetAllMocks();
   });
 
   describe("getCount", () => {
@@ -24,12 +24,20 @@ describe("transactionService", () => {
   });
 
   describe("getList", () => {
-    it("calls rpc with pagination", async () => {
-      const mockData = { result: [{ hash: "0x1" }], totalCount: 100 };
+    it("calls rpc with pagination and backfills vmstate", async () => {
+      const mockData = { result: [{ hash: "0xTest" }, { hash: "0x2", vmstate: "HALT" }], totalCount: 2 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
       
-      await transactionService.getList(10, 5);
+      // Mock the getByHash internal call
+      api.safeRpc.mockResolvedValueOnce({ hash: "0xTest", vmstate: "FAULT" });
+      
+      const result = await transactionService.getList(10, 5);
       expect(api.safeRpcList).toHaveBeenCalled();
+      
+      // Check if it backfilled the missing vmstate for 0x1
+      expect(result.result[0].vmstate).toBe("FAULT");
+      // Check if it preserved the existing vmstate for 0x2
+      expect(result.result[1].vmstate).toBe("HALT");
     });
 
     it("returns empty on error", async () => {
@@ -53,16 +61,19 @@ describe("transactionService", () => {
   });
 
   describe("getByAddress", () => {
-    it("calls rpc with address and pagination", async () => {
-      const mockData = { result: [], totalCount: 0 };
+    it("calls rpc with address and pagination and backfills vmstate", async () => {
+      const mockData = { result: [{ hash: "0xAnother" }], totalCount: 1 };
       api.safeRpcList.mockResolvedValueOnce(mockData);
+      api.safeRpc.mockResolvedValueOnce({ hash: "0xAnother", vmstate: "HALT" });
       
-      await transactionService.getByAddress("0xNAddr", 15, 10);
+      const result = await transactionService.getByAddress("0xNAddr", 15, 10);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByAddress",
         { Address: "0xNAddr", Limit: 15, Skip: 10 },
         "get transactions by address"
       );
+      
+      expect(result.result[0].vmstate).toBe("HALT");
     });
   });
 });

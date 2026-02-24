@@ -1,8 +1,9 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { resolveAddressToNNS } = vi.hoisted(() => ({
+const { resolveAddressToNNS, getByHash } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
+  getByHash: vi.fn(async () => null),
 }));
 
 const UNKNOWN_ADDRESS = "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -11,6 +12,12 @@ vi.mock("@/services/nnsService", () => ({
   default: {
     resolveAddressToNNS,
   },
+}));
+
+vi.mock("@/services", () => ({
+  contractService: {
+    getByHash,
+  }
 }));
 
 import HashLink from "@/components/common/HashLink.vue";
@@ -102,5 +109,25 @@ describe("HashLink", () => {
 
     await flushPromises();
     expect(resolveAddressToNNS).toHaveBeenCalledWith(UNKNOWN_ADDRESS);
+  });
+
+  it("dynamically resolves missing contract names and falls back to reverse-endian", async () => {
+    // Return null for normal endian, return mock for reverse-endian
+    getByHash.mockImplementation(async (hash) => {
+      if (hash === "0x11223344") return null;
+      if (hash === "0x44332211") return { name: "ReverseEndianContract" };
+      return null;
+    });
+
+    const wrapper = mountHashLink({
+      hash: "0x11223344",
+      type: "contract",
+    });
+
+    await flushPromises();
+    expect(getByHash).toHaveBeenCalledTimes(2);
+    expect(getByHash).toHaveBeenNthCalledWith(1, "0x11223344");
+    expect(getByHash).toHaveBeenNthCalledWith(2, "0x44332211");
+    expect(wrapper.text()).toContain("ReverseEndianContract");
   });
 });
