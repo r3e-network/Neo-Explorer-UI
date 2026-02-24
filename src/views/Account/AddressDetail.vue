@@ -142,13 +142,16 @@ import AddressNftTransfersTab from "./components/AddressNftTransfersTab.vue";
 import AddressTokensTab from "./components/AddressTokensTab.vue";
 import AddressNftsTab from "./components/AddressNftsTab.vue";
 import AddressVotersTab from "./components/AddressVotersTab.vue";
-import { addressToScriptHash, scriptHashHexToAddress, publicKeyToAddress } from "@/utils/neoHelpers";
+import { addressToScriptHash, scriptHashToAddress, publicKeyToAddress } from "@/utils/neoHelpers";
 import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
 import { cachedRequest } from '@/services/cache';
 
 const route = useRoute();
 const { t } = useI18n();
 let addressRequestId = 0;
+const MAX_CANDIDATE_LIST_LOOKUP = 1000;
+const MAX_VOTER_FALLBACK_PAGES = 10;
+const MAX_VOTER_FALLBACK_ENTRIES = 2000;
 const abortController = ref(null);
 const neoBalance = ref("0");
 const gasBalance = ref("0");
@@ -271,7 +274,7 @@ const {
       let voterAddress = v.voter;
       try {
         if (voterAddress.startsWith('0x')) {
-          voterAddress = scriptHashHexToAddress(voterAddress.slice(2));
+          voterAddress = scriptHashToAddress(voterAddress);
         }
       } catch (e) {
         // keep original if fails
@@ -288,7 +291,16 @@ const {
 );
 
 // --- Computed ---
-const address = computed(() => route.params.accountAddress);
+const rawAddress = computed(() => route.params.accountAddress || "");
+
+const address = computed(() => {
+  const val = rawAddress.value;
+  if (val.startsWith("0x") && val.length === 42) {
+     const converted = scriptHashToAddress(val);
+     return converted || val;
+  }
+  return val;
+});
 
 const truncateAddr = computed(() => {
   const value = address.value || "";
@@ -332,7 +344,7 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
     if (currentRequestId !== addressRequestId) return resolvedVotes;
 
     const count = Number(countRaw || 0);
-    const limit = Number.isFinite(count) && count > 0 ? Math.min(count, 2000) : 500;
+    const limit = Number.isFinite(count) && count > 0 ? Math.min(count, MAX_CANDIDATE_LIST_LOOKUP) : 500;
     const listResponse = await candidateService.getList(limit, 0);
     if (currentRequestId !== addressRequestId) return resolvedVotes;
 
@@ -351,8 +363,9 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
     const pageSize = 200;
     let skip = 0;
     let accumulatedVotes = 0n;
+    let totalCount = null;
 
-    for (let page = 0; page < 25; page += 1) {
+    for (let page = 0; page < MAX_VOTER_FALLBACK_PAGES; page += 1) {
       const votersResponse = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
       if (currentRequestId !== addressRequestId) return resolvedVotes;
 
@@ -361,8 +374,10 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 
       accumulatedVotes += BigInt(sumCandidateVoterBalances(votersList));
       skip += votersList.length;
+      if (skip >= MAX_VOTER_FALLBACK_ENTRIES) break;
 
-      const totalCount = Number(votersResponse?.totalCount || 0);
+      const parsedTotal = Number(votersResponse?.totalCount || 0);
+      totalCount = Number.isFinite(parsedTotal) && parsedTotal > 0 ? parsedTotal : totalCount;
       if (votersList.length < pageSize || (Number.isFinite(totalCount) && totalCount > 0 && skip >= totalCount)) {
         break;
       }

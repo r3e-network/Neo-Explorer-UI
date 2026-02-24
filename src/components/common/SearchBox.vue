@@ -227,7 +227,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { getTypeIcon, getTypeIconClass, getTypeBadgeClass } from "@/utils/explorerFormat";
+import {
+  getTypeIcon,
+  getTypeIconClass,
+  getTypeBadgeClass,
+  isValidNeoAddress,
+  isValidTxHash,
+} from "@/utils/explorerFormat";
 import { SEARCH_DEBOUNCE_MS } from "@/constants";
 
 const HISTORY_KEY = "neo_explorer_search_history";
@@ -260,6 +266,17 @@ const selectedIndex = ref(-1);
 const isSearching = ref(false);
 const isFocused = ref(false);
 let debounceTimer = null;
+const FULL_HASH_PATTERN = /^(0x)?[a-fA-F0-9]{64}$/;
+const CONTRACT_HASH_PATTERN = /^(0x)?[a-fA-F0-9]{40}$/;
+
+function normalizeHash(value) {
+  return value.startsWith("0x") ? value : `0x${value}`;
+}
+
+function isNnsDomain(value) {
+  const normalized = String(value || "").trim();
+  return normalized.endsWith(".neo") && normalized.length > 4;
+}
 
 const filters = [
   { value: "all", label: "All Filters" },
@@ -366,8 +383,9 @@ function navigateSuggestion(direction) {
 
 function detectType(q) {
   if (/^\d+$/.test(q)) return "block";
-  if (/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) return "transaction";
-  if (/^N[A-Za-z0-9]{20,33}$/.test(q) || (q.endsWith(".neo") && q.length > 4)) return "address";
+  if (isValidTxHash(q) || FULL_HASH_PATTERN.test(q)) return "transaction";
+  if (CONTRACT_HASH_PATTERN.test(q)) return "contract";
+  if (isValidNeoAddress(q) || isNnsDomain(q)) return "address";
   return "unknown";
 }
 
@@ -378,14 +396,18 @@ function fetchSuggestions() {
     if (/^\d+$/.test(q)) {
       result.push({ type: "block", label: `Block #${parseInt(q).toLocaleString()}`, value: q });
     }
-    if (/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) {
-      const hash = q.startsWith("0x") ? q : `0x${q}`;
+    if (isValidTxHash(q) || FULL_HASH_PATTERN.test(q)) {
+      const hash = normalizeHash(q);
       result.push(
         { type: "transaction", label: "Transaction", value: hash },
         { type: "contract", label: "Contract", value: hash }
       );
     }
-    if (/^N[A-Za-z0-9]{20,33}$/.test(q) || (q.endsWith(".neo") && q.length > 4)) {
+    if (CONTRACT_HASH_PATTERN.test(q) && !FULL_HASH_PATTERN.test(q)) {
+      const hash = normalizeHash(q);
+      result.push({ type: "contract", label: "Contract", value: hash });
+    }
+    if (isValidNeoAddress(q) || isNnsDomain(q)) {
       result.push({ type: "address", label: "Address/NNS", value: q });
     }
     suggestions.value = result;

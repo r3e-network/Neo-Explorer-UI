@@ -105,9 +105,10 @@
                 </span>
               </td>
               <td class="table-cell">
-                <span class="text-high font-hash">
-                  {{ truncateHash(address, 8, 6) }}
-                </span>
+                <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
+                  <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="false" />
+                </div>
+                <span v-else class="text-xs text-low">-</span>
               </td>
               <td class="table-cell-right text-high font-medium">
                 {{ formatTxValue(tx) }}
@@ -142,6 +143,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -184,6 +186,17 @@ function getTxMethod(tx) {
     return tx.notifications[0].eventname || "Transfer";
   }
   return "Transfer";
+}
+
+function getRecipient(tx) {
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+  }
+  if (tx.notifications?.length > 0) {
+    return { hash: tx.notifications[0].contract, type: 'contract' };
+  }
+  return null;
 }
 
 function formatTxValue(tx) {

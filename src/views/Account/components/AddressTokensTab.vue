@@ -71,7 +71,8 @@
 
 <script setup>
 import { computed } from "vue";
-import { truncateHash } from "@/utils/explorerFormat";
+import { truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
+import { NATIVE_CONTRACTS } from "@/constants";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -93,7 +94,7 @@ const sortedAssets = computed(() =>
 );
 
 function assetHash(asset) {
-  return asset?.hash || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
+  return asset?.hash || asset?.asset || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
 }
 
 function assetStandard(asset) {
@@ -104,12 +105,36 @@ function assetDisplayName(asset) {
   return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
 }
 
+function normalizeAssetHash(hash) {
+  const normalized = String(hash || "").trim().toLowerCase();
+  if (!normalized) return "";
+  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
+}
+
+function assetDecimals(asset) {
+  const explicit = Number(asset?.decimals);
+  if (Number.isInteger(explicit) && explicit >= 0) return explicit;
+
+  const native = NATIVE_CONTRACTS[normalizeAssetHash(assetHash(asset))];
+  if (native && Number.isInteger(native.decimals) && native.decimals >= 0) return native.decimals;
+
+  return null;
+}
+
 function assetBalance(asset) {
   const raw = asset?.balance ?? asset?.amount ?? asset?.quantity ?? asset?.totalbalance;
   if (raw === undefined || raw === null || raw === "") return "-";
+
+  const rawText = String(raw).trim();
+  const decimals = assetDecimals(asset);
+
+  if (decimals !== null && /^-?\d+$/.test(rawText)) {
+    return formatTokenAmount(rawText, decimals, Math.min(decimals, 8));
+  }
+
   const num = Number(raw);
   if (Number.isFinite(num)) return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
-  return String(raw);
+  return rawText;
 }
 
 function assetTokenRoute(asset) {

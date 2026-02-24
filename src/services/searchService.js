@@ -2,6 +2,7 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
 import { addressToScriptHash } from "../utils/neoHelpers";
+import { isValidNeoAddress } from "../utils/addressFormat";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -93,8 +94,15 @@ async function _classifyAndDispatch(query) {
     if (contractResult.status === "fulfilled" && contractResult.value) hits.contract = contractResult.value;
   }
 
-  // Neo address (N + 33 alphanumeric)
-  if (/^N[A-Za-z0-9]{33}$/.test(query)) {
+  // Contract hash (40 hex chars)
+  if (/^(0x)?[a-fA-F0-9]{40}$/.test(query)) {
+    const hash = query.startsWith("0x") ? query : `0x${query}`;
+    const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
+    if (contract) hits.contract = contract;
+  }
+
+  // Neo address
+  if (isValidNeoAddress(query)) {
     const account = await _lookupAddress(query);
     if (account) hits.address = account;
   }
@@ -102,7 +110,7 @@ async function _classifyAndDispatch(query) {
   // NNS Domain (.neo)
   if (query.endsWith(".neo") && query.length > 4) {
     const resolvedAddress = await nnsService.resolveDomain(query);
-    if (resolvedAddress && /^N[A-Za-z0-9]{33}$/.test(resolvedAddress)) {
+    if (resolvedAddress && isValidNeoAddress(resolvedAddress)) {
       const account = await _lookupAddress(resolvedAddress);
       if (account) {
         account.resolvedNns = query; // Add custom property

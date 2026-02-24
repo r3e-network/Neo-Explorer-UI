@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => {
           rewrite: () => "/",
         },
         "/api/testnet/fallback": {
-          target: "https://testneofura.ngd.network",
+          target: "https://testmagnet.ngd.network",
           changeOrigin: true,
           rewrite: () => "/",
         },

@@ -1,7 +1,14 @@
 import axios from "axios";
-import { getRpcApiBasePath } from "../utils/env";
+import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
 
 const LEGACY_RPC_BASE_URL = "/api";
+const DEFAULT_RPC_TIMEOUT_MS = 12000;
+const FAILOVER_RPC_TIMEOUT_MS = 8000;
+const HEDGE_DELAY_MS = 1200;
+const STARTUP_HEDGE_WINDOW_MS = 45000;
+const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
+const startupTimestamp = Date.now();
 
 const normalizeBaseUrl = (baseUrl) => {
   if (typeof baseUrl !== "string") return "";
@@ -21,10 +28,160 @@ const resolveRpcBaseUrl = () => {
   return getRpcApiBasePath();
 };
 
+const parseNetworkBase = (baseUrl) => {
+  const normalized = normalizeBaseUrl(baseUrl);
+  const matched = normalized.match(NETWORK_BASE_PATTERN);
+  if (!matched) return null;
+  return {
+    normalized,
+    prefix: `/api/${matched[1].toLowerCase()}`,
+    endpoint: (matched[2] || "").toLowerCase() || null,
+  };
+};
+
+const buildRetryBaseUrls = (baseUrl) => {
+  const parsed = parseNetworkBase(baseUrl);
+  if (!parsed || useConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
+
+  const primary = `${parsed.prefix}/primary`;
+  const fallback = `${parsed.prefix}/fallback`;
+
+  if (parsed.endpoint === "primary") return [primary, fallback];
+  if (parsed.endpoint === "fallback") return [fallback, primary];
+  return [primary, fallback];
+};
+
+const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
+  if (!fallbackBaseUrl || useConfiguredBaseUrl) return false;
+
+  const parsed = parseNetworkBase(preferredBaseUrl);
+  if (!parsed || parsed.endpoint) return false;
+
+  if (Date.now() - startupTimestamp > STARTUP_HEDGE_WINDOW_MS) return false;
+
+  return /^(get|find|search|invoke)/i.test(String(method || ""));
+};
+
+const isRetryableTransportError = (error) => {
+  if (!error) return false;
+  if (error.name === "CanceledError" || error.code === "ERR_CANCELED") return false;
+  if (error.name === "RpcError" || error.isRpcError) return false;
+  if (error.response) {
+    return error.response.status >= 500 || error.response.status === 429;
+  }
+
+  const message = String(error.message || "").toLowerCase();
+  if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return true;
+  return /(timeout|network error|failed to fetch|socket hang up|econnreset|proxy error)/.test(message);
+};
+
+const createHedgeSkippedError = () => {
+  const error = new Error("Hedge request skipped");
+  error.code = HEDGE_SKIPPED_ERROR_CODE;
+  return error;
+};
+
+const isHedgeSkippedError = (error) => error?.code === HEDGE_SKIPPED_ERROR_CODE;
+
+const getEnvForBaseUrl = (baseUrl) => {
+  const parsed = parseNetworkBase(baseUrl);
+  if (!parsed) return null;
+  return parsed.prefix === "/api/mainnet" ? NET_ENV.Mainnet : NET_ENV.TestT5;
+};
+
+const markActiveEndpoint = (baseUrl) => {
+  if (useConfiguredBaseUrl) return;
+  const parsed = parseNetworkBase(baseUrl);
+  if (!parsed || !parsed.endpoint) return;
+  const env = getEnvForBaseUrl(baseUrl) || getCurrentEnv();
+  setActiveBasePath(env, parsed.normalized);
+};
+
+const createRpcError = (rpcErr) => {
+  const err = new Error(`RPC Error ${rpcErr.code || ""}: ${rpcErr.message || "Unknown RPC error"}`.trim());
+  err.name = "RpcError";
+  err.isRpcError = true;
+  err.rpc = rpcErr;
+  return err;
+};
+
+const extractAggregateError = (error) => {
+  if (!(error instanceof AggregateError) || !Array.isArray(error.errors)) return error;
+  const meaningful = error.errors.find((item) => item && !isHedgeSkippedError(item));
+  return meaningful || error.errors[0] || error;
+};
+
+const executeRpcRequest = async (payload, { baseURL, timeout, signal }) => {
+  const requestConfig = {
+    timeout,
+    baseURL,
+    __manualBaseURL: true,
+  };
+  if (signal) requestConfig.signal = signal;
+
+  const response = await api.post("", payload, requestConfig);
+  if (response.data?.error) {
+    throw createRpcError(response.data.error);
+  }
+
+  return response.data?.result;
+};
+
+const executeRpcRequestWithStartupHedge = async (
+  payload,
+  { primaryBaseURL, fallbackBaseURL, timeout, signal }
+) => {
+  let settled = false;
+  let fallbackTriggered = false;
+  let triggerFallback = null;
+  const fallbackTriggerPromise = new Promise((resolve) => {
+    triggerFallback = () => {
+      if (fallbackTriggered) return;
+      fallbackTriggered = true;
+      resolve();
+    };
+  });
+  const fallbackTimer = setTimeout(() => {
+    triggerFallback();
+  }, HEDGE_DELAY_MS);
+
+  const primaryPromise = executeRpcRequest(payload, {
+    baseURL: primaryBaseURL,
+    timeout,
+    signal,
+  }).then((result) => {
+    settled = true;
+    return { result, baseURL: primaryBaseURL };
+  }).catch((error) => {
+    if (!settled && !signal?.aborted) triggerFallback();
+    throw error;
+  });
+
+  const fallbackPromise = (async () => {
+    await fallbackTriggerPromise;
+    if (settled || signal?.aborted) throw createHedgeSkippedError();
+    const result = await executeRpcRequest(payload, {
+      baseURL: fallbackBaseURL,
+      timeout: FAILOVER_RPC_TIMEOUT_MS,
+      signal,
+    });
+    settled = true;
+    return { result, baseURL: fallbackBaseURL };
+  })();
+
+  try {
+    return await Promise.any([primaryPromise, fallbackPromise]);
+  } catch (error) {
+    throw extractAggregateError(error);
+  } finally {
+    clearTimeout(fallbackTimer);
+  }
+};
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: resolveRpcBaseUrl(),
-  timeout: 30000,
+  timeout: DEFAULT_RPC_TIMEOUT_MS,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -40,7 +197,10 @@ void checkAndSetEndpoints().catch((error) => {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    config.baseURL = resolveRpcBaseUrl();
+    if (!config.__manualBaseURL) {
+      config.baseURL = resolveRpcBaseUrl();
+    }
+    delete config.__manualBaseURL;
     return config;
   },
   (error) => Promise.reject(error)
@@ -68,17 +228,45 @@ const nextRpcId = () => (_rpcId = (_rpcId + 1) % 2147483647);
  * @returns {Promise<any>}
  */
 export const rpc = async (method, params = {}, { signal } = {}) => {
+  const payload = { jsonrpc: "2.0", id: nextRpcId(), method, params };
+  const preferredBaseUrl = resolveRpcBaseUrl();
+  const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl).filter(Boolean))];
+  const baseUrls = retryBaseUrls.length ? retryBaseUrls : [preferredBaseUrl];
+  const startupHedgeEnabled = shouldUseStartupHedge(method, preferredBaseUrl, baseUrls[1]);
+  let lastError = null;
+
   try {
-    const response = await api.post(
-      "",
-      { jsonrpc: "2.0", id: nextRpcId(), method, params },
-      signal ? { signal } : undefined
-    );
-    if (response.data?.error) {
-      const rpcErr = response.data.error;
-      throw new Error(`RPC Error ${rpcErr.code || ""}: ${rpcErr.message || "Unknown RPC error"}`);
+    for (let index = 0; index < baseUrls.length; index += 1) {
+      const baseURL = baseUrls[index];
+      const timeout = index === 0 ? DEFAULT_RPC_TIMEOUT_MS : FAILOVER_RPC_TIMEOUT_MS;
+      try {
+        if (index === 0 && startupHedgeEnabled) {
+          const hedged = await executeRpcRequestWithStartupHedge(payload, {
+            primaryBaseURL: baseURL,
+            fallbackBaseURL: baseUrls[1],
+            timeout,
+            signal,
+          });
+          markActiveEndpoint(hedged.baseURL);
+          return hedged.result;
+        }
+
+        const result = await executeRpcRequest(payload, { baseURL, timeout, signal });
+        markActiveEndpoint(baseURL);
+        return result;
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        lastError = error;
+        const hasFallback = index < baseUrls.length - 1;
+        if (!hasFallback || !isRetryableTransportError(error)) {
+          throw error;
+        }
+        if (import.meta.env.DEV) {
+          console.warn(`[RPC] ${method} failed on ${baseURL}, retrying fallback endpoint`);
+        }
+      }
     }
-    return response.data?.result;
+    throw lastError || new Error(`RPC request failed for ${method}`);
   } catch (error) {
     if (import.meta.env.DEV) console.error(`RPC Error [${method}]:`, error);
     throw error;

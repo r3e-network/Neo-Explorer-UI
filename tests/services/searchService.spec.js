@@ -69,4 +69,23 @@ describe("searchService address lookup", () => {
       data: { address: scriptHash, resolvedNns: nns },
     });
   });
+
+  it("finds contract by 40-char hash queries", async () => {
+    const query = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+    safeRpc.mockImplementation(async (method, params) => {
+      if (method === "GetContractByContractHash" && params?.ContractHash === query) {
+        return { hash: query, name: "GasToken" };
+      }
+      return null;
+    });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(safeRpc).toHaveBeenCalledWith("GetContractByContractHash", { ContractHash: query }, null);
+    expect(result).toEqual({
+      type: "contract",
+      data: { hash: query, name: "GasToken" },
+    });
+  });
 });

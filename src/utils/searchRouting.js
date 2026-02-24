@@ -22,10 +22,10 @@ export function detectSearchType(query) {
   if (isValidNeoAddress(q)) return "address";
 
   // 0x-prefix 64-char hex -> tx or block hash (default to tx)
-  if (isValidTxHash(q)) return "tx";
+  if (isValidTxHash(q) || /^(0x)?[0-9a-fA-F]{64}$/.test(q)) return "tx";
 
-  // Partial hex without 0x prefix (40-64 chars) -> likely contract hash
-  if (/^[0-9a-fA-F]{40,64}$/.test(q)) return "contract";
+  // Contract hash (script hash length)
+  if (/^(0x)?[0-9a-fA-F]{40}$/.test(q)) return "contract";
 
   // NNS Domain
   if (q.endsWith(".neo") && q.length > 4) return "address";
@@ -45,24 +45,27 @@ export function resolveSearchLocation(query, result) {
 
   const type = result?.type;
   const data = result?.data || {};
+  const inferredType = detectSearchType(q);
+  const resolvedType = type && type !== "unknown" ? type : inferredType;
+  const ensure0x = (value) => (value && !value.startsWith("0x") ? `0x${value}` : value);
 
-  if (type === "block") {
+  if (resolvedType === "block") {
     return { path: `/block-info/${data.hash || q}` };
   }
 
-  if (type === "transaction") {
+  if (resolvedType === "transaction" || resolvedType === "tx") {
     return { path: `/transaction-info/${data.hash || q}` };
   }
 
-  if (type === "contract") {
-    return { path: `/contract-info/${data.hash || q}` };
+  if (resolvedType === "contract") {
+    return { path: `/contract-info/${data.hash || ensure0x(q)}` };
   }
 
-  if (type === "address") {
+  if (resolvedType === "address") {
     return { path: `/account-profile/${data.address || q}` };
   }
 
-  if (type === "token") {
+  if (resolvedType === "token") {
     return { path: `/nep17-token-info/${data.hash || q}` };
   }
 

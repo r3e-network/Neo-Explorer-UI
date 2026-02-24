@@ -9,6 +9,8 @@ vi.mock("@/utils/explorerFormat", () => ({
   getTypeIcon: () => "Tx",
   getTypeIconClass: () => "bg-green-100",
   getTypeBadgeClass: () => "bg-green-100",
+  isValidTxHash: (h) => /^(0x)?[a-f0-9]{64}$/i.test(h),
+  isValidNeoAddress: (a) => /^N[a-zA-Z0-9]{33}$/.test(a)
 }));
 vi.mock("@/constants", () => ({ SEARCH_DEBOUNCE_MS: 350 }));
 
@@ -88,5 +90,29 @@ describe("SearchBox", () => {
     const searchEvents = wrapper.emitted("search");
     expect(searchEvents).toBeTruthy();
     expect(searchEvents[0]).toEqual(["123"]);
+  });
+
+  it("does not classify short invalid N-prefixed input as address suggestion", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("N1234567890");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    expect(wrapper.html()).not.toContain("Address/NNS");
+  });
+
+  it("shows address suggestion for valid Neo address", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    expect(wrapper.html()).toContain("Address/NNS");
   });
 });

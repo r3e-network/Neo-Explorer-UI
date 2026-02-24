@@ -54,4 +54,36 @@ describe("resolveSearchLocation", () => {
       query: { q: "something" },
     });
   });
+
+  it("routes numeric query to block detail when backend lookup fails", () => {
+    expect(resolveSearchLocation("123456", null)).toEqual({
+      path: "/block-info/123456",
+    });
+  });
+
+  it("routes address query to account profile when backend lookup fails", () => {
+    expect(resolveSearchLocation("NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW", null)).toEqual({
+      path: "/account-profile/NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW",
+    });
+  });
+
+  it("routes tx hash query to tx detail when backend lookup fails", () => {
+    expect(
+      resolveSearchLocation("0x8c0671853f4f91d4e8f6f6bb9f7bd20dca71ce7b8776c72f938f742f47ad4e45", null)
+    ).toEqual({
+      path: "/transaction-info/0x8c0671853f4f91d4e8f6f6bb9f7bd20dca71ce7b8776c72f938f742f47ad4e45",
+    });
+  });
+
+  it("routes 40-char contract hash query to contract detail when backend lookup fails", () => {
+    expect(resolveSearchLocation("0xd2a4cff31913016155e38e474a2c06d08be276cf", null)).toEqual({
+      path: "/contract-info/0xd2a4cff31913016155e38e474a2c06d08be276cf",
+    });
+  });
+
+  it("routes NNS domain query to account profile when backend lookup fails", () => {
+    expect(resolveSearchLocation("neo3.neo", null)).toEqual({
+      path: "/account-profile/neo3.neo",
+    });
+  });
 });

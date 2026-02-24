@@ -12,6 +12,7 @@ const NETWORKS = [
 ];
 
 const checkEndpointHeight = async (url) => {
+  const start = Date.now();
   try {
     const res = await axios.post(
       url,
@@ -25,12 +26,22 @@ const checkEndpointHeight = async (url) => {
     );
 
     const result = res.data?.result;
+    const latencyMs = Date.now() - start;
     if (typeof result === "object" && result !== null) {
-      return Number(result.index || result.count || 0);
+      return {
+        height: Number(result.index || result.count || 0),
+        latencyMs,
+      };
     }
-    return Number(result || 0);
+    return {
+      height: Number(result || 0),
+      latencyMs,
+    };
   } catch (e) {
-    return -1;
+    return {
+      height: -1,
+      latencyMs: Number.POSITIVE_INFINITY,
+    };
   }
 };
 
@@ -44,18 +55,33 @@ const checkNetworkEndpoints = async (network) => {
       checkEndpointHeight(`${network.prefix}/fallback`),
     ]);
 
-    if (primaryHeight === -1 && fallbackHeight === -1) {
+    if (primaryHeight.height === -1 && fallbackHeight.height === -1) {
       // Both failed, default to primary
       setActiveBasePath(network.env, `${network.prefix}/primary`);
-    } else if (fallbackHeight - primaryHeight > 5) {
+    } else if (primaryHeight.height === -1 && fallbackHeight.height >= 0) {
+      setActiveBasePath(network.env, `${network.prefix}/fallback`);
+    } else if (fallbackHeight.height === -1 && primaryHeight.height >= 0) {
+      setActiveBasePath(network.env, `${network.prefix}/primary`);
+    } else if (fallbackHeight.height - primaryHeight.height > 5) {
       setActiveBasePath(network.env, `${network.prefix}/fallback`);
       console.info(
-        `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight}, Fallback: ${fallbackHeight}`
+        `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
+      );
+    } else if (primaryHeight.height - fallbackHeight.height > 5) {
+      setActiveBasePath(network.env, `${network.prefix}/primary`);
+      console.info(
+        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
+      );
+    } else if (fallbackHeight.latencyMs + 150 < primaryHeight.latencyMs) {
+      // Heights are close enough. Favor noticeably faster endpoint.
+      setActiveBasePath(network.env, `${network.prefix}/fallback`);
+      console.info(
+        `[HealthCheck] ${network.env} using fallback (latency). Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
       );
     } else {
       setActiveBasePath(network.env, `${network.prefix}/primary`);
       console.info(
-        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight}, Fallback: ${fallbackHeight}`
+        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
       );
     }
   } catch (e) {

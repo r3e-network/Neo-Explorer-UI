@@ -15,6 +15,30 @@ vi.mock("axios", () => {
   return { default: mockAxios };
 });
 
+const { envState, setActiveBasePathMock } = vi.hoisted(() => {
+  const state = { currentBasePath: "/api/mainnet" };
+  return {
+    envState: state,
+    setActiveBasePathMock: vi.fn((_env, path) => {
+      state.currentBasePath = path;
+    }),
+  };
+});
+
+vi.mock("../../src/utils/env.js", () => ({
+  NET_ENV: {
+    Mainnet: "Mainnet",
+    TestT5: "TestT5",
+  },
+  getRpcApiBasePath: vi.fn(() => envState.currentBasePath),
+  getCurrentEnv: vi.fn(() => "Mainnet"),
+  setActiveBasePath: setActiveBasePathMock,
+}));
+
+vi.mock("../../src/utils/healthCheck.js", () => ({
+  checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
+}));
+
 describe("formatListResponse", () => {
   it("returns empty result for null input", () => {
     const result = formatListResponse(null);
@@ -68,6 +92,7 @@ describe("formatListResponse", () => {
 describe("safeRpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    envState.currentBasePath = "/api/mainnet";
   });
 
   it("returns result on success", async () => {
@@ -80,14 +105,14 @@ describe("safeRpc", () => {
   });
 
   it("returns default value on error", async () => {
-    axios.post.mockRejectedValueOnce(new Error("Network error"));
+    axios.post.mockRejectedValue(new Error("Network error"));
 
     const result = await safeRpc("GetBlockCount", {}, { blockHeight: 0 });
     expect(result).toEqual({ blockHeight: 0 });
   });
 
   it("returns null as default when not specified", async () => {
-    axios.post.mockRejectedValueOnce(new Error("Network error"));
+    axios.post.mockRejectedValue(new Error("Network error"));
 
     const result = await safeRpc("GetBlockCount", {});
     expect(result).toBeNull();
@@ -107,5 +132,80 @@ describe("safeRpc", () => {
 
     const result = await safeRpc("GetBlockInfoByBlockHash", { BlockHash: "0xabc" });
     expect(result).toEqual({ hash: "0xabc", transactioncount: 1, txcount: 1 });
+  });
+
+  it("fails over to fallback endpoint when primary startup endpoint times out", async () => {
+    const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
+      code: "ECONNABORTED",
+    });
+
+    axios.post
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce({ data: { result: { index: 123 } } });
+
+    const result = await safeRpc("GetBlockCount", {});
+    expect(result).toEqual({ index: 123 });
+
+    expect(axios.post).toHaveBeenNthCalledWith(
+      1,
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+    );
+    expect(axios.post).toHaveBeenNthCalledWith(
+      2,
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+    );
+  });
+
+  it("pins active base path to endpoint that succeeded after failover", async () => {
+    const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
+      code: "ECONNABORTED",
+    });
+
+    axios.post
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce({ data: { result: { count: 10 } } })
+      .mockResolvedValueOnce({ data: { result: { count: 11 } } });
+
+    await safeRpc("GetBlockCount", {});
+    await safeRpc("GetBlockCount", {});
+
+    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
+    expect(axios.post).toHaveBeenLastCalledWith(
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+    );
+  });
+
+  it("starts a hedged fallback request on startup when primary is hanging", async () => {
+    vi.useFakeTimers();
+    try {
+      axios.post
+        .mockImplementationOnce(() => new Promise(() => {}))
+        .mockResolvedValueOnce({ data: { result: { index: 98765 } } });
+
+      const request = safeRpc("GetBlockCount", {});
+      await vi.advanceTimersByTimeAsync(1200);
+
+      await expect(request).resolves.toEqual({ index: 98765 });
+      expect(axios.post).toHaveBeenNthCalledWith(
+        1,
+        "",
+        expect.objectContaining({ method: "GetBlockCount" }),
+        expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+      );
+      expect(axios.post).toHaveBeenNthCalledWith(
+        2,
+        "",
+        expect.objectContaining({ method: "GetBlockCount" }),
+        expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

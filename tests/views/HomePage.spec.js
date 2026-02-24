@@ -92,6 +92,7 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: false, enrichMissingFields: false });
     wrapper.unmount();
   });
 });

@@ -128,9 +128,13 @@
           </div>
           <div class="mt-1 flex items-center justify-between text-xs text-mid">
             <span>~{{ targetTime }}s block time</span>
-            <span v-if="nextBlockCountdown !== null" class="font-medium whitespace-nowrap" :class="nextBlockCountdown < 0 ? 'text-warning' : 'text-status-success'">
+            <span
+              v-if="nextBlockCountdown !== null"
+              class="font-medium whitespace-nowrap"
+              :class="nextBlockCountdown > 0 ? 'text-status-success' : 'text-warning'"
+            >
               <span v-if="nextBlockCountdown > 0">Next in {{ nextBlockCountdown }}s</span>
-              <span v-else>Producing ({{ nextBlockCountdown }}s)</span>
+              <span v-else>Refreshing...</span>
             </span>
           </div>
         </div>
@@ -191,6 +195,7 @@ const emit = defineEmits(["fetch-latest"]);
 
 const nextBlockCountdown = ref(null);
 const targetTime = ref(15);
+const lastFetchRequestedForTimestamp = ref(null);
 let countdownTimer = null;
 
 import { getCurrentEnv, NET_ENV } from '@/utils/env';
@@ -201,15 +206,17 @@ function updateCountdown() {
 
   if (!props.latestBlockTimestamp) {
     nextBlockCountdown.value = null;
+    lastFetchRequestedForTimestamp.value = null;
     return;
   }
   // Convert timestamp to ms if needed
   const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
   
   const ageSecs = Math.floor((Date.now() - tsMs) / 1000);
-  nextBlockCountdown.value = targetTime.value - ageSecs;
+  nextBlockCountdown.value = Math.max(0, targetTime.value - ageSecs);
 
-  if (nextBlockCountdown.value <= 0) {
+  if (nextBlockCountdown.value <= 0 && lastFetchRequestedForTimestamp.value !== tsMs) {
+    lastFetchRequestedForTimestamp.value = tsMs;
     emit("fetch-latest");
   }
 }

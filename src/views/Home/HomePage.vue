@@ -135,7 +135,7 @@ async function loadLatestData(forceRefresh = false) {
     txsError.value = false;
 
     const [blocksRes, txsRes] = await Promise.all([
-      blockService.getList(6, 0, { forceRefresh }).catch(() => {
+      blockService.getList(6, 0, { forceRefresh, enrichMissingFields: false }).catch(() => {
         blocksError.value = true;
         return null;
       }),
