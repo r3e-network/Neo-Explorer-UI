@@ -155,8 +155,6 @@ async function loadLatestData(forceRefresh = false) {
         });
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
           latestBlocks.value = nextBlocks;
-        } else {
-          latestBlocks.value = nextBlocks;
         }
 
         updateTps();

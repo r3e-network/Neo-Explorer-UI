@@ -18,9 +18,9 @@
     <div v-else-if="!blocks.length" class="p-4">
       <EmptyState message="No blocks found" />
     </div>
-    <div v-else>
-      <BlockListItem v-for="block in blocks" :key="block.hash" :block="block" />
-    </div>
+    <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
+      <BlockListItem v-for="block in blocks" :key="block.hash" :block="block" class="w-full" style="background: var(--surface-elevated)" />
+    </TransitionGroup>
   </article>
 </template>
 
@@ -38,3 +38,26 @@ defineProps({
 
 defineEmits(["retry"]);
 </script>
+
+<style scoped>
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.list-leave-active {
+  position: absolute;
+  width: 100%;
+}
+</style>
