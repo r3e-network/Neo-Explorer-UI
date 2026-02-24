@@ -1,6 +1,7 @@
 import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
+import { addressToScriptHash } from "../utils/neoHelpers";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -30,6 +31,29 @@ function _dedupe(key, fn) {
   const p = fn().finally(() => _pending.delete(key));
   _pending.set(key, p);
   return p;
+}
+
+/**
+ * Lookup an account address with backend-compatibility fallback.
+ * Neo3Fura-style backends may require script-hash form for address queries.
+ *
+ * @param {string} address
+ * @returns {Promise<Object|null>}
+ * @private
+ */
+async function _lookupAddress(address) {
+  const scriptHash = addressToScriptHash(address);
+  const candidates = [];
+
+  if (scriptHash) candidates.push(scriptHash);
+  if (!candidates.includes(address)) candidates.push(address);
+
+  for (const candidate of candidates) {
+    const account = await safeRpc("GetAddressByAddress", { Address: candidate }, null);
+    if (account) return account;
+  }
+
+  return null;
 }
 
 /**
@@ -71,7 +95,7 @@ async function _classifyAndDispatch(query) {
 
   // Neo address (N + 33 alphanumeric)
   if (/^N[A-Za-z0-9]{33}$/.test(query)) {
-    const account = await safeRpc("GetAddressByAddress", { Address: query }, null);
+    const account = await _lookupAddress(query);
     if (account) hits.address = account;
   }
 
@@ -79,7 +103,7 @@ async function _classifyAndDispatch(query) {
   if (query.endsWith(".neo") && query.length > 4) {
     const resolvedAddress = await nnsService.resolveDomain(query);
     if (resolvedAddress && /^N[A-Za-z0-9]{33}$/.test(resolvedAddress)) {
-      const account = await safeRpc("GetAddressByAddress", { Address: resolvedAddress }, null);
+      const account = await _lookupAddress(resolvedAddress);
       if (account) {
         account.resolvedNns = query; // Add custom property
         hits.address = account;
