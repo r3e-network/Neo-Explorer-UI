@@ -6,7 +6,7 @@
   "routes": [
     {
       "src": "/api/mainnet/primary",
-      "dest": "http://198.244.215.132:1927"
+      "dest": "https://neofura.ngd.network"
     },
     {
       "src": "/api/mainnet/fallback",
@@ -14,19 +14,19 @@
     },
     {
       "src": "/api/testnet/primary",
-      "dest": "http://198.244.215.132:1926"
+      "dest": "https://testmagnet.ngd.network"
     },
     {
       "src": "/api/testnet/fallback",
-      "dest": "https://testneofura.ngd.network"
+      "dest": "https://testmagnet.ngd.network"
     },
     {
       "src": "/api/mainnet",
-      "dest": "http://198.244.215.132:1927"
+      "dest": "https://neofura.ngd.network"
     },
     {
       "src": "/api/testnet",
-      "dest": "http://198.244.215.132:1926"
+      "dest": "https://testmagnet.ngd.network"
     },
     {
       "src": "/api",
@@ -38,7 +38,7 @@
     },
     {
       "src": "/bpi/testnet/(.*)",
-      "dest": "https://testneofura.ngd.network/bpi/$1"
+      "dest": "https://testmagnet.ngd.network/bpi/$1"
     },
     {
       "src": "/bpi/(.*)",

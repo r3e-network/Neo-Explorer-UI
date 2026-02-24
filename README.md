@@ -48,11 +48,11 @@ The frontend connects to neo3fura via proxy configuration in `vite.config.js`:
 server: {
   proxy: {
     "/api/mainnet": {
-      target: "http://198.244.215.132:1927",
+      target: "https://neofura.ngd.network",
       rewrite: () => "/",
     },
     "/api/testnet": {
-      target: "http://198.244.215.132:1926",
+      target: "https://testmagnet.ngd.network",
       rewrite: () => "/",
     },
   },
@@ -63,8 +63,8 @@ server: {
 
 | Network | RPC Endpoint | WebSocket |
 |---------|--------------|-----------|
-| Mainnet | `http://198.244.215.132:1927` (self-hosted neo3fura) | - |
-| Testnet | `http://198.244.215.132:1926` (self-hosted neo3fura) | - |
+| Mainnet | `https://neofura.ngd.network` (public neo3fura endpoint, also used by OneGate) | - |
+| Testnet | `https://testmagnet.ngd.network` (public neo3fura endpoint, also used by OneGate) | - |
 
 ### Service Layer
 
@@ -142,8 +142,8 @@ Optional build-time environment variable:
 
 Vercel routing is defined in `vercel.json`:
 
-- `/api/mainnet` → `http://198.244.215.132:1927`
-- `/api/testnet` → `http://198.244.215.132:1926`
+- `/api/mainnet` → `https://neofura.ngd.network`
+- `/api/testnet` → `https://testmagnet.ngd.network`
 - `/api` aliases to mainnet (backward compatible)
 - SPA fallback (`/:path*` → `/index.html`)
 
