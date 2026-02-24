@@ -106,9 +106,16 @@ const recipient = computed(() => {
 
 const methodName = computed(() => {
   const tx = props.tx;
+  if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
+    return "Oracle Callback";
+  }
   if (tx.script) {
      const inv = extractContractInvocation(tx.script);
      if (inv && inv.method) {
+        const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
+        if (govMethods.includes(inv.method) && (inv.contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || inv.contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || inv.contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
+            return `Governance: ${inv.method}`;
+        }
         const cName = getContractDisplayName(inv.contractHash);
         if (cName && !cName.startsWith("0x")) {
            return `${cName}: ${inv.method}`;
