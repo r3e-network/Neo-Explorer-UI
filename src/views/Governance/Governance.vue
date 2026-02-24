@@ -98,6 +98,7 @@
                 <th class="table-header-cell">Public Key / Name</th>
                 <th class="table-header-cell-right">Votes</th>
                 <th class="table-header-cell text-center">Status</th>
+                <th class="table-header-cell-right">Liveness</th>
                 <th class="table-header-cell-right">Est. GAS / Month</th>
                 <th class="table-header-cell-right">APR</th>
                 <th class="table-header-cell-right">Action</th>
@@ -134,6 +135,9 @@
                   <span class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                     Optimized
                   </span>
+                </td>
+                <td class="table-cell-right font-medium text-high">
+                  <span class="text-mid text-xs">--</span>
                 </td>
                 <td class="table-cell-right font-medium text-status-success">
                   ~ {{ (neoBurgerMonthlyGas).toFixed(4) }} GAS
@@ -197,6 +201,14 @@
                     {{ candidate.active ? 'Active' : 'Standby' }}
                   </span>
                 </td>
+                <td class="table-cell-right font-medium text-high text-xs">
+                  <template v-if="candidates.indexOf(candidate) < 7 && livenessData[candidates.indexOf(candidate)]">
+                    <span :class="livenessData[candidates.indexOf(candidate)].ratio >= 99 ? 'text-status-success' : 'text-status-warning'">
+                      {{ livenessData[candidates.indexOf(candidate)].ratio }}%
+                    </span>
+                  </template>
+                  <span v-else class="text-mid">--</span>
+                </td>
                 <td class="table-cell-right font-medium text-status-success">
                   {{ calculateMonthlyGas(candidate.votes, candidates.indexOf(candidate)).toFixed(4) }} GAS
                 </td>
@@ -238,6 +250,7 @@ const toast = useToast();
 const { fetchPrices } = usePriceCache();
 
 const candidates = ref([]);
+const livenessData = ref({});
 const sortBy = ref('votes');
 const loading = ref(true);
 const error = ref('');
@@ -419,6 +432,22 @@ async function loadCandidates() {
       logo: metadataMap[c.publickey]?.logo || null,
       location: metadataMap[c.publickey]?.location || null
     })).sort((a, b) => Number(b.votes) - Number(a.votes));
+    
+    // Fetch liveness data passively in the background
+    fetch(`/api/liveness?network=${doraEnv}`)
+      .then(r => r.json())
+      .then(data => {
+         if (data && data.success && Array.isArray(data.liveness)) {
+            const map = {};
+            data.liveness.forEach(l => {
+               map[l.nodeIndex] = l;
+            });
+            livenessData.value = map;
+         }
+      })
+      .catch(e => {
+         if (import.meta.env.DEV) console.warn("Failed to fetch liveness data", e);
+      });
     
   } catch (err) {
     console.error("Failed to load candidates", err);
