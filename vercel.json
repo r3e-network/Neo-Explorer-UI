@@ -6,27 +6,27 @@
   "routes": [
     {
       "src": "/api/mainnet/primary",
-      "dest": "https://neofura.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/mainnet"
     },
     {
       "src": "/api/mainnet/fallback",
-      "dest": "https://neofura.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/mainnet"
     },
     {
       "src": "/api/testnet/primary",
-      "dest": "https://testmagnet.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/testnet"
     },
     {
       "src": "/api/testnet/fallback",
-      "dest": "https://testmagnet.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/testnet"
     },
     {
       "src": "/api/mainnet",
-      "dest": "https://neofura.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/mainnet"
     },
     {
       "src": "/api/testnet",
-      "dest": "https://testmagnet.ngd.network"
+      "dest": "https://dora.coz.io/api/v1/neo3/testnet"
     },
     {
       "src": "/api",
