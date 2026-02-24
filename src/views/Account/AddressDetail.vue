@@ -313,7 +313,9 @@ async function loadSummary(addr) {
             if (currentRequestId === addressRequestId) {
                candidateData.value.votes = typeof votes === 'object' && votes !== null ? (votes.votesOfCandidate || votes.votes || 0) : votes;
             }
-          } catch(e) {}
+          } catch(e) {
+            // Ignore error, votes will be 0 or undefined
+          }
           
           const env = getCurrentEnv().toLowerCase();
           if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {

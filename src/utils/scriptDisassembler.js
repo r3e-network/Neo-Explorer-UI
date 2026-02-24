@@ -313,7 +313,9 @@ export function extractContractInvocation(base64Script) {
         }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    // Ignore disassembly errors to safely fallback to null
+  }
   return null;
 }
 

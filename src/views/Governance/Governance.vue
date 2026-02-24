@@ -104,6 +104,59 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
+              <!-- NeoBurger Row -->
+              <tr class="list-row group bg-amber-50/50 dark:bg-amber-900/10">
+                <td class="table-cell-secondary">
+                  <span class="text-xl">🍔</span>
+                </td>
+                <td class="table-cell">
+                  <div class="flex items-center gap-3">
+                    <img 
+                      src="https://app.neoburger.io/favicon.ico" 
+                      class="h-6 w-6 rounded-full bg-white ring-1 ring-line-soft object-cover flex-shrink-0" 
+                      alt="NeoBurger Logo"
+                    />
+                    <div class="min-w-0 flex flex-col gap-0.5">
+                      <span class="inline-flex items-center gap-1.5 font-bold text-high text-sm">
+                        NeoBurger
+                        <span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          Recommended
+                        </span>
+                      </span>
+                      <span class="text-low text-[10px] font-medium break-all">Smart automated voting strategy</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="table-cell-right font-medium text-high">
+                  <span class="text-mid text-xs">Pooled</span>
+                </td>
+                <td class="table-cell text-center">
+                  <span class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    Auto-Compound
+                  </span>
+                </td>
+                <td class="table-cell-right font-medium text-status-success">
+                  ~ {{ (neoBurgerMonthlyGas).toFixed(4) }} GAS
+                </td>
+                <td class="table-cell-right font-bold text-amber-600 dark:text-amber-400">
+                  ~ {{ (neoBurgerApr).toFixed(2) }}%
+                </td>
+                <td class="table-cell-right">
+                  <a 
+                    href="https://app.neoburger.io/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="btn-primary px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                  >
+                    Go to NeoBurger
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </td>
+              </tr>
+
+              <!-- Standard Candidates -->
               <tr v-for="(candidate) in sortedCandidates" :key="candidate.publickey" class="list-row group">
                 <td class="table-cell-secondary">{{ candidates.indexOf(candidate) + 1 }}</td>
                 <td class="table-cell">
@@ -202,6 +255,32 @@ const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
 
 const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
+});
+
+const neoBurgerApr = computed(() => {
+  if (candidates.value.length === 0) return 0;
+  // NeoBurger optimizes votes across top 21 nodes and compounds, 
+  // so its APR is roughly equal to or slightly higher than the maximum council node APR.
+  let maxApr = 0;
+  for (let i = 0; i < Math.min(21, candidates.value.length); i++) {
+    const apr = calculateAPR(candidates.value[i].votes, i);
+    if (apr > maxApr) maxApr = apr;
+  }
+  // Add 0.5% optimization/compounding premium
+  return maxApr > 0 ? maxApr + 0.5 : 0;
+});
+
+const neoBurgerMonthlyGas = computed(() => {
+  if (candidates.value.length === 0) return 0;
+  let maxGas = 0;
+  for (let i = 0; i < Math.min(21, candidates.value.length); i++) {
+    const gas = calculateMonthlyGas(candidates.value[i].votes, i);
+    if (gas > maxGas) maxGas = gas;
+  }
+  // Reflect the +0.5% APR premium in the GAS output estimate proportionally
+  if (maxGas === 0 || neoBurgerApr.value === 0) return maxGas;
+  const baseMaxApr = neoBurgerApr.value - 0.5;
+  return baseMaxApr > 0 ? maxGas * (neoBurgerApr.value / baseMaxApr) : maxGas;
 });
 
 const sortedCandidates = computed(() => {
