@@ -110,7 +110,7 @@
     </div>
     <div class="stat-card">
       <p class="stat-label">GAS Balance</p>
-      <p class="stat-value">{{ formatBalance(gasBalance, 8) }}</p>
+      <p class="stat-value">{{ formatTokenAmount(gasBalance, 8, 8) }}</p>
     </div>
     <div class="stat-card">
       <p class="stat-label">Transactions</p>
@@ -126,7 +126,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import QrcodeVue from 'qrcode.vue';
-import { formatNumber, formatBalance } from "@/utils/explorerFormat";
+import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
