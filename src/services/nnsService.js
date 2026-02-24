@@ -1,8 +1,38 @@
-import { safeRpc } from "./api";
+import axios from "axios";
+import { rpc, safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
-import { getCurrentEnv, NET_ENV } from "../utils/env";
+import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
+const INVALID_REQUEST_CODE = "-32600";
+
+const isInvalidRequestError = (error) => {
+    const message = String(error?.message || "");
+    return message.includes(INVALID_REQUEST_CODE) || message.includes("Invalid request");
+};
+
+const shouldRetryResolveAgainstPrimary = (env) => {
+    if (env !== NET_ENV.Mainnet) return false;
+    return String(getRpcApiBasePath() || "").endsWith("/api/mainnet/fallback");
+};
+
+const resolveDomainViaPrimary = async (domain) => {
+    try {
+        const response = await axios.post(
+            "/api/mainnet/primary",
+            {
+                jsonrpc: "2.0",
+                id: 1,
+                method: "GetNNSResolve",
+                params: { Domain: domain },
+            },
+            { timeout: 8000 }
+        );
+        return response?.data?.result?.address || null;
+    } catch (_error) {
+        return null;
+    }
+};
 
 export const nnsService = {
     /**
@@ -70,11 +100,16 @@ export const nnsService = {
             key,
             async () => {
                 try {
-                    const res = await safeRpc("GetNNSResolve", { Domain: domain }, null);
+                    const res = await rpc("GetNNSResolve", { Domain: domain });
                     if (res && res.address) {
                         return res.address;
                     }
                 } catch (e) {
+                    if (shouldRetryResolveAgainstPrimary(env) && isInvalidRequestError(e)) {
+                        const retriedAddress = await resolveDomainViaPrimary(domain);
+                        if (retriedAddress) return retriedAddress;
+                    }
+
                     if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain:", domain, e);
                 }
                 return null;
