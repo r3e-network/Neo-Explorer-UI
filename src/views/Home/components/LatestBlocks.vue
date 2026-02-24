@@ -5,10 +5,10 @@
       <router-link to="/blocks/1" class="btn-outline text-xs">View all</router-link>
     </header>
 
-    <div v-if="loading" class="space-y-2 p-4">
+    <div v-if="loading && !blocks.length" class="space-y-2 p-4">
       <Skeleton v-for="i in 6" :key="i" height="54px" />
     </div>
-    <div v-else-if="error" class="p-4">
+    <div v-else-if="error && !blocks.length" class="p-4">
       <ErrorState
         title="Unable to load latest blocks"
         message="Please try again in a moment."

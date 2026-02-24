@@ -101,6 +101,14 @@ export const contractService = createService(
         key,
         async () => {
           const contract = await contractService.getByHash(hash, options);
+          if (contract?.manifest && typeof contract.manifest === "string") {
+            try {
+              return JSON.parse(contract.manifest);
+            } catch (e) {
+              if (import.meta.env.DEV) console.error("Failed to parse manifest for", hash, e);
+              return null;
+            }
+          }
           return contract?.manifest ?? null;
         },
         CACHE_TTL.contract,

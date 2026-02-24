@@ -68,15 +68,15 @@
 
           <!-- From -->
           <td class="table-cell hidden md:table-cell">
-            <div v-if="tx.sender" class="max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
-              <HashLink :hash="tx.sender" type="address" :truncated="false" />
+            <div v-if="tx.sender" class="max-w-[150px] xl:max-w-[200px] 2xl:max-w-[240px] truncate">
+              <HashLink :hash="tx.sender" type="address" :truncated="true" />
             </div>
             <span v-else class="text-xs text-low">-</span>
           </td>
 
           <!-- To -->
           <td class="table-cell hidden lg:table-cell">
-            <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
+            <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-[240px] truncate">
               <svg
                 class="h-4 w-4 flex-shrink-0 text-low"
                 fill="none"
@@ -85,7 +85,7 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="false" />
+              <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="true" />
             </div>
             <span v-else class="text-xs text-low">-</span>
           </td>
@@ -114,6 +114,8 @@
 import { truncateHash, formatAge, formatUnixTime, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "@/components/common/HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -123,6 +125,36 @@ const props = defineProps({
 
 defineEmits(["toggle-time"]);
 
+function toPrefixedHash(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("0x")) return raw.toLowerCase();
+  if (/^[0-9a-fA-F]{40}$/.test(raw)) return `0x${raw.toLowerCase()}`;
+  return raw;
+}
+
+function reverseScriptHash(value) {
+  const hash = toPrefixedHash(value).replace(/^0x/i, "");
+  if (!/^[0-9a-f]{40}$/.test(hash)) return "";
+  const bytes = hash.match(/.{2}/g) || [];
+  return `0x${bytes.reverse().join("")}`;
+}
+
+function getKnownContractName(value) {
+  const hash = toPrefixedHash(value);
+  return NATIVE_CONTRACTS[hash]?.name || KNOWN_CONTRACTS[hash]?.name || null;
+}
+
+function canonicalizeContractHash(value) {
+  const direct = toPrefixedHash(value);
+  if (!direct || direct.startsWith("N")) return direct;
+  if (getKnownContractName(direct)) return direct;
+
+  const reversed = reverseScriptHash(direct);
+  if (reversed && getKnownContractName(reversed)) return reversed;
+  return direct;
+}
+
 function getMethodName(tx) {
   if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
     return "Oracle Callback";
@@ -130,11 +162,14 @@ function getMethodName(tx) {
   if (tx.script) {
      const inv = extractContractInvocation(tx.script);
      if (inv && inv.method) {
+        const contractHash = canonicalizeContractHash(inv.contractHash);
         const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
-        if (govMethods.includes(inv.method) && (inv.contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || inv.contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || inv.contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
+        if (govMethods.includes(inv.method) && (contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
             return `Governance: ${inv.method}`;
         }
-        const cName = getContractDisplayName(inv.contractHash);
+        const known = getKnownContractName(contractHash);
+        if (known) return `${known}: ${inv.method}`;
+        const cName = getContractDisplayName(contractHash);
         // If it's a truncated hash, maybe we just show method.
         if (cName && !cName.startsWith("0x")) {
            return `${cName}: ${inv.method}`;
@@ -152,10 +187,15 @@ function getMethodName(tx) {
 function getRecipient(tx) {
   if (tx.script) {
      const inv = extractContractInvocation(tx.script);
-     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+     if (inv && inv.contractHash) return { hash: canonicalizeContractHash(inv.contractHash), type: 'contract' };
   }
   if (tx.notifications?.length > 0) {
-    return { hash: tx.notifications[0].contract, type: 'contract' };
+    return { hash: canonicalizeContractHash(tx.notifications[0].contract), type: 'contract' };
+  }
+  const to = tx.contractHash || tx.to;
+  if (to) {
+    if (String(to).startsWith("N")) return { hash: to, type: "address" };
+    return { hash: canonicalizeContractHash(to), type: "contract" };
   }
   return null;
 }

@@ -51,55 +51,83 @@
       </template>
       <!-- Methods -->
       <div v-if="abiMethods.length" class="p-4">
-        <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
+        <h4 class="text-low mb-3 text-xs font-semibold uppercase tracking-wider">
           Methods
         </h4>
-        <div class="space-y-2">
-          <div
-            v-for="method in abiMethods"
-            :key="'abi-m-' + method.name"
-            class="rounded-lg border p-3 soft-divider"
-          >
-            <div class="flex items-center gap-2">
-              <span class="text-high font-mono text-sm font-medium">
-                {{ method.name }}
-              </span>
-              <span
-                class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-                :class="
-                  method.safe
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                "
+        <div class="overflow-x-auto rounded-lg border soft-divider">
+          <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              <tr>
+                <th scope="col" class="px-4 py-3">Name</th>
+                <th scope="col" class="px-4 py-3">Parameters</th>
+                <th scope="col" class="px-4 py-3">Return Type</th>
+                <th scope="col" class="px-4 py-3 text-center">Safe</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y soft-divider">
+              <tr
+                v-for="method in abiMethods"
+                :key="'abi-m-' + method.name"
+                class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
               >
-                {{ method.safe ? "Safe" : "Unsafe" }}
-              </span>
-            </div>
-            <div class="text-mid mt-1 font-mono text-xs">
-              ({{ (method.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
-              <span v-if="method.returntype"> &rarr; {{ method.returntype }}</span>
-            </div>
-          </div>
+                <td class="px-4 py-3 font-mono text-high font-medium">{{ method.name }}</td>
+                <td class="px-4 py-3 font-mono text-xs text-mid">
+                  <div v-if="!method.parameters || method.parameters.length === 0" class="text-low italic">None</div>
+                  <div v-else class="flex flex-col gap-1">
+                    <span v-for="(p, i) in method.parameters" :key="i">
+                      {{ p.name }}: <span class="text-emerald-600 dark:text-emerald-400">{{ p.type }}</span>{{ i < method.parameters.length - 1 ? ',' : '' }}
+                    </span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 font-mono text-xs text-emerald-600 dark:text-emerald-400">{{ method.returntype || 'Void' }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span
+                    class="rounded px-2 py-1 text-[10px] font-semibold uppercase"
+                    :class="
+                      method.safe
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    "
+                  >
+                    {{ method.safe ? "Safe" : "Unsafe" }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <!-- Events -->
       <div v-if="abiEvents.length" class="soft-divider border-t p-4">
-        <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
+        <h4 class="text-low mb-3 text-xs font-semibold uppercase tracking-wider">
           Events
         </h4>
-        <div class="space-y-2">
-          <div
-            v-for="evt in abiEvents"
-            :key="'abi-e-' + evt.name"
-            class="rounded-lg border p-3 soft-divider"
-          >
-            <span class="text-high font-mono text-sm font-medium">
-              {{ evt.name }}
-            </span>
-            <div class="text-mid mt-1 font-mono text-xs">
-              ({{ (evt.parameters || []).map((p) => p.name + ": " + p.type).join(", ") }})
-            </div>
-          </div>
+        <div class="overflow-x-auto rounded-lg border soft-divider">
+          <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              <tr>
+                <th scope="col" class="px-4 py-3">Name</th>
+                <th scope="col" class="px-4 py-3">Parameters</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y soft-divider">
+              <tr
+                v-for="evt in abiEvents"
+                :key="'abi-e-' + evt.name"
+                class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              >
+                <td class="px-4 py-3 font-mono text-high font-medium">{{ evt.name }}</td>
+                <td class="px-4 py-3 font-mono text-xs text-mid">
+                  <div v-if="!evt.parameters || evt.parameters.length === 0" class="text-low italic">None</div>
+                  <div v-else class="flex flex-col gap-1">
+                    <span v-for="(p, i) in evt.parameters" :key="i">
+                      {{ p.name }}: <span class="text-emerald-600 dark:text-emerald-400">{{ p.type }}</span>{{ i < evt.parameters.length - 1 ? ',' : '' }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </CollapsibleSection>
@@ -126,11 +154,57 @@
       </div>
     </CollapsibleSection>
 
+    <!-- Groups Collapsible -->
+    <CollapsibleSection
+      v-if="manifest && manifest.groups && manifest.groups.length"
+      title="Groups"
+      :default-open="false"
+    >
+      <div class="soft-divider divide-y">
+        <div
+          v-for="(group, idx) in manifest.groups"
+          :key="'group-' + idx"
+          class="p-4"
+        >
+          <div class="text-high font-mono text-sm font-medium">PubKey: {{ group.pubkey }}</div>
+          <div class="text-mid mt-1 font-mono text-xs">Signature: {{ group.signature }}</div>
+        </div>
+      </div>
+    </CollapsibleSection>
+
+    <!-- Trusts Collapsible -->
+    <CollapsibleSection
+      v-if="manifest && manifest.trusts && manifest.trusts.length"
+      title="Trusts"
+      :default-open="false"
+    >
+      <div class="p-4 flex flex-wrap gap-2">
+        <span
+          v-for="(trust, idx) in manifest.trusts"
+          :key="'trust-' + idx"
+          class="inline-flex items-center rounded-md bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+        >
+          {{ trust }}
+        </span>
+      </div>
+    </CollapsibleSection>
+
+    <!-- Features Collapsible -->
+    <CollapsibleSection
+      v-if="manifest && manifest.features && Object.keys(manifest.features).length"
+      title="Features"
+      :default-open="false"
+    >
+      <div class="p-4">
+        <ContractJsonView :json="manifest.features" />
+      </div>
+    </CollapsibleSection>
+
     <!-- Contract Manifest JSON Collapsible -->
     <CollapsibleSection v-if="manifest" title="Contract Manifest" :default-open="false">
-      <pre class="text-high max-h-96 overflow-auto p-4 font-mono text-xs">{{
-        JSON.stringify(manifest, null, 2)
-      }}</pre>
+      <div class="max-h-96 overflow-auto p-4">
+        <ContractJsonView :json="manifest" />
+      </div>
     </CollapsibleSection>
   </div>
 </template>
@@ -139,6 +213,7 @@
 import { computed } from "vue";
 import CollapsibleSection from "@/components/common/CollapsibleSection.vue";
 import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
+import ContractJsonView from "@/views/Contract/ContractJsonView.vue";
 import { nepBadgeClass, nepTooltip } from "@/utils/nepBadges";
 
 const props = defineProps({

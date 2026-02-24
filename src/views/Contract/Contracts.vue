@@ -121,7 +121,7 @@
                   </router-link>
                 </td>
                 <td class="table-cell-right">
-                  {{ formatNumber(contract.invocations || 0) }}
+                  {{ formatNumber(contract.totalsccall || contract.invocations || 0) }}
                 </td>
                 <td class="table-cell text-center">
                   <div class="flex flex-wrap justify-center gap-1">
@@ -214,8 +214,15 @@ const isSearchMode = computed(() => searchQuery.value.trim().length > 0);
 
 // NEP standard helpers
 function getStandards(contract) {
-  const manifest = contract.manifest;
+  let manifest = contract.manifest;
   if (!manifest) return [];
+  if (typeof manifest === "string") {
+    try {
+      manifest = JSON.parse(manifest);
+    } catch (e) {
+      return [];
+    }
+  }
   const raw = manifest.supportedstandards || manifest.supportedStandards || [];
   return Array.isArray(raw) ? raw : [];
 }

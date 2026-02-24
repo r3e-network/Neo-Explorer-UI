@@ -14,15 +14,15 @@
       <InfoRow label="Name" :value="contract.name || '-'" />
       <InfoRow label="Creator" tooltip="The address that deployed this contract">
         <router-link
-          v-if="contract.creator"
-          :to="`/account-profile/${contract.creator}`"
+          v-if="contract.sender"
+          :to="`/account-profile/${contract.sender}`"
           class="break-all font-mono text-sm etherscan-link"
         >
-          {{ contract.creator }}
+          {{ contract.sender }}
         </router-link>
         <span v-else class="text-mid">-</span>
       </InfoRow>
-      <InfoRow label="Invocations" :value="formatNumber(contract.invocations)" />
+      <InfoRow label="Invocations" :value="formatNumber(contract.totalsccall || 0)" />
       <InfoRow
         label="Update Counter"
         tooltip="Number of times this contract has been updated"
