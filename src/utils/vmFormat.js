@@ -91,16 +91,21 @@ export function opcodeColorClass(opcode) {
   return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
 }
 
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+
 /**
  * Get a human-readable display name for a contract.
- * Checks NATIVE_CONTRACTS first, falls back to manifestName or truncated hash.
+ * Checks NATIVE_CONTRACTS and KNOWN_CONTRACTS first, falls back to manifestName or truncated hash.
  * @param {string} hash - Contract hash (0x-prefixed)
  * @param {string|null} manifestName - Name from contract manifest
  * @returns {string}
  */
 export function getContractDisplayName(hash, manifestName = null) {
-  const native = NATIVE_CONTRACTS[hash?.toLowerCase()];
+  const normalizedHash = hash?.toLowerCase();
+  const native = NATIVE_CONTRACTS[normalizedHash];
   if (native) return native.name;
+  const known = KNOWN_CONTRACTS[normalizedHash];
+  if (known && known.name) return known.name;
   if (manifestName) return manifestName;
   return truncateHash(hash);
 }
