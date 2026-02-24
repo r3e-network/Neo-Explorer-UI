@@ -132,27 +132,7 @@ async function loadBlocks(forceRefresh = false) {
   blocksError.value = null;
   try {
     const res = await blockService.getList(20, 0, { forceRefresh });
-    const fetchedBlocks = res?.result || [];
-    
-    // NGD Workaround: GetBlockInfoList omits fees. Fetch full block details if txs exist.
-    const enriched = await Promise.all(
-      fetchedBlocks.map(async (b) => {
-        if ((b.txcount > 0 || b.transactioncount > 0) && b.sysfee === undefined) {
-          try {
-            const full = await blockService.getByHeight(b.index);
-            if (full) {
-              b.sysfee = full.sysfee ?? full.systemFee;
-              b.netfee = full.netfee ?? full.networkFee;
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-        return b;
-      })
-    );
-
-    blocks.value = enriched;
+    blocks.value = res?.result || [];
     computeFeeEstimates();
   } catch (e) {
     blocksError.value = e.message || "Failed to load blocks";

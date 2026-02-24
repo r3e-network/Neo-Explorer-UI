@@ -85,7 +85,7 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <HashLink :hash="getRecipient(tx)" type="contract" :truncated="false" />
+              <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="false" />
             </div>
             <span v-else class="text-xs text-low">-</span>
           </td>
@@ -111,8 +111,9 @@
 </template>
 
 <script setup>
-import { truncateHash, formatAge, formatUnixTime, formatGas } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatUnixTime, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "@/components/common/HashLink.vue";
+import { extractContractInvocation } from "@/utils/scriptDisassembler";
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -123,6 +124,17 @@ const props = defineProps({
 defineEmits(["toggle-time"]);
 
 function getMethodName(tx) {
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.method) {
+        const cName = getContractDisplayName(inv.contractHash);
+        // If it's a truncated hash, maybe we just show method.
+        if (cName && !cName.startsWith("0x")) {
+           return `${cName}: ${inv.method}`;
+        }
+        return inv.method;
+     }
+  }
   if (tx.method) return tx.method;
   if (tx.notifications?.length > 0) {
     return tx.notifications[0].eventname || "Transfer";
@@ -131,8 +143,12 @@ function getMethodName(tx) {
 }
 
 function getRecipient(tx) {
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+  }
   if (tx.notifications?.length > 0) {
-    return tx.notifications[0].contract;
+    return { hash: tx.notifications[0].contract, type: 'contract' };
   }
   return null;
 }

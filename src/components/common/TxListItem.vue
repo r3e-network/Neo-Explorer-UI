@@ -27,7 +27,8 @@
         </svg>
         <div class="min-w-0 text-left">
           <p class="text-xs text-mid">To</p>
-          <HashLink v-if="toAddress" :hash="toAddress" type="address" :copyable="false" />
+          <HashLink v-if="recipient" :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+          <span v-else-if="methodName" class="text-sm text-high font-medium">{{ methodName }}</span>
           <span v-else class="text-sm text-low">Contract Call</span>
         </div>
       </div>
@@ -63,8 +64,9 @@
 <script setup>
 import { computed } from "vue";
 import { useNow } from "@vueuse/core";
-import { formatAge as _formatAge, formatGas, getTransactionTotalFee } from "@/utils/explorerFormat";
+import { formatAge as _formatAge, formatGas, getTransactionTotalFee, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
+import { extractContractInvocation } from "@/utils/scriptDisassembler";
 
 const props = defineProps({
   tx: { type: Object, default: () => ({}) },
@@ -87,7 +89,36 @@ const statusStyle = computed(() => {
 
 const statusText = computed(() => (isSuccess.value ? "Success" : "Failed"));
 
-const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
+const recipient = computed(() => {
+  const tx = props.tx;
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+  }
+  const to = tx.contractHash || tx.to;
+  if (to) {
+     // If it's a script hash, it's a contract. Otherwise, it's an address.
+     const isAddress = to.startsWith("N");
+     return { hash: to, type: isAddress ? "address" : "contract" };
+  }
+  return null;
+});
+
+const methodName = computed(() => {
+  const tx = props.tx;
+  if (tx.script) {
+     const inv = extractContractInvocation(tx.script);
+     if (inv && inv.method) {
+        const cName = getContractDisplayName(inv.contractHash);
+        if (cName && !cName.startsWith("0x")) {
+           return `${cName}: ${inv.method}`;
+        }
+        return inv.method;
+     }
+  }
+  if (tx.method) return tx.method;
+  return null;
+});
 
 const txFee = computed(() => formatGas(getTransactionTotalFee(props.tx), 4));
 </script>

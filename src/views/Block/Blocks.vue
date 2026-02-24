@@ -158,8 +158,11 @@
                 </td>
                 <!-- Validator -->
                 <td class="table-cell">
-                  <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
-                  <span v-else class="text-xs text-low">--</span>
+                  <div class="flex flex-col">
+                    <HashLink v-if="block.nextconsensus" :hash="block.nextconsensus" type="address" />
+                    <span v-else class="text-xs text-low">--</span>
+                    <span v-if="block.primary !== undefined" class="text-[10px] text-mid">Primary: {{ block.primary }}</span>
+                  </div>
                 </td>
                 <!-- Size -->
                 <td class="table-cell-right text-xs">

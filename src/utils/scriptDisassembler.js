@@ -280,3 +280,40 @@ export function disassembleScript(base64Script) {
 
   return instructions;
 }
+
+/**
+ * Extracts the first contract invocation from a base64 script.
+ * @param {string} base64Script 
+ * @returns {{ contractHash: string, method: string } | null}
+ */
+export function extractContractInvocation(base64Script) {
+  if (!base64Script) return null;
+  try {
+    const instructions = disassembleScript(base64Script);
+    for (let i = 0; i < instructions.length; i++) {
+      const inst = instructions[i];
+      if (inst.opcode === 'SYSCALL' && (inst.operand === 'System.Contract.Call' || inst.operand === 'System.Contract.CallNative')) {
+        if (i >= 2) {
+          let operandContract = instructions[i - 1].operand || '';
+          let methodName = instructions[i - 2].operand || '';
+          
+          if (methodName.startsWith('"') && methodName.endsWith('"')) {
+             methodName = methodName.slice(1, -1);
+          }
+          
+          let contractHash = null;
+          const hashMatch = operandContract.match(/^(0x[a-fA-F0-9]{40})/i);
+          if (hashMatch) {
+             contractHash = hashMatch[1];
+          }
+          
+          if (contractHash && methodName && !methodName.includes('0x')) {
+            return { contractHash, method: methodName };
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+

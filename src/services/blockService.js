@@ -18,7 +18,7 @@ export const blockService = createService(
       realtime: true,
       buildParams: () => ({}),
     },
-    getList: {
+    _getList: {
       _type: "list",
       cacheKey: "block_list",
       rpcMethod: "GetBlockInfoList",
@@ -96,6 +96,36 @@ export const blockService = createService(
       const res = await safeRpc("GetBlockCount", {}, null, options);
       if (!res) return 0;
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
+    },
+
+    /**
+     * Enriched block list with fees and primary info
+     */
+    async getList(limit = 20, skip = 0, options = {}) {
+      const res = await this._getList(limit, skip, options);
+      if (!res || !res.result) return res;
+
+      // NGD Workaround: GetBlockInfoList omits fees and primary/nextconsensus. Fetch full block details.
+      const enriched = await Promise.all(
+        res.result.map(async (b) => {
+          if (b.sysfee === undefined || b.primary === undefined || b.nextconsensus === undefined) {
+            try {
+              const full = await this.getByHeight(b.index, options);
+              if (full) {
+                b.sysfee = full.sysfee ?? full.systemFee;
+                b.netfee = full.netfee ?? full.networkFee;
+                b.primary = full.primary;
+                b.nextconsensus = full.nextconsensus ?? full.nextConsensus;
+              }
+            } catch (e) {
+              // Ignore individual block fetch errors
+            }
+          }
+          return b;
+        })
+      );
+      
+      return { ...res, result: enriched };
     },
   }
 );
