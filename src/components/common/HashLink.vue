@@ -89,8 +89,14 @@ const knownLogo = computed(() => {
     if (known && known.logo) return known.logo;
     
     // Auto-detect Flamingo contracts by name if we dynamically fetched it
-    if (fetchedContractName.value && fetchedContractName.value.toLowerCase().includes('flamingo')) {
-      return "https://flamingo.finance/favicon.ico";
+    if (fetchedContractName.value) {
+      const lowerName = fetchedContractName.value.toLowerCase();
+      if (lowerName.includes('flamingo')) {
+        return "https://flamingo.finance/favicon.ico";
+      }
+      if (lowerName.includes('burger')) {
+        return "https://app.neoburger.io/favicon.ico";
+      }
     }
   }
   return null;
