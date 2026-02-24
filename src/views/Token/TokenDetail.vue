@@ -46,7 +46,7 @@
           </div>
         </div>
 
-        <div class="mb-6 etherscan-card">
+        <div class="mb-6 etherscan-card px-4">
           <InfoRow
             label="Contract"
             tooltip="The smart contract address for this token"

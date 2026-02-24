@@ -3,7 +3,7 @@
     <div class="card-header">
       <h2 class="text-high text-base font-bold">Overview</h2>
     </div>
-    <div class="divide-y soft-divider">
+    <div class="divide-y soft-divider px-4">
       <InfoRow
         label="Contract Hash"
         tooltip="The unique identifier for this smart contract"
