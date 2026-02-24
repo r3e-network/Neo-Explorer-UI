@@ -49,6 +49,33 @@ describe("blockService", () => {
       const result = await blockService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
+
+    it("does not fetch per-block details when list already includes fees and consensus", async () => {
+      api.safeRpcList.mockResolvedValueOnce({
+        result: [
+          {
+            hash: "0x1",
+            index: 1,
+            txcount: 1,
+            sysfee: "100",
+            netfee: "10",
+            nextconsensus: "0xabc",
+          },
+        ],
+        totalCount: 1,
+      });
+
+      const result = await blockService.getList(1, 0);
+
+      expect(api.safeRpc).not.toHaveBeenCalled();
+      expect(result.result[0]).toMatchObject({
+        hash: "0x1",
+        index: 1,
+        sysfee: "100",
+        netfee: "10",
+        nextconsensus: "0xabc",
+      });
+    });
   });
 
   describe("getByHash", () => {

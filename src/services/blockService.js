@@ -102,15 +102,20 @@ export const blockService = createService(
      * Enriched block list with fees and primary info
      */
     async getList(limit = 20, skip = 0, options = {}) {
-      const res = await this._getList(limit, skip, options);
+      const { enrichMissingFields = true, ...requestOptions } = options;
+      const res = await this._getList(limit, skip, requestOptions);
       if (!res || !res.result) return res;
 
-      // NGD Workaround: GetBlockInfoList omits fees and primary/nextconsensus. Fetch full block details.
+      // Backfill missing fee/consensus fields only when unavailable in list payload.
       const enriched = await Promise.all(
         res.result.map(async (b) => {
-          if (b.sysfee === undefined || b.primary === undefined || b.nextconsensus === undefined) {
+          const missingFees = b.sysfee === undefined && b.systemFee === undefined;
+          const missingNetFee = b.netfee === undefined && b.networkFee === undefined;
+          const missingConsensus = b.nextconsensus === undefined && b.nextConsensus === undefined;
+
+          if (enrichMissingFields && (missingFees || missingNetFee || missingConsensus)) {
             try {
-              const full = await this.getByHeight(b.index, options);
+              const full = await this.getByHeight(b.index, requestOptions);
               if (full) {
                 b.sysfee = full.sysfee ?? full.systemFee;
                 b.netfee = full.netfee ?? full.networkFee;

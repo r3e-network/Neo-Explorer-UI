@@ -34,8 +34,8 @@
     <section class="page-shell">
       <div class="page-container py-1">
       <div class="grid gap-4 lg:grid-cols-2">
-        <LatestBlocks :blocks="latestBlocks" :loading="loading" :error="blocksError" @retry="loadLatestData" />
-        <LatestTransactions :transactions="latestTxs" :loading="loading" :error="txsError" @retry="loadLatestData" />
+        <LatestBlocks :blocks="latestBlocks" :loading="latestLoading" :error="blocksError" @retry="loadLatestData" />
+        <LatestTransactions :transactions="latestTxs" :loading="latestLoading" :error="txsError" @retry="loadLatestData" />
       </div>
       </div>
     </section>
@@ -61,7 +61,7 @@ const router = useRouter();
 const { fetchPrices } = usePriceCache();
 
 // State
-const loading = ref(true);
+const latestLoading = ref(true);
 const searchLoading = ref(false);
 const blocksError = ref(false);
 const txsError = ref(false);
@@ -102,13 +102,18 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
 
 // Data loading
 async function loadData() {
-  loading.value = true;
+  latestLoading.value = true;
+
+  // Stats and prices should not block first render of latest blocks/transactions.
+  void loadStats();
+  void loadPrices();
+
   try {
-    await Promise.allSettled([loadStats(), loadLatestData(), loadPrices()]);
+    await loadLatestData();
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load homepage data:", err);
   } finally {
-    loading.value = false;
+    latestLoading.value = false;
   }
 }
 
