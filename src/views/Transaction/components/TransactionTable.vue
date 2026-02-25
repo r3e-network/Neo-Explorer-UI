@@ -48,10 +48,12 @@
           <!-- Method -->
           <td class="table-cell">
             <span
-              class="badge-soft inline-flex max-w-[120px] truncate"
+              class="badge-soft inline-flex items-center gap-1.5 max-w-[150px] truncate"
               :title="getMethodName(tx)"
             >
-              {{ getMethodName(tx) }}
+              <img v-if="/neo/i.test(getMethodName(tx)) || /neo/i.test(getRecipient(tx)?.hash || '')" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+              <img v-if="/gas/i.test(getMethodName(tx)) || /gas/i.test(getRecipient(tx)?.hash || '')" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+              <span class="truncate">{{ getMethodName(tx) }}</span>
             </span>
           </td>
 
@@ -99,13 +101,9 @@
           <!-- Value / Gas -->
           <td class="table-cell hidden text-right lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
-              <div class="flex items-center gap-1.5 justify-end">
-                <img v-if="/neo/i.test(getValueSummary(tx))" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full" />
-                <img v-if="/gas/i.test(getValueSummary(tx))" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full" />
-                <span class="max-w-[180px] truncate font-medium text-high" :title="getValueSummary(tx)">
-                  {{ getValueSummary(tx) }}
-                </span>
-              </div>
+              <span class="max-w-[180px] truncate font-medium text-high" :title="getValueSummary(tx)">
+                {{ getValueSummary(tx) }}
+              </span>
               <span class="mt-0.5 text-xs text-mid">{{ formatTxGas(tx) }} GAS</span>
             </div>
           </td>
@@ -226,7 +224,7 @@ function formatTxGas(tx) {
   const sys = Number(tx.sysfee ?? tx.sys_fee ?? 0);
   const totalFee = net + sys;
   if (totalFee === 0) return "0";
-  return formatGas(totalFee);
+  return formatGas(totalFee, 5);
 }
 
 function formatTxFeeBreakdown(tx) {

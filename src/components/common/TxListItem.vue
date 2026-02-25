@@ -28,14 +28,16 @@
         <div class="min-w-0 text-left">
           <p class="text-xs text-mid">To</p>
           <HashLink v-if="recipient" :hash="recipient.hash" :type="recipient.type" :copyable="false" />
-          <div v-else-if="transferSummary && transferSummary !== '—'" class="flex items-center gap-1.5 min-w-0">
+          <div v-else-if="transferSummary && transferSummary !== '—'" class="min-w-0">
             <span class="text-sm text-high font-medium truncate" :title="transferSummary">
               {{ transferSummary }}
             </span>
-            <img v-if="/neo/i.test(transferSummary)" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
-            <img v-if="/gas/i.test(transferSummary)" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
           </div>
-          <span v-else-if="methodName" class="text-sm text-high font-medium">{{ methodName }}</span>
+          <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
+            <img v-if="/neo/i.test(methodName) || /neo/i.test(recipient?.hash || '')" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <img v-if="/gas/i.test(methodName) || /gas/i.test(recipient?.hash || '')" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
+          </div>
           <span v-else class="text-sm text-low">Contract Call</span>
         </div>
       </div>
@@ -219,8 +221,7 @@ const txFee = computed(() => {
   const net = props.tx?.netfee ?? props.tx?.net_fee ?? 0;
   const sys = props.tx?.sysfee ?? props.tx?.sys_fee ?? 0;
   const total = Number(net) + Number(sys);
-  if (total === 0) return "0";
-  if (!Number.isFinite(total)) return "0";
-  return formatGas(total, 4);
+  if (!Number.isFinite(total) || total === 0) return "0";
+  return formatGas(total, 5);
 });
 </script>
