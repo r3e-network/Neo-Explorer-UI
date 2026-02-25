@@ -161,7 +161,7 @@ function formatTransferAmount(t) {
      } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
        dec = tokenDecimalsMap.value[hash];
      } else {
-       dec = GAS_DECIMALS;
+       dec = 0;
      }
   }
   
