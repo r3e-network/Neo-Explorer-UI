@@ -13,10 +13,31 @@
         </div>
       </div>
       
-      <button @click="showCreateModal = true" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        New Request
-      </button>
+      <div class="flex items-center gap-3">
+        <button 
+          v-if="!connectedAccount" 
+          @click="connectWallet" 
+          class="inline-flex items-center gap-2 rounded-lg bg-surface-elevated border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors"
+        >
+          Connect Wallet
+        </button>
+        <button 
+          v-else-if="!isCouncilNode" 
+          disabled
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
+          title="Only active council nodes can create proposals"
+        >
+          Not a Council Node
+        </button>
+        <button 
+          v-else
+          @click="showCreateModal = true" 
+          class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          New Proposal
+        </button>
+      </div>
     </div>
 
     <div class="etherscan-card p-6">
@@ -75,9 +96,10 @@
                <option value="other">Other Native Contract Invocation</option>
              </select>
            </div>
+           
            <div>
              <label class="block text-sm font-medium text-high mb-1">Target Native Contract</label>
-             <select class="form-input w-full bg-surface">
+             <select v-model="selectedContract" class="form-input w-full bg-surface">
                <option value="PolicyContract">Policy Contract</option>
                <option value="RoleManagement">Role Management</option>
                <option value="OracleContract">Oracle Contract</option>
@@ -86,11 +108,13 @@
            </div>
            <div>
              <label class="block text-sm font-medium text-high mb-1">Method to Invoke</label>
-             <input type="text" class="form-input w-full" placeholder="e.g. setFeePerByte" />
+             <select v-model="selectedMethod" class="form-input w-full bg-surface">
+               <option v-for="m in availableMethods" :key="m.name" :value="m.name">{{ m.name }}</option>
+             </select>
            </div>
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">New Value / Parameter</label>
-             <input type="text" class="form-input w-full" placeholder="JSON array or integer" />
+           <div v-for="(param, idx) in methodParams" :key="idx">
+             <label class="block text-sm font-medium text-high mb-1">{{ param.name }} ({{ param.type }})</label>
+             <input type="text" class="form-input w-full" :placeholder="`Enter ${param.type} value`" />
            </div>
            <div class="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-400">
              <p class="font-semibold mb-1">Note for Council Proposals:</p>
@@ -112,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { supabaseService } from "@/services/supabaseService";
@@ -122,6 +146,46 @@ const _ = supabaseService;
 const loading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
+
+const selectedContract = ref("PolicyContract");
+const selectedMethod = ref("");
+
+const NATIVE_METHODS = {
+  PolicyContract: [
+    { name: "setFeePerByte", params: [{ name: "value", type: "Integer" }] },
+    { name: "setExecFeeFactor", params: [{ name: "value", type: "Integer" }] },
+    { name: "setStoragePrice", params: [{ name: "value", type: "Integer" }] },
+    { name: "blockAccount", params: [{ name: "account", type: "Hash160" }] },
+    { name: "unblockAccount", params: [{ name: "account", type: "Hash160" }] }
+  ],
+  RoleManagement: [
+    { name: "designateAsRole", params: [{ name: "role", type: "Integer" }, { name: "nodes", type: "Array" }] }
+  ],
+  OracleContract: [
+    { name: "setPrice", params: [{ name: "price", type: "Integer" }] }
+  ],
+  NEO: [
+    { name: "setGasPerBlock", params: [{ name: "gasPerBlock", type: "Integer" }] },
+    { name: "setRegisterPrice", params: [{ name: "registerPrice", type: "Integer" }] }
+  ]
+};
+
+const availableMethods = computed(() => {
+  return NATIVE_METHODS[selectedContract.value] || [];
+});
+
+const methodParams = computed(() => {
+  const methods = availableMethods.value;
+  const method = methods.find(m => m.name === selectedMethod.value);
+  return method ? method.params : [];
+});
+
+watch(selectedContract, () => {
+  if (availableMethods.value.length > 0) {
+    selectedMethod.value = availableMethods.value[0].name;
+  }
+}, { immediate: true });
+
 
 onMounted(async () => {
   try {

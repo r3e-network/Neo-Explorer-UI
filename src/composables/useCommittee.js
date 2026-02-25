@@ -106,5 +106,16 @@ export function useCommittee() {
     return null;
   };
 
-  return { loadCommittee, resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress };
+  const isCouncilMember = (address) => {
+    if (!address || !validators.value) return false;
+    for (const v of validators.value) {
+       try {
+           const acc = new wallet.Account(v.publickey);
+           if (acc.address === address) return true;
+       } catch (_e) { /* ignore */ }
+    }
+    return false;
+  };
+
+  return { loadCommittee, resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, isCouncilMember };
 }
