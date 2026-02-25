@@ -207,5 +207,12 @@ const methodName = computed(() => {
   return null;
 });
 
-const txFee = computed(() => formatGas(getTransactionTotalFee(props.tx), 4));
+const txFee = computed(() => {
+  const net = props.tx?.netfee ?? props.tx?.net_fee ?? 0;
+  const sys = props.tx?.sysfee ?? props.tx?.sys_fee ?? 0;
+  const total = Number(net) + Number(sys);
+  if (total === 0) return "0";
+  if (!Number.isFinite(total)) return "0";
+  return formatGas(total, 4);
+});
 </script>

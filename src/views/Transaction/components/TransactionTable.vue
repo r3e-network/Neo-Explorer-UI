@@ -218,16 +218,16 @@ function getValueSummary(tx) {
 }
 
 function formatTxGas(tx) {
-  const net = Number(tx.netfee || 0);
-  const sys = Number(tx.sysfee || 0);
+  const net = Number(tx.netfee ?? tx.net_fee ?? 0);
+  const sys = Number(tx.sysfee ?? tx.sys_fee ?? 0);
   const totalFee = net + sys;
   if (totalFee === 0) return "0";
   return formatGas(totalFee);
 }
 
 function formatTxFeeBreakdown(tx) {
-  const net = Number(tx.netfee || 0);
-  const sys = Number(tx.sysfee || 0);
+  const net = Number(tx.netfee ?? tx.net_fee ?? 0);
+  const sys = Number(tx.sysfee ?? tx.sys_fee ?? 0);
   if (net === 0 && sys === 0) return "N: 0 / S: 0";
   return `N: ${formatGas(net)} / S: ${formatGas(sys)}`;
 }
