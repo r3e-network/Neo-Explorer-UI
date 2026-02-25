@@ -71,6 +71,8 @@ const PageNotFound = lazyLoad(() => import("../views/NotFound/PageNotFound.vue")
 import MainLayout from "../components/layout/MainLayout.vue";
 
 const NNS = lazyLoad(() => import("../views/NNS/NNS.vue"));
+const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
+const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
 
 const routes = [
   {
@@ -84,11 +86,23 @@ const routes = [
         meta: { title: "Neo Explorer" },
         component: HomePage,
       },
-      {
+            {
         path: "/nns",
         name: "nns",
         meta: { title: "Neo Name Service" },
         component: NNS,
+      },
+      {
+        path: "/tools",
+        name: "tools",
+        meta: { title: "Tools" },
+        component: ToolsIndex,
+      },
+      {
+        path: "/tools/multisig",
+        name: "multisig",
+        meta: { title: "Multi-Sig Tool" },
+        component: MultiSigTool,
       },
       {
         path: "/blocks",
