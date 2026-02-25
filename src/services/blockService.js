@@ -174,8 +174,9 @@ export const blockService = createService(
           const missingFees = b.sysfee === undefined && b.systemFee === undefined;
           const missingNetFee = b.netfee === undefined && b.networkFee === undefined;
           const missingConsensus = b.nextconsensus === undefined && b.nextConsensus === undefined;
+          const missingPrimary = b.primary === undefined;
 
-          if (enrichMissingFields && (missingFees || missingNetFee || missingConsensus)) {
+          if (enrichMissingFields && (missingFees || missingNetFee || missingConsensus || missingPrimary)) {
             try {
               const full = await this.getByHeight(b.index, requestOptions);
               if (full) {

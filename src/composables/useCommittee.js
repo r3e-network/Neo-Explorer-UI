@@ -51,6 +51,17 @@ export function useCommittee() {
   // Kickoff load immediately if not done
   loadCommittee();
 
+
+  const resolvePrimaryIndex = (block) => {
+    if (!block) return undefined;
+    if (block.primary !== undefined && block.primary !== null) return Number(block.primary);
+    if (block.index !== undefined && block.index !== null) {
+      const vCount = validators.value && validators.value.length > 0 ? validators.value.length : 7;
+      return Number(block.index) % vCount;
+    }
+    return undefined;
+  };
+
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     
@@ -91,5 +102,5 @@ export function useCommittee() {
     return null;
   };
 
-  return { loadCommittee, getPrimaryNodeName, getPrimaryNodeAddress };
+  return { loadCommittee, resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress };
 }

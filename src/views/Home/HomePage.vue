@@ -250,9 +250,10 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
   const missing = blocks.filter((block) => {
     if (!block?.hash || blockDetailsByHash.has(block.hash)) return false;
     const missingConsensus = !block.nextconsensus && !block.nextConsensus && !block.speaker && !block.validator;
+    const missingPrimary = block.primary === undefined;
     const missingFees = block.sysfee === undefined && block.systemFee === undefined;
     const missingNetFee = block.netfee === undefined && block.networkFee === undefined;
-    return missingConsensus || missingFees || missingNetFee;
+    return missingConsensus || missingFees || missingNetFee || missingPrimary;
   });
 
   if (!missing.length) return;

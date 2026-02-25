@@ -7,11 +7,12 @@ import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
 
-const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
 
 const validatorAddress = computed(() => {
-  if (props.block?.primary !== undefined) {
-    const directAddr = getPrimaryNodeAddress(props.block.primary);
+  const resolvedPrimary = resolvePrimaryIndex(props.block);
+  if (resolvedPrimary !== undefined) {
+    const directAddr = getPrimaryNodeAddress(resolvedPrimary);
     if (directAddr) return scriptHashToAddress(directAddr);
   }
   return props.block?.nextconsensus ? scriptHashToAddress(props.block.nextconsensus) : null;
@@ -85,10 +86,10 @@ const timeAgo = computed(() => {
       <!-- Validator / Next Consensus -->
       <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
         <div class="flex flex-wrap items-center gap-2" v-if="validatorAddress">
-          <span class="text-sm font-semibold text-high" v-if="block.primary !== undefined">
-            {{ getPrimaryNodeName(block.primary) }}
+          <span class="text-sm font-semibold text-high" v-if="resolvePrimaryIndex(block) !== undefined">
+            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) }}
           </span>
-          <span class="text-mid" v-if="block.primary !== undefined">-</span>
+          <span class="text-mid" v-if="resolvePrimaryIndex(block) !== undefined">-</span>
           <HashLink :hash="validatorAddress" type="address" />
         </div>
         <span v-else class="text-mid">--</span>
@@ -230,10 +231,10 @@ const timeAgo = computed(() => {
           Deterministic (single-block finality)
         </span>
       </InfoRow>
-      <InfoRow label="Validator" v-if="block.primary !== undefined && block.primary !== null">
+      <InfoRow label="Validator" v-if="resolvePrimaryIndex(block) !== undefined">
         <div class="flex items-center gap-2">
           <span class="text-sm font-semibold text-high">
-            {{ getPrimaryNodeName(block.primary) || "Unknown Validator" }}
+            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Unknown Validator" }}
           </span>
           <span class="text-mid mx-1">-</span>
           <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" :truncated="false" />

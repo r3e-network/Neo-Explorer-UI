@@ -159,8 +159,8 @@
                 <!-- Validator -->
                 <td class="table-cell">
                   <div class="flex flex-col">
-                    <span v-if="block.primary !== undefined" class="text-sm font-semibold text-high">
-                       {{ getPrimaryNodeName(block.primary) || "Unknown Validator" }}
+                    <span v-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
+                       {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Unknown Validator" }}
                     </span>
                     <HashLink v-if="getActiveValidatorAddress(block)" :hash="getActiveValidatorAddress(block)" type="address" />
                     <span v-else class="text-xs text-low">--</span>
@@ -209,13 +209,14 @@ import { exportBlocksToCSV } from "@/utils/dataExport";
 const { t } = useI18n();
 
 function getActiveValidatorAddress(block) {
-  if (block.primary !== undefined) {
-    const directAddr = getPrimaryNodeAddress(block.primary);
+  const resolvedPrimary = resolvePrimaryIndex(block);
+  if (resolvedPrimary !== undefined) {
+    const directAddr = getPrimaryNodeAddress(resolvedPrimary);
     if (directAddr) return scriptHashToAddress(directAddr);
   }
   return block.nextconsensus ? scriptHashToAddress(block.nextconsensus) : null;
 }
-const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
 const showAbsoluteTime = ref(false);
 
 // Stats bar
@@ -224,7 +225,7 @@ const totalBlocks = ref(0);
 const latestHeight = ref(0);
 
 // --- Pagination via composable (route-synced, cache-aware) ---
-const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, opts);
+const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, { ...opts, enrichMissingFields: true });
 
 const { items: blocks, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
   blockFetchFn,

@@ -63,7 +63,7 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import HashLink from "./HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
 
-const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
 
 const props = defineProps({
   block: { type: Object, default: () => ({}) },
@@ -74,8 +74,9 @@ const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const validatorAddress = computed(() => {
   // Always try to pull the mapped address directly for the primary consensus node first
-  if (props.block.primary !== undefined) {
-    const directAddr = getPrimaryNodeAddress(props.block.primary);
+  const resolvedPrimary = resolvePrimaryIndex(props.block);
+  if (resolvedPrimary !== undefined) {
+    const directAddr = getPrimaryNodeAddress(resolvedPrimary);
     if (directAddr) return scriptHashToAddress(directAddr);
   }
 
