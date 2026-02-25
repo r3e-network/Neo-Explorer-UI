@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import { formatListResponse, safeRpc } from "../../src/services/api.js";
+import { formatListResponse, rpc, safeRpc } from "../../src/services/api.js";
 
 // Mock axios
 vi.mock("axios", () => {
@@ -207,5 +207,27 @@ describe("safeRpc", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("rpc", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    envState.currentBasePath = "/api/mainnet";
+  });
+
+  it("uses [] as default params for zero-argument RPC methods", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: [{ publickey: "PUBKEY1" }] },
+    });
+
+    const result = await rpc("getnextblockvalidators");
+    expect(result).toEqual([{ publickey: "PUBKEY1" }]);
+
+    expect(axios.post).toHaveBeenCalledWith(
+      "",
+      expect.objectContaining({ method: "getnextblockvalidators", params: [] }),
+      expect.any(Object)
+    );
   });
 });

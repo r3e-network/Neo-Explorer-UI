@@ -222,12 +222,12 @@ const nextRpcId = () => (_rpcId = (_rpcId + 1) % 2147483647);
 /**
  * Base RPC call.
  * @param {string} method - RPC method name
- * @param {object} params - RPC parameters
+ * @param {object|Array} params - RPC parameters
  * @param {{ signal?: AbortSignal }} [options] - Optional request options
  * @param {AbortSignal} [options.signal] - AbortController signal to cancel the request
  * @returns {Promise<any>}
  */
-export const rpc = async (method, params = {}, { signal } = {}) => {
+export const rpc = async (method, params = [], { signal } = {}) => {
   const payload = { jsonrpc: "2.0", id: nextRpcId(), method, params };
   const preferredBaseUrl = resolveRpcBaseUrl();
   const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl).filter(Boolean))];
@@ -276,11 +276,11 @@ export const rpc = async (method, params = {}, { signal } = {}) => {
 /**
  * Safe RPC wrapper with error handling and default value
  * @param {string} method - RPC method name
- * @param {object} params - RPC parameters
+ * @param {object|Array} params - RPC parameters
  * @param {any} defaultValue - Default value on error
  * @returns {Promise<any>}
  */
-export const safeRpc = async (method, params = {}, defaultValue = null, { signal } = {}) => {
+export const safeRpc = async (method, params = [], defaultValue = null, { signal } = {}) => {
   try {
     const result = await rpc(method, params, { signal });
     const normalized = normalizeItem(result);
@@ -353,11 +353,11 @@ export const formatListResponse = (result) => {
 /**
  * Safe RPC wrapper for list endpoints with error handling
  * @param {string} method - RPC method name
- * @param {object} params - RPC parameters
+ * @param {object|Array} params - RPC parameters
  * @param {string} errorMsg - Error message prefix
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
-export const safeRpcList = async (method, params = {}, errorMsg = "API call", { signal } = {}) => {
+export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal } = {}) => {
   try {
     const result = await rpc(method, params, { signal });
     return formatListResponse(result);
