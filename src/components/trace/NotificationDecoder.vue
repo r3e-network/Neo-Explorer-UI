@@ -113,6 +113,8 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import HashLink from "@/components/common/HashLink.vue";
+import { decodeStackItem } from "@/utils/neoCodec";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { tokenService } from "@/services/tokenService";

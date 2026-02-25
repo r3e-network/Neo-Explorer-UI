@@ -103,7 +103,7 @@
                   <HashLink :hash="node.contract" type="contract" />
                 </div>
                 <div class="space-y-2 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
-                  <NotificationDecoder
+                  <EnrichedNotification
                     v-for="(evt, evi) in node.events"
                     :key="evi"
                     :notification="evt"
@@ -225,7 +225,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import NotificationDecoder from "./NotificationDecoder.vue";
+import EnrichedNotification from "./EnrichedNotification.vue";
 import StackViewer from "./StackViewer.vue";
 import TraceSection from "./TraceSection.vue";
 import StateChangeSummary from "./StateChangeSummary.vue";
