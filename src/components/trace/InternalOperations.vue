@@ -45,8 +45,30 @@
     </div>
 
     <!-- Empty state -->
+        <!-- Fallback if only internal calls exist but no discrete parsed 'operations' -->
+    <div v-if="!loading && operations.length === 0 && internalContractCalls.length > 0" class="space-y-2 mt-4">
+      <h3 class="text-sm font-semibold text-high mb-3 px-4">Raw Internal Contract Calls</h3>
+      <div v-for="(call, ci) in internalContractCalls" :key="'raw-call-' + ci" class="panel-muted flex items-start gap-3 px-4 py-3 mx-4">
+        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300">
+          {{ ci + 1 }}
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <HashLink :hash="call.contract || call.contractHash || call.callee" type="contract" />
+            <span v-if="call.method || call.operation" class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+              {{ call.method || call.operation }}
+            </span>
+          </div>
+          <div v-if="call.caller" class="text-mid mt-1 text-xs">
+            Called by: <HashLink :hash="call.caller" type="contract" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
     <EmptyState
-      v-if="!loading && operations.length === 0"
+      v-else-if="!loading && operations.length === 0 && internalContractCalls.length === 0"
       icon="tx"
       message="No internal operations — this is a simple transfer."
     />
@@ -171,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -232,6 +254,11 @@ const operations = computed(() => {
   return props.enrichedTrace.executions.flatMap((e) => e.operations ?? []);
 });
 
+const internalContractCalls = computed(() => {
+  if (!props.enrichedTrace?.executions) return [];
+  return props.enrichedTrace.executions.flatMap((e) => e.contractCalls ?? []);
+});
+
 const hasFault = computed(() => {
   if (!props.enrichedTrace?.executions) return false;
   return props.enrichedTrace.executions.some((e) => e.vmState === "FAULT");
@@ -282,6 +309,23 @@ function opTypeLabel(opType) {
 }
 
 function formatAmount(op) {
-  return formatTokenAmount(op.amount, op.tokenDecimals ?? 0, 8);
+  let dec = op.tokenDecimals;
+  if (dec === undefined || dec === null) {
+     const hash = op.contract?.toLowerCase();
+     if (hash && NATIVE_CONTRACTS[hash]) {
+       dec = NATIVE_CONTRACTS[hash].decimals;
+     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+       dec = tokenDecimalsMap.value[hash];
+     } else {
+       dec = 0;
+     }
+  }
+  
+  let amount = op.amount;
+  if (!amount && op.decodedParams && op.decodedParams.length >= 3) {
+      amount = op.decodedParams[2].decoded?.rawValue || op.decodedParams[2].decoded?.decodedValue || op.decodedParams[2].decoded?.displayValue || "0";
+  }
+  
+  return formatTokenAmount(amount, dec, 8);
 }
 </script>

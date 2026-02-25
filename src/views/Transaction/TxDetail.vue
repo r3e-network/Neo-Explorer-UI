@@ -298,7 +298,9 @@ const callTree = computed(() => executionService.buildCallTree(appLog.value));
 
 const enrichedOpsCount = computed(() => {
   if (!enrichedTrace.value?.executions) return 0;
-  return enrichedTrace.value.executions.reduce((sum, e) => sum + (e.operations?.length ?? 0), 0);
+  const opsCount = enrichedTrace.value.executions.reduce((sum, e) => sum + (e.operations?.length ?? 0), 0);
+  const rawCallsCount = enrichedTrace.value.executions.reduce((sum, e) => sum + (e.contractCalls?.length ?? 0), 0);
+  return Math.max(opsCount, rawCallsCount);
 });
 
 const totalGas = computed(() => {
