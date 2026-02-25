@@ -17,7 +17,7 @@
           </span>
           <span class="text-low text-xs">Trigger: {{ exec.trigger }}</span>
           <span class="text-low text-xs font-mono"
-            >{{ formatGasDecimal(exec.gasConsumed) }} GAS</span
+            >{{ formatGas(exec.gasConsumed) }} GAS</span
           >
         </div>
 
@@ -113,7 +113,7 @@ import {
   vmStateDot,
   getContractDisplayName,
   truncateHash,
-  formatGasDecimal,
+  formatGas,
 } from "@/utils/explorerFormat";
 
 const props = defineProps({

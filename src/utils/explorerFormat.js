@@ -6,7 +6,7 @@
  *   - timeFormat.js     — formatDateTime, formatUnixTime, formatTime, formatAge
  *   - numberFormat.js   — formatNumber, formatBytes, formatLargeNumber, formatPrice,
  *                          formatPriceChange, priceChangeClass, formatBalance, formatSupply
- *   - gasFormat.js      — formatGas, getTransactionTotalFee, formatGasDecimal, formatNeo,
+ *   - gasFormat.js      — formatGas, getTransactionTotalFee, formatGas, formatNeo,
  *                          formatGasBalance, formatTokenAmount
  *   - vmFormat.js       — vmStateClass, vmStateDot, getTypeIcon, getTypeIconClass,
  *                          getTypeBadgeClass, opcodeColorClass, getContractDisplayName
@@ -31,7 +31,6 @@ export {
 export {
   formatGas,
   getTransactionTotalFee,
-  formatGasDecimal,
   formatNeo,
   formatGasBalance,
   formatTokenAmount,

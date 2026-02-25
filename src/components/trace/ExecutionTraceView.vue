@@ -66,7 +66,7 @@
             </span>
           </div>
           <span class="text-low text-sm font-mono">
-            {{ formatGasDecimal(exec.gasConsumed) }} GAS
+            {{ formatGas(exec.gasConsumed) }} GAS
           </span>
         </button>
 
@@ -230,7 +230,7 @@ import StackViewer from "./StackViewer.vue";
 import TraceSection from "./TraceSection.vue";
 import StateChangeSummary from "./StateChangeSummary.vue";
 import GasBreakdown from "./GasBreakdown.vue";
-import { vmStateClass, vmStateDot, formatGasDecimal, opcodeColorClass } from "@/utils/explorerFormat";
+import { vmStateClass, vmStateDot, formatGas, opcodeColorClass } from "@/utils/explorerFormat";
 
 const props = defineProps({
   txHash: {

@@ -71,7 +71,7 @@
             <span
               class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             >
-              GAS Consumed: {{ formatGasDecimal(exec.gasconsumed) }}
+              GAS Consumed: {{ formatGas(exec.gasconsumed) }}
             </span>
           </div>
 
@@ -155,7 +155,7 @@
 import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import { formatGasDecimal } from "@/utils/explorerFormat";
+import { formatGas } from "@/utils/explorerFormat";
 
 defineProps({
   appLog: { type: Object, default: null },

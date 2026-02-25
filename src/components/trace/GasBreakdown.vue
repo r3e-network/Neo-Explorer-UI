@@ -67,7 +67,7 @@
 <script setup>
 import { computed } from "vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import { formatGasDecimal, truncateHash } from "@/utils/explorerFormat";
+import { formatGas, truncateHash } from "@/utils/explorerFormat";
 
 const props = defineProps({
   executions: {
@@ -96,7 +96,7 @@ const barColors = {
   cyan: "bg-cyan-500",
 };
 
-const formattedTotal = computed(() => formatGasDecimal(props.totalGas, 4));
+const formattedTotal = computed(() => formatGas(props.totalGas, 4));
 
 const contractGasData = computed(() => {
   if (!props.executions || props.executions.length === 0) return [];
@@ -131,7 +131,7 @@ const contractGasData = computed(() => {
         hash: entry.hash,
         count: entry.count,
         percentage: ratio * 100,
-        gasFormatted: formatGasDecimal(gasShare, 4),
+        gasFormatted: formatGas(gasShare, 4),
       };
     });
 

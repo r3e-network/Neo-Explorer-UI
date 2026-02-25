@@ -91,7 +91,7 @@
 <script setup>
 import { computed } from "vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import { formatGasDecimal } from "@/utils/explorerFormat";
+import { formatGas } from "@/utils/explorerFormat";
 
 const props = defineProps({
   enrichedTrace: {
@@ -129,6 +129,6 @@ const eventCount = computed(() => {
 const formattedGas = computed(() => {
   if (!props.enrichedTrace?.executions) return "0";
   const total = props.enrichedTrace.executions.reduce((sum, e) => sum + Number(e.gasConsumed || 0), 0);
-  return formatGasDecimal(total, 4);
+  return formatGas(total, 4);
 });
 </script>

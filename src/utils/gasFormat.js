@@ -42,12 +42,6 @@ export function getTransactionTotalFee(tx) {
  * @param {number} decimals - Decimal places to display
  * @returns {string}
  */
-export function formatGasDecimal(value, decimals = 4) {
-  if (!value) return "0";
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "0";
-  return num.toFixed(decimals);
-}
 
 /**
  * Format a raw NEO value. NEO is indivisible (0 decimals).

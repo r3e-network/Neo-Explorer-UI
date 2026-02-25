@@ -59,14 +59,9 @@ describe("getTransactionTotalFee", () => {
   });
 });
 
-describe("formatGasDecimal", () => {
-  it("formats a decimal GAS value (no division)", () => {
-    expect(formatGasDecimal(9.977)).toBe("9.9770");
-    expect(formatGasDecimal("1.5")).toBe("1.5000");
-  });
 
   it("respects custom decimal places", () => {
-    expect(formatGasDecimal(9.977, 2)).toBe("9.98");
+    expect(formatGasDecimal(150000000, 2)).toBe("1.50");
   });
 
   it("returns '0' for falsy values", () => {
