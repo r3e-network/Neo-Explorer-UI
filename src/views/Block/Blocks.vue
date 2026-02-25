@@ -162,7 +162,7 @@
                     <span v-if="block.primary !== undefined" class="text-sm font-semibold text-high">
                        {{ getPrimaryNodeName(block.primary) || "Unknown Validator" }}
                     </span>
-                    <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" />
+                    <HashLink v-if="getActiveValidatorAddress(block)" :hash="getActiveValidatorAddress(block)" type="address" />
                     <span v-else class="text-xs text-low">--</span>
                   </div>
                 </td>
@@ -207,7 +207,15 @@ import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import { exportBlocksToCSV } from "@/utils/dataExport";
 
 const { t } = useI18n();
-const { getPrimaryNodeName } = useCommittee();
+
+function getActiveValidatorAddress(block) {
+  if (block.primary !== undefined) {
+    const directAddr = getPrimaryNodeAddress(block.primary);
+    if (directAddr) return scriptHashToAddress(directAddr);
+  }
+  return block.nextconsensus ? scriptHashToAddress(block.nextconsensus) : null;
+}
+const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
 const showAbsoluteTime = ref(false);
 
 // Stats bar

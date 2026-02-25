@@ -15,7 +15,8 @@ vi.mock("@/utils/explorerFormat", () => ({
 
 vi.mock("@/composables/useCommittee", () => ({
   useCommittee: () => ({
-    getPrimaryNodeName: vi.fn((idx) => `Validator #${idx}`)
+    getPrimaryNodeName: vi.fn((idx) => `Validator #${idx}`),
+    getPrimaryNodeAddress: vi.fn(() => "0x123")
   })
 }));
 

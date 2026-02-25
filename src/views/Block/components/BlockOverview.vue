@@ -7,7 +7,15 @@ import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
 
-const { getPrimaryNodeName } = useCommittee();
+const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+const validatorAddress = computed(() => {
+  if (props.block?.primary !== undefined) {
+    const directAddr = getPrimaryNodeAddress(props.block.primary);
+    if (directAddr) return scriptHashToAddress(directAddr);
+  }
+  return props.block?.nextconsensus ? scriptHashToAddress(props.block.nextconsensus) : null;
+});
 
 const props = defineProps({
   block: { type: Object, required: true },
@@ -76,7 +84,7 @@ const timeAgo = computed(() => {
 
       <!-- Validator / Next Consensus -->
       <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
-        <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" />
+        <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" />
         <span v-else class="text-mid">--</span>
       </InfoRow>
 
