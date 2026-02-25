@@ -177,11 +177,52 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { MAX_INLINE_OPERATIONS, OPERATION_TYPES } from "@/constants";
 import { formatTokenAmount } from "@/utils/explorerFormat";
+import { tokenService } from "@/services/tokenService";
+import { NATIVE_CONTRACTS } from "@/constants";
 
 const props = defineProps({
-  enrichedTrace: { type: Object, default: null },
-  loading: { type: Boolean, default: false },
+  enrichedTrace: {
+    type: Object,
+    default: null,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const tokenDecimalsMap = ref({});
+
+watch(
+  () => props.enrichedTrace,
+  async (trace) => {
+    if (!trace?.executions) return;
+    
+    const fetchPromises = [];
+    
+    for (const exec of trace.executions) {
+      if (!exec.operations) continue;
+      for (const op of exec.operations) {
+        if (!op.contract || NATIVE_CONTRACTS[op.contract.toLowerCase()]) continue;
+        
+        const hash = op.contract.toLowerCase();
+        if (tokenDecimalsMap.value[hash] === undefined) {
+           tokenDecimalsMap.value[hash] = 0; // default while fetching
+           fetchPromises.push(
+             tokenService.getByHash(hash).then(t => {
+               if (t && typeof t.decimals !== 'undefined') {
+                 tokenDecimalsMap.value[hash] = Number(t.decimals);
+               }
+             }).catch(e => {})
+           );
+        }
+      }
+    }
+    
+    await Promise.all(fetchPromises);
+  },
+  { immediate: true, deep: true }
+);
 
 const showAll = ref(false);
 const maxInline = MAX_INLINE_OPERATIONS;

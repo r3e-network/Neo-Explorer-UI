@@ -94,11 +94,46 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { GAS_DECIMALS } from "@/constants";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { tokenService } from "@/services/tokenService";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { formatTokenAmount } from "@/utils/explorerFormat";
+import { ref, watch } from "vue";
 
 defineProps({
   allTransfers: { type: Array, default: () => [] },
   transfersLoading: { type: Boolean, default: false },
 });
+
+const tokenDecimalsMap = ref({});
+
+watch(
+  () => props.allTransfers,
+  async (xfers) => {
+    if (!xfers) return;
+    const fetchPromises = [];
+    
+    for (const t of xfers) {
+      if (t.decimals !== undefined && t.decimals !== null) continue;
+      
+      const hash = (t.contract || t.contractHash)?.toLowerCase();
+      if (!hash || NATIVE_CONTRACTS[hash]) continue;
+      
+      if (tokenDecimalsMap.value[hash] === undefined) {
+         tokenDecimalsMap.value[hash] = 0;
+         fetchPromises.push(
+           tokenService.getByHash(hash).then(token => {
+             if (token && typeof token.decimals !== 'undefined') {
+               tokenDecimalsMap.value[hash] = Number(token.decimals);
+             }
+           }).catch(e => {})
+         );
+      }
+    }
+    
+    await Promise.all(fetchPromises);
+  },
+  { immediate: true, deep: true }
+);
 
 const localImages = import.meta.glob('@/assets/gui/*.png', { eager: true, import: 'default' });
 
@@ -116,9 +151,20 @@ function getTokenLogo(t) {
 }
 
 function formatTransferAmount(t) {
-  const raw = Number(t.value || t.amount || 0);
-  const decimals = Number(t.decimals ?? GAS_DECIMALS);
-  if (decimals === 0) return String(raw);
-  return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
+  const raw = t.value || t.amount || 0;
+  let dec = t.decimals;
+  
+  if (dec === undefined || dec === null) {
+     const hash = (t.contract || t.contractHash)?.toLowerCase();
+     if (hash && NATIVE_CONTRACTS[hash]) {
+       dec = NATIVE_CONTRACTS[hash].decimals;
+     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+       dec = tokenDecimalsMap.value[hash];
+     } else {
+       dec = GAS_DECIMALS;
+     }
+  }
+  
+  return formatTokenAmount(raw, dec, 8);
 }
 </script>

@@ -94,6 +94,8 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatTokenAmount } from "@/utils/explorerFormat";
+import { tokenService } from "@/services/tokenService";
+import { NATIVE_CONTRACTS } from "@/constants";
 
 defineProps({
   transfers: { type: Array, default: () => [] },
@@ -121,6 +123,17 @@ function tokenBadgeClass(transfer) {
 }
 
 function formatAmount(transfer) {
-  return formatTokenAmount(transfer.amount, transfer.tokenDecimals ?? 0, 8);
+  let dec = transfer.tokenDecimals;
+  if (dec === undefined || dec === null) {
+     const hash = transfer.contract?.toLowerCase();
+     if (hash && NATIVE_CONTRACTS[hash]) {
+       dec = NATIVE_CONTRACTS[hash].decimals;
+     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+       dec = tokenDecimalsMap.value[hash];
+     } else {
+       dec = 0;
+     }
+  }
+  return formatTokenAmount(transfer.amount, dec, 8);
 }
 </script>

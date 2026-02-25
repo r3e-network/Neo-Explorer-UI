@@ -112,11 +112,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import HashLink from "@/components/common/HashLink.vue";
-import { decodeStackItem } from "@/utils/neoCodec";
-import { NATIVE_CONTRACTS } from "@/constants";
+import { ref, computed, watch } from "vue";
+import { NATIVE_CONTRACTS } from "@/constants/index";
 import { formatTokenAmount } from "@/utils/explorerFormat";
+import { tokenService } from "@/services/tokenService";
 
 const props = defineProps({
   notification: {
@@ -130,13 +129,32 @@ const props = defineProps({
 });
 
 const showRawState = ref(false);
+const dynamicDecimals = ref(null);
 
 const tokenDecimals = computed(() => {
+  if (dynamicDecimals.value !== null) return dynamicDecimals.value;
   const hash = props.notification.contract;
   if (!hash) return 0;
   const native = NATIVE_CONTRACTS[hash.toLowerCase()];
   return native?.decimals ?? 0;
 });
+
+watch(
+  () => props.notification.contract,
+  async (hash) => {
+    if (!hash) return;
+    const lowerHash = hash.toLowerCase();
+    if (!NATIVE_CONTRACTS[lowerHash]) {
+      try {
+        const token = await tokenService.getByHash(lowerHash);
+        if (token && typeof token.decimals !== "undefined") {
+          dynamicDecimals.value = Number(token.decimals);
+        }
+      } catch (e) { /* ignore */ }
+    }
+  },
+  { immediate: true }
+);
 
 const isTransfer = computed(() => {
   return props.notification.eventName?.toLowerCase() === "transfer";
