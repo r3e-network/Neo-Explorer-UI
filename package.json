@@ -20,6 +20,7 @@
   "dependencies": {
     "@cityofzion/neon-dappkit": "^1.0.0",
     "@cityofzion/neon-js": "^5.8.0",
+    "@vercel/edge-config": "^1.4.3",
     "@vueuse/core": "^14.2.1",
     "@walletconnect/sign-client": "^2.23.6",
     "axios": "^1.13.5",
