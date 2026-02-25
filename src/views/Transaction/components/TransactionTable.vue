@@ -51,8 +51,8 @@
               class="badge-soft inline-flex items-center gap-1.5 max-w-[150px] truncate"
               :title="getMethodName(tx)"
             >
-              <img v-if="/neo/i.test(getMethodName(tx)) || /neo/i.test(getRecipient(tx)?.hash || '')" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
-              <img v-if="/gas/i.test(getMethodName(tx)) || /gas/i.test(getRecipient(tx)?.hash || '')" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+              <img v-if="/neo/i.test(getMethodName(tx)) || getRecipient(tx)?.hash === '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5'" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+              <img v-if="/gas/i.test(getMethodName(tx)) || getRecipient(tx)?.hash === '0xd2a4cff31913016155e38e474a2c06d08be276cf'" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
               <span class="truncate">{{ getMethodName(tx) }}</span>
             </span>
           </td>
@@ -93,6 +93,8 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
+              <img v-if="getRecipient(tx).hash === '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5'" :src="'/img/brand/neo.png'" class="w-4 h-4 rounded-full flex-shrink-0" />
+              <img v-else-if="getRecipient(tx).hash === '0xd2a4cff31913016155e38e474a2c06d08be276cf'" :src="'/img/brand/gas.png'" class="w-4 h-4 rounded-full flex-shrink-0" />
               <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="true" />
             </div>
             <span v-else class="text-xs text-low">-</span>

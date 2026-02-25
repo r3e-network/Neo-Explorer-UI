@@ -27,15 +27,19 @@
         </svg>
         <div class="min-w-0 text-left">
           <p class="text-xs text-mid">To</p>
-          <HashLink v-if="recipient" :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+          <div v-if="recipient" class="flex items-center gap-1.5">
+            <img v-if="recipient.hash === '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5'" :src="'/img/brand/neo.png'" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+            <img v-else-if="recipient.hash === '0xd2a4cff31913016155e38e474a2c06d08be276cf'" :src="'/img/brand/gas.png'" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+            <HashLink :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+          </div>
           <div v-else-if="transferSummary && transferSummary !== '—'" class="min-w-0">
             <span class="text-sm text-high font-medium truncate" :title="transferSummary">
               {{ transferSummary }}
             </span>
           </div>
           <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
-            <img v-if="/neo/i.test(methodName) || /neo/i.test(recipient?.hash || '')" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
-            <img v-if="/gas/i.test(methodName) || /gas/i.test(recipient?.hash || '')" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
             <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
           </div>
           <span v-else class="text-sm text-low">Contract Call</span>
