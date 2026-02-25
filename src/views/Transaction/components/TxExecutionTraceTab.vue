@@ -29,7 +29,7 @@
 <script setup>
 import ExecutionTraceView from "@/components/trace/ExecutionTraceView.vue";
 
-const props = defineProps({
+defineProps({
   appLog: { type: Object, default: null },
   appLogLoading: { type: Boolean, default: false },
   callTree: { type: Array, default: () => [] },

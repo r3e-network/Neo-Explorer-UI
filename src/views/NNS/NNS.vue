@@ -269,7 +269,7 @@ async function handleSearch() {
           if (rawAdmin.startsWith("0x")) {
              try { 
                  rawAdmin = scriptHashHexToAddress(rawAdmin.slice(2)); 
-             } catch(e) {}
+             } catch(_e) { /* ignore */ }
           }
           admin = rawAdmin;
         }

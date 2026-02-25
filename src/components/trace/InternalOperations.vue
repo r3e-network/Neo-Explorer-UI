@@ -235,7 +235,7 @@ watch(
                if (t && typeof t.decimals !== 'undefined') {
                  tokenDecimalsMap.value[hash] = Number(t.decimals);
                }
-             }).catch(e => {})
+             }).catch(_e => {})
            );
         }
       }

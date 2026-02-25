@@ -92,14 +92,13 @@
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
-import { GAS_DECIMALS } from "@/constants";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { tokenService } from "@/services/tokenService";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { ref, watch } from "vue";
 
-defineProps({
+const props = defineProps({
   allTransfers: { type: Array, default: () => [] },
   transfersLoading: { type: Boolean, default: false },
 });
@@ -125,7 +124,7 @@ watch(
              if (token && typeof token.decimals !== 'undefined') {
                tokenDecimalsMap.value[hash] = Number(token.decimals);
              }
-           }).catch(e => {})
+           }).catch(_e => {})
          );
       }
     }

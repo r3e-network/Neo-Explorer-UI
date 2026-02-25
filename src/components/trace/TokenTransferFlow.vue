@@ -94,7 +94,6 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatTokenAmount } from "@/utils/explorerFormat";
-import { tokenService } from "@/services/tokenService";
 import { NATIVE_CONTRACTS } from "@/constants";
 
 defineProps({
@@ -128,8 +127,6 @@ function formatAmount(transfer) {
      const hash = transfer.contract?.toLowerCase();
      if (hash && NATIVE_CONTRACTS[hash]) {
        dec = NATIVE_CONTRACTS[hash].decimals;
-     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
-       dec = tokenDecimalsMap.value[hash];
      } else {
        dec = 0;
      }

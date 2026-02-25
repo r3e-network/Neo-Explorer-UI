@@ -57,7 +57,6 @@ import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { NETWORK_CHANGE_EVENT, getCurrentEnv } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
-import { useTransferSummary } from "@/composables/useTransferSummary";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();

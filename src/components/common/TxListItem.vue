@@ -77,7 +77,7 @@
 <script setup>
 import { computed } from "vue";
 import { useNow } from "@vueuse/core";
-import { formatAge as _formatAge, formatGas, getTransactionTotalFee, getContractDisplayName } from "@/utils/explorerFormat";
+import { formatAge as _formatAge, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS } from "@/constants";

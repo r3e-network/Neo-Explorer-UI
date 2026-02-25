@@ -56,7 +56,7 @@ const Treasury = lazyLoad(() => import("../views/Treasury/Treasury.vue"));
 // Other pages
 const Candidates = lazyLoad(() => import("../views/Candidate/Candidates.vue"));
 const BurnFee = lazyLoad(() => import("../views/BurnGas/BurnFee.vue"));
-const DailyTransaction = lazyLoad(() => import("../views/BurnGas/DailyTransaction.vue"));
+const ChartsPage = lazyLoad(() => import("../views/Charts/ChartsPage.vue"));
 const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 
 // New placeholder pages
@@ -202,7 +202,7 @@ const routes = [
         path: "/echarts",
         name: "charts",
         meta: { title: "Charts & Statistics" },
-        component: DailyTransaction,
+        component: ChartsPage,
       },
       {
         path: "/api-docs",

@@ -59,7 +59,7 @@ describe("getTransactionTotalFee", () => {
   });
 });
 
-
+describe("formatGasDecimal", () => {
   it("respects custom decimal places", () => {
     expect(formatGasDecimal(150000000, 2)).toBe("1.50");
   });
