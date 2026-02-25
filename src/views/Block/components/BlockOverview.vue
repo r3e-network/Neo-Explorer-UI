@@ -225,7 +225,14 @@ const timeAgo = computed(() => {
         </span>
       </InfoRow>
       <InfoRow label="Validator" v-if="block.primary !== undefined && block.primary !== null">
-        <span class="font-mono">{{ getPrimaryNodeName(block.primary) || `#${block.primary}` }}</span>
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-mid">#{{ block.primary }}</span>
+          <span class="text-sm font-semibold text-high">
+            {{ getPrimaryNodeName(block.primary) || "Unknown Validator" }}
+          </span>
+          <span class="text-mid mx-1">-</span>
+          <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" :truncated="false" />
+        </div>
       </InfoRow>
     </div>
   </div>
