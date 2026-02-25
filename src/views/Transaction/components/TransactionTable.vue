@@ -103,9 +103,13 @@
           <!-- Value / Gas -->
           <td class="table-cell hidden text-right lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
-              <span class="max-w-[180px] truncate font-medium text-high" :title="getValueSummary(tx)">
-                {{ getValueSummary(tx) }}
-              </span>
+              <div class="flex items-center gap-1.5 max-w-[180px]">
+                <img v-if="getSummaryLogo(tx)" :src="getSummaryLogo(tx)" class="w-4 h-4 rounded-full ring-1 ring-line-soft bg-white object-cover" />
+                <span class="truncate font-medium text-high flex items-center gap-1" :title="getValueSummary(tx)">
+                  {{ getValueSummary(tx) }}
+                  <svg v-if="transferSummaryByHash[tx.hash]?.contract && supabaseMeta[transferSummaryByHash[tx.hash].contract.toLowerCase()]?.is_verified" class="h-3.5 w-3.5 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </span>
+              </div>
               <span class="mt-0.5 text-xs text-mid">{{ formatTxGas(tx) }} GAS</span>
             </div>
           </td>
@@ -126,6 +130,9 @@ import HashLink from "@/components/common/HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { supabaseService } from "@/services/supabaseService";
+import { getTokenIcon } from "@/utils/getTokenIcon";
+import { ref, watch } from "vue";
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -134,6 +141,32 @@ const props = defineProps({
 });
 
 defineEmits(["toggle-time"]);
+
+const supabaseMeta = ref({});
+watch(() => props.transferSummaryByHash, async (newSummaryMap) => {
+  if (newSummaryMap) {
+    const hashes = Object.values(newSummaryMap)
+      .filter(s => s && typeof s === 'object' && s.contract)
+      .map(s => s.contract);
+    
+    if (hashes.length) {
+       const meta = await supabaseService.getContractMetadataBatch(hashes);
+       supabaseMeta.value = meta;
+    }
+  }
+}, { immediate: true, deep: true });
+
+function getSummaryLogo(tx) {
+  const summary = props.transferSummaryByHash[tx.hash];
+  if (!summary || typeof summary === 'string' || !summary.contract) return null;
+  
+  if (supabaseMeta.value[summary.contract.toLowerCase()]?.logo_url) {
+     return supabaseMeta.value[summary.contract.toLowerCase()].logo_url;
+  }
+  return getTokenIcon(summary.contract, summary.type);
+}
+
+
 
 function toPrefixedHash(value) {
   const raw = String(value || "").trim();
@@ -212,7 +245,10 @@ function getRecipient(tx) {
 
 function getValueSummary(tx) {
   const summary = props.transferSummaryByHash[tx.hash];
-  if (summary) return summary;
+  if (summary) {
+    if (typeof summary === 'string') return summary;
+    return summary.text || "\u2014";
+  }
 
   const transferValue = Number(tx.value || 0);
   if (transferValue > 0) {

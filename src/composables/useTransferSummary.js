@@ -45,7 +45,11 @@ export function useTransferSummary() {
         const amount = formatTokenAmount(nep17.value ?? 0, Number(nep17.decimals ?? 0), 8);
         const symbol = nep17.symbol || nep17.tokenname || "Token";
         const suffix = extraTransferSuffix(nep17Res?.totalCount);
-        setSummary(hash, `${amount} ${symbol}${suffix}`);
+        setSummary(hash, {
+          text: `${amount} ${symbol}${suffix}`,
+          contract: nep17.contract || nep17.contractHash || nep17.asset,
+          type: 'NEP17'
+        });
         return;
       }
 
@@ -58,16 +62,20 @@ export function useTransferSummary() {
         const tokenId = nep11.tokenid || nep11.tokenId;
         const suffix = extraTransferSuffix(nep11Res?.totalCount);
         const readableId = truncateTokenId(tokenId);
-        setSummary(hash, readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`);
+        setSummary(hash, {
+          text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
+          contract: nep11.contract || nep11.contractHash || nep11.asset,
+          type: 'NEP11'
+        });
         return;
       }
 
-      setSummary(hash, "\u2014");
+      setSummary(hash, { text: "\u2014", contract: null, type: null });
     } catch (err) {
       if (import.meta.env.DEV) {
         console.warn("Failed to load transaction transfer summary:", err);
       }
-      setSummary(hash, "\u2014");
+      setSummary(hash, { text: "\u2014", contract: null, type: null });
     } finally {
       pendingHashes.delete(hash);
     }
