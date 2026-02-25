@@ -1,269 +1,1233 @@
-/**
- * NeoVM Opcode Definitions
- * @module utils/neoOpcodes
- * @description Complete NeoVM opcode table for script disassembly
- * @see https://docs.neo.org/docs/en-us/reference/neo_vm.html
- */
-
-// Operand size: how many bytes follow the opcode
-// 0 = none, -1 = variable (read from operand prefix), N = fixed N bytes
+// Auto-generated Neo3 Opcodes
 export const OPCODES = {
-  // ── Constants ──
-  0x00: { name: "PUSH0", operandSize: 0, desc: "Push empty byte array" },
-  0x01: { name: "PUSHINT8", operandSize: 1, desc: "Push 1-byte signed integer" },
-  0x02: { name: "PUSHINT16", operandSize: 2, desc: "Push 2-byte signed integer" },
-  0x03: { name: "PUSHINT32", operandSize: 4, desc: "Push 4-byte signed integer" },
-  0x04: { name: "PUSHINT64", operandSize: 8, desc: "Push 8-byte signed integer" },
-  0x05: { name: "PUSHINT128", operandSize: 16, desc: "Push 16-byte signed integer" },
-  0x06: { name: "PUSHINT256", operandSize: 32, desc: "Push 32-byte signed integer" },
-  0x08: { name: "PUSHT", operandSize: 0, desc: "Push true" },
-  0x09: { name: "PUSHF", operandSize: 0, desc: "Push false" },
-  0x0a: { name: "PUSHA", operandSize: 4, desc: "Push address (4-byte offset)" },
-  0x0b: { name: "PUSHNULL", operandSize: 0, desc: "Push null" },
-  0x0c: { name: "PUSHDATA1", operandSize: -1, prefix: 1, desc: "Push data (1-byte length prefix)" },
-  0x0d: { name: "PUSHDATA2", operandSize: -1, prefix: 2, desc: "Push data (2-byte length prefix)" },
-  0x0e: { name: "PUSHDATA4", operandSize: -1, prefix: 4, desc: "Push data (4-byte length prefix)" },
-  0x0f: { name: "PUSHM1", operandSize: 0, desc: "Push -1" },
-  0x10: { name: "PUSH0", operandSize: 0, desc: "Push 0" },
-  0x11: { name: "PUSH1", operandSize: 0, desc: "Push 1" },
-  0x12: { name: "PUSH2", operandSize: 0, desc: "Push 2" },
-  0x13: { name: "PUSH3", operandSize: 0, desc: "Push 3" },
-  0x14: { name: "PUSH4", operandSize: 0, desc: "Push 4" },
-  0x15: { name: "PUSH5", operandSize: 0, desc: "Push 5" },
-  0x16: { name: "PUSH6", operandSize: 0, desc: "Push 6" },
-  0x17: { name: "PUSH7", operandSize: 0, desc: "Push 7" },
-  0x18: { name: "PUSH8", operandSize: 0, desc: "Push 8" },
-  0x19: { name: "PUSH9", operandSize: 0, desc: "Push 9" },
-  0x1a: { name: "PUSH10", operandSize: 0, desc: "Push 10" },
-  0x1b: { name: "PUSH11", operandSize: 0, desc: "Push 11" },
-  0x1c: { name: "PUSH12", operandSize: 0, desc: "Push 12" },
-  0x1d: { name: "PUSH13", operandSize: 0, desc: "Push 13" },
-  0x1e: { name: "PUSH14", operandSize: 0, desc: "Push 14" },
-  0x1f: { name: "PUSH15", operandSize: 0, desc: "Push 15" },
-  0x20: { name: "PUSH16", operandSize: 0, desc: "Push 16" },
-
-  // ── Flow Control ──
-  0x21: { name: "NOP", operandSize: 0, desc: "No operation" },
-  0x22: { name: "JMP", operandSize: 1, desc: "Jump (1-byte offset)" },
-  0x23: { name: "JMP_L", operandSize: 4, desc: "Jump (4-byte offset)" },
-  0x24: { name: "JMPIF", operandSize: 1, desc: "Jump if true" },
-  0x25: { name: "JMPIF_L", operandSize: 4, desc: "Jump if true (long)" },
-  0x26: { name: "JMPIFNOT", operandSize: 1, desc: "Jump if false" },
-  0x27: { name: "JMPIFNOT_L", operandSize: 4, desc: "Jump if false (long)" },
-  0x28: { name: "JMPEQ", operandSize: 1, desc: "Jump if equal" },
-  0x29: { name: "JMPEQ_L", operandSize: 4, desc: "Jump if equal (long)" },
-  0x2a: { name: "JMPNE", operandSize: 1, desc: "Jump if not equal" },
-  0x2b: { name: "JMPNE_L", operandSize: 4, desc: "Jump if not equal (long)" },
-  0x2c: { name: "JMPGT", operandSize: 1, desc: "Jump if greater" },
-  0x2d: { name: "JMPGT_L", operandSize: 4, desc: "Jump if greater (long)" },
-  0x2e: { name: "JMPGE", operandSize: 1, desc: "Jump if greater or equal" },
-  0x2f: { name: "JMPGE_L", operandSize: 4, desc: "Jump if greater or equal (long)" },
-  0x30: { name: "JMPLT", operandSize: 1, desc: "Jump if less" },
-  0x31: { name: "JMPLT_L", operandSize: 4, desc: "Jump if less (long)" },
-  0x32: { name: "JMPLE", operandSize: 1, desc: "Jump if less or equal" },
-  0x33: { name: "JMPLE_L", operandSize: 4, desc: "Jump if less or equal (long)" },
-  0x34: { name: "CALL", operandSize: 1, desc: "Call (1-byte offset)" },
-  0x35: { name: "CALL_L", operandSize: 4, desc: "Call (4-byte offset)" },
-  0x36: { name: "CALLA", operandSize: 0, desc: "Call address on stack" },
-  0x37: { name: "CALLT", operandSize: 2, desc: "Call token" },
-  0x38: { name: "ABORT", operandSize: 0, desc: "Abort execution" },
-  0x39: { name: "ASSERT", operandSize: 0, desc: "Assert top is true" },
-  0x3a: { name: "THROW", operandSize: 0, desc: "Throw exception" },
-  0x3b: { name: "TRY", operandSize: 2, desc: "Try (catch/finally offsets)" },
-  0x3c: { name: "TRY_L", operandSize: 8, desc: "Try long (catch/finally offsets)" },
-  0x3d: { name: "ENDTRY", operandSize: 1, desc: "End try" },
-  0x3e: { name: "ENDTRY_L", operandSize: 4, desc: "End try (long)" },
-  0x3f: { name: "ENDFINALLY", operandSize: 0, desc: "End finally" },
-  0x40: { name: "RET", operandSize: 0, desc: "Return" },
-  0x41: { name: "SYSCALL", operandSize: 4, desc: "System call (4-byte hash)" },
-
-  // ── Stack Operations ──
-  0x43: { name: "DEPTH", operandSize: 0, desc: "Stack depth" },
-  0x45: { name: "DROP", operandSize: 0, desc: "Drop top" },
-  0x46: { name: "NIP", operandSize: 0, desc: "Remove second item" },
-  0x48: { name: "XDROP", operandSize: 0, desc: "Drop N-th item" },
-  0x49: { name: "CLEAR", operandSize: 0, desc: "Clear stack" },
-  0x4a: { name: "DUP", operandSize: 0, desc: "Duplicate top" },
-  0x4b: { name: "OVER", operandSize: 0, desc: "Copy second item to top" },
-  0x4d: { name: "PICK", operandSize: 0, desc: "Copy N-th item to top" },
-  0x4e: { name: "TUCK", operandSize: 0, desc: "Insert top below second" },
-  0x50: { name: "SWAP", operandSize: 0, desc: "Swap top two" },
-  0x51: { name: "ROT", operandSize: 0, desc: "Rotate top three" },
-  0x52: { name: "ROLL", operandSize: 0, desc: "Move N-th item to top" },
-  0x53: { name: "REVERSE3", operandSize: 0, desc: "Reverse top 3" },
-  0x54: { name: "REVERSE4", operandSize: 0, desc: "Reverse top 4" },
-  0x55: { name: "REVERSEN", operandSize: 0, desc: "Reverse top N" },
-
-  // ── Slot Operations ──
-  0x56: { name: "INITSSLOT", operandSize: 1, desc: "Init static slot" },
-  0x57: { name: "INITSLOT", operandSize: 2, desc: "Init local+arg slots" },
-  0x58: { name: "LDSFLD0", operandSize: 0, desc: "Load static field 0" },
-  0x59: { name: "LDSFLD1", operandSize: 0, desc: "Load static field 1" },
-  0x5a: { name: "LDSFLD2", operandSize: 0, desc: "Load static field 2" },
-  0x5b: { name: "LDSFLD3", operandSize: 0, desc: "Load static field 3" },
-  0x5c: { name: "LDSFLD4", operandSize: 0, desc: "Load static field 4" },
-  0x5d: { name: "LDSFLD5", operandSize: 0, desc: "Load static field 5" },
-  0x5e: { name: "LDSFLD6", operandSize: 0, desc: "Load static field 6" },
-  0x5f: { name: "LDSFLD", operandSize: 1, desc: "Load static field N" },
-  0x60: { name: "STSFLD0", operandSize: 0, desc: "Store static field 0" },
-  0x61: { name: "STSFLD1", operandSize: 0, desc: "Store static field 1" },
-  0x62: { name: "STSFLD2", operandSize: 0, desc: "Store static field 2" },
-  0x63: { name: "STSFLD3", operandSize: 0, desc: "Store static field 3" },
-  0x64: { name: "STSFLD4", operandSize: 0, desc: "Store static field 4" },
-  0x65: { name: "STSFLD5", operandSize: 0, desc: "Store static field 5" },
-  0x66: { name: "STSFLD6", operandSize: 0, desc: "Store static field 6" },
-  0x67: { name: "STSFLD", operandSize: 1, desc: "Store static field N" },
-  0x68: { name: "LDLOC0", operandSize: 0, desc: "Load local 0" },
-  0x69: { name: "LDLOC1", operandSize: 0, desc: "Load local 1" },
-  0x6a: { name: "LDLOC2", operandSize: 0, desc: "Load local 2" },
-  0x6b: { name: "LDLOC3", operandSize: 0, desc: "Load local 3" },
-  0x6c: { name: "LDLOC4", operandSize: 0, desc: "Load local 4" },
-  0x6d: { name: "LDLOC5", operandSize: 0, desc: "Load local 5" },
-  0x6e: { name: "LDLOC6", operandSize: 0, desc: "Load local 6" },
-  0x6f: { name: "LDLOC", operandSize: 1, desc: "Load local N" },
-  0x70: { name: "STLOC0", operandSize: 0, desc: "Store local 0" },
-  0x71: { name: "STLOC1", operandSize: 0, desc: "Store local 1" },
-  0x72: { name: "STLOC2", operandSize: 0, desc: "Store local 2" },
-  0x73: { name: "STLOC3", operandSize: 0, desc: "Store local 3" },
-  0x74: { name: "STLOC4", operandSize: 0, desc: "Store local 4" },
-  0x75: { name: "STLOC5", operandSize: 0, desc: "Store local 5" },
-  0x76: { name: "STLOC6", operandSize: 0, desc: "Store local 6" },
-  0x77: { name: "STLOC", operandSize: 1, desc: "Store local N" },
-  0x78: { name: "LDARG0", operandSize: 0, desc: "Load argument 0" },
-  0x79: { name: "LDARG1", operandSize: 0, desc: "Load argument 1" },
-  0x7a: { name: "LDARG2", operandSize: 0, desc: "Load argument 2" },
-  0x7b: { name: "LDARG3", operandSize: 0, desc: "Load argument 3" },
-  0x7c: { name: "LDARG4", operandSize: 0, desc: "Load argument 4" },
-  0x7d: { name: "LDARG5", operandSize: 0, desc: "Load argument 5" },
-  0x7e: { name: "LDARG6", operandSize: 0, desc: "Load argument 6" },
-  0x7f: { name: "LDARG", operandSize: 1, desc: "Load argument N" },
-  0x80: { name: "STARG0", operandSize: 0, desc: "Store argument 0" },
-  0x81: { name: "STARG1", operandSize: 0, desc: "Store argument 1" },
-  0x82: { name: "STARG2", operandSize: 0, desc: "Store argument 2" },
-  0x83: { name: "STARG3", operandSize: 0, desc: "Store argument 3" },
-  0x84: { name: "STARG4", operandSize: 0, desc: "Store argument 4" },
-  0x85: { name: "STARG5", operandSize: 0, desc: "Store argument 5" },
-  0x86: { name: "STARG6", operandSize: 0, desc: "Store argument 6" },
-  0x87: { name: "STARG", operandSize: 1, desc: "Store argument N" },
-
-  // ── Splice ──
-  0x8b: { name: "NEWBUFFER", operandSize: 0, desc: "Create buffer" },
-  0x8c: { name: "MEMCPY", operandSize: 0, desc: "Memory copy" },
-  0x8d: { name: "CAT", operandSize: 0, desc: "Concatenate" },
-  0x8e: { name: "SUBSTR", operandSize: 0, desc: "Substring" },
-  0x8f: { name: "LEFT", operandSize: 0, desc: "Left substring" },
-  0x90: { name: "RIGHT", operandSize: 0, desc: "Right substring" },
-
-  // ── Bitwise Logic ──
-  0x91: { name: "INVERT", operandSize: 0, desc: "Bitwise NOT" },
-  0x92: { name: "AND", operandSize: 0, desc: "Bitwise AND" },
-  0x93: { name: "OR", operandSize: 0, desc: "Bitwise OR" },
-  0x94: { name: "XOR", operandSize: 0, desc: "Bitwise XOR" },
-  0x97: { name: "EQUAL", operandSize: 0, desc: "Equal" },
-  0x98: { name: "NOTEQUAL", operandSize: 0, desc: "Not equal" },
-
-  // ── Arithmetic ──
-  0x99: { name: "SIGN", operandSize: 0, desc: "Sign of top" },
-  0x9a: { name: "ABS", operandSize: 0, desc: "Absolute value" },
-  0x9b: { name: "NEGATE", operandSize: 0, desc: "Negate" },
-  0x9c: { name: "INC", operandSize: 0, desc: "Increment" },
-  0x9d: { name: "DEC", operandSize: 0, desc: "Decrement" },
-  0x9e: { name: "ADD", operandSize: 0, desc: "Add" },
-  0x9f: { name: "SUB", operandSize: 0, desc: "Subtract" },
-  0xa0: { name: "MUL", operandSize: 0, desc: "Multiply" },
-  0xa1: { name: "DIV", operandSize: 0, desc: "Divide" },
-  0xa2: { name: "MOD", operandSize: 0, desc: "Modulo" },
-  0xa3: { name: "POW", operandSize: 0, desc: "Power" },
-  0xa4: { name: "SQRT", operandSize: 0, desc: "Square root" },
-  0xa8: { name: "SHL", operandSize: 0, desc: "Shift left" },
-  0xa9: { name: "SHR", operandSize: 0, desc: "Shift right" },
-  0xaa: { name: "NOT", operandSize: 0, desc: "Logical NOT" },
-  0xab: { name: "BOOLAND", operandSize: 0, desc: "Logical AND" },
-  0xac: { name: "BOOLOR", operandSize: 0, desc: "Logical OR" },
-  0xb1: { name: "NZ", operandSize: 0, desc: "Not zero" },
-  0xb3: { name: "NUMEQUAL", operandSize: 0, desc: "Numeric equal" },
-  0xb4: { name: "NUMNOTEQUAL", operandSize: 0, desc: "Numeric not equal" },
-  0xb5: { name: "LT", operandSize: 0, desc: "Less than" },
-  0xb6: { name: "LE", operandSize: 0, desc: "Less or equal" },
-  0xb7: { name: "GT", operandSize: 0, desc: "Greater than" },
-  0xb8: { name: "GE", operandSize: 0, desc: "Greater or equal" },
-  0xb9: { name: "MIN", operandSize: 0, desc: "Minimum" },
-  0xba: { name: "MAX", operandSize: 0, desc: "Maximum" },
-  0xbb: { name: "WITHIN", operandSize: 0, desc: "Within range" },
-
-  // ── Compound Types ──
-  0xc0: { name: "PACK", operandSize: 0, desc: "Pack into array" },
-  0xc1: { name: "UNPACK", operandSize: 0, desc: "Unpack array" },
-  0xc2: { name: "NEWARRAY0", operandSize: 0, desc: "New empty array" },
-  0xc3: { name: "NEWARRAY", operandSize: 0, desc: "New array of size N" },
-  0xc4: { name: "NEWARRAY_T", operandSize: 1, desc: "New typed array" },
-  0xc5: { name: "NEWSTRUCT0", operandSize: 0, desc: "New empty struct" },
-  0xc6: { name: "NEWSTRUCT", operandSize: 0, desc: "New struct of size N" },
-  0xc8: { name: "NEWMAP", operandSize: 0, desc: "New map" },
-  0xca: { name: "SIZE", operandSize: 0, desc: "Get size" },
-  0xcb: { name: "HASKEY", operandSize: 0, desc: "Has key" },
-  0xcc: { name: "KEYS", operandSize: 0, desc: "Get keys" },
-  0xcd: { name: "VALUES", operandSize: 0, desc: "Get values" },
-  0xce: { name: "PICKITEM", operandSize: 0, desc: "Pick item by key" },
-  0xcf: { name: "APPEND", operandSize: 0, desc: "Append to array" },
-  0xd0: { name: "SETITEM", operandSize: 0, desc: "Set item by key" },
-  0xd1: { name: "REVERSEITEMS", operandSize: 0, desc: "Reverse items" },
-  0xd2: { name: "REMOVE", operandSize: 0, desc: "Remove item" },
-  0xd3: { name: "CLEARITEMS", operandSize: 0, desc: "Clear all items" },
-  0xd4: { name: "POPITEM", operandSize: 0, desc: "Pop last item" },
-
-  // ── Type Operations ──
-  0xd8: { name: "ISNULL", operandSize: 0, desc: "Is null" },
-  0xd9: { name: "ISTYPE", operandSize: 1, desc: "Is type" },
-  0xdb: { name: "CONVERT", operandSize: 1, desc: "Convert type" },
-  0xdc: { name: "ABORTMSG", operandSize: 0, desc: "Abort with message" },
-  0xdd: { name: "ASSERTMSG", operandSize: 0, desc: "Assert with message" },
+  "0": {
+    "name": "PUSHINT8",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "PUSHINT8"
+  },
+  "1": {
+    "name": "PUSHINT16",
+    "operandSize": 2,
+    "prefix": 0,
+    "desc": "PUSHINT16"
+  },
+  "2": {
+    "name": "PUSHINT32",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "PUSHINT32"
+  },
+  "3": {
+    "name": "PUSHINT64",
+    "operandSize": 8,
+    "prefix": 0,
+    "desc": "PUSHINT64"
+  },
+  "4": {
+    "name": "PUSHINT128",
+    "operandSize": 16,
+    "prefix": 0,
+    "desc": "PUSHINT128"
+  },
+  "5": {
+    "name": "PUSHINT256",
+    "operandSize": 32,
+    "prefix": 0,
+    "desc": "PUSHINT256"
+  },
+  "8": {
+    "name": "PUSHT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSHT"
+  },
+  "9": {
+    "name": "PUSHF",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSHF"
+  },
+  "10": {
+    "name": "PUSHA",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "PUSHA"
+  },
+  "11": {
+    "name": "PUSHNULL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSHNULL"
+  },
+  "12": {
+    "name": "PUSHDATA1",
+    "operandSize": -1,
+    "prefix": 1,
+    "desc": "PUSHDATA1"
+  },
+  "13": {
+    "name": "PUSHDATA2",
+    "operandSize": -1,
+    "prefix": 2,
+    "desc": "PUSHDATA2"
+  },
+  "14": {
+    "name": "PUSHDATA4",
+    "operandSize": -1,
+    "prefix": 4,
+    "desc": "PUSHDATA4"
+  },
+  "15": {
+    "name": "PUSHM1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSHM1"
+  },
+  "16": {
+    "name": "PUSH0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH0"
+  },
+  "17": {
+    "name": "PUSH1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH1"
+  },
+  "18": {
+    "name": "PUSH2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH2"
+  },
+  "19": {
+    "name": "PUSH3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH3"
+  },
+  "20": {
+    "name": "PUSH4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH4"
+  },
+  "21": {
+    "name": "PUSH5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH5"
+  },
+  "22": {
+    "name": "PUSH6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH6"
+  },
+  "23": {
+    "name": "PUSH7",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH7"
+  },
+  "24": {
+    "name": "PUSH8",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH8"
+  },
+  "25": {
+    "name": "PUSH9",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH9"
+  },
+  "26": {
+    "name": "PUSH10",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH10"
+  },
+  "27": {
+    "name": "PUSH11",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH11"
+  },
+  "28": {
+    "name": "PUSH12",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH12"
+  },
+  "29": {
+    "name": "PUSH13",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH13"
+  },
+  "30": {
+    "name": "PUSH14",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH14"
+  },
+  "31": {
+    "name": "PUSH15",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH15"
+  },
+  "32": {
+    "name": "PUSH16",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PUSH16"
+  },
+  "33": {
+    "name": "NOP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NOP"
+  },
+  "34": {
+    "name": "JMP",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMP"
+  },
+  "35": {
+    "name": "JMP_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMP_L"
+  },
+  "36": {
+    "name": "JMPIF",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPIF"
+  },
+  "37": {
+    "name": "JMPIF_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPIF_L"
+  },
+  "38": {
+    "name": "JMPIFNOT",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPIFNOT"
+  },
+  "39": {
+    "name": "JMPIFNOT_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPIFNOT_L"
+  },
+  "40": {
+    "name": "JMPEQ",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPEQ"
+  },
+  "41": {
+    "name": "JMPEQ_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPEQ_L"
+  },
+  "42": {
+    "name": "JMPNE",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPNE"
+  },
+  "43": {
+    "name": "JMPNE_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPNE_L"
+  },
+  "44": {
+    "name": "JMPGT",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPGT"
+  },
+  "45": {
+    "name": "JMPGT_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPGT_L"
+  },
+  "46": {
+    "name": "JMPGE",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPGE"
+  },
+  "47": {
+    "name": "JMPGE_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPGE_L"
+  },
+  "48": {
+    "name": "JMPLT",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPLT"
+  },
+  "49": {
+    "name": "JMPLT_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPLT_L"
+  },
+  "50": {
+    "name": "JMPLE",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "JMPLE"
+  },
+  "51": {
+    "name": "JMPLE_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "JMPLE_L"
+  },
+  "52": {
+    "name": "CALL",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "CALL"
+  },
+  "53": {
+    "name": "CALL_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "CALL_L"
+  },
+  "54": {
+    "name": "CALLA",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "CALLA"
+  },
+  "55": {
+    "name": "CALLT",
+    "operandSize": 2,
+    "prefix": 0,
+    "desc": "CALLT"
+  },
+  "56": {
+    "name": "ABORT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ABORT"
+  },
+  "57": {
+    "name": "ASSERT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ASSERT"
+  },
+  "58": {
+    "name": "THROW",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "THROW"
+  },
+  "59": {
+    "name": "TRY",
+    "operandSize": 2,
+    "prefix": 0,
+    "desc": "TRY"
+  },
+  "60": {
+    "name": "TRY_L",
+    "operandSize": 8,
+    "prefix": 0,
+    "desc": "TRY_L"
+  },
+  "61": {
+    "name": "ENDTRY",
+    "operandSize": 1,
+    "prefix": 0,
+    "desc": "ENDTRY"
+  },
+  "62": {
+    "name": "ENDTRY_L",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "ENDTRY_L"
+  },
+  "63": {
+    "name": "ENDFINALLY",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ENDFINALLY"
+  },
+  "64": {
+    "name": "RET",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "RET"
+  },
+  "65": {
+    "name": "SYSCALL",
+    "operandSize": 4,
+    "prefix": 0,
+    "desc": "SYSCALL"
+  },
+  "67": {
+    "name": "DEPTH",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "DEPTH"
+  },
+  "69": {
+    "name": "DROP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "DROP"
+  },
+  "70": {
+    "name": "NIP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NIP"
+  },
+  "72": {
+    "name": "XDROP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "XDROP"
+  },
+  "73": {
+    "name": "CLEAR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "CLEAR"
+  },
+  "74": {
+    "name": "DUP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "DUP"
+  },
+  "75": {
+    "name": "OVER",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "OVER"
+  },
+  "77": {
+    "name": "PICK",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PICK"
+  },
+  "78": {
+    "name": "TUCK",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "TUCK"
+  },
+  "80": {
+    "name": "SWAP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SWAP"
+  },
+  "81": {
+    "name": "ROT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ROT"
+  },
+  "82": {
+    "name": "ROLL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ROLL"
+  },
+  "83": {
+    "name": "REVERSE3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "REVERSE3"
+  },
+  "84": {
+    "name": "REVERSE4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "REVERSE4"
+  },
+  "85": {
+    "name": "REVERSEN",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "REVERSEN"
+  },
+  "86": {
+    "name": "INITSSLOT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "INITSSLOT"
+  },
+  "87": {
+    "name": "INITSLOT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "INITSLOT"
+  },
+  "88": {
+    "name": "LDSFLD0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD0"
+  },
+  "89": {
+    "name": "LDSFLD1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD1"
+  },
+  "90": {
+    "name": "LDSFLD2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD2"
+  },
+  "91": {
+    "name": "LDSFLD3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD3"
+  },
+  "92": {
+    "name": "LDSFLD4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD4"
+  },
+  "93": {
+    "name": "LDSFLD5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD5"
+  },
+  "94": {
+    "name": "LDSFLD6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD6"
+  },
+  "95": {
+    "name": "LDSFLD",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDSFLD"
+  },
+  "96": {
+    "name": "STSFLD0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD0"
+  },
+  "97": {
+    "name": "STSFLD1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD1"
+  },
+  "98": {
+    "name": "STSFLD2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD2"
+  },
+  "99": {
+    "name": "STSFLD3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD3"
+  },
+  "100": {
+    "name": "STSFLD4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD4"
+  },
+  "101": {
+    "name": "STSFLD5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD5"
+  },
+  "102": {
+    "name": "STSFLD6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD6"
+  },
+  "103": {
+    "name": "STSFLD",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STSFLD"
+  },
+  "104": {
+    "name": "LDLOC0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC0"
+  },
+  "105": {
+    "name": "LDLOC1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC1"
+  },
+  "106": {
+    "name": "LDLOC2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC2"
+  },
+  "107": {
+    "name": "LDLOC3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC3"
+  },
+  "108": {
+    "name": "LDLOC4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC4"
+  },
+  "109": {
+    "name": "LDLOC5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC5"
+  },
+  "110": {
+    "name": "LDLOC6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC6"
+  },
+  "111": {
+    "name": "LDLOC",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDLOC"
+  },
+  "112": {
+    "name": "STLOC0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC0"
+  },
+  "113": {
+    "name": "STLOC1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC1"
+  },
+  "114": {
+    "name": "STLOC2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC2"
+  },
+  "115": {
+    "name": "STLOC3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC3"
+  },
+  "116": {
+    "name": "STLOC4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC4"
+  },
+  "117": {
+    "name": "STLOC5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC5"
+  },
+  "118": {
+    "name": "STLOC6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC6"
+  },
+  "119": {
+    "name": "STLOC",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STLOC"
+  },
+  "120": {
+    "name": "LDARG0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG0"
+  },
+  "121": {
+    "name": "LDARG1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG1"
+  },
+  "122": {
+    "name": "LDARG2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG2"
+  },
+  "123": {
+    "name": "LDARG3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG3"
+  },
+  "124": {
+    "name": "LDARG4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG4"
+  },
+  "125": {
+    "name": "LDARG5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG5"
+  },
+  "126": {
+    "name": "LDARG6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG6"
+  },
+  "127": {
+    "name": "LDARG",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LDARG"
+  },
+  "128": {
+    "name": "STARG0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG0"
+  },
+  "129": {
+    "name": "STARG1",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG1"
+  },
+  "130": {
+    "name": "STARG2",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG2"
+  },
+  "131": {
+    "name": "STARG3",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG3"
+  },
+  "132": {
+    "name": "STARG4",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG4"
+  },
+  "133": {
+    "name": "STARG5",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG5"
+  },
+  "134": {
+    "name": "STARG6",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG6"
+  },
+  "135": {
+    "name": "STARG",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "STARG"
+  },
+  "136": {
+    "name": "NEWBUFFER",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWBUFFER"
+  },
+  "137": {
+    "name": "MEMCPY",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MEMCPY"
+  },
+  "139": {
+    "name": "CAT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "CAT"
+  },
+  "140": {
+    "name": "SUBSTR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SUBSTR"
+  },
+  "141": {
+    "name": "LEFT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LEFT"
+  },
+  "142": {
+    "name": "RIGHT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "RIGHT"
+  },
+  "144": {
+    "name": "INVERT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "INVERT"
+  },
+  "145": {
+    "name": "AND",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "AND"
+  },
+  "146": {
+    "name": "OR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "OR"
+  },
+  "147": {
+    "name": "XOR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "XOR"
+  },
+  "151": {
+    "name": "EQUAL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "EQUAL"
+  },
+  "152": {
+    "name": "NOTEQUAL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NOTEQUAL"
+  },
+  "153": {
+    "name": "SIGN",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SIGN"
+  },
+  "154": {
+    "name": "ABS",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ABS"
+  },
+  "155": {
+    "name": "NEGATE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEGATE"
+  },
+  "156": {
+    "name": "INC",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "INC"
+  },
+  "157": {
+    "name": "DEC",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "DEC"
+  },
+  "158": {
+    "name": "ADD",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ADD"
+  },
+  "159": {
+    "name": "SUB",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SUB"
+  },
+  "160": {
+    "name": "MUL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MUL"
+  },
+  "161": {
+    "name": "DIV",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "DIV"
+  },
+  "162": {
+    "name": "MOD",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MOD"
+  },
+  "163": {
+    "name": "POW",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "POW"
+  },
+  "164": {
+    "name": "SQRT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SQRT"
+  },
+  "165": {
+    "name": "MODMUL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MODMUL"
+  },
+  "166": {
+    "name": "MODPOW",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MODPOW"
+  },
+  "168": {
+    "name": "SHL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SHL"
+  },
+  "169": {
+    "name": "SHR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SHR"
+  },
+  "170": {
+    "name": "NOT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NOT"
+  },
+  "171": {
+    "name": "BOOLAND",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "BOOLAND"
+  },
+  "172": {
+    "name": "BOOLOR",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "BOOLOR"
+  },
+  "177": {
+    "name": "NZ",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NZ"
+  },
+  "179": {
+    "name": "NUMEQUAL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NUMEQUAL"
+  },
+  "180": {
+    "name": "NUMNOTEQUAL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NUMNOTEQUAL"
+  },
+  "181": {
+    "name": "LT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LT"
+  },
+  "182": {
+    "name": "LE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "LE"
+  },
+  "183": {
+    "name": "GT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "GT"
+  },
+  "184": {
+    "name": "GE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "GE"
+  },
+  "185": {
+    "name": "MIN",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MIN"
+  },
+  "186": {
+    "name": "MAX",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "MAX"
+  },
+  "187": {
+    "name": "WITHIN",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "WITHIN"
+  },
+  "190": {
+    "name": "PACKMAP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PACKMAP"
+  },
+  "191": {
+    "name": "PACKSTRUCT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PACKSTRUCT"
+  },
+  "192": {
+    "name": "PACK",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PACK"
+  },
+  "193": {
+    "name": "UNPACK",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "UNPACK"
+  },
+  "194": {
+    "name": "NEWARRAY0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWARRAY0"
+  },
+  "195": {
+    "name": "NEWARRAY",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWARRAY"
+  },
+  "196": {
+    "name": "NEWARRAY_T",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWARRAY_T"
+  },
+  "197": {
+    "name": "NEWSTRUCT0",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWSTRUCT0"
+  },
+  "198": {
+    "name": "NEWSTRUCT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWSTRUCT"
+  },
+  "200": {
+    "name": "NEWMAP",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "NEWMAP"
+  },
+  "202": {
+    "name": "SIZE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SIZE"
+  },
+  "203": {
+    "name": "HASKEY",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "HASKEY"
+  },
+  "204": {
+    "name": "KEYS",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "KEYS"
+  },
+  "205": {
+    "name": "VALUES",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "VALUES"
+  },
+  "206": {
+    "name": "PICKITEM",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "PICKITEM"
+  },
+  "207": {
+    "name": "APPEND",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "APPEND"
+  },
+  "208": {
+    "name": "SETITEM",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "SETITEM"
+  },
+  "209": {
+    "name": "REVERSEITEMS",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "REVERSEITEMS"
+  },
+  "210": {
+    "name": "REMOVE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "REMOVE"
+  },
+  "211": {
+    "name": "CLEARITEMS",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "CLEARITEMS"
+  },
+  "212": {
+    "name": "POPITEM",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "POPITEM"
+  },
+  "216": {
+    "name": "ISNULL",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ISNULL"
+  },
+  "217": {
+    "name": "ISTYPE",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ISTYPE"
+  },
+  "219": {
+    "name": "CONVERT",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "CONVERT"
+  },
+  "224": {
+    "name": "ABORTMSG",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ABORTMSG"
+  },
+  "225": {
+    "name": "ASSERTMSG",
+    "operandSize": 0,
+    "prefix": 0,
+    "desc": "ASSERTMSG"
+  }
 };
 
-/**
- * Well-known NeoVM SYSCALL hashes (4-byte little-endian FNV-1a of the name).
- * Used to resolve SYSCALL operands to human-readable names.
- */
 export const SYSCALL_HASHES = {
-  "627d5b52": "System.Contract.Call",
-  "1af77b67": "System.Contract.CallNative",
-  "cf998702": "System.Contract.CreateStandardAccount",
-  "6a33e909": "System.Contract.CreateMultisigAccount",
-  "95da3a81": "System.Contract.GetCallFlags",
-  "2edbbc93": "System.Contract.NativeOnPersist",
-  "44a15d16": "System.Contract.NativePostPersist",
-  "b279fcf6": "System.Runtime.Platform",
-  "e97d38a0": "System.Runtime.GetTrigger",
-  "b7c38803": "System.Runtime.GetTime",
-  "2d510830": "System.Runtime.GetScriptContainer",
-  "dbfea874": "System.Runtime.GetExecutingScriptHash",
-  "39536e3c": "System.Runtime.GetCallingScriptHash",
-  "f9b4e238": "System.Runtime.GetEntryScriptHash",
-  "f827ec8c": "System.Runtime.CheckWitness",
-  "84271143": "System.Runtime.GetInvocationCounter",
-  "6bdea928": "System.Runtime.GetRandom",
-  "cfe74796": "System.Runtime.Log",
-  "95016f61": "System.Runtime.Notify",
-  "274335f1": "System.Runtime.GetNotifications",
-  "1488d8ce": "System.Runtime.GasLeft",
-  "c35a8cbc": "System.Runtime.BurnGas",
-  "c5fba0e0": "System.Runtime.GetNetwork",
-  "4c4992dc": "System.Runtime.GetAddressVersion",
-  "acf1188b": "System.Runtime.CurrentSigners",
-  "b30c808f": "System.Runtime.LoadScript",
-  "56e7b327": "System.Crypto.CheckSig",
-  "9ed0dc3a": "System.Crypto.CheckMultisig",
-  "9c08ed9c": "System.Iterator.Next",
-  "f354bf1d": "System.Iterator.Value",
-  "9bf667ce": "System.Storage.GetContext",
-  "f6b46be2": "System.Storage.GetReadOnlyContext",
-  "764cbfe9": "System.Storage.AsReadOnly",
-  "925de831": "System.Storage.Get",
-  "df30b89a": "System.Storage.Find",
-  "e63f1884": "System.Storage.Put",
-  "2f58c5ed": "System.Storage.Delete",
-  "95440d78": "Neo.Crypto.VerifyWithECDsaSecp256r1",
-  "7e3c53b7": "Neo.Crypto.VerifyWithECDsaSecp256k1",
-  "747476aa": "Neo.Crypto.CheckSig",
-  "7bce6ca5": "Neo.Crypto.CheckMultisig",
+  "0x1f0b0941": "System.Runtime.Log",
+  "0x8e16ea85": "System.Runtime.Notify",
+  "0xa8fa47b3": "System.Runtime.CheckWitness",
+  "0xa35db51f": "System.Runtime.GetInvocationCounter",
+  "0xa11c4701": "System.Runtime.GetTime",
+  "0x897f26aa": "System.Runtime.GetPlatform",
+  "0xe6cc7325": "System.Runtime.GetNetwork",
+  "0xc7c1f88e": "System.Runtime.GetRandom",
+  "0xfcd8ab70": "System.Runtime.GetTrigger",
+  "0xf5f396fb": "System.Runtime.GasLeft",
+  "0x75990264": "System.Runtime.GetNotifications",
+  "0xb38d388f": "System.Runtime.GetScriptContainer",
+  "0x05b2df66": "System.Runtime.GetExecutingScriptHash",
+  "0xfeb95e79": "System.Runtime.GetCallingScriptHash",
+  "0xf6f69c9b": "System.Runtime.GetEntryScriptHash",
+  "0xa2ceee5d": "System.Storage.GetContext",
+  "0xa61fc6b3": "System.Storage.GetReadOnlyContext",
+  "0xef0f8ffb": "System.Storage.Get",
+  "0xaf768b55": "System.Storage.Find",
+  "0x6e8e5812": "System.Storage.Put",
+  "0x1a71f0f0": "System.Storage.Delete",
+  "0x89dcbc4c": "System.Storage.PutEx",
+  "0x41fbe147": "System.Storage.AsReadOnly",
+  "0xab5164bc": "System.StorageContext.AsReadOnly",
+  "0x12b55f19": "System.Contract.Call",
+  "0x55909ff7": "System.Contract.CallNative",
+  "0xf2185790": "System.Contract.GetCallFlags",
+  "0xc9bb5407": "System.Contract.CreateMultisigAccount",
+  "0xda82dddc": "System.Contract.CreateStandardAccount",
+  "0xbab544a4": "System.Contract.IsStandard",
+  "0x1cb1db4e": "System.Contract.GetId",
+  "0xb454a8e3": "System.Crypto.CheckMultisig",
+  "0xe05e463a": "System.Crypto.CheckSig",
+  "0xe602714f": "System.Binary.Serialize",
+  "0xfb41cbdf": "System.Binary.Deserialize",
+  "0xcae89793": "System.Binary.Base64Encode",
+  "0x2117fb79": "System.Binary.Base64Decode",
+  "0xf2f2c879": "System.Binary.Base58Encode",
+  "0x296efb26": "System.Binary.Base58Decode",
+  "0xbd7fc044": "System.Binary.Itoa",
+  "0x42f02da4": "System.Binary.Atoi",
+  "0xf61bdff2": "System.Json.Serialize",
+  "0xdc58e578": "System.Json.Deserialize",
+  "0x35bb9ec8": "System.Iterator.Create",
+  "0x6f068776": "System.Iterator.Key",
+  "0x2424cc5c": "System.Iterator.Keys",
+  "0xe66f5f3e": "System.Iterator.Values",
+  "0x56a6ec15": "System.Iterator.Next",
+  "0x1f062d29": "System.Iterator.Value",
+  "0xa8df031a": "Neo.Crypto.VerifyWithECDsaSecp256r1",
+  "0xd4f63c87": "Neo.Crypto.VerifyWithECDsaSecp256k1"
 };
