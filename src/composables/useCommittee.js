@@ -13,17 +13,26 @@ export function useCommittee() {
   async function loadCommittee() {
     if (initialized.value) return;
     initialized.value = true;
+    let validatorsLoaded = false;
     
     try {
       // getnextblockvalidators returns exactly the 7 consensus nodes whose index matches the 'primary' field in a block
-            const response = await rpc("getnextblockvalidators");
+            const response = await rpc("getnextblockvalidators", []);
       if (response && Array.isArray(response)) {
         validators.value = response;
       } else if (response && response.result && Array.isArray(response.result)) {
         validators.value = response.result;
       }
+
+      validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
     } catch (e) {
       if (import.meta.env.DEV) console.warn("Failed to load validators", e);
+    }
+
+    if (!validatorsLoaded) {
+      // Allow later calls to retry when RPC is temporarily unavailable.
+      initialized.value = false;
+      return;
     }
     
     // Load Dora metadata for names
