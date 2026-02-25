@@ -16,9 +16,11 @@ export function useCommittee() {
     
     try {
       // getnextblockvalidators returns exactly the 7 consensus nodes whose index matches the 'primary' field in a block
-      const response = await rpc("getnextblockvalidators");
+            const response = await rpc("getnextblockvalidators");
       if (response && Array.isArray(response)) {
         validators.value = response;
+      } else if (response && response.result && Array.isArray(response.result)) {
+        validators.value = response.result;
       }
     } catch (e) {
       if (import.meta.env.DEV) console.warn("Failed to load validators", e);
@@ -80,7 +82,7 @@ export function useCommittee() {
     return "Unknown Validator";
   };
 
-  const getPrimaryNodeAddress = (primaryIndex) => {
+      const getPrimaryNodeAddress = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) return null;
     
@@ -94,7 +96,7 @@ export function useCommittee() {
     
     if (validator.publickey) {
        try {
-                      const account = new wallet.Account(validator.publickey);
+           const account = new wallet.Account(validator.publickey);
            return account.address;
        } catch(e) {
            return null;
