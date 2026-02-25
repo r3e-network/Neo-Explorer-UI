@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getDashboardStats = vi.fn();
 const getBlockList = vi.fn();
 const getTxList = vi.fn();
+const getNeoTubeBlocks = vi.fn();
+const getNeoTubeTxs = vi.fn();
+const getNeoTubeStats = vi.fn();
+const supportsNeoTubeNetwork = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
@@ -24,6 +28,12 @@ vi.mock("@/services", () => ({
   },
   transactionService: {
     getList: getTxList,
+  },
+  neotubeService: {
+    supportsNetwork: supportsNeoTubeNetwork,
+    getLatestBlocks: getNeoTubeBlocks,
+    getLatestTransactions: getNeoTubeTxs,
+    getStatistics: getNeoTubeStats,
   },
   searchService: {
     search,
@@ -61,6 +71,16 @@ const LatestTransactionsStub = defineComponent({
 describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    supportsNeoTubeNetwork.mockReturnValue(false);
+    getNeoTubeBlocks.mockResolvedValue({
+      result: [{ hash: "0xneo-block", timestamp: Date.now(), txcount: 1 }],
+      totalCount: 1,
+    });
+    getNeoTubeTxs.mockResolvedValue({
+      result: [{ hash: "0xneo-tx" }],
+      totalCount: 1,
+    });
+    getNeoTubeStats.mockResolvedValue({ blocks: 100, txs: 200 });
     getDashboardStats.mockResolvedValue({ blocks: 10, txs: 20 });
     getBlockList.mockResolvedValue({
       result: [{ hash: "0xblock", timestamp: Date.now(), txcount: 1 }],
@@ -135,6 +155,31 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
+
+  it("prefers NeoTube endpoints on supported networks", async () => {
+    supportsNeoTubeNetwork.mockReturnValue(true);
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getNeoTubeBlocks).toHaveBeenCalled();
+    expect(getNeoTubeTxs).toHaveBeenCalled();
+    expect(getNeoTubeStats).toHaveBeenCalled();
+    expect(getBlockList).not.toHaveBeenCalled();
+    expect(getTxList).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 });

@@ -51,11 +51,11 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
-import { statsService, blockService, transactionService, searchService } from "@/services";
+import { statsService, blockService, transactionService, searchService, neotubeService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
-import { NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { NETWORK_CHANGE_EVENT, getCurrentEnv } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 const router = useRouter();
@@ -124,6 +124,20 @@ async function loadData() {
 }
 
 async function loadStats(forceRefresh = false) {
+  const env = getCurrentEnv();
+
+  if (neotubeService.supportsNetwork(env)) {
+    try {
+      const fastStats = await neotubeService.getStatistics(env);
+      blockCount.value = fastStats.blocks || 0;
+      txCount.value = fastStats.txs || 0;
+      lastStatsRefreshTime = Date.now();
+      return;
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn("NeoTube stats unavailable, falling back to RPC stats:", err);
+    }
+  }
+
   try {
     const stats = await statsService.getDashboardStats(forceRefresh);
     blockCount.value = stats.blocks || 0;
@@ -143,10 +157,38 @@ async function loadLatestData(forceRefresh = false) {
     blocksLoading.value = true;
     txsLoading.value = true;
 
+    const env = getCurrentEnv();
     const requestOptions = { forceRefresh };
 
-    const blocksPromise = blockService
-      .getList(6, 0, { ...requestOptions, enrichMissingFields: false })
+    const fetchLatestBlocks = async () => {
+      if (neotubeService.supportsNetwork(env)) {
+        try {
+          return await neotubeService.getLatestBlocks(6, 0, env);
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn("NeoTube latest blocks unavailable, falling back to RPC list:", err);
+          }
+        }
+      }
+
+      return blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
+    };
+
+    const fetchLatestTransactions = async () => {
+      if (neotubeService.supportsNetwork(env)) {
+        try {
+          return await neotubeService.getLatestTransactions(6, 0, env);
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn("NeoTube latest transactions unavailable, falling back to RPC list:", err);
+          }
+        }
+      }
+
+      return transactionService.getList(6, 0, requestOptions);
+    };
+
+    const blocksPromise = fetchLatestBlocks()
       .then((blocksRes) => {
         if (!blocksRes) return;
         const nextBlocks = (blocksRes?.result || []).map((block) => {
@@ -167,8 +209,7 @@ async function loadLatestData(forceRefresh = false) {
         blocksLoading.value = false;
       });
 
-    const txsPromise = transactionService
-      .getList(6, 0, requestOptions)
+    const fastTxsPromise = fetchLatestTransactions()
       .then((txsRes) => {
         if (!txsRes) return;
         const nextTxs = txsRes?.result || [];
@@ -183,7 +224,7 @@ async function loadLatestData(forceRefresh = false) {
         txsLoading.value = false;
       });
 
-    await Promise.allSettled([blocksPromise, txsPromise]);
+    await Promise.allSettled([blocksPromise, fastTxsPromise]);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load latest blocks/transactions:", err);
   } finally {
