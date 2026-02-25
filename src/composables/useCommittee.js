@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { wallet } from "@cityofzion/neon-js";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
@@ -53,30 +54,38 @@ export function useCommittee() {
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     
-    if (!validators.value || validators.value.length === 0) return `Validator #${primaryIndex}`;
+    if (!validators.value || validators.value.length === 0) return "Unknown Validator";
 
     const validator = validators.value[primaryIndex];
-    if (!validator) return `Validator #${primaryIndex}`;
+    if (!validator) return "Unknown Validator";
     
     const meta = doraMetadata.value[validator.publickey];
     if (meta && meta.name) {
       return meta.name;
     }
     
-    return `Validator #${primaryIndex}`;
+    return "Unknown Validator";
   };
 
   const getPrimaryNodeAddress = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
-    
     if (!validators.value || validators.value.length === 0) return null;
-
+    
     const validator = validators.value[primaryIndex];
     if (!validator) return null;
     
     const meta = doraMetadata.value[validator.publickey];
     if (meta && meta.scripthash) {
       return meta.scripthash;
+    }
+    
+    if (validator.publickey) {
+       try {
+                      const account = new wallet.Account(validator.publickey);
+           return account.address;
+       } catch(e) {
+           return null;
+       }
     }
     
     return null;

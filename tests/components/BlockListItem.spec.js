@@ -15,7 +15,7 @@ vi.mock("@/utils/explorerFormat", () => ({
 
 vi.mock("@/composables/useCommittee", () => ({
   useCommittee: () => ({
-    getPrimaryNodeName: vi.fn((idx) => `Validator #${idx}`),
+    getPrimaryNodeName: vi.fn((idx) => `Unknown Validator`),
     getPrimaryNodeAddress: vi.fn(() => "0x123")
   })
 }));
@@ -39,6 +39,6 @@ describe("BlockListItem", () => {
         stubs: ["router-link", "HashLink"],
       },
     });
-    expect(wrapper.text()).toContain("Validator #0");
+    expect(wrapper.text()).toContain("Unknown Validator");
   });
 });
