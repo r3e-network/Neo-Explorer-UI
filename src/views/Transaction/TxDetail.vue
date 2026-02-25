@@ -428,8 +428,8 @@ async function loadTransfers(hash, gen) {
   transfersLoading.value = true;
   try {
     const [nep17Res, nep11Res] = await Promise.all([
-      tokenService.getTransfersByTxHash(hash).catch(() => ({ result: [] })),
-      tokenService.getNep11TransfersByTxHash(hash).catch(() => ({ result: [] })),
+      tokenService.getTransfersByTxHash(hash, 500).catch(() => ({ result: [] })),
+      tokenService.getNep11TransfersByTxHash(hash, 500).catch(() => ({ result: [] })),
     ]);
     if (gen !== fetchGeneration) return;
     nep17Transfers.value = (nep17Res?.result || []).map((t) => ({

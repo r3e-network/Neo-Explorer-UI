@@ -28,8 +28,8 @@
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
-          <tr v-for="(t, tIdx) in allTransfers" :key="'xfer-' + tIdx" class="list-row group">
-            <td class="table-cell-secondary text-xs">{{ tIdx + 1 }}</td>
+          <tr v-for="(t, tIdx) in paginatedTransfers" :key="'xfer-' + tIdx" class="list-row group">
+            <td class="table-cell-secondary text-xs">{{ (currentPage - 1) * pageSize + tIdx + 1 }}</td>
             <td class="table-cell">
               <span
                 class="badge-soft rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
@@ -84,6 +84,16 @@
           </tr>
         </tbody>
       </table>
+      <div v-if="allTransfers.length > pageSize" class="p-4 border-t soft-divider bg-slate-50/50 dark:bg-slate-800/20">
+        <EtherscanPagination
+          :current-page="currentPage"
+          :total-pages="Math.ceil(allTransfers.length / pageSize)"
+          :page-size="pageSize"
+          :total-count="allTransfers.length"
+          @go-to-page="currentPage = $event"
+          @change-page-size="pageSize = $event; currentPage = 1"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -96,7 +106,8 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { tokenService } from "@/services/tokenService";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { formatTokenAmount } from "@/utils/explorerFormat";
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 const props = defineProps({
   allTransfers: { type: Array, default: () => [] },
@@ -104,6 +115,20 @@ const props = defineProps({
 });
 
 const tokenDecimalsMap = ref({});
+
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const paginatedTransfers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return props.allTransfers.slice(start, end);
+});
+
+watch(() => props.allTransfers, () => {
+  currentPage.value = 1;
+});
+
 
 watch(
   () => props.allTransfers,
