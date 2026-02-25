@@ -22,8 +22,7 @@
             <th class="table-header-cell">Token</th>
             <th class="table-header-cell">Standard</th>
             <th class="table-header-cell-right">Balance</th>
-            <th class="table-header-cell-right">Value (USD)</th>
-            <th class="table-header-cell">Contract</th>
+                        <th class="table-header-cell">Contract</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
@@ -51,8 +50,7 @@
             <td class="table-cell-right">
               {{ assetBalance(asset) }}
             </td>
-            <td class="table-cell-secondary-right italic">-</td>
-            <td class="table-cell">
+                        <td class="table-cell">
               <router-link
                 v-if="assetHash(asset)"
                 :to="assetTokenRoute(asset)"
@@ -72,6 +70,7 @@
 <script setup>
 import { computed } from "vue";
 import { truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { NATIVE_CONTRACTS } from "@/constants";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -85,23 +84,25 @@ const props = defineProps({
 
 defineEmits(["retry"]);
 
-const sortedAssets = computed(() =>
-  [...props.assets].sort((a, b) => {
-    const balA = Number(a?.balance ?? a?.amount ?? 0);
-    const balB = Number(b?.balance ?? b?.amount ?? 0);
-    return balB - balA;
-  })
-);
+
+
+
+
 
 function assetHash(asset) {
   return asset?.hash || asset?.asset || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
 }
 
 function assetStandard(asset) {
-  return String(asset?.standard || asset?.type || "Unknown");
+  const hash = normalizeAssetHash(assetHash(asset));
+  if (NATIVE_CONTRACTS[hash] || KNOWN_CONTRACTS[hash]) return "NEP17";
+  return String(asset?.standard || asset?.type || "NEP17");
 }
 
 function assetDisplayName(asset) {
+  const hash = normalizeAssetHash(assetHash(asset));
+  if (NATIVE_CONTRACTS[hash]) return NATIVE_CONTRACTS[hash].symbol || NATIVE_CONTRACTS[hash].name;
+  if (KNOWN_CONTRACTS[hash]) return KNOWN_CONTRACTS[hash].symbol || KNOWN_CONTRACTS[hash].name;
   return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
 }
 
@@ -112,11 +113,12 @@ function normalizeAssetHash(hash) {
 }
 
 function assetDecimals(asset) {
+  const hash = normalizeAssetHash(assetHash(asset));
+  const native = NATIVE_CONTRACTS[hash];
+  if (native && Number.isInteger(native.decimals) && native.decimals >= 0) return native.decimals;
+
   const explicit = Number(asset?.decimals);
   if (Number.isInteger(explicit) && explicit >= 0) return explicit;
-
-  const native = NATIVE_CONTRACTS[normalizeAssetHash(assetHash(asset))];
-  if (native && Number.isInteger(native.decimals) && native.decimals >= 0) return native.decimals;
 
   return null;
 }
@@ -143,6 +145,16 @@ function assetTokenRoute(asset) {
   if (standard.includes("NEP11")) return `/nft-token-info/${hash}`;
   return `/nep17-token-info/${hash}`;
 }
+
+const sortedAssets = computed(() =>
+  [...props.assets].sort((a, b) => {
+    const decA = assetDecimals(a) ?? 0;
+    const decB = assetDecimals(b) ?? 0;
+    const valA = Number(a?.balance ?? a?.amount ?? 0) / Math.pow(10, decA);
+    const valB = Number(b?.balance ?? b?.amount ?? 0) / Math.pow(10, decB);
+    return valB - valA;
+  })
+);
 
 function assetKey(asset) {
   return `${assetHash(asset)}-${assetDisplayName(asset)}-${assetBalance(asset)}`;
