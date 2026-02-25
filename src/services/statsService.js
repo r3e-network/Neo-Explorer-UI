@@ -119,14 +119,26 @@ export const statsService = createService(
      * Get Contract Deployment Chart Data
      */
     async getDailyContracts(days = 30) {
-      return generateMockChartData('contract', days);
+      try {
+        const res = await rpc("GetDailyContracts", { Days: days });
+        if (!res || !Array.isArray(res) || res.length === 0) throw new Error("Empty response");
+        return res;
+      } catch (e) {
+        return generateMockChartData('contract', days);
+      }
     },
 
     /**
      * Get Token Transfer Volume Chart Data
      */
     async getTokenTransferVolume(days = 30) {
-      return generateMockChartData('tokenVolume', days);
+      try {
+        const res = await rpc("GetTokenTransferVolume", { Days: days });
+        if (!res || !Array.isArray(res) || res.length === 0) throw new Error("Empty response");
+        return res;
+      } catch (e) {
+        return generateMockChartData('tokenVolume', days);
+      }
     },
 
     /**
