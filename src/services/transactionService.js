@@ -176,7 +176,7 @@ export const transactionService = createService(
           if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
-              if (full && full.vmstate) tx.vmstate = full.vmstate;
+              if (full) tx.vmstate = full.vmstate || "HALT";
             } catch (e) { /* ignore */ }
           }
           return tx;
@@ -195,7 +195,7 @@ export const transactionService = createService(
           if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
-              if (full && full.vmstate) tx.vmstate = full.vmstate;
+              if (full) tx.vmstate = full.vmstate || "HALT";
             } catch (e) { /* ignore */ }
           }
           return tx;

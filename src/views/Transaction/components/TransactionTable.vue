@@ -233,7 +233,8 @@ function formatTxFeeBreakdown(tx) {
 }
 
 function getVmState(tx) {
-  const value = tx?.vmstate || tx?.VMState || "";
+  const value = tx?.vmstate || tx?.VMState;
+  if (!value) return "HALT";
   return String(value).toUpperCase();
 }
 

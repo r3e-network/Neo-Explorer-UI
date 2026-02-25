@@ -78,7 +78,11 @@ const props = defineProps({
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
-const vmState = computed(() => String(props.tx?.vmstate || "").toUpperCase());
+const vmState = computed(() => {
+  const state = props.tx?.vmstate || props.tx?.VMState;
+  if (!state) return "HALT"; // Assume HALT for NeoTube lists unless FAULT is specified
+  return String(state).toUpperCase();
+});
 
 const isSuccess = computed(() => {
   if (!vmState.value) return null;
