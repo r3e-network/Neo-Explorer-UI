@@ -32,8 +32,8 @@
             <span class="text-sm text-high font-medium truncate" :title="transferSummary">
               {{ transferSummary }}
             </span>
-            <img v-if="transferSummary.includes('NEO')" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
-            <img v-if="transferSummary.includes('GAS')" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+            <img v-if="/neo/i.test(transferSummary)" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+            <img v-if="/gas/i.test(transferSummary)" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
           </div>
           <span v-else-if="methodName" class="text-sm text-high font-medium">{{ methodName }}</span>
           <span v-else class="text-sm text-low">Contract Call</span>

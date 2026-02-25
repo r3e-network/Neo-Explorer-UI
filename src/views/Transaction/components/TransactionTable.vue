@@ -100,8 +100,8 @@
           <td class="table-cell hidden text-right lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
               <div class="flex items-center gap-1.5 justify-end">
-                <img v-if="getValueSummary(tx).includes('NEO')" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full" />
-                <img v-if="getValueSummary(tx).includes('GAS')" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full" />
+                <img v-if="/neo/i.test(getValueSummary(tx))" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full" />
+                <img v-if="/gas/i.test(getValueSummary(tx))" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full" />
                 <span class="max-w-[180px] truncate font-medium text-high" :title="getValueSummary(tx)">
                   {{ getValueSummary(tx) }}
                 </span>
