@@ -1,3 +1,5 @@
+import { NATIVE_CONTRACTS } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "./neoHelpers";
 
 /**
@@ -180,16 +182,29 @@ export function normalizeAddressTransactions(transactions = []) {
  */
 export function normalizeNep17Transfers(transfers = []) {
   const list = Array.isArray(transfers) ? transfers : [];
-  return list.map((t) => ({
-    txHash: t?.txid || t?.hash || t?.txHash || "",
-    timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
-    from: scriptHashToAddress(t?.from || t?.fromAddress || t?.sender || ""),
-    to: scriptHashToAddress(t?.to || t?.toAddress || t?.receiver || ""),
-    amount: t?.value ?? t?.amount ?? t?.transferamount ?? "0",
-    tokenName: t?.tokenname || t?.symbol || t?.name || "Unknown",
-    tokenHash: t?.contract || t?.contractHash || t?.assethash || "",
-    decimals: toNumber(t?.decimals, 8),
-  }));
+  return list.map((t) => {
+    const hash = String(t?.contract || t?.contractHash || t?.assethash || "").toLowerCase();
+    let tokenName = t?.tokenname || t?.symbol || t?.name;
+    let decimals = t?.decimals;
+    if (!tokenName && hash) {
+      const known = NATIVE_CONTRACTS[hash] || KNOWN_CONTRACTS[hash];
+      if (known) {
+        if (known.symbol) tokenName = known.symbol;
+        if (decimals === undefined && known.decimals !== undefined) decimals = known.decimals;
+      }
+    }
+    
+    return {
+      txHash: t?.txid || t?.hash || t?.txHash || "",
+      timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
+      from: scriptHashToAddress(t?.from || t?.fromAddress || t?.sender || ""),
+      to: scriptHashToAddress(t?.to || t?.toAddress || t?.receiver || ""),
+      amount: t?.value ?? t?.amount ?? t?.transferamount ?? "0",
+      tokenName: tokenName || "Unknown",
+      tokenHash: hash,
+      decimals: toNumber(decimals, hash === "0xd2a4cff31913016155e38e474a2c06d08be276cf" ? 8 : 0),
+    };
+  });
 }
 
 /**
