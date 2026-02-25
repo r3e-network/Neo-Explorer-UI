@@ -19,7 +19,7 @@
       <EmptyState message="No transactions found" />
     </div>
     <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
-      <TxListItem v-for="tx in transactions" :key="tx.hash" :tx="tx" class="w-full" style="background: var(--surface-elevated)" />
+      <TxListItem v-for="tx in transactions" :key="tx.hash" :tx="tx" :transfer-summary="transferSummaryByHash[tx.hash]" class="w-full" style="background: var(--surface-elevated)" />
     </TransitionGroup>
   </article>
 </template>
@@ -31,6 +31,7 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 
 defineProps({
+  transferSummaryByHash: { type: Object, default: () => ({}) },
   transactions: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: Boolean, default: false },
