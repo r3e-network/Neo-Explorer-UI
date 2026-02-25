@@ -17,6 +17,17 @@
         <StatusBadge :status="txStatus" />
       </InfoRow>
 
+      <InfoRow label="VM State" tooltip="NeoVM execution result for this transaction">
+        <span
+          v-if="vmState"
+          class="badge-soft rounded px-2 py-0.5 text-xs font-semibold"
+          :class="vmState === 'HALT' ? 'text-status-success' : vmState === 'FAULT' ? 'text-status-error' : 'text-mid'"
+        >
+          {{ vmState }}
+        </span>
+        <span v-else class="text-mid">UNKNOWN</span>
+      </InfoRow>
+
       <InfoRow label="Block">
         <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
           #{{ tx.blockIndex ?? tx.blockindex }}
@@ -153,6 +164,7 @@ const props = defineProps({
   tx: { type: Object, required: true },
   txStatus: { type: String, default: "pending" },
   isSuccess: { type: [Boolean, null], default: null },
+  vmState: { type: String, default: "" },
   confirmations: { type: Number, default: 0 },
   totalFee: { type: String, default: "0" },
   isComplexTx: { type: Boolean, default: false },

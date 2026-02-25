@@ -97,6 +97,7 @@
               :tx="tx"
               :tx-status="txStatus"
               :is-success="isSuccess"
+              :vm-state="vmState"
               :confirmations="confirmations"
               :total-fee="totalFee"
               :is-complex-tx="isComplexTx"
@@ -250,8 +251,18 @@ const breadcrumbs = computed(() => [
   { label: truncateHash(txHash.value, 10, 6) },
 ]);
 
+const vmState = computed(() => {
+  const appState = appLog.value?.executions?.[0]?.vmstate;
+  if (appState) return String(appState).toUpperCase();
+
+  const txState = tx.value?.vmstate;
+  if (txState) return String(txState).toUpperCase();
+
+  return "";
+});
+
 const isSuccess = computed(() => {
-  const state = tx.value?.vmstate;
+  const state = vmState.value;
   if (!state) return null; // unknown yet
   return state === "HALT";
 });

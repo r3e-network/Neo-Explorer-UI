@@ -73,7 +73,7 @@ export function useTransferSummary() {
     }
   }
 
-  async function enrichTransactions(txList) {
+  async function enrichTransactions(txList, { maxItems = 8 } = {}) {
     const hashes = (txList || [])
       .filter((tx) => {
         const hash = tx?.hash;
@@ -82,7 +82,8 @@ export function useTransferSummary() {
         }
         return Number(tx?.value ?? 0) <= 0;
       })
-      .map((tx) => tx.hash);
+      .map((tx) => tx.hash)
+      .slice(0, Math.max(0, Number(maxItems) || 0));
 
     if (hashes.length === 0) return;
 

@@ -25,7 +25,7 @@
             <div class="flex items-center gap-2">
               <span
                 class="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-                :class="tx.vmstate === 'FAULT' ? 'bg-status-error-bg text-status-error' : 'bg-status-success-bg text-status-success'"
+                :class="getVmStateDotClass(tx)"
               >
                 Tx
               </span>
@@ -36,6 +36,12 @@
               >
                 {{ truncateHash(tx.hash) }}
               </router-link>
+              <span
+                class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                :class="getVmStateBadgeClass(tx)"
+              >
+                {{ getVmStateLabel(tx) }}
+              </span>
             </div>
           </td>
 
@@ -224,5 +230,30 @@ function formatTxFeeBreakdown(tx) {
   const sys = Number(tx.sysfee || 0);
   if (net === 0 && sys === 0) return "N: 0 / S: 0";
   return `N: ${formatGas(net)} / S: ${formatGas(sys)}`;
+}
+
+function getVmState(tx) {
+  const value = tx?.vmstate || tx?.VMState || "";
+  return String(value).toUpperCase();
+}
+
+function getVmStateLabel(tx) {
+  const vmState = getVmState(tx);
+  if (vmState === "HALT" || vmState === "FAULT") return vmState;
+  return "UNKNOWN";
+}
+
+function getVmStateDotClass(tx) {
+  const vmState = getVmState(tx);
+  if (vmState === "HALT") return "bg-status-success-bg text-status-success";
+  if (vmState === "FAULT") return "bg-status-error-bg text-status-error";
+  return "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
+}
+
+function getVmStateBadgeClass(tx) {
+  const vmState = getVmState(tx);
+  if (vmState === "HALT") return "bg-status-success-bg text-status-success";
+  if (vmState === "FAULT") return "bg-status-error-bg text-status-error";
+  return "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
 }
 </script>

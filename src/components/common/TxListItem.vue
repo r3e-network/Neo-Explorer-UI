@@ -78,18 +78,34 @@ const props = defineProps({
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
+const vmState = computed(() => String(props.tx?.vmstate || "").toUpperCase());
+
 const isSuccess = computed(() => {
-  const state = props.tx?.vmstate;
-  return state === "HALT" || state === undefined || state === null;
+  if (!vmState.value) return null;
+  return vmState.value === "HALT";
 });
 
 const statusStyle = computed(() => {
-  const c = isSuccess.value ? "var(--status-success)" : "var(--status-error)";
-  const bg = isSuccess.value ? "var(--status-success-bg)" : "var(--status-error-bg)";
+  const c =
+    isSuccess.value === true
+      ? "var(--status-success)"
+      : isSuccess.value === false
+      ? "var(--status-error)"
+      : "var(--text-mid)";
+  const bg =
+    isSuccess.value === true
+      ? "var(--status-success-bg)"
+      : isSuccess.value === false
+      ? "var(--status-error-bg)"
+      : "var(--surface-muted)";
   return { background: bg, color: c };
 });
 
-const statusText = computed(() => (isSuccess.value ? "Success" : "Failed"));
+const statusText = computed(() => {
+  if (isSuccess.value === true) return "HALT";
+  if (isSuccess.value === false) return "FAULT";
+  return "Unknown";
+});
 
 const toPrefixedHash = (value) => {
   const raw = String(value || "").trim();

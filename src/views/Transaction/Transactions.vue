@@ -109,7 +109,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
-import { transactionService } from "@/services";
+import { transactionService, executionService } from "@/services";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
@@ -127,6 +127,8 @@ import TransactionTable from "./components/TransactionTable.vue";
 
 const showAbsoluteTime = ref(false);
 const { t } = useI18n();
+const VMSTATE_ENRICH_LIMIT = 8;
+const vmStatePendingHashes = new Set();
 
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 
@@ -155,8 +157,11 @@ const {
 // Enrich transactions after each page load
 watch(transactions, (txs) => {
   if (txs?.length) {
-    enrichTransactions(txs).catch((err) => {
+    enrichTransactions(txs, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
       if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
+    });
+    hydrateVmState(txs).catch((err) => {
+      if (import.meta.env.DEV) console.warn("VM state enrichment failed:", err);
     });
   }
 });
@@ -167,12 +172,45 @@ const { loadingMore, loadMore } = useLoadMore(
   paginationState,
   {
     onAppend: (newItems) => {
-      enrichTransactions(newItems).catch((err) => {
+      enrichTransactions(newItems, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
         if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
+      });
+      hydrateVmState(newItems).catch((err) => {
+        if (import.meta.env.DEV) console.warn("VM state enrichment failed:", err);
       });
     },
   }
 );
+
+async function hydrateVmState(txList = []) {
+  const targets = txList
+    .filter((tx) => tx?.hash && !tx?.vmstate && !vmStatePendingHashes.has(tx.hash))
+    .slice(0, VMSTATE_ENRICH_LIMIT);
+
+  if (!targets.length) return;
+
+  const batchSize = 4;
+  for (let i = 0; i < targets.length; i += batchSize) {
+    const batch = targets.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (tx) => {
+        const hash = tx.hash;
+        vmStatePendingHashes.add(hash);
+        try {
+          const appLog = await executionService.getExecutionTrace(hash);
+          const vmState = String(appLog?.executions?.[0]?.vmstate || "").toUpperCase();
+          if (vmState) {
+            tx.vmstate = vmState;
+          }
+        } catch {
+          // Keep vmstate unknown when log lookup fails.
+        } finally {
+          vmStatePendingHashes.delete(hash);
+        }
+      })
+    );
+  }
+}
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {

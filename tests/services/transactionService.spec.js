@@ -18,7 +18,7 @@ describe("transactionService", () => {
     it("calls safeRpc correctly", async () => {
       api.safeRpc.mockResolvedValueOnce(50000);
       const result = await transactionService.getCount();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, {});
       expect(result).toBe(50000);
     });
   });
@@ -31,7 +31,7 @@ describe("transactionService", () => {
       // Mock the getByHash internal call
       api.safeRpc.mockResolvedValueOnce({ hash: "0xTest", vmstate: "FAULT" });
       
-      const result = await transactionService.getList(10, 5);
+      const result = await transactionService.getList(10, 5, { enrichMissingFields: true });
       expect(api.safeRpcList).toHaveBeenCalled();
       
       // Check if it backfilled the missing vmstate for 0x1
@@ -66,7 +66,7 @@ describe("transactionService", () => {
       api.safeRpcList.mockResolvedValueOnce(mockData);
       api.safeRpc.mockResolvedValueOnce({ hash: "0xAnother", vmstate: "HALT" });
       
-      const result = await transactionService.getByAddress("0xNAddr", 15, 10);
+      const result = await transactionService.getByAddress("0xNAddr", 15, 10, { enrichMissingFields: true });
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByAddress",
         { Address: "0xNAddr", Limit: 15, Skip: 10 },

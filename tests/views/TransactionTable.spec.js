@@ -108,4 +108,68 @@ describe("TransactionTable address rendering", () => {
     expect(recipientLink.exists()).toBe(true);
     expect(recipientLink.attributes("data-hash")).toBe(NEO_HASH);
   });
+
+  it("renders VM state badges as HALT / FAULT / UNKNOWN", () => {
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: "0x1",
+            blockhash: "0xb1",
+            blockindex: 1,
+            blocktime: Date.now(),
+            sender: "NQf8xK1nmyQj3X5Y2P4H5n6j6S8s7w6Q4s",
+            vmstate: "HALT",
+            netfee: 0,
+            sysfee: 0,
+          },
+          {
+            hash: "0x2",
+            blockhash: "0xb2",
+            blockindex: 2,
+            blocktime: Date.now(),
+            sender: "NQf8xK1nmyQj3X5Y2P4H5n6j6S8s7w6Q4t",
+            vmstate: "FAULT",
+            netfee: 0,
+            sysfee: 0,
+          },
+          {
+            hash: "0x3",
+            blockhash: "0xb3",
+            blockindex: 3,
+            blocktime: Date.now(),
+            sender: "NQf8xK1nmyQj3X5Y2P4H5n6j6S8s7w6Q4u",
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {},
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const labels = wrapper.findAll("span").map((node) => node.text());
+    expect(labels).toContain("HALT");
+    expect(labels).toContain("FAULT");
+    expect(labels).toContain("UNKNOWN");
+  });
 });

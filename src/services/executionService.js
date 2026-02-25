@@ -11,12 +11,20 @@ import { decodeNotificationParams } from "@/utils/neoCodec";
  */
 export const executionService = createService(
   {
-    getExecutionTrace: {
+    _getExecutionTraceIndexed: {
       cacheKey: "exec_trace",
       rpcMethod: "GetApplicationLogByTransactionHash",
       fallback: null,
       ttl: CACHE_TTL.trace,
       buildParams: ([txHash]) => ({ TransactionHash: txHash }),
+      buildCacheParams: ([txHash]) => ({ txHash }),
+    },
+    _getExecutionTraceLegacy: {
+      cacheKey: "exec_trace_legacy",
+      rpcMethod: "getapplicationlog",
+      fallback: null,
+      ttl: CACHE_TTL.trace,
+      buildParams: ([txHash]) => [txHash],
       buildCacheParams: ([txHash]) => ({ txHash }),
     },
     getDetailedTrace: {
@@ -29,6 +37,26 @@ export const executionService = createService(
     },
   },
   {
+    async getExecutionTrace(txHash, options = {}) {
+      const indexed = await this._getExecutionTraceIndexed(txHash, options);
+      const indexedNotifications = this._countNotifications(indexed);
+
+      if (indexedNotifications > 0) {
+        return indexed;
+      }
+
+      let legacy = null;
+      try {
+        legacy = await this._getExecutionTraceLegacy(txHash, options);
+      } catch (_err) {
+        legacy = null;
+      }
+
+      if (!indexed && legacy) return legacy;
+      if (this._countNotifications(legacy) > indexedNotifications) return legacy;
+      return indexed || legacy;
+    },
+
     /**
      * 判断是否为复杂交易（多合约通知或嵌套调用）
      * @param {Object} appLog - 应用日志对象
@@ -52,6 +80,11 @@ export const executionService = createService(
       }
 
       return false;
+    },
+
+    _countNotifications(appLog) {
+      const executions = appLog?.executions ?? [];
+      return executions.reduce((sum, exec) => sum + (exec?.notifications?.length || 0), 0);
     },
 
     /**

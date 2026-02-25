@@ -1,6 +1,8 @@
-import { safeRpc } from "./api";
-import { CACHE_TTL } from "./cache";
-import { createService } from "./serviceFactory";
+import { safeRpc, safeRpcList } from "./api";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
+import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
+import { neotubeService } from "./neotubeService";
+import { getCurrentEnv } from "../utils/env";
 
 /**
  * Block Service - Neo3 区块相关 API 调用
@@ -89,21 +91,81 @@ export const blockService = createService(
     },
   },
   {
+    _shouldUseNeoTube(options = {}) {
+      if (typeof options.useNeoTube === "boolean") return options.useNeoTube;
+      return import.meta.env.MODE !== "test";
+    },
+
+    _extractCount(res) {
+      const direct = Number(res);
+      if (Number.isFinite(direct)) return direct;
+      if (!res) return 0;
+      return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
+    },
+
     /**
      * Get latest block height as a number
      */
     async getCount(options = {}) {
-      const res = await safeRpc("GetBlockCount", {}, null, options);
-      if (!res) return 0;
-      return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
+      const key = getCacheKey("block_count", {});
+      return cachedRequest(
+        key,
+        async () => {
+          const env = getCurrentEnv();
+          const canUseNeoTube = this._shouldUseNeoTube(options) && neotubeService.supportsNetwork(env);
+
+          if (canUseNeoTube) {
+            try {
+              const stats = await neotubeService.getStatistics(env);
+              const fastCount = Number(stats?.blocks || 0);
+              if (fastCount > 0) return fastCount;
+            } catch (error) {
+              if (import.meta.env.DEV) console.warn("[blockService] NeoTube block count fallback:", error);
+            }
+          }
+
+          const res = await safeRpc("GetBlockCount", {}, null, options);
+          return this._extractCount(res);
+        },
+        CACHE_TTL.stats,
+        getRealtimeListCacheOptions(options)
+      );
     },
 
     /**
      * Enriched block list with fees and primary info
      */
     async getList(limit = 20, skip = 0, options = {}) {
-      const { enrichMissingFields = true, ...requestOptions } = options;
-      const res = await this._getList(limit, skip, requestOptions);
+      const { enrichMissingFields = false, ...requestOptions } = options;
+
+      const key = getCacheKey("block_list", { limit, skip });
+      const res = await cachedRequest(
+        key,
+        async () => {
+          const env = getCurrentEnv();
+          const canUseNeoTube = this._shouldUseNeoTube(requestOptions) && neotubeService.supportsNetwork(env);
+
+          if (canUseNeoTube) {
+            try {
+              return await neotubeService.getLatestBlocks(limit, skip, env);
+            } catch (error) {
+              if (import.meta.env.DEV) {
+                console.warn("[blockService] NeoTube block list fallback:", error);
+              }
+            }
+          }
+
+          return safeRpcList(
+            "GetBlockInfoList",
+            { Limit: limit, Skip: skip },
+            "get block list",
+            requestOptions
+          );
+        },
+        CACHE_TTL.chart,
+        getRealtimeListCacheOptions(requestOptions)
+      );
+
       if (!res || !res.result) return res;
 
       // Backfill missing fee/consensus fields only when unavailable in list payload.
