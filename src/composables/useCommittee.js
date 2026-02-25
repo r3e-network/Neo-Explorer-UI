@@ -53,16 +53,16 @@ export function useCommittee() {
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     
-    // The primary index corresponds to the validator's position in the active set
+    if (!validators.value || validators.value.length === 0) return `Validator #${primaryIndex}`;
+
     const validator = validators.value[primaryIndex];
-    if (!validator) return null;
+    if (!validator) return `Validator #${primaryIndex}`;
     
     const meta = doraMetadata.value[validator.publickey];
     if (meta && meta.name) {
       return meta.name;
     }
     
-    // Fallback if no name found
     return `Validator #${primaryIndex}`;
   };
 
