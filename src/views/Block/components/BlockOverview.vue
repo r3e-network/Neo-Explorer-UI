@@ -5,6 +5,9 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { NULL_TX_HASH } from "@/constants";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { useCommittee } from "@/composables/useCommittee";
+
+const { getPrimaryNodeName } = useCommittee();
 
 const props = defineProps({
   block: { type: Object, required: true },
@@ -213,8 +216,8 @@ const timeAgo = computed(() => {
           Deterministic (single-block finality)
         </span>
       </InfoRow>
-      <InfoRow label="Primary Index" v-if="block.primary !== undefined && block.primary !== null">
-        <span class="font-mono">{{ block.primary }}</span>
+      <InfoRow label="Validator" v-if="block.primary !== undefined && block.primary !== null">
+        <span class="font-mono">{{ getPrimaryNodeName(block.primary) || `#${block.primary}` }}</span>
       </InfoRow>
     </div>
   </div>

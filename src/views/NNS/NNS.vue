@@ -79,8 +79,8 @@
                 This domain is available for registration. Secure it now before someone else does!
               </p>
               
-              <div v-else class="mt-4 space-y-3 p-4 bg-surface-muted rounded-xl border border-line-soft">
-                <div class="flex items-center justify-between gap-4 text-sm">
+              <div v-else class="mt-4 space-y-4 p-5 bg-surface-muted rounded-xl border border-line-soft">
+                <div class="flex items-center justify-between gap-4 text-sm border-b border-line-soft pb-3 last:border-0 last:pb-0">
                   <span class="text-mid font-medium">Owner</span>
                   <HashLink v-if="searchResult.owner" :hash="searchResult.owner" type="address" />
                   <span v-else class="text-low">-</span>
@@ -230,14 +230,21 @@ async function handleSearch() {
   
   try {
     const resolvedAddress = await nnsService.resolveDomain(query);
-    const tokenIdHex = Array.from(query).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    const tokenBase64 = btoa(query);
     
     const props = await safeRpc("GetNep11PropertiesByContractHashTokenId", {
       ContractHash: NNS_CONTRACT_HASH,
-      TokenId: tokenIdHex
+      TokenIds: [tokenBase64]
     }, null);
     
-    if (!props) {
+    // Fallback if the token ID is actually required as hex or another format
+    // some backends might not wrap TokenIds in base64 properly.
+    const fallbackProps = props && props.result ? props : await safeRpc("GetNep11PropertiesByContractHashTokenId", {
+      ContractHash: NNS_CONTRACT_HASH,
+      TokenId: btoa(query)
+    }, null);
+    
+    if (!fallbackProps && !props) {
       searchResult.value = {
         domain: query,
         available: true
@@ -246,13 +253,29 @@ async function handleSearch() {
       let expired = false;
       let expirationMs = null;
       let admin = null;
-      let ownerAddr = resolvedAddress;
+          let ownerAddressFromNNS = null;
+    try {
+        const ownerRes = await safeRpc("GetNep11TransferByContractHashTokenId", {
+            ContractHash: NNS_CONTRACT_HASH,
+            TokenId: btoa(query)
+        }, null);
+        if (ownerRes && Array.isArray(ownerRes) && ownerRes.length > 0) {
+             ownerAddressFromNNS = ownerRes[0].to;
+        } else if (ownerRes && ownerRes.result && Array.isArray(ownerRes.result) && ownerRes.result.length > 0) {
+             ownerAddressFromNNS = ownerRes.result[0].to;
+        }
+    } catch(_e) { /* ignore */ }
+
+      let ownerAddr = resolvedAddress || ownerAddressFromNNS;
       
       let propData = null;
-      if (Array.isArray(props) && props.length > 0) {
-        propData = props[0];
-      } else if (props && !Array.isArray(props)) {
-        propData = props;
+      const activeProps = fallbackProps || props;
+      if (activeProps && Array.isArray(activeProps.result) && activeProps.result.length > 0) {
+        propData = activeProps.result[0];
+      } else if (Array.isArray(activeProps) && activeProps.length > 0) {
+        propData = activeProps[0];
+      } else if (activeProps && !Array.isArray(activeProps) && !activeProps.result) {
+        propData = activeProps;
       }
       
       if (propData) {

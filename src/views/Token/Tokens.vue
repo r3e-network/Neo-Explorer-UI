@@ -112,13 +112,16 @@
                 </td>
                 <td class="table-cell">
                   <router-link :to="`/nep17-token-info/${token.hash}`" class="flex items-center gap-3">
-                    <div
+                    <img v-if="supabaseMeta[token.hash]?.logo_url" :src="supabaseMeta[token.hash].logo_url" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                    <img v-else-if="hasTokenIcon(token.hash)" :src="getTokenIcon(token.hash, 'NEP17')" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                    <div v-else
                       class="soft-divider text-high flex h-8 w-8 items-center justify-center rounded-full border bg-slate-50 text-sm font-semibold dark:bg-slate-800/70"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500 transition-colors">
-                      {{ token.tokenname || "Unknown Token" }}
+                    <span class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1">
+                      {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Token" }}
+                      <svg v-if="supabaseMeta[token.hash]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     </span>
                   </router-link>
                 </td>
@@ -166,13 +169,16 @@
                 </td>
                 <td class="table-cell">
                   <router-link :to="`/nft-token-info/${token.hash}`" class="flex items-center gap-3">
-                    <div
+                    <img v-if="supabaseMeta[token.hash]?.logo_url" :src="supabaseMeta[token.hash].logo_url" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                    <img v-else-if="hasTokenIcon(token.hash)" :src="getTokenIcon(token.hash, 'NEP11')" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                    <div v-else
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500 transition-colors">
-                      {{ token.tokenname || "Unknown Collection" }}
+                    <span class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1">
+                      {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Collection" }}
+                      <svg v-if="supabaseMeta[token.hash]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     </span>
                   </router-link>
                 </td>
@@ -216,6 +222,7 @@
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
+import { supabaseService } from "@/services/supabaseService";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { SEARCH_DEBOUNCE_MS } from "@/constants";
@@ -272,6 +279,18 @@ const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalP
 const { debouncedFn: handleSearchDebounced, cancel: cancelSearch } = useDebounceFn(() => {
   router.push(`/tokens/${activeTab.value}/1`).catch(() => {});
 }, SEARCH_DEBOUNCE_MS);
+
+const supabaseMeta = ref({});
+
+watch(() => tokens.value, async (newTokens) => {
+  if (newTokens && newTokens.length) {
+    const hashes = newTokens.map(t => t.hash).filter(Boolean);
+    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    supabaseMeta.value = meta;
+  } else {
+    supabaseMeta.value = {};
+  }
+}, { immediate: true });
 
 // --- Methods ---
 function formatSupply(token) {

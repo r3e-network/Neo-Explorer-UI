@@ -6,6 +6,7 @@ import { useAsync } from "@/composables/useAsync";
 import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import { responseConverter } from "@/utils/neoHelpers";
 import { invokeContractFunction } from "@/utils/contractInvocation";
+import { supabaseService } from "@/services/supabaseService";
 
 /**
  * Shared composable for NEP-17 and NEP-11 token detail views.
@@ -34,6 +35,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   const activeName = ref(defaultTab);
   const updateCounter = ref(0);
   const copied = ref(false);
+  const tokenMetadata = ref(null);
 
   // ---------------------------------------------------------------------------
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
@@ -153,13 +155,18 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // Data fetching orchestration
   // ---------------------------------------------------------------------------
 
-  function loadAllData() {
+    function loadAllData() {
     activeName.value = defaultTab;
     manifest.value = null;
     manifestError.value = null;
     updateCounter.value = 0;
     executeTokenFetch(tokenId.value);
     executeContractFetch(tokenId.value);
+    
+    // Supabase optional metadata fetch
+    supabaseService.getContractMetadata(tokenId.value).then(meta => {
+      if (meta) tokenMetadata.value = meta;
+    }).catch(()=>{});
   }
 
   function reloadToken() {
@@ -229,5 +236,6 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
     copyHash,
     reloadToken,
     loadAllData,
+    tokenMetadata,
   };
 }

@@ -182,6 +182,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
+import { supabaseService } from "@/services/supabaseService";
 import { contractService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
@@ -204,6 +205,17 @@ const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(DEFAULT_PAGE_SIZE);
 const searchQuery = ref("");
+const supabaseMeta = ref({});
+
+watch(() => contracts.value, async (newContracts) => {
+  if (newContracts && newContracts.length) {
+    const hashes = newContracts.map(c => c.hash).filter(Boolean);
+    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    supabaseMeta.value = meta;
+  } else {
+    supabaseMeta.value = {};
+  }
+}, { immediate: true });
 let searchDebounce = null;
 let currentRequestId = 0;
 

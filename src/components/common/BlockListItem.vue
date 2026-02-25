@@ -24,7 +24,7 @@
 
       <!-- Validator (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-center md:block">
-        <p class="text-xs text-mid">Validator <span v-if="block.primary !== undefined" class="text-xs ml-1">(Primary: {{ block.primary }})</span></p>
+        <p class="text-xs text-mid" v-if="block.primary !== undefined">{{ getPrimaryNodeName(block.primary) || "Validator" }}</p><p class="text-xs text-mid" v-else>Validator</p>
         <div class="text-sm font-medium text-high truncate">
           <HashLink
             v-if="validatorAddress"
@@ -61,6 +61,9 @@ import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatNumber, formatGas } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import HashLink from "./HashLink.vue";
+import { useCommittee } from "@/composables/useCommittee";
+
+const { getPrimaryNodeName } = useCommittee();
 
 const props = defineProps({
   block: { type: Object, default: () => ({}) },

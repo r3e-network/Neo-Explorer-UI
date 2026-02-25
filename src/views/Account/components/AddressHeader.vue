@@ -20,6 +20,9 @@
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
+          <span v-if="publicTag" class="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+            {{ publicTag }}
+          </span>
           <h1 class="page-title">
             {{ isNeoFoundation ? "Neo Foundation / Treasury" : candidateData ? "Candidate Address" : "Address" }}
           </h1>
@@ -128,11 +131,13 @@ import { ref, computed, watch } from "vue";
 import QrcodeVue from 'qrcode.vue';
 import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
+import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 
 const props = defineProps({
+
   address: { type: String, default: "" },
   isContract: { type: Boolean, default: false },
   showQr: { type: Boolean, default: false },
@@ -146,6 +151,18 @@ const props = defineProps({
 defineEmits(["update:showQr"]);
 
 const nnsName = ref("");
+const publicTag = ref(null);
+watch(() => props.address, async (newAddr) => {
+  if (newAddr) {
+    const tagData = await supabaseService.getAddressTag(newAddr);
+    if (tagData) {
+      publicTag.value = tagData.label;
+    } else {
+      publicTag.value = null;
+    }
+  }
+}, { immediate: true });
+
 
 const knownName = computed(() => {
   return KNOWN_ADDRESSES[props.address] || null;

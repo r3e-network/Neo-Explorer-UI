@@ -76,7 +76,8 @@
             <span class="text-high font-semibold font-mono pl-2">For</span>
             <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
             <span class="badge-soft inline-flex items-center gap-1.5 px-2 py-1">
-              <img :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
+              <img v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url" :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url" class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover" alt="" />
+                <img v-else :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
               {{ t.tokenname || t.symbol || "Token" }}
             </span>
             <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low">#{{ t.tokenId.length > 8 ? t.tokenId.slice(0,8)+'…' : t.tokenId }}</span>
@@ -151,7 +152,8 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { getTokenIcon } from "@/utils/getTokenIcon";
+import { computed, ref, watch } from "vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
@@ -159,6 +161,7 @@ import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { formatGas, formatAge, formatTime } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { GAS_DECIMALS } from "@/constants";
+import { supabaseService } from "@/services/supabaseService";
 
 const props = defineProps({
   tx: { type: Object, required: true },
@@ -175,21 +178,23 @@ const props = defineProps({
   showMore: { type: Boolean, default: false },
 });
 
-defineEmits(["update:showMore"]);
+const supabaseMeta = ref({});
+watch(() => Array.isArray(props.transfers) ? props.transfers : [], async (newTransfers) => {
+  if (newTransfers && newTransfers.length) {
+    const hashes = newTransfers.map(t => t.contract || t.contractHash).filter(Boolean);
+    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    supabaseMeta.value = meta;
+  } else {
+    supabaseMeta.value = {};
+  }
+}, { immediate: true });
 
-const localImages = import.meta.glob('@/assets/gui/*.png', { eager: true, import: 'default' });
+defineEmits(["update:showMore"]);
 
 function getTokenLogo(t) {
   const hash = (t.contract || t.contractHash || "").toLowerCase();
-  const path = `/src/assets/gui/${hash}.png`;
-  
-  if (localImages[path]) {
-    return localImages[path];
-  }
-  
   const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
-  const fallbackPath = isNep11 ? "/src/assets/gui/defaultNep11.png" : "/src/assets/gui/defaultNep17.png";
-  return localImages[fallbackPath] || "";
+  return getTokenIcon(hash, isNep11 ? 'NEP11' : 'NEP17');
 }
 
 function formatTransferAmount(t) {

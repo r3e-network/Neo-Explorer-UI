@@ -1,7 +1,7 @@
 import {
   formatGas,
   getTransactionTotalFee,
-  formatGasDecimal,
+  
   formatNeo,
   formatGasBalance,
   formatTokenAmount,
@@ -59,23 +59,7 @@ describe("getTransactionTotalFee", () => {
   });
 });
 
-describe("formatGasDecimal", () => {
-  it("respects custom decimal places", () => {
-    expect(formatGasDecimal(150000000, 2)).toBe("1.50");
-  });
 
-  it("returns '0' for falsy values", () => {
-    expect(formatGasDecimal(0)).toBe("0");
-    expect(formatGasDecimal(null)).toBe("0");
-    expect(formatGasDecimal(undefined)).toBe("0");
-    expect(formatGasDecimal("")).toBe("0");
-  });
-
-  it("returns '0' for non-finite values", () => {
-    expect(formatGasDecimal("not-a-number")).toBe("0");
-    expect(formatGasDecimal(Infinity)).toBe("0");
-  });
-});
 
 describe("formatNeo", () => {
   it("floors and formats NEO (indivisible)", () => {

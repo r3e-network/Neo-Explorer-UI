@@ -33,14 +33,17 @@
           >
             <td class="table-cell">
               <div class="flex items-center gap-2">
-                <span
+                <img v-if="supabaseMeta[assetHash(asset)]?.logo_url" :src="supabaseMeta[assetHash(asset)].logo_url" class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                <img v-else-if="hasTokenIcon(assetHash(asset))" :src="getTokenIcon(assetHash(asset), assetStandard(asset))" class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
+                <span v-else
                   class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
                   :class="tokenColor(assetDisplayName(asset))"
                 >
                   {{ tokenInitial(assetDisplayName(asset)) }}
                 </span>
-                <span class="text-high text-sm font-medium">
+                <span class="text-high text-sm font-medium flex items-center gap-1">
                   {{ assetDisplayName(asset) }}
+                  <svg v-if="supabaseMeta[assetHash(asset)]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                 </span>
               </div>
             </td>
@@ -68,9 +71,11 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
+import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { supabaseService } from "@/services/supabaseService";
 import { NATIVE_CONTRACTS } from "@/constants";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -81,6 +86,18 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   error: { type: String, default: "" },
 });
+
+const supabaseMeta = ref({});
+
+watch(() => props.assets, async (newAssets) => {
+  if (newAssets && newAssets.length) {
+    const hashes = newAssets.map(a => assetHash(a)).filter(Boolean);
+    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    supabaseMeta.value = meta;
+  } else {
+    supabaseMeta.value = {};
+  }
+}, { immediate: true });
 
 defineEmits(["retry"]);
 
@@ -101,6 +118,7 @@ function assetStandard(asset) {
 
 function assetDisplayName(asset) {
   const hash = normalizeAssetHash(assetHash(asset));
+  if (supabaseMeta.value[hash]?.symbol) return supabaseMeta.value[hash].symbol;
   if (NATIVE_CONTRACTS[hash]) return NATIVE_CONTRACTS[hash].symbol || NATIVE_CONTRACTS[hash].name;
   if (KNOWN_CONTRACTS[hash]) return KNOWN_CONTRACTS[hash].symbol || KNOWN_CONTRACTS[hash].name;
   return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";

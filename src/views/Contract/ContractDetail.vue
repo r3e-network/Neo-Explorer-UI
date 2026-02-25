@@ -12,7 +12,7 @@
 
       <!-- Contract Header -->
       <ContractHeader
-        :contract="contract"
+        :contract="contract" :metadata="contractMetadata"
         :is-verified="isVerified"
         :supported-standards="supportedStandards"
         @copy-hash="copyHash"
@@ -24,7 +24,7 @@
       <!-- Overview Card -->
       <ContractOverviewCard
         v-if="!error"
-        :contract="contract"
+        :contract="contract" :metadata="contractMetadata"
         :is-verified="isVerified"
         :supported-standards="supportedStandards"
         :methods-count="methodsCount"

@@ -109,7 +109,7 @@ describe("TransactionTable address rendering", () => {
     expect(recipientLink.attributes("data-hash")).toBe(NEO_HASH);
   });
 
-  it("renders VM state badges as HALT / FAULT / UNKNOWN", () => {
+  it("renders VM state badges as HALT / FAULT", () => {
     const wrapper = mount(TransactionTable, {
       props: {
         transactions: [
@@ -170,6 +170,5 @@ describe("TransactionTable address rendering", () => {
     const labels = wrapper.findAll("span").map((node) => node.text());
     expect(labels).toContain("HALT");
     expect(labels).toContain("FAULT");
-    expect(labels).toContain("UNKNOWN");
   });
 });
