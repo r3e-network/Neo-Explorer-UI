@@ -52,7 +52,7 @@ export function useCommittee() {
   loadCommittee();
 
 
-  const resolvePrimaryIndex = (block) => {
+    const resolvePrimaryIndex = (block) => {
     if (!block) return undefined;
     if (block.primary !== undefined && block.primary !== null) return Number(block.primary);
     if (block.index !== undefined && block.index !== null) {
@@ -64,8 +64,10 @@ export function useCommittee() {
 
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
-    
-    if (!validators.value || validators.value.length === 0) return "Unknown Validator";
+    if (!validators.value || validators.value.length === 0) {
+       // if we don't have validators loaded yet, but we are asked, wait or just return fallback
+       return "Loading...";
+    }
 
     const validator = validators.value[primaryIndex];
     if (!validator) return "Unknown Validator";

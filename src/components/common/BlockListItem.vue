@@ -24,7 +24,9 @@
 
       <!-- Validator (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-center md:block">
-        <p class="text-xs text-mid" v-if="block.primary !== undefined">{{ getPrimaryNodeName(block.primary) || "Validator" }}</p><p class="text-xs text-mid" v-else>Validator</p>
+        <p class="text-xs text-mid truncate">
+          {{ resolvePrimaryIndex(block) !== undefined ? getPrimaryNodeName(resolvePrimaryIndex(block)) : "Validator" }}
+        </p>
         <div class="text-sm font-medium text-high truncate">
           <HashLink
             v-if="validatorAddress"
