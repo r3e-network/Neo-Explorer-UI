@@ -73,6 +73,7 @@ import MainLayout from "../components/layout/MainLayout.vue";
 const NNS = lazyLoad(() => import("../views/NNS/NNS.vue"));
 const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
 const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
+const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"));
 
 const routes = [
   {
@@ -98,11 +99,17 @@ const routes = [
         meta: { title: "Tools" },
         component: ToolsIndex,
       },
-      {
+            {
         path: "/tools/multisig",
         name: "multisig",
         meta: { title: "Multi-Sig Tool" },
         component: MultiSigTool,
+      },
+      {
+        path: "/tools/governance",
+        name: "governance-tool",
+        meta: { title: "Council Governance" },
+        component: GovernanceTool,
       },
       {
         path: "/blocks",
