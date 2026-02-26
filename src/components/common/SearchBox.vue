@@ -6,19 +6,20 @@
   >
     <div
       :class="[
-        'relative flex items-center transition-all duration-300 rounded-xl',
-        'border border-line-soft bg-surface-glass backdrop-blur-md shadow-card focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)] focus-within:border-primary-500 hover:border-primary-400',
-        mode === 'full' ? 'h-[64px]' : 'h-[44px]',
+        'relative flex items-center transition-all duration-300 rounded-xl backdrop-blur-md shadow-card focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)]',
+        mode === 'full' 
+          ? 'h-[64px] border border-white/20 bg-white/10 hover:border-white/30 focus-within:border-primary-500' 
+          : 'h-[44px] border border-line-soft bg-surface/80 hover:border-primary-400 focus-within:border-primary-500',
       ]"
     >
       <!-- Filter Dropdown (full mode only) -->
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
-        class="search-filter h-full cursor-pointer appearance-none rounded-l-xl border-r border-line-soft py-4 pl-4 pr-10 text-sm font-bold transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
+        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 bg-transparent hover:bg-white/5 py-4 pl-4 pr-10 text-sm font-bold text-white transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         aria-label="Search filter"
       >
-        <option v-for="f in filters" :key="f.value" :value="f.value" class="search-filter-option">
+        <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-slate-900 text-white">
           {{ f.label }}
         </option>
       </select>
@@ -26,7 +27,8 @@
       <!-- Search Icon -->
       <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-5' : 'pl-4'">
         <svg
-          class="w-4 h-4 text-mid transition-colors duration-300 group-focus-within:text-primary-500"
+          class="w-4 h-4 transition-colors duration-300 group-focus-within:text-primary-500"
+          :class="mode === 'full' ? 'text-white/70' : 'text-mid'"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -42,7 +44,7 @@
         <kbd
           v-if="mode === 'full'"
           :class="[
-            'border-white/20 dark:border-neo-green/30 text-[10px] font-bold text-mid border bg-black/5 dark:bg-white/5 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
+            'border-white/20 text-[10px] font-bold text-white/70 border bg-white/10 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
             isFocused ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
           ]"
           title="Press / to search"
@@ -57,10 +59,10 @@
         type="text"
         :placeholder="currentPlaceholder"
         :class="[
-          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent text-high placeholder:text-mid font-medium',
+          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent font-medium',
           mode === 'full'
-            ? 'px-4 py-4 pr-28 text-base border-none'
-            : 'px-3 py-2 pr-12 text-sm border-none',
+            ? 'px-4 py-4 pr-28 text-base border-none text-white placeholder:text-white/60'
+            : 'px-3 py-2 pr-12 text-sm border-none text-high placeholder:text-mid',
         ]"
         @keyup.enter="handleEnter"
         @input="handleInput"
