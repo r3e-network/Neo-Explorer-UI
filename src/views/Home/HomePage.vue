@@ -91,6 +91,23 @@ let lastStatsRefreshTime = 0;
 const STATS_REFRESH_INTERVAL_MS = 60_000;
 const blockDetailsByHash = new Map();
 
+function getLatestKnownHeight() {
+  const latestIndex = Number(latestBlocks.value?.[0]?.index);
+  if (!Number.isFinite(latestIndex) || latestIndex < 0) return 0;
+  return latestIndex + 1;
+}
+
+function resolveLiveBlockHeight(candidateHeight) {
+  const candidate = Number(candidateHeight || 0);
+  return Math.max(candidate, getLatestKnownHeight());
+}
+
+function extractHeightFromBlocks(blocks = []) {
+  const latestIndex = Number(blocks?.[0]?.index);
+  if (!Number.isFinite(latestIndex) || latestIndex < 0) return 0;
+  return latestIndex + 1;
+}
+
 function handleFetchLatest() {
   const now = Date.now();
   // Throttle aggressively when overdue, to prevent spamming the node
@@ -143,7 +160,7 @@ async function loadStats(forceRefresh = false) {
       // NeoTube can intermittently return empty counters while still returning HTTP 200.
       // Fall back to RPC dashboard stats in that case instead of showing zeroed values.
       if (blocks > 0 && txs > 0) {
-        blockCount.value = blocks;
+        blockCount.value = resolveLiveBlockHeight(blocks);
         txCount.value = txs;
         lastStatsRefreshTime = Date.now();
         return;
@@ -159,7 +176,7 @@ async function loadStats(forceRefresh = false) {
 
   try {
     const stats = await statsService.getDashboardStats(forceRefresh);
-    blockCount.value = stats.blocks || 0;
+    blockCount.value = resolveLiveBlockHeight(stats.blocks || 0);
     txCount.value = stats.txs || 0;
     lastStatsRefreshTime = Date.now();
   } catch (err) {
@@ -216,6 +233,11 @@ async function loadLatestData(forceRefresh = false) {
         });
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
           latestBlocks.value = nextBlocks;
+        }
+
+        const latestHeight = extractHeightFromBlocks(nextBlocks);
+        if (latestHeight > 0) {
+          blockCount.value = latestHeight;
         }
 
         updateTps();
