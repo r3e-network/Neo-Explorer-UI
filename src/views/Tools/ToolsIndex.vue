@@ -85,6 +85,16 @@
           <p class="text-sm text-mid mt-1">Update on-chain validator identity, Dora metadata, and upload your official logo directly to NeoFS.</p>
         </div>
       </router-link>
+
+      <router-link to="/tools/broadcast" class="etherscan-card p-6 flex flex-col items-start gap-4 hover:border-primary-500 transition-colors group">
+        <div class="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-high group-hover:text-primary-500 transition-colors">On-Chain Message</h2>
+          <p class="text-sm text-mid mt-1">Attach arbitrary data and permanent text messages to the Neo N3 blockchain using Transaction Remarks.</p>
+        </div>
+      </router-link>
     </div>
     </section>
   </div>

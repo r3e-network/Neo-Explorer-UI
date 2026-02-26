@@ -78,6 +78,7 @@ const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"
 const FormatConverterTool = lazyLoad(() => import("../views/Tools/FormatConverterTool.vue"));
 const NeoFSTool = lazyLoad(() => import("../views/Tools/NeoFSTool.vue"));
 const CandidateProfileTool = lazyLoad(() => import("../views/Tools/CandidateProfileTool.vue"));
+const BroadcastMessageTool = lazyLoad(() => import("../views/Tools/BroadcastMessageTool.vue"));
 
 const routes = [
   {
@@ -132,6 +133,12 @@ const routes = [
         name: "candidate-profile-manager",
         meta: { title: "Candidate Profile Manager" },
         component: CandidateProfileTool,
+      },
+      {
+        path: "/tools/broadcast",
+        name: "broadcast-message",
+        meta: { title: "On-Chain Message" },
+        component: BroadcastMessageTool,
       },
       {
         path: "/blocks",
