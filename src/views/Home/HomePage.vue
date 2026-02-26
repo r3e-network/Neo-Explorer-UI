@@ -137,10 +137,21 @@ async function loadStats(forceRefresh = false) {
   if (neotubeService.supportsNetwork(env)) {
     try {
       const fastStats = await neotubeService.getStatistics(env);
-      blockCount.value = fastStats.blocks || 0;
-      txCount.value = fastStats.txs || 0;
-      lastStatsRefreshTime = Date.now();
-      return;
+      const blocks = Number(fastStats?.blocks || 0);
+      const txs = Number(fastStats?.txs || 0);
+
+      // NeoTube can intermittently return empty counters while still returning HTTP 200.
+      // Fall back to RPC dashboard stats in that case instead of showing zeroed values.
+      if (blocks > 0 && txs > 0) {
+        blockCount.value = blocks;
+        txCount.value = txs;
+        lastStatsRefreshTime = Date.now();
+        return;
+      }
+
+      if (import.meta.env.DEV) {
+        console.warn("NeoTube stats contained empty counters, falling back to RPC stats:", fastStats);
+      }
     } catch (err) {
       if (import.meta.env.DEV) console.warn("NeoTube stats unavailable, falling back to RPC stats:", err);
     }

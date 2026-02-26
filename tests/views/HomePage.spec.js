@@ -203,6 +203,30 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("falls back to RPC dashboard stats when NeoTube returns zero block/tx counts", async () => {
+    supportsNeoTubeNetwork.mockReturnValue(true);
+    getNeoTubeStats.mockResolvedValueOnce({ blocks: 0, txs: 0 });
+    getDashboardStats.mockResolvedValueOnce({ blocks: 111, txs: 222 });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getNeoTubeStats).toHaveBeenCalled();
+    expect(getDashboardStats).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it("passes transfer summaries to LatestTransactions and enriches latest tx rows", async () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
