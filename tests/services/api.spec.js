@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
-import { formatListResponse, rpc, safeRpc } from "../../src/services/api.js";
+import {
+  __resetEndpointNetworkCacheForTests,
+  formatListResponse,
+  rpc,
+  safeRpc,
+} from "../../src/services/api.js";
 
 // Mock axios
 vi.mock("axios", () => {
@@ -93,9 +98,13 @@ describe("safeRpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     envState.currentBasePath = "/api/mainnet";
+    __resetEndpointNetworkCacheForTests();
   });
 
   it("returns result on success", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { protocol: { network: 860833102 } } },
+    });
     axios.post.mockResolvedValueOnce({
       data: { result: { blockHeight: 12345 } },
     });
@@ -119,6 +128,9 @@ describe("safeRpc", () => {
   });
 
   it("returns default value when result is null", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { protocol: { network: 860833102 } } },
+    });
     axios.post.mockResolvedValueOnce({ data: { result: null } });
 
     const result = await safeRpc("GetBlockCount", {}, []);
@@ -126,6 +138,9 @@ describe("safeRpc", () => {
   });
 
   it("normalizes block transactioncount alias", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { protocol: { network: 860833102 } } },
+    });
     axios.post.mockResolvedValueOnce({
       data: { result: { hash: "0xabc", transactioncount: 1 } },
     });
@@ -140,6 +155,7 @@ describe("safeRpc", () => {
     });
 
     axios.post
+      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
       .mockRejectedValueOnce(timeoutError)
       .mockResolvedValueOnce({ data: { result: { index: 123 } } });
 
@@ -149,11 +165,17 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenNthCalledWith(
       1,
       "",
-      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ method: "getversion" }),
       expect.objectContaining({ baseURL: "/api/mainnet/primary" })
     );
     expect(axios.post).toHaveBeenNthCalledWith(
       2,
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+    );
+    expect(axios.post).toHaveBeenNthCalledWith(
+      3,
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
       expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
@@ -166,7 +188,9 @@ describe("safeRpc", () => {
     });
 
     axios.post
+      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
       .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
       .mockResolvedValueOnce({ data: { result: { count: 10 } } })
       .mockResolvedValueOnce({ data: { result: { count: 11 } } });
 
@@ -185,6 +209,7 @@ describe("safeRpc", () => {
     vi.useFakeTimers();
     try {
       axios.post
+        .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
         .mockImplementationOnce(() => new Promise(() => {}))
         .mockResolvedValueOnce({ data: { result: { index: 98765 } } });
 
@@ -195,11 +220,17 @@ describe("safeRpc", () => {
       expect(axios.post).toHaveBeenNthCalledWith(
         1,
         "",
-        expect.objectContaining({ method: "GetBlockCount" }),
+        expect.objectContaining({ method: "getversion" }),
         expect.objectContaining({ baseURL: "/api/mainnet/primary" })
       );
       expect(axios.post).toHaveBeenNthCalledWith(
         2,
+        "",
+        expect.objectContaining({ method: "GetBlockCount" }),
+        expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+      );
+      expect(axios.post).toHaveBeenNthCalledWith(
+        3,
         "",
         expect.objectContaining({ method: "GetBlockCount" }),
         expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
@@ -208,15 +239,52 @@ describe("safeRpc", () => {
       vi.useRealTimers();
     }
   });
+
+  it("fails over when the primary endpoint reports the wrong network magic", async () => {
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion" && baseURL === "/api/mainnet/primary") {
+        return Promise.resolve({
+          data: { result: { protocol: { network: 894710606 } } },
+        });
+      }
+
+      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({
+          data: { result: { protocol: { network: 860833102 } } },
+        });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({ data: { result: { index: 321 } } });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+        return Promise.resolve({ data: { result: { index: 999 } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
+
+    const result = await safeRpc("GetBlockCount", {});
+    expect(result).toEqual({ index: 321 });
+    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
+  });
 });
 
 describe("rpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     envState.currentBasePath = "/api/mainnet";
+    __resetEndpointNetworkCacheForTests();
   });
 
   it("uses [] as default params for zero-argument RPC methods", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { protocol: { network: 860833102 } } },
+    });
     axios.post.mockResolvedValueOnce({
       data: { result: [{ publickey: "PUBKEY1" }] },
     });

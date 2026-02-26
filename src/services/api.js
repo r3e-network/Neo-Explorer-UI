@@ -8,7 +8,17 @@ const HEDGE_DELAY_MS = 1200;
 const STARTUP_HEDGE_WINDOW_MS = 45000;
 const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
+const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
+const EXPECTED_NETWORK_MAGIC = {
+  [NET_ENV.Mainnet]: 860833102,
+  [NET_ENV.TestT5]: 894710606,
+};
+const endpointNetworkCache = new Map();
 const startupTimestamp = Date.now();
+
+export const __resetEndpointNetworkCacheForTests = () => {
+  endpointNetworkCache.clear();
+};
 
 const normalizeBaseUrl = (baseUrl) => {
   if (typeof baseUrl !== "string") return "";
@@ -64,6 +74,7 @@ const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
 
 const isRetryableTransportError = (error) => {
   if (!error) return false;
+  if (error.code === NETWORK_MISMATCH_ERROR_CODE || error.isNetworkMismatch) return true;
   if (error.name === "CanceledError" || error.code === "ERR_CANCELED") return false;
   if (error.name === "RpcError" || error.isRpcError) return false;
   if (error.response) {
@@ -83,10 +94,29 @@ const createHedgeSkippedError = () => {
 
 const isHedgeSkippedError = (error) => error?.code === HEDGE_SKIPPED_ERROR_CODE;
 
+const createNetworkMismatchError = (baseURL, expected, actual) => {
+  const err = new Error(
+    `RPC endpoint network mismatch on ${baseURL}: expected ${expected}, got ${actual ?? "unknown"}`
+  );
+  err.code = NETWORK_MISMATCH_ERROR_CODE;
+  err.isNetworkMismatch = true;
+  err.baseURL = baseURL;
+  err.expectedNetworkMagic = expected;
+  err.actualNetworkMagic = actual;
+  return err;
+};
+
 const getEnvForBaseUrl = (baseUrl) => {
   const parsed = parseNetworkBase(baseUrl);
   if (!parsed) return null;
   return parsed.prefix === "/api/mainnet" ? NET_ENV.Mainnet : NET_ENV.TestT5;
+};
+
+const getExpectedNetworkMagic = (baseUrl) => {
+  const env = getEnvForBaseUrl(baseUrl);
+  if (!env) return null;
+  const expected = Number(EXPECTED_NETWORK_MAGIC[env]);
+  return Number.isFinite(expected) ? expected : null;
 };
 
 const markActiveEndpoint = (baseUrl) => {
@@ -125,6 +155,35 @@ const executeRpcRequest = async (payload, { baseURL, timeout, signal }) => {
   }
 
   return response.data?.result;
+};
+
+const validateEndpointNetwork = async ({ baseURL, timeout, signal }) => {
+  const expectedNetworkMagic = getExpectedNetworkMagic(baseURL);
+  if (!Number.isFinite(expectedNetworkMagic)) return;
+
+  const cacheKey = `${baseURL}::${expectedNetworkMagic}`;
+  if (endpointNetworkCache.get(cacheKey)) return;
+
+  try {
+    const versionPayload = { jsonrpc: "2.0", id: nextRpcId(), method: "getversion", params: [] };
+    const versionResult = await executeRpcRequest(versionPayload, {
+      baseURL,
+      timeout: Math.min(timeout, FAILOVER_RPC_TIMEOUT_MS),
+      signal,
+    });
+    const reportedNetworkMagic = Number(versionResult?.protocol?.network ?? versionResult?.network);
+    if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic !== expectedNetworkMagic) {
+      throw createNetworkMismatchError(baseURL, expectedNetworkMagic, reportedNetworkMagic);
+    }
+    if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic === expectedNetworkMagic) {
+      endpointNetworkCache.set(cacheKey, true);
+    }
+  } catch (error) {
+    if (error?.code === NETWORK_MISMATCH_ERROR_CODE || error?.isNetworkMismatch) {
+      throw error;
+    }
+    // If getversion is unavailable on an endpoint, continue without hard-failing.
+  }
 };
 
 const executeRpcRequestWithStartupHedge = async (
@@ -240,6 +299,8 @@ export const rpc = async (method, params = [], { signal } = {}) => {
       const baseURL = baseUrls[index];
       const timeout = index === 0 ? DEFAULT_RPC_TIMEOUT_MS : FAILOVER_RPC_TIMEOUT_MS;
       try {
+        await validateEndpointNetwork({ baseURL, timeout, signal });
+
         if (index === 0 && startupHedgeEnabled) {
           const hedged = await executeRpcRequestWithStartupHedge(payload, {
             primaryBaseURL: baseURL,
