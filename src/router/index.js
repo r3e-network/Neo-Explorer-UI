@@ -79,6 +79,7 @@ const FormatConverterTool = lazyLoad(() => import("../views/Tools/FormatConverte
 const NeoFSTool = lazyLoad(() => import("../views/Tools/NeoFSTool.vue"));
 const CandidateProfileTool = lazyLoad(() => import("../views/Tools/CandidateProfileTool.vue"));
 const BroadcastMessageTool = lazyLoad(() => import("../views/Tools/BroadcastMessageTool.vue"));
+const SponsoredTool = lazyLoad(() => import("../views/Tools/SponsoredTool.vue"));
 
 const routes = [
   {
@@ -139,6 +140,12 @@ const routes = [
         name: "broadcast-message",
         meta: { title: "On-Chain Message" },
         component: BroadcastMessageTool,
+      },
+      {
+        path: "/tools/sponsored",
+        name: "sponsored-transactions",
+        meta: { title: "Sponsored Transactions" },
+        component: SponsoredTool,
       },
       {
         path: "/blocks",
