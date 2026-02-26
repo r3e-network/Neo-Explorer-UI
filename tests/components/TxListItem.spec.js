@@ -37,4 +37,35 @@ describe("TxListItem", () => {
 
     expect(wrapper.text()).toContain("NeoToken");
   });
+
+  it("uses transfer summary contract as recipient fallback when tx lacks recipient/method", () => {
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "1 NEO",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("NeoToken");
+    expect(wrapper.text()).not.toContain("Contract Call");
+  });
 });

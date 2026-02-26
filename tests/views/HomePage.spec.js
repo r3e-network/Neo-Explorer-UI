@@ -12,6 +12,16 @@ const supportsNeoTubeNetwork = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
+const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
+  enrichTransactionsMock: vi.fn(),
+  transferSummaryByHashMock: {
+    "0xtx": {
+      text: "1 GAS",
+      contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      type: "NEP17",
+    },
+  },
+}));
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -52,6 +62,13 @@ vi.mock("@/composables/useAutoRefresh", () => ({
   }),
 }));
 
+vi.mock("@/composables/useTransferSummary", () => ({
+  useTransferSummary: () => ({
+    transferSummaryByHash: transferSummaryByHashMock,
+    enrichTransactions: enrichTransactionsMock,
+  }),
+}));
+
 const LatestBlocksStub = defineComponent({
   name: "LatestBlocks",
   props: {
@@ -64,13 +81,16 @@ const LatestTransactionsStub = defineComponent({
   name: "LatestTransactions",
   props: {
     loading: { type: Boolean, default: false },
+    transferSummaryByHash: { type: Object, default: () => ({}) },
   },
-  template: '<div data-testid="latest-txs" :data-loading="String(loading)"></div>',
+  template:
+    '<div data-testid="latest-txs" :data-loading="String(loading)" :data-summary-size="String(Object.keys(transferSummaryByHash || {}).length)"></div>',
 });
 
 describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    enrichTransactionsMock.mockClear();
     supportsNeoTubeNetwork.mockReturnValue(false);
     getNeoTubeBlocks.mockResolvedValue({
       result: [{ hash: "0xneo-block", timestamp: Date.now(), txcount: 1 }],
@@ -180,6 +200,27 @@ describe("HomePage initial loading", () => {
     expect(getNeoTubeStats).toHaveBeenCalled();
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("passes transfer summaries to LatestTransactions and enriches latest tx rows", async () => {
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-summary-size")).toBe("1");
+    expect(enrichTransactionsMock).toHaveBeenCalled();
+    expect(enrichTransactionsMock.mock.calls[0][0]).toEqual([{ hash: "0xtx" }]);
     wrapper.unmount();
   });
 });

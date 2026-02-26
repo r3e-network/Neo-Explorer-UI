@@ -76,6 +76,7 @@ const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
 const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
 const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"));
 const FormatConverterTool = lazyLoad(() => import("../views/Tools/FormatConverterTool.vue"));
+const NeoFSTool = lazyLoad(() => import("../views/Tools/NeoFSTool.vue"));
 
 const routes = [
   {
@@ -113,11 +114,17 @@ const routes = [
         meta: { title: "Council Governance" },
         component: GovernanceTool,
       },
-      {
+            {
         path: "/tools/b64",
         name: "format-converter",
         meta: { title: "Format Converter" },
         component: FormatConverterTool,
+      },
+      {
+        path: "/tools/neofs",
+        name: "neofs-gateway",
+        meta: { title: "NeoFS Gateway" },
+        component: NeoFSTool,
       },
       {
         path: "/blocks",
