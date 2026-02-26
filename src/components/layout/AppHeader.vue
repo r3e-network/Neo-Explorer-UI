@@ -121,7 +121,6 @@ import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
 import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
 import { connectedAccount, connectWallet, disconnectWallet, initWallet } from "@/utils/wallet";
 
-const NETWORK_FEE_RATIO = 0.08;
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
