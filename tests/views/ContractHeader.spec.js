@@ -20,4 +20,22 @@ describe("ContractHeader", () => {
     expect(wrapper.text()).toContain(FULL_HASH);
     expect(wrapper.text()).not.toContain("...");
   });
+
+  it("falls back to known contract logo when metadata logo is missing", () => {
+    const wrapper = mount(ContractHeader, {
+      props: {
+        contract: {
+          name: "NeoXBridge",
+          hash: "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2",
+        },
+        isVerified: false,
+        supportedStandards: [],
+        metadata: null,
+      },
+    });
+
+    const logo = wrapper.find('img[alt="Contract Logo"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://x.neo.org/favicon.ico");
+  });
 });

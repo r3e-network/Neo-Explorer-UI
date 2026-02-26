@@ -1,7 +1,7 @@
 <template>
   <div class="detail-hero">
     <div class="flex items-start gap-3">
-      <img v-if="metadata?.logo_url" :src="metadata.logo_url" class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="Contract Logo" />
+      <img v-if="contractLogo" :src="contractLogo" class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="Contract Logo" />
       <div v-else class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
@@ -61,9 +61,11 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { nepBadgeClass, nepTooltip } from "@/utils/nepBadges";
 
-defineProps({
+const props = defineProps({
   contract: { type: Object, required: true },
   isVerified: { type: Boolean, default: false },
   supportedStandards: { type: Array, default: () => [] },
@@ -71,6 +73,16 @@ defineProps({
 });
 
 const emit = defineEmits(["copyHash"]);
+
+const contractLogo = computed(() => {
+  const metadataLogo = props.metadata?.logo_url;
+  if (metadataLogo) return metadataLogo;
+
+  const hash = String(props.contract?.hash || "").toLowerCase();
+  if (!hash) return null;
+
+  return KNOWN_CONTRACTS[hash]?.logo || null;
+});
 </script>
 
 <style scoped>
