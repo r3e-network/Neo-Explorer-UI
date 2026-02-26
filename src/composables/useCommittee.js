@@ -149,8 +149,11 @@ export function useCommittee() {
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) {
-      // if we don't have validators loaded yet, but we are asked, wait or just return fallback
-      return "Loading...";
+      // Avoid permanent "Loading..." labels when endpoint metadata is temporarily unavailable.
+      if (!initialized.value) {
+        void loadCommittee();
+      }
+      return fallbackValidatorName(primaryIndex);
     }
 
     const numericIndex = Number(primaryIndex);
@@ -168,7 +171,12 @@ export function useCommittee() {
 
   const getPrimaryNodeAddress = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
-    if (!validators.value || validators.value.length === 0) return null;
+    if (!validators.value || validators.value.length === 0) {
+      if (!initialized.value) {
+        void loadCommittee();
+      }
+      return null;
+    }
 
     const validator = validators.value[Number(primaryIndex)];
     if (!validator) return null;

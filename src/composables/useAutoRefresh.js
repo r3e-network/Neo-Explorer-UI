@@ -1,5 +1,5 @@
 import { onBeforeUnmount, ref, onActivated, onDeactivated } from "vue";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { getNetworkRefreshIntervalMs, NETWORK_CHANGE_EVENT } from "@/utils/env";
 
 /**
  * Composable for auto-refreshing data at network-specific intervals.
@@ -72,6 +72,20 @@ export function useAutoRefresh(callback, options = {}) {
       callback(); // trigger immediate refresh on return
     }
   });
+
+  if (typeof window !== "undefined") {
+    const onNetworkChange = () => {
+      if (!isIntentionallyActive.value) return;
+      _stopTimer();
+      _startTimer();
+      callback();
+    };
+
+    window.addEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);
+    onBeforeUnmount(() => {
+      window.removeEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);
+    });
+  }
 
   onBeforeUnmount(stop);
 

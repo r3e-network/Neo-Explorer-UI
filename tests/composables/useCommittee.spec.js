@@ -63,7 +63,7 @@ describe("useCommittee", () => {
     await flush();
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
-    expect(getPrimaryNodeName(0)).toBe("Loading...");
+    expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
     expect(getPrimaryNodeAddress(0)).toBeNull();
 
     await loadCommittee();

@@ -234,7 +234,7 @@ const timeAgo = computed(() => {
       <InfoRow label="Validator" v-if="resolvePrimaryIndex(block) !== undefined">
         <div class="flex items-center gap-2">
           <span class="text-sm font-semibold text-high">
-            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Unknown Validator" }}
+            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
           </span>
           <span class="text-mid mx-1">-</span>
           <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" :truncated="false" />

@@ -3,6 +3,7 @@ import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 vi.mock("@/utils/env", () => ({
   getNetworkRefreshIntervalMs: () => 15000,
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 
 vi.mock("vue", async () => {
@@ -89,6 +90,24 @@ describe("useAutoRefresh", () => {
 
       vi.advanceTimersByTime(1);
       expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it("restarts timer and refreshes immediately on network switch", () => {
+      const cb = vi.fn();
+      const { start } = useAutoRefresh(cb);
+
+      start();
+      vi.advanceTimersByTime(5000);
+      expect(cb).toHaveBeenCalledTimes(0);
+
+      window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(14999);
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(1);
+      expect(cb).toHaveBeenCalledTimes(2);
     });
   });
 });

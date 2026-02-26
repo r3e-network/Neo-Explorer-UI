@@ -160,7 +160,7 @@
                 <td class="table-cell">
                   <div class="flex flex-col">
                     <span v-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
-                       {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Unknown Validator" }}
+                      {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
                     </span>
                     <HashLink v-if="getActiveValidatorAddress(block)" :hash="getActiveValidatorAddress(block)" type="address" />
                     <span v-else class="text-xs text-low">--</span>

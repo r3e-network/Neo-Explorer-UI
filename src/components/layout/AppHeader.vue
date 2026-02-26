@@ -118,7 +118,13 @@ import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
-import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
+import {
+  NETWORK_CHANGE_EVENT,
+  NETWORK_OPTIONS,
+  getCurrentEnv,
+  getNetworkLabel,
+  setCurrentEnv,
+} from "@/utils/env";
 import { connectedAccount, connectWallet, disconnectWallet, initWallet } from "@/utils/wallet";
 
 
@@ -198,6 +204,10 @@ function selectNetwork(net) {
   }
 }
 
+function handleNetworkChange(event) {
+  currentNetwork.value = event?.detail?.env || getCurrentEnv();
+}
+
 function handleClickOutside(e) {
   const networkDropdownEl = utilityBarRef.value?.networkDropdown;
   if (networkDropdownEl && !networkDropdownEl.contains(e.target)) {
@@ -257,6 +267,7 @@ onMounted(async () => {
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load prices:", err);
   }
+  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   document.addEventListener("click", handleClickOutside);
 });
 
@@ -270,6 +281,7 @@ onDeactivated(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   document.removeEventListener("click", handleClickOutside);
   if (dropdownTimeout) clearTimeout(dropdownTimeout);
 });

@@ -6,6 +6,7 @@
 import { OPCODES, SYSCALL_HASHES } from "./neoOpcodes";
 import { NEO_HASH, GAS_HASH, CONTRACT_MANAGEMENT_HASH } from "../constants";
 import { scriptHashHexToAddress, publicKeyToAddress } from "./neoHelpers";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 
 /**
  * Decode a base64 string to a Uint8Array.
@@ -40,12 +41,52 @@ function reverseHexStr(hex) {
   return out;
 }
 
+// Some networks/tools emit modern syscall IDs that are not present
+// in the legacy static table.
+const SYSCALL_HASH_FALLBACKS = {
+  "0x627d5b52": "System.Contract.Call",
+  "0x1af77b67": "System.Contract.CallNative",
+  "0x56e7b327": "System.Crypto.CheckSig",
+  "0x27b3e756": "System.Crypto.CheckSig",
+};
+
+function resolveSyscallName(hex) {
+  const direct = String(hex || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^0x/, "")
+    .replace(/[^a-f0-9]/g, "");
+  if (!direct) return null;
+
+  const reversed = reverseHexStr(direct).toLowerCase();
+  const keys = [direct, `0x${direct}`, reversed, `0x${reversed}`];
+
+  for (const key of keys) {
+    const fromStatic = SYSCALL_HASHES[key];
+    if (fromStatic) return fromStatic;
+    const fromFallback = SYSCALL_HASH_FALLBACKS[key];
+    if (fromFallback) return fromFallback;
+  }
+
+  return null;
+}
+
 function getNativeContractName(hash) {
   const lower = hash.toLowerCase();
   if (lower === NEO_HASH) return "NEO";
   if (lower === GAS_HASH) return "GAS";
   if (lower === CONTRACT_MANAGEMENT_HASH) return "ContractManagement";
   return null;
+}
+
+function getContractName(hash) {
+  const normalized = String(hash || "").toLowerCase();
+  if (!normalized) return null;
+  const nativeName = getNativeContractName(normalized);
+  if (nativeName) return nativeName;
+
+  const known = KNOWN_CONTRACTS[normalized];
+  return known?.name || known?.symbol || null;
 }
 
 /**
@@ -112,10 +153,7 @@ function formatOperand(opDef, operandBytes) {
 
   // SYSCALL: resolve 4-byte hash to name
   if (name === "SYSCALL") {
-    let syscallName = SYSCALL_HASHES[hex];
-    if (!syscallName) {
-      syscallName = SYSCALL_HASHES[reverseHexStr(hex)];
-    }
+    const syscallName = resolveSyscallName(hex);
     return syscallName ? syscallName : `0x${hex}`;
   }
 
@@ -130,6 +168,12 @@ function formatOperand(opDef, operandBytes) {
       if (nativeName) {
         return `${reversedHash} (Native: ${nativeName})`;
       }
+
+      const knownContractName = getContractName(reversedHash);
+      if (knownContractName) {
+        return `${reversedHash} (Contract: ${knownContractName})`;
+      }
+
       try {
         const addr = scriptHashHexToAddress(reversedHash);
         return addr ? `${reversedHash} (Account: ${addr})` : `${reversedHash} (Hash160)`;
@@ -278,14 +322,19 @@ export function disassembleScript(base64Script) {
           methodName = methodName.slice(1, -1);
         }
         
-        // Extract native name if available
-        const nativeMatch = contractRef.match(/Native:\s*([^)]+)/);
-        if (nativeMatch) {
-          contractRef = nativeMatch[1];
+        // Force call target operand into explicit contract context.
+        const hashMatch = contractRef.match(/0x[a-f0-9]{40}/i);
+        if (hashMatch) {
+          const contractHash = hashMatch[0].toLowerCase();
+          const contractName = getContractName(contractHash);
+          hashInst.operand = contractName
+            ? `${contractHash} (Contract: ${contractName})`
+            : `${contractHash} (Contract)`;
+          contractRef = contractName || contractHash;
         } else {
-          const hashMatch = contractRef.match(/0x[a-f0-9]{40}/i);
-          if (hashMatch) {
-             contractRef = hashMatch[0]; // keep full hash so HashLink can resolve it
+          const nativeMatch = contractRef.match(/Native:\s*([^)]+)/);
+          if (nativeMatch) {
+            contractRef = nativeMatch[1];
           }
         }
         
@@ -336,4 +385,3 @@ export function extractContractInvocation(base64Script) {
   }
   return null;
 }
-
