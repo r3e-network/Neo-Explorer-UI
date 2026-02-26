@@ -75,6 +75,7 @@ const NNS = lazyLoad(() => import("../views/NNS/NNS.vue"));
 const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
 const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
 const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"));
+const FormatConverterTool = lazyLoad(() => import("../views/Tools/FormatConverterTool.vue"));
 
 const routes = [
   {
@@ -106,11 +107,17 @@ const routes = [
         meta: { title: "Multi-Sig Tool" },
         component: MultiSigTool,
       },
-      {
+            {
         path: "/tools/governance",
         name: "governance-tool",
         meta: { title: "Council Governance" },
         component: GovernanceTool,
+      },
+      {
+        path: "/tools/b64",
+        name: "format-converter",
+        meta: { title: "Format Converter" },
+        component: FormatConverterTool,
       },
       {
         path: "/blocks",
