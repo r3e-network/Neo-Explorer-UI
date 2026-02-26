@@ -42,7 +42,12 @@ function setupNeoLineEventListeners() {
 }
 
 export async function initWallet() {
-    if (connectedAccount.value) {
+    if (typeof window === "undefined") return;
+    
+    // Attempt generic reconnect if we had an active session stored
+    const provider = localStorage.getItem("walletProvider");
+    
+    if (connectedAccount.value && provider === "NeoLine") {
         const hasNeoLine = await waitForNeoLineN3(1000);
         if (hasNeoLine) {
             try {
@@ -61,6 +66,18 @@ export async function initWallet() {
                 localStorage.removeItem("connectedWallet");
             }
         }
+    } else if (connectedAccount.value && provider === "O3") {
+       if (window.neo3Dapi) {
+           try {
+              const account = await window.neo3Dapi.getAccount();
+              if (account && account.address) {
+                  connectedAccount.value = account.address;
+              }
+           } catch(e) { /* ignore */ }
+       }
+    } else if (connectedAccount.value && provider === "WalletConnect") {
+       // Ideally we'd restore WC session, but this is handled by the walletService if called.
+       // Let's assume the walletService handles session persistence.
     }
 }
 
