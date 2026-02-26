@@ -1,5 +1,6 @@
 <template>
-  <div class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+  <div class="tool-page">
+    <section class="page-container py-6 md:py-8">
     <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'NeoFS Gateway' }]" />
 
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -53,7 +54,7 @@
            <button @click="refreshAssets" class="p-1.5 rounded-lg hover:bg-surface-muted transition-colors text-mid" title="Refresh assets">
              <svg :class="{'animate-spin': isRefreshing}" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
            </button>
-           <button class="btn-outline text-xs py-1.5">New Container</button>
+           <button @click="openNewContainerModal" class="btn-outline text-xs py-1.5">New Container</button>
         </div>
       </div>
 
@@ -107,8 +108,8 @@
                 </div>
               </div>
               <div class="flex gap-2">
-                <button class="btn-outline py-1 px-3 text-[11px]">View Objects</button>
-                <button @click="showUploadModal = true" class="btn-primary py-1 px-3 text-[11px]">Upload</button>
+                <button @click="viewObjects(container)" class="btn-outline py-1 px-3 text-[11px]">View Objects</button>
+                <button @click="openUploadForContainer(container.id)" class="btn-primary py-1 px-3 text-[11px]">Upload</button>
               </div>
             </div>
           </div>
@@ -173,6 +174,7 @@
         </div>
       </div>
     </div>
+    </section>
   </div>
 </template>
 
@@ -200,6 +202,21 @@ function onFileSelected(e) {
   if (file) {
     selectedFile.value = file;
   }
+}
+
+function openNewContainerModal() {
+  uploadContainer.value = 'new_public';
+  newContainerName.value = '';
+  showUploadModal.value = true;
+}
+
+function openUploadForContainer(id) {
+  uploadContainer.value = id;
+  showUploadModal.value = true;
+}
+
+function viewObjects(container) {
+  toast.info(`Redirecting to view objects for: ${container.name}`);
 }
 
 async function refreshAssets() {

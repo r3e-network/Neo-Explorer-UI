@@ -40,20 +40,24 @@
 
         <!-- Global Wallet Button (desktop) -->
         <button
-          class="ml-3 hidden items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100 lg:inline-flex"
+          class="ml-3 hidden items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all lg:inline-flex shadow-sm active:scale-95"
+          :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 border border-transparent text-white hover:bg-emerald-600 shadow-emerald-500/20'"
           :disabled="walletLoading"
           @click="toggleWallet"
         >
+          <svg v-if="!connectedAccount && !walletLoading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
           <span
-            class="h-2 w-2 rounded-full"
-            :class="connectedAccount ? 'bg-emerald-500' : 'bg-slate-400'"
+            v-else-if="connectedAccount"
+            class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
           ></span>
+          <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           {{ walletLoading ? "Connecting..." : walletButtonLabel }}
         </button>
 
-        <!-- Mobile Hamburger -->
+        <!-- Mobile Wallet -->
         <button
-          class="ml-auto mr-2 rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100 lg:hidden"
+          class="ml-auto mr-2 rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition active:scale-95 lg:hidden"
+          :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600'"
           :disabled="walletLoading"
           @click="toggleWallet"
         >
@@ -72,10 +76,13 @@
             <SearchBox mode="compact" @search="handleMobileSearch" />
           </div>
           <button
-            class="mb-4 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-left text-sm font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100"
+            class="mb-4 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold transition active:scale-95 flex items-center gap-2"
+            :class="connectedAccount ? 'bg-surface border border-line-soft text-high hover:border-emerald-500' : 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 border border-transparent'"
             :disabled="walletLoading"
             @click="toggleWallet"
           >
+            <span v-if="connectedAccount" class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
             {{ walletLoading ? "Connecting wallet..." : mobilePanelWalletLabel }}
           </button>
           <div class="grid grid-cols-2 gap-3 text-sm">

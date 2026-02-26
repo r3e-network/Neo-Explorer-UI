@@ -17,6 +17,17 @@
     </section>
 
     <section class="page-container py-8 -mt-12 relative z-40">
+      <!-- Data Source Notification -->
+      <div class="mb-6 flex items-center gap-3 p-4 rounded-xl bg-blue-50/80 backdrop-blur-sm border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 shadow-sm">
+        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="text-sm font-medium">
+          Data for Neo Treasury is provided by <a href="https://neo-treasury.pages.dev/" target="_blank" class="underline hover:text-blue-600 dark:hover:text-blue-200 font-bold decoration-2 underline-offset-2">neo-treasury.pages.dev</a>. 
+          Visit the site for more detailed information and historical analytics.
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         
         <!-- Global Stats Card -->

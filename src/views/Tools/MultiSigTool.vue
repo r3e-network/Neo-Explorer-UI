@@ -1,5 +1,6 @@
 <template>
-  <div class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+  <div class="tool-page">
+    <section class="page-container py-6 md:py-8">
     <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Multi-Signature Wallet' }]" />
 
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -126,6 +127,7 @@
       </div>
     </div>
 
+    </section>
   </div>
 </template>
 

@@ -1,5 +1,6 @@
 <template>
-  <div class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+  <div class="tool-page">
+    <section class="page-container py-6 md:py-8">
     <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools' }]" />
 
     <div class="mb-8 flex items-start gap-3">
@@ -85,6 +86,7 @@
         </div>
       </router-link>
     </div>
+    </section>
   </div>
 </template>
 
