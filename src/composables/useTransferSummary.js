@@ -10,6 +10,20 @@ export function useTransferSummary() {
   const transferSummaryByHash = ref({});
   const pendingHashes = new Set();
 
+  function extractContractHash(item) {
+    if (!item || typeof item !== "object") return null;
+    return (
+      item.contract ||
+      item.contractHash ||
+      item.contracthash ||
+      item.contract_hash ||
+      item.asset ||
+      item.assetHash ||
+      item.assethash ||
+      null
+    );
+  }
+
   function setSummary(hash, summary) {
     transferSummaryByHash.value = {
       ...transferSummaryByHash.value,
@@ -47,8 +61,8 @@ export function useTransferSummary() {
         const suffix = extraTransferSuffix(nep17Res?.totalCount);
         setSummary(hash, {
           text: `${amount} ${symbol}${suffix}`,
-          contract: nep17.contract || nep17.contractHash || nep17.asset,
-          type: 'NEP17'
+          contract: extractContractHash(nep17),
+          type: "NEP17",
         });
         return;
       }
@@ -64,8 +78,8 @@ export function useTransferSummary() {
         const readableId = truncateTokenId(tokenId);
         setSummary(hash, {
           text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
-          contract: nep11.contract || nep11.contractHash || nep11.asset,
-          type: 'NEP11'
+          contract: extractContractHash(nep11),
+          type: "NEP11",
         });
         return;
       }

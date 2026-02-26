@@ -68,4 +68,33 @@ describe("TxListItem", () => {
     expect(wrapper.text()).toContain("NeoToken");
     expect(wrapper.text()).not.toContain("Contract Call");
   });
+
+  it("uses receiver field as recipient fallback when tx.to is missing", () => {
+    const reversedNeoHash = reverseScriptHash(NEO_HASH);
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x1111111111111111111111111111111111111111111111111111111111111111",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          receiver: reversedNeoHash,
+          netfee: 0,
+          sysfee: 0,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("NeoToken");
+    expect(wrapper.text()).not.toContain("Contract Call");
+  });
 });

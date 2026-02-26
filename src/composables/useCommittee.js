@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { wallet } from "@cityofzion/neon-js";
 
 // Shared reactive state to avoid redundant fetches across components
@@ -10,8 +10,8 @@ const doraMetadata = ref({});
 const initialized = ref(false);
 
 export function useCommittee() {
-  async function loadCommittee() {
-    if (initialized.value) return;
+  async function loadCommittee(force = false) {
+    if (initialized.value && !force) return;
     initialized.value = true;
     let validatorsLoaded = false;
     
@@ -61,6 +61,13 @@ export function useCommittee() {
 
   // Kickoff load immediately if not done
   loadCommittee();
+
+  if (typeof window !== "undefined" && !window.__committee_listener_added__) {
+    window.__committee_listener_added__ = true;
+    window.addEventListener(NETWORK_CHANGE_EVENT, () => {
+      loadCommittee(true);
+    });
+  }
 
 
     const resolvePrimaryIndex = (block) => {

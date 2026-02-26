@@ -94,10 +94,25 @@ const props = defineProps({
   transferSummary: { type: [String, Object], default: null },
 });
 
+const getSummaryContractHash = (summary) => {
+  if (!summary || typeof summary !== "object") return null;
+  return (
+    summary.contract ||
+    summary.contractHash ||
+    summary.contracthash ||
+    summary.contract_hash ||
+    summary.asset ||
+    summary.assetHash ||
+    summary.assethash ||
+    null
+  );
+};
+
 const supabaseMeta = ref({});
 watch(() => props.transferSummary, async (newSummary) => {
-  if (newSummary && typeof newSummary === 'object' && newSummary.contract) {
-    const meta = await supabaseService.getContractMetadata(newSummary.contract);
+  const contract = getSummaryContractHash(newSummary);
+  if (contract) {
+    const meta = await supabaseService.getContractMetadata(contract);
     if (meta) {
       supabaseMeta.value = meta;
     }
@@ -111,9 +126,10 @@ const transferText = computed(() => {
 });
 
 const transferLogo = computed(() => {
-  if (!props.transferSummary || typeof props.transferSummary === 'string' || !props.transferSummary.contract) return null;
+  const summaryContract = getSummaryContractHash(props.transferSummary);
+  if (!summaryContract) return null;
   if (supabaseMeta.value?.logo_url) return supabaseMeta.value.logo_url;
-  return getTokenIcon(props.transferSummary.contract, props.transferSummary.type);
+  return getTokenIcon(summaryContract, props.transferSummary?.type);
 });
 
 
@@ -194,7 +210,15 @@ const recipient = computed(() => {
     const hash = canonicalizeContractHash(invocation.value.contractHash);
     return { hash, type: "contract" };
   }
-  const to = tx.contractHash || tx.to;
+  const to =
+    tx.contractHash ||
+    tx.contracthash ||
+    tx.contract_hash ||
+    tx.to ||
+    tx.toAddress ||
+    tx.toaddress ||
+    tx.recipient ||
+    tx.receiver;
   if (to) {
     // If it's a script hash, it's a contract. Otherwise, it's an address.
     const isAddress = String(to).startsWith("N");
@@ -205,8 +229,24 @@ const recipient = computed(() => {
     return { hash, type: "contract" };
   }
 
-  const transferContract =
-    props.transferSummary && typeof props.transferSummary === "object" ? props.transferSummary.contract : null;
+  if (tx.notifications?.length > 0) {
+    const notifyContract = tx.notifications[0]?.contract || tx.notifications[0]?.contractHash || tx.notifications[0]?.contracthash;
+    if (notifyContract) {
+      return { hash: canonicalizeContractHash(notifyContract), type: "contract" };
+    }
+  }
+
+  if (tx.transfers?.length > 0) {
+    const transferTo = tx.transfers[0]?.to || tx.transfers[0]?.toAddress || tx.transfers[0]?.receiver;
+    if (transferTo) {
+      if (String(transferTo).startsWith("N")) {
+        return { hash: transferTo, type: "address" };
+      }
+      return { hash: canonicalizeContractHash(transferTo), type: "contract" };
+    }
+  }
+
+  const transferContract = getSummaryContractHash(props.transferSummary);
   if (transferContract) {
     const isAddress = String(transferContract).startsWith("N");
     if (isAddress) {
@@ -258,8 +298,7 @@ const methodName = computed(() => {
     return method;
   }
 
-  const transferContract =
-    props.transferSummary && typeof props.transferSummary === "object" ? props.transferSummary.contract : null;
+  const transferContract = getSummaryContractHash(props.transferSummary);
   if (transferContract) {
     const hash = canonicalizeContractHash(transferContract);
     const knownContract = getKnownContractName(hash);
