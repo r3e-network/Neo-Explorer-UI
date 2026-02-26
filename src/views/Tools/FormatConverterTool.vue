@@ -59,6 +59,9 @@
 <script setup>
 import { ref } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const inputType = ref('string');
 const outputType = ref('base64');
@@ -123,6 +126,11 @@ function convertData() {
 }
 
 function copyToClipboard() {
-  navigator.clipboard.writeText(outputValue.value);
+  if (!outputValue.value) return;
+  navigator.clipboard.writeText(outputValue.value).then(() => {
+    toast.success("Copied to clipboard!");
+  }).catch(() => {
+    toast.error("Failed to copy");
+  });
 }
 </script>
