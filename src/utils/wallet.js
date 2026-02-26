@@ -5,12 +5,35 @@ import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
 export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
 
+
+function setupNeoLineEventListeners() {
+    if (typeof window === "undefined") return;
+
+    // Listen for account changes
+    window.addEventListener('NEOLine.N3.EVENT.ACCOUNT_CHANGED', (data) => {
+        if (data && data.detail && data.detail.address) {
+            connectedAccount.value = data.detail.address;
+            localStorage.setItem("connectedWallet", data.detail.address);
+        } else {
+            connectedAccount.value = "";
+            localStorage.removeItem("connectedWallet");
+        }
+    });
+
+    // Listen for network changes (optional but good practice)
+    window.addEventListener('NEOLine.N3.EVENT.NETWORK_CHANGED', () => {
+        // You can add logic here if you want to handle network changes
+        // For now, we just log it or we could disconnect the wallet if it doesn't match
+    });
+}
+
 export async function initWallet() {
     if (connectedAccount.value) {
         const hasNeoLine = await waitForNeoLineN3(1000);
         if (hasNeoLine) {
             try {
                 const neoline = new window.NEOLineN3.Init();
+                setupNeoLineEventListeners();
                 const account = await neoline.getAccount();
                 if (account && account.address) {
                     connectedAccount.value = account.address;
@@ -64,6 +87,7 @@ export async function connectWallet() {
     if (hasNeoLine) {
         try {
             const neoline = new window.NEOLineN3.Init();
+            setupNeoLineEventListeners();
             
             // Check network matching
             const network = await neoline.getNetworks();
