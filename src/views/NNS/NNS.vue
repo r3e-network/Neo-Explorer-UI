@@ -18,15 +18,9 @@
               <span class="w-2 h-2 rounded-full bg-green-400 inline-block mr-2 animate-pulse"></span>
               {{ formatAccount(account) }}
             </span>
-            <button 
-              @click="toggleWallet" 
-              :class="[
-                'px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg active:scale-95 border',
-                account ? 'bg-error-500/20 text-red-200 border-error-500/30 hover:bg-error-500/30' : 'bg-primary-500 text-white border-primary-400 hover:bg-primary-400'
-              ]"
-            >
-              {{ account ? 'Disconnect' : 'Connect Wallet' }}
-            </button>
+            <span v-else class="text-sm font-medium text-white/80 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+              Connect wallet from header to register/manage domains
+            </span>
           </div>
         </div>
       </div>
@@ -124,7 +118,7 @@
               </button>
               
               <div v-if="!account" class="text-center text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-800">
-                Connect wallet to manage
+                Connect wallet from header to manage
               </div>
             </div>
           </div>
@@ -179,7 +173,7 @@ import { ref } from 'vue';
 import { useToast } from 'vue-toastification';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import { connectedAccount, connectWallet, disconnectWallet } from '@/utils/wallet';
+import { connectedAccount } from '@/utils/wallet';
 import nnsService from '@/services/nnsService';
 import { safeRpc } from '@/services/api';
 import { scriptHashHexToAddress } from '@/utils/neoHelpers';
@@ -196,14 +190,6 @@ const showTransferModal = ref(false);
 const transferRecipient = ref('');
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
-
-async function toggleWallet() {
-  if (account.value) {
-    await disconnectWallet();
-  } else {
-    await connectWallet();
-  }
-}
 
 function formatAccount(addr) {
   if (!addr) return '';

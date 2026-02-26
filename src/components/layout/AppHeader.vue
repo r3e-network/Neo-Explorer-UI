@@ -38,8 +38,28 @@
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
+        <!-- Global Wallet Button (desktop) -->
+        <button
+          class="ml-3 hidden items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100 lg:inline-flex"
+          :disabled="walletLoading"
+          @click="toggleWallet"
+        >
+          <span
+            class="h-2 w-2 rounded-full"
+            :class="connectedAccount ? 'bg-emerald-500' : 'bg-slate-400'"
+          ></span>
+          {{ walletLoading ? "Connecting..." : walletButtonLabel }}
+        </button>
+
         <!-- Mobile Hamburger -->
-        <MobileMenu :open="mobileMenuOpen" @toggle="mobileMenuOpen = !mobileMenuOpen" class="ml-auto lg:hidden" />
+        <button
+          class="ml-auto mr-2 rounded-md border border-white/20 bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100 lg:hidden"
+          :disabled="walletLoading"
+          @click="toggleWallet"
+        >
+          {{ walletLoading ? "..." : mobileWalletLabel }}
+        </button>
+        <MobileMenu :open="mobileMenuOpen" @toggle="mobileMenuOpen = !mobileMenuOpen" class="lg:hidden" />
       </div>
 
       <!-- Mobile Slide-out Menu -->
@@ -51,6 +71,13 @@
           <div class="mb-4">
             <SearchBox mode="compact" @search="handleMobileSearch" />
           </div>
+          <button
+            class="mb-4 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-left text-sm font-semibold text-gray-800 transition hover:bg-white/20 dark:text-gray-100"
+            :disabled="walletLoading"
+            @click="toggleWallet"
+          >
+            {{ walletLoading ? "Connecting wallet..." : mobilePanelWalletLabel }}
+          </button>
           <div class="grid grid-cols-2 gap-3 text-sm">
             <router-link to="/homepage" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
             <router-link to="/blocks/1" class="mobile-link" @click="closeMobile">{{ $t("nav.blocks") }}</router-link>
@@ -85,6 +112,7 @@ import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
 import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
+import { connectedAccount, connectWallet, disconnectWallet } from "@/utils/wallet";
 
 const NETWORK_FEE_RATIO = 0.08;
 
@@ -108,8 +136,19 @@ const gasPriceChange = ref(0);
 const networkFee = ref(0);
 
 const currentNetwork = ref(getCurrentEnv());
+const walletLoading = ref(false);
 
 const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
+const walletButtonLabel = computed(() => {
+  if (!connectedAccount.value) return "Connect Wallet";
+  return `${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`;
+});
+const mobileWalletLabel = computed(() => (connectedAccount.value ? "Disconnect" : "Connect"));
+const mobilePanelWalletLabel = computed(() =>
+  connectedAccount.value
+    ? `Disconnect ${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`
+    : "Connect Wallet"
+);
 
 function openDropdown(name) {
   if (dropdownTimeout) clearTimeout(dropdownTimeout);
@@ -124,6 +163,20 @@ function closeDropdown(name) {
 
 function closeMobile() {
   mobileMenuOpen.value = false;
+}
+
+async function toggleWallet() {
+  if (walletLoading.value) return;
+  walletLoading.value = true;
+  try {
+    if (connectedAccount.value) {
+      await disconnectWallet();
+      return;
+    }
+    await connectWallet();
+  } finally {
+    walletLoading.value = false;
+  }
 }
 
 function selectNetwork(net) {

@@ -15,11 +15,11 @@
       
       <div class="flex items-center gap-3">
         <button 
-          v-if="!connectedAccount" 
-          @click="connectWallet" 
-          class="inline-flex items-center gap-2 rounded-lg bg-surface-elevated border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors"
+          v-if="!connectedAccount"
+          disabled
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
         >
-          Connect Wallet
+          Connect in Header
         </button>
         <button
           v-else-if="loadingProfile"
@@ -175,7 +175,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import { connectedAccount, connectWallet as connectWalletWithNeoLine } from "@/utils/wallet";
+import { connectedAccount } from "@/utils/wallet";
 import candidateService from "@/services/candidateService";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
@@ -307,10 +307,6 @@ async function loadExistingProfile(address) {
       loadingProfile.value = false;
     }
   }
-}
-
-async function connectWallet() {
-  await connectWalletWithNeoLine();
 }
 
 function saveProfile() {

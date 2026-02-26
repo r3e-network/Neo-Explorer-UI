@@ -15,11 +15,11 @@
       
       <div class="flex items-center gap-3">
         <button 
-          v-if="!connectedAccount" 
-          @click="connectWallet" 
-          class="inline-flex items-center gap-2 rounded-lg bg-surface-elevated border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors"
+          v-if="!connectedAccount"
+          disabled
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
         >
-          Connect Wallet
+          Connect in Header
         </button>
         <button 
           v-else-if="!isCouncilNode" 
@@ -47,7 +47,7 @@
       <div v-else-if="requests.length === 0" class="text-center py-12 text-mid">
         <svg class="mx-auto h-12 w-12 text-low mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
         <p>No pending council proposals found.</p>
-        <button v-if="!connectedAccount" @click="connectWallet" class="text-primary-500 hover:underline mt-2 text-sm font-medium">Connect wallet to create</button>
+        <span v-if="!connectedAccount" class="mt-2 block text-sm font-medium text-mid">Connect wallet from the top bar to create</span>
         <span v-else-if="!isCouncilNode" class="text-mid mt-2 text-sm font-medium">Only council nodes can create proposals</span>
         <button v-else @click="showCreateModal = true" class="text-primary-500 hover:underline mt-2 text-sm font-medium">Create the first one</button>
       </div>
@@ -82,8 +82,8 @@
     </div>
     
     <!-- Simple Create Modal placeholder -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-      <div class="bg-surface w-full max-w-lg rounded-2xl shadow-2xl border border-line-soft overflow-hidden relative z-10">
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
+      <div class="w-full max-w-lg rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950">
         <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
           <h2 class="text-lg font-bold text-high">Create Council Proposal</h2>
           <button @click="showCreateModal = false" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
@@ -130,7 +130,7 @@
              <textarea class="form-input w-full h-24" placeholder="Explain why the council should sign this proposal..."></textarea>
            </div>
         </div>
-        <div class="px-6 py-4 border-t border-line-soft bg-surface-muted flex justify-end gap-3">
+        <div class="px-6 py-4 border-t border-line-soft bg-slate-50 flex justify-end gap-3 dark:bg-slate-900">
           <button @click="showCreateModal = false" class="px-4 py-2 text-sm font-medium text-mid hover:text-high transition-colors">Cancel</button>
           <button class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors active:scale-95">Create Request</button>
         </div>
@@ -145,12 +145,15 @@ import { ref, onMounted, computed, watch } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { supabaseService } from "@/services/supabaseService";
+import { connectedAccount } from '@/utils/wallet';
+
 // eslint-disable-next-line no-unused-vars
 const _ = supabaseService;
 
 const loading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
+const isCouncilNode = ref(true); // Default to true for demo, or implement check
 
 const selectedContract = ref("PolicyContract");
 const selectedMethod = ref("");

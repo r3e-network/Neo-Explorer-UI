@@ -20,15 +20,9 @@
           <span v-if="account" class="text-sm font-medium text-high px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft">
             {{ formatAccount(account) }}
           </span>
-          <button 
-            @click="toggleWallet" 
-            :class="[
-              'px-6 py-2.5 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95',
-              account ? 'bg-error-100 text-error-600 dark:bg-error-900/40 dark:text-error-400 border border-error-500/20' : 'btn-primary'
-            ]"
-          >
-            {{ account ? 'Disconnect' : 'Connect Wallet' }}
-          </button>
+          <span v-else class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft">
+            Connect wallet from header to vote
+          </span>
         </div>
       </div>
 
@@ -237,7 +231,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { rpc } from '@cityofzion/neon-js';
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from '@/utils/env';
-import { connectedAccount, connectWallet, disconnectWallet, voteForCandidate } from '@/utils/wallet';
+import { connectedAccount, voteForCandidate } from '@/utils/wallet';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
@@ -454,14 +448,6 @@ async function loadCandidates() {
     error.value = err.message || "Failed to fetch candidates from RPC node.";
   } finally {
     loading.value = false;
-  }
-}
-
-async function toggleWallet() {
-  if (account.value) {
-    await disconnectWallet();
-  } else {
-    await connectWallet();
   }
 }
 

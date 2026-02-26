@@ -2,7 +2,6 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
-const connectWalletMock = vi.fn();
 const candidateGetByAddressMock = vi.fn();
 const cachedRequestMock = vi.fn();
 const getCurrentEnvMock = vi.fn();
@@ -11,7 +10,7 @@ const sharedConnectedAccount = ref("");
 
 vi.mock("@/utils/wallet", () => ({
   connectedAccount: sharedConnectedAccount,
-  connectWallet: connectWalletMock,
+  connectWallet: vi.fn(),
   disconnectWallet: vi.fn(),
 }));
 
@@ -41,10 +40,7 @@ describe("CandidateProfileTool", () => {
     const account = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
     const pubkey = "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b";
 
-    connectWalletMock.mockImplementation(async () => {
-      sharedConnectedAccount.value = account;
-      return account;
-    });
+    sharedConnectedAccount.value = account;
     candidateGetByAddressMock.mockResolvedValue({ candidate: true, publickey: pubkey });
     cachedRequestMock.mockResolvedValue([
       {
@@ -69,7 +65,6 @@ describe("CandidateProfileTool", () => {
       },
     });
 
-    await wrapper.get("button").trigger("click");
     await flushPromises();
     await flushPromises();
 
@@ -90,10 +85,7 @@ describe("CandidateProfileTool", () => {
     const account = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
     const pubkey = "03d9e8b16bd9b22d3345d6d4cde31be1c3e1d161532e3d0ccecb95ece2eb58336e";
 
-    connectWalletMock.mockImplementation(async () => {
-      sharedConnectedAccount.value = account;
-      return account;
-    });
+    sharedConnectedAccount.value = account;
     candidateGetByAddressMock.mockResolvedValue({ candidate: true, publickey: pubkey });
     cachedRequestMock.mockResolvedValue([]);
 
@@ -106,7 +98,6 @@ describe("CandidateProfileTool", () => {
       },
     });
 
-    await wrapper.get("button").trigger("click");
     await flushPromises();
     await flushPromises();
 
