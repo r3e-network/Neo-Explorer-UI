@@ -88,19 +88,13 @@
             <td
               class="text-high break-all px-3 py-1.5 font-mono"
             >
-              <div v-if="inst.semantic" class="mb-1 text-[11px] font-bold text-primary-600 dark:text-primary-400 inline-flex items-center gap-1">
-                // Call: 
-                <HashLink v-if="inst.semantic.startsWith('0x')" :hash="inst.semantic.split('.')[0]" type="contract" :truncate="true" />
-                <span v-else>{{ inst.semantic.split('.')[0] }}</span>
-                <span>.{{ inst.semantic.split('.').slice(1).join('.') }}</span>
-              </div>
               <template v-if="inst.operand">
                 <span v-if="parseOperand(inst.operand)" :class="operandClass(inst)">
                   {{ parseOperand(inst.operand).hash }}
                   <span class="text-mid font-normal">(</span>
                   <span v-if="parseOperand(inst.operand).type === 'account'" class="text-mid font-normal">Account: </span>
                   <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-mid font-normal">Native: </span>
-                  <span v-else-if="parseOperand(inst.operand).type === 'contract'" class="text-mid font-normal">Hash160: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'contract'" class="text-mid font-normal">Contract</span>
                   <span v-else-if="parseOperand(inst.operand).type === 'tx'" class="text-mid font-normal">Hash256: </span>
                   <HashLink
                     v-if="parseOperand(inst.operand).type === 'account'"
@@ -110,14 +104,9 @@
                     :truncate="false"
                     class="inline-flex"
                   />
-                  <HashLink
-                    v-else-if="parseOperand(inst.operand).type === 'contract' || parseOperand(inst.operand).type === 'native'"
-                    :hash="parseOperand(inst.operand).hash"
-                    type="contract"
-                    :copyable="false"
-                    :truncate="false"
-                    class="inline-flex"
-                  />
+                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-mid font-normal">
+                    {{ parseOperand(inst.operand).name || "Native" }}
+                  </span>
                   <HashLink
                     v-else-if="parseOperand(inst.operand).type === 'tx'"
                     :hash="parseOperand(inst.operand).hash"
@@ -132,6 +121,20 @@
                   inst.operand
                 }}</span>
               </template>
+              <span
+                v-if="inst.semantic"
+                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400"
+              >
+                // Call:
+                <HashLink
+                  v-if="inst.semantic.startsWith('0x')"
+                  :hash="inst.semantic.split('.')[0]"
+                  type="contract"
+                  :truncate="true"
+                />
+                <span v-else>{{ inst.semantic.split('.')[0] }}</span>
+                <span>.{{ inst.semantic.split('.').slice(1).join('.') }}</span>
+              </span>
             </td>
           </tr>
         </tbody>
@@ -164,18 +167,22 @@ const props = defineProps({
 
 function parseOperand(operandStr) {
   if (!operandStr) return null;
-  
-  // Try matching "0x... (Account: N...)"
-  let m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Account:\s+(N[a-zA-Z0-9]+)\)$/);
+
+  // Try matching "0x... (Account: N...)" with optional line breaks/spaces.
+  let m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Account:\s*(N[a-zA-Z0-9]+)\s*\)$/);
   if (m) return { type: 'account', hash: m[1], address: m[2] };
 
   // Try matching "0x... (Native: XXX)"
   m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Native:\s+([^)]+)\)$/);
   if (m) return { type: 'native', hash: m[1], name: m[2] };
 
-  // Try matching "0x... (Hash160)"
+  // Try matching "0x... (Contract)" or "0x... (Contract: Name)"
+  m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Contract(?::\s*([^)]+))?\)$/);
+  if (m) return { type: 'contract', hash: m[1], name: m[2] || null };
+  
+  // Backward compatibility: "0x... (Hash160)"
   m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Hash160\)$/);
-  if (m) return { type: 'contract', hash: m[1] };
+  if (m) return { type: 'contract', hash: m[1], name: null };
   
   // Try matching "0x... (Hash256)"
   m = operandStr.match(/^(0x[a-fA-F0-9]+)\s+\(Hash256\)$/);

@@ -34,6 +34,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        
+        "/neotube-api": {
+          target: "https://api.neotube.io",
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/neotube-api/, ""),
+        },
         "/api/mainnet/primary": {
           target: "https://neofura.ngd.network",
           changeOrigin: true,

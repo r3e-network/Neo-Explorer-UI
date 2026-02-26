@@ -171,7 +171,7 @@ function formatOperand(opDef, operandBytes) {
 
       const knownContractName = getContractName(reversedHash);
       if (knownContractName) {
-        return `${reversedHash} (Contract: ${knownContractName})`;
+        return `${reversedHash} (Contract)`;
       }
 
       try {
@@ -327,9 +327,7 @@ export function disassembleScript(base64Script) {
         if (hashMatch) {
           const contractHash = hashMatch[0].toLowerCase();
           const contractName = getContractName(contractHash);
-          hashInst.operand = contractName
-            ? `${contractHash} (Contract: ${contractName})`
-            : `${contractHash} (Contract)`;
+          hashInst.operand = `${contractHash} (Contract)`;
           contractRef = contractName || contractHash;
         } else {
           const nativeMatch = contractRef.match(/Native:\s*([^)]+)/);

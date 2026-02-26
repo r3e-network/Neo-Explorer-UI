@@ -45,6 +45,10 @@
       "dest": "/bpi/mainnet/$1"
     },
     {
+      "src": "/neotube-api/(.*)",
+      "dest": "https://api.neotube.io/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {

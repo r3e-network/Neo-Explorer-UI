@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getCurrentEnv, NET_ENV } from "../utils/env";
 
-const DEFAULT_BASE_URL = "https://api.neotube.io/v1";
+const DEFAULT_BASE_URL = "/neotube-api/v1";
 const DEFAULT_TIMEOUT_MS = 5000;
 
 const normalizeBaseUrl = (value, fallback) => {

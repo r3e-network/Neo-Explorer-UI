@@ -83,7 +83,44 @@ describe("scriptDisassembler syscall resolution", () => {
     const [first] = disassembleScript(script);
 
     expect(first.opcode).toBe("PUSHDATA1");
-    expect(first.operand).toContain("(Contract: bNEO)");
+    expect(first.operand).toContain("(Contract)");
+    expect(first.operand).not.toContain("(Contract:");
     expect(first.operand).not.toContain("(Account:");
+  });
+
+  it("keeps contract operand generic while preserving syscall semantic target", () => {
+    const contractHash = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
+    const hashBytes = contractHash
+      .replace(/^0x/i, "")
+      .match(/.{2}/g)
+      .reverse()
+      .map((pair) => Number.parseInt(pair, 16));
+
+    const method = "requestService";
+    const methodBytes = Array.from(method).map((ch) => ch.charCodeAt(0));
+
+    const script = bytesToBase64([
+      0x1f, // PUSH15
+      0x0c, // PUSHDATA1
+      methodBytes.length,
+      ...methodBytes,
+      0x0c, // PUSHDATA1
+      hashBytes.length,
+      ...hashBytes,
+      0x41, // SYSCALL
+      0x62,
+      0x7d,
+      0x5b,
+      0x52,
+    ]);
+
+    const instructions = disassembleScript(script);
+    const hashOperand = instructions.find((inst) => inst.operand?.startsWith(contractHash))?.operand || "";
+    const syscall = instructions[instructions.length - 1];
+
+    expect(hashOperand).toContain("(Contract)");
+    expect(hashOperand).not.toContain("(Contract:");
+    expect(syscall.operand).toBe("System.Contract.Call");
+    expect(syscall.semantic).toBe("bNEO.requestService(...)");
   });
 });
