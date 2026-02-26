@@ -21,6 +21,21 @@
         >
           Connect Wallet
         </button>
+        <button
+          v-else-if="loadingProfile"
+          disabled
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
+        >
+          Loading Profile...
+        </button>
+        <button
+          v-else-if="!isCandidate"
+          disabled
+          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
+          title="Connected wallet is not a valid candidate"
+        >
+          Not a Candidate
+        </button>
         <button 
           v-else
           @click="saveProfile" 
@@ -30,6 +45,13 @@
           Save Profile
         </button>
       </div>
+    </div>
+    <div
+      v-if="profileStatus"
+      class="mb-6 rounded-xl border px-4 py-3 text-sm"
+      :class="isCandidate ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300'"
+    >
+      {{ profileStatus }}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -47,22 +69,22 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-high mb-1">Name</label>
-                <input type="text" v-model="form.name" class="form-input w-full bg-surface" placeholder="e.g. My Neo Node" :disabled="!connectedAccount" />
+                <input type="text" v-model="form.name" class="form-input w-full bg-surface" placeholder="e.g. My Neo Node" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-high mb-1">Location</label>
-                <input type="text" v-model="form.location" class="form-input w-full bg-surface" placeholder="e.g. Zurich, Switzerland" :disabled="!connectedAccount" />
+                <input type="text" v-model="form.location" class="form-input w-full bg-surface" placeholder="e.g. Zurich, Switzerland" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-high mb-1">Website</label>
-              <input type="url" v-model="form.website" class="form-input w-full bg-surface" placeholder="https://..." :disabled="!connectedAccount" />
+              <input type="url" v-model="form.website" class="form-input w-full bg-surface" placeholder="https://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-high mb-1">Description</label>
-              <textarea v-model="form.description" rows="3" class="form-input w-full bg-surface resize-none" placeholder="Brief description of your node operation and infrastructure..." :disabled="!connectedAccount"></textarea>
+              <textarea v-model="form.description" rows="3" class="form-input w-full bg-surface resize-none" placeholder="Brief description of your node operation and infrastructure..." :disabled="!connectedAccount || !isCandidate || loadingProfile"></textarea>
             </div>
           </div>
         </div>
@@ -75,20 +97,20 @@
               <label class="block text-sm font-medium text-high mb-1">Twitter / X</label>
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-mid">@</span>
-                <input type="text" v-model="form.twitter" class="form-input w-full bg-surface pl-8" placeholder="username" :disabled="!connectedAccount" />
+                <input type="text" v-model="form.twitter" class="form-input w-full bg-surface pl-8" placeholder="username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">GitHub</label>
-              <input type="text" v-model="form.github" class="form-input w-full bg-surface" placeholder="https://github.com/..." :disabled="!connectedAccount" />
+              <input type="text" v-model="form.github" class="form-input w-full bg-surface" placeholder="https://github.com/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">Discord</label>
-              <input type="text" v-model="form.discord" class="form-input w-full bg-surface" placeholder="Server invite or username" :disabled="!connectedAccount" />
+              <input type="text" v-model="form.discord" class="form-input w-full bg-surface" placeholder="Server invite or username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">Telegram</label>
-              <input type="text" v-model="form.telegram" class="form-input w-full bg-surface" placeholder="t.me/..." :disabled="!connectedAccount" />
+              <input type="text" v-model="form.telegram" class="form-input w-full bg-surface" placeholder="t.me/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
           </div>
         </div>
@@ -113,7 +135,7 @@
               </div>
               <p class="text-sm font-medium text-high mb-1">Upload to NeoFS</p>
               <p class="text-xs text-mid text-center mb-4">PNG, JPG, or SVG. Max 2MB.</p>
-              <button :disabled="!connectedAccount" class="inline-flex items-center gap-2 rounded-lg bg-surface border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <button :disabled="!connectedAccount || !isCandidate || loadingProfile" class="inline-flex items-center gap-2 rounded-lg bg-surface border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Select File
               </button>
             </template>
@@ -121,7 +143,7 @@
           
           <div>
             <label class="block text-sm font-medium text-high mb-1">NeoFS Object URL</label>
-            <input type="text" v-model="form.logoUrl" class="form-input w-full bg-surface text-xs" placeholder="neofs://..." :disabled="!connectedAccount" />
+            <input type="text" v-model="form.logoUrl" class="form-input w-full bg-surface text-xs" placeholder="neofs://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
           </div>
         </div>
 
@@ -151,11 +173,19 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import { connectedAccount, connectWallet as connectWalletWithNeoLine } from "@/utils/wallet";
+import candidateService from "@/services/candidateService";
+import { cachedRequest } from "@/services/cache";
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { addressToScriptHash, isPublicKeyHex } from "@/utils/neoHelpers";
 
-const connectedAccount = ref("");
-const form = ref({
+const isCandidate = ref(false);
+const loadingProfile = ref(false);
+const profileStatus = ref("");
+
+const createEmptyForm = () => ({
   publicKey: "",
   name: "",
   location: "",
@@ -168,13 +198,130 @@ const form = ref({
   logoUrl: "",
 });
 
-const connectWallet = () => {
-  // Simulate connection
-  connectedAccount.value = "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc";
-  form.value.publicKey = "03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c";
-};
+const form = ref({
+  ...createEmptyForm(),
+});
 
-const saveProfile = () => {
+let activeProfileRequest = 0;
+
+function resetProfileFields({ keepPublicKey = false } = {}) {
+  const publicKey = keepPublicKey ? form.value.publicKey : "";
+  form.value = {
+    ...createEmptyForm(),
+    publicKey,
+  };
+}
+
+function normalizePublicKey(candidate) {
+  const keyCandidates = [candidate?.publickey, candidate?.publicKey, candidate?.candidate];
+  for (const value of keyCandidates) {
+    const normalized = String(value || "").trim();
+    if (isPublicKeyHex(normalized)) return normalized;
+  }
+  return "";
+}
+
+function applyExistingProfile(profile) {
+  form.value.name = profile?.name || "";
+  form.value.location = profile?.location || "";
+  form.value.website = profile?.website || "";
+  form.value.description = profile?.description || "";
+  form.value.twitter = profile?.twitter || "";
+  form.value.github = profile?.github || "";
+  form.value.telegram = profile?.telegram || "";
+  form.value.logoUrl = profile?.logo || "";
+  form.value.discord = profile?.discord || "";
+}
+
+async function fetchCandidateRecord(address) {
+  const direct = await candidateService.getByAddress(address);
+  if (direct) return direct;
+
+  const scriptHash = addressToScriptHash(address);
+  if (!scriptHash) return null;
+  return candidateService.getByAddress(scriptHash);
+}
+
+async function loadExistingProfile(address) {
+  if (!address) {
+    isCandidate.value = false;
+    profileStatus.value = "";
+    resetProfileFields();
+    return;
+  }
+
+  const requestId = ++activeProfileRequest;
+  loadingProfile.value = true;
+  profileStatus.value = "";
+
+  try {
+    const candidate = await fetchCandidateRecord(address);
+    if (requestId !== activeProfileRequest) return;
+
+    const publicKey = normalizePublicKey(candidate);
+    const validCandidate = Boolean(candidate && (candidate.candidate || candidate.isCandidate || publicKey));
+
+    form.value.publicKey = publicKey;
+    resetProfileFields({ keepPublicKey: true });
+
+    if (!validCandidate) {
+      isCandidate.value = false;
+      profileStatus.value = "Connected wallet is not a valid candidate.";
+      return;
+    }
+
+    isCandidate.value = true;
+
+    const env = getCurrentEnv().toLowerCase();
+    const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
+    const profileList = await cachedRequest(
+      `dora_metadata_${doraEnv}`,
+      () => fetch(`https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`).then((res) => (res.ok ? res.json() : [])),
+      300000
+    );
+
+    if (requestId !== activeProfileRequest) return;
+
+    const list = Array.isArray(profileList) ? profileList : [];
+    const existingProfile = list.find(
+      (item) => String(item?.pubkey || "").toLowerCase() === String(publicKey || "").toLowerCase()
+    );
+
+    if (existingProfile) {
+      applyExistingProfile(existingProfile);
+      profileStatus.value = "Loaded existing candidate profile from on-chain metadata.";
+      return;
+    }
+
+    // Candidate exists but profile does not: keep fields blank to avoid accidental overwrite.
+    profileStatus.value = "";
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("Failed to load candidate profile metadata", error);
+    }
+    isCandidate.value = false;
+    profileStatus.value = "Failed to load candidate profile.";
+    resetProfileFields({ keepPublicKey: false });
+  } finally {
+    if (requestId === activeProfileRequest) {
+      loadingProfile.value = false;
+    }
+  }
+}
+
+async function connectWallet() {
+  await connectWalletWithNeoLine();
+}
+
+function saveProfile() {
   alert("Profile update transaction ready to be signed!");
-};
+}
+
+watch(
+  () => connectedAccount.value,
+  (address) => {
+    void loadExistingProfile(address);
+  },
+  { immediate: true }
+);
 </script>
