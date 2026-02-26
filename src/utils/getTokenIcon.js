@@ -1,20 +1,43 @@
-const localImages = import.meta.glob('@/assets/gui/*.png', { eager: true, import: 'default' });
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 
-export function getTokenIcon(hash, type = 'NEP17') {
-  if (!hash) return localImages[`/src/assets/gui/default${type === 'NEP11' ? 'Nep11' : 'Nep17'}.png`] || "";
-  const normalizedHash = String(hash).trim().toLowerCase();
-  const path = `/src/assets/gui/${normalizedHash.startsWith('0x') ? normalizedHash : '0x' + normalizedHash}.png`;
-  const fallbackPath = type === 'NEP11' ? "/src/assets/gui/defaultNep11.png" : "/src/assets/gui/defaultNep17.png";
-  
-  if (localImages[path]) {
-    return localImages[path];
-  }
+const localImages = import.meta.glob("@/assets/gui/*.png", { eager: true, import: "default" });
+
+function normalizeHash(hash) {
+  const normalized = String(hash || "").trim().toLowerCase();
+  if (!normalized) return "";
+  return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
+}
+
+function defaultIcon(type) {
+  const fallbackPath = type === "NEP11" ? "/src/assets/gui/defaultNep11.png" : "/src/assets/gui/defaultNep17.png";
   return localImages[fallbackPath] || "";
 }
 
+export function getTokenIcon(hash, type = "NEP17") {
+  const normalizedHash = normalizeHash(hash);
+  if (!normalizedHash) return defaultIcon(type);
+
+  const localPath = `/src/assets/gui/${normalizedHash}.png`;
+  if (localImages[localPath]) {
+    return localImages[localPath];
+  }
+
+  const knownLogo = KNOWN_CONTRACTS[normalizedHash]?.logo;
+  if (knownLogo) {
+    return knownLogo;
+  }
+
+  return defaultIcon(type);
+}
+
 export function hasTokenIcon(hash) {
-  if (!hash) return false;
-  const normalizedHash = String(hash).trim().toLowerCase();
-  const path = `/src/assets/gui/${normalizedHash.startsWith('0x') ? normalizedHash : '0x' + normalizedHash}.png`;
-  return !!localImages[path];
+  const normalizedHash = normalizeHash(hash);
+  if (!normalizedHash) return false;
+
+  const localPath = `/src/assets/gui/${normalizedHash}.png`;
+  if (localImages[localPath]) {
+    return true;
+  }
+
+  return !!KNOWN_CONTRACTS[normalizedHash]?.logo;
 }
