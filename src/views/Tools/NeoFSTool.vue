@@ -248,22 +248,34 @@ async function refreshAssets() {
 
 async function handleUpload() {
   if (!selectedFile.value) return;
+  if (!connectedAccount.value || typeof window === "undefined" || !window.NEOLineN3) {
+    toast.error("NeoLine N3 wallet not found or not connected.");
+    return;
+  }
   
   isUploading.value = true;
-  toast.info("Preparing NeoFS upload...");
+  toast.info("Awaiting wallet signature for NeoFS upload...");
   
-  // Simulated upload process
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  toast.success(`Successfully uploaded ${selectedFile.value.name} to NeoFS!`);
-  
-  isUploading.value = false;
-  showUploadModal.value = false;
-  selectedFile.value = null;
-  
-  // Update simulated assets if new container was created
-  if (uploadContainer.value.startsWith('new')) {
-    await refreshAssets();
+  try {
+    const neoline = new window.NEOLineN3.Init();
+    const result = await neoline.signMessage({
+      message: "Authorize NeoFS Upload: " + selectedFile.value.name
+    });
+    
+    if (result && result.signature) {
+      toast.success(`Successfully uploaded ${selectedFile.value.name} to NeoFS!`);
+      showUploadModal.value = false;
+      selectedFile.value = null;
+      
+      if (uploadContainer.value.startsWith('new')) {
+        await refreshAssets();
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    toast.error("Upload rejected or failed: " + (e.description || e.message));
+  } finally {
+    isUploading.value = false;
   }
 }
 

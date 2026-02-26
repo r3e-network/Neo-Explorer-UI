@@ -119,7 +119,7 @@ import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { DROPDOWN_CLOSE_DELAY_MS } from "@/constants";
 import { NETWORK_OPTIONS, getCurrentEnv, getNetworkLabel, setCurrentEnv } from "@/utils/env";
-import { connectedAccount, connectWallet, disconnectWallet } from "@/utils/wallet";
+import { connectedAccount, connectWallet, disconnectWallet, initWallet } from "@/utils/wallet";
 
 const NETWORK_FEE_RATIO = 0.08;
 
@@ -249,6 +249,9 @@ async function loadPrices() {
 
 onMounted(async () => {
   currentNetwork.value = getCurrentEnv();
+
+  // Initialize wallet state
+  initWallet();
 
   try {
     await loadPrices();

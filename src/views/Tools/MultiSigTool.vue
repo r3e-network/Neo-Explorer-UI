@@ -122,7 +122,7 @@
         </div>
         <div class="px-6 py-4 border-t border-line-soft bg-slate-50 flex justify-end gap-3 dark:bg-slate-900">
           <button @click="showCreateModal = false" class="px-4 py-2 text-sm font-medium text-mid hover:text-high transition-colors">Cancel</button>
-          <button class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors active:scale-95">Create Request</button>
+          <button @click="handleCreateRequest" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors active:scale-95">Create Request</button>
         </div>
       </div>
     </div>
@@ -137,12 +137,39 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
+import { useToast } from "vue-toastification";
+
 // eslint-disable-next-line no-unused-vars
 const _ = supabaseService;
 
+const toast = useToast();
 const loading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
+
+async function handleCreateRequest() {
+  if (typeof window === "undefined" || !window.NEOLineN3) {
+    toast.error("NeoLine N3 wallet not found.");
+    return;
+  }
+  
+  try {
+    toast.info("Awaiting wallet signature...");
+    const neoline = new window.NEOLineN3.Init();
+    
+    const result = await neoline.signMessage({
+      message: "Authorize creation of new Multi-Sig Request"
+    });
+    
+    if (result && result.signature) {
+      toast.success("Request creation authorized successfully!");
+      showCreateModal.value = false;
+    }
+  } catch (e) {
+    console.error(e);
+    toast.error("Signature rejected or failed: " + (e.description || e.message));
+  }
+}
 
 onMounted(async () => {
   try {

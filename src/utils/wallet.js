@@ -3,7 +3,29 @@ import { sc } from "@cityofzion/neon-js";
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
-export const connectedAccount = ref("");
+export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
+
+export async function initWallet() {
+    if (connectedAccount.value) {
+        const hasNeoLine = await waitForNeoLineN3(1000);
+        if (hasNeoLine) {
+            try {
+                const neoline = new window.NEOLineN3.Init();
+                const account = await neoline.getAccount();
+                if (account && account.address) {
+                    connectedAccount.value = account.address;
+                    localStorage.setItem("connectedWallet", account.address);
+                } else {
+                    connectedAccount.value = "";
+                    localStorage.removeItem("connectedWallet");
+                }
+            } catch (e) {
+                connectedAccount.value = "";
+                localStorage.removeItem("connectedWallet");
+            }
+        }
+    }
+}
 
 function waitForNeoLineN3(timeout = 3000) {
     return new Promise((resolve) => {
