@@ -14,6 +14,8 @@ describe("env refresh intervals", () => {
   it("uses 3 seconds for testnet", () => {
     expect(getNetworkRefreshIntervalMs(NET_ENV.TestT5)).toBe(3000);
     expect(getNetworkRefreshIntervalMs("Testnet")).toBe(3000);
+    expect(getNetworkRefreshIntervalMs("testnet")).toBe(3000);
+    expect(getNetworkRefreshIntervalMs("testt5")).toBe(3000);
   });
 
   it("falls back to mainnet interval for unknown env", () => {

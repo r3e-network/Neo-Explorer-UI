@@ -17,6 +17,14 @@ const NETWORK_BY_ENV = {
   [NET_ENV.TestT5]: "testnet",
 };
 
+const ENV_ALIASES = {
+  [NET_ENV.Mainnet.toLowerCase()]: NET_ENV.Mainnet,
+  [NET_ENV.TestT5.toLowerCase()]: NET_ENV.TestT5,
+  mainnet: NET_ENV.Mainnet,
+  testnet: NET_ENV.TestT5,
+  testt5: NET_ENV.TestT5,
+};
+
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: Number.isFinite(API_TIMEOUT_MS) ? API_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
@@ -34,7 +42,16 @@ const normalizeCount = (value) => {
   return Number.isFinite(num) ? num : 0;
 };
 
-const toNetworkName = (env = getCurrentEnv()) => NETWORK_BY_ENV[env] || NETWORK_BY_ENV[NET_ENV.Mainnet];
+const resolveEnv = (env = getCurrentEnv(), { fallbackToMainnet = true } = {}) => {
+  const raw = String(env || "").trim();
+  if (!raw) return fallbackToMainnet ? NET_ENV.Mainnet : null;
+  if (NETWORK_BY_ENV[raw]) return raw;
+  const aliased = ENV_ALIASES[raw.toLowerCase()];
+  if (aliased) return aliased;
+  return fallbackToMainnet ? NET_ENV.Mainnet : null;
+};
+
+const toNetworkName = (env = getCurrentEnv()) => NETWORK_BY_ENV[resolveEnv(env)] || NETWORK_BY_ENV[NET_ENV.Mainnet];
 
 const normalizePaging = (limit = 6, skip = 0) => {
   const pageSize = Math.max(1, Number(limit) || 6);
@@ -96,7 +113,8 @@ const normalizeTransaction = (tx = {}) => {
 
 export const neotubeService = {
   supportsNetwork(env = getCurrentEnv()) {
-    return Boolean(NETWORK_BY_ENV[env]);
+    const resolved = resolveEnv(env, { fallbackToMainnet: false });
+    return Boolean(resolved && NETWORK_BY_ENV[resolved]);
   },
 
   async getLatestBlocks(limit = 6, skip = 0, env = getCurrentEnv()) {
@@ -123,9 +141,36 @@ export const neotubeService = {
 
   async getStatistics(env = getCurrentEnv()) {
     const data = await fetchNeoTube("/statistics", {}, env);
+    let blocks = normalizeCount(data.block_count);
+    let txs = normalizeCount(data.tx_count);
+
+    if (blocks <= 0) {
+      try {
+        const latestBlocks = await this.getLatestBlocks(1, 0, env);
+        const totalFromList = normalizeCount(latestBlocks?.totalCount);
+        if (totalFromList > 0) {
+          blocks = totalFromList;
+        } else {
+          const latestIndex = normalizeCount(latestBlocks?.result?.[0]?.index);
+          blocks = latestIndex > 0 ? latestIndex + 1 : blocks;
+        }
+      } catch {
+        // Keep original stats value if list fallback fails.
+      }
+    }
+
+    if (txs <= 0) {
+      try {
+        const latestTxs = await this.getLatestTransactions(1, 0, env);
+        txs = normalizeCount(latestTxs?.totalCount);
+      } catch {
+        // Keep original stats value if list fallback fails.
+      }
+    }
+
     return {
-      blocks: normalizeCount(data.block_count),
-      txs: normalizeCount(data.tx_count),
+      blocks,
+      txs,
       contracts: 0,
       candidates: 0,
       addresses: normalizeCount(data.addr_count),

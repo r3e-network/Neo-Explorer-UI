@@ -27,6 +27,9 @@ import { neotubeService } from "../../src/services/neotubeService.js";
 describe("neotubeService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    axiosGetMock.mockReset();
+    axiosCreateMock.mockReset();
+    axiosCreateMock.mockReturnValue({ get: axiosGetMock });
   });
 
   it("maps latest block list to explorer block format", async () => {
@@ -191,6 +194,71 @@ describe("neotubeService", () => {
     });
   });
 
+  it("falls back to latest endpoints when statistics counts are missing", async () => {
+    axiosGetMock
+      .mockResolvedValueOnce({
+        data: {
+          status: "success",
+          data: {
+            block_count: 0,
+            tx_count: 0,
+            addr_count: 30,
+            asset_count: 40,
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          status: "success",
+          data: {
+            total: 123,
+            blocks: [{ block_index: 122, hash: "0xblock", block_time: 1700000000, txs: 1 }],
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          status: "success",
+          data: {
+            total: 456,
+            transactions: [{ hash: "0xtx", block_index: 122, block_time: 1700000000 }],
+          },
+        },
+      });
+
+    const stats = await neotubeService.getStatistics("TestT5");
+
+    expect(stats).toEqual({
+      blocks: 123,
+      txs: 456,
+      contracts: 0,
+      candidates: 0,
+      addresses: 30,
+      tokens: 40,
+    });
+  });
+
+  it("accepts lowercase testnet alias for network routing", async () => {
+    axiosGetMock.mockResolvedValueOnce({
+      data: {
+        status: "success",
+        data: {
+          total: 1,
+          blocks: [{ hash: "0xblock", block_index: 1, block_time: 1700000000, txs: 0 }],
+        },
+      },
+    });
+
+    await neotubeService.getLatestBlocks(1, 0, "testnet");
+
+    expect(axiosGetMock).toHaveBeenCalledWith(
+      "/blocks",
+      expect.objectContaining({
+        headers: { Network: "testnet" },
+      })
+    );
+  });
+
   it("throws when NeoTube API returns non-success status", async () => {
     axiosGetMock.mockResolvedValueOnce({
       data: {
@@ -205,6 +273,7 @@ describe("neotubeService", () => {
   it("reports support only for known environments", () => {
     expect(neotubeService.supportsNetwork("Mainnet")).toBe(true);
     expect(neotubeService.supportsNetwork("TestT5")).toBe(true);
+    expect(neotubeService.supportsNetwork("testnet")).toBe(true);
     expect(neotubeService.supportsNetwork("Unknown")).toBe(false);
   });
 });

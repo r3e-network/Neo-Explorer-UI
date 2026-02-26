@@ -10,11 +10,19 @@ const ENV_ALIASES = {
   [NET_ENV.Mainnet]: NET_ENV.Mainnet,
   [NET_ENV.TestT5]: NET_ENV.TestT5,
   Testnet: NET_ENV.TestT5,
+  MainNet: NET_ENV.Mainnet,
+  mainnet: NET_ENV.Mainnet,
+  testnet: NET_ENV.TestT5,
+  testt5: NET_ENV.TestT5,
 };
 
 const DEFAULT_ENV = NET_ENV.Mainnet;
 
-const normalizeEnv = (value) => ENV_ALIASES[value] || DEFAULT_ENV;
+const normalizeEnv = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return DEFAULT_ENV;
+  return ENV_ALIASES[raw] || ENV_ALIASES[raw.toLowerCase()] || DEFAULT_ENV;
+};
 
 const canUseLocalStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
