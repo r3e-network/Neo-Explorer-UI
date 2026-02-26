@@ -306,7 +306,7 @@ function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, dat
   return new Chart(ctx, {
     type,
     data: {
-      labels: data.map((_, i) => formatDateLabel(formatDayOffset(selectedDays.value - i - 1))),
+      labels: chartData.value.map((_, i) => formatDateLabel(formatDayOffset(selectedDays.value - i - 1))),
       datasets: [dataset],
     },
     options: {
@@ -346,10 +346,10 @@ function destroyCharts() {
 
 async function renderCharts() {
   const txValues = chartData.value.map((d) => d.transactions);
-  const addrGrowthValues = addressGrowthData.value.map((d) => d.value ?? d.NewAddresses ?? 0);
-  const contractValues = contractData.value.map((d) => d.value);
-  const tokenVolValues = tokenVolumeData.value.map((d) => d.value);
-  const gasPriceValues = gasPriceData.value.map((d) => d.value);
+  const addrGrowthValues = addressGrowthData.value.map((d) => Number(d.value ?? d.NewAddresses ?? d.count ?? d.total ?? 0));
+  const contractValues = contractData.value.map((d) => Number(d.value ?? d.count ?? d.total ?? 0));
+  const tokenVolValues = tokenVolumeData.value.map((d) => Number(d.value ?? d.count ?? d.total ?? 0));
+  const gasPriceValues = gasPriceData.value.map((d) => Number(d.value ?? d.price ?? d.total ?? 0));
 
   destroyCharts();
   await nextTick();
@@ -425,6 +425,7 @@ async function loadData() {
     chartData.value = normalizeChartData(rawActivity, selectedDays.value);
     
     // Fallback/normalize mock data lengths
+    
     const fillMockData = (raw) => {
       const arr = Array.isArray(raw) ? raw : [];
       if (arr.length === 0) return Array.from({ length: selectedDays.value }, () => ({ value: 0 }));
@@ -434,7 +435,9 @@ async function loadData() {
       return arr.slice(-selectedDays.value);
     };
 
-    addressGrowthData.value = fillMockData(rawGrowth, 'NewAddresses');
+
+    // Extract the mock object arrays into flat arrays
+    addressGrowthData.value = fillMockData(rawGrowth);
     contractData.value = fillMockData(rawContract);
     tokenVolumeData.value = fillMockData(rawTokenVol);
     gasPriceData.value = fillMockData(rawGasPrice);

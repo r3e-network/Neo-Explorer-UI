@@ -234,8 +234,8 @@ function handleMobileSearch(query) {
   handleSearch(query);
 }
 
-function calculateNetworkFee(gasPrice) {
-  return Number(Math.max(0, (gasPrice || 0) * NETWORK_FEE_RATIO).toFixed(3));
+function calculateNetworkFee() {
+  return 0.003;
 }
 
 async function loadPrices() {
@@ -244,7 +244,7 @@ async function loadPrices() {
   gasPrice.value = data.gas;
   neoPriceChange.value = data.neoChange;
   gasPriceChange.value = data.gasChange;
-  networkFee.value = calculateNetworkFee(data.gas);
+  networkFee.value = calculateNetworkFee();
 }
 
 onMounted(async () => {
