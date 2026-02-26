@@ -35,7 +35,13 @@
       <div class="page-container py-1">
       <div class="grid gap-4 lg:grid-cols-2">
         <LatestBlocks :blocks="latestBlocks" :loading="blocksLoading" :error="blocksError" @retry="loadLatestData" />
-        <LatestTransactions :transactions="latestTxs" :loading="txsLoading" :error="txsError" @retry="loadLatestData" />
+        <LatestTransactions
+          :transactions="latestTxs"
+          :transfer-summary-by-hash="transferSummaryByHash"
+          :loading="txsLoading"
+          :error="txsError"
+          @retry="loadLatestData"
+        />
       </div>
       </div>
     </section>
@@ -57,9 +63,11 @@ import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { NETWORK_CHANGE_EVENT, getCurrentEnv } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { useTransferSummary } from "@/composables/useTransferSummary";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
+const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 
 // State
 const blocksLoading = ref(true);
@@ -215,6 +223,9 @@ async function loadLatestData(forceRefresh = false) {
         const nextTxs = txsRes?.result || [];
         if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
           latestTxs.value = nextTxs;
+        }
+        if (Array.isArray(nextTxs) && nextTxs.length) {
+          void enrichTransactions(nextTxs, { maxItems: 6 });
         }
       })
       .catch(() => {

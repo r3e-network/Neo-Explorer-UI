@@ -99,9 +99,9 @@
               <td class="table-cell text-center p-0">
                 <span
                   class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
-                  :class="getDirection(tx.sender, address).cssClass"
+                  :class="getDirection(tx.sender, tx.to).cssClass"
                 >
-                  {{ getDirection(tx.sender, address).label }}
+                  {{ getDirection(tx.sender, tx.to).label }}
                 </span>
               </td>
               <td class="table-cell">
@@ -189,6 +189,10 @@ function getTxMethod(tx) {
 }
 
 function getRecipient(tx) {
+  if (tx.to) {
+    const isAddress = String(tx.to).startsWith("N");
+    return { hash: tx.to, type: isAddress ? "address" : "contract" };
+  }
   if (tx.script) {
      const inv = extractContractInvocation(tx.script);
      if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
@@ -196,12 +200,18 @@ function getRecipient(tx) {
   if (tx.notifications?.length > 0) {
     return { hash: tx.notifications[0].contract, type: 'contract' };
   }
+  const summary = props.transferSummaryByHash[tx.hash];
+  if (summary && typeof summary === "object" && summary.contract) {
+    const isAddress = String(summary.contract).startsWith("N");
+    return { hash: summary.contract, type: isAddress ? "address" : "contract" };
+  }
   return null;
 }
 
 function formatTxValue(tx) {
   const summary = props.transferSummaryByHash[tx.hash];
-  if (summary && summary !== "\u2014") return summary;
+  const summaryText = typeof summary === "string" ? summary : summary?.text;
+  if (summaryText && summaryText !== "\u2014") return summaryText;
 
   const transferValue = Number(tx.value || tx.amount || 0);
   if (transferValue > 0) {

@@ -204,6 +204,18 @@ const recipient = computed(() => {
     const hash = canonicalizeContractHash(to);
     return { hash, type: "contract" };
   }
+
+  const transferContract =
+    props.transferSummary && typeof props.transferSummary === "object" ? props.transferSummary.contract : null;
+  if (transferContract) {
+    const isAddress = String(transferContract).startsWith("N");
+    if (isAddress) {
+      return { hash: transferContract, type: "address" };
+    }
+    const hash = canonicalizeContractHash(transferContract);
+    return { hash, type: "contract" };
+  }
+
   return null;
 });
 
@@ -245,6 +257,17 @@ const methodName = computed(() => {
     }
     return method;
   }
+
+  const transferContract =
+    props.transferSummary && typeof props.transferSummary === "object" ? props.transferSummary.contract : null;
+  if (transferContract) {
+    const hash = canonicalizeContractHash(transferContract);
+    const knownContract = getKnownContractName(hash);
+    if (knownContract) return knownContract;
+    const contractName = getContractDisplayName(hash);
+    if (contractName && !contractName.startsWith("0x")) return contractName;
+  }
+
   if (tx.method) return tx.method;
   return null;
 });

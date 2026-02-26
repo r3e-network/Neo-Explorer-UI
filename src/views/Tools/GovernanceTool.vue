@@ -82,13 +82,17 @@
     </div>
     
     <!-- Simple Create Modal placeholder -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div class="bg-surface w-full max-w-lg rounded-2xl shadow-xl border border-line-soft overflow-hidden">
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+      <div class="bg-surface w-full max-w-lg rounded-2xl shadow-2xl border border-line-soft overflow-hidden relative z-10">
         <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
           <h2 class="text-lg font-bold text-high">Create Council Proposal</h2>
           <button @click="showCreateModal = false" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+           <div>
+             <label class="block text-sm font-medium text-high mb-1">Proposal Name</label>
+             <input type="text" class="form-input w-full" placeholder="e.g. Decrease GAS Network Fee" />
+           </div>
            <div>
              <label class="block text-sm font-medium text-high mb-1">Proposal Type</label>
              <select class="form-input w-full bg-surface">
@@ -98,7 +102,6 @@
                <option value="other">Other Native Contract Invocation</option>
              </select>
            </div>
-           
            <div>
              <label class="block text-sm font-medium text-high mb-1">Target Native Contract</label>
              <select v-model="selectedContract" class="form-input w-full bg-surface">

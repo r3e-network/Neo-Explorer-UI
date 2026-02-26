@@ -29,6 +29,15 @@ function toBigInt(value) {
   return null;
 }
 
+function normalizeAddress(value) {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (raw.startsWith("N")) return raw;
+  const converted = scriptHashToAddress(raw);
+  return converted || raw;
+}
+
 /**
  * Choose the best candidate vote value from multiple API sources.
  * Returns a stringified integer and ignores empty/invalid values.
@@ -164,7 +173,9 @@ export function normalizeAddressTransactions(transactions = []) {
     blockhash: tx?.blockhash || tx?.blockHash || "",
     blockIndex: toNumber(tx?.blockIndex ?? tx?.blockindex, null),
     blocktime: tx?.blocktime ?? tx?.timestamp ?? tx?.time ?? 0,
-    sender: tx?.sender || tx?.from || tx?.fromAddress || "",
+    sender: normalizeAddress(tx?.sender || tx?.from || tx?.fromAddress || ""),
+    to: normalizeAddress(tx?.to || tx?.toAddress || tx?.receiver || ""),
+    method: tx?.method || tx?.calltype || tx?.type || "",
     vmstate: tx?.vmstate || tx?.Vmstate || tx?.VMState || "",
     size: toNumber(tx?.size, 0),
     netfee: tx?.netfee || tx?.networkFee || 0,

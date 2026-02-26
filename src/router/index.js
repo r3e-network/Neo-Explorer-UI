@@ -1,4 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
+import {
+  CHUNK_RELOAD_KEY,
+  CHUNK_RELOAD_TARGET_KEY,
+  isChunkLoadError,
+  triggerChunkReload,
+} from "@/utils/chunkReload";
+
+let pendingRoutePath = "/homepage";
 
 /**
  * Wraps dynamic imports with ChunkLoadError retry.
@@ -7,18 +15,11 @@ import { createRouter, createWebHistory } from "vue-router";
 function lazyLoad(importFn) {
   return () =>
     importFn().catch((error) => {
-      if (
-        error.name === "ChunkLoadError" ||
-        error.message?.includes("Failed to fetch dynamically imported module") ||
-        error.message?.includes("Loading chunk")
-      ) {
-        const reloadKey = "chunk-reload";
-        if (!sessionStorage.getItem(reloadKey)) {
-          sessionStorage.setItem(reloadKey, "1");
-          window.location.reload();
-          return; // unreachable, but satisfies linter
+      if (isChunkLoadError(error)) {
+        const target = pendingRoutePath || sessionStorage.getItem(CHUNK_RELOAD_TARGET_KEY) || "/homepage";
+        if (triggerChunkReload(target)) {
+          return new Promise(() => {});
         }
-        sessionStorage.removeItem(reloadKey);
       }
       throw error;
     });
@@ -296,9 +297,16 @@ router.onError((error) => {
   }
 });
 
+router.beforeEach((to, _from, next) => {
+  pendingRoutePath = to?.fullPath || to?.path || "/homepage";
+  sessionStorage.setItem(CHUNK_RELOAD_TARGET_KEY, pendingRoutePath);
+  next();
+});
+
 // Clear chunk reload flag on successful navigation & set document title
 router.afterEach((to) => {
-  sessionStorage.removeItem("chunk-reload");
+  sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+  sessionStorage.removeItem(CHUNK_RELOAD_TARGET_KEY);
   const title = to.meta?.title;
   document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
 });
