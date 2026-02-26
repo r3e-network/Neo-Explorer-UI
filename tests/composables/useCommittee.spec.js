@@ -3,6 +3,7 @@ import { nextTick } from "vue";
 const rpcMock = vi.hoisted(() => vi.fn());
 const cachedRequestMock = vi.hoisted(() => vi.fn());
 const getCurrentEnvMock = vi.hoisted(() => vi.fn());
+const walletAccountMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/api", () => ({
   rpc: rpcMock,
@@ -15,11 +16,12 @@ vi.mock("@/services/cache", () => ({
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
   NET_ENV: { TestT5: "TestT5" },
+  NETWORK_CHANGE_EVENT: "neo:network-change",
 }));
 
 vi.mock("@cityofzion/neon-js", () => ({
   wallet: {
-    Account: vi.fn().mockImplementation(() => ({ address: "NFallbackAddress" })),
+    Account: walletAccountMock,
   },
 }));
 
@@ -40,6 +42,9 @@ describe("useCommittee", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
     getCurrentEnvMock.mockReturnValue("MainNet");
+    walletAccountMock.mockImplementation(function () {
+      this.address = "NFallbackAddress";
+    });
     cachedRequestMock.mockResolvedValue([
       { pubkey: "PUBKEY1", name: "Consensus Node 1", scripthash: "0xcommittee1" },
     ]);
@@ -78,5 +83,36 @@ describe("useCommittee", () => {
     await flush();
 
     expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
+  });
+
+  it("falls back to known-address validator name when Dora metadata is missing", async () => {
+    rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
+    cachedRequestMock.mockResolvedValueOnce([]);
+    walletAccountMock.mockImplementation(function () {
+      this.address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
+    });
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("COZ");
+    expect(getPrimaryNodeAddress(0)).toBe("NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w");
+  });
+
+  it("falls back to deterministic consensus-node label when no metadata is available", async () => {
+    rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
+    cachedRequestMock.mockResolvedValueOnce([]);
+    walletAccountMock.mockImplementation(function () {
+      this.address = "NNoMetadataFallbackAddress";
+    });
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
   });
 });

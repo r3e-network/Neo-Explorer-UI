@@ -2,12 +2,62 @@ import { ref } from "vue";
 import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
+import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
 const doraMetadata = ref({});
 const initialized = ref(false);
+
+const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
+
+const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
+
+const deriveValidatorAddress = (validator) => {
+  if (!validator?.publickey) return null;
+  try {
+    return new wallet.Account(validator.publickey).address;
+  } catch {
+    return null;
+  }
+};
+
+const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
+  const address = scriptHashToAddress(String(maybeAddress || ""));
+  if (address && KNOWN_ADDRESSES[address]) {
+    return KNOWN_ADDRESSES[address];
+  }
+
+  const numericIndex = Number(primaryIndex);
+  if (Number.isFinite(numericIndex) && numericIndex >= 0) {
+    return `Consensus Node ${numericIndex + 1}`;
+  }
+
+  return "Consensus Node";
+};
+
+const getValidatorMetadata = (validator) => {
+  if (!validator?.publickey) return null;
+  const byPubkey = doraMetadata.value[normalizeMetaKey(validator.publickey)];
+  if (byPubkey) return byPubkey;
+
+  const derivedAddress = deriveValidatorAddress(validator);
+  if (derivedAddress) {
+    const byAddress = doraMetadata.value[normalizeMetaKey(derivedAddress)];
+    if (byAddress) return byAddress;
+
+    const scriptHash = addressToScriptHash(derivedAddress);
+    if (scriptHash) {
+      const byScriptHash =
+        doraMetadata.value[normalizeMetaKey(scriptHash)] || doraMetadata.value[normalizeScriptHashKey(scriptHash)];
+      if (byScriptHash) return byScriptHash;
+    }
+  }
+
+  return null;
+};
 
 export function useCommittee() {
   async function loadCommittee(force = false) {
@@ -17,7 +67,7 @@ export function useCommittee() {
     
     try {
       // getnextblockvalidators returns exactly the 7 consensus nodes whose index matches the 'primary' field in a block
-            const response = await rpc("getnextblockvalidators", []);
+      const response = await rpc("getnextblockvalidators", []);
       if (response && Array.isArray(response)) {
         validators.value = response;
       } else if (response && response.result && Array.isArray(response.result)) {
@@ -47,10 +97,26 @@ export function useCommittee() {
       );
       
       const metaMap = {};
+      const addMeta = (key, item) => {
+        const normalized = normalizeMetaKey(key);
+        if (normalized) {
+          metaMap[normalized] = item;
+        }
+      };
+
       if (Array.isArray(data)) {
         data.forEach(item => {
-          if (item.pubkey) metaMap[item.pubkey] = item;
-          if (item.scripthash) metaMap[item.scripthash] = item;
+          addMeta(item.pubkey, item);
+          addMeta(item.scripthash, item);
+          addMeta(normalizeScriptHashKey(item.scripthash), item);
+
+          const itemAddress = deriveValidatorAddress({ publickey: item.pubkey });
+          if (itemAddress) {
+            addMeta(itemAddress, item);
+            const scriptHash = addressToScriptHash(itemAddress);
+            addMeta(scriptHash, item);
+            addMeta(normalizeScriptHashKey(scriptHash), item);
+          }
         });
       }
       doraMetadata.value = metaMap;
@@ -70,7 +136,7 @@ export function useCommittee() {
   }
 
 
-    const resolvePrimaryIndex = (block) => {
+  const resolvePrimaryIndex = (block) => {
     if (!block) return undefined;
     if (block.primary !== undefined && block.primary !== null) return Number(block.primary);
     if (block.index !== undefined && block.index !== null) {
@@ -83,52 +149,47 @@ export function useCommittee() {
   const getPrimaryNodeName = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) {
-       // if we don't have validators loaded yet, but we are asked, wait or just return fallback
-       return "Loading...";
+      // if we don't have validators loaded yet, but we are asked, wait or just return fallback
+      return "Loading...";
     }
 
-    const validator = validators.value[primaryIndex];
-    if (!validator) return "Unknown Validator";
-    
-    const meta = doraMetadata.value[validator.publickey];
+    const numericIndex = Number(primaryIndex);
+    const validator = validators.value[numericIndex];
+    if (!validator) return fallbackValidatorName(numericIndex);
+
+    const meta = getValidatorMetadata(validator);
     if (meta && meta.name) {
       return meta.name;
     }
-    
-    return "Unknown Validator";
+
+    const address = meta?.scripthash || deriveValidatorAddress(validator);
+    return fallbackValidatorName(numericIndex, address);
   };
 
-      const getPrimaryNodeAddress = (primaryIndex) => {
+  const getPrimaryNodeAddress = (primaryIndex) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) return null;
-    
-    const validator = validators.value[primaryIndex];
+
+    const validator = validators.value[Number(primaryIndex)];
     if (!validator) return null;
-    
-    const meta = doraMetadata.value[validator.publickey];
+
+    const meta = getValidatorMetadata(validator);
     if (meta && meta.scripthash) {
       return meta.scripthash;
     }
-    
-    if (validator.publickey) {
-       try {
-           const account = new wallet.Account(validator.publickey);
-           return account.address;
-       } catch(e) {
-           return null;
-       }
-    }
-    
-    return null;
+
+    return deriveValidatorAddress(validator);
   };
 
   const isCouncilMember = (address) => {
     if (!address || !validators.value) return false;
     for (const v of validators.value) {
-       try {
-           const acc = new wallet.Account(v.publickey);
-           if (acc.address === address) return true;
-       } catch (_e) { /* ignore */ }
+      try {
+        const acc = new wallet.Account(v.publickey);
+        if (acc.address === address) return true;
+      } catch (_e) {
+        /* ignore */
+      }
     }
     return false;
   };
