@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { wallet as neonWallet } from "@cityofzion/neon-js";
 
 const toast = {
   success: vi.fn(),
@@ -96,5 +97,31 @@ describe("utils/wallet connectWallet", () => {
 
     expect(toast.error).toHaveBeenCalledWith("Please connect your wallet first via the header.");
     expect(toast.warning).not.toHaveBeenCalledWith("NeoLine N3 wallet not found. Please install the extension.");
+  });
+
+  it("uses script hash args and signer when submitting vote", async () => {
+    const voterAddress = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
+    const candidatePubkey = "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b";
+    const voterScriptHash = new neonWallet.Account(voterAddress).scriptHash;
+
+    walletServiceMock.isConnected = true;
+    walletServiceMock.account = { address: voterAddress };
+    walletServiceMock.invoke.mockResolvedValue({ txid: "0xtestvote" });
+
+    const wallet = await import("@/utils/wallet");
+    wallet.connectedAccount.value = voterAddress;
+
+    await wallet.voteForCandidate(candidatePubkey);
+
+    expect(walletServiceMock.invoke).toHaveBeenCalledWith({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "vote",
+      args: [
+        { type: "Hash160", value: voterScriptHash },
+        { type: "PublicKey", value: candidatePubkey },
+      ],
+      signers: [{ account: voterScriptHash, scopes: 1 }],
+      scope: 1,
+    });
   });
 });
