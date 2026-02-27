@@ -5,6 +5,10 @@ import { ref } from "vue";
 const candidateGetByAddressMock = vi.fn();
 const cachedRequestMock = vi.fn();
 const getCurrentEnvMock = vi.fn();
+const walletServiceMock = {
+  isConnected: false,
+  signMessage: vi.fn(),
+};
 
 const sharedConnectedAccount = ref("");
 
@@ -27,6 +31,11 @@ vi.mock("@/services/cache", () => ({
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
   NET_ENV: { Mainnet: "Mainnet", TestT5: "TestNet" },
+}));
+
+vi.mock("@/services/walletService", () => ({
+  walletService: walletServiceMock,
+  default: walletServiceMock,
 }));
 
 describe("CandidateProfileTool", () => {

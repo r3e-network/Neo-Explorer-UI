@@ -3,57 +3,54 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/mainnet/primary",
-      "dest": "https://neofura.ngd.network"
+      "source": "/api/mainnet/primary",
+      "destination": "https://neofura.ngd.network"
     },
     {
-      "src": "/api/mainnet/fallback",
-      "dest": "https://neofura.ngd.network"
+      "source": "/api/mainnet/fallback",
+      "destination": "https://neofura.ngd.network"
     },
     {
-      "src": "/api/testnet/primary",
-      "dest": "https://testmagnet.ngd.network"
+      "source": "/api/testnet/primary",
+      "destination": "https://testmagnet.ngd.network"
     },
     {
-      "src": "/api/testnet/fallback",
-      "dest": "https://testmagnet.ngd.network"
+      "source": "/api/testnet/fallback",
+      "destination": "https://testmagnet.ngd.network"
     },
     {
-      "src": "/api/mainnet",
-      "dest": "https://neofura.ngd.network"
+      "source": "/api/mainnet",
+      "destination": "https://neofura.ngd.network"
     },
     {
-      "src": "/api/testnet",
-      "dest": "https://testmagnet.ngd.network"
+      "source": "/api/testnet",
+      "destination": "https://testmagnet.ngd.network"
     },
     {
-      "src": "/api",
-      "dest": "/api/mainnet"
+      "source": "/api",
+      "destination": "https://neofura.ngd.network"
     },
     {
-      "src": "/bpi/mainnet/(.*)",
-      "dest": "https://neofura.ngd.network/bpi/$1"
+      "source": "/bpi/mainnet/(.*)",
+      "destination": "https://neofura.ngd.network/bpi/$1"
     },
     {
-      "src": "/bpi/testnet/(.*)",
-      "dest": "https://testmagnet.ngd.network/bpi/$1"
+      "source": "/bpi/testnet/(.*)",
+      "destination": "https://testmagnet.ngd.network/bpi/$1"
     },
     {
-      "src": "/bpi/(.*)",
-      "dest": "/bpi/mainnet/$1"
+      "source": "/bpi/(.*)",
+      "destination": "https://neofura.ngd.network/bpi/$1"
     },
     {
-      "src": "/neotube-api/(.*)",
-      "dest": "https://api.neotube.io/$1"
+      "source": "/neotube-api/(.*)",
+      "destination": "https://api.neotube.io/$1"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [

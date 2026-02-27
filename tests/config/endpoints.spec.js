@@ -22,9 +22,10 @@ describe("endpoint defaults", () => {
 
   it("keeps vercel rewrites on external non-self-hosted endpoints", () => {
     const vercelConfig = JSON.parse(readFile("vercel.json"));
-    const routes = vercelConfig.routes || [];
+    const rewrites = vercelConfig.rewrites || [];
 
-    const routeDest = (src) => routes.find((route) => route.src === src)?.dest;
+    const routeDest = (source) =>
+      rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
     expect(routeDest("/api/mainnet/primary")).toBe("https://neofura.ngd.network");
     expect(routeDest("/api/mainnet/fallback")).toBe("https://neofura.ngd.network");
