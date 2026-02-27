@@ -1,6 +1,6 @@
 import { Web3Auth } from "@web3auth/modal";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
-import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
 import { wallet } from "@cityofzion/neon-js";
 
 let _web3auth = null;
@@ -10,14 +10,14 @@ let _web3auth = null;
 const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiIQOAcQgLog7mFc0m_3tS90i6Ew6oNlE9Z4g"; 
 
 const chainConfig = {
-  chainNamespace: CHAIN_NAMESPACES.EIP155,
-  chainId: "0x1",
-  rpcTarget: "https://cloudflare-eth.com",
-  displayName: "Ethereum Mainnet",
-  blockExplorerUrl: "https://etherscan.io",
-  ticker: "ETH",
-  tickerName: "Ethereum",
-  logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+  chainNamespace: CHAIN_NAMESPACES.OTHER,
+  chainId: "0x334E", // "334E" is hex for N3 Mainnet (13134), though Web3Auth ignores this for OTHER
+  rpcTarget: "https://mainnet1.neo.coz.io:443",
+  displayName: "Neo N3 Mainnet",
+  blockExplorerUrl: "https://neo3scan.com",
+  ticker: "GAS",
+  tickerName: "Neo GAS",
+  logo: "https://neo3scan.com/img/brand/neo.png",
 };
 
 export const web3authService = {
@@ -27,7 +27,7 @@ export const web3authService = {
   async init() {
     if (_web3auth) return;
     try {
-      const privateKeyProvider = new EthereumPrivateKeyProvider({
+      const privateKeyProvider = new CommonPrivateKeyProvider({
         config: { chainConfig },
       });
 
