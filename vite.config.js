@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import compression from "vite-plugin-compression";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
 const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";
@@ -14,6 +15,14 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
+      nodePolyfills({
+        include: ["buffer", "crypto", "stream", "util", "events", "process"],
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+      }),
       compression({
         algorithm: "gzip",
         ext: ".gz",
