@@ -7,6 +7,14 @@ import { walletService } from "@/services/walletService";
 
 export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
 
+function getStoredWalletProvider() {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("walletProvider");
+}
+
+function isNeoLineSessionActive() {
+    return getStoredWalletProvider() === walletService.PROVIDERS.NEOLINE;
+}
 
 let _neoLineListenersSetup = false;
 function setupNeoLineEventListeners() {
@@ -14,6 +22,8 @@ function setupNeoLineEventListeners() {
     _neoLineListenersSetup = true;
 
     const handleAccountChange = (data) => {
+        if (!isNeoLineSessionActive()) return;
+
         if (data && data.detail && data.detail.address) {
             connectedAccount.value = data.detail.address;
             localStorage.setItem("connectedWallet", data.detail.address);
@@ -28,6 +38,8 @@ function setupNeoLineEventListeners() {
     
     // Fallback: Some NeoLine versions trigger an event without detail, so we do a passive refresh on browser focus
     window.addEventListener('focus', async () => {
+        if (!isNeoLineSessionActive()) return;
+
         if (connectedAccount.value && window.NEOLineN3) {
             try {
                 const neoline = new window.NEOLineN3.Init();
@@ -154,6 +166,7 @@ export async function connectWallet() {
             }
             
             connectedAccount.value = account.address;
+            localStorage.setItem("walletProvider", walletService.PROVIDERS.NEOLINE);
             toast.success("Wallet connected: " + account.address.slice(0, 5) + "..." + account.address.slice(-4));
             return account.address;
         } catch (e) {
@@ -169,17 +182,21 @@ export async function connectWallet() {
 
 export async function disconnectWallet() {
     connectedAccount.value = "";
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("connectedWallet");
+    }
 }
 
 export async function voteForCandidate(candidatePubkey) {
     const toast = useToast();
-    if (!connectedAccount.value) {
-        await connectWallet();
-    }
-    if (!connectedAccount.value) return;
-
     if (!walletService.isConnected) {
         toast.error("Please connect your wallet first via the header.");
+        return;
+    }
+
+    const voterAddress = connectedAccount.value || walletService.account?.address;
+    if (!voterAddress) {
+        toast.error("Connected wallet address unavailable. Please reconnect from the header.");
         return;
     }
 
@@ -190,7 +207,7 @@ export async function voteForCandidate(candidatePubkey) {
             scriptHash: neoScriptHash,
             operation: "vote",
             args: [
-                { type: "Hash160", value: connectedAccount.value },
+                { type: "Hash160", value: voterAddress },
                 { type: "PublicKey", value: candidatePubkey }
             ],
             scope: 1

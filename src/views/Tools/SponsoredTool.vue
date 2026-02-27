@@ -31,7 +31,7 @@
           <div v-if="!connectedAccount" class="text-center py-10 border border-dashed border-line-soft rounded-xl bg-surface-muted">
              <svg class="h-10 w-10 text-mid mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
              <p class="text-high font-medium mb-1">Wallet Not Connected</p>
-             <p class="text-sm text-mid">Please connect your NeoLine wallet from the header to use sponsored transactions.</p>
+             <p class="text-sm text-mid">Please connect your wallet from the header to use sponsored transactions.</p>
           </div>
           
           <template v-else>
@@ -216,7 +216,11 @@ onMounted(() => {
 
 async function executeSponsoredTx() {
   if (!connectedAccount.value) return;
-  if (typeof window === "undefined" || !window.NEOLineN3) {
+  if (typeof window === "undefined") return;
+
+  const activeProvider = walletService.provider;
+  const requiresNeoLine = activeProvider === walletService.PROVIDERS.NEOLINE;
+  if (requiresNeoLine && !window.NEOLineN3) {
     toast.error("NeoLine N3 wallet not found.");
     return;
   }
@@ -240,8 +244,8 @@ async function executeSponsoredTx() {
     const sponsorScriptHash = new wallet.Account(sponsorInfo.sponsorAddress).scriptHash;
     const userScriptHash = new wallet.Account(connectedAccount.value).scriptHash;
     
-    // 2. Ask NeoLine to build and sign the transaction (but do NOT broadcast)
-    toast.info("Please sign the transaction in NeoLine...");
+    // 2. Ask the connected wallet to build and sign the transaction (but do NOT broadcast)
+    toast.info("Please sign the transaction in your connected wallet...");
     // Ensure wallet connected via service
     if (!walletService.isConnected) {
       toast.error("Please connect your wallet first via the header.");
@@ -249,12 +253,12 @@ async function executeSponsoredTx() {
       return;
     }
     
-    let neolineSignRes;
+    let signedTxRes;
     const neoHash = '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5';
     
     try {
         if (operation.value === 'claim') {
-             neolineSignRes = await walletService.invoke({
+             signedTxRes = await walletService.invoke({
                 scriptHash: neoHash,
                 operation: 'transfer',
                 args: [
@@ -270,7 +274,7 @@ async function executeSponsoredTx() {
                 broadcastOverride: true
             });
         } else {
-             neolineSignRes = await walletService.invoke({
+             signedTxRes = await walletService.invoke({
                 scriptHash: neoHash,
                 operation: 'vote',
                 args: [
@@ -296,7 +300,7 @@ async function executeSponsoredTx() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             action: 'sign',
-            transactionHex: neolineSignRes.signedTx,
+            transactionHex: signedTxRes.signedTx,
             network: networkMode
         })
     });
