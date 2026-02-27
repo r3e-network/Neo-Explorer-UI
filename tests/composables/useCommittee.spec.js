@@ -54,27 +54,22 @@ describe("useCommittee", () => {
     vi.restoreAllMocks();
   });
 
-  it("retries committee loading after an initial RPC failure and resolves validator metadata", async () => {
+  it("falls back to GetCommittee when getnextblockvalidators fails", async () => {
     rpcMock.mockRejectedValueOnce(new Error("temporary network failure")).mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { loadCommittee, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
 
-    await flush();
-
-    expect(rpcMock).toHaveBeenCalledTimes(1);
-    expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
-    expect(getPrimaryNodeAddress(0)).toBeNull();
-
-    await loadCommittee();
     await flush();
 
     expect(rpcMock).toHaveBeenCalledTimes(2);
+    expect(rpcMock).toHaveBeenNthCalledWith(1, "getnextblockvalidators", []);
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "GetCommittee", { Limit: 21, Skip: 0 });
     expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
     expect(getPrimaryNodeAddress(0)).toBe("0xcommittee1");
   });
 
-  it("calls GetCommittee with pagination params", async () => {
+  it("calls getnextblockvalidators for primary-index validator mapping", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
@@ -82,7 +77,75 @@ describe("useCommittee", () => {
 
     await flush();
 
-    expect(rpcMock).toHaveBeenCalledWith("GetCommittee", { Limit: 21, Skip: 0 });
+    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
+    expect(rpcMock).not.toHaveBeenCalledWith("GetCommittee", { Limit: 21, Skip: 0 });
+  });
+
+  it("maps primary index against next block validators instead of committee order", async () => {
+    walletAccountMock.mockImplementation(function (publickey) {
+      this.address = publickey === "PUBKEY_VALIDATOR_0"
+        ? "NValidatorZeroAddress"
+        : publickey === "PUBKEY_VALIDATOR_1"
+          ? "NValidatorOneAddress"
+          : "NCommitteeAddress";
+    });
+    rpcMock.mockImplementation(async (method) => {
+      if (method === "getnextblockvalidators") {
+        return [{ publickey: "PUBKEY_VALIDATOR_0" }, { publickey: "PUBKEY_VALIDATOR_1" }];
+      }
+      if (method === "GetCommittee") {
+        return [{ publickey: "PUBKEY_COMMITTEE_0" }, { publickey: "PUBKEY_COMMITTEE_1" }];
+      }
+      return [];
+    });
+    cachedRequestMock.mockResolvedValueOnce([
+      {
+        pubkey: "PUBKEY_VALIDATOR_0",
+        name: "Validator Zero",
+        scripthash: "0x0000000000000000000000000000000000000000",
+      },
+      {
+        pubkey: "PUBKEY_VALIDATOR_1",
+        name: "Validator One",
+        scripthash: "0x0000000000000000000000000000000000000001",
+      },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(1)).toBe("Validator One");
+  });
+
+  it("prefers top-7 candidate order from metadata for primary mapping", async () => {
+    rpcMock.mockResolvedValueOnce([
+      { publickey: "RPC_0" },
+      { publickey: "RPC_1" },
+      { publickey: "RPC_2" },
+      { publickey: "RPC_3" },
+      { publickey: "RPC_4" },
+      { publickey: "RPC_5" },
+      { publickey: "RPC_6" },
+    ]);
+    cachedRequestMock.mockResolvedValueOnce([
+      { pubkey: "DORA_0", name: "Dora Zero", scripthash: "0x0000000000000000000000000000000000000010", votes: 700 },
+      { pubkey: "DORA_1", name: "Dora One", scripthash: "0x0000000000000000000000000000000000000011", votes: 600 },
+      { pubkey: "DORA_2", name: "Dora Two", scripthash: "0x0000000000000000000000000000000000000012", votes: 500 },
+      { pubkey: "DORA_3", name: "Dora Three", scripthash: "0x0000000000000000000000000000000000000013", votes: 400 },
+      { pubkey: "DORA_4", name: "Dora Four", scripthash: "0x0000000000000000000000000000000000000014", votes: 300 },
+      { pubkey: "DORA_5", name: "Dora Five", scripthash: "0x0000000000000000000000000000000000000015", votes: 200 },
+      { pubkey: "DORA_6", name: "Dora Six", scripthash: "0x0000000000000000000000000000000000000016", votes: 100 },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(1)).toBe("Dora One");
+    expect(getPrimaryNodeAddress(1)).toBe("0x0000000000000000000000000000000000000011");
   });
 
   it("normalizes string committee entries so validator metadata resolves", async () => {

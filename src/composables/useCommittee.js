@@ -15,6 +15,7 @@ const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
 
 const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
 const NEOFS_LOGO_GATEWAY = "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc";
+const CONSENSUS_VALIDATOR_COUNT = 7;
 
 const normalizeCandidateScriptHash = (value) => {
   const normalized = String(value || "").trim();
@@ -102,6 +103,26 @@ const normalizeCommitteeList = (input) => {
   return input.map(normalizeCommitteeEntry).filter(Boolean);
 };
 
+const toNumericVotes = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const buildTopConsensusValidatorsFromMetadata = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  return items
+    .filter((item) => getValidatorPublicKey(item))
+    .sort((a, b) => {
+      const votesDelta = toNumericVotes(b?.votes) - toNumericVotes(a?.votes);
+      if (votesDelta !== 0) return votesDelta;
+      return normalizeMetaKey(a?.pubkey).localeCompare(normalizeMetaKey(b?.pubkey));
+    })
+    .slice(0, CONSENSUS_VALIDATOR_COUNT)
+    .map((item) => normalizeCommitteeEntry({ publickey: item.pubkey, candidate: item.scripthash }))
+    .filter(Boolean);
+};
+
 const deriveValidatorAddress = (validator) => {
   const candidate = getValidatorCandidateHash(validator);
   if (candidate) {
@@ -166,10 +187,10 @@ export function useCommittee() {
     if (initialized.value && !force) return;
     initialized.value = true;
     let validatorsLoaded = false;
-    
+
     try {
-      // GetCommittee is supported by neo3fura and returns consensus committee members.
-      const response = await rpc("GetCommittee", { Limit: 21, Skip: 0 });
+      // primary index on blocks maps to the active consensus validators set.
+      const response = await rpc("getnextblockvalidators", []);
       if (response && Array.isArray(response)) {
         validators.value = normalizeCommitteeList(response);
       } else if (response && response.result && Array.isArray(response.result)) {
@@ -178,15 +199,25 @@ export function useCommittee() {
 
       validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
     } catch (e) {
-      if (import.meta.env.DEV) console.warn("Failed to load validators", e);
+      if (import.meta.env.DEV) console.warn("Failed to load next block validators", e);
     }
 
     if (!validatorsLoaded) {
-      // Allow later calls to retry when RPC is temporarily unavailable.
-      initialized.value = false;
-      return;
+      try {
+        // Fallback: committee list still gives candidate metadata keys when validator RPC is unavailable.
+        const response = await rpc("GetCommittee", { Limit: 21, Skip: 0 });
+        if (response && Array.isArray(response)) {
+          validators.value = normalizeCommitteeList(response);
+        } else if (response && response.result && Array.isArray(response.result)) {
+          validators.value = normalizeCommitteeList(response.result);
+        }
+
+        validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn("Failed to load committee fallback", e);
+      }
     }
-    
+
     // Load Dora metadata for names
     try {
       const env = getCurrentEnv().toLowerCase();
@@ -225,10 +256,24 @@ export function useCommittee() {
             addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
           }
         });
+
+        // Prefer consensus-node mapping from top candidate order when available.
+        const topConsensusValidators = buildTopConsensusValidatorsFromMetadata(data);
+        if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
+          validators.value = topConsensusValidators;
+        }
       }
       doraMetadata.value = metaMap;
     } catch (e) {
       if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
+    }
+
+    validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
+
+    if (!validatorsLoaded) {
+      // Allow later calls to retry when RPC and metadata are temporarily unavailable.
+      initialized.value = false;
+      return;
     }
   }
 

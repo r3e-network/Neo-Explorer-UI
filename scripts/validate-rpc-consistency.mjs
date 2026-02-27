@@ -17,7 +17,12 @@ const backendApiConfig = path.resolve(backendRoot, "neo3fura_http/config/config.
 const backendApiDir = path.resolve(backendRoot, "neo3fura_http/biz/api");
 const backendDocsDir = path.resolve(backendRoot, "docs/api");
 
-const passthroughMethods = new Set(["invokefunction", "getapplicationlog", "sendrawtransaction"]);
+const passthroughMethods = new Set([
+  "invokefunction",
+  "getapplicationlog",
+  "sendrawtransaction",
+  "getnextblockvalidators",
+]);
 const docsNoiseMethods = new Set(["transfer", "stake"]);
 
 const frontendPatterns = [/rpcMethod:\s*"([A-Za-z0-9_]+)"/g, /rpc\(\s*"([A-Za-z0-9_]+)"/g];
