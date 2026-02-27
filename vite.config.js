@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      headers: {
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      },
       proxy: {
         "/neotube-api": {
           target: "https://api.neotube.io",
