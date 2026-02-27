@@ -1,7 +1,8 @@
 import { ref } from "vue";
-import { sc } from "@cityofzion/neon-js";
+
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { walletService } from "@/services/walletService";
 
 
 export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
@@ -177,49 +178,43 @@ export async function voteForCandidate(candidatePubkey) {
     }
     if (!connectedAccount.value) return;
 
-    if (typeof window !== "undefined" && window.NEOLineN3) {
-        const neoline = new window.NEOLineN3.Init();
-        try {
-            // NEO Token Script Hash
-            const neoScriptHash = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+    if (!walletService.isConnected) {
+        toast.error("Please connect your wallet first via the header.");
+        return;
+    }
 
-            const result = await neoline.invoke({
-                scriptHash: neoScriptHash,
-                operation: "vote",
-                args: [
-                    { type: "Hash160", value: sc.ContractParam.hash160(connectedAccount.value).value },
-                    { type: "PublicKey", value: candidatePubkey }
-                ],
-                signers: [
-                    {
-                        account: sc.ContractParam.hash160(connectedAccount.value).value,
-                        scopes: 1 // CalledByEntry
-                    }
-                ]
-            });
+    try {
+        const neoScriptHash = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
-            toast.success("Vote transaction submitted: " + result.txid);
-            return result;
-        } catch (e) {
-            toast.error("Voting failed: " + (e.message || e.description || JSON.stringify(e)));
-            throw e;
-        }
-    } else {
-        toast.error("NeoLine N3 wallet not found.");
+        const result = await walletService.invoke({
+            scriptHash: neoScriptHash,
+            operation: "vote",
+            args: [
+                { type: "Hash160", value: connectedAccount.value },
+                { type: "PublicKey", value: candidatePubkey }
+            ],
+            scope: 1
+        });
+
+        toast.success("Vote transaction submitted: " + result.txid);
+        return result.txid;
+    } catch (e) {
+        console.error(e);
+        toast.error("Voting failed: " + (e.message || e.description || "Unknown error"));
+        throw e;
     }
 }
 
 export async function invokeContract(scriptHash, operation, args, signers) {
-    if (typeof window !== 'undefined' && window.NEOLineN3) {
-        const neoline = new window.NEOLineN3.Init();
-        const result = await neoline.invoke({
-            scriptHash,
-            operation,
-            args,
-            signers
-        });
-        return result.txid;
-    } else {
-        throw new Error('NeoLine N3 wallet not found.');
+    if (!walletService.isConnected) {
+        throw new Error("Wallet not connected");
     }
+
+    const result = await walletService.invoke({
+        scriptHash,
+        operation,
+        args,
+        signers
+    });
+    return result.txid;
 }
