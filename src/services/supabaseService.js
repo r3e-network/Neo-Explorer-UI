@@ -26,7 +26,7 @@ export const supabaseService = {
         .from('contract_metadata')
         .select('*')
         .eq('contract_hash', normalizedHash)
-        .single();
+        .maybeSingle();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is no rows returned
         if (import.meta.env.DEV) console.warn('Supabase getContractMetadata error:', error);
@@ -92,7 +92,7 @@ export const supabaseService = {
         .from('address_tags')
         .select('label, category')
         .eq('address', normalizedAddr)
-        .single();
+        .maybeSingle();
         
       if (error && error.code !== 'PGRST116') {
         if (import.meta.env.DEV) console.warn('Supabase getAddressTag error:', error);
