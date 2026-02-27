@@ -10,10 +10,6 @@ const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testmagnet.ngd.network";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const mainnetRpcTarget = env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET;
-  const testnetRpcTarget = env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET;
-  const mainnetBpiTarget = env.VITE_MAINNET_BPI_PROXY_TARGET || DEFAULT_MAINNET_BPI_PROXY_TARGET;
-  const testnetBpiTarget = env.VITE_TESTNET_BPI_PROXY_TARGET || DEFAULT_TESTNET_BPI_PROXY_TARGET;
 
   return {
     plugins: [
@@ -22,7 +18,7 @@ export default defineConfig(({ mode }) => {
         algorithm: "gzip",
         ext: ".gz",
         threshold: 10240,
-        verbose: false,
+        deleteOriginFile: false,
       }),
     ],
     resolve: {
@@ -34,102 +30,87 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        
         "/neotube-api": {
           target: "https://api.neotube.io",
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/neotube-api/, ""),
         },
         "/api/mainnet/primary": {
-          target: "https://neofura.ngd.network",
+          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/mainnet/fallback": {
-          target: "https://neofura.ngd.network",
+          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet/primary": {
-          target: "https://testmagnet.ngd.network",
+          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet/fallback": {
-          target: "https://testmagnet.ngd.network",
+          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/mainnet": {
-          target: mainnetRpcTarget,
+          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet": {
-          target: testnetRpcTarget,
+          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/bpi/mainnet": {
-          target: mainnetBpiTarget,
+          target: env.VITE_MAINNET_BPI_PROXY_TARGET || DEFAULT_MAINNET_BPI_PROXY_TARGET,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/bpi\/mainnet/, "/bpi"),
         },
         "/bpi/testnet": {
-          target: testnetBpiTarget,
+          target: env.VITE_TESTNET_BPI_PROXY_TARGET || DEFAULT_TESTNET_BPI_PROXY_TARGET,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/bpi\/testnet/, "/bpi"),
         },
-        "/api": {
-          target: mainnetRpcTarget,
-          changeOrigin: true,
-          rewrite: () => "/",
-        },
         "/bpi": {
-          target: mainnetBpiTarget,
+          target: env.VITE_MAINNET_BPI_PROXY_TARGET || DEFAULT_MAINNET_BPI_PROXY_TARGET,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi/, "/bpi"),
         },
       },
     },
-    css: {
-      devSourcemap: true,
-    },
-    esbuild: {
-      drop: ["debugger"],
-      pure: ["console.log", "console.warn", "console.info"],
-    },
     build: {
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes("commonjsHelpers.js") || id.startsWith("\u0000commonjsHelpers")) {
+            if (id.includes("node_modules")) {
+              if (id.includes("@cityofzion/neon-js")) {
+                return "neon-js";
+              }
+              if (id.includes("@walletconnect")) {
+                return "walletconnect";
+              }
+              if (id.includes("@web3auth")) {
+                return "web3auth";
+              }
+              if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
+                return "vue-core";
+              }
+              if (id.includes("echarts")) {
+                return "echarts";
+              }
+              if (id.includes("axios")) {
+                return "axios";
+              }
+              if (id.includes("@toruslabs") || id.includes("@web3auth")) {
+                return "web3auth";
+              }
+
               return "vendor";
             }
-
-            if (!id.includes("node_modules")) return null;
-
-            if (id.includes("node_modules/@walletconnect")) {
-              return "walletconnect";
-            }
-
-            if (id.includes("node_modules/@cityofzion/neon-dappkit")) {
-              return "neon-dappkit";
-            }
-
-            if (id.includes("node_modules/@cityofzion/neon-js")) {
-              return "neon-js";
-            }
-
-            if (id.includes("node_modules/ox")) {
-              return "ox-core";
-            }
-
-            if (id.includes("node_modules/axios")) {
-              return "axios";
-            }
-
-            return "vendor";
           },
         },
       },
