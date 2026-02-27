@@ -80,6 +80,8 @@ const NeoFSTool = lazyLoad(() => import("../views/Tools/NeoFSTool.vue"));
 const CandidateProfileTool = lazyLoad(() => import("../views/Tools/CandidateProfileTool.vue"));
 const BroadcastMessageTool = lazyLoad(() => import("../views/Tools/BroadcastMessageTool.vue"));
 const SponsoredTool = lazyLoad(() => import("../views/Tools/SponsoredTool.vue"));
+const ContractDeployerTool = lazyLoad(() => import("../views/Tools/ContractDeployerTool.vue"));
+const ContractFactoryTool = lazyLoad(() => import("../views/Tools/ContractFactoryTool.vue"));
 
 const routes = [
   {
@@ -146,6 +148,18 @@ const routes = [
         name: "sponsored-transactions",
         meta: { title: "Sponsored Transactions" },
         component: SponsoredTool,
+      },
+      {
+        path: "/tools/deployer",
+        name: "contract-deployer",
+        meta: { title: "Contract Deployer" },
+        component: ContractDeployerTool,
+      },
+      {
+        path: "/tools/factory",
+        name: "contract-factory",
+        meta: { title: "Contract Factory" },
+        component: ContractFactoryTool,
       },
       {
         path: "/blocks",
