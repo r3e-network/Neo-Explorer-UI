@@ -25,7 +25,14 @@
       <!-- Validator (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-center md:block">
         <p class="text-xs text-mid truncate">
-          {{ resolvePrimaryIndex(block) !== undefined ? getPrimaryNodeName(resolvePrimaryIndex(block)) : "Validator" }}
+          <router-link
+            v-if="validatorAddress && resolvedPrimary !== undefined"
+            :to="`/account-profile/${validatorAddress}`"
+            class="etherscan-link"
+          >
+            {{ validatorName }}
+          </router-link>
+          <span v-else>{{ validatorName }}</span>
         </p>
         <div class="text-sm font-medium text-high truncate">
           <HashLink
@@ -74,11 +81,17 @@ const props = defineProps({
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
+const resolvedPrimary = computed(() => resolvePrimaryIndex(props.block));
+
+const validatorName = computed(() => {
+  if (resolvedPrimary.value === undefined) return "Validator";
+  return getPrimaryNodeName(resolvedPrimary.value) || "Consensus Node";
+});
+
 const validatorAddress = computed(() => {
   // Always try to pull the mapped address directly for the primary consensus node first
-  const resolvedPrimary = resolvePrimaryIndex(props.block);
-  if (resolvedPrimary !== undefined) {
-    const directAddr = getPrimaryNodeAddress(resolvedPrimary);
+  if (resolvedPrimary.value !== undefined) {
+    const directAddr = getPrimaryNodeAddress(resolvedPrimary.value);
     if (directAddr) return scriptHashToAddress(directAddr);
   }
 

@@ -159,7 +159,14 @@
                 <!-- Validator -->
                 <td class="table-cell">
                   <div class="flex flex-col">
-                    <span v-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
+                    <router-link
+                      v-if="resolvePrimaryIndex(block) !== undefined && getActiveValidatorAddress(block)"
+                      :to="`/account-profile/${getActiveValidatorAddress(block)}`"
+                      class="etherscan-link text-sm font-semibold"
+                    >
+                      {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                    </router-link>
+                    <span v-else-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
                       {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
                     </span>
                     <HashLink v-if="getActiveValidatorAddress(block)" :hash="getActiveValidatorAddress(block)" type="address" />

@@ -85,6 +85,25 @@ describe("useCommittee", () => {
     expect(rpcMock).toHaveBeenCalledWith("GetCommittee", { Limit: 21, Skip: 0 });
   });
 
+  it("normalizes string committee entries so validator metadata resolves", async () => {
+    rpcMock.mockResolvedValueOnce(["PUBKEY1"]);
+    cachedRequestMock.mockResolvedValueOnce([
+      {
+        pubkey: "PUBKEY1",
+        name: "Validator Alpha",
+        scripthash: "0x1234567890abcdef1234567890abcdef12345678",
+      },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("Validator Alpha");
+    expect(getPrimaryNodeAddress(0)).toBe("0x1234567890abcdef1234567890abcdef12345678");
+  });
+
   it("falls back to known-address validator name when Dora metadata is missing", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
     cachedRequestMock.mockResolvedValueOnce([]);

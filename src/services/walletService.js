@@ -347,7 +347,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
          return { signedTx: txn.serialize(true) };
       }
 
-      const txid = await rpcClient.sendRawTransaction(txn.serialize(true));
+      const txid = await rpcClient.sendRawTransaction(txn);
       return { txid };
     }
 

@@ -19,7 +19,12 @@ const invokeScriptMock = vi.fn(async (script) => {
 });
 const getBlockCountMock = vi.fn(async () => 123456);
 const calculateNetworkFeeMock = vi.fn(async () => "1000");
-const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
+const sendRawTransactionMock = vi.fn(async (txPayload) => {
+  if (typeof txPayload === "string") {
+    throw new Error("Invalid params");
+  }
+  return "0xtesttxid";
+});
 
 class MockRpcClient {
   async getBlockCount() {
@@ -104,7 +109,7 @@ describe("walletService Web3Auth invoke", () => {
     vi.clearAllMocks();
   });
 
-  it("converts script to HexString/base64 before invokescript RPC", async () => {
+  it("converts script to HexString/base64 before invokescript RPC and sends Transaction object for broadcast", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
 
     await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
@@ -124,5 +129,9 @@ describe("walletService Web3Auth invoke", () => {
     const [scriptArg] = invokeScriptMock.mock.calls[0];
     expect(typeof scriptArg).not.toBe("string");
     expect(scriptArg.toBase64()).toBe("UQ==");
+
+    expect(sendRawTransactionMock).toHaveBeenCalledTimes(1);
+    const [sendArg] = sendRawTransactionMock.mock.calls[0];
+    expect(typeof sendArg).toBe("object");
   });
 });

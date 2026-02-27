@@ -37,7 +37,10 @@ describe("BlockListItem", () => {
         },
       },
       global: {
-        stubs: ["router-link", "HashLink"],
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+          HashLink: true,
+        },
       },
     });
     expect(wrapper.text()).toContain("Unknown Validator");

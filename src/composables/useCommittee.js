@@ -15,10 +15,34 @@ const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
 
 const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
 
+const getValidatorPublicKey = (validator) => {
+  if (!validator) return null;
+  if (typeof validator === "string") return validator;
+
+  return validator.publickey || validator.pubkey || validator.publicKey || null;
+};
+
+const normalizeCommitteeEntry = (entry) => {
+  const publickey = getValidatorPublicKey(entry);
+  if (!publickey) return null;
+
+  if (typeof entry === "string") {
+    return { publickey };
+  }
+
+  return { ...entry, publickey };
+};
+
+const normalizeCommitteeList = (input) => {
+  if (!Array.isArray(input)) return [];
+  return input.map(normalizeCommitteeEntry).filter(Boolean);
+};
+
 const deriveValidatorAddress = (validator) => {
-  if (!validator?.publickey) return null;
+  const publickey = getValidatorPublicKey(validator);
+  if (!publickey) return null;
   try {
-    return new wallet.Account(validator.publickey).address;
+    return new wallet.Account(publickey).address;
   } catch {
     return null;
   }
@@ -39,8 +63,9 @@ const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
 };
 
 const getValidatorMetadata = (validator) => {
-  if (!validator?.publickey) return null;
-  const byPubkey = doraMetadata.value[normalizeMetaKey(validator.publickey)];
+  const publickey = getValidatorPublicKey(validator);
+  if (!publickey) return null;
+  const byPubkey = doraMetadata.value[normalizeMetaKey(publickey)];
   if (byPubkey) return byPubkey;
 
   const derivedAddress = deriveValidatorAddress(validator);
@@ -69,9 +94,9 @@ export function useCommittee() {
       // GetCommittee is supported by neo3fura and returns consensus committee members.
       const response = await rpc("GetCommittee", { Limit: 21, Skip: 0 });
       if (response && Array.isArray(response)) {
-        validators.value = response;
+        validators.value = normalizeCommitteeList(response);
       } else if (response && response.result && Array.isArray(response.result)) {
-        validators.value = response.result;
+        validators.value = normalizeCommitteeList(response.result);
       }
 
       validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
@@ -192,8 +217,10 @@ export function useCommittee() {
   const isCouncilMember = (address) => {
     if (!address || !validators.value) return false;
     for (const v of validators.value) {
+      const publickey = getValidatorPublicKey(v);
+      if (!publickey) continue;
       try {
-        const acc = new wallet.Account(v.publickey);
+        const acc = new wallet.Account(publickey);
         if (acc.address === address) return true;
       } catch (_e) {
         /* ignore */
