@@ -109,7 +109,13 @@
           <!-- Decode Mode -->
           <template v-if="activeMode === 'decode'">
             <div class="space-y-2">
-              <label class="block text-sm font-semibold text-high">Compiled Script (Base64 or Hex)</label>
+              <div class="flex items-center justify-between">
+                <label class="block text-sm font-semibold text-high">Compiled Script</label>
+                <select v-model="decodeFormat" class="form-input bg-surface text-xs py-1 px-2 h-auto">
+                  <option value="base64">Base64</option>
+                  <option value="hex">Hex String</option>
+                </select>
+              </div>
               <textarea v-model="decodeInput" class="form-input w-full h-32 bg-surface text-high font-mono text-sm" placeholder="Paste raw transaction script payload here..."></textarea>
             </div>
             
@@ -179,6 +185,7 @@ const encodeForm = ref({
 const encodedResult = ref(null);
 
 // Decode State
+const decodeFormat = ref("base64");
 const decodeInput = ref("");
 const decodedResult = ref(null);
 
@@ -197,15 +204,26 @@ function encodeScript() {
     
     const method = encodeForm.value.method.trim();
     
-    const args = encodeForm.value.params.map(p => {
-      let val = p.value;
-      if (p.type === 'Hash160') {
-         // Auto-convert standard address to Hash160 if needed
-         if (val.startsWith('N')) {
-            val = new wallet.Account(val).scriptHash;
-         }
+    const args = encodeForm.value.params.map((p, index) => {
+      try {
+        let val = p.value;
+        if (p.type === 'Hash160') {
+           if (val.startsWith('N')) {
+              val = new wallet.Account(val).scriptHash;
+           } else if (val.startsWith('0x')) {
+              val = val.replace(/^0x/, '');
+           }
+        } else if (p.type === 'ByteArray' || p.type === 'Hash256') {
+           if (val.startsWith('0x')) val = val.replace(/^0x/, '');
+        } else if (p.type === 'Integer') {
+           val = val.toString();
+        } else if (p.type === 'Boolean') {
+           val = val === 'true' || val === '1';
+        }
+        return sc.ContractParam.fromJson({ type: p.type, value: val });
+      } catch (err) {
+        throw new Error(`Invalid format for Parameter ${index + 1} (${p.type})`);
       }
-      return sc.ContractParam.fromJson({ type: p.type, value: val });
     });
     
     const sb = new sc.ScriptBuilder();
@@ -227,13 +245,10 @@ function decodeScript() {
     let input = decodeInput.value.trim();
     let base64Script = "";
     
-    // Check if it's hex or base64
-    if (/^[0-9a-fA-F]+$/.test(input) || input.startsWith('0x')) {
-      // It's hex
+    if (decodeFormat.value === "hex") {
       const cleanHex = input.replace(/^0x/, '');
       base64Script = u.hex2base64(cleanHex);
     } else {
-      // Assume base64
       base64Script = input;
     }
     

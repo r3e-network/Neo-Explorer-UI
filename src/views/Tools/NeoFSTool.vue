@@ -234,6 +234,7 @@
 import { ref, watch, onMounted } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
+import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -359,8 +360,8 @@ async function refreshAssets() {
 
 async function handleUpload() {
   if (!selectedFile.value) return;
-  if (!connectedAccount.value || typeof window === "undefined" || !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found or not connected.");
+  if (!walletService.isConnected) {
+    toast.error("Please connect your wallet first via the header.");
     return;
   }
   
@@ -368,10 +369,7 @@ async function handleUpload() {
   toast.info("Awaiting wallet signature for NeoFS upload...");
   
   try {
-    const neoline = new window.NEOLineN3.Init();
-    const result = await neoline.signMessage({
-      message: "Authorize NeoFS Upload: " + selectedFile.value.name
-    });
+    const result = await walletService.signMessage("Authorize NeoFS Upload: " + selectedFile.value.name);
     
     if (result && result.signature) {
       toast.success(`Successfully uploaded ${selectedFile.value.name} to NeoFS!`);

@@ -70,7 +70,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="p-4 rounded-xl border border-line-soft bg-surface">
                     <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">Hex</p>
-                    <p class="text-sm text-high font-mono break-all">{{ hexResult }}</p>
+                    <p class="text-sm text-high font-mono break-all">{{ hexResult ? '0x' + hexResult : '' }}</p>
                   </div>
                   
                   <div class="p-4 rounded-xl border border-line-soft bg-surface">
@@ -134,9 +134,7 @@ const intResult = computed(() => {
   try {
     // Neo integers are little-endian in storage
     const reversedHex = u.reverseHex(hexResult.value);
-    // Neon-js BigInteger wrapper or just standard parse
-    // For simplicity, handle small to medium integers
-    return BigInt('0x' + (reversedHex || '0')).toString();
+    return u.BigInteger.fromTwos(reversedHex).toString();
   } catch (e) {
     return "Invalid Integer";
   }

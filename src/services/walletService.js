@@ -150,6 +150,26 @@ export const walletService = {
    * @param {Array} params.args - Method arguments [{type, value}]
    * @returns {Promise<{txid: string}>}
    */
+async signMessage(message) {
+    if (!_account) throw new Error("Wallet not connected");
+
+    if (_connectedProvider === PROVIDERS.NEOLINE) {
+      const n3 = await getNeoLineN3();
+      return await n3.signMessage({ message });
+    }
+
+    if (_connectedProvider === PROVIDERS.O3) {
+      const dapi = window.neo3Dapi;
+      return await dapi.signMessage({ message });
+    }
+
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+      return await walletConnectService.signMessage(message);
+    }
+
+    throw new Error("No wallet connected");
+  },
+
 async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
     if (!_account) throw new Error("Wallet not connected");
 

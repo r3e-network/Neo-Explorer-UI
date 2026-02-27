@@ -19,7 +19,13 @@
         <div class="max-w-3xl mx-auto space-y-6">
           
           <div class="space-y-2">
-            <label class="block text-sm font-semibold text-high">Transaction Script (Base64 or Hex)</label>
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-semibold text-high">Transaction Script</label>
+              <select v-model="scriptFormat" class="form-input bg-surface text-xs py-1 px-2 h-auto">
+                <option value="base64">Base64</option>
+                <option value="hex">Hex String</option>
+              </select>
+            </div>
             <textarea v-model="scriptInput" class="form-input w-full h-32 bg-surface text-high font-mono text-sm" placeholder="Paste your raw transaction payload script here..."></textarea>
           </div>
           
@@ -106,6 +112,7 @@ import { rpc, tx, u, wallet } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
 
 const toast = useToast();
+const scriptFormat = ref("base64");
 const scriptInput = ref("");
 const signers = ref([]);
 const isEstimating = ref(false);
@@ -144,7 +151,7 @@ async function estimateGas() {
     
     // Normalize Script
     let hexScript = "";
-    if (/^[0-9a-fA-F]+$/.test(input) || input.startsWith('0x')) {
+    if (scriptFormat.value === "hex") {
       hexScript = input.replace(/^0x/, '');
     } else {
       hexScript = u.base642hex(input);

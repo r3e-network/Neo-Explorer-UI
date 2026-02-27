@@ -178,6 +178,7 @@
 import { ref, watch } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
+import { walletService } from "@/services/walletService";
 import candidateService from "@/services/candidateService";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
@@ -316,18 +317,14 @@ async function loadExistingProfile(address) {
 
 
 async function saveProfile() {
-  if (typeof window === "undefined" || !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found.");
+  if (!walletService.isConnected) {
+    toast.error("Please connect your wallet first via the header.");
     return;
   }
   
   try {
     toast.info("Awaiting wallet signature to authorize profile update...");
-    const neoline = new window.NEOLineN3.Init();
-    
-    const result = await neoline.signMessage({
-      message: "Update Neo Candidate Profile for " + form.value.name
-    });
+    const result = await walletService.signMessage("Update Neo Candidate Profile for " + form.value.name);
     
     if (result && result.signature) {
       toast.success("Profile update transaction authorized and submitted!");

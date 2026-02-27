@@ -60,6 +60,21 @@ export const walletConnectService = {
   /**
    * Invoke a contract method via the connected wallet.
    */
+  async signMessage(message) {
+    if (!_session || !_client) throw new Error("WalletConnect not connected");
+    return await _client.request({
+      topic: _session.topic,
+      chainId: NEO_N3_CHAIN,
+      request: {
+        method: "signMessage",
+        params: { message }
+      }
+    });
+  },
+
+  /**
+   * Invoke a contract method via the connected wallet.
+   */
   async invoke({ scriptHash, operation, args = [], signerScope = 1 }) {
     if (!_session || !_client) throw new Error("WalletConnect not connected");
     const result = await _client.request({

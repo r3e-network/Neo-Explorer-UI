@@ -137,6 +137,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
+import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 
 // eslint-disable-next-line no-unused-vars
@@ -148,18 +149,14 @@ const requests = ref([]);
 const showCreateModal = ref(false);
 
 async function handleCreateRequest() {
-  if (typeof window === "undefined" || !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found.");
+  if (!walletService.isConnected) {
+    toast.error("Please connect your wallet first via the header.");
     return;
   }
   
   try {
     toast.info("Awaiting wallet signature...");
-    const neoline = new window.NEOLineN3.Init();
-    
-    const result = await neoline.signMessage({
-      message: "Authorize creation of new Multi-Sig Request"
-    });
+    const result = await walletService.signMessage("Authorize creation of new Multi-Sig Request");
     
     if (result && result.signature) {
       toast.success("Request creation authorized successfully!");
