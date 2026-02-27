@@ -5,12 +5,24 @@
  */
 
 import { walletConnectService } from "./walletConnectService";
+import { web3authService } from "./web3authService";
+import { rpc, tx, sc, u } from "@cityofzion/neon-js";
+import { getCurrentEnv } from "@/utils/env";
+
+const getRpcUrl = () => {
+    const env = getCurrentEnv().toLowerCase();
+    if (env.includes("test") || env.includes("t5")) {
+        return "https://testnet1.neo.coz.io:443";
+    }
+    return "https://mainnet1.neo.coz.io:443";
+};
 
 /** Supported wallet providers */
 const PROVIDERS = {
   NEOLINE: "NeoLine",
   O3: "O3",
   WALLETCONNECT: "WalletConnect",
+  WEB3AUTH: "Google / Email (Web3Auth)",
 };
 
 /** Internal state */
@@ -88,6 +100,7 @@ export const walletService = {
     if (isNeoLineAvailable()) providers.push(PROVIDERS.NEOLINE);
     if (isO3Available()) providers.push(PROVIDERS.O3);
     providers.push(PROVIDERS.WALLETCONNECT); // always available
+    providers.push(PROVIDERS.WEB3AUTH); // always available via web
     return providers;
   },
 
@@ -129,6 +142,13 @@ export const walletService = {
       };
     }
 
+    if (providerName === PROVIDERS.WEB3AUTH) {
+      const account = await web3authService.connect();
+      _connectedProvider = PROVIDERS.WEB3AUTH;
+      _account = { address: account.address, label: "Web3Auth Account" };
+      return _account;
+    }
+
     throw new Error(`Unknown provider: ${providerName}`);
   },
 
@@ -136,6 +156,9 @@ export const walletService = {
   disconnect() {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
       walletConnectService.disconnect();
+    }
+    if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      web3authService.disconnect();
     }
     _connectedProvider = null;
     _account = null;
@@ -165,6 +188,19 @@ async signMessage(message) {
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
       return await walletConnectService.signMessage(message);
+    }
+
+    if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const account = await web3authService.getAccount();
+      // Emulate NeoLine's returned structure
+      const messageHex = u.str2hexstring(message);
+      const signature = account.sign(messageHex);
+      return {
+         publicKey: account.publicKey,
+         data: signature,
+         salt: "",
+         message: message
+      };
     }
 
     throw new Error("No wallet connected");
@@ -209,6 +245,52 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       // WalletConnect doesn't support broadcastOverride natively in the same way via Neo dAPI wrapper out of the box,
       // but we pass it anyway.
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
+    }
+
+    if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const account = await web3authService.getAccount();
+      const rpcClient = new rpc.RPCClient(getRpcUrl());
+
+      const sb = new sc.ScriptBuilder();
+      const mappedArgs = args.map(a => sc.ContractParam.fromJson(a));
+      sb.emitAppCall(scriptHash, operation, mappedArgs);
+      const script = sb.build();
+
+      const currentHeight = await rpcClient.getBlockCount();
+      const invokeRes = await rpcClient.invokeScript(script, invokeSigners);
+
+      if (invokeRes.state === "FAULT") {
+          throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
+      }
+
+      let txn = new tx.Transaction({
+          signers: invokeSigners,
+          validUntilBlock: currentHeight + 1000,
+          script: script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+      });
+
+      const magic = getCurrentEnv().toLowerCase().includes("test") ? 894710606 : 860833102;
+      txn.sign(account, magic);
+      
+      const networkFee = await rpcClient.calculateNetworkFee(txn);
+      
+      // Resign with final explicit fees
+      txn = new tx.Transaction({
+          signers: invokeSigners,
+          validUntilBlock: currentHeight + 1000,
+          script: script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+          networkFee: networkFee
+      });
+      txn.sign(account, magic);
+
+      if (broadcastOverride) {
+         return { signedTx: txn.serialize(true) };
+      }
+
+      const txid = await rpcClient.sendRawTransaction(txn.serialize(true));
+      return { txid };
     }
 
     throw new Error("No wallet connected");
