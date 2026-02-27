@@ -3,7 +3,7 @@ import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
-import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
+import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
 
 // Shared reactive state to avoid redundant fetches across components
@@ -14,23 +14,87 @@ const initialized = ref(false);
 const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
 
 const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
+const NEOFS_LOGO_GATEWAY = "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc";
+
+const normalizeCandidateScriptHash = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return null;
+
+  if (isScriptHashHex(normalized)) {
+    return normalized.startsWith("0x") ? normalized.toLowerCase() : `0x${normalized.toLowerCase()}`;
+  }
+
+  const scriptHash = addressToScriptHash(normalized);
+  return scriptHash ? scriptHash.toLowerCase() : null;
+};
+
+const resolveCandidateLogo = (logo) => {
+  const normalized = String(logo || "").trim();
+  if (!normalized) return null;
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized;
+  }
+
+  return `${NEOFS_LOGO_GATEWAY}/${normalized}`;
+};
 
 const getValidatorPublicKey = (validator) => {
   if (!validator) return null;
-  if (typeof validator === "string") return validator;
+  if (typeof validator === "string") {
+    const normalized = String(validator).trim();
+    if (!normalized) return null;
+    if (isPublicKeyHex(normalized)) return normalized;
+    if (normalizeCandidateScriptHash(normalized)) return null;
+    return normalized;
+  }
 
-  return validator.publickey || validator.pubkey || validator.publicKey || null;
+  const candidateKeys = [validator.publickey, validator.pubkey, validator.publicKey];
+  for (const key of candidateKeys) {
+    const normalized = String(key || "").trim();
+    if (!normalized) continue;
+    if (isPublicKeyHex(normalized)) return normalized;
+    if (normalizeCandidateScriptHash(normalized)) continue;
+    return normalized;
+  }
+
+  return null;
+};
+
+const getValidatorCandidateHash = (validator) => {
+  if (!validator) return null;
+
+  if (typeof validator === "string") {
+    const asHash = normalizeCandidateScriptHash(validator);
+    return asHash || null;
+  }
+
+  const candidate =
+    validator.candidate ||
+    validator.scripthash ||
+    validator.scriptHash ||
+    validator.address ||
+    validator.validator ||
+    null;
+
+  return normalizeCandidateScriptHash(candidate);
 };
 
 const normalizeCommitteeEntry = (entry) => {
   const publickey = getValidatorPublicKey(entry);
-  if (!publickey) return null;
+  const candidate = getValidatorCandidateHash(entry);
+  if (!publickey && !candidate) return null;
 
   if (typeof entry === "string") {
-    return { publickey };
+    if (publickey) return { publickey };
+    return { candidate };
   }
 
-  return { ...entry, publickey };
+  return {
+    ...entry,
+    ...(publickey ? { publickey } : {}),
+    ...(candidate ? { candidate } : {}),
+  };
 };
 
 const normalizeCommitteeList = (input) => {
@@ -39,6 +103,11 @@ const normalizeCommitteeList = (input) => {
 };
 
 const deriveValidatorAddress = (validator) => {
+  const candidate = getValidatorCandidateHash(validator);
+  if (candidate) {
+    return scriptHashToAddress(candidate);
+  }
+
   const publickey = getValidatorPublicKey(validator);
   if (!publickey) return null;
   try {
@@ -64,9 +133,17 @@ const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
 
 const getValidatorMetadata = (validator) => {
   const publickey = getValidatorPublicKey(validator);
-  if (!publickey) return null;
-  const byPubkey = doraMetadata.value[normalizeMetaKey(publickey)];
-  if (byPubkey) return byPubkey;
+  if (publickey) {
+    const byPubkey = doraMetadata.value[normalizeMetaKey(publickey)];
+    if (byPubkey) return byPubkey;
+  }
+
+  const candidate = getValidatorCandidateHash(validator);
+  if (candidate) {
+    const byCandidate =
+      doraMetadata.value[normalizeMetaKey(candidate)] || doraMetadata.value[normalizeScriptHashKey(candidate)];
+    if (byCandidate) return byCandidate;
+  }
 
   const derivedAddress = deriveValidatorAddress(validator);
   if (derivedAddress) {
@@ -114,7 +191,7 @@ export function useCommittee() {
     try {
       const env = getCurrentEnv().toLowerCase();
       const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
-      const url = `https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`;
+      const url = `https://dora.coz.io/api/v2/neo3/${doraEnv}/committee`;
       const data = await cachedRequest(
           `dora_metadata_${doraEnv}`,
           () => fetch(url).then(r => r.ok ? r.json() : []),
@@ -131,16 +208,21 @@ export function useCommittee() {
 
       if (Array.isArray(data)) {
         data.forEach(item => {
-          addMeta(item.pubkey, item);
-          addMeta(item.scripthash, item);
-          addMeta(normalizeScriptHashKey(item.scripthash), item);
+          const normalizedMeta = {
+            ...item,
+            logoUrl: resolveCandidateLogo(item.logo),
+          };
+
+          addMeta(item.pubkey, normalizedMeta);
+          addMeta(item.scripthash, normalizedMeta);
+          addMeta(normalizeScriptHashKey(item.scripthash), normalizedMeta);
 
           const itemAddress = deriveValidatorAddress({ publickey: item.pubkey });
           if (itemAddress) {
-            addMeta(itemAddress, item);
+            addMeta(itemAddress, normalizedMeta);
             const scriptHash = addressToScriptHash(itemAddress);
-            addMeta(scriptHash, item);
-            addMeta(normalizeScriptHashKey(scriptHash), item);
+            addMeta(scriptHash, normalizedMeta);
+            addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
           }
         });
       }
@@ -214,6 +296,30 @@ export function useCommittee() {
     return deriveValidatorAddress(validator);
   };
 
+  const getPrimaryNodeLogo = (primaryIndex) => {
+    if (primaryIndex === undefined || primaryIndex === null) return null;
+    if (!validators.value || validators.value.length === 0) return null;
+
+    const validator = validators.value[Number(primaryIndex)];
+    if (!validator) return null;
+
+    const meta = getValidatorMetadata(validator);
+    if (meta?.logoUrl) return meta.logoUrl;
+    if (meta?.logo) {
+      const resolved = resolveCandidateLogo(meta.logo);
+      if (resolved) return resolved;
+    }
+
+    const publickey = getValidatorPublicKey(validator) || meta?.pubkey;
+    const env = getCurrentEnv().toLowerCase();
+    const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+    if (!isTestnet && publickey) {
+      return `https://governance.neo.org/logo/${publickey}.png`;
+    }
+
+    return null;
+  };
+
   const isCouncilMember = (address) => {
     if (!address || !validators.value) return false;
     for (const v of validators.value) {
@@ -229,5 +335,12 @@ export function useCommittee() {
     return false;
   };
 
-  return { loadCommittee, resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, isCouncilMember };
+  return {
+    loadCommittee,
+    resolvePrimaryIndex,
+    getPrimaryNodeName,
+    getPrimaryNodeAddress,
+    getPrimaryNodeLogo,
+    isCouncilMember,
+  };
 }

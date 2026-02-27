@@ -158,18 +158,34 @@
                 </td>
                 <!-- Validator -->
                 <td class="table-cell">
-                  <div class="flex flex-col">
+                  <div class="flex flex-col gap-0.5">
+                    <div class="inline-flex items-center gap-1.5">
+                      <img
+                        v-if="getActiveValidatorLogo(block)"
+                        :src="getActiveValidatorLogo(block)"
+                        alt="Validator logo"
+                        class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
+                        onerror="this.src='/img/brand/neo.png'"
+                      />
+                      <router-link
+                        v-if="resolvePrimaryIndex(block) !== undefined && getActiveValidatorAddress(block)"
+                        :to="`/account-profile/${getActiveValidatorAddress(block)}`"
+                        class="etherscan-link text-sm font-semibold"
+                      >
+                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                      </router-link>
+                      <span v-else-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
+                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                      </span>
+                    </div>
                     <router-link
-                      v-if="resolvePrimaryIndex(block) !== undefined && getActiveValidatorAddress(block)"
+                      v-if="getActiveValidatorAddress(block)"
                       :to="`/account-profile/${getActiveValidatorAddress(block)}`"
-                      class="etherscan-link text-sm font-semibold"
+                      :title="getActiveValidatorAddress(block)"
+                      class="etherscan-link font-hash text-xs"
                     >
-                      {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                      {{ truncateHash(getActiveValidatorAddress(block), 8, 6) }}
                     </router-link>
-                    <span v-else-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
-                      {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
-                    </span>
-                    <HashLink v-if="getActiveValidatorAddress(block)" :hash="getActiveValidatorAddress(block)" type="address" />
                     <span v-else class="text-xs text-low">--</span>
                   </div>
                 </td>
@@ -202,11 +218,10 @@ import { getCacheKey } from "@/services/cache";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
-import { formatAge, formatBytes, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
+import { formatAge, formatBytes, formatUnixTime, formatNumber, truncateHash } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { useCommittee } from "@/composables/useCommittee";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import HashLink from "@/components/common/HashLink.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -223,7 +238,12 @@ function getActiveValidatorAddress(block) {
   }
   return block.nextconsensus ? scriptHashToAddress(block.nextconsensus) : null;
 }
-const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+function getActiveValidatorLogo(block) {
+  const resolvedPrimary = resolvePrimaryIndex(block);
+  if (resolvedPrimary === undefined) return null;
+  return getPrimaryNodeLogo(resolvedPrimary) || null;
+}
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 const showAbsoluteTime = ref(false);
 
 // Stats bar

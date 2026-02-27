@@ -25,23 +25,33 @@
       <!-- Validator (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-center md:block">
         <p class="text-xs text-mid truncate">
-          <router-link
-            v-if="validatorAddress && resolvedPrimary !== undefined"
-            :to="`/account-profile/${validatorAddress}`"
-            class="etherscan-link"
-          >
-            {{ validatorName }}
-          </router-link>
-          <span v-else>{{ validatorName }}</span>
+          <span class="inline-flex items-center gap-1.5">
+            <img
+              v-if="validatorLogo"
+              :src="validatorLogo"
+              alt="Validator logo"
+              class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
+              onerror="this.src='/img/brand/neo.png'"
+            />
+            <router-link
+              v-if="validatorAddress && resolvedPrimary !== undefined"
+              :to="`/account-profile/${validatorAddress}`"
+              class="etherscan-link"
+            >
+              {{ validatorName }}
+            </router-link>
+            <span v-else>{{ validatorName }}</span>
+          </span>
         </p>
         <div class="text-sm font-medium text-high truncate">
-          <HashLink
+          <router-link
             v-if="validatorAddress"
-            :hash="validatorAddress"
-            type="address"
-            :copyable="false"
-            :resolve-nns="false"
-          />
+            :to="`/account-profile/${validatorAddress}`"
+            :title="validatorAddress"
+            class="etherscan-link font-hash text-xs"
+          >
+            {{ truncateHash(validatorAddress, 8, 6) }}
+          </router-link>
           <span v-else class="text-low">--</span>
         </div>
       </div>
@@ -67,12 +77,11 @@
 <script setup>
 import { computed } from "vue";
 import { useNow } from "@vueuse/core";
-import { formatAge as _formatAge, formatNumber, formatGas } from "@/utils/explorerFormat";
+import { formatAge as _formatAge, formatNumber, formatGas, truncateHash } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
-import HashLink from "./HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
 
-const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 
 const props = defineProps({
   block: { type: Object, default: () => ({}) },
@@ -86,6 +95,11 @@ const resolvedPrimary = computed(() => resolvePrimaryIndex(props.block));
 const validatorName = computed(() => {
   if (resolvedPrimary.value === undefined) return "Validator";
   return getPrimaryNodeName(resolvedPrimary.value) || "Consensus Node";
+});
+
+const validatorLogo = computed(() => {
+  if (resolvedPrimary.value === undefined) return "";
+  return getPrimaryNodeLogo(resolvedPrimary.value) || "";
 });
 
 const validatorAddress = computed(() => {

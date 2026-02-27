@@ -104,6 +104,27 @@ describe("useCommittee", () => {
     expect(getPrimaryNodeAddress(0)).toBe("0x1234567890abcdef1234567890abcdef12345678");
   });
 
+  it("resolves committee entries returned as candidate script hashes", async () => {
+    rpcMock.mockResolvedValueOnce({
+      result: [{ candidate: "0xa62eb3c767ef3d39d98c704f70fc4e869349a6fd" }],
+    });
+    cachedRequestMock.mockResolvedValueOnce([
+      {
+        pubkey: "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b",
+        name: "The Neo Order",
+        scripthash: "0xa62eb3c767ef3d39d98c704f70fc4e869349a6fd",
+      },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("The Neo Order");
+    expect(getPrimaryNodeAddress(0)).toBe("0xa62eb3c767ef3d39d98c704f70fc4e869349a6fd");
+  });
+
   it("falls back to known-address validator name when Dora metadata is missing", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
     cachedRequestMock.mockResolvedValueOnce([]);

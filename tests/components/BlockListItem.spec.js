@@ -11,13 +11,15 @@ vi.mock("@/utils/explorerFormat", () => ({
   formatAge: () => "just now",
   formatNumber: (n) => n,
   formatGas: (n) => n,
+  truncateHash: (value) => value,
 }));
 
 vi.mock("@/composables/useCommittee", () => ({
   useCommittee: () => ({
     resolvePrimaryIndex: vi.fn((b) => b.primary),
     getPrimaryNodeName: vi.fn((idx) => `Unknown Validator`),
-    getPrimaryNodeAddress: vi.fn(() => "0x123")
+    getPrimaryNodeAddress: vi.fn(() => "0x123"),
+    getPrimaryNodeLogo: vi.fn(() => "https://example.com/logo.png"),
   })
 }));
 
