@@ -7,17 +7,23 @@ let _web3auth = null;
 
 // Replace with a default client ID or read from env.
 // For demonstration, a placeholder is used. In production, provide VITE_WEB3AUTH_CLIENT_ID
-const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiIQOAcQgLog7mFc0m_3tS90i6Ew6oNlE9Z4g"; 
+const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BAFNBNPk7tUWbM9L6TBy7ixKCSQ3QwmQ7mCj0r3ai3KBA9ITqb3d7ifD0BV5YDs3NQCLPFU83MptKVc4T_xBMpo"; 
 
-const chainConfig = {
-  chainNamespace: CHAIN_NAMESPACES.OTHER,
-  chainId: "0x334E", // "334E" is hex for N3 Mainnet (13134), though Web3Auth ignores this for OTHER
-  rpcTarget: "https://mainnet1.neo.coz.io:443",
-  displayName: "Neo N3 Mainnet",
-  blockExplorerUrl: "https://neo3scan.com",
-  ticker: "GAS",
-  tickerName: "Neo GAS",
-  logo: "https://neo3scan.com/img/brand/neo.png",
+import { getCurrentEnv } from "@/utils/env";
+
+const getChainConfig = () => {
+  const isTestnet = getCurrentEnv().toLowerCase().includes("test") || getCurrentEnv().toLowerCase().includes("t5");
+  
+  return {
+    chainNamespace: CHAIN_NAMESPACES.OTHER,
+    chainId: isTestnet ? "0x3354" : "0x334E", // Hex representation for Testnet (13140) / Mainnet (13134)
+    rpcTarget: isTestnet ? "https://testnet1.neo.coz.io:443" : "https://mainnet1.neo.coz.io:443",
+    displayName: isTestnet ? "Neo N3 Testnet" : "Neo N3 Mainnet",
+    blockExplorerUrl: "https://neo3scan.com",
+    ticker: "GAS",
+    tickerName: "Neo GAS",
+    logo: "https://neo3scan.com/img/brand/neo.png",
+  };
 };
 
 export const web3authService = {
@@ -28,12 +34,12 @@ export const web3authService = {
     if (_web3auth) return;
     try {
       const privateKeyProvider = new CommonPrivateKeyProvider({
-        config: { chainConfig },
+        config: { chainConfig: getChainConfig() },
       });
 
       _web3auth = new Web3Auth({
         clientId,
-        web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_devnet", // "sapphire_mainnet" for production
+        web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet", // Set to sapphire_mainnet as default for Neo3Scan production
         privateKeyProvider: privateKeyProvider,
       });
 
