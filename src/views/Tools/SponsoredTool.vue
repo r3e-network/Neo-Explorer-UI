@@ -131,6 +131,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
+import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 import { rpc, wallet } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
@@ -241,14 +242,19 @@ async function executeSponsoredTx() {
     
     // 2. Ask NeoLine to build and sign the transaction (but do NOT broadcast)
     toast.info("Please sign the transaction in NeoLine...");
-    const neoline = new window.NEOLineN3.Init();
+    // Ensure wallet connected via service
+    if (!walletService.isConnected) {
+      toast.error("Please connect your wallet first via the header.");
+      isProcessing.value = false;
+      return;
+    }
     
     let neolineSignRes;
     const neoHash = '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5';
     
     try {
         if (operation.value === 'claim') {
-             neolineSignRes = await neoline.invoke({
+             neolineSignRes = await walletService.invoke({
                 scriptHash: neoHash,
                 operation: 'transfer',
                 args: [
@@ -264,7 +270,7 @@ async function executeSponsoredTx() {
                 broadcastOverride: true
             });
         } else {
-             neolineSignRes = await neoline.invoke({
+             neolineSignRes = await walletService.invoke({
                 scriptHash: neoHash,
                 operation: 'vote',
                 args: [

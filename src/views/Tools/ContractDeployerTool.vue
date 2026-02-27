@@ -105,6 +105,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { useToast } from "vue-toastification";
 import { formatBytes } from "@/utils/explorerFormat";
+import { walletService } from "@/services/walletService";
 
 const toast = useToast();
 const nefFile = ref(null);
@@ -173,8 +174,8 @@ async function deployContract() {
   if (!connectedAccount.value) return;
   if (!isReadyToDeploy.value) return;
   
-  if (typeof window === "undefined" || !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found.");
+  if (!walletService.isConnected) {
+    toast.error("Please connect your wallet first via the header.");
     return;
   }
 
@@ -183,21 +184,15 @@ async function deployContract() {
   
   try {
     toast.info("Please review the deployment in your wallet...");
-    const neoline = new window.NEOLineN3.Init();
     
-    // Convert string to hex properly for N3 payload or pass directly if wallet handles it.
-    // neoline usually handles String typing implicitly, but let's be strict.
-    
-    const result = await neoline.invoke({
+    const result = await walletService.invoke({
       scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", // ContractManagement
       operation: "deploy",
       args: [
         { type: "ByteArray", value: nefHex.value },
         { type: "String", value: manifestString.value }
       ],
-      signers: [
-        { account: connectedAccount.value, scopes: 1 }
-      ]
+      scope: 1
     });
     
     if (result && result.txid) {

@@ -150,7 +150,7 @@ export const walletService = {
    * @param {Array} params.args - Method arguments [{type, value}]
    * @returns {Promise<{txid: string}>}
    */
-  async invoke({ scriptHash, operation, args = [], scope = 1 }) {
+async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
     if (!_account) throw new Error("Wallet not connected");
 
     const dapiArgs = args.map((a) => ({
@@ -158,15 +158,19 @@ export const walletService = {
       value: a.value,
     }));
 
+    const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
+
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
       const result = await n3.invoke({
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: [{ account: _account.address, scopes: scope }],
+        signers: invokeSigners,
+        broadcastOverride
       });
-      return { txid: result.txid };
+      // broadcastOverride returns { signedTx } instead of { txid }
+      return broadcastOverride ? result : { txid: result.txid };
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
@@ -175,17 +179,21 @@ export const walletService = {
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: [{ account: _account.address, scopes: scope }],
+        signers: invokeSigners,
+        broadcastOverride
       });
-      return { txid: result.txid };
+      return broadcastOverride ? result : { txid: result.txid };
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+      // WalletConnect doesn't support broadcastOverride natively in the same way via Neo dAPI wrapper out of the box,
+      // but we pass it anyway.
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
     }
 
     throw new Error("No wallet connected");
   },
+
 };
 
 /**
