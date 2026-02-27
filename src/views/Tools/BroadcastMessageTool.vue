@@ -84,6 +84,7 @@
 import { ref, computed } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
+import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -98,13 +99,9 @@ const messageBytes = computed(() => {
 
 async function broadcastMessage() {
   if (!message.value.trim() || messageBytes.value > 65535) return;
-  if (!connectedAccount.value) {
-    toast.error("Please connect your wallet first");
-    return;
-  }
-
-  if (typeof window === "undefined" || !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found.");
+  
+  if (!walletService.isConnected) {
+    toast.error("Please connect your wallet first via the header.");
     return;
   }
 
@@ -112,40 +109,28 @@ async function broadcastMessage() {
   txHash.value = "";
   
   try {
-    const neoline = new window.NEOLineN3.Init();
-    
-    // Convert current address to ScriptHash for the from/to fields
     const fromAddress = connectedAccount.value;
-    
-    // We do a 0 GAS transfer to self, with the message in the argument and/or remark
-    // GAS script hash
     const gasHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     
     toast.info("Preparing transaction for wallet signature...");
     
-    const result = await neoline.invoke({
+    const result = await walletService.invoke({
       scriptHash: gasHash,
       operation: "transfer",
       args: [
-        { type: "Address", value: fromAddress },
-        { type: "Address", value: fromAddress },
+        { type: "Hash160", value: fromAddress },
+        { type: "Hash160", value: fromAddress },
         { type: "Integer", value: "0" },
         { type: "String", value: message.value }
       ],
-      fee: "0",
-      broadcastOverride: false,
       signers: [
-        {
-          account: fromAddress, // NeoLine accepts base58 address here
-          scopes: 1 // CalledByEntry
-        }
-      ],
-      remark: message.value // Pass remark parameter, wallet might append it as TxAttribute
+        { account: fromAddress, scopes: 1 }
+      ]
     });
 
     txHash.value = result.txid;
     toast.success("Message broadcasted to Neo N3!");
-    message.value = ""; // Clear on success
+    message.value = ""; 
     
   } catch (e) {
     console.error(e);

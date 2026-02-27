@@ -3,6 +3,7 @@ import { sc } from "@cityofzion/neon-js";
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
+
 export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
 
 
