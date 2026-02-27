@@ -315,7 +315,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       const script = sb.build();
 
       const currentHeight = await rpcClient.getBlockCount();
-      const invokeRes = await rpcClient.invokeScript(script, normalizedSigners);
+      const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
 
       if (invokeRes.state === "FAULT") {
           throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
