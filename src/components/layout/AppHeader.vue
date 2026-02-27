@@ -123,9 +123,9 @@
             >
               <div class="flex items-center gap-3">
                 <div class="h-10 w-10 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-line-soft p-2">
-                  <img v-if="provider === 'NeoLine'" src="/img/brand/neoline.png" alt="NeoLine" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else-if="provider === 'O3'" src="/img/brand/o3.png" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else src="/img/brand/walletconnect.png" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
+                  <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.png'" alt="NeoLine" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
+                  <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
+                  <img v-else :src="'/img/brand/walletconnect.png'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                 </div>
                 <span class="font-semibold text-high group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{{ provider }}</span>
               </div>
