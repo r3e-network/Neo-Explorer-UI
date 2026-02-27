@@ -76,9 +76,7 @@
                 </router-link>
               </InfoRow>
               <InfoRow label="Owner">
-                <router-link :to="`/account-profile/${address}`" class="break-all font-hash text-sm etherscan-link">
-                  {{ address }}
-                </router-link>
+                <HashLink :hash="address" type="address" :truncated="false" :copyable="false" />
               </InfoRow>
               <InfoRow v-if="description" label="Description">
                 <p>{{ description }}</p>
@@ -101,6 +99,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const route = useRoute();
 const { t } = useI18n();

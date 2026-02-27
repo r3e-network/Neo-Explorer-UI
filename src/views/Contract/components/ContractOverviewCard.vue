@@ -13,13 +13,7 @@
       />
       <InfoRow label="Name" :value="contract.name || '-'" />
       <InfoRow label="Creator" tooltip="The address that deployed this contract">
-        <router-link
-          v-if="contract.sender"
-          :to="`/account-profile/${contract.sender}`"
-          class="break-all font-mono text-sm etherscan-link"
-        >
-          {{ contract.sender }}
-        </router-link>
+        <HashLink v-if="contract.sender" :hash="contract.sender" type="address" :truncated="false" :copyable="false" />
         <span v-else class="text-mid">-</span>
       </InfoRow>
       <InfoRow label="Invocations" :value="formatNumber(contract.totalsccall || 0)" />
@@ -71,6 +65,7 @@
 import { formatNumber } from "@/utils/explorerFormat";
 import { nepBadgeClass } from "@/utils/nepBadges";
 import InfoRow from "@/components/common/InfoRow.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 defineProps({
   contract: { type: Object, required: true },

@@ -49,13 +49,7 @@
                 {{ formatAge(transfer.timestamp) }}
               </td>
               <td class="table-cell">
-                <router-link
-                  v-if="transfer.from"
-                  :to="`/account-profile/${transfer.from}`"
-                  class="font-hash etherscan-link"
-                >
-                  {{ truncateHash(transfer.from, 10, 6) }}
-                </router-link>
+                <HashLink v-if="transfer.from" :hash="transfer.from" type="address" :copyable="false" />
                 <span v-else class="text-low">-</span>
               </td>
               <td class="table-cell text-center p-0">
@@ -67,13 +61,7 @@
                 </span>
               </td>
               <td class="table-cell">
-                <router-link
-                  v-if="transfer.to"
-                  :to="`/account-profile/${transfer.to}`"
-                  class="font-hash etherscan-link"
-                >
-                  {{ truncateHash(transfer.to, 10, 6) }}
-                </router-link>
+                <HashLink v-if="transfer.to" :hash="transfer.to" type="address" :copyable="false" />
                 <span v-else class="text-low">-</span>
               </td>
               <td class="table-cell-secondary font-hash">
@@ -115,6 +103,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   address: { type: String, default: "" },

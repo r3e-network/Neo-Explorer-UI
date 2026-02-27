@@ -40,9 +40,10 @@ import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { contractService } from "@/services";
-import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
+import { getKnownAddressName } from "@/constants/knownAddresses";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -65,11 +66,15 @@ const shouldTruncate = computed(() =>
 
 const nnsName = ref("");
 const fetchedContractName = ref("");
+const normalizedAddressHash = computed(() => {
+  if (props.type !== "address" || !props.hash) return props.hash;
+  return scriptHashToAddress(props.hash);
+});
 
 const knownName = computed(() => {
   if (!props.hash) return null;
   if (props.type === "address") {
-    return KNOWN_ADDRESSES[props.hash] || null;
+    return getKnownAddressName(normalizedAddressHash.value) || null;
   }
   if (props.type === "contract" || props.type === "token") {
     const hash = props.hash.toLowerCase();
@@ -108,8 +113,10 @@ watch(
     nnsName.value = "";
     fetchedContractName.value = "";
     
-    if (resolveNns && type === "address" && newHash && !knownName.value) {
-      const res = await nnsService.resolveAddressToNNS(newHash);
+    const lookupHash = type === "address" ? normalizedAddressHash.value : newHash;
+
+    if (resolveNns && type === "address" && lookupHash && !knownName.value) {
+      const res = await nnsService.resolveAddressToNNS(lookupHash);
       if (res && res.nns) {
         nnsName.value = res.nns;
       }
@@ -147,7 +154,7 @@ const linkPath = computed(() => {
   const routes = {
     block: `/block-info/${props.hash}`,
     tx: `/transaction-info/${props.hash}`,
-    address: `/account-profile/${props.hash}`,
+    address: `/account-profile/${normalizedAddressHash.value || props.hash}`,
     contract: `/contract-info/${props.hash}`,
     token: isNep11 ? `/nft-token-info/${props.hash}` : `/nep17-token-info/${props.hash}`,
   };

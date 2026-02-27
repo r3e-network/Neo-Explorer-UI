@@ -1,3 +1,5 @@
+import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
+
 export const KNOWN_ADDRESSES = {
   // Treasury: Neo Foundation (Da Hongfei)
   "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw": "Neo Foundation (Da Hongfei)",
@@ -85,3 +87,42 @@ export const KNOWN_ADDRESSES = {
   "NLehVzi8ZXVVyJh9wtUqxRqWfXSdFQEXMF": "Unknown Candidate",
   "NNTw7SisSeQrTizGD74HUfwm5JSWKsr3po": "NGD7",
 };
+
+const normalizeKey = (value) => String(value || "").trim().toLowerCase();
+
+const KNOWN_ADDRESS_INDEX = (() => {
+  const index = {};
+  const add = (key, name) => {
+    const normalized = normalizeKey(key);
+    if (normalized) {
+      index[normalized] = name;
+    }
+  };
+
+  Object.entries(KNOWN_ADDRESSES).forEach(([address, name]) => {
+    add(address, name);
+
+    const scriptHash = addressToScriptHash(address);
+    if (scriptHash) {
+      add(scriptHash, name);
+      add(scriptHash.replace(/^0x/i, ""), name);
+    }
+  });
+
+  return index;
+})();
+
+export function getKnownAddressName(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const directMatch = KNOWN_ADDRESS_INDEX[normalizeKey(raw)];
+  if (directMatch) return directMatch;
+
+  const asAddress = scriptHashToAddress(raw);
+  if (asAddress) {
+    return KNOWN_ADDRESS_INDEX[normalizeKey(asAddress)] || null;
+  }
+
+  return null;
+}

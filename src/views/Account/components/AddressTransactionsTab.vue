@@ -84,16 +84,7 @@
                 {{ formatAge(tx.blocktime) }}
               </td>
               <td class="table-cell">
-                <router-link
-                  v-if="tx.sender && tx.sender !== address"
-                  :to="`/account-profile/${tx.sender}`"
-                  class="font-hash etherscan-link"
-                >
-                  {{ truncateHash(tx.sender, 8, 6) }}
-                </router-link>
-                <span v-else-if="tx.sender" class="text-high font-hash">
-                  {{ truncateHash(tx.sender, 8, 6) }}
-                </span>
+                <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
                 <span v-else class="text-low">-</span>
               </td>
               <td class="table-cell text-center p-0">

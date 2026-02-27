@@ -134,7 +134,7 @@ import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
-import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
+import { getKnownAddressName } from "@/constants/knownAddresses";
 
 const props = defineProps({
 
@@ -165,7 +165,7 @@ watch(() => props.address, async (newAddr) => {
 
 
 const knownName = computed(() => {
-  return KNOWN_ADDRESSES[props.address] || null;
+  return getKnownAddressName(props.address) || null;
 });
 
 const isNeoFoundation = computed(() => {

@@ -43,12 +43,18 @@
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
                   <span v-if="!item.originSender" class="text-low text-sm">Null Address</span>
+                  <HashLink
+                    v-else-if="showAddress"
+                    :hash="item.originSender"
+                    type="address"
+                    :copyable="false"
+                  />
                   <router-link
                     v-else
                     :to="`/account-profile/${item.originSender}`"
                     class="font-hash text-sm etherscan-link"
                   >
-                    {{ formatSender(item.originSender) }}
+                    {{ item.originSender }}
                   </router-link>
                 </div>
               </td>
@@ -86,13 +92,13 @@
 <script setup>
 import { ref, watch } from "vue";
 import { contractService } from "@/services";
-import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { usePagination } from "@/composables/usePagination";
 import { NULL_TX_HASH } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -118,11 +124,6 @@ function isNullTx(txid) {
 
 function toggleAddressFormat() {
   showAddress.value = !showAddress.value;
-}
-
-function formatSender(sender) {
-  if (!sender) return "";
-  return showAddress.value ? scriptHashToAddress(sender) : sender;
 }
 
 watch(

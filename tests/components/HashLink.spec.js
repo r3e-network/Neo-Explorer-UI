@@ -23,6 +23,8 @@ vi.mock("@/services", () => ({
 import HashLink from "@/components/common/HashLink.vue";
 
 const HASH = "0x1234567890abcdef1234567890abcdef1234567890abcdef";
+const COZ_SCRIPT_HASH = "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8";
+const COZ_ADDRESS = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
 
 const mountHashLink = (props = {}) =>
   mount(HashLink, {
@@ -129,5 +131,28 @@ describe("HashLink", () => {
     expect(getByHash).toHaveBeenNthCalledWith(1, "0x11223344");
     expect(getByHash).toHaveBeenNthCalledWith(2, "0x44332211");
     expect(wrapper.text()).toContain("ReverseEndianContract");
+  });
+
+  it("shows known address name when hash is a known script hash", async () => {
+    const wrapper = mountHashLink({
+      hash: COZ_SCRIPT_HASH,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain("COZ");
+  });
+
+  it("routes known script-hash addresses to canonical account address", async () => {
+    const wrapper = mountHashLink({
+      hash: COZ_SCRIPT_HASH,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    const linkStub = wrapper.findComponent({ name: "RouterLink" });
+    expect(linkStub.props("to")).toBe(`/account-profile/${COZ_ADDRESS}`);
   });
 });

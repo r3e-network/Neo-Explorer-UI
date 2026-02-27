@@ -71,8 +71,14 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.from === null" class="text-low text-sm">Null Address</span>
+                  <HashLink
+                    v-else-if="showAddress"
+                    :hash="item.from"
+                    type="address"
+                    :copyable="false"
+                  />
                   <router-link v-else :to="'/account-profile/' + item.from" class="font-hash text-sm etherscan-link">
-                    {{ showAddress ? scriptHashToAddress(item.from) : truncateHash(item.from) }}
+                    {{ truncateHash(item.from) }}
                   </router-link>
                 </div>
               </td>
@@ -109,8 +115,14 @@
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
                   <span v-if="item.to === null" class="text-low text-sm">Null Address</span>
+                  <HashLink
+                    v-else-if="showAddress"
+                    :hash="item.to"
+                    type="address"
+                    :copyable="false"
+                  />
                   <router-link v-else :to="'/account-profile/' + item.to" class="font-hash text-sm etherscan-link">
-                    {{ showAddress ? scriptHashToAddress(item.to) : truncateHash(item.to) }}
+                    {{ truncateHash(item.to) }}
                   </router-link>
                 </div>
               </td>
@@ -150,7 +162,7 @@ import { ref, watch } from "vue";
 import { tokenService } from "@/services";
 import { GAS_HASH } from "@/constants";
 import { truncateHash } from "@/utils/explorerFormat";
-import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
+import { convertToken } from "@/utils/neoHelpers";
 import { formatAge, formatDateTime } from "@/utils/timeFormat";
 import { formatNumber } from "@/utils/explorerFormat";
 import isOracleReward from "@/utils/isOracleReward";
@@ -159,6 +171,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import HashLink from "@/components/common/HashLink.vue";
 import { NULL_TX_HASH } from "@/constants";
 
 const props = defineProps({

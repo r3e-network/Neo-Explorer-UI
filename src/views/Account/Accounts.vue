@@ -67,13 +67,7 @@
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
-                  <router-link
-                    :to="`/account-profile/${account.address}`"
-                    :title="account.address"
-                    class="font-mono text-sm etherscan-link"
-                  >
-                    {{ displayAddress(account.address) }}
-                  </router-link>
+                  <HashLink :hash="account.address" type="address" :copyable="false" />
                 </td>
                 <td class="table-cell-right font-medium">
                   {{ formatBalance(account.neobalance) }}
@@ -117,13 +111,13 @@ import { useRoute, useRouter } from "vue-router";
 import { accountService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
-import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -163,15 +157,6 @@ async function loadPage() {
     if (myRequestId === pageRequestId) {
       loading.value = false;
     }
-  }
-}
-
-function displayAddress(hash) {
-  if (!hash) return "-";
-  try {
-    return scriptHashToAddress(hash);
-  } catch {
-    return hash;
   }
 }
 

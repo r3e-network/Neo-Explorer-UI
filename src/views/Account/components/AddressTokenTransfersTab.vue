@@ -49,16 +49,7 @@
                 {{ formatAge(transfer.timestamp) }}
               </td>
               <td class="table-cell">
-                <router-link
-                  v-if="transfer.from && !isSelf(transfer.from)"
-                  :to="`/account-profile/${transfer.from}`"
-                  class="font-hash etherscan-link"
-                >
-                  {{ truncateHash(transfer.from, 8, 6) }}
-                </router-link>
-                <span v-else-if="transfer.from" class="text-high font-hash">
-                  {{ truncateHash(transfer.from, 8, 6) }}
-                </span>
+                <HashLink v-if="transfer.from" :hash="transfer.from" type="address" :copyable="false" />
                 <span v-else class="text-low">Null</span>
               </td>
               <td class="table-cell text-center p-0">
@@ -70,16 +61,7 @@
                 </span>
               </td>
               <td class="table-cell">
-                <router-link
-                  v-if="transfer.to && !isSelf(transfer.to)"
-                  :to="`/account-profile/${transfer.to}`"
-                  class="font-hash etherscan-link"
-                >
-                  {{ truncateHash(transfer.to, 8, 6) }}
-                </router-link>
-                <span v-else-if="transfer.to" class="text-high font-hash">
-                  {{ truncateHash(transfer.to, 8, 6) }}
-                </span>
+                <HashLink v-if="transfer.to" :hash="transfer.to" type="address" :copyable="false" />
                 <span v-else class="text-low">Null</span>
               </td>
               <td class="table-cell-right font-medium text-status-success">
@@ -123,6 +105,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -139,10 +122,6 @@ defineEmits(["goToPage", "changePageSize", "retry"]);
 
 function getDirection(from, to) {
   return getTransferDirection(from, to, props.address);
-}
-
-function isSelf(addr) {
-  return (addr || "").toLowerCase() === (props.address || "").toLowerCase();
 }
 
 function formatTransferAmount(amount, decimals = 8) {
