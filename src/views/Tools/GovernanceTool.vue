@@ -173,7 +173,7 @@ async function handleCreateProposal() {
     toast.info("Awaiting wallet signature...");
     const result = await walletService.signMessage("Authorize creation of new Governance Proposal: " + selectedMethod.value);
     
-    if (result && result.signature) {
+    if (result && (result.signature || result.data)) {
       toast.success("Governance proposal authorized successfully!");
       showCreateModal.value = false;
     }

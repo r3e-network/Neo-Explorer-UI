@@ -164,10 +164,12 @@ import {
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
 import { walletService } from "@/services/walletService";
+import { useToast } from "vue-toastification";
 
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
+const toast = useToast();
 
 const NETWORKS = NETWORK_OPTIONS;
 
@@ -234,8 +236,10 @@ async function handleConnect(provider) {
           connectedAccount.value = account.address;
           localStorage.setItem("connectedWallet", account.address);
           localStorage.setItem("walletProvider", provider);
+          toast.success(`Connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
         } catch(e) {
           wcUri.value = "";
+          toast.error(e?.message || "WalletConnect connection was not approved.");
         }
         return;
      }
@@ -244,9 +248,11 @@ async function handleConnect(provider) {
        connectedAccount.value = result.address;
        localStorage.setItem("connectedWallet", result.address);
        localStorage.setItem("walletProvider", provider);
+       toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
      }
   } catch (err) {
      console.error(err);
+     toast.error(err?.message || "Failed to connect wallet.");
   } finally {
      walletLoading.value = false;
   }

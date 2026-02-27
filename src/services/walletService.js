@@ -8,6 +8,12 @@ import { walletConnectService } from "./walletConnectService";
 import { web3authService } from "./web3authService";
 import { rpc, tx, sc, u } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
+import {
+  isHash160Hex,
+  normalizeInvokeArgsForRpc,
+  normalizeSignersForRpc,
+  normalizeSignMessageResult,
+} from "@/utils/walletNormalization";
 
 const getRpcUrl = () => {
     const env = getCurrentEnv().toLowerCase();
@@ -77,6 +83,22 @@ function waitForNeoLine(timeout = 3000) {
   });
 }
 
+function isExplorerTestnet() {
+  const env = getCurrentEnv().toLowerCase();
+  return env.includes("test") || env.includes("t5");
+}
+
+function isWalletNetworkCompatible(network) {
+  const walletNetwork = String(network || "").toLowerCase();
+  if (!walletNetwork) return true;
+
+  if (isExplorerTestnet()) {
+    return walletNetwork.includes("test") || walletNetwork.includes("t5");
+  }
+
+  return walletNetwork.includes("main");
+}
+
 export const walletService = {
   PROVIDERS,
 
@@ -113,6 +135,18 @@ export const walletService = {
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
       const n3 = await getNeoLineN3();
+      let networks = null;
+      if (typeof n3.getNetworks === "function") {
+        try {
+          networks = await n3.getNetworks();
+        } catch {
+          networks = null;
+        }
+      }
+      const walletNetwork = networks?.defaultNetwork || "";
+      if (!isWalletNetworkCompatible(walletNetwork)) {
+        throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+      }
       const account = await n3.getAccount();
       _connectedProvider = PROVIDERS.NEOLINE;
       _account = { address: account.address, label: account.label || "NeoLine" };
@@ -122,6 +156,18 @@ export const walletService = {
     if (providerName === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
       if (!dapi) throw new Error("O3 wallet not detected");
+      let networks = null;
+      if (typeof dapi.getNetworks === "function") {
+        try {
+          networks = await dapi.getNetworks();
+        } catch {
+          networks = null;
+        }
+      }
+      const walletNetwork = networks?.defaultNetwork || "";
+      if (!isWalletNetworkCompatible(walletNetwork)) {
+        throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+      }
       const account = await dapi.getAccount();
       _connectedProvider = PROVIDERS.O3;
       _account = { address: account.address, label: account.label || "O3" };
@@ -178,16 +224,16 @@ async signMessage(message) {
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
-      return await n3.signMessage({ message });
+      return normalizeSignMessageResult(await n3.signMessage({ message }));
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
-      return await dapi.signMessage({ message });
+      return normalizeSignMessageResult(await dapi.signMessage({ message }));
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
-      return await walletConnectService.signMessage(message);
+      return normalizeSignMessageResult(await walletConnectService.signMessage(message));
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
@@ -195,12 +241,12 @@ async signMessage(message) {
       // Emulate NeoLine's returned structure
       const messageHex = u.str2hexstring(message);
       const signature = account.sign(messageHex);
-      return {
+      return normalizeSignMessageResult({
          publicKey: account.publicKey,
          data: signature,
          salt: "",
          message: message
-      };
+      });
     }
 
     throw new Error("No wallet connected");
@@ -250,21 +296,33 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
       const account = await web3authService.getAccount();
       const rpcClient = new rpc.RPCClient(getRpcUrl());
+      const normalizedArgs = normalizeInvokeArgsForRpc(args);
+      const normalizedSigners = normalizeSignersForRpc(invokeSigners);
+
+      const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
+      if (invalidArg) {
+        throw new Error(`Invalid Hash160 argument for "${operation}".`);
+      }
+
+      const invalidSigner = normalizedSigners.find((signer) => !isHash160Hex(signer?.account));
+      if (invalidSigner) {
+        throw new Error(`Invalid signer account for "${operation}".`);
+      }
 
       const sb = new sc.ScriptBuilder();
-      const mappedArgs = args.map(a => sc.ContractParam.fromJson(a));
+      const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
       sb.emitAppCall(scriptHash, operation, mappedArgs);
       const script = sb.build();
 
       const currentHeight = await rpcClient.getBlockCount();
-      const invokeRes = await rpcClient.invokeScript(script, invokeSigners);
+      const invokeRes = await rpcClient.invokeScript(script, normalizedSigners);
 
       if (invokeRes.state === "FAULT") {
           throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
       }
 
       let txn = new tx.Transaction({
-          signers: invokeSigners,
+          signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: script,
           systemFee: invokeRes.gasconsumed || 1000000,
@@ -277,7 +335,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       
       // Resign with final explicit fees
       txn = new tx.Transaction({
-          signers: invokeSigners,
+          signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: script,
           systemFee: invokeRes.gasconsumed || 1000000,

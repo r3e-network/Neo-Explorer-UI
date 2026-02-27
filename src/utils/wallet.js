@@ -1,9 +1,9 @@
 import { ref } from "vue";
-import { wallet as neonWallet } from "@cityofzion/neon-js";
 
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { walletService } from "@/services/walletService";
+import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 
 
 export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
@@ -201,14 +201,10 @@ export async function voteForCandidate(candidatePubkey) {
         return;
     }
 
-    let voterHash160 = voterAddress;
-    if (!/^0x[0-9a-fA-F]{40}$/.test(voterAddress) && !/^[0-9a-fA-F]{40}$/.test(voterAddress)) {
-        try {
-            voterHash160 = new neonWallet.Account(voterAddress).scriptHash;
-        } catch {
-            toast.error("Connected wallet address is invalid for voting. Please reconnect.");
-            return;
-        }
+    const voterHash160 = normalizeHash160(voterAddress);
+    if (!isHash160Hex(voterHash160)) {
+        toast.error("Connected wallet address is invalid for voting. Please reconnect.");
+        return;
     }
 
     try {

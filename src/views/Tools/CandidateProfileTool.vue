@@ -326,7 +326,7 @@ async function saveProfile() {
     toast.info("Awaiting wallet signature to authorize profile update...");
     const result = await walletService.signMessage("Update Neo Candidate Profile for " + form.value.name);
     
-    if (result && result.signature) {
+    if (result && (result.signature || result.data)) {
       toast.success("Profile update transaction authorized and submitted!");
     }
   } catch (e) {

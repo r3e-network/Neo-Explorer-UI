@@ -371,7 +371,7 @@ async function handleUpload() {
   try {
     const result = await walletService.signMessage("Authorize NeoFS Upload: " + selectedFile.value.name);
     
-    if (result && result.signature) {
+    if (result && (result.signature || result.data)) {
       toast.success(`Successfully uploaded ${selectedFile.value.name} to NeoFS!`);
       showUploadModal.value = false;
       selectedFile.value = null;

@@ -3,12 +3,33 @@
  * @module services/walletConnectService
  */
 
-const NEO_N3_CHAIN = "neo3:mainnet";
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
+
 const NEO_N3_METHODS = ["invokeFunction", "testInvoke", "signMessage"];
 const NEO_N3_EVENTS = ["accountChanged"];
 
 let _client = null;
 let _session = null;
+
+function getPreferredChain() {
+  const env = getCurrentEnv().toLowerCase();
+  if (env.includes("test") || env.includes(NET_ENV.TestT5.toLowerCase())) {
+    return "neo3:testnet";
+  }
+  return "neo3:mainnet";
+}
+
+function getSessionChain() {
+  const account = _session?.namespaces?.neo3?.accounts?.[0];
+  if (!account) return null;
+  const [namespace, chain] = account.split(":");
+  if (!namespace || !chain) return null;
+  return `${namespace}:${chain}`;
+}
+
+function getActiveChain() {
+  return getSessionChain() || getPreferredChain();
+}
 
 export const walletConnectService = {
   /**
@@ -42,7 +63,7 @@ export const walletConnectService = {
     const { uri, approval } = await _client.connect({
       requiredNamespaces: {
         neo3: {
-          chains: [NEO_N3_CHAIN],
+          chains: [getPreferredChain()],
           methods: NEO_N3_METHODS,
           events: NEO_N3_EVENTS,
         },
@@ -64,7 +85,7 @@ export const walletConnectService = {
     if (!_session || !_client) throw new Error("WalletConnect not connected");
     return await _client.request({
       topic: _session.topic,
-      chainId: NEO_N3_CHAIN,
+      chainId: getActiveChain(),
       request: {
         method: "signMessage",
         params: { message }
@@ -79,7 +100,7 @@ export const walletConnectService = {
     if (!_session || !_client) throw new Error("WalletConnect not connected");
     const result = await _client.request({
       topic: _session.topic,
-      chainId: NEO_N3_CHAIN,
+      chainId: getActiveChain(),
       request: {
         method: "invokeFunction",
         params: { scriptHash, operation, args, signers: [{ scopes: signerScope }] },
