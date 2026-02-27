@@ -66,8 +66,8 @@ export function useCommittee() {
     let validatorsLoaded = false;
     
     try {
-      // getnextblockvalidators returns exactly the 7 consensus nodes whose index matches the 'primary' field in a block
-      const response = await rpc("getnextblockvalidators", []);
+      // GetCommittee is supported by neo3fura and returns consensus committee members.
+      const response = await rpc("GetCommittee", { Limit: 21, Skip: 0 });
       if (response && Array.isArray(response)) {
         validators.value = response;
       } else if (response && response.result && Array.isArray(response.result)) {

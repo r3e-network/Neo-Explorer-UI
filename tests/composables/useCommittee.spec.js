@@ -74,7 +74,7 @@ describe("useCommittee", () => {
     expect(getPrimaryNodeAddress(0)).toBe("0xcommittee1");
   });
 
-  it("calls getnextblockvalidators with empty array params", async () => {
+  it("calls GetCommittee with pagination params", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
@@ -82,7 +82,7 @@ describe("useCommittee", () => {
 
     await flush();
 
-    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
+    expect(rpcMock).toHaveBeenCalledWith("GetCommittee", { Limit: 21, Skip: 0 });
   });
 
   it("falls back to known-address validator name when Dora metadata is missing", async () => {
