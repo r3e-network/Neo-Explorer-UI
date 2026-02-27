@@ -82,6 +82,9 @@ const BroadcastMessageTool = lazyLoad(() => import("../views/Tools/BroadcastMess
 const SponsoredTool = lazyLoad(() => import("../views/Tools/SponsoredTool.vue"));
 const ContractDeployerTool = lazyLoad(() => import("../views/Tools/ContractDeployerTool.vue"));
 const ContractFactoryTool = lazyLoad(() => import("../views/Tools/ContractFactoryTool.vue"));
+const AbiEncoderTool = lazyLoad(() => import("../views/Tools/AbiEncoderTool.vue"));
+const StorageInspectorTool = lazyLoad(() => import("../views/Tools/StorageInspectorTool.vue"));
+const GasEstimatorTool = lazyLoad(() => import("../views/Tools/GasEstimatorTool.vue"));
 
 const routes = [
   {
@@ -160,6 +163,24 @@ const routes = [
         name: "contract-factory",
         meta: { title: "Contract Factory" },
         component: ContractFactoryTool,
+      },
+      {
+        path: "/tools/abi",
+        name: "abi-encoder",
+        meta: { title: "ABI Encoder" },
+        component: AbiEncoderTool,
+      },
+      {
+        path: "/tools/storage",
+        name: "storage-inspector",
+        meta: { title: "Storage Inspector" },
+        component: StorageInspectorTool,
+      },
+      {
+        path: "/tools/gas",
+        name: "gas-estimator",
+        meta: { title: "Gas Estimator" },
+        component: GasEstimatorTool,
       },
       {
         path: "/blocks",
