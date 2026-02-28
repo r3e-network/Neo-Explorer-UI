@@ -16,6 +16,7 @@ vi.mock("@/utils/wallet", () => ({
 vi.mock("@/services/walletService", () => ({
   walletService: {
     isConnected: true,
+    account: { address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu" },
     invoke: invokeMock,
   },
 }));
@@ -75,5 +76,49 @@ describe("AbstractAccountTool", () => {
     expect(args[0]).toMatchObject({ type: "ByteArray" });
     const magic = Buffer.from(args[0].value, "base64").toString("utf8", 0, 4);
     expect(magic).toBe("NEF3");
+  });
+
+  it("omits manager initialization fields when manager list is empty", async () => {
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    const [{ args }] = invokeMock.mock.calls[0];
+    expect(args[2]).toMatchObject({ type: "Array" });
+    expect(args[2].value).toHaveLength(2);
+  });
+
+  it("prevents deploy when managers are set but signer is not in admin list", async () => {
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    const [adminInput, managerInput] = wrapper.findAll("textarea");
+    await adminInput.setValue("Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf");
+    await managerInput.setValue("Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf");
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalled();
   });
 });

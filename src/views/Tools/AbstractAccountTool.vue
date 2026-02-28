@@ -157,6 +157,10 @@ function parseAddresses(text) {
     });
 }
 
+function normalizeHash160(value) {
+  return String(value || "").trim().toLowerCase().replace(/^0x/i, "");
+}
+
 async function deployContract() {
   if (!connectedAccount.value) return;
   if (!walletService.isConnected) {
@@ -178,9 +182,26 @@ async function deployContract() {
       return;
     }
 
-    if (managerHashes.length > 0 && (form.value.managerThreshold > managerHashes.length || form.value.managerThreshold < 1)) {
-      toast.error("Invalid Manager Threshold");
+    const signerAddress = walletService.account?.address || connectedAccount.value;
+    const signerHash = addressToScriptHash(signerAddress);
+    if (!signerHash) {
+      toast.error("Unable to resolve signer wallet address. Please reconnect your wallet.");
       return;
+    }
+
+    const normalizedSigner = normalizeHash160(signerHash);
+    const normalizedAdmins = adminHashes.map(normalizeHash160);
+
+    if (managerHashes.length > 0) {
+      if (form.value.managerThreshold > managerHashes.length || form.value.managerThreshold < 1) {
+        toast.error("Invalid Manager Threshold");
+        return;
+      }
+
+      if (!normalizedAdmins.includes(normalizedSigner)) {
+        toast.error("Connected signer must be included in Admin Addresses when manager roles are configured.");
+        return;
+      }
     }
 
     const manifestObj = JSON.parse(ABSTRACT_ACCOUNT_MANIFEST_STRING);
@@ -188,15 +209,22 @@ async function deployContract() {
     manifestObj.name = `AbstractAccount_${Date.now().toString().slice(-6)}`;
     const dynamicManifestStr = JSON.stringify(manifestObj);
 
-    // NeoLine format for deploy data arguments
-    const deployData = {
-      type: "Array",
-      value: [
-        { type: "Array", value: adminHashes.map(h => ({ type: "Hash160", value: h })) },
-        { type: "Integer", value: form.value.adminThreshold.toString() },
+    // _deploy accepts [admins, adminThreshold] and optionally [managers, managerThreshold].
+    const deployDataValue = [
+      { type: "Array", value: adminHashes.map(h => ({ type: "Hash160", value: h })) },
+      { type: "Integer", value: form.value.adminThreshold.toString() }
+    ];
+
+    if (managerHashes.length > 0) {
+      deployDataValue.push(
         { type: "Array", value: managerHashes.map(h => ({ type: "Hash160", value: h })) },
         { type: "Integer", value: form.value.managerThreshold.toString() }
-      ]
+      );
+    }
+
+    const deployData = {
+      type: "Array",
+      value: deployDataValue
     };
 
     isDeploying.value = true;
