@@ -181,4 +181,35 @@ describe("AbstractAccountTool", () => {
     expect(invokeMock).not.toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalled();
   });
+
+  it("falls back to admin-only deploy when manager init faults under CalledByEntry", async () => {
+    simulateInvokeMock
+      .mockResolvedValueOnce({ state: "HALT" }) // full deploy under Global
+      .mockResolvedValueOnce({ state: "FAULT", exception: "unhandled exception: Unauthorized" }) // wallet-compat check under CBE
+      .mockResolvedValueOnce({ state: "HALT" }); // fallback admin-only under Global
+
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    const [adminInput, managerInput] = wrapper.findAll("textarea");
+    await adminInput.setValue("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+    await managerInput.setValue("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(simulateInvokeMock).toHaveBeenCalledTimes(3);
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    const [{ args }] = invokeMock.mock.calls[0];
+    expect(args[2].value).toHaveLength(2);
+    expect(toastInfoMock).toHaveBeenCalled();
+  });
 });

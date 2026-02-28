@@ -161,6 +161,47 @@ function normalizeHash160(value) {
   return String(value || "").trim().toLowerCase().replace(/^0x/i, "");
 }
 
+function buildDeployData(adminHashes, adminThreshold, managerHashes = [], managerThreshold = 1) {
+  const value = [
+    { type: "Array", value: adminHashes.map((h) => ({ type: "Hash160", value: h })) },
+    { type: "Integer", value: String(adminThreshold) }
+  ];
+
+  if (managerHashes.length > 0) {
+    value.push(
+      { type: "Array", value: managerHashes.map((h) => ({ type: "Hash160", value: h })) },
+      { type: "Integer", value: String(managerThreshold) }
+    );
+  }
+
+  return { type: "Array", value };
+}
+
+function formatErrorMessage(err) {
+  if (!err) return "Unknown error";
+  if (typeof err === "string") return err;
+
+  const candidates = [
+    err.description,
+    err.message,
+    err.error?.description,
+    err.error?.message,
+    err.data?.description,
+    err.data?.message,
+    err.response?.data?.error?.message
+  ];
+
+  for (const msg of candidates) {
+    if (typeof msg === "string" && msg.trim()) return msg;
+  }
+
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 async function deployContract() {
   if (!connectedAccount.value) return;
   if (!walletService.isConnected) {
@@ -209,23 +250,13 @@ async function deployContract() {
     manifestObj.name = `AbstractAccount_${Date.now().toString().slice(-6)}`;
     const dynamicManifestStr = JSON.stringify(manifestObj);
 
-    // _deploy accepts [admins, adminThreshold] and optionally [managers, managerThreshold].
-    const deployDataValue = [
-      { type: "Array", value: adminHashes.map(h => ({ type: "Hash160", value: h })) },
-      { type: "Integer", value: form.value.adminThreshold.toString() }
-    ];
-
-    if (managerHashes.length > 0) {
-      deployDataValue.push(
-        { type: "Array", value: managerHashes.map(h => ({ type: "Hash160", value: h })) },
-        { type: "Integer", value: form.value.managerThreshold.toString() }
-      );
-    }
-
-    const deployData = {
-      type: "Array",
-      value: deployDataValue
-    };
+    const fullDeployData = buildDeployData(
+      adminHashes,
+      form.value.adminThreshold,
+      managerHashes,
+      form.value.managerThreshold
+    );
+    const adminOnlyDeployData = buildDeployData(adminHashes, form.value.adminThreshold);
 
     isDeploying.value = true;
     txHash.value = "";
@@ -237,7 +268,7 @@ async function deployContract() {
       args: [
         { type: "ByteArray", value: ABSTRACT_ACCOUNT_NEF_BASE64 },
         { type: "String", value: dynamicManifestStr },
-        deployData
+        fullDeployData
       ],
       // _deploy performs nested witness checks (SetManagers -> CheckAdminSignatures),
       // so CalledByEntry is insufficient; Global scope is required for deploy.
@@ -248,6 +279,22 @@ async function deployContract() {
       const simulation = await walletService.simulateInvoke(invokeParams);
       if (simulation?.state === "FAULT") {
         throw new Error(`Node preflight failed: ${simulation.exception || "VM FAULT"}`);
+      }
+
+      if (managerHashes.length > 0) {
+        const cbeSimulation = await walletService.simulateInvoke({
+          ...invokeParams,
+          scope: 1
+        });
+
+        if (cbeSimulation?.state === "FAULT" && /unauthorized/i.test(String(cbeSimulation.exception || ""))) {
+          invokeParams.args[2] = adminOnlyDeployData;
+          const fallbackSimulation = await walletService.simulateInvoke(invokeParams);
+          if (fallbackSimulation?.state === "FAULT") {
+            throw new Error(`Node preflight failed: ${fallbackSimulation.exception || "VM FAULT"}`);
+          }
+          toast.info("Wallet compatibility mode: managers will be configured after deployment. Deploying admins only.");
+        }
       }
     }
 
@@ -262,7 +309,7 @@ async function deployContract() {
 
   } catch (err) {
     console.error(err);
-    toast.error("Deployment failed: " + (err.description || err.message || "User rejected"));
+    toast.error("Deployment failed: " + formatErrorMessage(err));
   } finally {
     isDeploying.value = false;
   }
