@@ -145,7 +145,16 @@ export const walletService = {
       }
       const walletNetwork = networks?.defaultNetwork || "";
       if (!isWalletNetworkCompatible(walletNetwork)) {
-        throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+        console.warn(`Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`);
+        // Attempt to auto-switch the wallet to the correct network if the API supports it
+        try {
+           if (typeof n3.switchNetwork === "function") {
+               const target = isExplorerTestnet() ? "TestNet" : "MainNet";
+               await n3.switchNetwork(target);
+           }
+        } catch (e) {
+           console.warn("Auto-switch network failed:", e);
+        }
       }
       const account = await n3.getAccount();
       _connectedProvider = PROVIDERS.NEOLINE;
@@ -166,7 +175,15 @@ export const walletService = {
       }
       const walletNetwork = networks?.defaultNetwork || "";
       if (!isWalletNetworkCompatible(walletNetwork)) {
-        throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+        console.warn(`Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`);
+        try {
+           if (typeof dapi.switchNetwork === "function") {
+               const target = isExplorerTestnet() ? "TestNet" : "MainNet";
+               await dapi.switchNetwork({ network: target });
+           }
+        } catch (e) {
+           console.warn("Auto-switch network failed:", e);
+        }
       }
       const account = await dapi.getAccount();
       _connectedProvider = PROVIDERS.O3;
