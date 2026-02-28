@@ -279,7 +279,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
 
     const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
 
-    const expectedNetwork = isExplorerTestnet() ? "TestNet" : "MainNet";
+    const expectedNetwork = isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
