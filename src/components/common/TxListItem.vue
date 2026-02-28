@@ -134,11 +134,31 @@ const transferLogo = computed(() => {
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
-const vmState = computed(() => {
-  const state = props.tx?.vmstate || props.tx?.VMState;
-  if (!state) return "HALT"; // Assume HALT for NeoTube lists unless FAULT is specified
-  return String(state).toUpperCase();
-});
+const normalizeVmState = (value) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) return "";
+  if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
+    return "FAULT";
+  }
+  if (normalized.includes("HALT") || normalized === "SUCCESS" || normalized === "SUCCEEDED") {
+    return "HALT";
+  }
+  return "";
+};
+
+const vmState = computed(() =>
+  normalizeVmState(
+    props.tx?.vmstate ??
+    props.tx?.Vmstate ??
+    props.tx?.VMState ??
+    props.tx?.execution_state ??
+    props.tx?.executionState ??
+    props.tx?.tx_state ??
+    props.tx?.txState ??
+    props.tx?.state ??
+    props.tx?.status
+  )
+);
 
 const isSuccess = computed(() => {
   if (!vmState.value) return null;

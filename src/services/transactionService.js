@@ -87,6 +87,33 @@ export const transactionService = createService(
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
     },
 
+    _normalizeVmState(value) {
+      const normalized = String(value || "").trim().toUpperCase();
+      if (!normalized) return "";
+      if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
+        return "FAULT";
+      }
+      if (normalized.includes("HALT") || normalized === "SUCCESS" || normalized === "SUCCEEDED") {
+        return "HALT";
+      }
+      return "";
+    },
+
+    _extractVmState(tx) {
+      if (!tx) return "";
+      return this._normalizeVmState(
+        tx.vmstate ??
+        tx.Vmstate ??
+        tx.VMState ??
+        tx.execution_state ??
+        tx.executionState ??
+        tx.tx_state ??
+        tx.txState ??
+        tx.state ??
+        tx.status
+      );
+    },
+
     /**
      * Fetch pending transactions from the mempool.
      * @param {number} [limit=20] - Max items to return.
@@ -173,10 +200,11 @@ export const transactionService = createService(
 
       const enriched = await Promise.all(
         res.result.map(async (tx) => {
-          if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
+          if (enrichMissingFields && !this._extractVmState(tx) && tx.hash) {
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
-              if (full) tx.vmstate = full.vmstate || "HALT";
+              const vmState = this._extractVmState(full);
+              if (vmState) tx.vmstate = vmState;
             } catch (e) { /* ignore */ }
           }
           return tx;
@@ -192,10 +220,11 @@ export const transactionService = createService(
 
       const enriched = await Promise.all(
         res.result.map(async (tx) => {
-          if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
+          if (enrichMissingFields && !this._extractVmState(tx) && tx.hash) {
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
-              if (full) tx.vmstate = full.vmstate || "HALT";
+              const vmState = this._extractVmState(full);
+              if (vmState) tx.vmstate = vmState;
             } catch (e) { /* ignore */ }
           }
           return tx;

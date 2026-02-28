@@ -97,4 +97,84 @@ describe("TxListItem", () => {
     expect(wrapper.text()).toContain("NeoToken");
     expect(wrapper.text()).not.toContain("Contract Call");
   });
+
+  it("shows Unknown when vmstate is missing", () => {
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x2222222222222222222222222222222222222222222222222222222222222222",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          netfee: 0,
+          sysfee: 0,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("Unknown");
+    expect(wrapper.text()).not.toContain("HALT");
+  });
+
+  it("accepts Vmstate field casing from backend payloads", () => {
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x3333333333333333333333333333333333333333333333333333333333333333",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          Vmstate: "FAULT",
+          netfee: 0,
+          sysfee: 0,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("FAULT");
+    expect(wrapper.text()).not.toContain("HALT");
+  });
+
+  it("shows Unknown for non-final status aliases", () => {
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x4444444444444444444444444444444444444444444444444444444444444444",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          status: "pending",
+          netfee: 0,
+          sysfee: 0,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("Unknown");
+    expect(wrapper.text()).not.toContain("FAULT");
+  });
 });

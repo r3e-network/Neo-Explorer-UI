@@ -45,6 +45,15 @@ describe("transactionService", () => {
       const result = await transactionService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
+
+    it("does not default missing enriched vmstate to HALT", async () => {
+      api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xNoState" }], totalCount: 1 });
+      api.safeRpc.mockResolvedValueOnce({ hash: "0xNoState" });
+
+      const result = await transactionService.getList(10, 0, { enrichMissingFields: true });
+
+      expect(result.result[0].vmstate).toBeUndefined();
+    });
   });
 
   describe("getByHash", () => {

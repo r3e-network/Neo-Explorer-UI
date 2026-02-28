@@ -42,6 +42,18 @@ const normalizeCount = (value) => {
   return Number.isFinite(num) ? num : 0;
 };
 
+const normalizeVmState = (value) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) return undefined;
+  if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
+    return "FAULT";
+  }
+  if (normalized.includes("HALT") || normalized === "SUCCESS" || normalized === "SUCCEEDED") {
+    return "HALT";
+  }
+  return undefined;
+};
+
 const resolveEnv = (env = getCurrentEnv(), { fallbackToMainnet = true } = {}) => {
   const raw = String(env || "").trim();
   if (!raw) return fallbackToMainnet ? NET_ENV.Mainnet : null;
@@ -94,6 +106,17 @@ const normalizeBlock = (block = {}) => ({
 
 const normalizeTransaction = (tx = {}) => {
   const sender = tx.sender || tx.from || "";
+  const vmstate = normalizeVmState(
+    tx.vmstate ??
+    tx.Vmstate ??
+    tx.VMState ??
+    tx.execution_state ??
+    tx.executionState ??
+    tx.tx_state ??
+    tx.txState ??
+    tx.state ??
+    tx.status
+  );
   return {
     hash: tx.hash || tx.txid || "",
     blockindex: normalizeCount(tx.block_index ?? tx.blockindex),
@@ -107,7 +130,7 @@ const normalizeTransaction = (tx = {}) => {
     validuntilblock: normalizeCount(tx.valid_until_block ?? tx.validuntilblock),
     sysfee: normalizeFee(tx.sys_fee ?? tx.sysfee),
     netfee: normalizeFee(tx.net_fee ?? tx.netfee),
-    vmstate: tx.vmstate,
+    vmstate,
   };
 };
 

@@ -280,10 +280,30 @@ function formatTxFeeBreakdown(tx) {
   return `N: ${formatGas(net, 5)} / S: ${formatGas(sys, 5)}`;
 }
 
+function normalizeVmState(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) return "";
+  if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
+    return "FAULT";
+  }
+  if (normalized.includes("HALT") || normalized === "SUCCESS" || normalized === "SUCCEEDED") {
+    return "HALT";
+  }
+  return "";
+}
+
 function getVmState(tx) {
-  const value = tx?.vmstate || tx?.VMState;
-  if (!value) return "HALT";
-  return String(value).toUpperCase();
+  return normalizeVmState(
+    tx?.vmstate ??
+    tx?.Vmstate ??
+    tx?.VMState ??
+    tx?.execution_state ??
+    tx?.executionState ??
+    tx?.tx_state ??
+    tx?.txState ??
+    tx?.state ??
+    tx?.status
+  );
 }
 
 function getVmStateLabel(tx) {

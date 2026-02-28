@@ -109,7 +109,7 @@ describe("TransactionTable address rendering", () => {
     expect(recipientLink.attributes("data-hash")).toBe(NEO_HASH);
   });
 
-  it("renders VM state badges as HALT / FAULT", () => {
+  it("renders VM state badges as HALT / FAULT / UNKNOWN", () => {
     const wrapper = mount(TransactionTable, {
       props: {
         transactions: [
@@ -170,5 +170,50 @@ describe("TransactionTable address rendering", () => {
     const labels = wrapper.findAll("span").map((node) => node.text());
     expect(labels).toContain("HALT");
     expect(labels).toContain("FAULT");
+    expect(labels).toContain("UNKNOWN");
+  });
+
+  it("accepts Vmstate field casing from backend payloads", () => {
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: "0x4",
+            blockhash: "0xb4",
+            blockindex: 4,
+            blocktime: Date.now(),
+            sender: "NQf8xK1nmyQj3X5Y2P4H5n6j6S8s7w6Q4v",
+            Vmstate: "FAULT",
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {},
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const labels = wrapper.findAll("span").map((node) => node.text());
+    expect(labels).toContain("FAULT");
+    expect(labels).not.toContain("HALT");
   });
 });

@@ -134,6 +134,26 @@ describe("neotubeService", () => {
     });
   });
 
+  it("normalizes vmstate from alternate transaction fields", async () => {
+    axiosGetMock.mockResolvedValueOnce({
+      data: {
+        status: "success",
+        data: {
+          total: 3,
+          transactions: [
+            { hash: "0x1", block_index: 1, block_time: 1700000015, Vmstate: "FAULT" },
+            { hash: "0x2", block_index: 2, block_time: 1700000016, status: "failed" },
+            { hash: "0x3", block_index: 3, block_time: 1700000017, state: "HALT, BREAK" },
+          ],
+        },
+      },
+    });
+
+    const result = await neotubeService.getLatestTransactions(6, 0, "Mainnet");
+
+    expect(result.result.map((item) => item.vmstate)).toEqual(["FAULT", "FAULT", "HALT"]);
+  });
+
   it("applies non-aligned skip by requesting extra rows and slicing", async () => {
     axiosGetMock.mockResolvedValueOnce({
       data: {
