@@ -262,9 +262,12 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
 
     const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
 
+    const expectedNetwork = isExplorerTestnet() ? "TestNet" : "MainNet";
+
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
       const result = await n3.invoke({
+        network: expectedNetwork,
         scriptHash,
         operation,
         args: dapiArgs,
@@ -278,6 +281,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     if (_connectedProvider === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
       const result = await dapi.invoke({
+        network: expectedNetwork,
         scriptHash,
         operation,
         args: dapiArgs,
