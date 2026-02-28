@@ -87,6 +87,7 @@ const StorageInspectorTool = lazyLoad(() => import("../views/Tools/StorageInspec
 const GasEstimatorTool = lazyLoad(() => import("../views/Tools/GasEstimatorTool.vue"));
 const MempoolTool = lazyLoad(() => import("../views/Tools/MempoolTool.vue"));
 const NetworkAlertsTool = lazyLoad(() => import("../views/Tools/NetworkAlertsTool.vue"));
+const AbstractAccountTool = lazyLoad(() => import("../views/Tools/AbstractAccountTool.vue"));
 
 const routes = [
   {
@@ -195,6 +196,12 @@ const routes = [
         name: "network-alerts",
         meta: { title: "Network Alerts" },
         component: NetworkAlertsTool,
+      },
+      {
+        path: "/tools/abstract-account",
+        name: "abstract-account-deployer",
+        meta: { title: "Abstract Account" },
+        component: AbstractAccountTool,
       },
       {
         path: "/blocks",
