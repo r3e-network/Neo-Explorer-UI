@@ -196,9 +196,9 @@
                   </span>
                 </td>
                 <td class="table-cell-right font-medium text-high text-xs">
-                  <template v-if="candidates.indexOf(candidate) < 7 && livenessData[candidates.indexOf(candidate)]">
-                    <span :class="livenessData[candidates.indexOf(candidate)].ratio >= 99 ? 'text-status-success' : 'text-status-warning'">
-                      {{ livenessData[candidates.indexOf(candidate)].ratio }}%
+                  <template v-if="livenessData[candidate.publickey]">
+                    <span :class="livenessData[candidate.publickey].ratio >= 99 ? 'text-status-success' : 'text-status-warning'">
+                      {{ livenessData[candidate.publickey].ratio }}%
                     </span>
                   </template>
                   <span v-else class="text-mid">--</span>
@@ -432,9 +432,15 @@ async function loadCandidates() {
       .then(r => r.json())
       .then(data => {
          if (data && data.success && Array.isArray(data.liveness)) {
+            // Consensus nodes are the top 7 candidates, but their block primary index 
+            // is determined by sorting those 7 by public key alphabetically.
+            const consensusNodes = [...candidates.value].slice(0, 7).sort((a, b) => a.publickey.localeCompare(b.publickey));
+            
             const map = {};
             data.liveness.forEach(l => {
-               map[l.nodeIndex] = l;
+               if (consensusNodes[l.nodeIndex]) {
+                  map[consensusNodes[l.nodeIndex].publickey] = l;
+               }
             });
             livenessData.value = map;
          }
