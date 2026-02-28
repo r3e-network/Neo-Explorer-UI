@@ -184,6 +184,11 @@ async function deployContract() {
       return;
     }
 
+    const manifestObj = JSON.parse(MANIFEST_STRING);
+    // Append a unique timestamp to the name so multiple deployments of the same NEF are allowed by the network
+    manifestObj.name = `AbstractAccount_${Date.now().toString().slice(-6)}`;
+    const dynamicManifestStr = JSON.stringify(manifestObj);
+
     // NeoLine format for deploy data arguments
     const deployData = {
       type: "Array",
@@ -204,7 +209,7 @@ async function deployContract() {
       operation: "deploy",
       args: [
         { type: "ByteArray", value: NEF_HEX },
-        { type: "String", value: MANIFEST_STRING },
+        { type: "String", value: dynamicManifestStr },
         deployData
       ],
       scope: 1
