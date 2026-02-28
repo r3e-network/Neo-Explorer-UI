@@ -60,6 +60,19 @@ describe("useTransactionTracker", () => {
     unmount();
   });
 
+  it("supports flattened indexed application log shape", async () => {
+    rpc.mockResolvedValueOnce({ vmstate: "FAULT" });
+    const { track, txStatuses, unmount } = mountTrackerComposable();
+
+    track("0xtx-flat");
+    await waitForStatus(txStatuses, "0xtx-flat", "failed");
+
+    expect(rpc).toHaveBeenCalledWith("GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-flat" });
+    expect(txStatuses.value["0xtx-flat"]).toBe("failed");
+
+    unmount();
+  });
+
   it("falls back to legacy native RPC when indexed method is unavailable", async () => {
     rpc.mockRejectedValueOnce(new Error("RPC Error -32601: JSON RPC method not found"));
     rpc.mockResolvedValueOnce({ executions: [{ vmstate: "FAULT" }] });

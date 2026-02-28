@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from "vue";
 import { rpc } from "@/services/api";
+import { extractVmStateFromAppLog } from "@/utils/txVmState";
 
 const MAX_POLL_ATTEMPTS = 8;
 const POLL_INTERVAL_MS = 15000;
@@ -20,7 +21,7 @@ async function fetchApplicationLog(txid) {
 }
 
 function getTxStatusFromApplicationLog(result) {
-  const vmState = result?.executions?.[0]?.vmstate;
+  const vmState = extractVmStateFromAppLog(result);
   if (!vmState) return null;
   return vmState === "HALT" ? "confirmed" : "failed";
 }

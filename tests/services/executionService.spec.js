@@ -82,4 +82,48 @@ describe("executionService getExecutionTrace fallback behavior", () => {
     );
     expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"], null);
   });
+
+  it("normalizes flattened indexed trace shape into executions array", async () => {
+    const indexedTrace = {
+      txid: "0xtx-flat",
+      trigger: "Application",
+      vmstate: "FAULT",
+      gasconsumed: "1000",
+      notifications: [],
+      stack: [],
+    };
+
+    api.safeRpc.mockImplementation(async (method) => {
+      if (method === "GetApplicationLogByTransactionHash") return indexedTrace;
+      if (method === "getapplicationlog") return null;
+      return null;
+    });
+
+    const result = await executionService.getExecutionTrace("0xtx-flat", { forceRefresh: true });
+
+    expect(result.executions?.[0]?.vmstate).toBe("FAULT");
+    expect(result.executions?.[0]?.trigger).toBe("Application");
+  });
+
+  it("prefers legacy trace when indexed trace lacks vmstate but legacy has it", async () => {
+    const indexedTrace = {
+      txid: "0xtx-missing-state",
+      trigger: "Application",
+      notifications: [],
+      stack: [],
+    };
+    const legacyTrace = {
+      executions: [{ vmstate: "FAULT", notifications: [] }],
+    };
+
+    api.safeRpc.mockImplementation(async (method) => {
+      if (method === "GetApplicationLogByTransactionHash") return indexedTrace;
+      if (method === "getapplicationlog") return legacyTrace;
+      return null;
+    });
+
+    const result = await executionService.getExecutionTrace("0xtx-missing-state", { forceRefresh: true });
+
+    expect(result).toEqual(legacyTrace);
+  });
 });

@@ -3,6 +3,7 @@ import { createService } from "./serviceFactory";
 import { contractService } from "./contractService";
 import { NATIVE_CONTRACTS, CONTRACT_MANAGEMENT_HASH } from "@/constants";
 import { decodeNotificationParams } from "@/utils/neoCodec";
+import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
 
 /**
  * Execution Service - Neo3 交易执行追踪
@@ -38,7 +39,7 @@ export const executionService = createService(
   },
   {
     async getExecutionTrace(txHash, options = {}) {
-      const indexed = await this._getExecutionTraceIndexed(txHash, options);
+      const indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
       const indexedNotifications = this._countNotifications(indexed);
 
       if (indexedNotifications > 0) {
@@ -47,13 +48,14 @@ export const executionService = createService(
 
       let legacy = null;
       try {
-        legacy = await this._getExecutionTraceLegacy(txHash, options);
+        legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
       } catch (_err) {
         legacy = null;
       }
 
       if (!indexed && legacy) return legacy;
       if (this._countNotifications(legacy) > indexedNotifications) return legacy;
+      if (!extractVmStateFromAppLog(indexed) && extractVmStateFromAppLog(legacy)) return legacy;
       return indexed || legacy;
     },
 
@@ -100,6 +102,46 @@ export const executionService = createService(
     _countNotifications(appLog) {
       const executions = appLog?.executions ?? [];
       return executions.reduce((sum, exec) => sum + (exec?.notifications?.length || 0), 0);
+    },
+
+    _normalizeExecutionTrace(appLog) {
+      if (!appLog || typeof appLog !== "object") return appLog;
+
+      if (Array.isArray(appLog.executions)) {
+        const executions = appLog.executions.map((exec) => {
+          if (!exec || typeof exec !== "object") return exec;
+          const normalized = extractVmStateFromObject(exec);
+          if (!normalized || exec.vmstate === normalized) return exec;
+          return { ...exec, vmstate: normalized };
+        });
+        return { ...appLog, executions };
+      }
+
+      const vmstate = extractVmStateFromObject(appLog);
+      const hasFlattenedExecutionFields =
+        Boolean(vmstate) ||
+        appLog.exception != null ||
+        appLog.gasconsumed != null ||
+        appLog.gasConsumed != null ||
+        appLog.trigger != null ||
+        Array.isArray(appLog.notifications) ||
+        Array.isArray(appLog.stack);
+
+      if (!hasFlattenedExecutionFields) return appLog;
+
+      return {
+        ...appLog,
+        executions: [
+          {
+            trigger: appLog.trigger ?? "Application",
+            vmstate,
+            exception: appLog.exception ?? null,
+            gasconsumed: appLog.gasconsumed ?? appLog.gasConsumed ?? "0",
+            stack: Array.isArray(appLog.stack) ? appLog.stack : [],
+            notifications: Array.isArray(appLog.notifications) ? appLog.notifications : [],
+          },
+        ],
+      };
     },
 
     /**

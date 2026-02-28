@@ -200,6 +200,7 @@ import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
+import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
 import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InternalOperations from "@/components/trace/InternalOperations.vue";
@@ -252,13 +253,7 @@ const breadcrumbs = computed(() => [
 ]);
 
 const vmState = computed(() => {
-  const appState = appLog.value?.executions?.[0]?.vmstate;
-  if (appState) return String(appState).toUpperCase();
-
-  const txState = tx.value?.vmstate;
-  if (txState) return String(txState).toUpperCase();
-
-  return "";
+  return extractVmStateFromAppLog(appLog.value) || extractVmStateFromObject(tx.value) || "";
 });
 
 const isSuccess = computed(() => {

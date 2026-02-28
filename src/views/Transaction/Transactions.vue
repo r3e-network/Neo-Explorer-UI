@@ -118,6 +118,7 @@ import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
+import { extractVmStateFromAppLog } from "@/utils/txVmState";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -198,7 +199,7 @@ async function hydrateVmState(txList = []) {
         vmStatePendingHashes.add(hash);
         try {
           const appLog = await executionService.getExecutionTrace(hash);
-          const vmState = String(appLog?.executions?.[0]?.vmstate || "").toUpperCase();
+          const vmState = extractVmStateFromAppLog(appLog);
           if (vmState) {
             tx.vmstate = vmState;
           }
