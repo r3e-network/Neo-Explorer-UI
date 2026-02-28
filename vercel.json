@@ -3,6 +3,16 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "crons": [
+    {
+      "path": "/api/sync_mempool",
+      "schedule": "*/1 * * * *"
+    },
+    {
+      "path": "/api/check_alerts",
+      "schedule": "*/1 * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/mainnet/primary",

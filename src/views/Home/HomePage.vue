@@ -250,15 +250,38 @@ async function loadLatestData(forceRefresh = false) {
         blocksLoading.value = false;
       });
 
-    const fastTxsPromise = fetchLatestTransactions()
-      .then((txsRes) => {
-        if (!txsRes) return;
-        const nextTxs = txsRes?.result || [];
+    const fastTxsPromise = Promise.allSettled([
+      fetchLatestTransactions(),
+      transactionService.getPendingTransactions(6)
+    ])
+      .then(([txsRes, pendingTxsRes]) => {
+        let nextTxs = [];
+        
+        if (pendingTxsRes.status === "fulfilled" && pendingTxsRes.value) {
+          nextTxs = [...pendingTxsRes.value];
+        }
+        
+        if (txsRes.status === "fulfilled" && txsRes.value?.result) {
+          nextTxs = [...nextTxs, ...txsRes.value.result];
+        }
+        
+        // Remove duplicates if a tx just got included but still in pending cache
+        const uniqueTxs = [];
+        const seen = new Set();
+        for (const tx of nextTxs) {
+          if (!seen.has(tx.hash)) {
+            seen.add(tx.hash);
+            uniqueTxs.push(tx);
+          }
+        }
+        nextTxs = uniqueTxs.slice(0, 6);
+
         if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
           latestTxs.value = nextTxs;
         }
         if (Array.isArray(nextTxs) && nextTxs.length) {
-          void enrichTransactions(nextTxs, { maxItems: 6 });
+          const nonPendingTxs = nextTxs.filter(tx => tx.status !== 'pending');
+          void enrichTransactions(nonPendingTxs, { maxItems: 6 });
         }
       })
       .catch(() => {

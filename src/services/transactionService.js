@@ -32,7 +32,7 @@ export const transactionService = createService(
       buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
       buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
     },
-    getByHash: {
+    _getByHash: {
       cacheKey: "tx_hash",
       rpcMethod: "GetRawTransactionByTransactionHash",
       fallback: null,
@@ -99,7 +99,40 @@ export const transactionService = createService(
       return "";
     },
 
-    _extractVmState(tx) {
+  async getByHash(hash, options = {}) {
+    let tx = await this._getByHash(hash, options);
+    if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
+
+    try {
+      const { getCurrentEnv } = await import('@/utils/env');
+      const { supabaseService } = await import('./supabaseService');
+      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
+      const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
+
+      const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
+      const found = dbTxs.find(t => t.hash === hash);
+      
+      if (found) {
+        return {
+          ...tx,
+          hash: found.hash,
+          sender: found.sender,
+          size: found.size,
+          netfee: found.netfee,
+          sysfee: found.sysfee,
+          validuntilblock: found.valid_until_block,
+          status: 'pending',
+          timestamp: found.timestamp
+        };
+      }
+    } catch (err) {
+      // Not in mempool or DB query failed
+    }
+    
+    return tx;
+  },
+
+  _extractVmState(tx) {
       if (!tx) return "";
       return this._normalizeVmState(
         tx.vmstate ??
@@ -120,16 +153,26 @@ export const transactionService = createService(
      * @returns {Promise<Array>} Pending transaction list.
      */
     async getPendingTransactions(limit = 20) {
-      const result = await safeRpc("getrawmempool", [true], []);
-      if (!Array.isArray(result)) return [];
-      return result.slice(0, limit).map((tx) => ({
-        hash: tx.hash || tx.txid,
-        from: tx.sender,
-        to: tx.receiver || tx.outputs?.[0]?.address,
-        netfee: tx.netfee,
-        sysfee: tx.sysfee,
-        timestamp: tx.timestamp || Date.now() / 1000,
-      }));
+      const { getCurrentEnv } = await import('@/utils/env');
+      const { supabaseService } = await import('./supabaseService');
+
+      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
+      const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
+      const supabasePending = await supabaseService.getMempoolTransactions(network, limit);
+      
+      if (supabasePending && supabasePending.length > 0) {
+        return supabasePending.map(tx => ({
+          hash: tx.hash,
+          sender: tx.sender,
+          netfee: tx.netfee,
+          sysfee: tx.sysfee,
+          timestamp: tx.timestamp,
+          status: 'pending',
+          size: tx.size
+        }));
+      }
+
+      return [];
     },
 
     /**

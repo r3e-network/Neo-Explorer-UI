@@ -85,6 +85,8 @@ const ContractFactoryTool = lazyLoad(() => import("../views/Tools/ContractFactor
 const AbiEncoderTool = lazyLoad(() => import("../views/Tools/AbiEncoderTool.vue"));
 const StorageInspectorTool = lazyLoad(() => import("../views/Tools/StorageInspectorTool.vue"));
 const GasEstimatorTool = lazyLoad(() => import("../views/Tools/GasEstimatorTool.vue"));
+const MempoolTool = lazyLoad(() => import("../views/Tools/MempoolTool.vue"));
+const NetworkAlertsTool = lazyLoad(() => import("../views/Tools/NetworkAlertsTool.vue"));
 
 const routes = [
   {
@@ -181,6 +183,18 @@ const routes = [
         name: "gas-estimator",
         meta: { title: "Gas Estimator" },
         component: GasEstimatorTool,
+      },
+      {
+        path: "/tools/mempool",
+        name: "mempool-tool",
+        meta: { title: "Mempool Search" },
+        component: MempoolTool,
+      },
+      {
+        path: "/tools/alerts",
+        name: "network-alerts",
+        meta: { title: "Network Alerts" },
+        component: NetworkAlertsTool,
       },
       {
         path: "/blocks",

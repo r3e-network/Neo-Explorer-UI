@@ -153,5 +153,33 @@ export const supabaseService = {
     } catch (err) {
       return [];
     }
+  },
+
+  async getMempoolTransactions(network, limit = 1000) {
+    if (!supabase) return [];
+    try {
+      const { data } = await supabase
+        .from('mempool_transactions')
+        .select('*')
+        .eq('network', network)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+      return data || [];
+    } catch (err) {
+      return [];
+    }
+  },
+
+  async saveNetworkAlert(alertData) {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    try {
+      const { data, error } = await supabase
+        .from('network_alerts')
+        .insert([alertData]);
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   }
 };

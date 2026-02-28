@@ -194,10 +194,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
+import { getCurrentEnv } from "@/utils/env";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
@@ -451,11 +452,43 @@ async function loadBlockHeight() {
   }
 }
 
+let pollInterval = null;
+
+function clearPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+}
+
 watch(
   () => route.params.txhash,
   (hash) => {
-    if (hash) loadTx(hash);
+    if (hash) {
+      clearPolling();
+      loadTx(hash);
+    }
   },
   { immediate: true }
 );
+
+watch(txStatus, (newStatus) => {
+  if (newStatus === 'pending') {
+    if (!pollInterval) {
+      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
+      const intervalMs = env.includes('test') || env.includes('t5') ? 3000 : 15000;
+      pollInterval = setInterval(() => {
+        if (route.params.txhash) {
+          loadTx(route.params.txhash);
+        }
+      }, intervalMs);
+    }
+  } else {
+    clearPolling();
+  }
+}, { immediate: true });
+
+onUnmounted(() => {
+  clearPolling();
+});
 </script>

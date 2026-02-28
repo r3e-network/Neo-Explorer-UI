@@ -1,9 +1,9 @@
 import { ref, onUnmounted } from "vue";
 import { rpc } from "@/services/api";
 import { extractVmStateFromAppLog } from "@/utils/txVmState";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 const MAX_POLL_ATTEMPTS = 8;
-const POLL_INTERVAL_MS = 15000;
 
 function isMethodNotFoundError(error) {
   const msg = String(error?.message || "").toLowerCase();
@@ -62,7 +62,7 @@ export function useTransactionTracker() {
       }
     };
 
-    _timers[txid] = setInterval(poll, POLL_INTERVAL_MS);
+    _timers[txid] = setInterval(poll, getNetworkRefreshIntervalMs());
     poll();
   }
 

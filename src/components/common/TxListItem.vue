@@ -11,7 +11,7 @@
         <div class="min-w-0">
           <HashLink :hash="tx.hash" type="tx" :copyable="false" />
           <p class="mt-0.5 text-xs text-mid">
-            {{ formatAge(tx.blocktime) }}
+            {{ formatAge(tx.blocktime || tx.timestamp || tx.time) }}
           </p>
         </div>
       </div>
@@ -166,6 +166,9 @@ const isSuccess = computed(() => {
 });
 
 const statusStyle = computed(() => {
+  if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") {
+    return { background: "var(--status-warning-bg)", color: "var(--status-warning)" };
+  }
   const c =
     isSuccess.value === true
       ? "var(--status-success)"
@@ -182,6 +185,7 @@ const statusStyle = computed(() => {
 });
 
 const statusText = computed(() => {
+  if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") return "PENDING";
   if (isSuccess.value === true) return "HALT";
   if (isSuccess.value === false) return "FAULT";
   return "Unknown";

@@ -76,13 +76,12 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { truncateHash, formatGas, formatAge } from "@/utils/explorerFormat";
-import { PENDING_TX_POLL_INTERVAL } from "@/constants";
 import { transactionService } from "@/services";
+import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 const { t } = useI18n();
 
@@ -92,14 +91,15 @@ const props = defineProps({
 
 defineEmits(["close"]);
 
-const pendingTxs = ref([]);
+const transactions = ref([]);
 const loading = ref(false);
 let pollInterval = null;
 
 async function fetchPendingTransactions() {
   loading.value = true;
   try {
-    pendingTxs.value = await transactionService.getPendingTransactions(20);
+    const txs = await transactionService.getPendingTransactions(20);
+    transactions.value = txs || [];
   } catch (error) {
     if (import.meta.env.DEV) console.warn("Failed to fetch pending transactions:", error);
   } finally {
@@ -110,7 +110,7 @@ async function fetchPendingTransactions() {
 function startPolling() {
   stopPolling();
   fetchPendingTransactions();
-  pollInterval = setInterval(fetchPendingTransactions, PENDING_TX_POLL_INTERVAL);
+  pollInterval = setInterval(fetchPendingTransactions, getNetworkRefreshIntervalMs());
 }
 
 function stopPolling() {

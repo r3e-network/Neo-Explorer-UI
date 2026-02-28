@@ -155,6 +155,26 @@
           <p class="text-sm text-mid mt-1">Simulate a transaction execution and calculate the precise System and Network fee.</p>
         </div>
       </router-link>
+
+      <router-link to="/tools/mempool" class="etherscan-card p-6 flex flex-col items-start gap-4 hover:border-primary-500 transition-colors group">
+        <div class="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-high group-hover:text-primary-500 transition-colors">Mempool Search</h2>
+          <p class="text-sm text-mid mt-1">Search and view the full list of in-memory pending transactions on the Neo network.</p>
+        </div>
+      </router-link>
+
+      <router-link to="/tools/alerts" class="etherscan-card p-6 flex flex-col items-start gap-4 hover:border-primary-500 transition-colors group">
+        <div class="h-12 w-12 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 group-hover:scale-110 transition-transform">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-high group-hover:text-primary-500 transition-colors">Network Alerts</h2>
+          <p class="text-sm text-mid mt-1">Register for alerts regarding consensus delays, missed blocks, and account events.</p>
+        </div>
+      </router-link>
     </div>
     </section>
   </div>
