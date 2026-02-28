@@ -16,7 +16,23 @@ const RPC_ENDPOINTS = {
   testnet: 'https://testnet1.neo.coz.io:443'
 };
 
+const NEOFURA_ENDPOINTS = {
+  mainnet: 'https://neofura.ngd.network',
+  testnet: 'https://testmagnet.ngd.network'
+};
+
 async function rpcCall(url, method, params = []) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+}
+
+async function furaCall(url, method, params = {}) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -30,8 +46,8 @@ async function rpcCall(url, method, params = []) {
 // Helper to send email via Resend API
 async function sendEmailAlert(emailAddress, subject, htmlContent) {
   if (!RESEND_API_KEY) {
-    console.warn(`[Mock Email] To: ${emailAddress} | Subject: ${subject}`);
-    return true; // Pretend it succeeded if no API key is provided
+    // Fail silently in dev without throwing if no API key is provided
+    return false;
   }
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -58,6 +74,7 @@ async function sendEmailAlert(emailAddress, subject, htmlContent) {
 
 async function checkNetworkAlerts(network) {
   const rpcUrl = RPC_ENDPOINTS[network];
+  const furaUrl = NEOFURA_ENDPOINTS[network];
   let triggeredCount = 0;
 
   try {
@@ -71,17 +88,20 @@ async function checkNetworkAlerts(network) {
     if (error) throw error;
     if (!alerts || alerts.length === 0) return 0;
 
-    // 2. Fetch current blockchain state
+    // Pre-fetch global state to avoid redundant calls inside the loop
     const blockCount = await rpcCall(rpcUrl, 'getblockcount', []);
     const latestBlock = await rpcCall(rpcUrl, 'getblock', [blockCount - 1, 1]);
     const currentBlockTime = latestBlock.time * 1000; // ms
     const timeSinceLastBlock = Date.now() - currentBlockTime;
+
+    let committee = null;
 
     // 3. Evaluate alerts
     for (const alert of alerts) {
       let triggered = false;
       let subject = '';
       let message = '';
+      let updateData = {}; // Any state we need to save back to DB for this alert
 
       if (alert.alert_type === 'consensus_stuck') {
         const thresholdMs = alert.threshold * 1000;
@@ -97,20 +117,108 @@ async function checkNetworkAlerts(network) {
         }
       } 
       else if (alert.alert_type === 'consensus_missed') {
-        // Here you would implement logic scanning the last N blocks' NextConsensus or validators
-        // For demonstration, we bypass complex verification.
+        // Target is the public key of the consensus node
+        const targetPubKey = alert.target;
+        
+        // Fetch committee if not already fetched
+        if (!committee) {
+          committee = await rpcCall(rpcUrl, 'getcommittee', []);
+        }
+
+        // Find the index of our target node in the active committee
+        const nodeIndex = committee.findIndex(c => c === targetPubKey);
+        
+        // Only evaluate if the node is actually in the active committee
+        if (nodeIndex !== -1) {
+          const expectedPrimaryIndex = blockCount % committee.length;
+          const actualPrimaryIndex = latestBlock.primary;
+          
+          let currentMissCount = alert.miss_count || 0;
+          let lastSeenBlock = parseInt(alert.last_seen_state) || 0;
+
+          // Only process if we haven't checked this block height yet
+          if (lastSeenBlock !== blockCount - 1) {
+            // Did our target node miss its turn as primary?
+            if (expectedPrimaryIndex === nodeIndex && actualPrimaryIndex !== nodeIndex) {
+              currentMissCount++;
+            } else if (actualPrimaryIndex === nodeIndex) {
+              // If it successfully authored a block, reset the miss counter
+              currentMissCount = 0;
+            }
+
+            // Save the state
+            updateData.last_seen_state = (blockCount - 1).toString();
+            updateData.miss_count = currentMissCount;
+
+            // Trigger if miss count reaches threshold (e.g. 3)
+            if (currentMissCount >= 3) {
+              triggered = true;
+              subject = `🚨 Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
+              message = `
+                <h2>Consensus Node Alert</h2>
+                <p>The node with public key <strong>${targetPubKey}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
+                <p>Last Block Height: ${blockCount - 1}</p>
+              `;
+            }
+          }
+        }
       }
       else if (alert.alert_type === 'account_event') {
-        // You would query NeoFura or similar indexer for the latest txs involving alert.target
+        // Target is the address
+        const targetAddress = alert.target;
+        
+        try {
+          const furaRes = await furaCall(furaUrl, 'GetRawTransactionByAddress', {
+            Address: targetAddress,
+            Limit: 1,
+            Skip: 0
+          });
+
+          if (furaRes && furaRes.result && furaRes.result.length > 0) {
+            const latestTx = furaRes.result[0];
+            const txHash = latestTx.hash;
+            
+            // Compare with the last known tx hash we saved in the DB
+            const lastSeenHash = alert.last_seen_state || '';
+
+            if (lastSeenHash && txHash !== lastSeenHash) {
+              // We have a new transaction!
+              triggered = true;
+              subject = `🔔 Neo ${network.toUpperCase()} Alert: New Account Activity`;
+              message = `
+                <h2>Account Activity Detected</h2>
+                <p>A new transaction has occurred involving your tracked address: <strong>${targetAddress}</strong></p>
+                <p>Transaction Hash: <strong>${txHash}</strong></p>
+                <p>View it on the explorer: <a href="https://explorer.neo.org/transaction/${txHash}">https://explorer.neo.org/transaction/${txHash}</a></p>
+              `;
+            }
+
+            // Update the state so we don't alert on this hash again
+            if (txHash !== lastSeenHash) {
+               updateData.last_seen_state = txHash;
+            }
+          }
+        } catch (furaErr) {
+          console.warn(`NeoFura fetch failed for account ${targetAddress}:`, furaErr.message);
+        }
       }
 
-      // 4. Send email and deactivate alert (to prevent spamming every minute)
+      // If we have state to update (like new block heights or new hashes), even if not triggered, update DB
+      if (Object.keys(updateData).length > 0 && !triggered) {
+         await supabase
+            .from('network_alerts')
+            .update(updateData)
+            .eq('id', alert.id);
+      }
+
+      // 4. Send email and deactivate alert
       if (triggered) {
         const emailSent = await sendEmailAlert(alert.contact, subject, message);
         if (emailSent) {
+          updateData.is_active = false; // Mark inactive so it doesn't fire again immediately
           await supabase
             .from('network_alerts')
-            .update({ is_active: false }) // Mark inactive so it doesn't fire again immediately
+            .update(updateData)
             .eq('id', alert.id);
           triggeredCount++;
         }
