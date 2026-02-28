@@ -99,6 +99,33 @@ function isWalletNetworkCompatible(network) {
   return walletNetwork.includes("main");
 }
 
+const SCOPE_LABELS = Object.freeze({
+  0: "None",
+  1: "CalledByEntry",
+  16: "CustomContracts",
+  32: "CustomGroups",
+  64: "Rules",
+  128: "Global",
+});
+
+function normalizeSignersForDapi(signers = []) {
+  if (!Array.isArray(signers)) return [];
+  return signers.map((signer) => {
+    if (!signer || typeof signer !== "object") return signer;
+    const scopes = typeof signer.scopes === "number" ? (SCOPE_LABELS[signer.scopes] || signer.scopes) : signer.scopes;
+    return { ...signer, scopes };
+  });
+}
+
+function normalizeSignersForInvokeScript(signers = []) {
+  const normalized = normalizeSignersForRpc(signers);
+  return normalized.map((signer) => {
+    if (!signer || typeof signer !== "object") return signer;
+    const scopes = typeof signer.scopes === "number" ? (SCOPE_LABELS[signer.scopes] || signer.scopes) : signer.scopes;
+    return { ...signer, scopes };
+  });
+}
+
 export const walletService = {
   PROVIDERS,
 
@@ -290,6 +317,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     }));
 
     const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
+    const dapiSigners = normalizeSignersForDapi(invokeSigners);
 
     const expectedNetwork = isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
 
@@ -300,7 +328,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: invokeSigners,
+        signers: dapiSigners,
         broadcastOverride
       });
       // broadcastOverride returns { signedTx } instead of { txid }
@@ -314,7 +342,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: invokeSigners,
+        signers: dapiSigners,
         broadcastOverride
       });
       return broadcastOverride ? result : { txid: result.txid };
@@ -330,7 +358,7 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       const account = await web3authService.getAccount();
       const rpcClient = new rpc.RPCClient(getRpcUrl());
       const normalizedArgs = normalizeInvokeArgsForRpc(args);
-      const normalizedSigners = normalizeSignersForRpc(invokeSigners);
+      const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
 
       const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
       if (invalidArg) {
@@ -385,6 +413,32 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     }
 
     throw new Error("No wallet connected");
+  },
+
+  async simulateInvoke({ scriptHash, operation, args = [], scope = 1, signers = null }) {
+    if (!_account) throw new Error("Wallet not connected");
+
+    const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
+    const normalizedArgs = normalizeInvokeArgsForRpc(args);
+    const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
+
+    const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
+    if (invalidArg) {
+      throw new Error(`Invalid Hash160 argument for "${operation}".`);
+    }
+
+    const invalidSigner = normalizedSigners.find((signer) => !isHash160Hex(signer?.account));
+    if (invalidSigner) {
+      throw new Error(`Invalid signer account for "${operation}".`);
+    }
+
+    const sb = new sc.ScriptBuilder();
+    const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
+    sb.emitAppCall(scriptHash, operation, mappedArgs);
+    const script = sb.build();
+
+    const rpcClient = new rpc.RPCClient(getRpcUrl());
+    return rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
   },
 
 };

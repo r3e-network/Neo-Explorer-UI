@@ -153,7 +153,7 @@ function parseAddresses(text) {
     .map(addr => {
        const hash = addressToScriptHash(addr);
        if (!hash) throw new Error("Invalid address format: " + addr);
-       return hash;
+       return normalizeHash160(hash);
     });
 }
 
@@ -231,7 +231,7 @@ async function deployContract() {
     txHash.value = "";
     toast.info("Please review the deployment in your wallet...");
 
-    const result = await walletService.invoke({
+    const invokeParams = {
       scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", // ContractManagement
       operation: "deploy",
       args: [
@@ -242,7 +242,16 @@ async function deployContract() {
       // _deploy performs nested witness checks (SetManagers -> CheckAdminSignatures),
       // so CalledByEntry is insufficient; Global scope is required for deploy.
       scope: 128
-    });
+    };
+
+    if (typeof walletService.simulateInvoke === "function") {
+      const simulation = await walletService.simulateInvoke(invokeParams);
+      if (simulation?.state === "FAULT") {
+        throw new Error(`Node preflight failed: ${simulation.exception || "VM FAULT"}`);
+      }
+    }
+
+    const result = await walletService.invoke(invokeParams);
 
     if (result && result.txid) {
       txHash.value = result.txid;
