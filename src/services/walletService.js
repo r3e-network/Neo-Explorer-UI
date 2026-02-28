@@ -146,14 +146,20 @@ export const walletService = {
       const walletNetwork = networks?.defaultNetwork || "";
       if (!isWalletNetworkCompatible(walletNetwork)) {
         console.warn(`Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`);
+        let switchSuccess = false;
         // Attempt to auto-switch the wallet to the correct network if the API supports it
         try {
            if (typeof n3.switchNetwork === "function") {
                const target = isExplorerTestnet() ? "TestNet" : "MainNet";
                await n3.switchNetwork(target);
+               switchSuccess = true;
            }
         } catch (e) {
            console.warn("Auto-switch network failed:", e);
+        }
+
+        if (!switchSuccess) {
+           throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
       const account = await n3.getAccount();
@@ -176,13 +182,19 @@ export const walletService = {
       const walletNetwork = networks?.defaultNetwork || "";
       if (!isWalletNetworkCompatible(walletNetwork)) {
         console.warn(`Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`);
+        let switchSuccess = false;
         try {
            if (typeof dapi.switchNetwork === "function") {
                const target = isExplorerTestnet() ? "TestNet" : "MainNet";
                await dapi.switchNetwork({ network: target });
+               switchSuccess = true;
            }
         } catch (e) {
            console.warn("Auto-switch network failed:", e);
+        }
+
+        if (!switchSuccess) {
+           throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
       const account = await dapi.getAccount();
