@@ -110,20 +110,23 @@ import { walletService } from "@/services/walletService";
 const toast = useToast();
 const nefFile = ref(null);
 const manifestFile = ref(null);
-const nefHex = ref("");
+const nefBase64 = ref("");
 const manifestString = ref("");
 const parsedManifestName = ref("");
 const isDeploying = ref(false);
 const txHash = ref("");
 
 const isReadyToDeploy = computed(() => {
-  return nefFile.value && manifestFile.value && nefHex.value && manifestString.value;
+  return nefFile.value && manifestFile.value && nefBase64.value && manifestString.value;
 });
 
-function buf2hex(buffer) {
-  return [...new Uint8Array(buffer)]
-      .map(x => x.toString(16).padStart(2, '0'))
-      .join('');
+function buf2base64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (typeof Buffer !== "undefined") return Buffer.from(bytes).toString("base64");
+
+  let binary = "";
+  bytes.forEach((b) => { binary += String.fromCharCode(b); });
+  return btoa(binary);
 }
 
 function onNefSelected(e) {
@@ -132,7 +135,7 @@ function onNefSelected(e) {
     nefFile.value = file;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      nefHex.value = buf2hex(ev.target.result);
+      nefBase64.value = buf2base64(ev.target.result);
     };
     reader.readAsArrayBuffer(file);
   }
@@ -161,7 +164,7 @@ function onManifestSelected(e) {
 
 function clearNef() {
   nefFile.value = null;
-  nefHex.value = "";
+  nefBase64.value = "";
 }
 
 function clearManifest() {
@@ -189,10 +192,11 @@ async function deployContract() {
       scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", // ContractManagement
       operation: "deploy",
       args: [
-        { type: "ByteArray", value: nefHex.value },
+        { type: "ByteArray", value: nefBase64.value },
         { type: "String", value: manifestString.value }
       ],
-      scope: 1
+      // Deploy can invoke nested witness checks inside _deploy; Global is the safe default.
+      scope: 128
     });
     
     if (result && result.txid) {

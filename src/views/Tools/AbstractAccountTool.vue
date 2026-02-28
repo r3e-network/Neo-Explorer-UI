@@ -125,6 +125,7 @@ import { connectedAccount } from '@/utils/wallet';
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
 import { addressToScriptHash } from "@/utils/neoHelpers";
+import { ABSTRACT_ACCOUNT_NEF_BASE64, ABSTRACT_ACCOUNT_MANIFEST_STRING } from "@/constants/abstractAccountArtifacts";
 
 const toast = useToast();
 const isDeploying = ref(false);
@@ -143,9 +144,7 @@ watch(connectedAccount, (acc) => {
   }
 }, { immediate: true });
 
-// Contract Hex & Manifest injected from build
-const NEF_HEX = "4e4546334e656f2e436f6d70696c65722e43536861727020332e362e320000000000000000000000000000000000000000000000000000000000000000000000c0ef39cee0e4e925c6c2a06a79e1440dd86fceac0b646573657269616c697a650100010fc0ef39cee0e4e925c6c2a06a79e1440dd86fceac0973657269616c697a650100010ffda3fa4346ea532a258fc497ddaddb6437c9fdff067570646174650300000f0000fdf2055703027926042256780b982651787068ca12b826216810ce716811ce4a0200000080030000008000000000bb24033a726a69342b68ca14b826246812ce716813ce4a0200000080030000008000000000bb24033a726a69354d01000040570202358600000070680b98240710db20220668ca10b77169240710db2022083595000000aa26110c0c556e617574686f72697a65643a7978cab7260711db2022057910b626160c11496e76616c6964207468726573686f6c643a7837010058419bf667ce41e63f18847959419bf667ce41e63f18844057010058419bf667ce41925de83170680b972605c222086837000022024041925de83140419bf667ce40c24037000040c2400100f827ec8c4041dbfea8744057040034bf70345171107210732216686bce41f827ec8c26076a4a9c72456b4a9c73456b68cab524e86a69b822024057010058419bf667ce41925de83170680b972605112222684ad8260645102204db214a0200000080030000008000000000bb24033a2202404ad8260645102204db2140ce40ca4041e63f1884403701004041e63f18844057020035fffffeff70680b98240710db20220668ca10b77169240710db2022083558ffffffaa26110c0c556e617574686f72697a65643a78ca10b7240711db20220e7978cab7260711db2022057910b626160c11496e76616c6964207468726573686f6c643a783701005a419bf667ce41e63f1884795b419bf667ce41e63f188440570004405700034035f6fefffff827ec8c40570400343634005171107210732216686bce41f827ec8c26076a4a9c72456b4a9c73456b68cab524e86a69b82202405701005a419bf667ce41925de83170680b972605c22208683700002202405701005b419bf667ce41925de83170680b972605112222684ad8260645102204db214a0200000080030000008000000000bb24033a2202405708033570ffffffaa240711db2022083551fdffffaa26110c0c556e617574686f72697a65643a5c419bf667ce12c0707868c145538b5041925de83171690b98240509220b690c0101db30db2897261a0c1554617267657420697320626c61636b6c69737465643a5d419bf667ce12c0720c0100db306ac145538b5041925de831736b0b98240509220b6b0c0101db30db2897263f786ac145538b5041925de831746c0b97260508220b6c0c0101db30db2898261f0c1a546172676574206973206e6f7420696e2077686974656c6973743a790c087472616e736665729724050922067aca13b826657a12ce745e419bf667ce12c075786dc145538b5041925de831766e0b9826466e4ad8260645102204db2177076f0710b724050922066c6f07b7262a0c25416d6f756e742065786365656473206d6178696d756d207472616e73666572206c696d69743a7a797813c00c07457865637574654195016f617a1f797841627d5b5222024012c040c145538b5041925de83140db2840c145538b5041925de8314041627d5b524057010235c4fbffffaa26110c0c556e617574686f72697a65643a5c419bf667ce12c0707926150c0101db307868c145538b5041e63f1884220e7868c145538b50412f58c5ed40c145538b5041e63f188440c145538b50412f58c5ed405701013566fbffffaa26110c0c556e617574686f72697a65643a5d419bf667ce12c0707826190c0101db300c0100db3068c145538b5041e63f188422120c0100db3068c145538b50412f58c5ed40c145538b5041e63f188440c145538b50412f58c5ed405701023502fbffffaa26110c0c556e617574686f72697a65643a5d419bf667ce12c0707926150c0101db307868c145538b5041e63f1884220e7868c145538b50412f58c5ed4057010235bcfaffffaa26110c0c556e617574686f72697a65643a5e419bf667ce12c0707910b7261379db287868c145538b5041e63f1884220e7868c145538b50412f58c5ed40c145538b5041e63f188440db28405700023568faffffaa26110c0c556e617574686f72697a65643a0b7978370200403702004056070c0101db30600c0102db30610c0103db30620c0104db30630c0110db30650c0111db30640c0112db306640fa77a26f";
-const MANIFEST_STRING = `{"name":"AbstractAccount","groups":[],"features":{},"supportedstandards":[],"abi":{"methods":[{"name":"_deploy","parameters":[{"name":"data","type":"Any"},{"name":"update","type":"Boolean"}],"returntype":"Void","offset":0,"safe":false},{"name":"onNEP11Payment","parameters":[{"name":"from","type":"Hash160"},{"name":"amount","type":"Integer"},{"name":"tokenId","type":"ByteArray"},{"name":"data","type":"Any"}],"returntype":"Void","offset":550,"safe":false},{"name":"onNEP17Payment","parameters":[{"name":"from","type":"Hash160"},{"name":"amount","type":"Integer"},{"name":"data","type":"Any"}],"returntype":"Void","offset":554,"safe":false},{"name":"verify","parameters":[],"returntype":"Boolean","offset":558,"safe":false},{"name":"execute","parameters":[{"name":"target","type":"Hash160"},{"name":"method","type":"String"},{"name":"args","type":"Array"}],"returntype":"Any","offset":707,"safe":false},{"name":"setAdmins","parameters":[{"name":"admins","type":"Array"},{"name":"threshold","type":"Integer"}],"returntype":"Void","offset":93,"safe":false},{"name":"getAdmins","parameters":[],"returntype":"Array","offset":230,"safe":false},{"name":"getAdminThreshold","parameters":[],"returntype":"Integer","offset":339,"safe":false},{"name":"setManagers","parameters":[{"name":"managers","type":"Array"},{"name":"threshold","type":"Integer"}],"returntype":"Void","offset":420,"safe":false},{"name":"getManagers","parameters":[],"returntype":"Array","offset":623,"safe":false},{"name":"getManagerThreshold","parameters":[],"returntype":"Integer","offset":653,"safe":false},{"name":"setBlacklist","parameters":[{"name":"account","type":"Hash160"},{"name":"isBlacklisted","type":"Boolean"}],"returntype":"Void","offset":1117,"safe":false},{"name":"setWhitelistMode","parameters":[{"name":"enabled","type":"Boolean"}],"returntype":"Void","offset":1211,"safe":false},{"name":"setWhitelist","parameters":[{"name":"account","type":"Hash160"},{"name":"isWhitelisted","type":"Boolean"}],"returntype":"Void","offset":1295,"safe":false},{"name":"setMaxTransfer","parameters":[{"name":"token","type":"Hash160"},{"name":"maxAmount","type":"Integer"}],"returntype":"Void","offset":1367,"safe":false},{"name":"update","parameters":[{"name":"nefFile","type":"ByteArray"},{"name":"manifest","type":"String"}],"returntype":"Void","offset":1440,"safe":false},{"name":"_initialize","parameters":[],"returntype":"Void","offset":1477,"safe":false}],"events":[{"name":"Execute","parameters":[{"name":"target","type":"Hash160"},{"name":"method","type":"String"},{"name":"args","type":"Array"}]},{"name":"AdminChanged","parameters":[{"name":"action","type":"String"},{"name":"admin","type":"Hash160"}]},{"name":"ManagerChanged","parameters":[{"name":"action","type":"String"},{"name":"manager","type":"Hash160"}]}]},"permissions":[{"contract":"0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0","methods":["deserialize","serialize"]},{"contract":"0xfffdc93764dbaddd97c48f252a53ea4643faa3fd","methods":["update"]},{"contract":"*","methods":["transfer"]}],"trusts":[],"extra":{"Author":"Neo Explorer","Email":"dev@neo.org","Description":"A professional permission-controlling abstract account contract","nef":{"optimization":"Basic"}}}`;
+// Contract artifacts generated from contracts/AbstractAccount/bin/sc.
 
 function parseAddresses(text) {
   return text.split('\n')
@@ -184,7 +183,7 @@ async function deployContract() {
       return;
     }
 
-    const manifestObj = JSON.parse(MANIFEST_STRING);
+    const manifestObj = JSON.parse(ABSTRACT_ACCOUNT_MANIFEST_STRING);
     // Append a unique timestamp to the name so multiple deployments of the same NEF are allowed by the network
     manifestObj.name = `AbstractAccount_${Date.now().toString().slice(-6)}`;
     const dynamicManifestStr = JSON.stringify(manifestObj);
@@ -208,11 +207,13 @@ async function deployContract() {
       scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", // ContractManagement
       operation: "deploy",
       args: [
-        { type: "ByteArray", value: NEF_HEX },
+        { type: "ByteArray", value: ABSTRACT_ACCOUNT_NEF_BASE64 },
         { type: "String", value: dynamicManifestStr },
         deployData
       ],
-      scope: 1
+      // _deploy performs nested witness checks (SetManagers -> CheckAdminSignatures),
+      // so CalledByEntry is insufficient; Global scope is required for deploy.
+      scope: 128
     });
 
     if (result && result.txid) {
