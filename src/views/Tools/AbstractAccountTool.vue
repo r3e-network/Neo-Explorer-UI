@@ -208,7 +208,7 @@ async function deployContract() {
       scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", // ContractManagement
       operation: "deploy",
       args: [
-        { type: "ByteArray", value: NEF_HEX },
+        { type: "ByteArray", value: NEF_BASE64 },
         { type: "String", value: dynamicManifestStr },
         deployData
       ],
