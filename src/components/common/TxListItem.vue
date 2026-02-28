@@ -31,15 +31,15 @@
             <HashLink :hash="recipient.hash" :type="recipient.type" :copyable="false" />
           </div>
           <div v-else-if="transferText && transferText !== '—'" class="flex items-center gap-1.5 min-w-0">
-            <img v-if="transferLogo" :src="transferLogo" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
+            <img v-if="transferLogo" :src="transferLogo" loading="lazy" decoding="async" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
             <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">
               {{ transferText }}
               <svg v-if="supabaseMeta?.is_verified" class="h-3 w-3 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
             </span>
           </div>
           <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
-            <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
-            <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" loading="lazy" decoding="async" class="w-4 h-4 rounded-full flex-shrink-0" />
+            <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" loading="lazy" decoding="async" class="w-4 h-4 rounded-full flex-shrink-0" />
             <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
           </div>
           <span v-else class="text-sm text-low">Contract Call</span>

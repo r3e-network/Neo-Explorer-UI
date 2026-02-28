@@ -1,0 +1,20 @@
+--- src/components/common/HashLink.vue
++++ src/components/common/HashLink.vue
+@@ -74,7 +74,7 @@
+     if (native && native.name) return native.name;
+     const known = KNOWN_CONTRACTS[hash];
+     if (known && known.name) return known.name;
+   }
+-  return fetchedContractName.value || null;
++  return null;
+ });
+ 
+ const knownLogo = computed(() => {
+@@ -107,6 +107,7 @@
+ const displayHash = computed(() => {
+   if (!props.hash) return "";
+   if (nnsName.value) return nnsName.value;
++  if (fetchedContractName.value) return fetchedContractName.value;
+   if (!shouldTruncate.value) return props.hash;
+   return truncateHashValue(props.hash, 8, 6);
+ });

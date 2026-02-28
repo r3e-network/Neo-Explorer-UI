@@ -1,0 +1,28 @@
+--- src/services/transactionService.js
++++ src/services/transactionService.js
+@@ -95,6 +95,24 @@
+         })
+       );
+       return { ...res, result: enriched };
++    },
++
++    async getByAddress(address, limit = 20, skip = 0, options = {}) {
++      const { enrichMissingFields = true, ...requestOptions } = options;
++      const res = await this._getByAddress(address, limit, skip, requestOptions);
++      if (!res || !res.result) return res;
++
++      const enriched = await Promise.all(
++        res.result.map(async (tx) => {
++          if (enrichMissingFields && tx.vmstate === undefined && tx.hash) {
++            try {
++              const full = await this.getByHash(tx.hash, requestOptions);
++              if (full && full.vmstate) tx.vmstate = full.vmstate;
++            } catch (e) {}
++          }
++          return tx;
++        })
++      );
++      return { ...res, result: enriched };
+     }
+   }
+ );

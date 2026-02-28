@@ -281,7 +281,8 @@ async function loadLatestData(forceRefresh = false) {
         }
         if (Array.isArray(nextTxs) && nextTxs.length) {
           const nonPendingTxs = nextTxs.filter(tx => tx.status !== 'pending');
-          void enrichTransactions(nonPendingTxs, { maxItems: 6 });
+          // Limit heavy RPC transfer enrichment to the top 2 items to prevent network congestion
+          void enrichTransactions(nonPendingTxs, { maxItems: 2 });
         }
       })
       .catch(() => {

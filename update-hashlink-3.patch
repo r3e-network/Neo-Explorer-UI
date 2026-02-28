@@ -1,0 +1,10 @@
+--- src/components/common/HashLink.vue
++++ src/components/common/HashLink.vue
+@@ -109,6 +109,7 @@
+ const displayHash = computed(() => {
+   if (!props.hash) return "";
+   if (nnsName.value) return nnsName.value;
++  if (fetchedContractName.value) return fetchedContractName.value;
+   if (!shouldTruncate.value) return props.hash;
+   return truncateHashValue(props.hash, 8, 6);
+ });

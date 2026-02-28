@@ -11,6 +11,54 @@ export const supabase = supabaseUrl && supabaseAnonKey
 // In-memory caches to avoid redundant requests during a session
 const contractMetadataCache = new Map();
 const addressTagCache = new Map();
+const inFlightRequests = new Map(); // For promise caching
+
+// Micro-batching queues
+let contractBatchQueue = [];
+let contractBatchTimer = null;
+let contractBatchResolvers = [];
+
+function flushContractBatch() {
+  if (contractBatchQueue.length === 0) return;
+  
+  const hashesToFetch = [...contractBatchQueue];
+  const resolversToNotify = [...contractBatchResolvers];
+  
+  contractBatchQueue = [];
+  contractBatchResolvers = [];
+  contractBatchTimer = null;
+  
+  supabaseService.getContractMetadataBatch(hashesToFetch).then(resultMap => {
+    resolversToNotify.forEach(({ hash, resolve }) => {
+      resolve(resultMap[String(hash).toLowerCase()] || null);
+    });
+  }).catch(_err => {
+    resolversToNotify.forEach(({ resolve }) => resolve(null));
+  });
+}
+
+let tagBatchQueue = [];
+let tagBatchTimer = null;
+let tagBatchResolvers = [];
+
+function flushTagBatch() {
+  if (tagBatchQueue.length === 0) return;
+  
+  const addrsToFetch = [...tagBatchQueue];
+  const resolversToNotify = [...tagBatchResolvers];
+  
+  tagBatchQueue = [];
+  tagBatchResolvers = [];
+  tagBatchTimer = null;
+  
+  supabaseService.getAddressTagsBatch(addrsToFetch).then(resultMap => {
+    resolversToNotify.forEach(({ address, resolve }) => {
+      resolve(resultMap[String(address)] || null);
+    });
+  }).catch(_err => {
+    resolversToNotify.forEach(({ resolve }) => resolve(null));
+  });
+}
 
 export const supabaseService = {
   async getContractMetadata(hash) {
@@ -21,23 +69,26 @@ export const supabaseService = {
       return contractMetadataCache.get(normalizedHash);
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('contract_metadata')
-        .select('*')
-        .eq('contract_hash', normalizedHash)
-        .maybeSingle();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 is no rows returned
-        if (import.meta.env.DEV) console.warn('Supabase getContractMetadata error:', error);
-      }
-      
-      contractMetadataCache.set(normalizedHash, data || null);
-      return data || null;
-    } catch (err) {
-      if (import.meta.env.DEV) console.error(err);
-      return null;
+    if (inFlightRequests.has(normalizedHash)) {
+      return inFlightRequests.get(normalizedHash);
     }
+
+    const fetchPromise = new Promise((resolve) => {
+      contractBatchQueue.push(normalizedHash);
+      contractBatchResolvers.push({ hash: normalizedHash, resolve });
+      
+      if (!contractBatchTimer) {
+        contractBatchTimer = setTimeout(flushContractBatch, 50); // 50ms debounce
+      }
+    });
+
+    inFlightRequests.set(normalizedHash, fetchPromise);
+    
+    fetchPromise.finally(() => {
+      inFlightRequests.delete(normalizedHash);
+    });
+
+    return fetchPromise;
   },
 
   async getContractMetadataBatch(hashes) {
@@ -87,22 +138,26 @@ export const supabaseService = {
       return addressTagCache.get(normalizedAddr);
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('address_tags')
-        .select('label, category')
-        .eq('address', normalizedAddr)
-        .maybeSingle();
-        
-      if (error && error.code !== 'PGRST116') {
-        if (import.meta.env.DEV) console.warn('Supabase getAddressTag error:', error);
-      }
-        
-      addressTagCache.set(normalizedAddr, data || null);
-      return data || null;
-    } catch (err) {
-      return null;
+    if (inFlightRequests.has(normalizedAddr)) {
+      return inFlightRequests.get(normalizedAddr);
     }
+
+    const fetchPromise = new Promise((resolve) => {
+      tagBatchQueue.push(normalizedAddr);
+      tagBatchResolvers.push({ address: normalizedAddr, resolve });
+      
+      if (!tagBatchTimer) {
+        tagBatchTimer = setTimeout(flushTagBatch, 50); // 50ms debounce
+      }
+    });
+
+    inFlightRequests.set(normalizedAddr, fetchPromise);
+    
+    fetchPromise.finally(() => {
+      inFlightRequests.delete(normalizedAddr);
+    });
+
+    return fetchPromise;
   },
   
   async getAddressTagsBatch(addresses) {

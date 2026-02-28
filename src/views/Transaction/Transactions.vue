@@ -109,7 +109,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
-import { transactionService, executionService } from "@/services";
+import { transactionService } from "@/services";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
@@ -118,7 +118,6 @@ import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
-import { extractVmStateFromAppLog } from "@/utils/txVmState";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -128,8 +127,9 @@ import TransactionTable from "./components/TransactionTable.vue";
 
 const showAbsoluteTime = ref(false);
 const { t } = useI18n();
-const VMSTATE_ENRICH_LIMIT = 8;
-const vmStatePendingHashes = new Set();
+// Disable automatic transfer enrichment on the main list to prevent 40+ concurrent RPC calls.
+// Users can click into the transaction detail to view full transfers.
+const VMSTATE_ENRICH_LIMIT = 0;
 
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 
@@ -161,9 +161,6 @@ watch(transactions, (txs) => {
     enrichTransactions(txs, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
       if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
     });
-    hydrateVmState(txs).catch((err) => {
-      if (import.meta.env.DEV) console.warn("VM state enrichment failed:", err);
-    });
   }
 });
 
@@ -176,42 +173,9 @@ const { loadingMore, loadMore } = useLoadMore(
       enrichTransactions(newItems, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
         if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);
       });
-      hydrateVmState(newItems).catch((err) => {
-        if (import.meta.env.DEV) console.warn("VM state enrichment failed:", err);
-      });
     },
   }
 );
-
-async function hydrateVmState(txList = []) {
-  const targets = txList
-    .filter((tx) => tx?.hash && !tx?.vmstate && !vmStatePendingHashes.has(tx.hash))
-    .slice(0, VMSTATE_ENRICH_LIMIT);
-
-  if (!targets.length) return;
-
-  const batchSize = 4;
-  for (let i = 0; i < targets.length; i += batchSize) {
-    const batch = targets.slice(i, i + batchSize);
-    await Promise.all(
-      batch.map(async (tx) => {
-        const hash = tx.hash;
-        vmStatePendingHashes.add(hash);
-        try {
-          const appLog = await executionService.getExecutionTrace(hash);
-          const vmState = extractVmStateFromAppLog(appLog);
-          if (vmState) {
-            tx.vmstate = vmState;
-          }
-        } catch {
-          // Keep vmstate unknown when log lookup fails.
-        } finally {
-          vmStatePendingHashes.delete(hash);
-        }
-      })
-    );
-  }
-}
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {

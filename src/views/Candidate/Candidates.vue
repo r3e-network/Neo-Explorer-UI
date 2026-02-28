@@ -68,6 +68,8 @@
                       :src="getLogo(candidate)" 
                       class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
                       alt="Logo"
+                      loading="lazy"
+                      decoding="async"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
