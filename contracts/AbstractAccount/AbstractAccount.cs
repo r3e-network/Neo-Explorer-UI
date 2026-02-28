@@ -159,7 +159,10 @@ namespace AbstractAccount
         // --- Admin Management ---
         public static void SetAdmins(List<UInt160> admins, int threshold)
         {
-            if (!Runtime.CheckWitness(Runtime.ExecutingScriptHash) && !CheckAdminSignatures())
+            List<UInt160> currentAdmins = GetAdmins();
+            bool isInitialized = currentAdmins != null && currentAdmins.Count > 0;
+            
+            if (isInitialized && !Runtime.CheckWitness(Runtime.ExecutingScriptHash) && !CheckAdminSignatures())
                 throw new Exception("Unauthorized");
 
             if (threshold > admins.Count || threshold <= 0) throw new Exception("Invalid threshold");
@@ -184,7 +187,10 @@ namespace AbstractAccount
         // --- Manager Management ---
         public static void SetManagers(List<UInt160> managers, int threshold)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
+            List<UInt160> currentAdmins = GetAdmins();
+            bool isInitialized = currentAdmins != null && currentAdmins.Count > 0;
+
+            if (isInitialized && !CheckAdminSignatures()) throw new Exception("Unauthorized");
 
             if (managers.Count > 0 && (threshold > managers.Count || threshold <= 0)) throw new Exception("Invalid threshold");
             Storage.Put(Storage.CurrentContext, ManagersKey, StdLib.Serialize(managers));
@@ -210,7 +216,7 @@ namespace AbstractAccount
         {
             if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
             StorageMap map = new StorageMap(Storage.CurrentContext, BlacklistPrefix);
-            if (isBlacklisted) map.Put(account, new byte[] { 1 });
+            if (isBlacklisted) map.Put(account, (ByteString)new byte[] { 1 });
             else map.Delete(account);
         }
 
@@ -218,15 +224,15 @@ namespace AbstractAccount
         {
             if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
             StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistPrefix);
-            if (enabled) map.Put(new byte[] { 0x00 }, new byte[] { 1 });
-            else map.Delete(new byte[] { 0x00 });
+            if (enabled) map.Put((ByteString)new byte[] { 0x00 }, (ByteString)new byte[] { 1 });
+            else map.Delete((ByteString)new byte[] { 0x00 });
         }
 
         public static void SetWhitelist(UInt160 account, bool isWhitelisted)
         {
             if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
             StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistPrefix);
-            if (isWhitelisted) map.Put(account, new byte[] { 1 });
+            if (isWhitelisted) map.Put(account, (ByteString)new byte[] { 1 });
             else map.Delete(account);
         }
 
