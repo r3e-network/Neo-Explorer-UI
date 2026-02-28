@@ -37,10 +37,22 @@ export const web3authService = {
         config: { chainConfig: getChainConfig() },
       });
 
+      const lang = localStorage.getItem("lang") || "en";
+      const w3aLang = lang.startsWith('zh') ? 'zh' : lang; // Web3Auth supports 'en', 'de', 'ja', 'ko', 'zh', 'es', 'fr', 'pt', 'nl'
+
+      const isDarkMode = document.documentElement.classList.contains("dark");
+
       _web3auth = new Web3Auth({
         clientId,
         web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet", 
         privateKeyProvider: privateKeyProvider,
+        uiConfig: {
+          defaultLanguage: w3aLang,
+          mode: isDarkMode ? "dark" : "light",
+          theme: {
+            primary: "#00E599" // Neo green
+          }
+        }
       });
 
       await _web3auth.initModal();
