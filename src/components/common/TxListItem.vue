@@ -146,8 +146,8 @@ const normalizeVmState = (value) => {
   return "";
 };
 
-const vmState = computed(() =>
-  normalizeVmState(
+const vmState = computed(() => {
+  const rawState =
     props.tx?.vmstate ??
     props.tx?.Vmstate ??
     props.tx?.VMState ??
@@ -156,9 +156,20 @@ const vmState = computed(() =>
     props.tx?.tx_state ??
     props.tx?.txState ??
     props.tx?.state ??
-    props.tx?.status
-  )
-);
+    props.tx?.status;
+    
+  const normalized = normalizeVmState(rawState);
+  
+  if (!normalized) {
+    if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") {
+      return "PENDING";
+    }
+    // Assume HALT for indexed transactions (like from NeoTube) that don't supply a vmstate
+    return "HALT";
+  }
+  
+  return normalized;
+});
 
 const isSuccess = computed(() => {
   if (!vmState.value) return null;
