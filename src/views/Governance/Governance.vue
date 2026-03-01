@@ -392,9 +392,11 @@ async function loadCandidates() {
     const env = getCurrentEnv().toLowerCase();
     const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
 
+    const isTestnet = doraEnv !== "mainnet";
+
     const [rpcRes, doraRes] = await Promise.allSettled([
       rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] })),
-      fetch(`https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`).then(r => r.ok ? r.json() : [])
+      isTestnet ? Promise.resolve([]) : fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then(r => r.ok ? r.json() : [])
     ]);
 
     let rawCandidates = [];

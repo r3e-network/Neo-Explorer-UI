@@ -280,9 +280,11 @@ async function loadExistingProfile(address) {
 
     const env = getCurrentEnv().toLowerCase();
     const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
+    const isTestnet = doraEnv !== "mainnet";
+    if (isTestnet) return;
     const profileList = await cachedRequest(
-      `dora_metadata_${doraEnv}`,
-      () => fetch(`https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`).then((res) => (res.ok ? res.json() : [])),
+      `dora_metadata_mainnet`,
+      () => fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then((res) => (res.ok ? res.json() : [])),
       300000
     );
 

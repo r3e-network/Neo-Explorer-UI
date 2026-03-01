@@ -432,19 +432,18 @@ async function loadSummary(addr) {
           }
           
           const env = getCurrentEnv().toLowerCase();
+          const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
           if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
              candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
           }
           
-          // Fetch Dora metadata
-          const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
-          const url = `https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`;
-          
-          cachedRequest(
-            `dora_metadata_${doraEnv}`,
-            () => fetch(url).then(r => r.ok ? r.json() : []),
-            300000 // 5 mins
-          ).then((data) => {
+          if (!isTestnet) {
+            const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
+            cachedRequest(
+              `dora_metadata_mainnet`,
+              () => fetch(url).then(r => r.ok ? r.json() : []),
+              300000 // 5 mins
+            ).then((data) => {
             if (currentRequestId !== addressRequestId) return;
             if (Array.isArray(data)) {
               // Try to find by converting pubkey to address
@@ -479,11 +478,10 @@ async function loadSummary(addr) {
                 } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
                   candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
                 }
-              } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
-                candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
               }
             }
           }).catch(() => {});
+        }
         } else {
           isCandidate.value = false;
           candidateData.value = null;

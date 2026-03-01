@@ -151,12 +151,13 @@ const doraMetadata = ref({});
 
 async function loadDoraMetadata() {
   const env = getCurrentEnv().toLowerCase();
-  const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
-  const url = `https://dora.coz.io/api/v1/neo3/${doraEnv}/committee`;
+  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+  if (isTestnet) return;
+  const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
   
   try {
     const data = await cachedRequest(
-      `dora_metadata_${doraEnv}`,
+      `dora_metadata_mainnet`,
       () => fetch(url).then(r => r.ok ? r.json() : []),
       300000 // 5 minutes cache
     );

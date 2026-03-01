@@ -129,7 +129,8 @@ function removeSigner(index) {
 const getRpcUrl = () => {
     const env = getCurrentEnv().toLowerCase();
     if (env.includes("test") || env.includes("t5")) {
-        return "http://seed5t5.neo.org:20332";
+        const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
+        return seeds[Math.floor(Math.random() * seeds.length)];
     }
     return "https://mainnet1.neo.coz.io:443";
 };
