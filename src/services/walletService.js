@@ -100,6 +100,46 @@ function isWalletNetworkCompatible(network) {
   return walletNetwork.includes("main");
 }
 
+function getDapiNetworkName() {
+  return isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
+}
+
+function getLegacyDapiNetworkAlias() {
+  return isExplorerTestnet() ? "TestNet" : "MainNet";
+}
+
+function getWalletErrorMessage(err) {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+
+  const candidates = [
+    err.description,
+    err.message,
+    err.error?.description,
+    err.error?.message,
+    err.data?.description,
+    err.data?.message,
+  ];
+
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) return value;
+  }
+
+  return "";
+}
+
+function isDapiConnectionDenied(err) {
+  const type = String(err?.type || "").toUpperCase();
+  const msg = getWalletErrorMessage(err).toLowerCase();
+  return type === "CONNECTION_DENIED" || /refused to process this request|connection denied/.test(msg);
+}
+
+function toConnectionDeniedError(providerName) {
+  return new Error(
+    `${providerName} refused this request. Open ${providerName}, unlock it, approve this site, and retry.`
+  );
+}
+
 const SCOPE_VALUES_BY_NAME = Object.freeze({
   None: 0,
   CalledByEntry: 1,
@@ -203,7 +243,15 @@ export const walletService = {
            throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
-      const account = await n3.getAccount();
+      let account;
+      try {
+        account = await n3.getAccount();
+      } catch (err) {
+        if (isDapiConnectionDenied(err)) {
+          throw toConnectionDeniedError(PROVIDERS.NEOLINE);
+        }
+        throw err;
+      }
       _connectedProvider = PROVIDERS.NEOLINE;
       _account = { address: account.address, label: account.label || "NeoLine" };
       return _account;
@@ -238,7 +286,15 @@ export const walletService = {
            throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
-      const account = await dapi.getAccount();
+      let account;
+      try {
+        account = await dapi.getAccount();
+      } catch (err) {
+        if (isDapiConnectionDenied(err)) {
+          throw toConnectionDeniedError(PROVIDERS.O3);
+        }
+        throw err;
+      }
       _connectedProvider = PROVIDERS.O3;
       _account = { address: account.address, label: account.label || "O3" };
       return _account;
@@ -334,36 +390,59 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     const invokeSigners = signers || [{ account: defaultSignerAccount, scopes: scope }];
     const dapiSigners = normalizeSignersForDapi(invokeSigners);
 
-    const expectedNetwork = isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
+    const expectedNetwork = getDapiNetworkName();
+    const legacyNetworkAlias = getLegacyDapiNetworkAlias();
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
-      const request = {
-        network: expectedNetwork,
+      const requestBase = {
         scriptHash,
         operation,
         args: dapiArgs,
         signers: dapiSigners
       };
-      if (broadcastOverride) request.broadcastOverride = true;
+      const invokeWithNetwork = async (network) => {
+        const request = { ...requestBase, network };
+        if (broadcastOverride) request.broadcastOverride = true;
+        return n3.invoke(request);
+      };
 
-      const result = await n3.invoke(request);
+      let result;
+      try {
+        result = await invokeWithNetwork(expectedNetwork);
+      } catch (err) {
+        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+          throw err;
+        }
+        result = await invokeWithNetwork(legacyNetworkAlias);
+      }
       // broadcastOverride returns { signedTx } instead of { txid }
       return broadcastOverride ? result : { txid: result.txid };
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
-      const request = {
-        network: expectedNetwork,
+      const requestBase = {
         scriptHash,
         operation,
         args: dapiArgs,
         signers: dapiSigners
       };
-      if (broadcastOverride) request.broadcastOverride = true;
+      const invokeWithNetwork = async (network) => {
+        const request = { ...requestBase, network };
+        if (broadcastOverride) request.broadcastOverride = true;
+        return dapi.invoke(request);
+      };
 
-      const result = await dapi.invoke(request);
+      let result;
+      try {
+        result = await invokeWithNetwork(expectedNetwork);
+      } catch (err) {
+        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+          throw err;
+        }
+        result = await invokeWithNetwork(legacyNetworkAlias);
+      }
       return broadcastOverride ? result : { txid: result.txid };
     }
 

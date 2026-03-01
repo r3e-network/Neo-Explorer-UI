@@ -197,4 +197,32 @@ describe("walletService NeoLine invoke signer normalization", () => {
     expect(params.signers[0].account.startsWith("0x")).toBe(false);
     expect("broadcastOverride" in params).toBe(false);
   });
+
+  it("retries NeoLine invoke with MainNet/TestNet alias when provider denies N3* network name", async () => {
+    neoLineInvokeMock.mockImplementation(async (params) => {
+      if (params.network === "N3MainNet") {
+        throw {
+          type: "CONNECTION_DENIED",
+          description: "The dAPI provider refused to process this request",
+        };
+      }
+      return { txid: "0xalias-network-ok" };
+    });
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    const result = await walletService.invoke({
+      scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+      operation: "deploy",
+      args: [],
+      scope: 128,
+    });
+
+    expect(result).toEqual({ txid: "0xalias-network-ok" });
+    expect(neoLineInvokeMock).toHaveBeenCalledTimes(2);
+    expect(neoLineInvokeMock.mock.calls[0][0].network).toBe("N3MainNet");
+    expect(neoLineInvokeMock.mock.calls[1][0].network).toBe("MainNet");
+  });
 });
