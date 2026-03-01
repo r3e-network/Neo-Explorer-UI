@@ -168,7 +168,7 @@ const normalizeTransaction = (tx = {}) => {
 };
 
 export const neotubeService = {
-  supportsNetwork(env = getCurrentEnv()) {
+  supportsNetwork() {
     // NeoTube consistently throws 403 Forbidden blocks against browser client origins and proxies.
     // By disabling this, blockService, transactionService and statsService fall back cleanly 
     // to their internal RPC payloads as intended without crashing or throwing errors.

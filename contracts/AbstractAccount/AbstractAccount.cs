@@ -10,244 +10,285 @@ using Neo.SmartContract.Framework.Services;
 
 namespace AbstractAccount
 {
+    [DisplayName("UnifiedSmartWallet")]
     [ManifestExtra("Author", "Neo Explorer")]
     [ManifestExtra("Email", "dev@neo.org")]
-    [ManifestExtra("Description", "A professional permission-controlling abstract account contract")]
-    [ContractPermission("*", "transfer")]
-    public class AbstractAccount : SmartContract
+    [ManifestExtra("Description", "A global, unified permission-controlling abstract account gateway")]
+    [ContractPermission("*", "*")]
+    public class UnifiedSmartWallet : SmartContract
     {
-        // State Keys
-        private static readonly byte[] AdminsKey = new byte[] { 0x01 };
-        private static readonly byte[] AdminThresholdKey = new byte[] { 0x02 };
-        private static readonly byte[] ManagersKey = new byte[] { 0x03 };
-        private static readonly byte[] ManagerThresholdKey = new byte[] { 0x04 };
-        
+        private static readonly byte[] DeployerKey = new byte[] { 0x00 };
+
         // Maps Prefixes
-        private static readonly byte[] WhitelistPrefix = new byte[] { 0x10 };
-        private static readonly byte[] BlacklistPrefix = new byte[] { 0x11 };
-        private static readonly byte[] MaxTransferPrefix = new byte[] { 0x12 };
+        private static readonly byte[] AdminsPrefix = new byte[] { 0x01 };
+        private static readonly byte[] AdminThresholdPrefix = new byte[] { 0x02 };
+        private static readonly byte[] ManagersPrefix = new byte[] { 0x03 };
+        private static readonly byte[] ManagerThresholdPrefix = new byte[] { 0x04 };
+        private static readonly byte[] WhitelistEnabledPrefix = new byte[] { 0x05 };
+        private static readonly byte[] WhitelistPrefix = new byte[] { 0x06 };
+        private static readonly byte[] BlacklistPrefix = new byte[] { 0x07 };
+        private static readonly byte[] MaxTransferPrefix = new byte[] { 0x08 };
+        private static readonly byte[] NoncePrefix = new byte[] { 0x09 };
 
-        // Events
-        public delegate void OnExecuteEvent(UInt160 target, string method, object[] args);
+        public delegate void OnExecuteEvent(UInt160 accountId, UInt160 target, string method, object[] args);
         [DisplayName("Execute")]
-        public static event OnExecuteEvent OnExecute;
-
-        public delegate void OnAdminChangedEvent(string action, UInt160 admin);
-        [DisplayName("AdminChanged")]
-        public static event OnAdminChangedEvent OnAdminChanged;
-
-        public delegate void OnManagerChangedEvent(string action, UInt160 manager);
-        [DisplayName("ManagerChanged")]
-        public static event OnManagerChangedEvent OnManagerChanged;
+        public static event OnExecuteEvent OnExecute = default!; // fixed nullable warning
 
         public static void _deploy(object data, bool update)
         {
             if (update) return;
-
-            if (data != null)
-            {
-                object[] args = (object[])data;
-                if (args.Length >= 2)
-                {
-                    List<UInt160> admins = (List<UInt160>)args[0];
-                    int adminThreshold = (int)(BigInteger)args[1];
-                    SetAdmins(admins, adminThreshold);
-                }
-                if (args.Length >= 4)
-                {
-                    List<UInt160> managers = (List<UInt160>)args[2];
-                    int managerThreshold = (int)(BigInteger)args[3];
-                    SetManagers(managers, managerThreshold);
-                }
-            }
+            var tx = (Transaction)Runtime.ScriptContainer;
+            Storage.Put(Storage.CurrentContext, DeployerKey, tx.Sender);
         }
 
-        public static void OnNEP11Payment(UInt160 from, BigInteger amount, ByteString tokenId, object data) { }
-        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data) { }
-
-        // Core Verify: allows Admins to bypass and control the contract natively
-        public static bool Verify()
+        public static BigInteger GetNonce(UInt160 signer)
         {
-            return CheckAdminSignatures();
+            byte[] key = Helper.Concat(NoncePrefix, signer);
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            return data == null ? 0 : (BigInteger)data;
         }
 
-        private static bool CheckAdminSignatures()
+        private static void IncrementNonce(UInt160 signer)
         {
-            List<UInt160> admins = GetAdmins();
-            int threshold = GetAdminThreshold();
-            int count = 0;
-            for (int i = 0; i < admins.Count; i++)
-            {
-                if (Runtime.CheckWitness(admins[i]))
-                {
-                    count++;
-                }
-            }
-            return count >= threshold;
+            byte[] key = Helper.Concat(NoncePrefix, signer);
+            BigInteger current = GetNonce(signer);
+            Storage.Put(Storage.CurrentContext, key, current + 1);
         }
 
-        private static bool CheckManagerSignatures()
+        public static object ExecuteMetaTx(
+            UInt160 accountId,
+            ByteString uncompressedPubKey,
+            UInt160 targetContract,
+            string method,
+            object[] args,
+            BigInteger nonce,
+            ByteString signature)
         {
-            List<UInt160> managers = GetManagers();
-            int threshold = GetManagerThreshold();
-            if (threshold == 0) return true; // if no managers configured, maybe restrict? 
-            int count = 0;
-            for (int i = 0; i < managers.Count; i++)
-            {
-                if (Runtime.CheckWitness(managers[i]))
-                {
-                    count++;
-                }
+            UInt160 signerHash = DeriveEthAddress(uncompressedPubKey);
+
+            if (accountId == UInt160.Zero || accountId == null) {
+                accountId = signerHash;
             }
-            return count >= threshold;
+
+            BigInteger currentNonce = GetNonce(signerHash);
+            ExecutionEngine.Assert(nonce == currentNonce, "Invalid Nonce");
+
+            ByteString payload = StdLib.Serialize(new object[] { accountId, targetContract, method, args, nonce });
+            byte[] messageHash = (byte[])CryptoLib.Sha256(payload);
+
+            bool isValid = CryptoLib.VerifyWithECDsa(
+                (ByteString)messageHash,
+                (Neo.Cryptography.ECC.ECPoint)uncompressedPubKey,
+                signature,
+                NamedCurve.secp256k1
+            );
+            ExecutionEngine.Assert(isValid, "Invalid EIP-712 Signature");
+
+            IncrementNonce(signerHash);
+            CheckPermissionsAndExecute(accountId, new UInt160[] { signerHash }, targetContract, method, args);
+            OnExecute(accountId, targetContract, method, args);
+            return Contract.Call(targetContract, method, CallFlags.All, args);
         }
 
-        // The core method for managers to execute transactions safely
-        public static object Execute(UInt160 target, string method, object[] args)
+        public static object Execute(UInt160 accountId, UInt160 targetContract, string method, object[] args)
         {
-            // Only managers (or admins) can execute
-            if (!CheckManagerSignatures() && !CheckAdminSignatures())
-            {
-                throw new Exception("Unauthorized");
+            CheckPermissionsAndExecuteNative(accountId, targetContract, method, args);
+            OnExecute(accountId, targetContract, method, args);
+            return Contract.Call(targetContract, method, CallFlags.All, args);
+        }
+
+        private static void CheckPermissionsAndExecuteNative(UInt160 accountId, UInt160 targetContract, string method, object[] args)
+        {
+            bool isSelfSigned = Runtime.CheckWitness(accountId);
+
+            if (!isSelfSigned) {
+                bool isAdmin = CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId));
+                bool isManager = CheckNativeSignatures(GetManagers(accountId), GetManagerThreshold(accountId));
+                ExecutionEngine.Assert(isAdmin || isManager, "Unauthorized");
+            }
+            EnforceRestrictions(accountId, targetContract, method, args);
+        }
+
+        private static void CheckPermissionsAndExecute(UInt160 accountId, UInt160[] verifiedSigners, UInt160 targetContract, string method, object[] args)
+        {
+            bool isSelfSigned = false;
+            foreach (var signer in verifiedSigners) {
+                if (signer == accountId) isSelfSigned = true;
             }
 
-            // 1. Check Blacklist
-            StorageMap blacklistMap = new StorageMap(Storage.CurrentContext, BlacklistPrefix);
-            ByteString isBlacklisted = blacklistMap.Get(target);
-            if (isBlacklisted != null && isBlacklisted == (ByteString)new byte[] { 1 })
-            {
-                throw new Exception("Target is blacklisted");
+            if (!isSelfSigned) {
+                bool isAdmin = CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), verifiedSigners);
+                bool isManager = CheckExplicitSignatures(GetManagers(accountId), GetManagerThreshold(accountId), verifiedSigners);
+                ExecutionEngine.Assert(isAdmin || isManager, "Unauthorized");
             }
+            EnforceRestrictions(accountId, targetContract, method, args);
+        }
 
-            // 2. Check Whitelist (if whitelist has ANY entries, target must be in it)
-            // For simplicity, we just check if it's explicitly allowed if whitelist is used.
-            // A more complex design would have a toggle for "Whitelist Only Mode".
-            // Let's implement WhitelistOnly flag
-            StorageMap whitelistMap = new StorageMap(Storage.CurrentContext, WhitelistPrefix);
-            ByteString whitelistOnly = whitelistMap.Get(new byte[] { 0x00 });
+        private static void EnforceRestrictions(UInt160 accountId, UInt160 targetContract, string method, object[] args)
+        {
+            StorageMap blacklistMap = new StorageMap(Storage.CurrentContext, Helper.Concat(BlacklistPrefix, accountId));
+            ByteString isBlacklisted = blacklistMap.Get(targetContract);
+            ExecutionEngine.Assert(isBlacklisted == null || isBlacklisted != (ByteString)new byte[] { 1 }, "Target is blacklisted");
+
+            StorageMap whitelistEnabledMap = new StorageMap(Storage.CurrentContext, WhitelistEnabledPrefix);
+            ByteString whitelistOnly = whitelistEnabledMap.Get(accountId);
             if (whitelistOnly != null && whitelistOnly == (ByteString)new byte[] { 1 })
             {
-                ByteString isWhitelisted = whitelistMap.Get(target);
-                if (isWhitelisted == null || isWhitelisted != (ByteString)new byte[] { 1 })
-                {
-                    throw new Exception("Target is not in whitelist");
-                }
+                StorageMap whitelistMap = new StorageMap(Storage.CurrentContext, Helper.Concat(WhitelistPrefix, accountId));
+                ByteString isWhitelisted = whitelistMap.Get(targetContract);
+                ExecutionEngine.Assert(isWhitelisted != null && isWhitelisted == (ByteString)new byte[] { 1 }, "Target is not in whitelist");
             }
 
-            // 3. Limit transfers
             if (method == "transfer" && args.Length >= 3)
             {
-                // transfer(from, to, amount, data)
-                // args[2] is amount
                 BigInteger amount = (BigInteger)args[2];
-                StorageMap maxMap = new StorageMap(Storage.CurrentContext, MaxTransferPrefix);
-                ByteString maxValBytes = maxMap.Get(target); // target is the token contract
+                StorageMap maxMap = new StorageMap(Storage.CurrentContext, Helper.Concat(MaxTransferPrefix, accountId));
+                ByteString maxValBytes = maxMap.Get(targetContract);
                 if (maxValBytes != null)
                 {
                     BigInteger maxVal = (BigInteger)maxValBytes;
-                    if (maxVal > 0 && amount > maxVal)
-                    {
-                        throw new Exception("Amount exceeds maximum transfer limit");
+                    ExecutionEngine.Assert(maxVal <= 0 || amount <= maxVal, "Amount exceeds max limit");
+                }
+            }
+        }
+
+        private static bool CheckNativeSignatures(Neo.SmartContract.Framework.List<UInt160> roles, int threshold)
+        {
+            if (threshold <= 0 || roles == null || roles.Count == 0) return false;
+            int count = 0;
+            for (int i = 0; i < roles.Count; i++)
+            {
+                if (Runtime.CheckWitness(roles[i])) count++;
+            }
+            return count >= threshold;
+        }
+
+        private static bool CheckExplicitSignatures(Neo.SmartContract.Framework.List<UInt160> roles, int threshold, UInt160[] verifiedSigners)
+        {
+            if (threshold <= 0 || roles == null || roles.Count == 0) return false;
+            int count = 0;
+            for (int i = 0; i < roles.Count; i++)
+            {
+                foreach (var signer in verifiedSigners) {
+                    if (roles[i] == signer) {
+                        count++;
+                        break;
                     }
                 }
             }
-
-            OnExecute(target, method, args);
-            return Contract.Call(target, method, CallFlags.All, args);
+            return count >= threshold;
         }
 
-        // --- Admin Management ---
-        public static void SetAdmins(List<UInt160> admins, int threshold)
+        private static void AssertIsAdmin(UInt160 accountId)
         {
-            List<UInt160> currentAdmins = GetAdmins();
-            bool isInitialized = currentAdmins != null && currentAdmins.Count > 0;
-            
-            if (isInitialized && !Runtime.CheckWitness(Runtime.ExecutingScriptHash) && !CheckAdminSignatures())
-                throw new Exception("Unauthorized");
-
-            if (threshold > admins.Count || threshold <= 0) throw new Exception("Invalid threshold");
-            Storage.Put(Storage.CurrentContext, AdminsKey, StdLib.Serialize(admins));
-            Storage.Put(Storage.CurrentContext, AdminThresholdKey, threshold);
+            if (Runtime.CheckWitness(accountId)) return;
+            ExecutionEngine.Assert(CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId)), "Unauthorized admin");
         }
 
-        public static List<UInt160> GetAdmins()
+        public static void SetAdmins(UInt160 accountId, Neo.SmartContract.Framework.List<UInt160> admins, int threshold)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, AdminsKey);
-            if (data == null) return new List<UInt160>();
-            return (List<UInt160>)StdLib.Deserialize(data);
+            AssertIsAdmin(accountId);
+            ExecutionEngine.Assert(threshold <= admins.Count && threshold > 0, "Invalid threshold");
+            StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
+            StorageMap tMap = new StorageMap(Storage.CurrentContext, AdminThresholdPrefix);
+            adminsMap.Put(accountId, StdLib.Serialize(admins));
+            tMap.Put(accountId, threshold);
         }
 
-        public static int GetAdminThreshold()
+        public static Neo.SmartContract.Framework.List<UInt160> GetAdmins(UInt160 accountId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, AdminThresholdKey);
+            StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
+            ByteString data = adminsMap.Get(accountId);
+            if (data == null) return new Neo.SmartContract.Framework.List<UInt160>();
+            return (Neo.SmartContract.Framework.List<UInt160>)StdLib.Deserialize(data);
+        }
+
+        public static int GetAdminThreshold(UInt160 accountId)
+        {
+            StorageMap tMap = new StorageMap(Storage.CurrentContext, AdminThresholdPrefix);
+            ByteString data = tMap.Get(accountId);
             if (data == null) return 1;
             return (int)(BigInteger)data;
         }
 
-        // --- Manager Management ---
-        public static void SetManagers(List<UInt160> managers, int threshold)
+        public static void SetManagers(UInt160 accountId, Neo.SmartContract.Framework.List<UInt160> managers, int threshold)
         {
-            List<UInt160> currentAdmins = GetAdmins();
-            bool isInitialized = currentAdmins != null && currentAdmins.Count > 0;
-
-            if (isInitialized && !CheckAdminSignatures()) throw new Exception("Unauthorized");
-
-            if (managers.Count > 0 && (threshold > managers.Count || threshold <= 0)) throw new Exception("Invalid threshold");
-            Storage.Put(Storage.CurrentContext, ManagersKey, StdLib.Serialize(managers));
-            Storage.Put(Storage.CurrentContext, ManagerThresholdKey, threshold);
+            AssertIsAdmin(accountId);
+            ExecutionEngine.Assert(managers.Count == 0 || (threshold <= managers.Count && threshold > 0), "Invalid threshold");
+            StorageMap mMap = new StorageMap(Storage.CurrentContext, ManagersPrefix);
+            StorageMap tMap = new StorageMap(Storage.CurrentContext, ManagerThresholdPrefix);
+            mMap.Put(accountId, StdLib.Serialize(managers));
+            tMap.Put(accountId, threshold);
         }
 
-        public static List<UInt160> GetManagers()
+        public static Neo.SmartContract.Framework.List<UInt160> GetManagers(UInt160 accountId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, ManagersKey);
-            if (data == null) return new List<UInt160>();
-            return (List<UInt160>)StdLib.Deserialize(data);
+            StorageMap mMap = new StorageMap(Storage.CurrentContext, ManagersPrefix);
+            ByteString data = mMap.Get(accountId);
+            if (data == null) return new Neo.SmartContract.Framework.List<UInt160>();
+            return (Neo.SmartContract.Framework.List<UInt160>)StdLib.Deserialize(data);
         }
 
-        public static int GetManagerThreshold()
+        public static int GetManagerThreshold(UInt160 accountId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext, ManagerThresholdKey);
+            StorageMap tMap = new StorageMap(Storage.CurrentContext, ManagerThresholdPrefix);
+            ByteString data = tMap.Get(accountId);
             if (data == null) return 1;
             return (int)(BigInteger)data;
         }
 
-        // --- Permissions Management ---
-        public static void SetBlacklist(UInt160 account, bool isBlacklisted)
+        public static void SetBlacklist(UInt160 accountId, UInt160 target, bool isBlacklisted)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
-            StorageMap map = new StorageMap(Storage.CurrentContext, BlacklistPrefix);
-            if (isBlacklisted) map.Put(account, (ByteString)new byte[] { 1 });
-            else map.Delete(account);
+            AssertIsAdmin(accountId);
+            StorageMap map = new StorageMap(Storage.CurrentContext, Helper.Concat(BlacklistPrefix, accountId));
+            if (isBlacklisted) map.Put(target, (ByteString)new byte[] { 1 });
+            else map.Delete(target);
         }
 
-        public static void SetWhitelistMode(bool enabled)
+        public static void SetWhitelistMode(UInt160 accountId, bool enabled)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
-            StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistPrefix);
-            if (enabled) map.Put((ByteString)new byte[] { 0x00 }, (ByteString)new byte[] { 1 });
-            else map.Delete((ByteString)new byte[] { 0x00 });
+            AssertIsAdmin(accountId);
+            StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistEnabledPrefix);
+            if (enabled) map.Put(accountId, (ByteString)new byte[] { 1 });
+            else map.Delete(accountId);
         }
 
-        public static void SetWhitelist(UInt160 account, bool isWhitelisted)
+        public static void SetWhitelist(UInt160 accountId, UInt160 target, bool isWhitelisted)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
-            StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistPrefix);
-            if (isWhitelisted) map.Put(account, (ByteString)new byte[] { 1 });
-            else map.Delete(account);
+            AssertIsAdmin(accountId);
+            StorageMap map = new StorageMap(Storage.CurrentContext, Helper.Concat(WhitelistPrefix, accountId));
+            if (isWhitelisted) map.Put(target, (ByteString)new byte[] { 1 });
+            else map.Delete(target);
         }
 
-        public static void SetMaxTransfer(UInt160 token, BigInteger maxAmount)
+        public static void SetMaxTransfer(UInt160 accountId, UInt160 token, BigInteger maxAmount)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
-            StorageMap map = new StorageMap(Storage.CurrentContext, MaxTransferPrefix);
+            AssertIsAdmin(accountId);
+            StorageMap map = new StorageMap(Storage.CurrentContext, Helper.Concat(MaxTransferPrefix, accountId));
             if (maxAmount > 0) map.Put(token, (ByteString)maxAmount);
             else map.Delete(token);
         }
 
-        // Contract Upgradability
+        private static UInt160 DeriveEthAddress(ByteString pkString)
+        {
+            byte[] pk = (byte[])pkString;
+            if (pk.Length == 65 && pk[0] == 0x04)
+            {
+                byte[] temp = new byte[64];
+                for (int i=0; i<64; i++) temp[i] = pk[i+1];
+                pk = temp;
+            }
+            ExecutionEngine.Assert(pk.Length == 64, "Invalid pubkey length");
+
+            byte[] hash = (byte[])CryptoLib.Sha256((ByteString)pk);
+            byte[] ethAddrBytes = Helper.Range(hash, 12, 20);
+            return (UInt160)ethAddrBytes;
+        }
+
         public static void Update(ByteString nefFile, string manifest)
         {
-            if (!CheckAdminSignatures()) throw new Exception("Unauthorized");
+            UInt160 deployer = (UInt160)Storage.Get(Storage.CurrentContext, DeployerKey);
+            ExecutionEngine.Assert(Runtime.CheckWitness(deployer), "Not Deployer");
             ContractManagement.Update(nefFile, manifest, null);
         }
     }
