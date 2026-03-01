@@ -338,28 +338,32 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
-      const result = await n3.invoke({
+      const request = {
         network: expectedNetwork,
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: dapiSigners,
-        broadcastOverride
-      });
+        signers: dapiSigners
+      };
+      if (broadcastOverride) request.broadcastOverride = true;
+
+      const result = await n3.invoke(request);
       // broadcastOverride returns { signedTx } instead of { txid }
       return broadcastOverride ? result : { txid: result.txid };
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
-      const result = await dapi.invoke({
+      const request = {
         network: expectedNetwork,
         scriptHash,
         operation,
         args: dapiArgs,
-        signers: dapiSigners,
-        broadcastOverride
-      });
+        signers: dapiSigners
+      };
+      if (broadcastOverride) request.broadcastOverride = true;
+
+      const result = await dapi.invoke(request);
       return broadcastOverride ? result : { txid: result.txid };
     }
 

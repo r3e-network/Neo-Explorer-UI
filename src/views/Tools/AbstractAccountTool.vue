@@ -378,7 +378,7 @@ async function deployContract() {
         try {
           result = await invokeWithBroadcastOverride(invokeParams, false);
         } catch (walletBroadcastError) {
-          if (!isLikelyWalletRpcError(walletBroadcastError)) {
+          if (!isLikelyWalletRpcError(walletBroadcastError) && !isDapiConnectionDenied(walletBroadcastError)) {
             throw walletBroadcastError;
           }
           const walletCompatParams = buildWalletCompatParams();

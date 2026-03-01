@@ -195,5 +195,6 @@ describe("walletService NeoLine invoke signer normalization", () => {
     expect(params.signers[0].scopes).toBe(128);
     expect(params.signers[0].account).toMatch(/^[0-9a-f]{40}$/);
     expect(params.signers[0].account.startsWith("0x")).toBe(false);
+    expect("broadcastOverride" in params).toBe(false);
   });
 });

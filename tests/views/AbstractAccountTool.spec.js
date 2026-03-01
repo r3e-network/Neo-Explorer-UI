@@ -299,6 +299,10 @@ describe("AbstractAccountTool", () => {
         type: "CONNECTION_DENIED",
         description: "The dAPI provider refused to process this request",
       })
+      .mockRejectedValueOnce({
+        type: "CONNECTION_DENIED",
+        description: "The dAPI provider refused to process this request",
+      })
       .mockResolvedValueOnce({ txid: "0xwallettx" });
 
     const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
@@ -315,9 +319,11 @@ describe("AbstractAccountTool", () => {
     await wrapper.get("button").trigger("click");
     await flushPromises();
 
-    expect(invokeMock).toHaveBeenCalledTimes(2);
+    expect(invokeMock).toHaveBeenCalledTimes(3);
     expect(invokeMock.mock.calls[0][0].broadcastOverride).toBe(true);
     expect(invokeMock.mock.calls[1][0].broadcastOverride).toBe(false);
+    expect(invokeMock.mock.calls[2][0].broadcastOverride).toBe(false);
+    expect(invokeMock.mock.calls[2][0].args[0].value).toMatch(/^[0-9a-f]+$/i);
     expect(toastSuccessMock).toHaveBeenCalled();
   });
 });
