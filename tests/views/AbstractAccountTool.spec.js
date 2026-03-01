@@ -239,4 +239,42 @@ describe("AbstractAccountTool", () => {
     expect(broadcastSignedTxMock).toHaveBeenCalledWith("signed-raw-tx");
     expect(toastSuccessMock).toHaveBeenCalled();
   });
+
+  it("retries deploy with wallet-compat encoding after RPC_ERROR node return failure", async () => {
+    invokeMock
+      .mockRejectedValueOnce({ type: "RPC_ERROR", description: "节点返回错误" })
+      .mockResolvedValueOnce({ signedTx: "signed-raw-tx" });
+    broadcastSignedTxMock.mockResolvedValueOnce("0xrpc-broadcast");
+
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    const [adminInput, managerInput] = wrapper.findAll("textarea");
+    await adminInput.setValue("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+    await managerInput.setValue("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(invokeMock).toHaveBeenCalledTimes(2);
+    expect(invokeMock.mock.calls[0][0]).toEqual(expect.objectContaining({ broadcastOverride: true }));
+    expect(invokeMock.mock.calls[1][0]).toEqual(expect.objectContaining({ broadcastOverride: true }));
+
+    const firstArgs = invokeMock.mock.calls[0][0].args;
+    const secondArgs = invokeMock.mock.calls[1][0].args;
+    expect(firstArgs[0].value).toContain("=");
+    expect(secondArgs[0].value).toMatch(/^[0-9a-f]+$/i);
+    expect(secondArgs[2].value[0].value[0].value).toMatch(/^0x[0-9a-f]{40}$/i);
+
+    expect(broadcastSignedTxMock).toHaveBeenCalledWith("signed-raw-tx");
+    expect(toastInfoMock).toHaveBeenCalled();
+  });
 });

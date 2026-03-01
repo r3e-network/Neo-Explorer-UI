@@ -124,7 +124,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
-import { addressToScriptHash } from "@/utils/neoHelpers";
+import { addressToScriptHash, base64ToHex } from "@/utils/neoHelpers";
 import { ABSTRACT_ACCOUNT_NEF_BASE64, ABSTRACT_ACCOUNT_MANIFEST_STRING } from "@/constants/abstractAccountArtifacts";
 
 const toast = useToast();
@@ -200,6 +200,52 @@ function formatErrorMessage(err) {
   } catch {
     return String(err);
   }
+}
+
+function isLikelyWalletRpcError(err) {
+  if (!err || typeof err !== "object") return false;
+
+  const type = String(err.type || "").toUpperCase();
+  const msg = formatErrorMessage(err).toLowerCase();
+  return type === "RPC_ERROR" || /节点返回错误|node return error|invalid params|invalid argument/.test(msg);
+}
+
+function normalizeByteArrayForWallet(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+
+  const withoutPrefix = raw.replace(/^0x/i, "");
+  if (/^[0-9a-f]+$/i.test(withoutPrefix) && withoutPrefix.length % 2 === 0) {
+    return withoutPrefix;
+  }
+
+  const hex = base64ToHex(raw);
+  return hex || raw;
+}
+
+function toWalletCompatParam(param) {
+  if (!param || typeof param !== "object") return param;
+
+  if (param.type === "ByteArray" && typeof param.value === "string") {
+    return { ...param, value: normalizeByteArrayForWallet(param.value) };
+  }
+
+  if (param.type === "Hash160" && typeof param.value === "string") {
+    const normalized = normalizeHash160(param.value);
+    if (/^[0-9a-f]{40}$/.test(normalized)) {
+      return { ...param, value: `0x${normalized}` };
+    }
+    return param;
+  }
+
+  if (Array.isArray(param.value)) {
+    return {
+      ...param,
+      value: param.value.map((entry) => toWalletCompatParam(entry))
+    };
+  }
+
+  return param;
 }
 
 async function deployContract() {
@@ -298,10 +344,28 @@ async function deployContract() {
       }
     }
 
-    const result = await walletService.invoke({
-      ...invokeParams,
-      broadcastOverride: true
-    });
+    const invokeWithBroadcastOverride = (params) =>
+      walletService.invoke({
+        ...params,
+        broadcastOverride: true
+      });
+
+    let result;
+    try {
+      result = await invokeWithBroadcastOverride(invokeParams);
+    } catch (invokeError) {
+      if (!isLikelyWalletRpcError(invokeError)) {
+        throw invokeError;
+      }
+
+      const walletCompatParams = {
+        ...invokeParams,
+        args: invokeParams.args.map((arg) => toWalletCompatParam(arg))
+      };
+
+      toast.info("Wallet compatibility mode: retrying deployment with alternate encoding.");
+      result = await invokeWithBroadcastOverride(walletCompatParams);
+    }
 
     let deployedTxId = result?.txid || "";
     if (!deployedTxId && result?.signedTx && typeof walletService.broadcastSignedTx === "function") {
