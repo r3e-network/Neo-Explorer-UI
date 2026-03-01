@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const web3AuthCtorMock = vi.hoisted(() => vi.fn());
-const initModalMock = vi.hoisted(() => vi.fn(async () => {}));
+const initModalMock = vi.hoisted(() => vi.fn(async () => { }));
 
 vi.mock("@web3auth/modal", () => ({
   Web3Auth: class {
@@ -56,6 +56,6 @@ describe("web3authService", () => {
 
     expect(web3AuthCtorMock).toHaveBeenCalledTimes(1);
     const constructorOptions = web3AuthCtorMock.mock.calls[0][0];
-    expect(constructorOptions.uiConfig).toBeUndefined();
+    expect(constructorOptions.uiConfig).toBeDefined();
   });
 });

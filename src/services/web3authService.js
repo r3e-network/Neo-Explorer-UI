@@ -7,17 +7,20 @@ let _web3auth = null;
 
 // Replace with a default client ID or read from env.
 // For demonstration, a placeholder is used. In production, provide VITE_WEB3AUTH_CLIENT_ID
-const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BAFNBNPk7tUWbM9L6TBy7ixKCSQ3QwmQ7mCj0r3ai3KBA9ITqb3d7ifD0BV5YDs3NQCLPFU83MptKVc4T_xBMpo"; 
+const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BAFNBNPk7tUWbM9L6TBy7ixKCSQ3QwmQ7mCj0r3ai3KBA9ITqb3d7ifD0BV5YDs3NQCLPFU83MptKVc4T_xBMpo";
 
 import { getCurrentEnv } from "@/utils/env";
 
 const getChainConfig = () => {
   const isTestnet = getCurrentEnv().toLowerCase().includes("test") || getCurrentEnv().toLowerCase().includes("t5");
-  
+
+  const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
+  const testnetRpc = seeds[Math.floor(Math.random() * seeds.length)];
+
   return {
     chainNamespace: CHAIN_NAMESPACES.OTHER,
     chainId: isTestnet ? "0x3354" : "0x334E", // Hex representation for Testnet (13140) / Mainnet (13134)
-    rpcTarget: isTestnet ? "https://testnet1.neo.coz.io:443" : "https://mainnet1.neo.coz.io:443",
+    rpcTarget: isTestnet ? testnetRpc : "https://mainnet1.neo.coz.io:443",
     displayName: isTestnet ? "Neo N3 Testnet" : "Neo N3 Mainnet",
     blockExplorerUrl: "https://neo3scan.com",
     ticker: "GAS",
@@ -44,7 +47,7 @@ export const web3authService = {
 
       _web3auth = new Web3Auth({
         clientId,
-        web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet", 
+        web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet",
         privateKeyProvider: privateKeyProvider,
         uiConfig: {
           defaultLanguage: w3aLang,
@@ -67,14 +70,14 @@ export const web3authService = {
    */
   async connect() {
     await this.init();
-    
+
     let provider = _web3auth.provider;
     if (!_web3auth.connected) {
       provider = await _web3auth.connect();
     }
-    
+
     if (!provider) throw new Error("Web3Auth provider not available");
-    
+
     return await this.getAccount(provider);
   },
 
@@ -83,10 +86,10 @@ export const web3authService = {
    */
   async getAccount(provider = _web3auth?.provider) {
     if (!provider) return null;
-    
+
     // Web3Auth securely reconstructs the user's private key (entropy)
     const privateKeyHex = await provider.request({ method: "private_key" });
-    
+
     // neon-js uses this raw 32-byte hex to generate valid secp256r1 N3 public keys and base58 addresses
     const account = new wallet.Account(privateKeyHex);
     return account;

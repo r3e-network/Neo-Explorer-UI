@@ -38,6 +38,7 @@ vi.mock("@/services", () => ({
   },
   transactionService: {
     getList: getTxList,
+    getPendingTransactions: vi.fn().mockResolvedValue([]),
   },
   neotubeService: {
     supportsNetwork: supportsNeoTubeNetwork,
@@ -121,8 +122,8 @@ describe("HomePage initial loading", () => {
       totalCount: 1,
     });
     search.mockResolvedValue(null);
-    fetchPrices.mockImplementation(() => new Promise(() => {}));
-    startAutoRefresh.mockImplementation(() => {});
+    fetchPrices.mockImplementation(() => new Promise(() => { }));
+    startAutoRefresh.mockImplementation(() => { });
   });
 
   it("shows latest blocks and transactions without waiting for price API", async () => {

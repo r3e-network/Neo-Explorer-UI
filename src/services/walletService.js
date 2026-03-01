@@ -17,11 +17,12 @@ import {
 } from "@/utils/walletNormalization";
 
 const getRpcUrl = () => {
-    const env = getCurrentEnv().toLowerCase();
-    if (env.includes("test") || env.includes("t5")) {
-        return "https://testnet1.neo.coz.io:443";
-    }
-    return "https://mainnet1.neo.coz.io:443";
+  const env = getCurrentEnv().toLowerCase();
+  if (env.includes("test") || env.includes("t5")) {
+    const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
+    return seeds[Math.floor(Math.random() * seeds.length)];
+  }
+  return "https://mainnet1.neo.coz.io:443";
 };
 
 /** Supported wallet providers */
@@ -264,17 +265,17 @@ export const walletService = {
         let switchSuccess = false;
         // Attempt to auto-switch the wallet to the correct network if the API supports it
         try {
-           if (typeof n3.switchNetwork === "function") {
-               const target = isExplorerTestnet() ? "TestNet" : "MainNet";
-               await n3.switchNetwork(target);
-               switchSuccess = true;
-           }
+          if (typeof n3.switchNetwork === "function") {
+            const target = isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
+            await n3.switchNetwork({ network: target });
+            switchSuccess = true;
+          }
         } catch (e) {
-           console.warn("Auto-switch network failed:", e);
+          console.warn("Auto-switch network failed:", e);
         }
 
         if (!switchSuccess) {
-           throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+          throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
       _connectedProvider = PROVIDERS.NEOLINE;
@@ -300,17 +301,17 @@ export const walletService = {
         console.warn(`Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`);
         let switchSuccess = false;
         try {
-           if (typeof dapi.switchNetwork === "function") {
-               const target = isExplorerTestnet() ? "TestNet" : "MainNet";
-               await dapi.switchNetwork({ network: target });
-               switchSuccess = true;
-           }
+          if (typeof dapi.switchNetwork === "function") {
+            const target = isExplorerTestnet() ? "TestNet" : "MainNet";
+            await dapi.switchNetwork({ network: target });
+            switchSuccess = true;
+          }
         } catch (e) {
-           console.warn("Auto-switch network failed:", e);
+          console.warn("Auto-switch network failed:", e);
         }
 
         if (!switchSuccess) {
-           throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+          throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
       _connectedProvider = PROVIDERS.O3;
@@ -363,7 +364,7 @@ export const walletService = {
    * @param {Array} params.args - Method arguments [{type, value}]
    * @returns {Promise<{txid: string}>}
    */
-async signMessage(message) {
+  async signMessage(message) {
     if (!_account) throw new Error("Wallet not connected");
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
@@ -386,17 +387,17 @@ async signMessage(message) {
       const messageHex = u.str2hexstring(message);
       const signature = account.sign(messageHex);
       return normalizeSignMessageResult({
-         publicKey: account.publicKey,
-         data: signature,
-         salt: "",
-         message: message
+        publicKey: account.publicKey,
+        data: signature,
+        salt: "",
+        message: message
       });
     }
 
     throw new Error("No wallet connected");
   },
 
-async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
+  async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
     if (!_account) throw new Error("Wallet not connected");
 
     const dapiArgs = args.map((a) => ({
@@ -495,33 +496,33 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
 
       if (invokeRes.state === "FAULT") {
-          throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
+        throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
       }
 
       let txn = new tx.Transaction({
-          signers: normalizedSigners,
-          validUntilBlock: currentHeight + 1000,
-          script: script,
-          systemFee: invokeRes.gasconsumed || 1000000,
+        signers: normalizedSigners,
+        validUntilBlock: currentHeight + 1000,
+        script: script,
+        systemFee: invokeRes.gasconsumed || 1000000,
       });
 
       const magic = getCurrentEnv().toLowerCase().includes("test") ? 894710606 : 860833102;
       txn.sign(account, magic);
-      
+
       const networkFee = await rpcClient.calculateNetworkFee(txn);
-      
+
       // Resign with final explicit fees
       txn = new tx.Transaction({
-          signers: normalizedSigners,
-          validUntilBlock: currentHeight + 1000,
-          script: script,
-          systemFee: invokeRes.gasconsumed || 1000000,
-          networkFee: networkFee
+        signers: normalizedSigners,
+        validUntilBlock: currentHeight + 1000,
+        script: script,
+        systemFee: invokeRes.gasconsumed || 1000000,
+        networkFee: networkFee
       });
       txn.sign(account, magic);
 
       if (broadcastOverride) {
-         return { signedTx: txn.serialize(true) };
+        return { signedTx: txn.serialize(true) };
       }
 
       const txid = await rpcClient.sendRawTransaction(txn);

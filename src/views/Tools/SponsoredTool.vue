@@ -158,7 +158,7 @@ const isEligible = computed(() => {
 const getRpcUrl = () => {
     const env = getCurrentEnv().toLowerCase();
     if (env.includes("test") || env.includes("t5")) {
-        return "https://testnet1.neo.coz.io:443";
+        return "http://seed5t5.neo.org:20332";
     }
     return "https://mainnet1.neo.coz.io:443";
 };
