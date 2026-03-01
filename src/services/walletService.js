@@ -151,7 +151,13 @@ function getWalletErrorMessage(err) {
 function isDapiConnectionDenied(err) {
   const type = String(err?.type || "").toUpperCase();
   const msg = getWalletErrorMessage(err).toLowerCase();
-  return type === "CONNECTION_DENIED" || type === "CANCELED" || /refused to process this request|connection denied|user canceled|canceled/.test(msg);
+  return type === "CONNECTION_DENIED" || /refused to process this request|connection denied/.test(msg);
+}
+
+function isDapiCanceled(err) {
+  const type = String(err?.type || "").toUpperCase();
+  const msg = getWalletErrorMessage(err).toLowerCase();
+  return type === "CANCELED" || /user canceled|canceled/.test(msg);
 }
 
 function toConnectionDeniedError(providerName) {
@@ -164,6 +170,7 @@ async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRe
   try {
     return await getAccount();
   } catch (err) {
+    if (isDapiCanceled(err)) throw new Error("Connection canceled by user.");
     if (!isDapiConnectionDenied(err)) throw err;
 
     if (typeof prepareRetry === "function") {
@@ -177,7 +184,15 @@ async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRe
     try {
       return await getAccount();
     } catch (retryErr) {
+      if (isDapiCanceled(retryErr)) throw new Error("Connection canceled by user.");
       if (isDapiConnectionDenied(retryErr)) {
+        if (typeof prepareRetry === "function") {
+          try {
+            await prepareRetry();
+          } catch {
+            // best-effort cleanup
+          }
+        }
         throw toConnectionDeniedError(providerName);
       }
       throw retryErr;
