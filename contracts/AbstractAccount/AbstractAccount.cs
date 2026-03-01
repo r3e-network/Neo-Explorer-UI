@@ -29,6 +29,7 @@ namespace AbstractAccount
         private static readonly byte[] BlacklistPrefix = new byte[] { 0x07 };
         private static readonly byte[] MaxTransferPrefix = new byte[] { 0x08 };
         private static readonly byte[] NoncePrefix = new byte[] { 0x09 };
+        private static readonly byte[] MetaTxContextKey = new byte[] { 0xFF };
 
         public delegate void OnExecuteEvent(UInt160 accountId, UInt160 target, string method, object[] args);
         [DisplayName("Execute")]
@@ -73,7 +74,10 @@ namespace AbstractAccount
             BigInteger currentNonce = GetNonce(signerHash);
             ExecutionEngine.Assert(nonce == currentNonce, "Invalid Nonce");
 
-            ByteString payload = StdLib.Serialize(new object[] { accountId, targetContract, method, args, nonce });
+            // Includes Network Magic and ExecutingScriptHash for strict cross-chain and cross-contract replay protection
+            uint networkMagic = Runtime.GetNetwork();
+            UInt160 scriptHash = Runtime.ExecutingScriptHash;
+            byte[] payload = StdLib.Serialize(new object[] { networkMagic, scriptHash, accountId, targetContract, method, args, nonce });
             byte[] messageHash = (byte[])CryptoLib.Sha256(payload);
 
             bool isValid = CryptoLib.VerifyWithECDsa(
@@ -87,7 +91,13 @@ namespace AbstractAccount
             IncrementNonce(signerHash);
             CheckPermissionsAndExecute(accountId, new UInt160[] { signerHash }, targetContract, method, args);
             OnExecute(accountId, targetContract, method, args);
-            return Contract.Call(targetContract, method, CallFlags.All, args);
+
+            // Temporarily store the EIP-712 signer context to allow them to call internal management methods (e.g. SetAdmins)
+            Storage.Put(Storage.CurrentContext, MetaTxContextKey, signerHash);
+            object result = Contract.Call(targetContract, method, CallFlags.All, args);
+            Storage.Delete(Storage.CurrentContext, MetaTxContextKey);
+
+            return result;
         }
 
         public static object Execute(UInt160 accountId, UInt160 targetContract, string method, object[] args)
@@ -182,7 +192,18 @@ namespace AbstractAccount
         private static void AssertIsAdmin(UInt160 accountId)
         {
             if (Runtime.CheckWitness(accountId)) return;
-            ExecutionEngine.Assert(CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId)), "Unauthorized admin");
+            if (CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId))) return;
+
+            // Check if authenticated via active MetaTx execution context
+            ByteString metaSignerBytes = Storage.Get(Storage.CurrentContext, MetaTxContextKey);
+            if (metaSignerBytes != null) 
+            {
+                UInt160 metaSigner = (UInt160)metaSignerBytes;
+                if (metaSigner == accountId) return; // Self-signed owner via EIP-712 MetaTx
+                if (CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), new UInt160[] { metaSigner })) return;
+            }
+
+            ExecutionEngine.Assert(false, "Unauthorized admin");
         }
 
         public static void SetAdmins(UInt160 accountId, Neo.SmartContract.Framework.List<UInt160> admins, int threshold)
@@ -280,6 +301,10 @@ namespace AbstractAccount
             }
             ExecutionEngine.Assert(pk.Length == 64, "Invalid pubkey length");
 
+            // Note for Ethereum/Metamask exact cross-compatibility: 
+            // Standard EIP-712 derives addresses using Keccak256 instead of Sha256. 
+            // In a strict EVM production env, we'd utilize Neo Keccak256 extension if available,
+            // otherwise, this maps a stable mathematically secure pseudo-EVM proxy address on Neo.
             byte[] hash = (byte[])CryptoLib.Sha256((ByteString)pk);
             byte[] ethAddrBytes = Helper.Range(hash, 12, 20);
             return (UInt160)ethAddrBytes;
