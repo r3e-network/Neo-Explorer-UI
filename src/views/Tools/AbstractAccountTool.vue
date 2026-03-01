@@ -188,7 +188,7 @@ function isDapiConnectionDenied(err) {
   if (!err || typeof err !== "object") return false;
   const type = String(err.type || "").toUpperCase();
   const msg = formatErrorMessage(err).toLowerCase();
-  return type === "CONNECTION_DENIED" || /refused to process this request|connection denied/.test(msg);
+  return type === "CONNECTION_DENIED" || type === "CANCELED" || /refused to process this request|connection denied|user canceled|canceled/.test(msg);
 }
 
 function normalizeByteArrayForWallet(value) {

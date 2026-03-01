@@ -151,7 +151,7 @@ function getWalletErrorMessage(err) {
 function isDapiConnectionDenied(err) {
   const type = String(err?.type || "").toUpperCase();
   const msg = getWalletErrorMessage(err).toLowerCase();
-  return type === "CONNECTION_DENIED" || /refused to process this request|connection denied/.test(msg);
+  return type === "CONNECTION_DENIED" || type === "CANCELED" || /refused to process this request|connection denied|user canceled|canceled/.test(msg);
 }
 
 function toConnectionDeniedError(providerName) {
