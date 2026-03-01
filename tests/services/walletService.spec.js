@@ -198,6 +198,26 @@ describe("walletService NeoLine invoke signer normalization", () => {
     expect("broadcastOverride" in params).toBe(false);
   });
 
+  it("retries NeoLine account authorization once when first request is denied", async () => {
+    neoLineGetAccountMock
+      .mockRejectedValueOnce({
+        type: "CONNECTION_DENIED",
+        description: "The dAPI provider refused to process this request",
+      })
+      .mockResolvedValueOnce({
+        address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        label: "NeoLine",
+      });
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    walletService.disconnect();
+    const account = await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
+  });
+
   it("retries NeoLine invoke with MainNet/TestNet alias when provider denies N3* network name", async () => {
     neoLineInvokeMock.mockImplementation(async (params) => {
       if (params.network === "N3MainNet") {

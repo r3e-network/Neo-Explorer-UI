@@ -140,6 +140,31 @@ function toConnectionDeniedError(providerName) {
   );
 }
 
+async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRetry = null) {
+  try {
+    return await getAccount();
+  } catch (err) {
+    if (!isDapiConnectionDenied(err)) throw err;
+
+    if (typeof prepareRetry === "function") {
+      try {
+        await prepareRetry();
+      } catch {
+        // best-effort retry preparation
+      }
+    }
+
+    try {
+      return await getAccount();
+    } catch (retryErr) {
+      if (isDapiConnectionDenied(retryErr)) {
+        throw toConnectionDeniedError(providerName);
+      }
+      throw retryErr;
+    }
+  }
+}
+
 const SCOPE_VALUES_BY_NAME = Object.freeze({
   None: 0,
   CalledByEntry: 1,
@@ -215,7 +240,16 @@ export const walletService = {
   async connect(providerName) {
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
-      const n3 = await getNeoLineN3();
+      let n3 = await getNeoLineN3();
+      const account = await requestAccountWithDeniedRetry(
+        PROVIDERS.NEOLINE,
+        () => n3.getAccount(),
+        async () => {
+          _neolineN3 = null;
+          n3 = await getNeoLineN3();
+        }
+      );
+
       let networks = null;
       if (typeof n3.getNetworks === "function") {
         try {
@@ -243,15 +277,6 @@ export const walletService = {
            throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
       }
-      let account;
-      try {
-        account = await n3.getAccount();
-      } catch (err) {
-        if (isDapiConnectionDenied(err)) {
-          throw toConnectionDeniedError(PROVIDERS.NEOLINE);
-        }
-        throw err;
-      }
       _connectedProvider = PROVIDERS.NEOLINE;
       _account = { address: account.address, label: account.label || "NeoLine" };
       return _account;
@@ -260,6 +285,8 @@ export const walletService = {
     if (providerName === PROVIDERS.O3) {
       const dapi = window.neo3Dapi;
       if (!dapi) throw new Error("O3 wallet not detected");
+      const account = await requestAccountWithDeniedRetry(PROVIDERS.O3, () => dapi.getAccount());
+
       let networks = null;
       if (typeof dapi.getNetworks === "function") {
         try {
@@ -285,15 +312,6 @@ export const walletService = {
         if (!switchSuccess) {
            throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
         }
-      }
-      let account;
-      try {
-        account = await dapi.getAccount();
-      } catch (err) {
-        if (isDapiConnectionDenied(err)) {
-          throw toConnectionDeniedError(PROVIDERS.O3);
-        }
-        throw err;
       }
       _connectedProvider = PROVIDERS.O3;
       _account = { address: account.address, label: account.label || "O3" };
