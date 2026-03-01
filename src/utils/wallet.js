@@ -36,7 +36,7 @@ function setupNeoLineEventListeners() {
 
     window.addEventListener('NEOLine.NEO.EVENT.ACCOUNT_CHANGED', handleAccountChange);
     window.addEventListener('NEOLine.N3.EVENT.ACCOUNT_CHANGED', handleAccountChange);
-    
+
     // Fallback: Some NeoLine versions trigger an event without detail, so we do a passive refresh on browser focus
     window.addEventListener('focus', async () => {
         if (!isNeoLineSessionActive()) return;
@@ -49,7 +49,7 @@ function setupNeoLineEventListeners() {
                     connectedAccount.value = account.address;
                     localStorage.setItem("connectedWallet", account.address);
                 }
-            } catch(e) {
+            } catch (e) {
                 // Ignore silent errors on focus
             }
         }
@@ -58,10 +58,10 @@ function setupNeoLineEventListeners() {
 
 export async function initWallet() {
     if (typeof window === "undefined") return;
-    
+
     // Attempt generic reconnect if we had an active session stored
     const provider = localStorage.getItem("walletProvider");
-    
+
     if (connectedAccount.value && provider === "NeoLine") {
         const hasNeoLine = await waitForNeoLineN3(1000);
         if (hasNeoLine) {
@@ -82,26 +82,26 @@ export async function initWallet() {
             }
         }
     } else if (connectedAccount.value && provider === "O3") {
-       if (window.neo3Dapi) {
-           try {
-              const account = await window.neo3Dapi.getAccount();
-              if (account && account.address) {
-                  connectedAccount.value = account.address;
-              }
-           } catch(e) { /* ignore */ }
-       }
+        if (window.neo3Dapi) {
+            try {
+                const account = await window.neo3Dapi.getAccount();
+                if (account && account.address) {
+                    connectedAccount.value = account.address;
+                }
+            } catch (e) { /* ignore */ }
+        }
     } else if (connectedAccount.value && provider === "WalletConnect") {
-       // Ideally we'd restore WC session, but this is handled by the walletService if called.
-       // Let's assume the walletService handles session persistence.
+        // Ideally we'd restore WC session, but this is handled by the walletService if called.
+        // Let's assume the walletService handles session persistence.
     } else if (connectedAccount.value && provider === "Google / Email (Web3Auth)") {
-       // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
-       import('@/services/walletService').then(({ walletService }) => {
-           walletService.connect("Google / Email (Web3Auth)").then(acc => {
-               if (acc && acc.address) {
-                   connectedAccount.value = acc.address;
-               }
-           }).catch(() => { /* silent fail on background resume */ });
-       });
+        // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
+        import('@/services/walletService').then(({ walletService }) => {
+            walletService.connect("Google / Email (Web3Auth)").then(acc => {
+                if (acc && acc.address) {
+                    connectedAccount.value = acc.address;
+                }
+            }).catch(() => { /* silent fail on background resume */ });
+        });
     }
 }
 
@@ -143,18 +143,18 @@ export async function connectWallet() {
         try {
             const neoline = new window.NEOLineN3.Init();
             setupNeoLineEventListeners();
-            
+
             // Check network matching
             const network = await neoline.getNetworks();
             const walletNet = (network?.defaultNetwork || "").toLowerCase();
             const explorerNet = getCurrentEnv().toLowerCase();
-            
+
             // Improved network matching logic
-            const isMainnetMatch = (walletNet.includes("main") || walletNet === "mainnet") && 
-                                   (explorerNet.includes("main") || explorerNet === NET_ENV.Mainnet.toLowerCase());
-            const isTestnetMatch = (walletNet.includes("test") || walletNet.includes("t5") || walletNet === "testnet") && 
-                                   (explorerNet.includes("test") || explorerNet.includes("t5") || explorerNet === NET_ENV.TestT5.toLowerCase());
-            
+            const isMainnetMatch = (walletNet.includes("main") || walletNet === "mainnet") &&
+                (explorerNet.includes("main") || explorerNet === NET_ENV.Mainnet.toLowerCase());
+            const isTestnetMatch = (walletNet.includes("test") || walletNet.includes("t5") || walletNet === "testnet") &&
+                (explorerNet.includes("test") || explorerNet.includes("t5") || explorerNet === NET_ENV.TestT5.toLowerCase());
+
             if (!isMainnetMatch && !isTestnetMatch) {
                 toast.error(`Network mismatch. Please switch your NeoLine wallet to ${getCurrentEnv()} and try again.`);
                 return null;
@@ -165,7 +165,7 @@ export async function connectWallet() {
                 toast.warning("No account found in NeoLine.");
                 return null;
             }
-            
+
             connectedAccount.value = account.address;
             localStorage.setItem("walletProvider", walletService.PROVIDERS.NEOLINE);
             toast.success("Wallet connected: " + account.address.slice(0, 5) + "..." + account.address.slice(-4));

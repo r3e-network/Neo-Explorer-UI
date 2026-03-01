@@ -251,7 +251,6 @@ async function handleConnect(provider) {
        toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
      }
   } catch (err) {
-     console.error(err);
      toast.error(err?.message || "Failed to connect wallet.");
   } finally {
      walletLoading.value = false;
