@@ -273,6 +273,12 @@ describe("AbstractAccountTool", () => {
     expect(firstArgs[0].value).toContain("=");
     expect(secondArgs[0].value).toMatch(/^[0-9a-f]+$/i);
     expect(secondArgs[2].value[0].value[0].value).toMatch(/^0x[0-9a-f]{40}$/i);
+    expect(invokeMock.mock.calls[1][0].signers).toEqual([
+      {
+        account: "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        scopes: 128,
+      },
+    ]);
 
     expect(broadcastSignedTxMock).toHaveBeenCalledWith("signed-raw-tx");
     expect(toastInfoMock).toHaveBeenCalled();

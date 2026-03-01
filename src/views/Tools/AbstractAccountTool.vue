@@ -360,7 +360,13 @@ async function deployContract() {
 
       const walletCompatParams = {
         ...invokeParams,
-        args: invokeParams.args.map((arg) => toWalletCompatParam(arg))
+        args: invokeParams.args.map((arg) => toWalletCompatParam(arg)),
+        signers: [
+          {
+            account: `0x${normalizedSigner}`,
+            scopes: 128
+          }
+        ]
       };
 
       toast.info("Wallet compatibility mode: retrying deployment with alternate encoding.");
