@@ -11,6 +11,7 @@ const normalizeBaseUrl = (value, fallback) => {
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_NEOTUBE_API_BASE_URL, DEFAULT_BASE_URL);
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_NEOTUBE_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
+const TEMP_UNAVAILABLE_MS = Math.max(10_000, Number(import.meta.env.VITE_NEOTUBE_TEMP_UNAVAILABLE_MS || 120_000));
 
 const NETWORK_BY_ENV = {
   [NET_ENV.Mainnet]: "mainnet",
@@ -29,6 +30,8 @@ const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: Number.isFinite(API_TIMEOUT_MS) ? API_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
 });
+
+const unavailableUntilByNetwork = new Map();
 
 const normalizeFee = (value) => {
   const num = Number(value);
@@ -65,6 +68,23 @@ const resolveEnv = (env = getCurrentEnv(), { fallbackToMainnet = true } = {}) =>
 
 const toNetworkName = (env = getCurrentEnv()) => NETWORK_BY_ENV[resolveEnv(env)] || NETWORK_BY_ENV[NET_ENV.Mainnet];
 
+const getUnavailableUntil = (network) => Number(unavailableUntilByNetwork.get(network) || 0);
+
+const isTemporarilyUnavailable = (network, now = Date.now()) => getUnavailableUntil(network) > now;
+
+const setTemporarilyUnavailable = (network, now = Date.now()) => {
+  unavailableUntilByNetwork.set(network, now + TEMP_UNAVAILABLE_MS);
+};
+
+const clearTemporarilyUnavailable = (network) => {
+  unavailableUntilByNetwork.delete(network);
+};
+
+const shouldTripTemporaryUnavailable = (status) => {
+  if (!Number.isFinite(status)) return false;
+  return status === 401 || status === 403 || status === 429 || status >= 500;
+};
+
 const normalizePaging = (limit = 6, skip = 0) => {
   const pageSize = Math.max(1, Number(limit) || 6);
   const normalizedSkip = Math.max(0, Number(skip) || 0);
@@ -84,13 +104,26 @@ const assertSuccess = (payload) => {
 
 const fetchNeoTube = async (path, params, env = getCurrentEnv()) => {
   const network = toNetworkName(env);
-  const response = await client.get(path, {
-    params,
-    headers: {
-      Network: network,
-    },
-  });
-  return assertSuccess(response.data);
+  if (isTemporarilyUnavailable(network)) {
+    throw new Error(`NeoTube temporarily unavailable for ${network}`);
+  }
+
+  try {
+    const response = await client.get(path, {
+      params,
+      headers: {
+        Network: network,
+      },
+    });
+    clearTemporarilyUnavailable(network);
+    return assertSuccess(response.data);
+  } catch (error) {
+    const status = Number(error?.response?.status);
+    if (shouldTripTemporaryUnavailable(status)) {
+      setTemporarilyUnavailable(network);
+    }
+    throw error;
+  }
 };
 
 const normalizeBlock = (block = {}) => ({
@@ -137,7 +170,9 @@ const normalizeTransaction = (tx = {}) => {
 export const neotubeService = {
   supportsNetwork(env = getCurrentEnv()) {
     const resolved = resolveEnv(env, { fallbackToMainnet: false });
-    return Boolean(resolved && NETWORK_BY_ENV[resolved]);
+    if (!(resolved && NETWORK_BY_ENV[resolved])) return false;
+    const network = NETWORK_BY_ENV[resolved];
+    return !isTemporarilyUnavailable(network);
   },
 
   async getLatestBlocks(limit = 6, skip = 0, env = getCurrentEnv()) {
@@ -200,6 +235,10 @@ export const neotubeService = {
       tokens: normalizeCount(data.asset_count),
     };
   },
+};
+
+export const __resetNeoTubeAvailabilityForTests = () => {
+  unavailableUntilByNetwork.clear();
 };
 
 export default neotubeService;

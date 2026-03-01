@@ -22,11 +22,12 @@ vi.mock("../../src/utils/env.js", () => ({
   getCurrentEnv: vi.fn(() => "Mainnet"),
 }));
 
-import { neotubeService } from "../../src/services/neotubeService.js";
+import { __resetNeoTubeAvailabilityForTests, neotubeService } from "../../src/services/neotubeService.js";
 
 describe("neotubeService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetNeoTubeAvailabilityForTests();
     axiosGetMock.mockReset();
     axiosCreateMock.mockReset();
     axiosCreateMock.mockReturnValue({ get: axiosGetMock });
@@ -295,5 +296,23 @@ describe("neotubeService", () => {
     expect(neotubeService.supportsNetwork("TestT5")).toBe(true);
     expect(neotubeService.supportsNetwork("testnet")).toBe(true);
     expect(neotubeService.supportsNetwork("Unknown")).toBe(false);
+  });
+
+  it("temporarily disables NeoTube after upstream 403 to avoid repeated failing requests", async () => {
+    const forbiddenError = Object.assign(new Error("forbidden"), {
+      response: {
+        status: 403,
+      },
+    });
+
+    axiosGetMock.mockRejectedValue(forbiddenError);
+
+    await expect(neotubeService.getLatestBlocks(6, 0, "Mainnet")).rejects.toThrow("forbidden");
+    await expect(neotubeService.getLatestBlocks(6, 0, "Mainnet")).rejects.toThrow(
+      "NeoTube temporarily unavailable for mainnet"
+    );
+
+    expect(axiosGetMock).toHaveBeenCalledTimes(1);
+    expect(neotubeService.supportsNetwork("Mainnet")).toBe(false);
   });
 });
