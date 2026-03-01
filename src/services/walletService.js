@@ -7,6 +7,7 @@
 import { walletConnectService } from "./walletConnectService";
 import { web3authService } from "./web3authService";
 import { rpc, tx, sc, u } from "@cityofzion/neon-js";
+import { ethers } from "ethers";
 import { getCurrentEnv } from "@/utils/env";
 import {
   isHash160Hex,
@@ -31,6 +32,7 @@ const PROVIDERS = {
   O3: "O3",
   WALLETCONNECT: "WalletConnect",
   WEB3AUTH: "Google / Email (Web3Auth)",
+  EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
 };
 
 /** Internal state */
@@ -52,6 +54,13 @@ function isNeoLineAvailable() {
  */
 function isO3Available() {
   return typeof window !== "undefined" && window.neo3Dapi !== undefined;
+}
+
+/**
+ * Check if an EVM Wallet is available.
+ */
+function isEthereumAvailable() {
+  return typeof window !== "undefined" && window.ethereum !== undefined;
 }
 
 /**
@@ -228,6 +237,7 @@ export const walletService = {
     const providers = [];
     if (isNeoLineAvailable()) providers.push(PROVIDERS.NEOLINE);
     if (isO3Available()) providers.push(PROVIDERS.O3);
+    if (isEthereumAvailable()) providers.push(PROVIDERS.EVM_WALLET);
     providers.push(PROVIDERS.WALLETCONNECT); // always available
     providers.push(PROVIDERS.WEB3AUTH); // always available via web
     return providers;
@@ -340,6 +350,16 @@ export const walletService = {
       return _account;
     }
 
+    if (providerName === PROVIDERS.EVM_WALLET) {
+      if (!isEthereumAvailable()) throw new Error("EVM Wallet is not installed.");
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      if (!accounts || accounts.length === 0) throw new Error("No EVM accounts found.");
+      _connectedProvider = PROVIDERS.EVM_WALLET;
+      _account = { address: accounts[0], label: "EVM Wallet" };
+      return _account;
+    }
+
     throw new Error(`Unknown provider: ${providerName}`);
   },
 
@@ -388,6 +408,18 @@ export const walletService = {
       const signature = account.sign(messageHex);
       return normalizeSignMessageResult({
         publicKey: account.publicKey,
+        data: signature,
+        salt: "",
+        message: message
+      });
+    }
+
+    if (_connectedProvider === PROVIDERS.EVM_WALLET) {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signature = await signer.signMessage(message);
+      return normalizeSignMessageResult({
+        publicKey: "",
         data: signature,
         salt: "",
         message: message
@@ -527,6 +559,68 @@ export const walletService = {
 
       const txid = await rpcClient.sendRawTransaction(txn);
       return { txid };
+    }
+
+    if (_connectedProvider === PROVIDERS.EVM_WALLET) {
+      if (!isEthereumAvailable()) throw new Error("EVM Wallet is not installed.");
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      const normalizedArgs = normalizeInvokeArgsForRpc(args);
+      const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
+      if (invalidArg) throw new Error("Invalid Hash160 argument.");
+
+      const nonce = Date.now();
+
+      const domain = {
+        name: 'Neo N3 Abstract Account',
+        version: '1',
+      };
+
+      const types = {
+        MetaTransaction: [
+          { name: 'targetContract', type: 'string' },
+          { name: 'method', type: 'string' },
+          { name: 'argsJson', type: 'string' },
+          { name: 'nonce', type: 'uint256' }
+        ]
+      };
+
+      const value = {
+        targetContract: String(scriptHash),
+        method: String(operation),
+        argsJson: JSON.stringify(normalizedArgs),
+        nonce: nonce
+      };
+
+      const signature = await signer.signTypedData(domain, types, value);
+
+      const digest = ethers.TypedDataEncoder.hash(domain, types, value);
+      const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
+
+      const payload = {
+        uncompressedPubKey,
+        targetContract: scriptHash,
+        method: operation,
+        args: normalizedArgs,
+        nonce,
+        signature
+      };
+
+      const response = await fetch("/api/relayer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Relayer error");
+      }
+
+      const data = await response.json();
+      return { txid: data.txid };
     }
 
     throw new Error("No wallet connected");
