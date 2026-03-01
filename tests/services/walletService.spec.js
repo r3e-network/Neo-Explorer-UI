@@ -20,6 +20,12 @@ const invokeScriptMock = vi.fn(async (script) => {
 const getBlockCountMock = vi.fn(async () => 123456);
 const calculateNetworkFeeMock = vi.fn(async () => "1000");
 const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
+const neoLineInvokeMock = vi.fn(async () => ({ txid: "0xneoline" }));
+const neoLineGetNetworksMock = vi.fn(async () => ({ defaultNetwork: "MainNet" }));
+const neoLineGetAccountMock = vi.fn(async () => ({
+  address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  label: "NeoLine",
+}));
 
 class MockRpcClient {
   async getBlockCount() {
@@ -59,9 +65,22 @@ class MockScriptBuilder {
   }
 }
 
+class MockWalletAccount {
+  constructor(input) {
+    const value = String(input || "");
+    if (value === "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu") {
+      this.scriptHash = "13ef519c362973f9a34648a9eac5b71250b2a80a";
+      return;
+    }
+
+    this.scriptHash = value.replace(/^0x/i, "").toLowerCase();
+  }
+}
+
 vi.mock("@cityofzion/neon-js", () => ({
   rpc: { RPCClient: MockRpcClient },
   tx: { Transaction: MockTransaction },
+  wallet: { Account: MockWalletAccount },
   sc: {
     ScriptBuilder: MockScriptBuilder,
     ContractParam: { fromJson: (arg) => arg },
@@ -139,5 +158,42 @@ describe("walletService Web3Auth invoke", () => {
 
     expect(sendRawTransactionMock).toHaveBeenCalledWith("serialized-transaction");
     expect(txid).toBe("0xtesttxid");
+  });
+});
+
+describe("walletService NeoLine invoke signer normalization", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+        };
+      },
+    };
+  });
+
+  it("passes script-hash signer and numeric witness scope to NeoLine dAPI", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    await walletService.invoke({
+      scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+      operation: "deploy",
+      args: [],
+      scope: 128,
+    });
+
+    expect(neoLineInvokeMock).toHaveBeenCalledTimes(1);
+    const [params] = neoLineInvokeMock.mock.calls[0];
+    expect(params.network).toBe("N3MainNet");
+    expect(params.signers).toHaveLength(1);
+    expect(params.signers[0].scopes).toBe(128);
+    expect(params.signers[0].account).toMatch(/^[0-9a-f]{40}$/);
+    expect(params.signers[0].account.startsWith("0x")).toBe(false);
   });
 });

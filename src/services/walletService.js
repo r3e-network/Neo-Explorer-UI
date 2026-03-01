@@ -10,6 +10,7 @@ import { rpc, tx, sc, u } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
 import {
   isHash160Hex,
+  normalizeHash160,
   normalizeInvokeArgsForRpc,
   normalizeSignersForRpc,
   normalizeSignMessageResult,
@@ -99,20 +100,33 @@ function isWalletNetworkCompatible(network) {
   return walletNetwork.includes("main");
 }
 
-const SCOPE_LABELS = Object.freeze({
-  0: "None",
-  1: "CalledByEntry",
-  16: "CustomContracts",
-  32: "CustomGroups",
-  64: "Rules",
-  128: "Global",
+const SCOPE_VALUES_BY_NAME = Object.freeze({
+  None: 0,
+  CalledByEntry: 1,
+  CustomContracts: 16,
+  CustomGroups: 32,
+  Rules: 64,
+  Global: 128,
 });
 
+function normalizeScopeValue(scope) {
+  if (typeof scope === "number") return scope;
+  if (typeof scope !== "string") return scope;
+
+  const raw = scope.trim();
+  if (!raw) return scope;
+  if (/^\d+$/.test(raw)) return Number(raw);
+
+  const normalized = raw.replace(/\s+/g, "");
+  return SCOPE_VALUES_BY_NAME[normalized] ?? scope;
+}
+
 function normalizeSignersForDapi(signers = []) {
-  if (!Array.isArray(signers)) return [];
-  return signers.map((signer) => {
+  const normalized = normalizeSignersForRpc(signers);
+  if (!Array.isArray(normalized)) return [];
+  return normalized.map((signer) => {
     if (!signer || typeof signer !== "object") return signer;
-    const scopes = typeof signer.scopes === "number" ? (SCOPE_LABELS[signer.scopes] || signer.scopes) : signer.scopes;
+    const scopes = normalizeScopeValue(signer.scopes);
     return { ...signer, scopes };
   });
 }
@@ -121,7 +135,7 @@ function normalizeSignersForInvokeScript(signers = []) {
   const normalized = normalizeSignersForRpc(signers);
   return normalized.map((signer) => {
     if (!signer || typeof signer !== "object") return signer;
-    const scopes = typeof signer.scopes === "number" ? (SCOPE_LABELS[signer.scopes] || signer.scopes) : signer.scopes;
+    const scopes = normalizeScopeValue(signer.scopes);
     return { ...signer, scopes };
   });
 }
@@ -316,7 +330,8 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
       value: a.value,
     }));
 
-    const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
+    const defaultSignerAccount = normalizeHash160(_account.address);
+    const invokeSigners = signers || [{ account: defaultSignerAccount, scopes: scope }];
     const dapiSigners = normalizeSignersForDapi(invokeSigners);
 
     const expectedNetwork = isExplorerTestnet() ? "N3TestNet" : "N3MainNet";

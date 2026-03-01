@@ -363,7 +363,7 @@ async function deployContract() {
         args: invokeParams.args.map((arg) => toWalletCompatParam(arg)),
         signers: [
           {
-            account: `0x${normalizedSigner}`,
+            account: normalizedSigner,
             scopes: 128
           }
         ]
