@@ -210,6 +210,13 @@ function isLikelyWalletRpcError(err) {
   return type === "RPC_ERROR" || /节点返回错误|node return error|invalid params|invalid argument/.test(msg);
 }
 
+function isDapiConnectionDenied(err) {
+  if (!err || typeof err !== "object") return false;
+  const type = String(err.type || "").toUpperCase();
+  const msg = formatErrorMessage(err).toLowerCase();
+  return type === "CONNECTION_DENIED" || /refused to process this request|connection denied/.test(msg);
+}
+
 function normalizeByteArrayForWallet(value) {
   const raw = String(value || "").trim();
   if (!raw) return raw;
@@ -344,33 +351,50 @@ async function deployContract() {
       }
     }
 
-    const invokeWithBroadcastOverride = (params) =>
+    const invokeWithBroadcastOverride = (params, broadcastOverride = true) =>
       walletService.invoke({
         ...params,
-        broadcastOverride: true
+        broadcastOverride
       });
 
     let result;
+    const isNeoLineProvider = walletService.provider === walletService.PROVIDERS?.NEOLINE;
+    const buildWalletCompatParams = () => ({
+      ...invokeParams,
+      args: invokeParams.args.map((arg) => toWalletCompatParam(arg)),
+      signers: [
+        {
+          account: normalizedSigner,
+          scopes: 128
+        }
+      ]
+    });
+
     try {
-      result = await invokeWithBroadcastOverride(invokeParams);
+      result = await invokeWithBroadcastOverride(invokeParams, true);
     } catch (invokeError) {
-      if (!isLikelyWalletRpcError(invokeError)) {
-        throw invokeError;
-      }
-
-      const walletCompatParams = {
-        ...invokeParams,
-        args: invokeParams.args.map((arg) => toWalletCompatParam(arg)),
-        signers: [
-          {
-            account: normalizedSigner,
-            scopes: 128
+      if (isNeoLineProvider && isDapiConnectionDenied(invokeError)) {
+        toast.info("NeoLine compatibility mode: retrying deployment with wallet broadcast.");
+        try {
+          result = await invokeWithBroadcastOverride(invokeParams, false);
+        } catch (walletBroadcastError) {
+          if (!isLikelyWalletRpcError(walletBroadcastError)) {
+            throw walletBroadcastError;
           }
-        ]
-      };
+          const walletCompatParams = buildWalletCompatParams();
+          toast.info("Wallet compatibility mode: retrying deployment with alternate encoding.");
+          result = await invokeWithBroadcastOverride(walletCompatParams, false);
+        }
+      } else {
+        if (!isLikelyWalletRpcError(invokeError)) {
+          throw invokeError;
+        }
 
-      toast.info("Wallet compatibility mode: retrying deployment with alternate encoding.");
-      result = await invokeWithBroadcastOverride(walletCompatParams);
+        const walletCompatParams = buildWalletCompatParams();
+
+        toast.info("Wallet compatibility mode: retrying deployment with alternate encoding.");
+        result = await invokeWithBroadcastOverride(walletCompatParams, true);
+      }
     }
 
     let deployedTxId = result?.txid || "";

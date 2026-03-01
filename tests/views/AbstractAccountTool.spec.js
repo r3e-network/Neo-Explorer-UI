@@ -8,6 +8,20 @@ const broadcastSignedTxMock = vi.fn();
 const toastInfoMock = vi.fn();
 const toastSuccessMock = vi.fn();
 const toastErrorMock = vi.fn();
+const mockedWalletService = {
+  PROVIDERS: {
+    NEOLINE: "NeoLine",
+    O3: "O3",
+    WALLETCONNECT: "WalletConnect",
+    WEB3AUTH: "Google / Email (Web3Auth)",
+  },
+  provider: "NeoLine",
+  isConnected: true,
+  account: { address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu" },
+  simulateInvoke: simulateInvokeMock,
+  invoke: invokeMock,
+  broadcastSignedTx: broadcastSignedTxMock,
+};
 
 const sharedConnectedAccount = ref("");
 
@@ -16,13 +30,7 @@ vi.mock("@/utils/wallet", () => ({
 }));
 
 vi.mock("@/services/walletService", () => ({
-  walletService: {
-    isConnected: true,
-    account: { address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu" },
-    simulateInvoke: simulateInvokeMock,
-    invoke: invokeMock,
-    broadcastSignedTx: broadcastSignedTxMock,
-  },
+  walletService: mockedWalletService,
 }));
 
 vi.mock("vue-toastification", () => ({
@@ -37,6 +45,7 @@ describe("AbstractAccountTool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sharedConnectedAccount.value = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+    mockedWalletService.provider = mockedWalletService.PROVIDERS.NEOLINE;
     simulateInvokeMock.mockResolvedValue({ state: "HALT" });
     invokeMock.mockResolvedValue({ txid: "0xtest" });
     broadcastSignedTxMock.mockResolvedValue("0xtest");
@@ -282,5 +291,33 @@ describe("AbstractAccountTool", () => {
 
     expect(broadcastSignedTxMock).toHaveBeenCalledWith("signed-raw-tx");
     expect(toastInfoMock).toHaveBeenCalled();
+  });
+
+  it("retries without broadcastOverride when NeoLine refuses the dAPI request", async () => {
+    invokeMock
+      .mockRejectedValueOnce({
+        type: "CONNECTION_DENIED",
+        description: "The dAPI provider refused to process this request",
+      })
+      .mockResolvedValueOnce({ txid: "0xwallettx" });
+
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(invokeMock).toHaveBeenCalledTimes(2);
+    expect(invokeMock.mock.calls[0][0].broadcastOverride).toBe(true);
+    expect(invokeMock.mock.calls[1][0].broadcastOverride).toBe(false);
+    expect(toastSuccessMock).toHaveBeenCalled();
   });
 });
