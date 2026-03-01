@@ -118,6 +118,16 @@ function getLegacyDapiNetworkAlias() {
   return isExplorerTestnet() ? "TestNet" : "MainNet";
 }
 
+function getAbstractAccountHash() {
+  const env = isExplorerTestnet() ? "TESTNET" : "MAINNET";
+  const candidate = env === "TESTNET"
+    ? (import.meta.env.VITE_AA_HASH_TESTNET || import.meta.env.VITE_AA_HASH)
+    : (import.meta.env.VITE_AA_HASH_MAINNET || import.meta.env.VITE_AA_HASH);
+
+  const normalized = normalizeHash160(candidate);
+  return isHash160Hex(normalized) ? normalized : "";
+}
+
 function getWalletErrorMessage(err) {
   if (!err) return "";
   if (typeof err === "string") return err;
@@ -571,55 +581,76 @@ export const walletService = {
       const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
       if (invalidArg) throw new Error("Invalid Hash160 argument.");
 
-      const nonce = Date.now();
+      const aaHash = getAbstractAccountHash();
+      if (!aaHash) {
+        throw new Error("Abstract account contract hash is not configured (VITE_AA_HASH_*).");
+      }
 
-      const domain = {
-        name: 'Neo N3 Abstract Account',
-        version: '1',
-      };
+      const cleanTargetContract = normalizeHash160(scriptHash);
+      if (!isHash160Hex(cleanTargetContract)) {
+        throw new Error("Invalid target contract hash.");
+      }
 
-      const types = {
-        MetaTransaction: [
-          { name: 'targetContract', type: 'string' },
-          { name: 'method', type: 'string' },
-          { name: 'argsJson', type: 'string' },
-          { name: 'nonce', type: 'uint256' }
-        ]
-      };
+      const accountId = normalizeHash160(_account.address);
+      if (!isHash160Hex(accountId)) {
+        throw new Error("Invalid EVM account address.");
+      }
 
-      const value = {
-        targetContract: String(scriptHash),
-        method: String(operation),
-        argsJson: JSON.stringify(normalizedArgs),
-        nonce: nonce
-      };
-
-      const signature = await signer.signTypedData(domain, types, value);
-
-      const digest = ethers.TypedDataEncoder.hash(domain, types, value);
-      const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
-
-      const payload = {
-        uncompressedPubKey,
-        targetContract: scriptHash,
-        method: operation,
-        args: normalizedArgs,
-        nonce,
-        signature
-      };
-
-      const response = await fetch("/api/relayer", {
+      const prepareResponse = await fetch("/api/relayer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          action: "prepare",
+          network: getCurrentEnv(),
+          aaHash,
+          accountId,
+          targetContract: cleanTargetContract,
+          method: String(operation),
+          args: normalizedArgs
+        })
       });
 
-      if (!response.ok) {
-        const errData = await response.json();
+      if (!prepareResponse.ok) {
+        const errData = await prepareResponse.json();
         throw new Error(errData.error || "Relayer error");
       }
 
-      const data = await response.json();
+      const prepared = await prepareResponse.json();
+      if (!prepared?.domain?.chainId || !prepared?.domain?.verifyingContract) {
+        throw new Error("Relayer prepare payload is missing EIP-712 domain fields.");
+      }
+      if (!prepared?.message?.argsHash || !prepared?.message?.deadline) {
+        throw new Error("Relayer prepare payload is missing signed message fields.");
+      }
+      const signature = await signer.signTypedData(prepared.domain, prepared.types, prepared.message);
+      const digest = ethers.TypedDataEncoder.hash(prepared.domain, prepared.types, prepared.message);
+      const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
+
+      const executeResponse = await fetch("/api/relayer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "execute",
+          network: getCurrentEnv(),
+          aaHash,
+          accountId,
+          targetContract: cleanTargetContract,
+          method: String(operation),
+          args: normalizedArgs,
+          argsHash: prepared.message?.argsHash,
+          nonce: prepared.message?.nonce,
+          deadline: prepared.message?.deadline,
+          signature,
+          uncompressedPubKey
+        })
+      });
+
+      if (!executeResponse.ok) {
+        const errData = await executeResponse.json();
+        throw new Error(errData.error || "Relayer error");
+      }
+
+      const data = await executeResponse.json();
       return { txid: data.txid };
     }
 

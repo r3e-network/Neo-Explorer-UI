@@ -2,50 +2,74 @@
   "version": 3,
   "targets": {
     "net10.0": {
-      "Neo.SmartContract.Framework/3.6.2": {
+      "Neo.SmartContract.Framework/3.9.1": {
         "type": "package",
         "compile": {
-          "lib/net7.0/Neo.SmartContract.Framework.dll": {}
+          "lib/net10.0/Neo.SmartContract.Framework.dll": {}
         },
         "runtime": {
-          "lib/net7.0/Neo.SmartContract.Framework.dll": {}
+          "lib/net10.0/Neo.SmartContract.Framework.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "Neo.SmartContract.Framework/3.6.2": {
-      "sha512": "kt04iAltDMROVlDkafeQxYSKChqNfNHg+Nmc+aws5FViVEp4Zr9nw/7NKoyqsnzbW06eo2tV6IrsWHNiBNyKiw==",
+    "Neo.SmartContract.Framework/3.9.1": {
+      "sha512": "6D2DW+TFEt9HgG4/7U7t5HN5upDB4yaYoyR5YzhGfDC37r3Nn18ikT90xLDR7fhr+usm7rYyzHgcWxv8PIcTSQ==",
       "type": "package",
-      "path": "neo.smartcontract.framework/3.6.2",
+      "path": "neo.smartcontract.framework/3.9.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "lib/net7.0/Neo.SmartContract.Framework.dll",
-        "neo.smartcontract.framework.3.6.2.nupkg.sha512",
+        "lib/net10.0/Neo.SmartContract.Framework.dll",
+        "neo.png",
+        "neo.smartcontract.framework.3.9.1.nupkg.sha512",
         "neo.smartcontract.framework.nuspec",
+        "src/Attributes/ByteArrayAttribute.cs",
         "src/Attributes/CallingConventionAttribute.cs",
         "src/Attributes/ContractAttribute.cs",
+        "src/Attributes/ContractAuthorAttribute.cs",
+        "src/Attributes/ContractDescriptionAttribute.cs",
+        "src/Attributes/ContractEmailAttribute.cs",
         "src/Attributes/ContractHashAttribute.cs",
         "src/Attributes/ContractPermissionAttribute.cs",
         "src/Attributes/ContractSourceCodeAttribute.cs",
         "src/Attributes/ContractTrustAttribute.cs",
+        "src/Attributes/ContractVersionAttribute.cs",
+        "src/Attributes/Hash160Attribute.cs",
         "src/Attributes/InitialValueAttribute.cs",
+        "src/Attributes/IntegerAttribute.cs",
         "src/Attributes/ManifestExtraAttribute.cs",
         "src/Attributes/ModifierAttribute.cs",
         "src/Attributes/NoReentrantAttribute.cs",
+        "src/Attributes/NoReentrantMethodAttribute.cs",
         "src/Attributes/OpCodeAttribute.cs",
+        "src/Attributes/PublicKeyAttribute.cs",
         "src/Attributes/SafeAttribute.cs",
+        "src/Attributes/StoredAttribute.cs",
+        "src/Attributes/StringAttribute.cs",
         "src/Attributes/SupportedStandardsAttribute.cs",
         "src/Attributes/SyscallAttribute.cs",
+        "src/ByteString.Extension.cs",
         "src/ByteString.cs",
         "src/ContractParameterType.cs",
         "src/ECPoint.cs",
         "src/ExecutionEngine.cs",
         "src/Helper.cs",
+        "src/Helpers/GuardHelpers.cs",
+        "src/Helpers/ParseHelper.cs",
         "src/IApiInterface.cs",
+        "src/Interfaces/INEP24.cs",
+        "src/Interfaces/INEP26.cs",
+        "src/Interfaces/INEP27.cs",
+        "src/Interfaces/INEP29.cs",
+        "src/Interfaces/INEP30.cs",
+        "src/Interfaces/IOracle.cs",
+        "src/Linq/LinqExtensions.cs",
         "src/List.cs",
         "src/Map.cs",
+        "src/Method.cs",
+        "src/NEPStandard.cs",
         "src/Native/AndCondition.cs",
         "src/Native/BooleanCondition.cs",
         "src/Native/CalledByContractCondition.cs",
@@ -58,8 +82,10 @@
         "src/Native/Ledger.cs",
         "src/Native/NEO.cs",
         "src/Native/NamedCurve.cs",
+        "src/Native/NamedCurveHash.cs",
         "src/Native/NeoAccountState.cs",
         "src/Native/NotCondition.cs",
+        "src/Native/Notary.cs",
         "src/Native/OrCondition.cs",
         "src/Native/Oracle.cs",
         "src/Native/OracleResponseCode.cs",
@@ -70,6 +96,7 @@
         "src/Native/Signer.cs",
         "src/Native/StdLib.cs",
         "src/Native/TransactionAttributeType.cs",
+        "src/Native/Treasury.cs",
         "src/Native/VMState.cs",
         "src/Native/WitnessCondition.cs",
         "src/Native/WitnessConditionType.cs",
@@ -80,6 +107,7 @@
         "src/Nep11TokenState.cs",
         "src/Nep17Token.cs",
         "src/OpCode.cs",
+        "src/Permission.cs",
         "src/Properties/AssemblyInfo.cs",
         "src/Services/Block.cs",
         "src/Services/CallFlags.cs",
@@ -112,7 +140,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "Neo.SmartContract.Framework >= 3.6.2"
+      "Neo.SmartContract.Framework >= 3.9.1"
     ]
   },
   "packageFolders": {
@@ -160,7 +188,7 @@
         "dependencies": {
           "Neo.SmartContract.Framework": {
             "target": "Package",
-            "version": "[3.6.2, )"
+            "version": "[3.9.1, )"
           }
         },
         "imports": [

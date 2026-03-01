@@ -46,7 +46,7 @@
           "dependencies": {
             "Neo.SmartContract.Framework": {
               "target": "Package",
-              "version": "[3.6.2, )"
+              "version": "[3.9.1, )"
             }
           },
           "imports": [

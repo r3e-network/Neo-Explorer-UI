@@ -181,7 +181,7 @@
         </div>
         <div>
           <h2 class="text-lg font-bold text-high group-hover:text-primary-500 transition-colors">Unified AA Manager Deployer</h2>
-          <p class="text-sm text-mid mt-1">Deploy the singleton, global Unified Abstract Account gateway utilizing secp256k1 MetaMask EIP-712 for state isolation.</p>
+          <p class="text-sm text-mid mt-1">Deploy the singleton, global Unified Abstract Account gateway with secp256k1 signature-based state isolation.</p>
         </div>
       </router-link>
 

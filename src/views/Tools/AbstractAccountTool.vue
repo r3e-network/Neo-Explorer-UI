@@ -10,7 +10,7 @@
           </div>
           <div class="pt-1">
             <h1 class="page-title text-2xl font-extrabold tracking-tight">Unified AA Manager Deployer</h1>
-            <p class="page-subtitle text-base mt-1">Deploy the singleton EIP-712 global relayer contract for Neo N3 meta-transactions.</p>
+            <p class="page-subtitle text-base mt-1">Deploy the singleton global relayer contract for Neo N3 meta-transactions.</p>
           </div>
         </div>
       </div>
@@ -33,7 +33,7 @@
               <div class="pt-0.5">
                 <h4 class="text-base font-bold text-emerald-900 dark:text-emerald-200 mb-1.5">Global Singleton Deployment</h4>
                 <p class="text-sm text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
-                  Unlike traditional wallets, you do <strong>not</strong> need to deploy a separate contract per user. This will deploy the centralized <code>UnifiedSmartWallet</code> gateway that isolates Virtual User states utilizing secp256k1 MetaMask EIP-712 signatures.
+                  Unlike traditional wallets, you do <strong>not</strong> need to deploy a separate contract per user. This deploys the centralized <code>UnifiedSmartWallet</code> gateway that isolates virtual user states using secp256k1 signatures.
                 </p>
               </div>
             </div>
@@ -44,7 +44,7 @@
                 <h2 class="text-lg font-bold text-high">Zero-Configuration Setup</h2>
               </div>
               <p class="text-sm text-mid -mt-2">
-                This contract requires no initial Admins or Managers. All identity checks and access controls are handled dynamically on-chain via EIP-712 signature recovery during transaction forwarding.
+                This contract requires no initial Admins or Managers. Identity checks and access controls are enforced dynamically on-chain during transaction forwarding.
               </p>
             </div>
 
@@ -70,9 +70,9 @@
                   <div class="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-800/40 transition-all duration-300 shadow-sm border border-emerald-100 dark:border-emerald-800/50">
                     <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path></svg>
                   </div>
-                  <h4 class="font-bold text-high mb-2 text-base">EVM Cross-Chain Identity</h4>
+                  <h4 class="font-bold text-high mb-2 text-base">EVM Wallet Compatibility</h4>
                   <p class="text-sm text-mid leading-relaxed">
-                    The Smart Account standard implements EIP-712 without chain-binding. This means you can use MetaMask, Rabby, or OKX Wallet on Ethereum, BSC, or Polygon to interact directly with Neo N3 contracts.
+                    The Smart Account supports secp256k1 signatures from common EVM wallets such as MetaMask, Rabby, and OKX. Signature payloads are network-bound to prevent cross-network replay.
                   </p>
                 </div>
 

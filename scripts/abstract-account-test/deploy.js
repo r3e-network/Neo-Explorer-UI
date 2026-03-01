@@ -2,13 +2,20 @@ const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const fs = require('fs');
 const path = require('path');
 
-const privateKey = 'Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U';
-const account = new wallet.Account(privateKey);
+const deployerWif = process.env.ABSTRACT_ACCOUNT_DEPLOYER_WIF
+  || process.env.RELAYER_WIF
+  || process.env.SPONSORED_WIF;
+
+if (!deployerWif) {
+  throw new Error('Missing deployer WIF. Set ABSTRACT_ACCOUNT_DEPLOYER_WIF (or RELAYER_WIF/SPONSORED_WIF).');
+}
+
+const account = new wallet.Account(deployerWif);
 const rpcUrl = 'https://testnet1.neo.coz.io:443';
 const rpcClient = new rpc.RPCClient(rpcUrl);
 
-const nefPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/AbstractAccount.nef');
-const manifestPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/AbstractAccount.manifest.json');
+const nefPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.nef');
+const manifestPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.manifest.json');
 
 const nef = fs.readFileSync(nefPath);
 const manifestStr = fs.readFileSync(manifestPath, 'utf8');
@@ -20,25 +27,6 @@ async function deployContract() {
   try {
     // ContractManagement address is 0xfffdc93764dbaddd97c48f252a53ea4643faa3fd
     const contractManagementHash = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
-    
-    // We want to pass initialization data.
-    // data = [[Admin1], 1, [Manager1], 1]
-    const admins = sc.ContractParam.array(
-      sc.ContractParam.hash160(account.scriptHash)
-    );
-    const adminThreshold = sc.ContractParam.integer(1);
-    
-    const managers = sc.ContractParam.array(
-      sc.ContractParam.hash160(account.scriptHash)
-    );
-    const managerThreshold = sc.ContractParam.integer(1);
-    
-    const deployData = sc.ContractParam.array(
-      admins,
-      adminThreshold,
-      managers,
-      managerThreshold
-    );
 
     console.log("Creating transaction...");
 
@@ -48,7 +36,7 @@ async function deployContract() {
       args: [
         sc.ContractParam.byteArray(nef.toString('base64')),
         sc.ContractParam.string(manifestStr),
-        deployData
+        sc.ContractParam.any(null)
       ]
     });
 
