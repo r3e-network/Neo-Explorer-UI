@@ -19,12 +19,7 @@ const invokeScriptMock = vi.fn(async (script) => {
 });
 const getBlockCountMock = vi.fn(async () => 123456);
 const calculateNetworkFeeMock = vi.fn(async () => "1000");
-const sendRawTransactionMock = vi.fn(async (txPayload) => {
-  if (typeof txPayload === "string") {
-    throw new Error("Invalid params");
-  }
-  return "0xtesttxid";
-});
+const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
 
 class MockRpcClient {
   async getBlockCount() {
@@ -133,5 +128,16 @@ describe("walletService Web3Auth invoke", () => {
     expect(sendRawTransactionMock).toHaveBeenCalledTimes(1);
     const [sendArg] = sendRawTransactionMock.mock.calls[0];
     expect(typeof sendArg).toBe("object");
+  });
+
+  it("broadcasts signed transaction via RPC client", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
+
+    const txid = await walletService.broadcastSignedTx("serialized-transaction");
+
+    expect(sendRawTransactionMock).toHaveBeenCalledWith("serialized-transaction");
+    expect(txid).toBe("0xtesttxid");
   });
 });

@@ -4,6 +4,7 @@ import { ref } from "vue";
 
 const invokeMock = vi.fn();
 const simulateInvokeMock = vi.fn();
+const broadcastSignedTxMock = vi.fn();
 const toastInfoMock = vi.fn();
 const toastSuccessMock = vi.fn();
 const toastErrorMock = vi.fn();
@@ -20,6 +21,7 @@ vi.mock("@/services/walletService", () => ({
     account: { address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu" },
     simulateInvoke: simulateInvokeMock,
     invoke: invokeMock,
+    broadcastSignedTx: broadcastSignedTxMock,
   },
 }));
 
@@ -37,6 +39,7 @@ describe("AbstractAccountTool", () => {
     sharedConnectedAccount.value = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
     simulateInvokeMock.mockResolvedValue({ state: "HALT" });
     invokeMock.mockResolvedValue({ txid: "0xtest" });
+    broadcastSignedTxMock.mockResolvedValue("0xtest");
   });
 
   it("uses Global witness scope when deploying abstract account", async () => {
@@ -211,5 +214,29 @@ describe("AbstractAccountTool", () => {
     const [{ args }] = invokeMock.mock.calls[0];
     expect(args[2].value).toHaveLength(2);
     expect(toastInfoMock).toHaveBeenCalled();
+  });
+
+  it("signs via wallet and broadcasts signed transaction through RPC when signedTx is returned", async () => {
+    invokeMock.mockResolvedValueOnce({ signedTx: "signed-raw-tx" });
+    broadcastSignedTxMock.mockResolvedValueOnce("0xrpc-broadcast");
+
+    const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
+    const wrapper = mount(AbstractAccountTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          RouterLink: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+    expect(invokeMock).toHaveBeenCalledWith(expect.objectContaining({ broadcastOverride: true }));
+    expect(broadcastSignedTxMock).toHaveBeenCalledWith("signed-raw-tx");
+    expect(toastSuccessMock).toHaveBeenCalled();
   });
 });

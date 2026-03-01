@@ -441,6 +441,12 @@ async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broa
     return rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
   },
 
+  async broadcastSignedTx(signedTx) {
+    if (!signedTx) throw new Error("Signed transaction is empty.");
+    const rpcClient = new rpc.RPCClient(getRpcUrl());
+    return rpcClient.sendRawTransaction(signedTx);
+  },
+
 };
 
 /**

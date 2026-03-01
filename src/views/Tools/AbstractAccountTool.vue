@@ -298,14 +298,22 @@ async function deployContract() {
       }
     }
 
-    const result = await walletService.invoke(invokeParams);
+    const result = await walletService.invoke({
+      ...invokeParams,
+      broadcastOverride: true
+    });
 
-    if (result && result.txid) {
-      txHash.value = result.txid;
-      toast.success("Abstract Account successfully deployed!");
-    } else {
+    let deployedTxId = result?.txid || "";
+    if (!deployedTxId && result?.signedTx && typeof walletService.broadcastSignedTx === "function") {
+      deployedTxId = await walletService.broadcastSignedTx(result.signedTx);
+    }
+
+    if (!deployedTxId) {
       throw new Error("No transaction ID returned.");
     }
+
+    txHash.value = deployedTxId;
+    toast.success("Abstract Account successfully deployed!");
 
   } catch (err) {
     console.error(err);
