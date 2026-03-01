@@ -1,7 +1,7 @@
 <template>
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Abstract Account Deployer' }]" />
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Unified AA Manager Deployer' }]" />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
@@ -9,8 +9,8 @@
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
           </div>
           <div>
-            <h1 class="page-title">Abstract Account Deployer</h1>
-            <p class="page-subtitle">Deploy a professional permission-controlling smart account with admins, managers, and spending limits.</p>
+            <h1 class="page-title">Unified AA Manager Deployer</h1>
+            <p class="page-subtitle">Deploy the singleton EIP-712 global relayer contract for Neo N3 meta-transactions.</p>
           </div>
         </div>
       </div>
@@ -22,16 +22,16 @@
                <svg class="h-7 w-7 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
              </div>
              <p class="text-high font-bold mb-1">Wallet Not Connected</p>
-             <p class="text-sm text-mid max-w-sm mx-auto">Please connect your NeoLine or O3 wallet to deploy the Abstract Account contract to the blockchain.</p>
+             <p class="text-sm text-mid max-w-sm mx-auto">Please connect your NeoLine or O3 wallet to deploy the Unified AA Manager contract.</p>
           </div>
 
           <template v-else>
             <div class="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-900/30 rounded-xl p-5 flex items-start gap-4">
               <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <div>
-                <h4 class="text-sm font-bold text-indigo-900 dark:text-indigo-300 mb-1">Automated Contract Bundling</h4>
+                <h4 class="text-sm font-bold text-indigo-900 dark:text-indigo-300 mb-1">Global Singleton Deployment</h4>
                 <p class="text-sm text-indigo-800/80 dark:text-indigo-400/80 leading-relaxed">
-                  This tool seamlessly injects the pre-compiled <strong>AbstractAccount.nef</strong> and deploys it on your behalf. By default, your connected wallet address is configured as the master Admin.
+                  Unlike traditional wallets, you do <strong>not</strong> need to deploy a separate contract per user. This will deploy the centralized <code>UnifiedSmartWallet</code> gateway that isolates Virtual User states utilizing secp256k1 MetaMask EIP-712 signatures.
                 </p>
               </div>
             </div>
@@ -39,47 +39,11 @@
             <div class="space-y-6">
               <div class="flex items-center gap-3 border-b border-line-soft pb-3">
                 <span class="flex items-center justify-center w-6 h-6 rounded bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 font-bold text-sm">1</span>
-                <h2 class="text-lg font-bold text-high">Admin Configuration</h2>
+                <h2 class="text-lg font-bold text-high">Zero-Configuration Setup</h2>
               </div>
-              <p class="text-sm text-mid -mt-2">Admins maintain full sovereignty over the Abstract Account. They hold the power to upgrade the NEF contract logic, modify thresholds, and manage whitelists/blacklists.</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
-                <div>
-                  <label class="block text-sm font-semibold text-high mb-2">Admin Addresses (One per line)</label>
-                  <textarea v-model="form.admins" rows="4" class="form-input w-full font-mono text-sm bg-surface shadow-inner resize-none" placeholder="N..."></textarea>
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-high mb-2">Signature Threshold</label>
-                  <div class="relative">
-                    <input type="number" v-model.number="form.adminThreshold" min="1" class="form-input w-full bg-surface shadow-inner pr-12 text-center text-lg font-medium" />
-                    <span class="absolute inset-y-0 right-4 flex items-center text-mid text-sm font-semibold pointer-events-none">of N</span>
-                  </div>
-                  <p class="text-xs text-low mt-2 text-center">Minimum signatures required</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-6 pt-2">
-              <div class="flex items-center gap-3 border-b border-line-soft pb-3">
-                <span class="flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-bold text-sm">2</span>
-                <h2 class="text-lg font-bold text-high">Manager Configuration <span class="text-xs font-medium text-mid ml-2 px-2 py-0.5 bg-surface-muted rounded-full border border-line-soft">(Optional)</span></h2>
-              </div>
-              <p class="text-sm text-mid -mt-2">Managers are restricted operational roles. They can execute transactions (like NEP-17 token transfers) on behalf of the Abstract Account, strictly bound by spending limits and whitelists.</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
-                <div>
-                  <label class="block text-sm font-semibold text-high mb-2">Manager Addresses (One per line)</label>
-                  <textarea v-model="form.managers" rows="4" class="form-input w-full font-mono text-sm bg-surface shadow-inner resize-none" placeholder="N..."></textarea>
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-high mb-2">Signature Threshold</label>
-                  <div class="relative">
-                    <input type="number" v-model.number="form.managerThreshold" min="0" class="form-input w-full bg-surface shadow-inner pr-12 text-center text-lg font-medium" />
-                    <span class="absolute inset-y-0 right-4 flex items-center text-mid text-sm font-semibold pointer-events-none">of N</span>
-                  </div>
-                  <p class="text-xs text-low mt-2 text-center">Set to 0 to disable</p>
-                </div>
-              </div>
+              <p class="text-sm text-mid -mt-2">
+                This contract requires no initial Admins or Managers. All identity checks and access controls are handled dynamically on-chain via EIP-712 signature recovery during transaction forwarding.
+              </p>
             </div>
 
             <div class="pt-8 mt-4 border-t border-line-soft flex justify-end">
@@ -90,7 +54,7 @@
                >
                  <svg v-if="isDeploying" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                 <span>{{ isDeploying ? 'Processing Deployment...' : 'Deploy Abstract Account' }}</span>
+                 <span>{{ isDeploying ? 'Processing Deployment...' : 'Deploy Global AA Manager' }}</span>
                </button>
             </div>
             
@@ -119,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { useToast } from "vue-toastification";
@@ -131,50 +95,8 @@ const toast = useToast();
 const isDeploying = ref(false);
 const txHash = ref("");
 
-const form = ref({
-  admins: "",
-  adminThreshold: 1,
-  managers: "",
-  managerThreshold: 1
-});
-
-watch(connectedAccount, (acc) => {
-  if (acc && !form.value.admins) {
-    form.value.admins = acc;
-  }
-}, { immediate: true });
-
-// Contract artifacts generated from contracts/AbstractAccount/bin/sc.
-
-function parseAddresses(text) {
-  return text.split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(addr => {
-       const hash = addressToScriptHash(addr);
-       if (!hash) throw new Error("Invalid address format: " + addr);
-       return normalizeHash160(hash);
-    });
-}
-
 function normalizeHash160(value) {
   return String(value || "").trim().toLowerCase().replace(/^0x/i, "");
-}
-
-function buildDeployData(adminHashes, adminThreshold, managerHashes = [], managerThreshold = 1) {
-  const value = [
-    { type: "Array", value: adminHashes.map((h) => ({ type: "Hash160", value: h })) },
-    { type: "Integer", value: String(adminThreshold) }
-  ];
-
-  if (managerHashes.length > 0) {
-    value.push(
-      { type: "Array", value: managerHashes.map((h) => ({ type: "Hash160", value: h })) },
-      { type: "Integer", value: String(managerThreshold) }
-    );
-  }
-
-  return { type: "Array", value };
 }
 
 function formatErrorMessage(err) {
@@ -263,19 +185,6 @@ async function deployContract() {
   }
 
   try {
-    const adminHashes = parseAddresses(form.value.admins);
-    const managerHashes = parseAddresses(form.value.managers);
-
-    if (adminHashes.length === 0) {
-      toast.error("At least one admin address is required");
-      return;
-    }
-
-    if (form.value.adminThreshold > adminHashes.length || form.value.adminThreshold < 1) {
-      toast.error("Invalid Admin Threshold");
-      return;
-    }
-
     const signerAddress = walletService.account?.address || connectedAccount.value;
     const signerHash = addressToScriptHash(signerAddress);
     if (!signerHash) {
@@ -284,32 +193,11 @@ async function deployContract() {
     }
 
     const normalizedSigner = normalizeHash160(signerHash);
-    const normalizedAdmins = adminHashes.map(normalizeHash160);
-
-    if (managerHashes.length > 0) {
-      if (form.value.managerThreshold > managerHashes.length || form.value.managerThreshold < 1) {
-        toast.error("Invalid Manager Threshold");
-        return;
-      }
-
-      if (!normalizedAdmins.includes(normalizedSigner)) {
-        toast.error("Connected signer must be included in Admin Addresses when manager roles are configured.");
-        return;
-      }
-    }
 
     const manifestObj = JSON.parse(ABSTRACT_ACCOUNT_MANIFEST_STRING);
     // Append a unique timestamp to the name so multiple deployments of the same NEF are allowed by the network
-    manifestObj.name = `AbstractAccount_${Date.now().toString().slice(-6)}`;
+    manifestObj.name = `UnifiedSmartWallet_${Date.now().toString().slice(-6)}`;
     const dynamicManifestStr = JSON.stringify(manifestObj);
-
-    const fullDeployData = buildDeployData(
-      adminHashes,
-      form.value.adminThreshold,
-      managerHashes,
-      form.value.managerThreshold
-    );
-    const adminOnlyDeployData = buildDeployData(adminHashes, form.value.adminThreshold);
 
     isDeploying.value = true;
     txHash.value = "";
@@ -321,10 +209,8 @@ async function deployContract() {
       args: [
         { type: "ByteArray", value: ABSTRACT_ACCOUNT_NEF_BASE64 },
         { type: "String", value: dynamicManifestStr },
-        fullDeployData
+        { type: "Any", value: null } // No deployment args needed for the unified singleton
       ],
-      // _deploy performs nested witness checks (SetManagers -> CheckAdminSignatures),
-      // so CalledByEntry is insufficient; Global scope is required for deploy.
       scope: 128
     };
 
@@ -332,22 +218,6 @@ async function deployContract() {
       const simulation = await walletService.simulateInvoke(invokeParams);
       if (simulation?.state === "FAULT") {
         throw new Error(`Node preflight failed: ${simulation.exception || "VM FAULT"}`);
-      }
-
-      if (managerHashes.length > 0) {
-        const cbeSimulation = await walletService.simulateInvoke({
-          ...invokeParams,
-          scope: 1
-        });
-
-        if (cbeSimulation?.state === "FAULT" && /unauthorized/i.test(String(cbeSimulation.exception || ""))) {
-          invokeParams.args[2] = adminOnlyDeployData;
-          const fallbackSimulation = await walletService.simulateInvoke(invokeParams);
-          if (fallbackSimulation?.state === "FAULT") {
-            throw new Error(`Node preflight failed: ${fallbackSimulation.exception || "VM FAULT"}`);
-          }
-          toast.info("Wallet compatibility mode: managers will be configured after deployment. Deploying admins only.");
-        }
       }
     }
 
@@ -407,7 +277,7 @@ async function deployContract() {
     }
 
     txHash.value = deployedTxId;
-    toast.success("Abstract Account successfully deployed!");
+    toast.success("Unified AA Manager successfully deployed!");
 
   } catch (err) {
     console.error(err);
