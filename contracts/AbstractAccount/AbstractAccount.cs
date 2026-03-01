@@ -74,10 +74,11 @@ namespace AbstractAccount
             BigInteger currentNonce = GetNonce(signerHash);
             ExecutionEngine.Assert(nonce == currentNonce, "Invalid Nonce");
 
-            // Includes Network Magic and ExecutingScriptHash for strict cross-chain and cross-contract replay protection
-            uint networkMagic = Runtime.GetNetwork();
+            // Includes ExecutingScriptHash for strict cross-contract replay protection.
+            // Note: networkMagic is intentionally omitted so the user retains their universal Identity
+            // regardless of which EVM chain they sign from, as long as the destination Neo Contract matches.
             UInt160 scriptHash = Runtime.ExecutingScriptHash;
-            byte[] payload = StdLib.Serialize(new object[] { networkMagic, scriptHash, accountId, targetContract, method, args, nonce });
+            ByteString payload = StdLib.Serialize(new object[] { scriptHash, accountId, targetContract, method, args, nonce });
             byte[] messageHash = (byte[])CryptoLib.Sha256(payload);
 
             bool isValid = CryptoLib.VerifyWithECDsa(
