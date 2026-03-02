@@ -397,7 +397,7 @@ async function enforceRelayerRateLimit({
     return false;
 }
 
-module.exports = {
+export {
     buildRateLimitKey,
     buildRateLimitKeys,
     createDefaultRateLimiter,
