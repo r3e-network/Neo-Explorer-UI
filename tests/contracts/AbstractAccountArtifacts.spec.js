@@ -6,13 +6,13 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = process.cwd();
 const projectPath = path.resolve(repoRoot, "contracts/AbstractAccount/AbstractAccount.csproj");
-const checkedManifestPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.manifest.json");
+const checkedManifestPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.manifest.json");
 
 function compileManifestToTemp() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "aa-artifacts-"));
-  const cmd = `~/.dotnet/tools/nccs ${projectPath} -o ${tempDir} --base-name UnifiedSmartWallet`;
+  const cmd = `~/.dotnet/tools/nccs ${projectPath} -o ${tempDir} --base-name UnifiedSmartWalletV2`;
   execSync(cmd, { stdio: "pipe", shell: "/bin/bash" });
-  const manifestPath = path.join(tempDir, "UnifiedSmartWallet.manifest.json");
+  const manifestPath = path.join(tempDir, "UnifiedSmartWalletV2.manifest.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   return { tempDir, manifest };
 }
@@ -40,7 +40,7 @@ describe("UnifiedSmartWallet compiled artifact behavior", () => {
 
       expect(executeMetaTx).toBeTruthy();
       expect(executeMetaTx.parameters.map((param) => `${param.name}:${param.type}`)).toEqual([
-        "accountId:Hash160",
+        "accountId:ByteArray",
         "uncompressedPubKey:ByteArray",
         "targetContract:Hash160",
         "method:String",

@@ -257,11 +257,15 @@ async function handleSearch() {
       let propData = null;
       const activeProps = fallbackProps || props;
       if (activeProps && Array.isArray(activeProps.result) && activeProps.result.length > 0) {
-        propData = activeProps.result[0];
+        // Neo3fura might return unrelated domains if the requested token is not found.
+        // We must strictly enforce that the returned name matches our query.
+        propData = activeProps.result.find(p => p.name === query);
       } else if (Array.isArray(activeProps) && activeProps.length > 0) {
-        propData = activeProps[0];
+        propData = activeProps.find(p => p.name === query);
       } else if (activeProps && !Array.isArray(activeProps) && !activeProps.result) {
-        propData = activeProps;
+        if (activeProps.name === query) {
+           propData = activeProps;
+        }
       }
       
       if (propData) {
@@ -284,7 +288,7 @@ async function handleSearch() {
         }
       }
       
-      if (expired) {
+      if (!propData || expired) {
         searchResult.value = {
           domain: query,
           available: true

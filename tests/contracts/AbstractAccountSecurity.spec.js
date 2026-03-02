@@ -38,4 +38,15 @@ describe("UnifiedSmartWallet security invariants", () => {
     expect(source).toMatch(/ExecutionEngine\.Assert\(Runtime\.Time <= \(ulong\)deadline,\s*"Signature expired"\)/);
     expect(source).toMatch(/ExecutionEngine\.Assert\(ByteArrayEquals\(expectedArgsHash,\s*providedArgsHash\),\s*"Invalid args hash"\)/);
   });
+
+  it("removes accountId self-signed bypass from explicit signer checks", () => {
+    expect(source).not.toMatch(/isSelfSigned/);
+    expect(source).toMatch(/CheckExplicitSignatures\(GetAdmins\(accountId\),\s*GetAdminThreshold\(accountId\),\s*verifiedSigners\)/);
+    expect(source).toMatch(/CheckExplicitSignatures\(GetManagers\(accountId\),\s*GetManagerThreshold\(accountId\),\s*verifiedSigners\)/);
+  });
+
+  it("enforces account existence before sensitive operations", () => {
+    expect(source).toMatch(/private static void AssertAccountExists\(/);
+    expect(source).toMatch(/AssertAccountExists\(accountId\);/);
+  });
 });

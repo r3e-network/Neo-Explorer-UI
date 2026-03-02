@@ -19,6 +19,7 @@ describe("MetaTx EIP-712 source invariants", () => {
     expect(walletSource).toMatch(/verifyingContract/);
     expect(walletSource).toMatch(/argsHash/);
     expect(walletSource).toMatch(/deadline/);
+    expect(walletSource).toMatch(/signerAddress/);
   });
 
   it("relayer exposes prepare action and returns signing payload", () => {
@@ -37,5 +38,27 @@ describe("MetaTx EIP-712 source invariants", () => {
   it("relayer enforces configured abstract account hash allowlist", () => {
     expect(relayerSource).toMatch(/getConfiguredAaHash/);
     expect(relayerSource).toMatch(/aaHash is not allowed by relayer policy/);
+  });
+
+  it("uses dynamic bytes accountId EIP-712 type to match contract struct", () => {
+    expect(relayerSource).toMatch(/name:\s*['"]accountId['"],\s*type:\s*['"]bytes['"]/);
+    expect(relayerSource).not.toMatch(/name:\s*['"]accountId['"],\s*type:\s*['"]bytes32['"]/);
+  });
+
+  it("uses byte-array accountId for nonce lookup and executeMetaTx contract calls", () => {
+    expect(relayerSource).toMatch(/operation:\s*['"]getNonceForAccount['"]/);
+    expect(relayerSource).toMatch(/sc\.ContractParam\.byteArray\(/);
+    expect(relayerSource).toMatch(/operation:\s*['"]executeMetaTx['"]/);
+    expect(relayerSource).toMatch(/sc\.ContractParam\.byteArray\([\s\S]*cleanAccountId/);
+  });
+
+  it("binds nonce namespace to explicit signer address in prepare\/execute flow", () => {
+    expect(relayerSource).toMatch(/signerAddress/);
+    expect(relayerSource).toMatch(/Recovered signer does not match signerAddress/);
+  });
+
+  it("restricts relayer witness scope to AA contract via CustomContracts", () => {
+    expect(relayerSource).toMatch(/tx\.WitnessScope\.CustomContracts/);
+    expect(relayerSource).toMatch(/allowedContracts/);
   });
 });

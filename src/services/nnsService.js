@@ -2,6 +2,7 @@ import axios from "axios";
 import { rpc, safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
+import { rpc as neonRpc, sc } from "@cityofzion/neon-js";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
 const INVALID_REQUEST_CODE = "-32600";
@@ -100,17 +101,24 @@ export const nnsService = {
             key,
             async () => {
                 try {
-                    const res = await rpc("GetNNSResolve", { Domain: domain });
-                    if (res && res.address) {
-                        return res.address;
+                    const rpcClient = new neonRpc.RPCClient("https://mainnet1.neo.coz.io:443");
+                    const res = await rpcClient.invokeFunction(
+                      NNS_CONTRACT_HASH,
+                      "resolve",
+                      [sc.ContractParam.string(domain), sc.ContractParam.integer(16)]
+                    );
+                    
+                    if (res.state === "HALT" && res.stack && res.stack.length > 0) {
+                      const item = res.stack[0];
+                      if (item.type === "ByteString" && item.value) {
+                         const decoded = atob(item.value);
+                         if (decoded && decoded.length === 34 && decoded.startsWith("N")) {
+                            return decoded;
+                         }
+                      }
                     }
                 } catch (e) {
-                    if (shouldRetryResolveAgainstPrimary(env) && isInvalidRequestError(e)) {
-                        const retriedAddress = await resolveDomainViaPrimary(domain);
-                        if (retriedAddress) return retriedAddress;
-                    }
-
-                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain:", domain, e);
+                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain directly via RPC:", domain, e);
                 }
                 return null;
             },
