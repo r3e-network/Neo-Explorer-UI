@@ -2,8 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const contractPath = path.resolve(process.cwd(), "contracts/AbstractAccount/AbstractAccount.cs");
-const source = fs.readFileSync(contractPath, "utf8");
+const contractDir = path.resolve(process.cwd(), "contracts/AbstractAccount");
+const source = fs
+  .readdirSync(contractDir)
+  .filter((name) => /^AbstractAccount.*\.cs$/i.test(name))
+  .map((name) => fs.readFileSync(path.join(contractDir, name), "utf8"))
+  .join("\n");
 
 describe("UnifiedSmartWallet security invariants", () => {
   it("binds MetaTx admin context to account scope and self-call origin", () => {

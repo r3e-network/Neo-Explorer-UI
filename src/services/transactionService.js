@@ -104,6 +104,35 @@ export const transactionService = createService(
     if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
 
     try {
+      // Fallback 1: Fura might be lagging. Try native RPC directly.
+      const { rpc: neonRpc } = await import('@cityofzion/neon-js');
+      const { getRpcClientUrl } = await import('@/utils/env');
+      const client = new neonRpc.RPCClient(getRpcClientUrl());
+      const nativeTx = await client.getRawTransaction(hash, true);
+      if (nativeTx && nativeTx.hash) {
+        let blockIndex = 0;
+        if (nativeTx.blockhash) {
+          try {
+            const blockHeader = await client.getBlockHeader(nativeTx.blockhash, true);
+            blockIndex = blockHeader.index;
+          } catch (e) { /* ignore */ }
+        }
+        return {
+          ...tx,
+          ...nativeTx,
+          vmstate: nativeTx.vmstate || "HALT",
+          netfee: nativeTx.netfee,
+          sysfee: nativeTx.sysfee,
+          blockindex: blockIndex,
+          blocktime: nativeTx.blocktime || Date.now(),
+        };
+      }
+    } catch (err) {
+      // Ignore native RPC failure
+    }
+
+    try {
+      // Fallback 2: Mempool
       const { getCurrentEnv } = await import('@/utils/env');
       const { supabaseService } = await import('./supabaseService');
       const env = getCurrentEnv()?.toLowerCase() || 'mainnet';

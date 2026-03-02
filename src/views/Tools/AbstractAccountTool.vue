@@ -264,12 +264,17 @@ async function createAccount() {
 
     const adminsParam = validAdmins.map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));
     const managersParam = managers.value.filter(m => m.trim().length > 0).map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));
+    const computedAddressScriptHash = normalizeAddress(computedAddress.value);
+    if (!/^[0-9a-fA-F]{40}$/.test(computedAddressScriptHash)) {
+      throw new Error("Unable to derive abstract account script hash.");
+    }
 
     const invokeParams = {
       scriptHash: aaHash,
-      operation: "createAccount",
+      operation: "createAccountWithAddress",
       args: [
         { type: "ByteArray", value: uuidHex },
+        { type: "Hash160", value: computedAddressScriptHash },
         { type: "Array", value: adminsParam },
         { type: "Integer", value: adminThreshold.value },
         { type: "Array", value: managersParam },

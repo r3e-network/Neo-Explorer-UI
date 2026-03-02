@@ -80,6 +80,27 @@ function parseStackByteArrayHex(invokeRes) {
     }
 }
 
+function parseOptionalStackByteArrayHex(invokeRes) {
+    const item = invokeRes?.stack?.[0];
+    if (!item) return '';
+
+    const value = item?.value;
+    if (value === null || value === undefined || value === '') return '';
+    if (item?.type === 'Any') return '';
+
+    const valueString = String(value);
+    const clean = sanitizeHex(valueString);
+    if (/^[0-9a-f]+$/.test(clean) && clean.length % 2 === 0) {
+        return clean;
+    }
+
+    try {
+        return Buffer.from(valueString, 'base64').toString('hex').toLowerCase();
+    } catch {
+        throw new Error('Unable to decode optional stack byte array');
+    }
+}
+
 function parseStackInteger(invokeRes) {
     const item = invokeRes?.stack?.[0];
     const value = item?.value;
@@ -100,6 +121,22 @@ function assertByteArrayHex(value, fieldName, { minBytes = 1, maxBytes = 64 } = 
         throw new Error(`Invalid ${fieldName} length (${byteLength} bytes, allowed ${minBytes}-${maxBytes})`);
     }
     return clean;
+}
+
+function normalizeAccountAddress(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+
+    const clean = sanitizeHex(raw);
+    if (isValidHex(clean, 40)) {
+        return clean;
+    }
+
+    try {
+        return sanitizeHex(wallet.getScriptHashFromAddress(raw));
+    } catch {
+        throw new Error('Invalid accountAddress (expected Neo N3 address or 160-bit hex)');
+    }
 }
 
 function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetContract, method, argsHash, nonce, deadline }) {
@@ -167,6 +204,41 @@ async function getNonceForAccount(rpcClient, aaHash, accountId, signerAddress) {
     return parseStackInteger(invokeRes);
 }
 
+async function getNonceForAddress(rpcClient, aaHash, accountAddress, signerAddress) {
+    const script = sc.createScript({
+        scriptHash: aaHash,
+        operation: 'getNonceForAddress',
+        args: [
+            sc.ContractParam.hash160(accountAddress),
+            sc.ContractParam.hash160(signerAddress)
+        ]
+    });
+
+    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    if (invokeRes.state === 'FAULT') {
+        const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
+        throw new Error(`getNonceForAddress fault: ${exceptionMsg}`);
+    }
+    return parseStackInteger(invokeRes);
+}
+
+async function getAccountIdByAddress(rpcClient, aaHash, accountAddress) {
+    const script = sc.createScript({
+        scriptHash: aaHash,
+        operation: 'getAccountIdByAddress',
+        args: [
+            sc.ContractParam.hash160(accountAddress)
+        ]
+    });
+
+    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    if (invokeRes.state === 'FAULT') {
+        const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
+        throw new Error(`getAccountIdByAddress fault: ${exceptionMsg}`);
+    }
+    return parseOptionalStackByteArrayHex(invokeRes);
+}
+
 function assertHash160(value, fieldName) {
     if (!isValidHex(value, 40)) {
         throw new Error(`Invalid ${fieldName} (requires 160-bit hex)`);
@@ -217,6 +289,7 @@ module.exports = async function handler(req, res) {
         network,
         aaHash,
         accountId,
+        accountAddress,
         signerAddress,
         targetContract,
         method,
@@ -239,7 +312,7 @@ module.exports = async function handler(req, res) {
         if (!(await enforceRelayerRateLimit({
             req,
             res,
-            accountId,
+            accountId: sanitizeHex(accountAddress || accountId),
             action: normalizedAction,
             network,
         }))) {
@@ -256,25 +329,70 @@ module.exports = async function handler(req, res) {
         const rpcClient = new rpc.RPCClient(rpcUrl);
 
         const cleanAaHash = sanitizeHex(aaHash);
-        let cleanAccountId;
+        let cleanAccountAddress;
         try {
-            cleanAccountId = assertByteArrayHex(accountId, 'accountId', { minBytes: 20, maxBytes: 20 });
+            cleanAccountAddress = normalizeAccountAddress(accountAddress);
         } catch (e) {
-            return res.status(400).json({ error: e.message || 'Invalid accountId' });
+            return res.status(400).json({ error: e.message || 'Invalid accountAddress' });
+        }
+        if (!cleanAaHash) {
+            return res.status(400).json({ error: 'Missing required meta-transaction parameters payload.' });
+        }
+        assertHash160(cleanAaHash, 'aaHash');
+
+        let cleanAccountId = '';
+        if (accountId !== undefined && accountId !== null && String(accountId).trim() !== '') {
+            try {
+                cleanAccountId = assertByteArrayHex(accountId, 'accountId', { minBytes: 1, maxBytes: 64 });
+            } catch (e) {
+                return res.status(400).json({ error: e.message || 'Invalid accountId' });
+            }
         }
 
-        const cleanSignerAddress = sanitizeHex(signerAddress || accountId);
+        let hasAddressBinding = false;
+        if (cleanAccountAddress) {
+            let resolvedAccountId = '';
+            try {
+                resolvedAccountId = await getAccountIdByAddress(rpcClient, cleanAaHash, cleanAccountAddress);
+            } catch (e) {
+                return res.status(400).json({ error: e.message || 'Unable to resolve accountId from accountAddress' });
+            }
+
+            if (resolvedAccountId) {
+                try {
+                    const normalizedResolvedId = assertByteArrayHex(resolvedAccountId, 'resolved accountId', { minBytes: 1, maxBytes: 64 });
+                    if (cleanAccountId && cleanAccountId !== normalizedResolvedId) {
+                        return res.status(400).json({ error: 'accountId does not match accountAddress binding.' });
+                    }
+                    cleanAccountId = normalizedResolvedId;
+                    hasAddressBinding = true;
+                } catch (e) {
+                    return res.status(400).json({ error: e.message || 'Invalid resolved accountId' });
+                }
+            }
+        }
+
+        if (!cleanAccountId) {
+            return res.status(400).json({ error: 'Missing account reference: provide accountAddress (bound) or accountId.' });
+        }
+
+        let cleanSignerAddress = sanitizeHex(signerAddress);
+        if (!cleanSignerAddress && isValidHex(cleanAccountId, 40)) {
+            cleanSignerAddress = cleanAccountId;
+        }
         const cleanTargetContract = sanitizeHex(targetContract);
         const parsedMethod = String(method || '').trim();
         const parsedArgs = Array.isArray(args) ? args : [];
 
-        if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanAccountId || !cleanSignerAddress) {
+        if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanSignerAddress) {
             return res.status(400).json({ error: 'Missing required meta-transaction parameters payload.' });
         }
 
-        assertHash160(cleanAaHash, 'aaHash');
         assertHash160(cleanTargetContract, 'targetContract');
         assertHash160(cleanSignerAddress, 'signerAddress');
+        if (cleanAccountAddress) {
+            assertHash160(cleanAccountAddress, 'accountAddress');
+        }
 
         const configuredAaHash = getConfiguredAaHash(isTestnet);
         if (!configuredAaHash) {
@@ -290,7 +408,9 @@ module.exports = async function handler(req, res) {
             let preparedNonce;
             try {
                 if (nonce == null) {
-                    preparedNonce = await getNonceForAccount(rpcClient, cleanAaHash, cleanAccountId, cleanSignerAddress);
+                    preparedNonce = hasAddressBinding
+                        ? await getNonceForAddress(rpcClient, cleanAaHash, cleanAccountAddress, cleanSignerAddress)
+                        : await getNonceForAccount(rpcClient, cleanAaHash, cleanAccountId, cleanSignerAddress);
                 } else {
                     preparedNonce = parseNonNegativeInteger(nonce, 'nonce');
                 }
@@ -328,6 +448,7 @@ module.exports = async function handler(req, res) {
             return res.status(200).json({
                 success: true,
                 aaHash: `0x${cleanAaHash}`,
+                accountAddress: cleanAccountAddress ? `0x${cleanAccountAddress}` : null,
                 accountId: `0x${cleanAccountId}`,
                 signerAddress: `0x${cleanSignerAddress}`,
                 targetContract: `0x${cleanTargetContract}`,
@@ -411,21 +532,39 @@ module.exports = async function handler(req, res) {
 
         let script;
         try {
-            script = sc.createScript({
-                scriptHash: cleanAaHash,
-                operation: 'executeMetaTx',
-                args: [
-                    sc.ContractParam.byteArray(u.HexString.fromHex(cleanAccountId, false)),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(recoveredPubKey, false)),
-                    sc.ContractParam.hash160(cleanTargetContract),
-                    sc.ContractParam.string(parsedMethod),
-                    sc.ContractParam.array(parsedArgs.map(parseToContractParam)),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(cleanArgsHash, false)),
-                    sc.ContractParam.integer(parsedNonce),
-                    sc.ContractParam.integer(parsedDeadline),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(signatureNoRecovery, false))
-                ]
-            });
+            if (hasAddressBinding) {
+                script = sc.createScript({
+                    scriptHash: cleanAaHash,
+                    operation: 'executeMetaTxByAddress',
+                    args: [
+                        sc.ContractParam.hash160(cleanAccountAddress),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(recoveredPubKey, false)),
+                        sc.ContractParam.hash160(cleanTargetContract),
+                        sc.ContractParam.string(parsedMethod),
+                        sc.ContractParam.array(parsedArgs.map(parseToContractParam)),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(cleanArgsHash, false)),
+                        sc.ContractParam.integer(parsedNonce),
+                        sc.ContractParam.integer(parsedDeadline),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(signatureNoRecovery, false))
+                    ]
+                });
+            } else {
+                script = sc.createScript({
+                    scriptHash: cleanAaHash,
+                    operation: 'executeMetaTx',
+                    args: [
+                        sc.ContractParam.byteArray(u.HexString.fromHex(cleanAccountId, false)),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(recoveredPubKey, false)),
+                        sc.ContractParam.hash160(cleanTargetContract),
+                        sc.ContractParam.string(parsedMethod),
+                        sc.ContractParam.array(parsedArgs.map(parseToContractParam)),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(cleanArgsHash, false)),
+                        sc.ContractParam.integer(parsedNonce),
+                        sc.ContractParam.integer(parsedDeadline),
+                        sc.ContractParam.byteArray(u.HexString.fromHex(signatureNoRecovery, false))
+                    ]
+                });
+            }
         } catch (scErr) {
             return res.status(400).json({ error: `Script Builder Exception: ${scErr.message}` });
         }

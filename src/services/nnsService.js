@@ -101,6 +101,28 @@ export const nnsService = {
             key,
             async () => {
                 try {
+                    const resolveResult = await rpc("GetNNSResolve", { Domain: domain });
+                    const resolvedAddress =
+                        (typeof resolveResult === "string" ? resolveResult : null) ||
+                        resolveResult?.address ||
+                        resolveResult?.result?.address ||
+                        null;
+
+                    if (resolvedAddress) {
+                        return resolvedAddress;
+                    }
+                } catch (e) {
+                    if (isInvalidRequestError(e) && shouldRetryResolveAgainstPrimary(env)) {
+                        const primaryResolved = await resolveDomainViaPrimary(domain);
+                        if (primaryResolved) return primaryResolved;
+                    }
+
+                    if (import.meta.env.DEV) {
+                        console.warn("Failed to resolve NNS Domain via RPC bridge:", domain, e);
+                    }
+                }
+
+                try {
                     const rpcClient = new neonRpc.RPCClient("https://mainnet1.neo.coz.io:443");
                     const res = await rpcClient.invokeFunction(
                       NNS_CONTRACT_HASH,

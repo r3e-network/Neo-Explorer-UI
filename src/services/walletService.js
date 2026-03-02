@@ -633,6 +633,15 @@ export const walletService = {
 
       const signerAddress = (await signer.getAddress()).toLowerCase();
       const accountId = signerAddress.replace(/^0x/, "");
+      const verifyScript = sc.createScript({
+        scriptHash: aaHash,
+        operation: "verify",
+        args: [sc.ContractParam.byteArray(u.HexString.fromHex(accountId, false))],
+      });
+      const accountAddress = normalizeHash160(u.reverseHex(u.hash160(verifyScript)));
+      if (!isHash160Hex(accountAddress)) {
+        throw new Error("Unable to derive abstract account address.");
+      }
 
       const prepareResponse = await fetch("/api/relayer", {
         method: "POST",
@@ -641,6 +650,7 @@ export const walletService = {
           action: "prepare",
           network: getCurrentEnv(),
           aaHash,
+          accountAddress,
           accountId,
           signerAddress,
           targetContract: cleanTargetContract,
@@ -675,6 +685,7 @@ export const walletService = {
           action: "execute",
           network: getCurrentEnv(),
           aaHash,
+          accountAddress,
           accountId,
           signerAddress,
           targetContract: cleanTargetContract,
