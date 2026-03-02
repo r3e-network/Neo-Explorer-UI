@@ -161,12 +161,12 @@ export const statsService = createService(
             : null;
 
           const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes] = await Promise.all([
-            fastStats ? Promise.resolve(null) : rpc("GetBlockCount").catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetTransactionCount").catch(() => null),
-            rpc("GetContractCount").catch(() => null),
-            rpc("GetCandidateCount").catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetAddressCount").catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetAssetCount").catch(() => null),
+            fastStats ? Promise.resolve(null) : rpc("GetBlockCount", {}).catch(() => null),
+            fastStats ? Promise.resolve(null) : rpc("GetTransactionCount", {}).catch(() => null),
+            rpc("GetContractCount", {}).catch(() => null),
+            rpc("GetCandidateCount", {}).catch(() => null),
+            fastStats ? Promise.resolve(null) : rpc("GetAddressCount", {}).catch(() => null),
+            fastStats ? Promise.resolve(null) : rpc("GetAssetCount", {}).catch(() => null),
           ]);
 
           return {

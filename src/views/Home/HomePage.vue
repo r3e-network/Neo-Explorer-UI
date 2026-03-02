@@ -307,10 +307,15 @@ function updateTps() {
 
   const newest = latestBlocks.value[0];
   const oldest = latestBlocks.value[latestBlocks.value.length - 1];
-  let timeDiff = (newest.timestamp || 0) - (oldest.timestamp || 0);
-  if (timeDiff > 1e10) timeDiff = timeDiff / 1000;
+  
+  let newestTime = newest.timestamp || 0;
+  let oldestTime = oldest.timestamp || 0;
+  if (newestTime > 1e10) newestTime /= 1000;
+  if (oldestTime > 1e10) oldestTime /= 1000;
+  
+  const timeDiff = Math.max(1, newestTime - oldestTime);
   const totalTxs = latestBlocks.value.reduce((sum, b) => sum + (b.txcount || b.transactioncount || 0), 0);
-  tps.value = timeDiff > 0 ? totalTxs / timeDiff : 0;
+  tps.value = totalTxs / timeDiff;
 }
 
 async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
