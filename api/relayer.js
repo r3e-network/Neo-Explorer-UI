@@ -2,6 +2,10 @@ import { tx, wallet, rpc, sc, u } from '@cityofzion/neon-js';
 import { ethers } from 'ethers';
 import { enforceRelayerRateLimit } from './lib/relayerRateLimit';
 
+export const config = {
+  runtime: 'nodejs',
+};
+
 const DEFAULT_DEADLINE_SECONDS = 5 * 60; // 5 minutes
 const MAX_DEADLINE_WINDOW_SECONDS = 60 * 60; // 1 hour
 
