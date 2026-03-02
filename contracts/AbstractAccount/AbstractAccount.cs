@@ -58,13 +58,13 @@ namespace AbstractAccount
             0xcb, 0x4c, 0x67, 0x2f, 0x29, 0x8b, 0x8b, 0xc6
         };
 
-        // keccak256("MetaTransaction(bytes32 accountId,address targetContract,bytes32 methodHash,bytes32 argsHash,uint256 nonce,uint256 deadline)")
+        // keccak256("MetaTransaction(bytes accountId,address targetContract,bytes32 methodHash,bytes32 argsHash,uint256 nonce,uint256 deadline)")
         private static readonly byte[] MetaTxTypeHash = new byte[]
         {
-            0xc0, 0x33, 0xd4, 0x3d, 0xb7, 0x97, 0x4e, 0x49,
-            0xcf, 0x4a, 0xfa, 0xc2, 0xf7, 0x0d, 0x48, 0x00,
-            0x7e, 0x0b, 0xa8, 0xd6, 0x9f, 0x59, 0xb2, 0x1e,
-            0xd0, 0x86, 0x67, 0x56, 0x6f, 0x53, 0x9a, 0xd0
+            0x10, 0xb8, 0xe9, 0xbd, 0x4b, 0x56, 0xf9, 0x22,
+            0x33, 0xc6, 0x25, 0xdf, 0x47, 0xa4, 0xe8, 0x8a,
+            0x4e, 0xee, 0xf4, 0x90, 0xa0, 0x1d, 0x3c, 0x1a,
+            0xbd, 0x22, 0x1a, 0xcf, 0xdf, 0x51, 0x90, 0xb8
         };
 
         public delegate void OnExecuteEvent(ByteString accountId, UInt160 target, string method, object[] args);
@@ -229,9 +229,10 @@ namespace AbstractAccount
             BigInteger deadline)
         {
             byte[] methodHash = (byte[])CryptoLib.Keccak256((ByteString)method);
+            byte[] accountIdHash = (byte[])CryptoLib.Keccak256(accountId);
             byte[] encoded = ConcatBytes(
                 MetaTxTypeHash,
-                ToBytes32Word(accountId),
+                accountIdHash,
                 ToAddressWord(targetContract),
                 methodHash,
                 argsHash,

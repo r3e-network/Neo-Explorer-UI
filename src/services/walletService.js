@@ -631,10 +631,10 @@ export const walletService = {
         throw new Error("Invalid target contract hash.");
       }
 
-      const accountId = normalizeHash160(_account.address);
-      if (!isHash160Hex(accountId)) {
-        throw new Error("Invalid EVM account address.");
-      }
+      // For EVM accounts, the AA Account ID is their 65-byte uncompressed public key.
+      // We extract it locally before building the relayer payload.
+      const uncompressedPubKeyHex = signer.signingKey.publicKey.slice(2);
+      const accountId = uncompressedPubKeyHex;
 
       const prepareResponse = await fetch("/api/relayer", {
         method: "POST",

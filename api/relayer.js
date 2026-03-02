@@ -258,7 +258,9 @@ module.exports = async function handler(req, res) {
 
         assertHash160(cleanAaHash, 'aaHash');
         assertHash160(cleanTargetContract, 'targetContract');
-        assertHash160(cleanAccountId, 'accountId');
+        if (cleanAccountId.length < 40) {
+            return res.status(400).json({ error: 'accountId is too short.' });
+        }
 
         const configuredAaHash = getConfiguredAaHash(isTestnet);
         if (!configuredAaHash) {
