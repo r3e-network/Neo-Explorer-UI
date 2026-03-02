@@ -380,8 +380,25 @@ export const walletService = {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
       if (!accounts || accounts.length === 0) throw new Error("No EVM accounts found.");
+      
+      const evmAddress = accounts[0].toLowerCase();
+      let uncompressedPubKey = localStorage.getItem(`evm_pubkey_${evmAddress}`);
+      
+      if (!uncompressedPubKey) {
+        try {
+          const signer = await provider.getSigner();
+          const message = "Welcome to Neo N3 Explorer!\n\nPlease sign this message to derive your cross-chain Abstract Account identity. This operation does not cost any gas.";
+          const signature = await signer.signMessage(message);
+          const digest = ethers.hashMessage(message);
+          uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature).slice(2);
+          localStorage.setItem(`evm_pubkey_${evmAddress}`, uncompressedPubKey);
+        } catch (e) {
+          throw new Error("Signature is required to generate your Abstract Account identity.");
+        }
+      }
+
       _connectedProvider = PROVIDERS.EVM_WALLET;
-      _account = { address: accounts[0], label: "EVM Wallet" };
+      _account = { address: evmAddress, label: "EVM Wallet", pubKey: uncompressedPubKey };
       return _account;
     }
 
@@ -632,7 +649,12 @@ export const walletService = {
       }
 
       const signerAddress = (await signer.getAddress()).toLowerCase();
-      const accountId = signerAddress.replace(/^0x/, "");
+      
+      let accountId = _account?.pubKey || localStorage.getItem(`evm_pubkey_${signerAddress}`);
+      if (!accountId) {
+          throw new Error("Missing public key identity. Please reconnect your EVM wallet.");
+      }
+
       const verifyScript = sc.createScript({
         scriptHash: aaHash,
         operation: "verify",

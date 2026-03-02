@@ -44,10 +44,11 @@
             <div class="space-y-6">
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
-                  <label class="block text-sm font-bold text-high tracking-tight">Account UUID</label>
-                  <button @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">Generate New UUID</button>
+                  <label class="block text-sm font-bold text-high tracking-tight">Account ID (Hex or UUID)</label>
+                  <button v-if="!isEvmWallet" @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">Generate New UUID</button>
+                  <span v-else class="text-xs text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded">EVM Public Key Active</span>
                 </div>
-                <input type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+                <input type="text" v-model="uuid" :readonly="isEvmWallet" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-70 disabled:cursor-not-allowed" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
               </div>
 
               <div class="space-y-3">
@@ -126,6 +127,64 @@
           </template>
         </div>
       </div>
+      
+      <!-- Contract Source Code Verification Section -->
+      <div class="etherscan-card p-6 md:p-8 border-t-4 border-t-emerald-500 shadow-xl shadow-emerald-900/5 mt-8">
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold tracking-tight text-high">Contract Source Code</h2>
+            <div class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-900/30 dark:border-emerald-800/50 dark:text-emerald-400">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+              <span>Verified Exact Match</span>
+            </div>
+          </div>
+          
+          <p class="text-sm text-mid leading-relaxed">
+            The Abstract Account is powered by a set of C# smart contracts deployed on the Neo N3 network. Below is the full source code for transparency and verification.
+          </p>
+          
+          <div class="bg-surface rounded-xl border border-line-soft overflow-hidden shadow-sm">
+            <div class="flex flex-col sm:flex-row">
+              <!-- File List -->
+              <div class="w-full sm:w-1/3 border-b sm:border-b-0 sm:border-r border-line-soft bg-surface-muted/30">
+                <div class="px-4 py-3 border-b border-line-soft flex items-center justify-between">
+                  <span class="text-xs font-bold text-high uppercase tracking-widest flex items-center gap-2">
+                    <svg class="w-4 h-4 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Files ({{ contractFiles.length }})
+                  </span>
+                </div>
+                <div class="overflow-y-auto max-h-[600px]">
+                  <button 
+                    v-for="(file, idx) in contractFiles" 
+                    :key="idx"
+                    @click="activeFileIdx = idx"
+                    class="w-full text-left px-4 py-3 text-xs md:text-sm font-mono border-b border-line-soft hover:bg-surface transition-colors flex items-center justify-between group"
+                    :class="activeFileIdx === idx ? 'bg-surface border-l-4 border-l-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold' : 'text-mid border-l-4 border-l-transparent'"
+                  >
+                    <span class="truncate pr-2">{{ file.name }}</span>
+                    <svg class="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" :class="activeFileIdx === idx ? 'opacity-100 text-emerald-500' : 'text-mid'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Code View -->
+              <div class="w-full sm:w-2/3 bg-[#1e1e1e] dark:bg-[#0d1117] relative flex flex-col">
+                <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#2d2d2d] dark:bg-[#161b22]">
+                  <span class="text-xs font-mono text-white/80 font-semibold">{{ contractFiles[activeFileIdx]?.name }}</span>
+                  <button @click="copyCode" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5 border border-white/10">
+                    <svg v-if="copied" class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    {{ copied ? 'Copied' : 'Copy Code' }}
+                  </button>
+                </div>
+                <div class="p-5 overflow-auto max-h-[600px] flex-grow">
+                  <pre class="whitespace-pre font-mono text-[13px] leading-relaxed text-[#d4d4d4] dark:text-[#e6edf3]"><code>{{ contractFiles[activeFileIdx]?.content }}</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -137,6 +196,38 @@ import { connectedAccount } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 import { getRpcUrl } from "@/utils/env";
+
+import code_Main from '../../../contracts/AbstractAccount/AbstractAccount.cs?raw';
+import code_AccountLifecycle from '../../../contracts/AbstractAccount/AbstractAccount.AccountLifecycle.cs?raw';
+import code_Admin from '../../../contracts/AbstractAccount/AbstractAccount.Admin.cs?raw';
+import code_ExecutionAndPermissions from '../../../contracts/AbstractAccount/AbstractAccount.ExecutionAndPermissions.cs?raw';
+import code_MetaTx from '../../../contracts/AbstractAccount/AbstractAccount.MetaTx.cs?raw';
+import code_StorageAndContext from '../../../contracts/AbstractAccount/AbstractAccount.StorageAndContext.cs?raw';
+import code_Upgrade from '../../../contracts/AbstractAccount/AbstractAccount.Upgrade.cs?raw';
+
+const contractFiles = [
+  { name: 'AbstractAccount.cs', content: code_Main },
+  { name: 'AbstractAccount.AccountLifecycle.cs', content: code_AccountLifecycle },
+  { name: 'AbstractAccount.Admin.cs', content: code_Admin },
+  { name: 'AbstractAccount.ExecutionAndPermissions.cs', content: code_ExecutionAndPermissions },
+  { name: 'AbstractAccount.MetaTx.cs', content: code_MetaTx },
+  { name: 'AbstractAccount.StorageAndContext.cs', content: code_StorageAndContext },
+  { name: 'AbstractAccount.Upgrade.cs', content: code_Upgrade }
+];
+
+const activeFileIdx = ref(0);
+const copied = ref(false);
+
+function copyCode() {
+  const content = contractFiles[activeFileIdx.value]?.content;
+  if (!content) return;
+  navigator.clipboard.writeText(content).then(() => {
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  });
+}
 
 const toast = useToast();
 const isCreating = ref(false);
@@ -153,6 +244,22 @@ const computedAddress = ref("");
 
 let neonJs = null;
 
+const isEvmWallet = computed(() => {
+  return walletService.provider === walletService.PROVIDERS.EVM_WALLET;
+});
+
+watch(connectedAccount, () => {
+  if (isEvmWallet.value && walletService.account?.pubKey) {
+    uuid.value = walletService.account.pubKey;
+  } else if (isEvmWallet.value) {
+    const cached = localStorage.getItem(`evm_pubkey_${connectedAccount.value?.toLowerCase()}`);
+    if (cached) uuid.value = cached;
+  } else if (!uuid.value || uuid.value.length === 130) {
+    // If we switched away from EVM, or it was empty, gen a new UUID
+    generateUUID();
+  }
+}, { immediate: true });
+
 function generateUUID() {
   uuid.value = crypto.randomUUID();
 }
@@ -168,10 +275,13 @@ function normalizeByteArrayForWallet(value) {
   return raw;
 }
 
-function stringToHex(str) {
+function normalizeAccountId(str) {
+  if (isEvmWallet.value && /^[0-9a-fA-F]{130}$/.test(str)) {
+    return str;
+  }
   let hex = '';
   for(let i = 0; i < str.length; i++) {
-    hex += '' + str.charCodeAt(i).toString(16);
+    hex += '' + str.charCodeAt(i).toString(16).padStart(2, '0');
   }
   return hex;
 }
@@ -187,16 +297,16 @@ async function computeAA() {
     const aaHash = getAbstractAccountHash();
     if (!aaHash) return;
     
-    const uuidHex = stringToHex(uuid.value);
+    const accountIdHex = normalizeAccountId(uuid.value);
     
     // We generate the proxy script:
-    // PUSH uuid, PUSH 1, PACK, PUSH 15 (CallFlags.All), PUSH "verify", PUSH aaHash, SYSCALL System.Contract.Call
+    // PUSH accountId, PUSH 1, PACK, PUSH 15 (CallFlags.All), PUSH "verify", PUSH aaHash, SYSCALL System.Contract.Call
     
     // An easy way to generate it is using createScript
     const script = neonJs.sc.createScript({
        scriptHash: aaHash,
        operation: 'verify',
-       args: [ neonJs.sc.ContractParam.byteArray(uuidHex) ]
+       args: [ neonJs.sc.ContractParam.byteArray(accountIdHex) ]
     });
     
     computedScriptHex.value = script;
@@ -250,7 +360,7 @@ async function createAccount() {
     const aaHash = getAbstractAccountHash();
     if (!aaHash) throw new Error("Master Abstract Account contract not found in environment config.");
 
-    const uuidHex = stringToHex(uuid.value);
+    const accountIdHex = normalizeAccountId(uuid.value);
     
     function normalizeAddress(addr) {
       if (addr.startsWith('N') && addr.length === 34) {
@@ -273,7 +383,7 @@ async function createAccount() {
       scriptHash: aaHash,
       operation: "createAccountWithAddress",
       args: [
-        { type: "ByteArray", value: uuidHex },
+        { type: "ByteArray", value: accountIdHex },
         { type: "Hash160", value: computedAddressScriptHash },
         { type: "Array", value: adminsParam },
         { type: "Integer", value: adminThreshold.value },
