@@ -1,4 +1,4 @@
-const { tx, wallet, rpc } = require('@cityofzion/neon-js');
+import { tx, wallet, rpc } from '@cityofzion/neon-js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
