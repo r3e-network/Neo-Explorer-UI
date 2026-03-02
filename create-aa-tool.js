@@ -1,4 +1,5 @@
-<template>
+const fs = require('fs');
+const content = `<template>
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Abstract Account Creator' }]" />
@@ -292,3 +293,5 @@ async function createAccount() {
   }
 }
 </script>
+`;
+fs.writeFileSync('src/views/Tools/AbstractAccountTool.vue', content);

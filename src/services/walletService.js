@@ -118,7 +118,7 @@ function getLegacyDapiNetworkAlias() {
   return isExplorerTestnet() ? "TestNet" : "MainNet";
 }
 
-function getAbstractAccountHash() {
+export function getAbstractAccountHash() {
   const env = isExplorerTestnet() ? "TESTNET" : "MAINNET";
   const candidate = env === "TESTNET"
     ? (import.meta.env.VITE_AA_HASH_TESTNET || import.meta.env.VITE_AA_HASH)
