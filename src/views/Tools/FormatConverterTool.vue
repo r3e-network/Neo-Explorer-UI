@@ -10,44 +10,62 @@
         </div>
         <div>
           <h1 class="page-title">Format Converter</h1>
-          <p class="page-subtitle">Convert between Base64, Hex, and Strings for Neo N3 parameters</p>
+          <p class="page-subtitle">Convert between Base64, Hex, and Strings for Neo N3 parameters.</p>
         </div>
       </div>
     </div>
 
-    <div class="etherscan-card p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="etherscan-card p-6 md:p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
         
         <!-- Input -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-semibold text-high">Input Type</label>
-            <select v-model="inputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3">
+            <label class="text-sm font-bold text-high tracking-tight">Input Type</label>
+            <select v-model="inputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
               <option value="string">String / UTF-8</option>
               <option value="hex">Hex String</option>
               <option value="base64">Base64</option>
             </select>
           </div>
-          <textarea v-model="inputValue" @input="convertData" class="form-input w-full h-32 font-mono text-sm resize-none" placeholder="Paste value here..."></textarea>
+          <div class="relative group">
+             <textarea v-model="inputValue" @input="convertData" class="form-input w-full h-40 font-mono text-sm resize-none rounded-2xl shadow-inner focus:ring-2 focus:ring-pink-500/20" placeholder="Paste value here..."></textarea>
+             <button v-if="inputValue" @click="inputValue = ''; convertData()" class="absolute top-3 right-3 p-1.5 rounded-lg bg-surface hover:bg-red-50 dark:hover:bg-red-900/30 text-mid hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100" title="Clear input">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+             </button>
+          </div>
         </div>
         
         <!-- Output -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-semibold text-high">Convert To</label>
-            <select v-model="outputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3">
+            <label class="text-sm font-bold text-high tracking-tight">Convert To</label>
+            <select v-model="outputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
               <option value="base64">Base64 (RPC Argument Format)</option>
               <option value="hex">Hex String</option>
               <option value="string">String / UTF-8</option>
             </select>
           </div>
           <div class="relative group">
-            <textarea readonly :value="outputValue" class="form-input w-full h-32 font-mono text-sm bg-surface-elevated text-primary-600 resize-none cursor-text"></textarea>
-            <button v-if="outputValue" @click="copyToClipboard" class="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-line-soft text-low hover:text-primary-500 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+            <textarea readonly :value="outputValue" class="form-input w-full h-40 font-mono text-sm bg-surface-elevated text-pink-600 dark:text-pink-400 resize-none cursor-text rounded-2xl shadow-inner outline-none"></textarea>
+            
+            <button v-if="outputValue" @click="copyToClipboard" class="absolute top-3 right-3 p-2 rounded-xl bg-white dark:bg-slate-800 border border-line-soft text-low hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-200 dark:hover:border-pink-800 shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95" title="Copy to clipboard">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
             </button>
+            
+            <!-- Empty state overlay -->
+            <div v-if="!outputValue && !error" class="absolute inset-0 flex flex-col items-center justify-center text-mid bg-surface-muted/30 rounded-2xl pointer-events-none">
+               <svg class="w-8 h-8 opacity-20 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+               <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Awaiting Input</span>
+            </div>
           </div>
-          <p v-if="error" class="text-xs font-medium text-red-500">{{ error }}</p>
+          
+          <transition name="fade">
+            <div v-if="error" class="flex items-center gap-2 text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/10 dark:text-red-400 p-3 rounded-xl border border-red-200 dark:border-red-900/30">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+               {{ error }}
+            </div>
+          </transition>
         </div>
 
       </div>

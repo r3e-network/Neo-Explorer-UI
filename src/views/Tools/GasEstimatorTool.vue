@@ -15,84 +15,101 @@
         </div>
       </div>
 
-      <div class="etherscan-card p-6">
-        <div class="max-w-3xl mx-auto space-y-6">
+      <div class="etherscan-card p-6 md:p-8">
+        <div class="max-w-3xl mx-auto space-y-8">
           
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-semibold text-high">Transaction Script</label>
-              <select v-model="scriptFormat" class="form-input bg-surface text-xs py-1 px-2 h-auto">
+              <label class="block text-sm font-bold text-high tracking-tight">Transaction Script</label>
+              <select v-model="scriptFormat" class="form-input bg-surface text-xs py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
                 <option value="base64">Base64</option>
                 <option value="hex">Hex String</option>
               </select>
             </div>
-            <textarea v-model="scriptInput" class="form-input w-full h-32 bg-surface text-high font-mono text-sm" placeholder="Paste your raw transaction payload script here..."></textarea>
+            <textarea v-model="scriptInput" class="form-input w-full h-36 bg-surface text-high font-mono text-sm rounded-2xl shadow-inner focus:ring-2 focus:ring-orange-500/20" placeholder="Paste your raw transaction payload script here..."></textarea>
           </div>
           
-          <div class="space-y-3">
+          <div class="space-y-4">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-semibold text-high">Transaction Signers (Optional)</label>
-              <button @click="addSigner" class="text-xs font-semibold text-orange-600 hover:text-orange-700 bg-orange-50 px-2 py-1 rounded-md dark:bg-orange-900/30 dark:text-orange-400 transition-colors">+ Add Signer</button>
+              <label class="block text-sm font-bold text-high tracking-tight">Transaction Signers <span class="text-mid font-normal ml-1">(Optional)</span></label>
+              <button @click="addSigner" class="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg dark:bg-orange-900/30 dark:hover:bg-orange-900/50 dark:text-orange-400 transition-all duration-300 shadow-sm">+ Add Signer</button>
             </div>
             
-            <div v-if="signers.length === 0" class="p-4 text-center border border-dashed border-line-soft rounded-xl text-mid text-sm">
-              No signers defined. Will use an empty dummy signer to calculate network byte fees.
+            <div v-if="signers.length === 0" class="p-6 text-center border-2 border-dashed border-line-soft rounded-2xl bg-surface-muted/50 text-mid text-sm">
+              <svg class="w-8 h-8 mx-auto mb-2 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              No signers defined.<br><span class="text-xs opacity-80">An empty dummy signer will be used to calculate network byte fees.</span>
             </div>
             
-            <div v-for="(signer, i) in signers" :key="i" class="flex gap-3 items-center bg-surface-muted p-3 rounded-xl border border-line-soft relative">
-              <div class="w-full relative">
-                <input type="text" v-model="signers[i]" class="form-input w-full bg-surface font-mono text-sm pr-8" placeholder="ScriptHash or Address (e.g. N... or 0x...)" />
-                <button @click="removeSigner(i)" class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-500" title="Remove signer">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+            <transition-group name="list" tag="div" class="space-y-3">
+              <div v-for="(signer, i) in signers" :key="i" class="flex gap-3 items-center bg-surface-muted p-2 pr-3 rounded-xl border border-line-soft relative group hover:border-primary-400 transition-colors">
+                <div class="w-full relative flex items-center">
+                  <div class="px-3 text-mid font-mono text-xs opacity-50 shrink-0">{{ i + 1 }}</div>
+                  <input type="text" v-model="signers[i]" class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent focus:border-orange-400 focus:ring-0 rounded-lg shadow-sm" placeholder="ScriptHash or Address (e.g. N... or 0x...)" />
+                  <button @click="removeSigner(i)" class="absolute right-2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-md transition-colors" title="Remove signer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </div>
               </div>
-            </div>
+            </transition-group>
           </div>
           
-          <div class="pt-4 flex justify-end border-t border-line-soft">
+          <div class="pt-6 mt-6 flex justify-end border-t border-line-soft">
             <button 
               @click="estimateGas"
               :disabled="!scriptInput.trim() || isEstimating"
-              class="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-8 py-3 text-sm font-bold text-white hover:bg-orange-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
             >
-              <svg v-if="isEstimating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <svg v-if="isEstimating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
               {{ isEstimating ? 'Simulating...' : 'Estimate Fees' }}
             </button>
           </div>
 
           <transition name="fade">
-            <div v-if="result" class="mt-6 space-y-4">
-              <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">Simulation Result</h3>
+            <div v-if="result" class="mt-8 space-y-5">
+              <h3 class="text-lg font-bold text-high tracking-tight flex items-center gap-2">
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Simulation Result
+              </h3>
               
-              <div v-if="result.error" class="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400 font-medium text-sm break-all">
+              <div v-if="result.error" class="p-5 rounded-2xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400 font-medium text-sm break-all shadow-sm">
                 {{ result.error }}
               </div>
               
               <template v-else>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div class="p-4 rounded-xl border border-line-soft bg-surface text-center">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">State</p>
-                    <p class="text-lg font-bold" :class="result.state === 'HALT' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+                  <div class="p-5 rounded-2xl border border-line-soft bg-surface text-center shadow-sm flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">VM State</p>
+                    <p class="text-xl font-black relative z-10" :class="result.state === 'HALT' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                       {{ result.state }}
                     </p>
                   </div>
-                  <div class="p-4 rounded-xl border border-line-soft bg-surface text-center">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">System Fee (Execution)</p>
-                    <p class="text-lg font-bold text-high">{{ result.systemFee }} <span class="text-sm font-normal text-mid">GAS</span></p>
+                  <div class="p-5 rounded-2xl border border-line-soft bg-surface text-center shadow-sm flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">System Fee (Execution)</p>
+                    <p class="text-xl font-bold text-high relative z-10">{{ result.systemFee }} <span class="text-xs font-semibold text-mid ml-0.5">GAS</span></p>
                   </div>
-                  <div class="p-4 rounded-xl border border-line-soft bg-surface text-center">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">Network Fee (Size)</p>
-                    <p class="text-lg font-bold text-high">{{ result.networkFee }} <span class="text-sm font-normal text-mid">GAS</span></p>
+                  <div class="p-5 rounded-2xl border border-line-soft bg-surface text-center shadow-sm flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">Network Fee (Size)</p>
+                    <p class="text-xl font-bold text-high relative z-10">{{ result.networkFee }} <span class="text-xs font-semibold text-mid ml-0.5">GAS</span></p>
                   </div>
                 </div>
                 
-                <div class="p-4 rounded-xl border border-line-soft bg-surface flex items-center justify-between">
-                  <p class="text-sm text-mid font-semibold">Total Estimated Cost</p>
-                  <p class="text-2xl font-black text-orange-600 dark:text-orange-400">{{ result.totalFee }} GAS</p>
+                <div class="p-6 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50 dark:border-orange-900/30 dark:from-orange-900/20 dark:to-orange-900/10 flex items-center justify-between shadow-inner">
+                  <div class="flex items-center gap-3">
+                    <div class="p-2 bg-orange-500 text-white rounded-lg shadow-sm">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <p class="text-sm text-orange-900 dark:text-orange-100 font-bold tracking-tight">Total Estimated Cost</p>
+                  </div>
+                  <p class="text-3xl font-black text-orange-600 dark:text-orange-400 tracking-tight">{{ result.totalFee }} <span class="text-sm font-bold opacity-80">GAS</span></p>
                 </div>
                 
-                <div v-if="result.exception" class="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400 text-sm font-mono break-all mt-4">
-                  Exception: {{ result.exception }}
+                <div v-if="result.exception" class="p-5 rounded-2xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400 text-sm font-mono break-all mt-4 shadow-sm">
+                  <p class="font-bold mb-1 text-xs uppercase tracking-wider opacity-80">Exception Output</p>
+                  {{ result.exception }}
                 </div>
               </template>
             </div>

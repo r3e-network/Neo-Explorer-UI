@@ -15,92 +15,95 @@
         </div>
       </div>
 
-      <div class="etherscan-card p-6">
+      <div class="etherscan-card overflow-hidden">
         
         <!-- Tabs -->
-        <div class="flex border-b border-line-soft mb-6">
+        <div class="flex border-b border-line-soft bg-surface-muted/30">
           <button 
             @click="activeMode = 'encode'"
-            class="px-6 py-3 font-semibold text-sm transition-colors border-b-2"
-            :class="activeMode === 'encode' ? 'border-fuchsia-500 text-fuchsia-600 dark:text-fuchsia-400' : 'border-transparent text-mid hover:text-high'"
+            class="flex-1 sm:flex-none px-8 py-4 font-bold text-sm transition-all duration-300 border-b-2 tracking-tight"
+            :class="activeMode === 'encode' ? 'border-fuchsia-500 text-fuchsia-600 dark:text-fuchsia-400 bg-white dark:bg-slate-900' : 'border-transparent text-mid hover:text-high hover:bg-surface'"
           >
             Encode Payload
           </button>
           <button 
             @click="activeMode = 'decode'"
-            class="px-6 py-3 font-semibold text-sm transition-colors border-b-2"
-            :class="activeMode === 'decode' ? 'border-fuchsia-500 text-fuchsia-600 dark:text-fuchsia-400' : 'border-transparent text-mid hover:text-high'"
+            class="flex-1 sm:flex-none px-8 py-4 font-bold text-sm transition-all duration-300 border-b-2 tracking-tight"
+            :class="activeMode === 'decode' ? 'border-fuchsia-500 text-fuchsia-600 dark:text-fuchsia-400 bg-white dark:bg-slate-900' : 'border-transparent text-mid hover:text-high hover:bg-surface'"
           >
             Decode Script
           </button>
         </div>
 
-        <div class="max-w-3xl mx-auto space-y-6">
+        <div class="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
           
           <!-- Encode Mode -->
           <template v-if="activeMode === 'encode'">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div class="space-y-2">
-                <label class="block text-sm font-semibold text-high">Contract Hash</label>
-                <input type="text" v-model="encodeForm.contractHash" class="form-input w-full bg-surface text-high font-mono text-sm" placeholder="e.g. 0xef4073a0..." />
+                <label class="block text-sm font-bold text-high tracking-tight">Contract Hash</label>
+                <input type="text" v-model="encodeForm.contractHash" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="e.g. 0xef4073a0..." />
               </div>
               <div class="space-y-2">
-                <label class="block text-sm font-semibold text-high">Method Name</label>
-                <input type="text" v-model="encodeForm.method" class="form-input w-full bg-surface text-high text-sm" placeholder="e.g. transfer" />
+                <label class="block text-sm font-bold text-high tracking-tight">Method Name</label>
+                <input type="text" v-model="encodeForm.method" class="form-input w-full bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="e.g. transfer" />
               </div>
             </div>
             
-            <div class="space-y-3">
+            <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-semibold text-high">Parameters</label>
-                <button @click="addParam" class="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700 bg-fuchsia-50 px-2 py-1 rounded-md dark:bg-fuchsia-900/30 dark:text-fuchsia-400 transition-colors">+ Add Param</button>
+                <label class="block text-sm font-bold text-high tracking-tight">Parameters</label>
+                <button @click="addParam" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100 px-3 py-1.5 rounded-lg dark:bg-fuchsia-900/30 dark:hover:bg-fuchsia-900/50 dark:text-fuchsia-400 transition-all duration-300 shadow-sm">+ Add Param</button>
               </div>
               
-              <div v-if="encodeForm.params.length === 0" class="p-4 text-center border border-dashed border-line-soft rounded-xl text-mid text-sm">
-                No parameters added. Click "+ Add Param" if the method requires arguments.
+              <div v-if="encodeForm.params.length === 0" class="p-6 text-center border-2 border-dashed border-line-soft rounded-2xl bg-surface-muted/50 text-mid text-sm">
+                No parameters added. Click <span class="font-bold text-fuchsia-500">"+ Add Param"</span> if the method requires arguments.
               </div>
               
-              <div v-for="(param, i) in encodeForm.params" :key="i" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-surface-muted p-3 rounded-xl border border-line-soft relative">
-                <div class="w-full sm:w-1/3">
-                  <select v-model="param.type" class="form-input w-full bg-surface text-sm appearance-none">
-                    <option value="String">String</option>
-                    <option value="Integer">Integer</option>
-                    <option value="Hash160">Hash160 (Address)</option>
-                    <option value="Hash256">Hash256</option>
-                    <option value="ByteArray">ByteArray (Hex)</option>
-                    <option value="PublicKey">PublicKey</option>
-                    <option value="Boolean">Boolean</option>
-                    <option value="Any">Any</option>
-                  </select>
+              <transition-group name="list" tag="div" class="space-y-3">
+                <div v-for="(param, i) in encodeForm.params" :key="i" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-surface-muted p-2 pr-3 rounded-2xl border border-line-soft relative group hover:border-primary-400 transition-colors shadow-sm">
+                  <div class="w-full sm:w-1/3 flex items-center">
+                    <div class="px-3 text-mid font-mono text-xs opacity-50 shrink-0">{{ i + 1 }}</div>
+                    <select v-model="param.type" class="form-input w-full bg-surface text-sm font-semibold text-high rounded-xl border-transparent focus:border-fuchsia-400 focus:ring-0 shadow-sm cursor-pointer outline-none">
+                      <option value="String">String</option>
+                      <option value="Integer">Integer</option>
+                      <option value="Hash160">Hash160 (Address)</option>
+                      <option value="Hash256">Hash256</option>
+                      <option value="ByteArray">ByteArray (Hex)</option>
+                      <option value="PublicKey">PublicKey</option>
+                      <option value="Boolean">Boolean</option>
+                      <option value="Any">Any</option>
+                    </select>
+                  </div>
+                  <div class="w-full sm:w-flex-1 relative">
+                    <input type="text" v-model="param.value" class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent focus:border-fuchsia-400 focus:ring-0 rounded-xl shadow-sm" placeholder="Value..." />
+                    <button @click="removeParam(i)" class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-md transition-colors" title="Remove param">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
                 </div>
-                <div class="w-full sm:w-flex-1 relative">
-                  <input type="text" v-model="param.value" class="form-input w-full bg-surface font-mono text-sm pr-8" placeholder="Value..." />
-                  <button @click="removeParam(i)" class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-500" title="Remove param">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                </div>
-              </div>
+              </transition-group>
             </div>
             
-            <div class="pt-4 flex justify-end border-t border-line-soft">
+            <div class="pt-6 mt-6 flex justify-end border-t border-line-soft">
               <button 
                 @click="encodeScript"
                 :disabled="!encodeForm.contractHash || !encodeForm.method"
-                class="inline-flex items-center gap-2 rounded-lg bg-fuchsia-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-fuchsia-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-8 py-3 text-sm font-bold text-white hover:bg-fuchsia-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
               >
                 Encode to Base64
               </button>
             </div>
             
             <transition name="fade">
-              <div v-if="encodedResult" class="mt-4 p-4 rounded-xl border border-line-soft bg-surface space-y-3">
+              <div v-if="encodedResult" class="mt-6 p-6 rounded-2xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white dark:border-fuchsia-900/30 dark:from-fuchsia-900/10 dark:to-slate-900 shadow-sm space-y-4">
                 <div>
-                  <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">Base64 Script</p>
-                  <p class="text-sm text-high font-mono break-all p-2 bg-surface-muted rounded-lg border border-line-soft">{{ encodedResult.base64 }}</p>
+                  <p class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1.5">Base64 Script</p>
+                  <p class="text-sm text-high font-mono break-all p-3 bg-surface-muted rounded-xl border border-line-soft shadow-inner">{{ encodedResult.base64 }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">Hex Script</p>
-                  <p class="text-sm text-high font-mono break-all p-2 bg-surface-muted rounded-lg border border-line-soft">{{ encodedResult.hex }}</p>
+                  <p class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1.5">Hex Script</p>
+                  <p class="text-sm text-high font-mono break-all p-3 bg-surface-muted rounded-xl border border-line-soft shadow-inner">{{ encodedResult.hex }}</p>
                 </div>
               </div>
             </transition>
@@ -108,50 +111,51 @@
           
           <!-- Decode Mode -->
           <template v-if="activeMode === 'decode'">
-            <div class="space-y-2">
+            <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-semibold text-high">Compiled Script</label>
-                <select v-model="decodeFormat" class="form-input bg-surface text-xs py-1 px-2 h-auto">
+                <label class="block text-sm font-bold text-high tracking-tight">Compiled Script</label>
+                <select v-model="decodeFormat" class="form-input bg-surface text-xs py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
                   <option value="base64">Base64</option>
                   <option value="hex">Hex String</option>
                 </select>
               </div>
-              <textarea v-model="decodeInput" class="form-input w-full h-32 bg-surface text-high font-mono text-sm" placeholder="Paste raw transaction script payload here..."></textarea>
+              <textarea v-model="decodeInput" class="form-input w-full h-40 bg-surface text-high font-mono text-sm rounded-2xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="Paste raw transaction script payload here..."></textarea>
             </div>
             
-            <div class="pt-4 flex justify-end border-t border-line-soft">
+            <div class="pt-6 flex justify-end border-t border-line-soft">
               <button 
                 @click="decodeScript"
                 :disabled="!decodeInput.trim()"
-                class="inline-flex items-center gap-2 rounded-lg bg-fuchsia-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-fuchsia-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-8 py-3 text-sm font-bold text-white hover:bg-fuchsia-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
               >
                 Decode Script
               </button>
             </div>
             
             <transition name="fade">
-              <div v-if="decodedResult" class="mt-4 p-4 rounded-xl border border-line-soft bg-surface">
-                <div v-if="decodedResult.error" class="text-red-500 text-sm font-medium">
+              <div v-if="decodedResult" class="mt-6 rounded-2xl overflow-hidden border border-line-soft shadow-sm">
+                <div v-if="decodedResult.error" class="p-5 bg-red-50 text-red-700 dark:bg-red-900/10 dark:text-red-400 text-sm font-bold flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   {{ decodedResult.error }}
                 </div>
-                <div v-else class="space-y-4">
-                  <div class="grid grid-cols-2 gap-4">
+                <div v-else class="bg-surface">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-gradient-to-br from-fuchsia-50/50 to-transparent dark:from-fuchsia-900/10 border-b border-line-soft">
                     <div>
-                      <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">Contract Invoked</p>
-                      <p class="text-sm font-mono text-high break-all">{{ decodedResult.contractHash }}</p>
+                      <p class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1">Contract Invoked</p>
+                      <p class="text-sm font-mono text-high font-semibold break-all">{{ decodedResult.contractHash }}</p>
                     </div>
                     <div>
-                      <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-1">Method Name</p>
+                      <p class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1">Method Name</p>
                       <p class="text-sm font-bold text-high">{{ decodedResult.method }}</p>
                     </div>
                   </div>
-                  <div>
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">Instructions (Opcodes)</p>
-                    <div class="max-h-60 overflow-y-auto bg-slate-900 rounded-lg p-3 text-xs font-mono text-slate-300 space-y-1">
-                      <div v-for="(inst, i) in decodedResult.instructions" :key="i" class="flex gap-4 border-b border-slate-800 pb-1 mb-1 last:border-0">
-                        <span class="text-slate-500 w-8 shrink-0">{{ i.toString().padStart(2, '0') }}</span>
+                  <div class="p-5">
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-3">Instructions (Opcodes)</p>
+                    <div class="max-h-80 overflow-y-auto bg-slate-900 rounded-xl p-4 text-xs font-mono text-slate-300 space-y-1.5 shadow-inner">
+                      <div v-for="(inst, i) in decodedResult.instructions" :key="i" class="flex gap-4 border-b border-slate-800/50 pb-1.5 mb-1.5 last:border-0 last:mb-0 last:pb-0 hover:bg-slate-800/50 rounded px-1 transition-colors">
+                        <span class="text-slate-500 w-8 shrink-0 select-none">{{ i.toString().padStart(2, '0') }}</span>
                         <span class="text-fuchsia-400 w-24 shrink-0 font-bold">{{ inst.opcode }}</span>
-                        <span class="break-all">{{ inst.operand || '' }}</span>
+                        <span class="break-all text-slate-200">{{ inst.operand || '' }}</span>
                       </div>
                     </div>
                   </div>
