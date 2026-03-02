@@ -36,24 +36,6 @@ function setupNeoLineEventListeners() {
 
     window.addEventListener('NEOLine.NEO.EVENT.ACCOUNT_CHANGED', handleAccountChange);
     window.addEventListener('NEOLine.N3.EVENT.ACCOUNT_CHANGED', handleAccountChange);
-
-    // Fallback: Some NeoLine versions trigger an event without detail, so we do a passive refresh on browser focus
-    window.addEventListener('focus', async () => {
-        if (!isNeoLineSessionActive()) return;
-
-        if (connectedAccount.value && window.NEOLineN3) {
-            try {
-                const neoline = new window.NEOLineN3.Init();
-                const account = await neoline.getAccount();
-                if (account && account.address && account.address !== connectedAccount.value) {
-                    connectedAccount.value = account.address;
-                    localStorage.setItem("connectedWallet", account.address);
-                }
-            } catch (e) {
-                // Ignore silent errors on focus
-            }
-        }
-    });
 }
 
 export async function initWallet() {
