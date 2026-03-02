@@ -6,13 +6,15 @@ const sourcePath = path.resolve(process.cwd(), "src/views/Tools/AbstractAccountT
 const source = fs.readFileSync(sourcePath, "utf8");
 
 describe("AbstractAccountTool AA creation invariants", () => {
-  it("calls the CreateAccount contract method", () => {
-    expect(source).toMatch(/operation:\s*"CreateAccount"/);
+  it("calls the lowercase createAccountWithAddress contract method", () => {
+    expect(source).toMatch(/operation:\s*"createAccountWithAddress"/);
+    expect(source).not.toMatch(/operation:\s*"CreateAccount"/);
   });
 
-  it("sends accountId as ByteArray payload generated from UUID bytes", () => {
+  it("sends accountId bytes with bound AA account hash160", () => {
     expect(source).toMatch(/const uuidHex = stringToHex\(uuid\.value\)/);
     expect(source).toMatch(/type:\s*"ByteArray",\s*value:\s*uuidHex/);
+    expect(source).toMatch(/type:\s*"Hash160",\s*value:\s*computedAddressScriptHash/);
   });
 
   it("derives verification script by calling verify(accountId)", () => {

@@ -29,6 +29,9 @@ namespace AbstractAccount
         private static readonly byte[] BlacklistPrefix = new byte[] { 0x07 };
         private static readonly byte[] MaxTransferPrefix = new byte[] { 0x08 };
         private static readonly byte[] NoncePrefix = new byte[] { 0x09 };
+        private static readonly byte[] VerifyContextPrefix = new byte[] { 0x0A };
+        private static readonly byte[] AccountAddressToIdPrefix = new byte[] { 0x0B };
+        private static readonly byte[] AccountIdToAddressPrefix = new byte[] { 0x0C };
         private static readonly byte[] MetaTxContextPrefix = new byte[] { 0xFF };
 
         // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
@@ -84,29 +87,48 @@ namespace AbstractAccount
 
         public static void CreateAccount(ByteString accountId, Neo.SmartContract.Framework.List<UInt160> admins, int adminThreshold, Neo.SmartContract.Framework.List<UInt160> managers, int managerThreshold)
         {
-            ExecutionEngine.Assert(accountId != null && accountId.Length > 0, "Invalid accountId");
-            
-            StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
-            ByteString existing = adminsMap.Get(accountId);
-            ExecutionEngine.Assert(existing == null, "Account already exists");
+            CreateAccountInternal(accountId, admins, adminThreshold, managers, managerThreshold);
+        }
 
-            SetAdminsInternal(accountId, admins, adminThreshold);
-            SetManagersInternal(accountId, managers, managerThreshold);
-
-            var tx = (Transaction)Runtime.Transaction;
-            OnAccountCreated(accountId, tx.Sender);
+        public static void CreateAccountWithAddress(
+            ByteString accountId,
+            UInt160 accountAddress,
+            Neo.SmartContract.Framework.List<UInt160> admins,
+            int adminThreshold,
+            Neo.SmartContract.Framework.List<UInt160> managers,
+            int managerThreshold)
+        {
+            CreateAccountInternal(accountId, admins, adminThreshold, managers, managerThreshold);
+            BindAccountAddressInternal(accountId, accountAddress);
         }
 
         [Safe]
         public static bool Verify(ByteString accountId)
         {
             if (Runtime.Trigger != TriggerType.Verification) return false;
+            AssertAccountExists(accountId);
+
+            // Proxy-account verification is valid only while this account is executing
+            // through the AA entrypoint and the immediate call target matches.
+            if (!HasActiveVerifyContext(accountId, Runtime.CallingScriptHash)) return false;
 
             bool isAdmin = CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId));
             if (isAdmin) return true;
 
             bool isManager = CheckNativeSignatures(GetManagers(accountId), GetManagerThreshold(accountId));
             if (isManager) return true;
+
+            ByteString metaSignerBytes = GetMetaTxContext(accountId);
+            if (metaSignerBytes == null) return false;
+
+            UInt160 metaSigner = (UInt160)metaSignerBytes;
+            UInt160[] explicitSigners = new UInt160[] { metaSigner };
+
+            bool metaAdmin = CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), explicitSigners);
+            if (metaAdmin) return true;
+
+            bool metaManager = CheckExplicitSignatures(GetManagers(accountId), GetManagerThreshold(accountId), explicitSigners);
+            if (metaManager) return true;
 
             return false;
         }
@@ -128,6 +150,13 @@ namespace AbstractAccount
             byte[] key = GetNonceKey(accountId, signer);
             ByteString data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
+        }
+
+        [Safe]
+        public static BigInteger GetNonceForAddress(UInt160 accountAddress, UInt160 signer)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetNonceForAccount(accountId, signer);
         }
 
         private static void IncrementNonce(ByteString accountId, UInt160 signer)
@@ -155,11 +184,53 @@ namespace AbstractAccount
             BigInteger deadline,
             ByteString signature)
         {
+            return ExecuteMetaTxInternal(accountId, uncompressedPubKey, targetContract, method, args, argsHash, nonce, deadline, signature);
+        }
+
+        public static object ExecuteMetaTxByAddress(
+            UInt160 accountAddress,
+            ByteString uncompressedPubKey,
+            UInt160 targetContract,
+            string method,
+            object[] args,
+            ByteString argsHash,
+            BigInteger nonce,
+            BigInteger deadline,
+            ByteString signature)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return ExecuteMetaTxInternal(accountId, uncompressedPubKey, targetContract, method, args, argsHash, nonce, deadline, signature);
+        }
+
+        public static object Execute(ByteString accountId, UInt160 targetContract, string method, object[] args)
+        {
+            CheckPermissionsAndExecuteNative(accountId, targetContract, method, args);
+            SetVerifyContext(accountId, targetContract);
+            OnExecute(accountId, targetContract, method, args);
+            object result = Contract.Call(targetContract, method, CallFlags.All, args);
+            ClearVerifyContext(accountId);
+            return result;
+        }
+
+        public static object ExecuteByAddress(UInt160 accountAddress, UInt160 targetContract, string method, object[] args)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return Execute(accountId, targetContract, method, args);
+        }
+
+        private static object ExecuteMetaTxInternal(
+            ByteString accountId,
+            ByteString uncompressedPubKey,
+            UInt160 targetContract,
+            string method,
+            object[] args,
+            ByteString argsHash,
+            BigInteger nonce,
+            BigInteger deadline,
+            ByteString signature)
+        {
+            AssertAccountExists(accountId);
             UInt160 signerHash = DeriveEthAddress(uncompressedPubKey);
-            if (accountId == null || accountId.Length == 0)
-            {
-                accountId = (ByteString)signerHash;
-            }
 
             ExecutionEngine.Assert(nonce >= 0, "Invalid nonce");
             ExecutionEngine.Assert(deadline > 0, "Invalid deadline");
@@ -191,21 +262,16 @@ namespace AbstractAccount
 
             IncrementNonce(accountId, signerHash);
             CheckPermissionsAndExecute(accountId, new UInt160[] { signerHash }, targetContract, method, args);
-            OnExecute(accountId, targetContract, method, args);
 
             // Scope authenticated signer by account for this execution path.
             SetMetaTxContext(accountId, signerHash);
+            SetVerifyContext(accountId, targetContract);
+            OnExecute(accountId, targetContract, method, args);
             object result = Contract.Call(targetContract, method, CallFlags.All, args);
+            ClearVerifyContext(accountId);
             ClearMetaTxContext(accountId);
 
             return result;
-        }
-
-        public static object Execute(ByteString accountId, UInt160 targetContract, string method, object[] args)
-        {
-            CheckPermissionsAndExecuteNative(accountId, targetContract, method, args);
-            OnExecute(accountId, targetContract, method, args);
-            return Contract.Call(targetContract, method, CallFlags.All, args);
         }
 
         private static byte[] BuildDomainSeparator(uint network, UInt160 verifyingContract)
@@ -252,31 +318,6 @@ namespace AbstractAccount
                 result[12 + i] = address[19 - i];
             }
             return result;
-        }
-
-        private static byte[] ToBytes32Word(ByteString value)
-        {
-            byte[] raw = (byte[])value;
-            if (raw.Length == 20)
-            {
-                byte[] result = new byte[32];
-                for (int i = 0; i < 20; i++)
-                {
-                    result[12 + i] = raw[19 - i];
-                }
-                return result;
-            }
-            else if (raw.Length <= 32)
-            {
-                byte[] result = new byte[32];
-                for (int i = 0; i < raw.Length; i++)
-                {
-                    result[32 - raw.Length + i] = raw[i];
-                }
-                return result;
-            }
-            ExecutionEngine.Assert(false, "Invalid accountId length for EIP712");
-            return null;
         }
 
         private static byte[] ToUint256Word(BigInteger value)
@@ -339,6 +380,7 @@ namespace AbstractAccount
 
         private static void CheckPermissionsAndExecuteNative(ByteString accountId, UInt160 targetContract, string method, object[] args)
         {
+            AssertAccountExists(accountId);
             bool isAdmin = CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId));
             bool isManager = CheckNativeSignatures(GetManagers(accountId), GetManagerThreshold(accountId));
             ExecutionEngine.Assert(isAdmin || isManager, "Unauthorized");
@@ -347,22 +389,10 @@ namespace AbstractAccount
 
         private static void CheckPermissionsAndExecute(ByteString accountId, UInt160[] verifiedSigners, UInt160 targetContract, string method, object[] args)
         {
-            bool isSelfSigned = false;
-            if (accountId.Length == 20)
-            {
-                UInt160 acc160 = (UInt160)accountId;
-                foreach (var signer in verifiedSigners)
-                {
-                    if (signer == acc160) isSelfSigned = true;
-                }
-            }
-
-            if (!isSelfSigned)
-            {
-                bool isAdmin = CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), verifiedSigners);
-                bool isManager = CheckExplicitSignatures(GetManagers(accountId), GetManagerThreshold(accountId), verifiedSigners);
-                ExecutionEngine.Assert(isAdmin || isManager, "Unauthorized");
-            }
+            AssertAccountExists(accountId);
+            bool isAdmin = CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), verifiedSigners);
+            bool isManager = CheckExplicitSignatures(GetManagers(accountId), GetManagerThreshold(accountId), verifiedSigners);
+            ExecutionEngine.Assert(isAdmin || isManager, "Unauthorized");
             EnforceRestrictions(accountId, targetContract, method, args);
         }
 
@@ -425,7 +455,7 @@ namespace AbstractAccount
 
         private static void AssertIsAdmin(ByteString accountId)
         {
-            ExecutionEngine.Assert(accountId != null && accountId.Length > 0, "Invalid accountId");
+            AssertAccountExists(accountId);
             
             // For Neo native signers
             if (CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId))) return;
@@ -435,7 +465,6 @@ namespace AbstractAccount
             if (metaSignerBytes != null && Runtime.CallingScriptHash == Runtime.ExecutingScriptHash)
             {
                 UInt160 metaSigner = (UInt160)metaSignerBytes;
-                if (accountId.Length == 20 && metaSigner == (UInt160)accountId) return;
                 if (CheckExplicitSignatures(GetAdmins(accountId), GetAdminThreshold(accountId), new UInt160[] { metaSigner })) return;
             }
 
@@ -446,6 +475,12 @@ namespace AbstractAccount
         {
             AssertIsAdmin(accountId);
             SetAdminsInternal(accountId, admins, threshold);
+        }
+
+        public static void SetAdminsByAddress(UInt160 accountAddress, Neo.SmartContract.Framework.List<UInt160> admins, int threshold)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetAdmins(accountId, admins, threshold);
         }
 
         private static void SetAdminsInternal(ByteString accountId, Neo.SmartContract.Framework.List<UInt160> admins, int threshold)
@@ -468,6 +503,13 @@ namespace AbstractAccount
         }
 
         [Safe]
+        public static Neo.SmartContract.Framework.List<UInt160> GetAdminsByAddress(UInt160 accountAddress)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetAdmins(accountId);
+        }
+
+        [Safe]
         public static int GetAdminThreshold(ByteString accountId)
         {
             StorageMap tMap = new StorageMap(Storage.CurrentContext, AdminThresholdPrefix);
@@ -476,10 +518,23 @@ namespace AbstractAccount
             return (int)(BigInteger)data;
         }
 
+        [Safe]
+        public static int GetAdminThresholdByAddress(UInt160 accountAddress)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetAdminThreshold(accountId);
+        }
+
         public static void SetManagers(ByteString accountId, Neo.SmartContract.Framework.List<UInt160> managers, int threshold)
         {
             AssertIsAdmin(accountId);
             SetManagersInternal(accountId, managers, threshold);
+        }
+
+        public static void SetManagersByAddress(UInt160 accountAddress, Neo.SmartContract.Framework.List<UInt160> managers, int threshold)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetManagers(accountId, managers, threshold);
         }
 
         private static void SetManagersInternal(ByteString accountId, Neo.SmartContract.Framework.List<UInt160> managers, int threshold)
@@ -509,12 +564,26 @@ namespace AbstractAccount
         }
 
         [Safe]
+        public static Neo.SmartContract.Framework.List<UInt160> GetManagersByAddress(UInt160 accountAddress)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetManagers(accountId);
+        }
+
+        [Safe]
         public static int GetManagerThreshold(ByteString accountId)
         {
             StorageMap tMap = new StorageMap(Storage.CurrentContext, ManagerThresholdPrefix);
             ByteString data = tMap.Get(accountId);
             if (data == null) return 1;
             return (int)(BigInteger)data;
+        }
+
+        [Safe]
+        public static int GetManagerThresholdByAddress(UInt160 accountAddress)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetManagerThreshold(accountId);
         }
 
         public static void SetBlacklist(ByteString accountId, UInt160 target, bool isBlacklisted)
@@ -525,12 +594,24 @@ namespace AbstractAccount
             else map.Delete(target);
         }
 
+        public static void SetBlacklistByAddress(UInt160 accountAddress, UInt160 target, bool isBlacklisted)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetBlacklist(accountId, target, isBlacklisted);
+        }
+
         public static void SetWhitelistMode(ByteString accountId, bool enabled)
         {
             AssertIsAdmin(accountId);
             StorageMap map = new StorageMap(Storage.CurrentContext, WhitelistEnabledPrefix);
             if (enabled) map.Put(accountId, (ByteString)new byte[] { 1 });
             else map.Delete(accountId);
+        }
+
+        public static void SetWhitelistModeByAddress(UInt160 accountAddress, bool enabled)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetWhitelistMode(accountId, enabled);
         }
 
         public static void SetWhitelist(ByteString accountId, UInt160 target, bool isWhitelisted)
@@ -541,12 +622,48 @@ namespace AbstractAccount
             else map.Delete(target);
         }
 
+        public static void SetWhitelistByAddress(UInt160 accountAddress, UInt160 target, bool isWhitelisted)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetWhitelist(accountId, target, isWhitelisted);
+        }
+
         public static void SetMaxTransfer(ByteString accountId, UInt160 token, BigInteger maxAmount)
         {
             AssertIsAdmin(accountId);
             StorageMap map = new StorageMap(Storage.CurrentContext, Helper.Concat(MaxTransferPrefix, accountId));
             if (maxAmount > 0) map.Put(token, (ByteString)maxAmount);
             else map.Delete(token);
+        }
+
+        public static void SetMaxTransferByAddress(UInt160 accountAddress, UInt160 token, BigInteger maxAmount)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            SetMaxTransfer(accountId, token, maxAmount);
+        }
+
+        public static void BindAccountAddress(ByteString accountId, UInt160 accountAddress)
+        {
+            AssertIsAdmin(accountId);
+            BindAccountAddressInternal(accountId, accountAddress);
+        }
+
+        [Safe]
+        public static ByteString GetAccountIdByAddress(UInt160 accountAddress)
+        {
+            AssertValidAccountAddress(accountAddress);
+            StorageMap map = new StorageMap(Storage.CurrentContext, AccountAddressToIdPrefix);
+            return map.Get(accountAddress);
+        }
+
+        [Safe]
+        public static UInt160 GetAccountAddress(ByteString accountId)
+        {
+            AssertAccountExists(accountId);
+            StorageMap map = new StorageMap(Storage.CurrentContext, AccountIdToAddressPrefix);
+            ByteString data = map.Get(accountId);
+            if (data == null) return UInt160.Zero;
+            return (UInt160)data;
         }
 
         private static void AssertUniqueAccounts(Neo.SmartContract.Framework.List<UInt160> accounts)
@@ -560,6 +677,96 @@ namespace AbstractAccount
                     ExecutionEngine.Assert(current != accounts[j], "Duplicate role member");
                 }
             }
+        }
+
+        private static void AssertValidAccountId(ByteString accountId)
+        {
+            ExecutionEngine.Assert(accountId != null && accountId.Length > 0 && accountId.Length <= 64, "Invalid accountId");
+        }
+
+        private static void AssertValidAccountAddress(UInt160 accountAddress)
+        {
+            ExecutionEngine.Assert(accountAddress != null && accountAddress != UInt160.Zero, "Invalid accountAddress");
+        }
+
+        private static void AssertAccountExists(ByteString accountId)
+        {
+            AssertValidAccountId(accountId);
+            StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
+            ExecutionEngine.Assert(adminsMap.Get(accountId) != null, "Account does not exist");
+        }
+
+        private static ByteString ResolveAccountIdByAddress(UInt160 accountAddress)
+        {
+            AssertValidAccountAddress(accountAddress);
+            StorageMap map = new StorageMap(Storage.CurrentContext, AccountAddressToIdPrefix);
+            ByteString accountId = map.Get(accountAddress);
+            ExecutionEngine.Assert(accountId != null && accountId.Length > 0, "Account address not registered");
+            AssertAccountExists(accountId);
+            return accountId;
+        }
+
+        private static void CreateAccountInternal(
+            ByteString accountId,
+            Neo.SmartContract.Framework.List<UInt160> admins,
+            int adminThreshold,
+            Neo.SmartContract.Framework.List<UInt160> managers,
+            int managerThreshold)
+        {
+            AssertValidAccountId(accountId);
+
+            StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
+            ByteString existing = adminsMap.Get(accountId);
+            ExecutionEngine.Assert(existing == null, "Account already exists");
+
+            SetAdminsInternal(accountId, admins, adminThreshold);
+            SetManagersInternal(accountId, managers, managerThreshold);
+
+            var tx = (Transaction)Runtime.Transaction;
+            OnAccountCreated(accountId, tx.Sender);
+        }
+
+        private static void BindAccountAddressInternal(ByteString accountId, UInt160 accountAddress)
+        {
+            AssertAccountExists(accountId);
+            AssertValidAccountAddress(accountAddress);
+
+            StorageMap addrToIdMap = new StorageMap(Storage.CurrentContext, AccountAddressToIdPrefix);
+            ByteString existingId = addrToIdMap.Get(accountAddress);
+            if (existingId != null)
+            {
+                ExecutionEngine.Assert(existingId == accountId, "Account address already bound");
+            }
+
+            StorageMap idToAddrMap = new StorageMap(Storage.CurrentContext, AccountIdToAddressPrefix);
+            ByteString existingAddress = idToAddrMap.Get(accountId);
+            if (existingAddress != null)
+            {
+                ExecutionEngine.Assert((UInt160)existingAddress == accountAddress, "Account already bound to different address");
+            }
+
+            addrToIdMap.Put(accountAddress, accountId);
+            idToAddrMap.Put(accountId, accountAddress);
+        }
+
+        private static void SetVerifyContext(ByteString accountId, UInt160 targetContract)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, VerifyContextPrefix);
+            map.Put(accountId, targetContract);
+        }
+
+        private static bool HasActiveVerifyContext(ByteString accountId, UInt160 callingScriptHash)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, VerifyContextPrefix);
+            ByteString expectedTarget = map.Get(accountId);
+            if (expectedTarget == null || callingScriptHash == null) return false;
+            return (UInt160)expectedTarget == callingScriptHash;
+        }
+
+        private static void ClearVerifyContext(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, VerifyContextPrefix);
+            map.Delete(accountId);
         }
 
         private static void SetMetaTxContext(ByteString accountId, UInt160 signerHash)

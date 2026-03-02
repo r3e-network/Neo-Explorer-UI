@@ -182,7 +182,9 @@ const validateEndpointNetwork = async ({ baseURL, timeout, signal }) => {
     if (error?.code === NETWORK_MISMATCH_ERROR_CODE || error?.isNetworkMismatch) {
       throw error;
     }
-    // If getversion is unavailable on an endpoint, continue without hard-failing.
+    // If getversion is unavailable on an endpoint (e.g., Fura), continue without hard-failing.
+    // Cache it as valid so we don't penalize every subsequent request with a failing getversion call.
+    endpointNetworkCache.set(cacheKey, true);
   }
 };
 

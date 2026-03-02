@@ -267,7 +267,7 @@ async function createAccount() {
 
     const invokeParams = {
       scriptHash: aaHash,
-      operation: "CreateAccount",
+      operation: "createAccount",
       args: [
         { type: "ByteArray", value: uuidHex },
         { type: "Array", value: adminsParam },

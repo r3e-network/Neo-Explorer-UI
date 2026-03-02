@@ -35,8 +35,11 @@ describe("UnifiedSmartWallet compiled artifact behavior", () => {
     const { tempDir, manifest } = compileManifestToTemp();
     try {
       const executeMetaTx = getMethod(manifest, "executeMetaTx");
+      const executeMetaTxByAddress = getMethod(manifest, "executeMetaTxByAddress");
       const computeArgsHash = getMethod(manifest, "computeArgsHash");
       const getNonceForAccount = getMethod(manifest, "getNonceForAccount");
+      const getNonceForAddress = getMethod(manifest, "getNonceForAddress");
+      const getAccountIdByAddress = getMethod(manifest, "getAccountIdByAddress");
 
       expect(executeMetaTx).toBeTruthy();
       expect(executeMetaTx.parameters.map((param) => `${param.name}:${param.type}`)).toEqual([
@@ -50,14 +53,28 @@ describe("UnifiedSmartWallet compiled artifact behavior", () => {
         "deadline:Integer",
         "signature:ByteArray",
       ]);
+      expect(executeMetaTxByAddress).toBeTruthy();
+      expect(executeMetaTxByAddress.parameters.map((param) => `${param.name}:${param.type}`)).toEqual([
+        "accountAddress:Hash160",
+        "uncompressedPubKey:ByteArray",
+        "targetContract:Hash160",
+        "method:String",
+        "args:Array",
+        "argsHash:ByteArray",
+        "nonce:Integer",
+        "deadline:Integer",
+        "signature:ByteArray",
+      ]);
 
       expect(computeArgsHash).toBeTruthy();
       expect(computeArgsHash.safe).toBe(true);
       expect(getNonceForAccount).toBeTruthy();
+      expect(getNonceForAddress).toBeTruthy();
+      expect(getAccountIdByAddress).toBeTruthy();
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, 20000);
 
   it("checked-in manifest stays in sync with compiler output ABI", () => {
     const checkedManifest = JSON.parse(fs.readFileSync(checkedManifestPath, "utf8"));
@@ -67,5 +84,5 @@ describe("UnifiedSmartWallet compiled artifact behavior", () => {
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, 20000);
 });

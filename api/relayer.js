@@ -28,7 +28,7 @@ function parseToContractParam(arg) {
     if (typeof arg === 'object' && arg.type && arg.value !== undefined) {
         if (arg.type === 'Hash160') return sc.ContractParam.hash160(sanitizeHex(arg.value));
         if (arg.type === 'Hash256') return sc.ContractParam.hash256(sanitizeHex(arg.value));
-        if (arg.type === 'ByteArray') return sc.ContractParam.byteArray(u.HexString.fromHex(sanitizeHex(arg.value), true));
+        if (arg.type === 'ByteArray') return sc.ContractParam.byteArray(u.HexString.fromHex(sanitizeHex(arg.value), false));
         if (arg.type === 'Integer') return sc.ContractParam.integer(arg.value);
         if (arg.type === 'String') return sc.ContractParam.string(arg.value);
         if (arg.type === 'Boolean') return sc.ContractParam.boolean(arg.value);
@@ -90,6 +90,18 @@ function parseStackInteger(invokeRes) {
     return parsed;
 }
 
+function assertByteArrayHex(value, fieldName, { minBytes = 1, maxBytes = 64 } = {}) {
+    const clean = sanitizeHex(value);
+    if (!/^[0-9a-f]*$/.test(clean) || clean.length % 2 !== 0) {
+        throw new Error(`Invalid ${fieldName} (requires even-length hex byte string)`);
+    }
+    const byteLength = clean.length / 2;
+    if (byteLength < minBytes || byteLength > maxBytes) {
+        throw new Error(`Invalid ${fieldName} length (${byteLength} bytes, allowed ${minBytes}-${maxBytes})`);
+    }
+    return clean;
+}
+
 function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetContract, method, argsHash, nonce, deadline }) {
     const domain = {
         name: 'Neo N3 Abstract Account',
@@ -100,7 +112,7 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
 
     const types = {
         MetaTransaction: [
-            { name: 'accountId', type: 'bytes32' },
+            { name: 'accountId', type: 'bytes' },
             { name: 'targetContract', type: 'address' },
             { name: 'methodHash', type: 'bytes32' },
             { name: 'argsHash', type: 'bytes32' },
@@ -109,12 +121,8 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
         ]
     };
 
-    const paddedAccountId = accountId.length <= 40 
-        ? ethers.zeroPadValue(`0x${sanitizeHex(accountId)}`, 32)
-        : `0x${sanitizeHex(accountId)}`;
-
     const message = {
-        accountId: paddedAccountId,
+        accountId: `0x${sanitizeHex(accountId)}`,
         targetContract: `0x${sanitizeHex(targetContract)}`,
         methodHash: ethers.keccak256(ethers.toUtf8Bytes(String(method))),
         argsHash: `0x${sanitizeHex(argsHash)}`,
@@ -141,13 +149,13 @@ async function computeArgsHash(rpcClient, aaHash, args) {
     return parseStackByteArrayHex(invokeRes);
 }
 
-async function getNonceForAccount(rpcClient, aaHash, accountId) {
+async function getNonceForAccount(rpcClient, aaHash, accountId, signerAddress) {
     const script = sc.createScript({
         scriptHash: aaHash,
         operation: 'getNonceForAccount',
         args: [
-            sc.ContractParam.hash160(accountId),
-            sc.ContractParam.hash160(accountId)
+            sc.ContractParam.byteArray(u.HexString.fromHex(accountId, false)),
+            sc.ContractParam.hash160(signerAddress)
         ]
     });
 
@@ -209,6 +217,7 @@ module.exports = async function handler(req, res) {
         network,
         aaHash,
         accountId,
+        signerAddress,
         targetContract,
         method,
         args,
@@ -247,20 +256,25 @@ module.exports = async function handler(req, res) {
         const rpcClient = new rpc.RPCClient(rpcUrl);
 
         const cleanAaHash = sanitizeHex(aaHash);
-        const cleanAccountId = sanitizeHex(accountId);
+        let cleanAccountId;
+        try {
+            cleanAccountId = assertByteArrayHex(accountId, 'accountId', { minBytes: 20, maxBytes: 20 });
+        } catch (e) {
+            return res.status(400).json({ error: e.message || 'Invalid accountId' });
+        }
+
+        const cleanSignerAddress = sanitizeHex(signerAddress || accountId);
         const cleanTargetContract = sanitizeHex(targetContract);
         const parsedMethod = String(method || '').trim();
         const parsedArgs = Array.isArray(args) ? args : [];
 
-        if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanAccountId) {
+        if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanAccountId || !cleanSignerAddress) {
             return res.status(400).json({ error: 'Missing required meta-transaction parameters payload.' });
         }
 
         assertHash160(cleanAaHash, 'aaHash');
         assertHash160(cleanTargetContract, 'targetContract');
-        if (cleanAccountId.length < 40) {
-            return res.status(400).json({ error: 'accountId is too short.' });
-        }
+        assertHash160(cleanSignerAddress, 'signerAddress');
 
         const configuredAaHash = getConfiguredAaHash(isTestnet);
         if (!configuredAaHash) {
@@ -275,7 +289,11 @@ module.exports = async function handler(req, res) {
         if (normalizedAction === 'prepare') {
             let preparedNonce;
             try {
-                preparedNonce = nonce == null ? await getNonceForAccount(rpcClient, cleanAaHash, cleanAccountId) : parseNonNegativeInteger(nonce, 'nonce');
+                if (nonce == null) {
+                    preparedNonce = await getNonceForAccount(rpcClient, cleanAaHash, cleanAccountId, cleanSignerAddress);
+                } else {
+                    preparedNonce = parseNonNegativeInteger(nonce, 'nonce');
+                }
             } catch (e) {
                 return res.status(400).json({ error: e.message || 'Invalid nonce' });
             }
@@ -311,6 +329,7 @@ module.exports = async function handler(req, res) {
                 success: true,
                 aaHash: `0x${cleanAaHash}`,
                 accountId: `0x${cleanAccountId}`,
+                signerAddress: `0x${cleanSignerAddress}`,
                 targetContract: `0x${cleanTargetContract}`,
                 method: parsedMethod,
                 argsHash: envelope.message.argsHash,
@@ -383,8 +402,8 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: `Signature verification failed: ${e.message}` });
         }
 
-        if (recoveredAddress !== `0x${cleanAccountId}`) {
-            return res.status(400).json({ error: 'Recovered signer does not match accountId.' });
+        if (recoveredAddress !== `0x${cleanSignerAddress}`) {
+            return res.status(400).json({ error: 'Recovered signer does not match signerAddress.' });
         }
         if (!(recoveredPubKey.length === 130 || recoveredPubKey.length === 128)) {
             return res.status(400).json({ error: 'Recovered public key is invalid.' });
@@ -396,15 +415,15 @@ module.exports = async function handler(req, res) {
                 scriptHash: cleanAaHash,
                 operation: 'executeMetaTx',
                 args: [
-                    sc.ContractParam.hash160(cleanAccountId),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(recoveredPubKey, true)),
+                    sc.ContractParam.byteArray(u.HexString.fromHex(cleanAccountId, false)),
+                    sc.ContractParam.byteArray(u.HexString.fromHex(recoveredPubKey, false)),
                     sc.ContractParam.hash160(cleanTargetContract),
                     sc.ContractParam.string(parsedMethod),
                     sc.ContractParam.array(parsedArgs.map(parseToContractParam)),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(cleanArgsHash, true)),
+                    sc.ContractParam.byteArray(u.HexString.fromHex(cleanArgsHash, false)),
                     sc.ContractParam.integer(parsedNonce),
                     sc.ContractParam.integer(parsedDeadline),
-                    sc.ContractParam.byteArray(u.HexString.fromHex(signatureNoRecovery, true))
+                    sc.ContractParam.byteArray(u.HexString.fromHex(signatureNoRecovery, false))
                 ]
             });
         } catch (scErr) {
@@ -415,7 +434,9 @@ module.exports = async function handler(req, res) {
         const signers = [
             {
                 account: relayerAccount.scriptHash,
-                scopes: tx.WitnessScope.CalledByEntry
+                scopes: tx.WitnessScope.CustomContracts,
+                allowedContracts: [`0x${cleanAaHash}`],
+                allowedcontracts: [`0x${cleanAaHash}`]
             }
         ];
 

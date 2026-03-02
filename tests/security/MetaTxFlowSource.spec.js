@@ -48,13 +48,28 @@ describe("MetaTx EIP-712 source invariants", () => {
   it("uses byte-array accountId for nonce lookup and executeMetaTx contract calls", () => {
     expect(relayerSource).toMatch(/operation:\s*['"]getNonceForAccount['"]/);
     expect(relayerSource).toMatch(/sc\.ContractParam\.byteArray\(/);
-    expect(relayerSource).toMatch(/operation:\s*['"]executeMetaTx['"]/);
+    expect(relayerSource).toMatch(/operation:\s*['"]executeMetaTx(ByAddress)?['"]/);
     expect(relayerSource).toMatch(/sc\.ContractParam\.byteArray\([\s\S]*cleanAccountId/);
+    expect(relayerSource).toMatch(/assertByteArrayHex\(accountId,\s*'accountId',\s*\{\s*minBytes:\s*1,\s*maxBytes:\s*64\s*\}\)/);
+  });
+
+  it("supports accountAddress-first lookup and by-address execution path", () => {
+    expect(relayerSource).toMatch(/accountAddress/);
+    expect(relayerSource).toMatch(/operation:\s*['"]getAccountIdByAddress['"]/);
+    expect(relayerSource).toMatch(/operation:\s*['"]getNonceForAddress['"]/);
+    expect(relayerSource).toMatch(/operation:\s*['"]executeMetaTxByAddress['"]/);
+    expect(relayerSource).toMatch(/sc\.ContractParam\.hash160\(cleanAccountAddress\)/);
   });
 
   it("binds nonce namespace to explicit signer address in prepare\/execute flow", () => {
     expect(relayerSource).toMatch(/signerAddress/);
     expect(relayerSource).toMatch(/Recovered signer does not match signerAddress/);
+  });
+
+  it("wallet service sends accountAddress with relayer prepare\/execute payloads", () => {
+    expect(walletSource).toMatch(/accountAddress/);
+    expect(walletSource).toMatch(/action:\s*"prepare"[\s\S]*accountAddress/);
+    expect(walletSource).toMatch(/action:\s*"execute"[\s\S]*accountAddress/);
   });
 
   it("restricts relayer witness scope to AA contract via CustomContracts", () => {

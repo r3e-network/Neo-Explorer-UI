@@ -631,10 +631,8 @@ export const walletService = {
         throw new Error("Invalid target contract hash.");
       }
 
-      // For EVM accounts, the AA Account ID is their 65-byte uncompressed public key.
-      // We extract it locally before building the relayer payload.
-      const uncompressedPubKeyHex = signer.signingKey.publicKey.slice(2);
-      const accountId = uncompressedPubKeyHex;
+      const signerAddress = (await signer.getAddress()).toLowerCase();
+      const accountId = signerAddress.replace(/^0x/, "");
 
       const prepareResponse = await fetch("/api/relayer", {
         method: "POST",
@@ -644,6 +642,7 @@ export const walletService = {
           network: getCurrentEnv(),
           aaHash,
           accountId,
+          signerAddress,
           targetContract: cleanTargetContract,
           method: String(operation),
           args: normalizedArgs
@@ -662,6 +661,9 @@ export const walletService = {
       if (!prepared?.message?.argsHash || !prepared?.message?.deadline) {
         throw new Error("Relayer prepare payload is missing signed message fields.");
       }
+      if (!prepared?.signerAddress) {
+        throw new Error("Relayer prepare payload is missing signerAddress.");
+      }
       const signature = await signer.signTypedData(prepared.domain, prepared.types, prepared.message);
       const digest = ethers.TypedDataEncoder.hash(prepared.domain, prepared.types, prepared.message);
       const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
@@ -674,6 +676,7 @@ export const walletService = {
           network: getCurrentEnv(),
           aaHash,
           accountId,
+          signerAddress,
           targetContract: cleanTargetContract,
           method: String(operation),
           args: normalizedArgs,

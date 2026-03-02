@@ -49,4 +49,14 @@ describe("UnifiedSmartWallet security invariants", () => {
     expect(source).toMatch(/private static void AssertAccountExists\(/);
     expect(source).toMatch(/AssertAccountExists\(accountId\);/);
   });
+
+  it("exposes account address binding and address-first execution surfaces", () => {
+    expect(source).toMatch(/AccountAddressToIdPrefix/);
+    expect(source).toMatch(/AccountIdToAddressPrefix/);
+    expect(source).toMatch(/public static void CreateAccountWithAddress\(/);
+    expect(source).toMatch(/public static void BindAccountAddress\(/);
+    expect(source).toMatch(/public static ByteString GetAccountIdByAddress\(/);
+    expect(source).toMatch(/public static BigInteger GetNonceForAddress\(/);
+    expect(source).toMatch(/public static object ExecuteMetaTxByAddress\(/);
+  });
 });
