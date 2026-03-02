@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export const config = {
+module.exports.config = {
   runtime: 'edge',
 };
 
@@ -94,7 +94,7 @@ async function syncNetwork(network, rpcUrl) {
   }
 }
 
-export default async function handler(req) {
+module.exports = async function handler(req) {
   try {
     const mainnetResult = await syncNetwork('mainnet', RPC_MAINNET);
     const testnetResult = await syncNetwork('testnet', RPC_TESTNET);

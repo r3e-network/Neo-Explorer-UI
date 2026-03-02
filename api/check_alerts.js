@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export const config = {
+module.exports.config = {
   runtime: 'edge',
 };
 
@@ -233,7 +233,7 @@ async function checkNetworkAlerts(network) {
   }
 }
 
-export default async function handler(req) {
+module.exports = async function handler(req) {
   try {
     const mainnetCount = await checkNetworkAlerts('mainnet');
     const testnetCount = await checkNetworkAlerts('testnet');

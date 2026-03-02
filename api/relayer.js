@@ -1,8 +1,8 @@
-import { tx, wallet, rpc, sc, u } from '@cityofzion/neon-js';
-import { ethers } from 'ethers';
-import { enforceRelayerRateLimit } from './lib/relayerRateLimit';
+const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
+const { ethers } = require('ethers');
+const { enforceRelayerRateLimit } = require('./lib/relayerRateLimit');
 
-export const config = {
+module.exports.config = {
   runtime: 'nodejs',
 };
 
@@ -193,7 +193,7 @@ function getConfiguredAaHash(isTestnet) {
     ]);
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
         return res.status(405).json({ error: `Method ${req.method} not allowed` });

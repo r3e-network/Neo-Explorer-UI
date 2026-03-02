@@ -1,10 +1,10 @@
-import { get } from '@vercel/edge-config';
+const { get } = require('@vercel/edge-config');
 
-export const config = {
+module.exports.config = {
   runtime: 'edge',
 };
 
-export default async function handler(req) {
+module.exports = async function handler(req) {
   const url = new URL(req.url);
   const network = url.searchParams.get('network') || 'mainnet';
   

@@ -1,10 +1,10 @@
-import { tx, wallet, rpc } from '@cityofzion/neon-js';
+const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
 
-export const config = {
+module.exports.config = {
   runtime: 'nodejs',
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
