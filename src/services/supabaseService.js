@@ -147,11 +147,39 @@ export const supabaseService = {
     try {
       const { data } = await supabase
         .from('multisig_requests')
-        .select('*, signatures:multisig_signatures(id)')
+        .select('*, signatures:multisig_signatures(*)')
         .order('created_at', { ascending: false });
       return data || [];
     } catch (err) {
       return [];
+    }
+  },
+
+  async createMultisigRequest(payload) {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    try {
+      const { data, error } = await supabase
+        .from('multisig_requests')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  async addMultisigSignature(requestId, signerAddress, signature) {
+    if (!supabase) return { success: false, error: 'Supabase not configured' };
+    try {
+      const { data, error } = await supabase
+        .from('multisig_signatures')
+        .insert([{ request_id: requestId, signer_address: signerAddress, signature }]);
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   },
 

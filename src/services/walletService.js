@@ -409,6 +409,31 @@ export const walletService = {
    * @param {Array} params.args - Method arguments [{type, value}]
    * @returns {Promise<{txid: string}>}
    */
+
+  async signRawTransaction(unsignedTxHex) {
+    if (!_account) throw new Error("Wallet not connected");
+
+    if (_connectedProvider === PROVIDERS.NEOLINE) {
+      const n3 = await getNeoLineN3();
+      if (typeof n3.signTransaction === 'function') {
+         const res = await n3.signTransaction({ transaction: unsignedTxHex });
+         return res.signature || res.data;
+      }
+      throw new Error("NeoLine does not support signTransaction.");
+    }
+
+    if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const account = await web3authService.getAccount();
+      // the unsigned tx hex needs to be hashed before signing
+      const { tx } = await import('@cityofzion/neon-js');
+      const transaction = tx.Transaction.deserialize(unsignedTxHex);
+      const hash = transaction.hash();
+      return account.sign(hash);
+    }
+    
+    throw new Error("Provider does not support raw transaction signing in browser.");
+  },
+
   async signMessage(message) {
     if (!_account) throw new Error("Wallet not connected");
 
