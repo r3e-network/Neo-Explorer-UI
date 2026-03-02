@@ -14,8 +14,8 @@ const account = new wallet.Account(deployerWif);
 const rpcUrl = 'https://testnet1.neo.coz.io:443';
 const rpcClient = new rpc.RPCClient(rpcUrl);
 
-const nefPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.nef');
-const manifestPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.manifest.json');
+const nefPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.nef');
+const manifestPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.manifest.json');
 
 const nef = fs.readFileSync(nefPath);
 const manifestStr = fs.readFileSync(manifestPath, 'utf8');

@@ -51,9 +51,9 @@
               </div>
 
               <div class="space-y-3">
-                <label class="block text-sm font-bold text-high tracking-tight">Admin Public Keys</label>
+                <label class="block text-sm font-bold text-high tracking-tight">Admin Addresses (Neo or EVM)</label>
                 <div v-for="(admin, index) in admins" :key="'admin-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="admins[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="03..." />
+                  <input type="text" v-model="admins[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="N... or 0x..." />
                   <button @click="admins.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
@@ -67,9 +67,9 @@
               </div>
               
               <div class="space-y-3">
-                <label class="block text-sm font-bold text-high tracking-tight">Manager Public Keys</label>
+                <label class="block text-sm font-bold text-high tracking-tight">Manager Addresses (Neo or EVM)</label>
                 <div v-for="(manager, index) in managers" :key="'manager-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="managers[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="03..." />
+                  <input type="text" v-model="managers[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="N... or 0x..." />
                   <button @click="managers.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
@@ -252,8 +252,18 @@ async function createAccount() {
 
     const uuidHex = stringToHex(uuid.value);
     
-    const adminsParam = validAdmins.map(pk => ({ type: 'PublicKey', value: pk }));
-    const managersParam = managers.value.filter(m => m.trim().length > 0).map(pk => ({ type: 'PublicKey', value: pk }));
+    function normalizeAddress(addr) {
+      if (addr.startsWith('N') && addr.length === 34) {
+        return neonJs.wallet.getScriptHashFromAddress(addr);
+      }
+      if (addr.startsWith('0x')) {
+        return addr.slice(2);
+      }
+      return addr;
+    }
+
+    const adminsParam = validAdmins.map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));
+    const managersParam = managers.value.filter(m => m.trim().length > 0).map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));
 
     const invokeParams = {
       scriptHash: aaHash,

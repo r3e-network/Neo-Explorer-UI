@@ -100,7 +100,7 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
 
     const types = {
         MetaTransaction: [
-            { name: 'accountId', type: 'address' },
+            { name: 'accountId', type: 'bytes32' },
             { name: 'targetContract', type: 'address' },
             { name: 'methodHash', type: 'bytes32' },
             { name: 'argsHash', type: 'bytes32' },
@@ -109,8 +109,12 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
         ]
     };
 
+    const paddedAccountId = accountId.length <= 40 
+        ? ethers.zeroPadValue(`0x${sanitizeHex(accountId)}`, 32)
+        : `0x${sanitizeHex(accountId)}`;
+
     const message = {
-        accountId: `0x${sanitizeHex(accountId)}`,
+        accountId: paddedAccountId,
         targetContract: `0x${sanitizeHex(targetContract)}`,
         methodHash: ethers.keccak256(ethers.toUtf8Bytes(String(method))),
         argsHash: `0x${sanitizeHex(argsHash)}`,

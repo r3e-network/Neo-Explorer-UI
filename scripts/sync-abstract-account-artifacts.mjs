@@ -6,8 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
 
-const nefPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.nef");
-const manifestPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWallet.manifest.json");
+const nefPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.nef");
+const manifestPath = path.resolve(repoRoot, "contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.manifest.json");
 const outputPath = path.resolve(repoRoot, "src/constants/abstractAccountArtifacts.js");
 
 const nefBase64 = fs.readFileSync(nefPath).toString("base64");
