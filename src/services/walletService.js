@@ -6,7 +6,7 @@
 
 import { walletConnectService } from "./walletConnectService";
 import { web3authService } from "./web3authService";
-import { rpc, tx, sc, u } from "@cityofzion/neon-js";
+import { rpc, tx, sc, u, wallet } from "@cityofzion/neon-js";
 import { ethers } from "ethers";
 import { getCurrentEnv } from "@/utils/env";
 import {
@@ -397,8 +397,17 @@ export const walletService = {
         }
       }
 
+      const aaHash = getAbstractAccountHash();
+      const verifyScript = sc.createScript({
+         scriptHash: aaHash,
+         operation: 'verify',
+         args: [ sc.ContractParam.byteArray(u.HexString.fromHex(uncompressedPubKey, false)) ]
+      });
+      const scriptHash = u.reverseHex(u.hash160(verifyScript));
+      const neoAddress = wallet.getAddressFromScriptHash(scriptHash);
+
       _connectedProvider = PROVIDERS.EVM_WALLET;
-      _account = { address: evmAddress, label: "EVM Wallet", pubKey: uncompressedPubKey };
+      _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
       return _account;
     }
 
