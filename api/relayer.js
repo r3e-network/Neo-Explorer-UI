@@ -33,7 +33,7 @@ function parseToContractParam(arg) {
         if (arg.type === 'String') return sc.ContractParam.string(arg.value);
         if (arg.type === 'Boolean') return sc.ContractParam.boolean(arg.value);
         if (arg.type === 'PublicKey') return sc.ContractParam.publicKey(sanitizeHex(arg.value));
-        if (arg.type === 'Array') return sc.ContractParam.array(arg.value.map(parseToContractParam));
+        if (arg.type === 'Array') return sc.ContractParam.array(...arg.value.map(parseToContractParam));
         if (arg.type === 'Any') return sc.ContractParam.any(arg.value);
     }
     return sc.ContractParam.any(arg);
@@ -182,6 +182,49 @@ async function computeArgsHash(rpcClient, aaHash, args) {
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`computeArgsHash fault: ${exceptionMsg}`);
+    }
+    return parseStackByteArrayHex(invokeRes);
+}
+
+async function computeMetaArgsHash(rpcClient, {
+    aaHash,
+    hasAddressBinding,
+    accountAddress,
+    accountId,
+    targetContract,
+    method,
+    args,
+    nonce,
+    deadline,
+}) {
+    const parsedArgs = Array.isArray(args) ? args : [];
+    const operation = hasAddressBinding ? 'computeArgsHashForMetaTxByAddress' : 'computeArgsHashForMetaTx';
+    const dummyPubKey = `04${'00'.repeat(64)}`;
+    const zeroHash = '00'.repeat(32);
+    const zeroSig = '00'.repeat(64);
+
+    const script = sc.createScript({
+        scriptHash: aaHash,
+        operation,
+        args: [
+            hasAddressBinding
+                ? sc.ContractParam.hash160(accountAddress)
+                : sc.ContractParam.byteArray(u.HexString.fromHex(accountId, false)),
+            sc.ContractParam.byteArray(u.HexString.fromHex(dummyPubKey, true)),
+            sc.ContractParam.hash160(targetContract),
+            sc.ContractParam.string(method),
+            sc.ContractParam.array(...parsedArgs.map(parseToContractParam)),
+            sc.ContractParam.byteArray(u.HexString.fromHex(zeroHash, true)),
+            sc.ContractParam.integer(nonce),
+            sc.ContractParam.integer(deadline),
+            sc.ContractParam.byteArray(u.HexString.fromHex(zeroSig, true))
+        ]
+    });
+
+    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    if (invokeRes.state === 'FAULT') {
+        const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
+        throw new Error(`computeMetaArgsHash fault: ${exceptionMsg}`);
     }
     return parseStackByteArrayHex(invokeRes);
 }
@@ -429,7 +472,17 @@ module.exports = async function handler(req, res) {
 
             let computedArgsHash;
             try {
-                computedArgsHash = await computeArgsHash(rpcClient, cleanAaHash, parsedArgs);
+                computedArgsHash = await computeMetaArgsHash(rpcClient, {
+                    aaHash: cleanAaHash,
+                    hasAddressBinding,
+                    accountAddress: cleanAccountAddress,
+                    accountId: cleanAccountId,
+                    targetContract: cleanTargetContract,
+                    method: parsedMethod,
+                    args: parsedArgs,
+                    nonce: preparedNonce,
+                    deadline: preparedDeadline
+                });
             } catch (e) {
                 return res.status(400).json({ error: e.message || 'Unable to prepare args hash' });
             }
@@ -489,7 +542,17 @@ module.exports = async function handler(req, res) {
 
         let computedArgsHash;
         try {
-            computedArgsHash = await computeArgsHash(rpcClient, cleanAaHash, parsedArgs);
+            computedArgsHash = await computeMetaArgsHash(rpcClient, {
+                aaHash: cleanAaHash,
+                hasAddressBinding,
+                accountAddress: cleanAccountAddress,
+                accountId: cleanAccountId,
+                targetContract: cleanTargetContract,
+                method: parsedMethod,
+                args: parsedArgs,
+                nonce: parsedNonce,
+                deadline: parsedDeadline
+            });
         } catch (e) {
             return res.status(400).json({ error: e.message || 'Unable to verify args hash' });
         }

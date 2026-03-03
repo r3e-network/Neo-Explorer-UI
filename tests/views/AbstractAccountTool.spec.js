@@ -12,13 +12,13 @@ describe("AbstractAccountTool AA creation invariants", () => {
   });
 
   it("sends accountId bytes with bound AA account hash160", () => {
-    expect(source).toMatch(/const uuidHex = stringToHex\(uuid\.value\)/);
-    expect(source).toMatch(/type:\s*"ByteArray",\s*value:\s*uuidHex/);
+    expect(source).toMatch(/const accountIdHex = normalizeAccountId\(uuid\.value\)/);
+    expect(source).toMatch(/type:\s*"ByteArray",\s*value:\s*accountIdHex/);
     expect(source).toMatch(/type:\s*"Hash160",\s*value:\s*computedAddressScriptHash/);
   });
 
   it("derives verification script by calling verify(accountId)", () => {
     expect(source).toMatch(/operation:\s*'verify'/);
-    expect(source).toMatch(/ContractParam\.byteArray\(uuidHex\)/);
+    expect(source).toMatch(/ContractParam\.byteArray\(accountIdHex\)/);
   });
 });

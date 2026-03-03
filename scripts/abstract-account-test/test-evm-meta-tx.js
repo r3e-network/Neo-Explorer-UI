@@ -1,0 +1,91 @@
+const { rpc, sc, u, tx, wallet } = require('@cityofzion/neon-js');
+const { ethers } = require('ethers');
+
+const aaHash = '49c095ce04d38642e39155f5481615c58227a498';
+
+async function main() {
+    const rpcUrl = 'https://testnet1.neo.coz.io:443';
+    const rpcClient = new rpc.RPCClient(rpcUrl);
+
+    console.log("Checking ExecuteMetaTx with valid EVM public key...");
+    
+    const evmWallet = ethers.Wallet.createRandom();
+    const accountId = evmWallet.signingKey.publicKey.slice(2);
+    const deployerWif = 'Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U';
+    const deployerAccount = new wallet.Account(deployerWif);
+    
+    const targetContract = aaHash;
+    const method = 'getNonceForAccount';
+    
+    const nonce = 0;
+    const deadline = Math.floor(Date.now() / 1000) + 3600;
+    const argsParam = [sc.ContractParam.byteArray(u.HexString.fromHex(accountId, true)), sc.ContractParam.hash160(deployerAccount.scriptHash)];
+    
+    const argsScript = sc.createScript({
+        scriptHash: aaHash,
+        operation: 'computeArgsHash',
+        args: [
+            { type: 'Array', value: argsParam }
+        ]
+    });
+    const argsRes = await rpcClient.invokeScript(u.HexString.fromHex(argsScript), []);
+    const argsHash = Buffer.from(argsRes.stack[0].value, 'base64').toString('hex');
+    
+    const domain = {
+        name: 'Neo N3 Abstract Account',
+        version: '1',
+        chainId: 894710606,
+        verifyingContract: '0x' + aaHash
+    };
+
+    const types = {
+        MetaTransaction: [
+            { name: 'accountId', type: 'bytes' },
+            { name: 'targetContract', type: 'address' },
+            { name: 'methodHash', type: 'bytes32' },
+            { name: 'argsHash', type: 'bytes32' },
+            { name: 'nonce', type: 'uint256' },
+            { name: 'deadline', type: 'uint256' }
+        ]
+    };
+
+    const message = {
+        accountId: '0x' + accountId,
+        targetContract: '0x0000000000000000000000000000000000000000', // Padded for hashing
+        methodHash: ethers.keccak256(ethers.toUtf8Bytes(method)),
+        argsHash: '0x' + argsHash,
+        nonce: String(nonce),
+        deadline: String(deadline)
+    };
+    
+    message.targetContract = '0x' + targetContract; // Unpad for typeddata serialization
+    
+    const signatureWithRecovery = await evmWallet.signTypedData(domain, types, message);
+    const pureSignature = signatureWithRecovery.slice(2, 130);
+    
+    const sb = new sc.ScriptBuilder();
+    sb.emitAppCall(aaHash, 'createAccount', [
+        sc.ContractParam.byteArray(u.HexString.fromHex(accountId, true)),
+        { type: 'Array', value: [sc.ContractParam.hash160(evmWallet.address.slice(2))] }, // Admin
+        sc.ContractParam.integer(1), // Admin Threshold
+        { type: 'Array', value: [] }, // Manager
+        sc.ContractParam.integer(0) // Manager Threshold
+    ]);
+    
+    sb.emitAppCall(aaHash, 'executeMetaTx', [
+        sc.ContractParam.byteArray(u.HexString.fromHex(accountId, true)),
+        sc.ContractParam.byteArray(u.HexString.fromHex(accountId, true)), // uncompressedPubKey is same as accountId for EVM
+        sc.ContractParam.hash160(targetContract),
+        sc.ContractParam.string(method),
+        { type: 'Array', value: argsParam },
+        sc.ContractParam.byteArray(u.HexString.fromHex(argsHash, true)),
+        sc.ContractParam.integer(nonce),
+        sc.ContractParam.integer(deadline),
+        sc.ContractParam.byteArray(u.HexString.fromHex(pureSignature, true))
+    ]);
+    
+    const execRes = await rpcClient.invokeScript(u.HexString.fromHex(sb.build()), [{ account: deployerAccount.scriptHash, scopes: tx.WitnessScope.Global }]);
+    console.log(JSON.stringify(execRes, null, 2));
+}
+
+main().catch(console.error);

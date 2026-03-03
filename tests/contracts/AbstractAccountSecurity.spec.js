@@ -23,7 +23,16 @@ describe("UnifiedSmartWallet security invariants", () => {
   });
 
   it("uses account-scoped nonce storage keys", () => {
-    expect(source).toMatch(/Helper\.Concat\(Helper\.Concat\(NoncePrefix,\s*accountId\),\s*signer\)/);
+    expect(source).toMatch(/Helper\.Concat\(Helper\.Concat\(NoncePrefix,\s*GetStorageKey\(accountId\)\),\s*signer\)/);
+  });
+
+  it("stores admin and manager thresholds in completely separate mapping prefixes", () => {
+    expect(source).toMatch(/private static readonly byte\[\] AdminThresholdPrefix/);
+    expect(source).toMatch(/private static readonly byte\[\] ManagerThresholdPrefix/);
+    expect(source).toMatch(/new StorageMap\(Storage\.CurrentContext,\s*AdminThresholdPrefix\)/);
+    expect(source).toMatch(/new StorageMap\(Storage\.CurrentContext,\s*ManagerThresholdPrefix\)/);
+    expect(source).toMatch(/public static int GetAdminThreshold/);
+    expect(source).toMatch(/public static int GetManagerThreshold/);
   });
 
   it("defends multisig thresholds against duplicate role entries", () => {
@@ -39,8 +48,11 @@ describe("UnifiedSmartWallet security invariants", () => {
   });
 
   it("binds meta-transactions with signed args hash and deadline", () => {
-    expect(source).toMatch(/ExecutionEngine\.Assert\(Runtime\.Time <= \(ulong\)deadline,\s*"Signature expired"\)/);
-    expect(source).toMatch(/ExecutionEngine\.Assert\(ByteArrayEquals\(expectedArgsHash,\s*providedArgsHash\),\s*"Invalid args hash"\)/);
+    expect(source).toMatch(/NormalizeDeadlineToMs\(deadline\)/);
+    expect(source).toMatch(/ExecutionEngine\.Assert\(\(BigInteger\)Runtime\.Time <= normalizedDeadline,\s*"Signature expired"\)/);
+    expect(source).toMatch(/ToBytes32\(argsHash,\s*"Invalid args hash length"\)/);
+    expect(source).toMatch(/byte\[] expectedArgsHash = \(byte\[\]\)ComputeArgsHash\(args\)/);
+    expect(source).toMatch(/BuildMetaTxStructHash\(accountId,\s*targetContract,\s*method,\s*expectedArgsHash,\s*nonce,\s*deadline\)/);
   });
 
   it("removes accountId self-signed bypass from explicit signer checks", () => {

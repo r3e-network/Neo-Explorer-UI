@@ -61,12 +61,12 @@ describe("MetaTx EIP-712 source invariants", () => {
     expect(relayerSource).toMatch(/sc\.ContractParam\.hash160\(cleanAccountAddress\)/);
   });
 
-  it("binds nonce namespace to explicit signer address in prepare\/execute flow", () => {
+  it("binds nonce namespace to explicit signer address in prepare/execute flow", () => {
     expect(relayerSource).toMatch(/signerAddress/);
     expect(relayerSource).toMatch(/Recovered signer does not match signerAddress/);
   });
 
-  it("wallet service sends accountAddress with relayer prepare\/execute payloads", () => {
+  it("wallet service sends accountAddress with relayer prepare/execute payloads", () => {
     expect(walletSource).toMatch(/accountAddress/);
     expect(walletSource).toMatch(/action:\s*"prepare"[\s\S]*accountAddress/);
     expect(walletSource).toMatch(/action:\s*"execute"[\s\S]*accountAddress/);

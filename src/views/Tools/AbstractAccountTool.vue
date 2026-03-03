@@ -26,16 +26,25 @@
           </div>
 
           <template v-else>
-            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10 border border-indigo-200/60 dark:border-indigo-900/40 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
-              <div class="p-2.5 bg-indigo-100 dark:bg-indigo-800/40 rounded-xl shrink-0">
-                <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10 border border-indigo-200/60 dark:border-indigo-900/40 rounded-2xl p-6 shadow-sm">
+              <div class="flex items-center gap-3 mb-4 border-b border-indigo-200/60 dark:border-indigo-800/60 pb-4">
+                <div class="p-2.5 bg-indigo-100 dark:bg-indigo-800/40 rounded-xl shrink-0">
+                  <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                </div>
+                <h4 class="font-bold text-high text-lg">Abstract Account Protocol Details</h4>
               </div>
-              <div>
-                <h4 class="font-bold text-high mb-2 text-base">How does this work?</h4>
-                <p class="text-sm text-mid leading-relaxed">
-                  Instead of paying 10 GAS to deploy a smart contract, we use a <strong>Proxy Verification Script</strong>. 
-                  This tool generates a unique UUID, derives your isolated Neo Address off-chain, and registers it with the globally deployed Master Entry Contract. 
-                  Your funds stay in your unique address, protected by the Master Contract's dynamic rules.
+              <div class="space-y-4 text-sm text-mid leading-relaxed">
+                <p>
+                  <strong>1. Deterministic Proxy Verification:</strong> Instead of paying 10 GAS to deploy a new Smart Contract for every user, the protocol utilizes an on-chain Master Entry Contract alongside a <i>Proxy Verification Script</i>. An Account ID (like an EVM Public Key or UUID) is packed into a minimalist script that executes a <code class="bg-indigo-100 dark:bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-700 dark:text-indigo-300">System.Contract.Call</code> to the master contract. The <i>Hash160</i> of this script becomes your unique, fully isolated Neo N3 address.
+                </p>
+                <p>
+                  <strong>2. Cross-Chain EVM Compatibility:</strong> Users can connect MetaMask, OKX Wallet, or any other EVM-compatible wallet. When you connect, the Explorer extracts your uncompressed public key via an off-chain gasless signature. This Key acts as your unique Account ID, binding your Neo Abstract Account directly to your Ethereum identity without requiring you to manage Neo private keys.
+                </p>
+                <p>
+                  <strong>3. Meta-Transactions & EIP-712:</strong> To execute transactions, your EVM wallet signs an EIP-712 formatted message containing the destination contract, method, payload hash, and deadline. A Relayer Node submits this payload on the Neo Network. The Master Contract natively validates the Keccak256 hash and Secp256k1 signature on-chain, ensuring you remain in total custody of your funds.
+                </p>
+                <p>
+                  <strong>4. Multi-Signature & Role Management:</strong> The abstract account natively supports flexible multi-sig architectures out of the box. You can configure multiple <strong>Admin</strong> addresses (which are mandatory) and optional <strong>Manager</strong> addresses. Each role can specify an independent threshold requirement, establishing separate authorization rings for day-to-day operations vs administrative upgrades.
                 </p>
               </div>
             </div>
@@ -177,8 +186,8 @@
                     {{ copied ? 'Copied' : 'Copy Code' }}
                   </button>
                 </div>
-                <div class="p-5 overflow-auto max-h-[600px] flex-grow">
-                  <pre class="whitespace-pre font-mono text-[13px] leading-relaxed text-[#d4d4d4] dark:text-[#e6edf3]"><code>{{ contractFiles[activeFileIdx]?.content }}</code></pre>
+                <div class="p-5 overflow-auto max-h-[600px] flex-grow [&>pre]:!bg-transparent [&>pre]:!m-0 text-[13px]">
+                  <highlightjs autodetect :code="contractFiles[activeFileIdx]?.content" />
                 </div>
               </div>
             </div>
@@ -195,7 +204,14 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
-import { getRpcUrl } from "@/utils/env";
+
+import hljs from 'highlight.js/lib/core';
+import csharp from 'highlight.js/lib/languages/csharp';
+import hljsVuePlugin from "@highlightjs/vue-plugin";
+import 'highlight.js/styles/github-dark.css';
+
+hljs.registerLanguage('csharp', csharp);
+const highlightjs = hljsVuePlugin.component;
 
 import code_Main from '../../../contracts/AbstractAccount/AbstractAccount.cs?raw';
 import code_AccountLifecycle from '../../../contracts/AbstractAccount/AbstractAccount.AccountLifecycle.cs?raw';
@@ -264,17 +280,6 @@ function generateUUID() {
   uuid.value = crypto.randomUUID();
 }
 
-function normalizeByteArrayForWallet(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return raw;
-
-  const withoutPrefix = raw.replace(/^0x/i, "");
-  if (/^[0-9a-f]+$/i.test(withoutPrefix) && withoutPrefix.length % 2 === 0) {
-    return withoutPrefix;
-  }
-  return raw;
-}
-
 function normalizeAccountId(str) {
   if (isEvmWallet.value && /^[0-9a-fA-F]{130}$/.test(str)) {
     return str;
@@ -337,6 +342,16 @@ function formatErrorMessage(err) {
   return err.description || err.message || err.error?.message || JSON.stringify(err);
 }
 
+function normalizeAddress(addr) {
+  if (addr.startsWith('N') && addr.length === 34) {
+    return neonJs.wallet.getScriptHashFromAddress(addr);
+  }
+  if (addr.startsWith('0x')) {
+    return addr.slice(2);
+  }
+  return addr;
+}
+
 async function createAccount() {
   if (!walletService.isConnected) {
     toast.error("Please connect your wallet first");
@@ -361,16 +376,6 @@ async function createAccount() {
     if (!aaHash) throw new Error("Master Abstract Account contract not found in environment config.");
 
     const accountIdHex = normalizeAccountId(uuid.value);
-    
-    function normalizeAddress(addr) {
-      if (addr.startsWith('N') && addr.length === 34) {
-        return neonJs.wallet.getScriptHashFromAddress(addr);
-      }
-      if (addr.startsWith('0x')) {
-        return addr.slice(2);
-      }
-      return addr;
-    }
 
     const adminsParam = validAdmins.map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));
     const managersParam = managers.value.filter(m => m.trim().length > 0).map(addr => ({ type: 'Hash160', value: normalizeAddress(addr) }));

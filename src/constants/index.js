@@ -1,7 +1,7 @@
 // Native token contract hashes (always lowercase for consistent comparison)
 export const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 export const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-export const CONTRACT_MANAGEMENT_HASH = "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2";
+export const CONTRACT_MANAGEMENT_HASH = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
 
 // ---------------------------------------------------------------------------
 // Null / zero sentinel values
@@ -52,12 +52,14 @@ export const NATIVE_CONTRACTS = {
   [NEO_HASH]: { name: "NeoToken", symbol: "NEO", decimals: 0 },
   [GAS_HASH]: { name: "GasToken", symbol: "GAS", decimals: 8 },
   [CONTRACT_MANAGEMENT_HASH]: { name: "ContractManagement", symbol: null, decimals: null },
-  "0xfe924b7cfe89ddd271abaf7210a80a7e11178758": { name: "RoleManagement", symbol: null, decimals: null },
-  "0xda65b600f7124ce6c79950c1772a36403104f2be": { name: "OracleContract", symbol: null, decimals: null },
   "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0": { name: "StdLib", symbol: null, decimals: null },
-  "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd": { name: "CryptoLib", symbol: null, decimals: null },
-  "0x726cb6e0cd8628a1350a611384688911ab75f51b": { name: "LedgerContract", symbol: null, decimals: null },
+  "0x726cb6e0cd8628a1350a611384688911ab75f51b": { name: "CryptoLib", symbol: null, decimals: null },
+  "0xda65b600f7124ce6c79950c1772a36403104f2be": { name: "LedgerContract", symbol: null, decimals: null },
   "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b": { name: "PolicyContract", symbol: null, decimals: null },
+  "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2": { name: "RoleManagement", symbol: null, decimals: null },
+  "0xfe924b7cfe89ddd271abaf7210a80a7e11178758": { name: "OracleContract", symbol: null, decimals: null },
+  "0xc1e14f19c3e60d0b9244d06dd7ba9b113135ec3b": { name: "Notary", symbol: null, decimals: null },
+  "0x156326f25b1b5d839a4d326aeaa75383c9563ac1": { name: "Treasury", symbol: null, decimals: null },
 };
 
 export const OPERATION_TYPES = {
