@@ -343,13 +343,13 @@ export const rpc = async (method, params = [], { signal } = {}) => {
  * @param {any} defaultValue - Default value on error
  * @returns {Promise<any>}
  */
-export const safeRpc = async (method, params = [], defaultValue = null, { signal } = {}) => {
+export const safeRpc = async (method, params = [], defaultValue = null, { signal, throwOnError } = {}) => {
   try {
     const result = await rpc(method, params, { signal });
     const normalized = normalizeItem(result);
     return normalized ?? defaultValue;
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (signal?.aborted || throwOnError) throw error;
     if (import.meta.env.DEV) console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;
   }
@@ -420,12 +420,12 @@ export const formatListResponse = (result) => {
  * @param {string} errorMsg - Error message prefix
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
-export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal } = {}) => {
+export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal, throwOnError } = {}) => {
   try {
     const result = await rpc(method, params, { signal });
     return formatListResponse(result);
   } catch (error) {
-    if (signal?.aborted) throw error;
+    if (signal?.aborted || throwOnError) throw error;
     if (import.meta.env.DEV) console.error(`Failed to ${errorMsg}:`, error.message);
     return { result: [], totalCount: 0 };
   }

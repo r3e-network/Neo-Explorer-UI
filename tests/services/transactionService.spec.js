@@ -64,7 +64,8 @@ describe("transactionService", () => {
       expect(api.safeRpc).toHaveBeenCalledWith(
         "GetRawTransactionByTransactionHash",
         { TransactionHash: hash },
-        null
+        null,
+        expect.any(Object)
       );
     });
   });
@@ -79,7 +80,8 @@ describe("transactionService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByAddress",
         { Address: "0xNAddr", Limit: 15, Skip: 10 },
-        "get transactions by address"
+        "get transactions by address",
+        expect.any(Object)
       );
       
       expect(result.result[0].vmstate).toBe("HALT");

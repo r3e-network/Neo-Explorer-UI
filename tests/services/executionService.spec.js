@@ -31,9 +31,10 @@ describe("executionService getExecutionTrace fallback behavior", () => {
     expect(api.safeRpc).toHaveBeenCalledWith(
       "GetApplicationLogByTransactionHash",
       { TransactionHash: "0xtx-indexed" },
-      null
+      null,
+      expect.any(Object)
     );
-    expect(api.safeRpc).not.toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"], null);
+    expect(api.safeRpc).not.toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"], null, expect.any(Object));
   });
 
   it("falls back to legacy execution trace when indexed notifications are empty", async () => {
@@ -56,9 +57,10 @@ describe("executionService getExecutionTrace fallback behavior", () => {
     expect(api.safeRpc).toHaveBeenCalledWith(
       "GetApplicationLogByTransactionHash",
       { TransactionHash: "0xtx-fallback" },
-      null
+      null,
+      expect.any(Object)
     );
-    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-fallback"], null);
+    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-fallback"], null, expect.any(Object));
   });
 
   it("uses legacy result when indexed trace is unavailable", async () => {
@@ -78,9 +80,10 @@ describe("executionService getExecutionTrace fallback behavior", () => {
     expect(api.safeRpc).toHaveBeenCalledWith(
       "GetApplicationLogByTransactionHash",
       { TransactionHash: "0xtx-legacy" },
-      null
+      null,
+      expect.any(Object)
     );
-    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"], null);
+    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"], null, expect.any(Object));
   });
 
   it("normalizes flattened indexed trace shape into executions array", async () => {

@@ -179,7 +179,7 @@ export const statsService = createService(
           };
         } catch (error) {
           if (import.meta.env.DEV) console.error("Failed to get dashboard stats:", error);
-          return { blocks: 0, txs: 0, contracts: 0, candidates: 0, addresses: 0, tokens: 0 };
+          throw error;
         }
       };
 

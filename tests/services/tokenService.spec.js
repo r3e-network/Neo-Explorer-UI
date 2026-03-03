@@ -23,7 +23,8 @@ describe("tokenService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetInfos",
         { Limit: 10, Skip: 5, Standard: "NEP17" },
-        "get token list"
+        "get token list",
+        expect.any(Object)
       );
     });
 
@@ -43,7 +44,8 @@ describe("tokenService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetInfos",
         { Limit: 10, Skip: 5, Standard: "NEP11" },
-        "get token list"
+        "get token list",
+        expect.any(Object)
       );
     });
   });
@@ -52,7 +54,7 @@ describe("tokenService", () => {
     it("calls safeRpc with hash", async () => {
       api.safeRpc.mockResolvedValueOnce({ name: "NEO" });
       await tokenService.getByHash("0xhash");
-      expect(api.safeRpc).toHaveBeenCalledWith("GetAssetInfoByContractHash", { ContractHash: "0xhash" }, null);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetAssetInfoByContractHash", { ContractHash: "0xhash" }, null, expect.any(Object));
     });
   });
 
@@ -65,7 +67,8 @@ describe("tokenService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetAssetHoldersByContractHash",
         { ContractHash: "0xhash", Limit: 10, Skip: 5 },
-        "get token holders"
+        "get token holders",
+        expect.any(Object)
       );
     });
   });

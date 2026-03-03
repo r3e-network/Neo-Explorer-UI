@@ -11,6 +11,7 @@ import { getNetworkRefreshIntervalMs } from "../utils/env";
 export const getRealtimeListCacheOptions = (options = {}) => ({
   staleWhileRevalidate: true,
   softTtl: getNetworkRefreshIntervalMs(),
+  throwOnError: true,
   ...options,
 });
 
@@ -49,7 +50,7 @@ export function createRpcMethod({
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
-    return cachedRequest(key, () => safeRpc(rpcMethod, rpcParams, fallback), ttl, cacheOpts);
+    return cachedRequest(key, () => safeRpc(rpcMethod, rpcParams, fallback, options), ttl, cacheOpts);
   };
 }
 
@@ -88,7 +89,7 @@ export function createRpcListMethod({
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
-    return cachedRequest(key, () => safeRpcList(rpcMethod, rpcParams, errorLabel), ttl, cacheOpts);
+    return cachedRequest(key, () => safeRpcList(rpcMethod, rpcParams, errorLabel, options), ttl, cacheOpts);
   };
 }
 

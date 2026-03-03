@@ -29,7 +29,7 @@ describe("blockService", () => {
       const hash = "0xabc123";
       api.safeRpc.mockResolvedValueOnce(hash);
       const result = await blockService.getBestHash();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBestBlockHash", {}, null);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBestBlockHash", {}, null, expect.any(Object));
       expect(result).toBe(hash);
     });
   });
@@ -83,7 +83,7 @@ describe("blockService", () => {
       const hash = "0xabc";
       api.safeRpc.mockResolvedValueOnce({ height: 100 });
       await blockService.getByHash(hash);
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHash", { BlockHash: hash }, null);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHash", { BlockHash: hash }, null, expect.any(Object));
     });
   });
 
@@ -91,7 +91,7 @@ describe("blockService", () => {
     it("calls safeRpc with height", async () => {
       api.safeRpc.mockResolvedValueOnce({ hash: "0x123" });
       await blockService.getByHeight(100);
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 100 }, null);
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 100 }, null, expect.any(Object));
     });
   });
 
@@ -104,7 +104,8 @@ describe("blockService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByBlockHash",
         { BlockHash: "0xabc", Limit: 10, Skip: 5 },
-        "get transactions by block hash"
+        "get transactions by block hash",
+        expect.any(Object)
       );
       expect(result).toEqual(mockData);
     });
@@ -119,7 +120,8 @@ describe("blockService", () => {
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetRawTransactionByBlockHeight",
         { BlockHeight: 123, Limit: 10, Skip: 5 },
-        "get transactions by block height"
+        "get transactions by block height",
+        expect.any(Object)
       );
       expect(result).toEqual(mockData);
     });
