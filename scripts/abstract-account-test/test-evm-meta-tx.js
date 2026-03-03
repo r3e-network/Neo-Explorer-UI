@@ -1,7 +1,15 @@
 const { rpc, sc, u, tx, wallet } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 
-const aaHash = '49c095ce04d38642e39155f5481615c58227a498';
+function sanitizeHex(v) {
+    return String(v || '').replace(/^0x/i, '').toLowerCase();
+}
+
+const aaHash = sanitizeHex(
+    process.env.AA_HASH_TESTNET
+    || process.env.VITE_AA_HASH_TESTNET
+    || '49c095ce04d38642e39155f5481615c58227a498'
+);
 
 async function main() {
     const rpcUrl = 'https://testnet1.neo.coz.io:443';
@@ -11,7 +19,10 @@ async function main() {
     
     const evmWallet = ethers.Wallet.createRandom();
     const accountId = evmWallet.signingKey.publicKey.slice(2);
-    const deployerWif = 'Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U';
+    const deployerWif = process.env.TEST_WIF;
+    if (!deployerWif) {
+        throw new Error('Missing TEST_WIF');
+    }
     const deployerAccount = new wallet.Account(deployerWif);
     
     const targetContract = aaHash;
@@ -31,10 +42,16 @@ async function main() {
     const argsRes = await rpcClient.invokeScript(u.HexString.fromHex(argsScript), []);
     const argsHash = Buffer.from(argsRes.stack[0].value, 'base64').toString('hex');
     
+    const version = await rpcClient.execute(new rpc.Query({ method: 'getversion' }));
+    const chainId = version?.protocol?.network;
+    if (!chainId) {
+        throw new Error('Unable to resolve network magic');
+    }
+
     const domain = {
         name: 'Neo N3 Abstract Account',
         version: '1',
-        chainId: 894710606,
+        chainId,
         verifyingContract: '0x' + aaHash
     };
 
@@ -51,14 +68,12 @@ async function main() {
 
     const message = {
         accountId: '0x' + accountId,
-        targetContract: '0x0000000000000000000000000000000000000000', // Padded for hashing
+        targetContract: '0x' + targetContract,
         methodHash: ethers.keccak256(ethers.toUtf8Bytes(method)),
         argsHash: '0x' + argsHash,
         nonce: String(nonce),
         deadline: String(deadline)
     };
-    
-    message.targetContract = '0x' + targetContract; // Unpad for typeddata serialization
     
     const signatureWithRecovery = await evmWallet.signTypedData(domain, types, message);
     const pureSignature = signatureWithRecovery.slice(2, 130);
@@ -66,7 +81,7 @@ async function main() {
     const sb = new sc.ScriptBuilder();
     sb.emitAppCall(aaHash, 'createAccount', [
         sc.ContractParam.byteArray(u.HexString.fromHex(accountId, true)),
-        { type: 'Array', value: [sc.ContractParam.hash160(evmWallet.address.slice(2))] }, // Admin
+        { type: 'Array', value: [sc.ContractParam.hash160(deployerAccount.scriptHash), sc.ContractParam.hash160(evmWallet.address.slice(2))] }, // Admins
         sc.ContractParam.integer(1), // Admin Threshold
         { type: 'Array', value: [] }, // Manager
         sc.ContractParam.integer(0) // Manager Threshold

@@ -40,6 +40,12 @@ describe("MetaTx EIP-712 source invariants", () => {
     expect(relayerSource).toMatch(/aaHash is not allowed by relayer policy/);
   });
 
+  it("relayer enforces abstract-account method allowlist policy", () => {
+    expect(relayerSource).toMatch(/aaMethodPolicy/);
+    expect(relayerSource).toMatch(/AA_ALLOWED_META_METHODS/);
+    expect(relayerSource).toMatch(/Method not allowed by AA policy/);
+  });
+
   it("uses dynamic bytes accountId EIP-712 type to match contract struct", () => {
     expect(relayerSource).toMatch(/name:\s*['"]accountId['"],\s*type:\s*['"]bytes['"]/);
     expect(relayerSource).not.toMatch(/name:\s*['"]accountId['"],\s*type:\s*['"]bytes32['"]/);
@@ -70,6 +76,12 @@ describe("MetaTx EIP-712 source invariants", () => {
     expect(walletSource).toMatch(/accountAddress/);
     expect(walletSource).toMatch(/action:\s*"prepare"[\s\S]*accountAddress/);
     expect(walletSource).toMatch(/action:\s*"execute"[\s\S]*accountAddress/);
+  });
+
+  it("wallet service validates abstract-account method policy before relaying", () => {
+    expect(walletSource).toMatch(/aaMethodPolicy/);
+    expect(walletSource).toMatch(/AA_ALLOWED_META_METHODS/);
+    expect(walletSource).toMatch(/Method not allowed by abstract account policy/);
   });
 
   it("restricts relayer witness scope to AA contract via CustomContracts", () => {

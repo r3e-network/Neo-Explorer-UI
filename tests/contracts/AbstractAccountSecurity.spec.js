@@ -10,6 +10,25 @@ const source = fs
   .join("\n");
 
 describe("UnifiedSmartWallet security invariants", () => {
+  it("requires signer-backed authorization during account initialization", () => {
+    expect(source).toMatch(/AssertBootstrapAuthorization\(/);
+    expect(source).toMatch(/CreateAccountInternal\([\s\S]*AssertBootstrapAuthorization\(/);
+    expect(source).toMatch(/CheckNativeSignatures\(admins,\s*adminThreshold\)/);
+  });
+
+  it("guards execute/meta paths with account-scoped execution lock", () => {
+    expect(source).toMatch(/ExecutionLockPrefix/);
+    expect(source).toMatch(/EnterExecution\(/);
+    expect(source).toMatch(/ExitExecution\(/);
+    expect(source).toMatch(/Execute\([\s\S]*EnterExecution\(accountId\)/);
+    expect(source).toMatch(/ExecuteMetaTxInternal\([\s\S]*EnterExecution\(accountId\)/);
+    expect(source).toMatch(/AssertNoExternalMutationDuringExecution\(/);
+  });
+
+  it("does not use wildcard contract permissions in source", () => {
+    expect(source).not.toMatch(/\[ContractPermission\("\*"\s*,\s*"\*"\)\]/);
+  });
+
   it("binds MetaTx admin context to account scope and self-call origin", () => {
     expect(source).toMatch(/MetaTxContextPrefix/);
     expect(source).toMatch(/StorageMap\s+map\s*=\s*new StorageMap\(Storage\.CurrentContext,\s*MetaTxContextPrefix\)/);

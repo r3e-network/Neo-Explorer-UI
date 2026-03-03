@@ -633,6 +633,20 @@ async function main() {
   const accountB = deriveAaAddressFromId(aaHash, accountIdB);
   summary.accountB = { accountIdHex: accountIdB, accountAddress: accountB.address, accountAddressScriptHash: `0x${accountB.addressScriptHash}` };
 
+  const rogueAdminHash = randomAccountIdHex(20);
+  const simUnauthorizedCreateB = await simulate(aaHash, 'createAccount', [
+    cpByteArray(accountIdB),
+    cpArray([cpHash160(rogueAdminHash)]),
+    sc.ContractParam.integer(1),
+    cpArray(),
+    sc.ContractParam.integer(0),
+  ], ownerSigner);
+  check(
+    'unauthorized createAccount simulation fails under bootstrap auth',
+    simUnauthorizedCreateB.state === 'FAULT' && String(simUnauthorizedCreateB.exception || '').includes('Unauthorized account initialization'),
+    simUnauthorizedCreateB.exception || ''
+  );
+
   summary.txs.push({ step: 'createAccount(B)', ...(await sendInvocation({
     account: owner,
     magic,

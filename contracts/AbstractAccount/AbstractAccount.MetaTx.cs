@@ -154,14 +154,20 @@ namespace AbstractAccount
             CheckPermissionsAndExecute(accountId, new UInt160[] { signerHash }, targetContract, method, args);
 
             // Scope authenticated signer by account for this execution path.
+            EnterExecution(accountId);
             SetMetaTxContext(accountId, signerHash);
             SetVerifyContext(accountId, targetContract);
-            OnExecute(accountId, targetContract, method, args);
-            object result = Contract.Call(targetContract, method, CallFlags.All, args);
-            ClearVerifyContext(accountId);
-            ClearMetaTxContext(accountId);
-
-            return result;
+            try
+            {
+                OnExecute(accountId, targetContract, method, args);
+                return DispatchContractCall(targetContract, method, args);
+            }
+            finally
+            {
+                ClearVerifyContext(accountId);
+                ClearMetaTxContext(accountId);
+                ExitExecution(accountId);
+            }
         }
 
         private static BigInteger NormalizeDeadlineToMs(BigInteger deadline)

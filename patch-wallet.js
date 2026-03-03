@@ -14,7 +14,7 @@ const evmInvokeBlock = `
       const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
       if (invalidArg) throw new Error("Invalid Hash160 argument.");
 
-      const aaHash = import.meta.env.VITE_AA_HASH_TESTNET || import.meta.env.VITE_AA_HASH || "0x1149a822c43df4a2a55ee9545bf108faf01bebdf";
+      const aaHash = import.meta.env.VITE_AA_HASH_TESTNET || import.meta.env.VITE_AA_HASH || "0x49c095ce04d38642e39155f5481615c58227a498";
       
       // Determine real nonce (Relayer could also provide this). Here we use timestamp as mock or fetch it.
       const nonce = Date.now();

@@ -12,7 +12,31 @@ namespace AbstractAccount
     [ManifestExtra("Author", "R3E Neo Explorer")]
     [ManifestExtra("Email", "dev@neo.org")]
     [ManifestExtra("Description", "A global, unified permission-controlling abstract account gateway.")]
-    [ContractPermission("*", "*")]
+    [ContractPermission(
+        "*",
+        "transfer",
+        "balanceOf",
+        "symbol",
+        "decimals",
+        "totalSupply",
+        "allowance",
+        "approve",
+        "getNonce",
+        "getNonceForAccount",
+        "getNonceForAddress",
+        "setWhitelistByAddress",
+        "setWhitelistModeByAddress",
+        "setWhitelist",
+        "setWhitelistMode",
+        "setBlacklistByAddress",
+        "setBlacklist",
+        "setMaxTransferByAddress",
+        "setMaxTransfer",
+        "setAdminsByAddress",
+        "setAdmins",
+        "setManagersByAddress",
+        "setManagers",
+        "bindAccountAddress")]
     public partial class UnifiedSmartWallet : SmartContract
     {
         private static readonly byte[] DeployerKey = new byte[] { 0x00 };
@@ -30,6 +54,7 @@ namespace AbstractAccount
         private static readonly byte[] VerifyContextPrefix = new byte[] { 0x0A };
         private static readonly byte[] AccountAddressToIdPrefix = new byte[] { 0x0B };
         private static readonly byte[] AccountIdToAddressPrefix = new byte[] { 0x0C };
+        private static readonly byte[] ExecutionLockPrefix = new byte[] { 0x0D };
         private static readonly byte[] MetaTxContextPrefix = new byte[] { 0xFF };
 
         // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")

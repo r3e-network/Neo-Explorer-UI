@@ -31,6 +31,20 @@ function compactAbi(manifest) {
 }
 
 describe("UnifiedSmartWallet compiled artifact behavior", () => {
+  it("compiler output avoids full wildcard permissions", () => {
+    const { tempDir, manifest } = compileManifestToTemp();
+    try {
+      const permissions = manifest?.permissions || [];
+      expect(permissions.length).toBeGreaterThan(0);
+      const hasFullWildcard = permissions.some(
+        (permission) => permission?.contract === "*" && permission?.methods === "*",
+      );
+      expect(hasFullWildcard).toBe(false);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  }, 20000);
+
   it("compiler output contains hardened meta-tx ABI shape", () => {
     const { tempDir, manifest } = compileManifestToTemp();
     try {

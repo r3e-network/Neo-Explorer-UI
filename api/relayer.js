@@ -1,6 +1,7 @@
 const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 const { enforceRelayerRateLimit } = require('./lib/relayerRateLimit');
+const aaMethodPolicy = require('../src/constants/aaMethodPolicy.json');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -8,6 +9,7 @@ module.exports.config = {
 
 const DEFAULT_DEADLINE_SECONDS = 5 * 60; // 5 minutes
 const MAX_DEADLINE_WINDOW_SECONDS = 60 * 60; // 1 hour
+const AA_ALLOWED_META_METHODS = new Set(Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : []);
 
 // Helper to sanitize hex string inputs.
 const sanitizeHex = (hexStr) => {
@@ -320,6 +322,17 @@ function getConfiguredAaHash(isTestnet) {
     ]);
 }
 
+function assertAllowedAaMetaMethod(method) {
+    const parsedMethod = String(method || '').trim();
+    if (!parsedMethod) {
+        throw new Error('Missing method');
+    }
+    if (!AA_ALLOWED_META_METHODS.has(parsedMethod)) {
+        throw new Error(`Method not allowed by AA policy: ${parsedMethod}`);
+    }
+    return parsedMethod;
+}
+
 module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
@@ -424,7 +437,12 @@ module.exports = async function handler(req, res) {
             cleanSignerAddress = cleanAccountId;
         }
         const cleanTargetContract = sanitizeHex(targetContract);
-        const parsedMethod = String(method || '').trim();
+        let parsedMethod;
+        try {
+            parsedMethod = assertAllowedAaMetaMethod(method);
+        } catch (e) {
+            return res.status(400).json({ error: e.message || 'Invalid method' });
+        }
         const parsedArgs = Array.isArray(args) ? args : [];
 
         if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanSignerAddress) {

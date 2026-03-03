@@ -48,6 +48,7 @@ namespace AbstractAccount
             int managerThreshold)
         {
             AssertValidAccountId(accountId);
+            AssertBootstrapAuthorization(admins, adminThreshold, managers, managerThreshold);
 
             StorageMap adminsMap = new StorageMap(Storage.CurrentContext, AdminsPrefix);
             ByteString existing = adminsMap.Get(GetStorageKey(accountId));
@@ -81,6 +82,17 @@ namespace AbstractAccount
 
             addrToIdMap.Put(accountAddress, accountId);
             idToAddrMap.Put(GetStorageKey(accountId), accountAddress);
+        }
+
+        private static void AssertBootstrapAuthorization(
+            Neo.SmartContract.Framework.List<UInt160> admins,
+            int adminThreshold,
+            Neo.SmartContract.Framework.List<UInt160> managers,
+            int managerThreshold)
+        {
+            bool adminAuthorized = CheckNativeSignatures(admins, adminThreshold);
+            bool managerAuthorized = CheckNativeSignatures(managers, managerThreshold);
+            ExecutionEngine.Assert(adminAuthorized || managerAuthorized, "Unauthorized account initialization");
         }
 
         private static void SetVerifyContext(ByteString accountId, UInt160 targetContract)
@@ -119,6 +131,33 @@ namespace AbstractAccount
         {
             StorageMap map = new StorageMap(Storage.CurrentContext, MetaTxContextPrefix);
             map.Delete(GetStorageKey(accountId));
+        }
+
+        private static void EnterExecution(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, ExecutionLockPrefix);
+            ByteString key = GetStorageKey(accountId);
+            ByteString active = map.Get(key);
+            ExecutionEngine.Assert(active == null, "Execution in progress");
+            map.Put(key, (ByteString)new byte[] { 1 });
+        }
+
+        private static void ExitExecution(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, ExecutionLockPrefix);
+            map.Delete(GetStorageKey(accountId));
+        }
+
+        private static bool IsExecutionActive(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, ExecutionLockPrefix);
+            return map.Get(GetStorageKey(accountId)) != null;
+        }
+
+        private static void AssertNoExternalMutationDuringExecution(ByteString accountId)
+        {
+            if (!IsExecutionActive(accountId)) return;
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == Runtime.ExecutingScriptHash, "External mutation blocked during execute");
         }
     }
 }

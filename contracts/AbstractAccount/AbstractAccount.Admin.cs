@@ -12,6 +12,7 @@ namespace AbstractAccount
         private static void AssertIsAdmin(ByteString accountId)
         {
             AssertAccountExists(accountId);
+            AssertNoExternalMutationDuringExecution(accountId);
 
             // For Neo native signers
             if (CheckNativeSignatures(GetAdmins(accountId), GetAdminThreshold(accountId))) return;

@@ -16,6 +16,7 @@ import {
   normalizeSignersForRpc,
   normalizeSignMessageResult,
 } from "@/utils/walletNormalization";
+import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
 const getRpcUrl = () => {
   const env = getCurrentEnv().toLowerCase();
@@ -39,6 +40,7 @@ const PROVIDERS = {
 let _connectedProvider = null;
 let _account = null;
 let _neolineN3 = null;
+const AA_ALLOWED_META_METHODS = new Set(Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : []);
 
 /**
  * Check if NeoLine extension is available.
@@ -126,6 +128,17 @@ export function getAbstractAccountHash() {
 
   const normalized = normalizeHash160(candidate);
   return isHash160Hex(normalized) ? normalized : "";
+}
+
+function assertAllowedAaMetaMethod(operation) {
+  const method = String(operation || "").trim();
+  if (!method) {
+    throw new Error("Missing method for abstract account relay call.");
+  }
+  if (!AA_ALLOWED_META_METHODS.has(method)) {
+    throw new Error(`Method not allowed by abstract account policy: ${method}`);
+  }
+  return method;
 }
 
 function getWalletErrorMessage(err) {
@@ -658,6 +671,7 @@ export const walletService = {
       }
 
       const signerAddress = (await signer.getAddress()).toLowerCase();
+      const parsedOperation = assertAllowedAaMetaMethod(operation);
       
       let accountId = _account?.pubKey || localStorage.getItem(`evm_pubkey_${signerAddress}`);
       if (!accountId) {
@@ -685,7 +699,7 @@ export const walletService = {
           accountId,
           signerAddress,
           targetContract: cleanTargetContract,
-          method: String(operation),
+          method: parsedOperation,
           args: normalizedArgs
         })
       });
@@ -720,7 +734,7 @@ export const walletService = {
           accountId,
           signerAddress,
           targetContract: cleanTargetContract,
-          method: String(operation),
+          method: parsedOperation,
           args: normalizedArgs,
           argsHash: prepared.message?.argsHash,
           nonce: prepared.message?.nonce,
