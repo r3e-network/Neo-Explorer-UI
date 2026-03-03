@@ -39,7 +39,11 @@ export const executionService = createService(
   },
   {
     async getExecutionTrace(txHash, options = {}) {
-      const indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
+      let indexed = null;
+      try {
+        indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
+      } catch (_err) { /* ignore */ }
+
       const indexedNotifications = this._countNotifications(indexed);
 
       if (indexedNotifications > 0) {
@@ -51,6 +55,21 @@ export const executionService = createService(
         legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
       } catch (_err) {
         legacy = null;
+      }
+
+      // If Fura proxy failed, hit the native Node RPC directly
+      if (!indexed && !legacy) {
+        try {
+          const { rpc: neonRpc } = await import('@cityofzion/neon-js');
+          const { getRpcClientUrl } = await import('@/utils/env');
+          const client = new neonRpc.RPCClient(getRpcClientUrl());
+          const nativeLog = await client.getApplicationLog(txHash);
+          if (nativeLog) {
+            legacy = this._normalizeExecutionTrace(nativeLog);
+          }
+        } catch (_nativeErr) {
+          // ignore native error
+        }
       }
 
       if (!indexed && legacy) return legacy;

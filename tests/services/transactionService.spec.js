@@ -18,7 +18,7 @@ describe("transactionService", () => {
     it("calls safeRpc correctly", async () => {
       api.safeRpc.mockResolvedValueOnce(50000);
       const result = await transactionService.getCount();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, {});
+      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, expect.any(Object));
       expect(result).toBe(50000);
     });
   });

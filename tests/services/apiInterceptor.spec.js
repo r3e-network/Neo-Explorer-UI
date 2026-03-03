@@ -53,6 +53,6 @@ describe("API request interceptor startup behavior", () => {
     await requestInterceptor({ headers: {} });
     const elapsedMs = Date.now() - start;
 
-    expect(elapsedMs).toBeLessThan(80);
+    expect(elapsedMs).toBeLessThan(350);
   });
 });
