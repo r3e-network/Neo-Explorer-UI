@@ -64,10 +64,10 @@ export const transactionService = createService(
       rpcMethod: "GetRawTransactionByAddress",
       errorLabel: "get transactions by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ 
-        Address: addressToScriptHash(address) || address, 
-        Limit: limit, 
-        Skip: skip 
+      buildParams: ([address, limit = 20, skip = 0]) => ({
+        Address: addressToScriptHash(address) || address,
+        Limit: limit,
+        Skip: skip
       }),
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
@@ -99,69 +99,69 @@ export const transactionService = createService(
       return "";
     },
 
-  async getByHash(hash, options = {}) {
-    let tx = await this._getByHash(hash, options);
-    if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
+    async getByHash(hash, options = {}) {
+      let tx = await this._getByHash(hash, options);
+      if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
 
-    try {
-      // Fallback 1: Fura might be lagging. Try native RPC directly.
-      const { rpc: neonRpc } = await import('@cityofzion/neon-js');
-      const { getRpcClientUrl } = await import('@/utils/env');
-      const client = new neonRpc.RPCClient(getRpcClientUrl());
-      const nativeTx = await client.getRawTransaction(hash, true);
-      if (nativeTx && nativeTx.hash) {
-        let blockIndex = 0;
-        if (nativeTx.blockhash) {
-          try {
-            const blockHeader = await client.getBlockHeader(nativeTx.blockhash, true);
-            blockIndex = blockHeader.index;
-          } catch (e) { /* ignore */ }
+      try {
+        // Fallback 1: Fura might be lagging. Try native RPC directly.
+        const { rpc: neonRpc } = await import('@cityofzion/neon-js');
+        const { getRpcClientUrl } = await import('@/utils/env');
+        const client = new neonRpc.RPCClient(getRpcClientUrl());
+        const nativeTx = await client.getRawTransaction(hash, true);
+        if (nativeTx && nativeTx.hash) {
+          let blockIndex = 0;
+          if (nativeTx.blockhash) {
+            try {
+              const blockHeader = await client.getBlockHeader(nativeTx.blockhash, true);
+              blockIndex = blockHeader.index;
+            } catch (e) { /* ignore */ }
+          }
+          return {
+            ...tx,
+            ...nativeTx,
+            vmstate: nativeTx.vmstate || "HALT",
+            netfee: nativeTx.netfee,
+            sysfee: nativeTx.sysfee,
+            blockindex: blockIndex,
+            blocktime: nativeTx.blocktime || Date.now(),
+          };
         }
-        return {
-          ...tx,
-          ...nativeTx,
-          vmstate: nativeTx.vmstate || "HALT",
-          netfee: nativeTx.netfee,
-          sysfee: nativeTx.sysfee,
-          blockindex: blockIndex,
-          blocktime: nativeTx.blocktime || Date.now(),
-        };
+      } catch (err) {
+        // Ignore native RPC failure
       }
-    } catch (err) {
-      // Ignore native RPC failure
-    }
 
-    try {
-      // Fallback 2: Mempool
-      const { getCurrentEnv } = await import('@/utils/env');
-      const { supabaseService } = await import('./supabaseService');
-      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-      const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
+      try {
+        // Fallback 2: Mempool
+        const { getCurrentEnv } = await import('@/utils/env');
+        const { supabaseService } = await import('./supabaseService');
+        const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
+        const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
 
-      const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
-      const found = dbTxs.find(t => t.hash === hash);
-      
-      if (found) {
-        return {
-          ...tx,
-          hash: found.hash,
-          sender: found.sender,
-          size: found.size,
-          netfee: found.netfee,
-          sysfee: found.sysfee,
-          validuntilblock: found.valid_until_block,
-          status: 'pending',
-          timestamp: found.timestamp
-        };
+        const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
+        const found = dbTxs.find(t => t.hash === hash);
+
+        if (found) {
+          return {
+            ...tx,
+            hash: found.hash,
+            sender: found.sender,
+            size: found.size,
+            netfee: found.netfee,
+            sysfee: found.sysfee,
+            validuntilblock: found.valid_until_block,
+            status: 'pending',
+            timestamp: found.timestamp
+          };
+        }
+      } catch (err) {
+        // Not in mempool or DB query failed
       }
-    } catch (err) {
-      // Not in mempool or DB query failed
-    }
-    
-    return tx;
-  },
 
-  _extractVmState(tx) {
+      return tx;
+    },
+
+    _extractVmState(tx) {
       if (!tx) return "";
       return this._normalizeVmState(
         tx.vmstate ??
@@ -188,7 +188,7 @@ export const transactionService = createService(
       const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
       const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
       const supabasePending = await supabaseService.getMempoolTransactions(network, limit);
-      
+
       if (supabasePending && supabasePending.length > 0) {
         return supabasePending.map(tx => ({
           hash: tx.hash,
@@ -212,6 +212,7 @@ export const transactionService = createService(
     },
 
     async getCount(options = {}) {
+      const cacheOpts = getRealtimeListCacheOptions(options);
       const key = getCacheKey("tx_count", {});
       return cachedRequest(
         key,
@@ -229,16 +230,17 @@ export const transactionService = createService(
             }
           }
 
-          const res = await safeRpc("GetTransactionCount", {}, 0, options);
+          const res = await safeRpc("GetTransactionCount", {}, 0, cacheOpts);
           return this._extractCount(res);
         },
         CACHE_TTL.stats,
-        getRealtimeListCacheOptions(options)
+        cacheOpts
       );
     },
 
     async getList(limit = 20, skip = 0, options = {}) {
       const { enrichMissingFields = false, ...requestOptions } = options;
+      const cacheOpts = getRealtimeListCacheOptions(requestOptions);
 
       const key = getCacheKey("tx_list", { limit, skip });
       const res = await cachedRequest(
@@ -261,11 +263,11 @@ export const transactionService = createService(
             "GetTransactionList",
             { Limit: limit, Skip: skip },
             "get transaction list",
-            requestOptions
+            cacheOpts
           );
         },
         CACHE_TTL.chart,
-        getRealtimeListCacheOptions(requestOptions)
+        cacheOpts
       );
 
       if (!res || !res.result) return res;

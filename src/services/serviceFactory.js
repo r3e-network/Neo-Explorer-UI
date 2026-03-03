@@ -50,7 +50,7 @@ export function createRpcMethod({
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
-    return cachedRequest(key, () => safeRpc(rpcMethod, rpcParams, fallback, options), ttl, cacheOpts);
+    return cachedRequest(key, () => safeRpc(rpcMethod, rpcParams, fallback, cacheOpts), ttl, cacheOpts);
   };
 }
 
@@ -89,7 +89,7 @@ export function createRpcListMethod({
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
-    return cachedRequest(key, () => safeRpcList(rpcMethod, rpcParams, errorLabel, options), ttl, cacheOpts);
+    return cachedRequest(key, () => safeRpcList(rpcMethod, rpcParams, errorLabel, cacheOpts), ttl, cacheOpts);
   };
 }
 

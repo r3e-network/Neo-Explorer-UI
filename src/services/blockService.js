@@ -107,6 +107,7 @@ export const blockService = createService(
      * Get latest block height as a number
      */
     async getCount(options = {}) {
+      const cacheOpts = getRealtimeListCacheOptions(options);
       const key = getCacheKey("block_count", {});
       return cachedRequest(
         key,
@@ -124,11 +125,11 @@ export const blockService = createService(
             }
           }
 
-          const res = await safeRpc("GetBlockCount", {}, null, options);
+          const res = await safeRpc("GetBlockCount", {}, null, cacheOpts);
           return this._extractCount(res);
         },
         CACHE_TTL.stats,
-        getRealtimeListCacheOptions(options)
+        cacheOpts
       );
     },
 
@@ -137,6 +138,7 @@ export const blockService = createService(
      */
     async getList(limit = 20, skip = 0, options = {}) {
       const { enrichMissingFields = false, ...requestOptions } = options;
+      const cacheOpts = getRealtimeListCacheOptions(requestOptions);
 
       const key = getCacheKey("block_list", { limit, skip });
       const res = await cachedRequest(
@@ -159,11 +161,11 @@ export const blockService = createService(
             "GetBlockInfoList",
             { Limit: limit, Skip: skip },
             "get block list",
-            requestOptions
+            cacheOpts
           );
         },
         CACHE_TTL.chart,
-        getRealtimeListCacheOptions(requestOptions)
+        cacheOpts
       );
 
       if (!res || !res.result) return res;
@@ -192,7 +194,7 @@ export const blockService = createService(
           return b;
         })
       );
-      
+
       return { ...res, result: enriched };
     },
   }

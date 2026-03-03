@@ -182,6 +182,7 @@ export const tokenService = createService(
      * @returns {Promise<{result: Array, totalCount: number}>} 搜索结果
      */
     async searchTokenByName(type, name, limit = 20, skip = 0, options = {}) {
+      const cacheOpts = getRealtimeListCacheOptions(options);
       const key = getCacheKey("token_search", { type, name, limit, skip });
       return cachedRequest(
         key,
@@ -189,10 +190,11 @@ export const tokenService = createService(
           safeRpcList(
             "GetAssetInfosByName",
             { Name: name, Limit: limit, Skip: skip, Standard: type },
-            `search ${type}`
+            `search ${type}`,
+            cacheOpts
           ),
         CACHE_TTL.chart,
-        getRealtimeListCacheOptions(options)
+        cacheOpts
       );
     },
 
@@ -216,7 +218,7 @@ export const tokenService = createService(
       const key = getCacheKey("token_nep11_properties", { hash, tokenIds });
       return cachedRequest(
         key,
-        () => safeRpc("GetNep11PropertiesByContractHashTokenId", { ContractHash: hash, TokenIds: tokenIds }, null),
+        () => safeRpc("GetNep11PropertiesByContractHashTokenId", { ContractHash: hash, TokenIds: tokenIds }, null, options),
         CACHE_TTL.token,
         options
       );
