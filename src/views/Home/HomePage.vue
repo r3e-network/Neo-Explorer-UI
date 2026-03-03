@@ -283,8 +283,14 @@ async function loadLatestData(forceRefresh = false) {
           const nonPendingTxs = nextTxs.filter(tx => tx.status !== 'pending');
           void enrichTransactions(nonPendingTxs, { maxItems: 6 });
         }
+        
+        // Throw if both lists successfully resolved to empty arrays due to error catches upstream
+        if (txsRes.status === "rejected" && !nextTxs.length) {
+          throw txsRes.reason;
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (import.meta.env.DEV) console.warn("txs load err:", err);
         txsError.value = true;
       })
       .finally(() => {
