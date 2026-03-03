@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getDashboardStats = vi.fn();
 const getBlockList = vi.fn();
+const getBlockCount = vi.fn();
+const getBlockByHeight = vi.fn();
+const getTxsByBlockHeight = vi.fn();
 const getTxList = vi.fn();
+const getPendingTransactions = vi.fn();
 const getNeoTubeBlocks = vi.fn();
 const getNeoTubeTxs = vi.fn();
 const getNeoTubeStats = vi.fn();
@@ -35,10 +39,13 @@ vi.mock("@/services", () => ({
   },
   blockService: {
     getList: getBlockList,
+    getCount: getBlockCount,
+    getByHeight: getBlockByHeight,
+    getTransactionsByHeight: getTxsByBlockHeight,
   },
   transactionService: {
     getList: getTxList,
-    getPendingTransactions: vi.fn().mockResolvedValue([]),
+    getPendingTransactions,
   },
   neotubeService: {
     supportsNetwork: supportsNeoTubeNetwork,
@@ -74,18 +81,20 @@ const LatestBlocksStub = defineComponent({
   name: "LatestBlocks",
   props: {
     loading: { type: Boolean, default: false },
+    blocks: { type: Array, default: () => [] },
   },
-  template: '<div data-testid="latest-blocks" :data-loading="String(loading)"></div>',
+  template: '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)"></div>',
 });
 
 const LatestTransactionsStub = defineComponent({
   name: "LatestTransactions",
   props: {
     loading: { type: Boolean, default: false },
+    transactions: { type: Array, default: () => [] },
     transferSummaryByHash: { type: Object, default: () => ({}) },
   },
   template:
-    '<div data-testid="latest-txs" :data-loading="String(loading)" :data-summary-size="String(Object.keys(transferSummaryByHash || {}).length)"></div>',
+    '<div data-testid="latest-txs" :data-loading="String(loading)" :data-count="String(transactions.length)" :data-summary-size="String(Object.keys(transferSummaryByHash || {}).length)"></div>',
 });
 
 const HomeStatsStub = defineComponent({
@@ -117,10 +126,22 @@ describe("HomePage initial loading", () => {
       result: [{ hash: "0xblock", timestamp: Date.now(), txcount: 1 }],
       totalCount: 1,
     });
+    getBlockCount.mockResolvedValue(10);
+    getBlockByHeight.mockResolvedValue({
+      hash: "0xblock-by-height",
+      index: 9,
+      timestamp: Date.now(),
+      txcount: 1,
+    });
+    getTxsByBlockHeight.mockResolvedValue({
+      result: [{ hash: "0xtx-by-height", blocktime: Date.now() }],
+      totalCount: 1,
+    });
     getTxList.mockResolvedValue({
       result: [{ hash: "0xtx" }],
       totalCount: 1,
     });
+    getPendingTransactions.mockResolvedValue([]);
     search.mockResolvedValue(null);
     fetchPrices.mockImplementation(() => new Promise(() => { }));
     startAutoRefresh.mockImplementation(() => { });
@@ -317,6 +338,51 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("5002");
+    wrapper.unmount();
+  });
+
+  it("falls back to per-height block and transaction loaders when list RPCs fail and pending tx helper is unavailable", async () => {
+    const services = await import("@/services");
+    services.transactionService.getPendingTransactions = undefined;
+
+    getBlockList.mockRejectedValueOnce(new Error("list unavailable"));
+    getTxList.mockRejectedValueOnce(new Error("tx list unavailable"));
+    getBlockCount.mockResolvedValueOnce(12);
+    getBlockByHeight.mockResolvedValueOnce({
+      hash: "0xblock-fallback",
+      index: 11,
+      timestamp: Date.now(),
+      txcount: 1,
+    });
+    getTxsByBlockHeight.mockResolvedValueOnce({
+      result: [{ hash: "0xtx-fallback", blocktime: Date.now() }],
+      totalCount: 1,
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+    expect(Number(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count"))).toBeGreaterThan(0);
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThan(0);
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
+
+    // Restore default for subsequent tests.
+    services.transactionService.getPendingTransactions = getPendingTransactions;
     wrapper.unmount();
   });
 });

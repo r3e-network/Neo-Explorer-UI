@@ -89,6 +89,7 @@ let isRefreshing = false;
 let lastFetchLatestTime = 0;
 let lastStatsRefreshTime = 0;
 const STATS_REFRESH_INTERVAL_MS = 60_000;
+const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
 const blockDetailsByHash = new Map();
 
 function getLatestKnownHeight() {
@@ -128,6 +129,114 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
   }
 
   return true;
+}
+
+function normalizeBlockSummary(block = {}) {
+  const index = Number(block.index ?? block.blockindex ?? block.height ?? 0);
+  const txCount = Number(
+    block.txcount ??
+    block.transactioncount ??
+    block.txCount ??
+    (Array.isArray(block.tx) ? block.tx.length : 0)
+  );
+  const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? 0);
+
+  return {
+    ...block,
+    hash: block.hash || block.blockhash || "",
+    index: Number.isFinite(index) ? index : 0,
+    timestamp: Number.isFinite(timestamp) ? timestamp : 0,
+    txcount: Number.isFinite(txCount) ? txCount : 0,
+    transactioncount: Number.isFinite(txCount) ? txCount : 0,
+    netfee: block.netfee ?? block.networkFee,
+    sysfee: block.sysfee ?? block.systemFee,
+    nextconsensus: block.nextconsensus ?? block.nextConsensus ?? block.speaker ?? block.validator,
+    speaker: block.speaker ?? block.nextconsensus ?? block.nextConsensus ?? block.validator,
+    validator: block.validator ?? block.speaker ?? block.nextconsensus ?? block.nextConsensus,
+  };
+}
+
+async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {}) {
+  const maxItems = Math.max(1, Number(limit) || 6);
+  const normalizedSkip = Math.max(0, Number(skip) || 0);
+  const latestHeight = Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
+  if (!Number.isFinite(latestHeight) || latestHeight < 0) {
+    return { result: [], totalCount: 0 };
+  }
+
+  const startHeight = Math.max(0, latestHeight - normalizedSkip);
+  const heights = [];
+  for (let offset = 0; offset < maxItems && startHeight - offset >= 0; offset += 1) {
+    heights.push(startHeight - offset);
+  }
+
+  const blockResults = await Promise.all(
+    heights.map(async (height) => {
+      const block = await blockService.getByHeight(height, { ...requestOptions, throwOnError: false });
+      return block ? normalizeBlockSummary(block) : null;
+    })
+  );
+
+  const result = blockResults.filter(Boolean);
+  return { result, totalCount: latestHeight + 1 };
+}
+
+async function fetchLatestTransactionsByRecentBlocks(limit = 6, skip = 0, requestOptions = {}) {
+  const maxItems = Math.max(1, Number(limit) || 6);
+  let remainingSkip = Math.max(0, Number(skip) || 0);
+  const latestHeight = Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
+
+  if (!Number.isFinite(latestHeight) || latestHeight < 0) {
+    return { result: [], totalCount: 0 };
+  }
+
+  const maxBlocksToScan = Math.max(TX_FALLBACK_BLOCK_SCAN_LIMIT, maxItems * 4);
+  const txs = [];
+
+  for (let offset = 0; offset < maxBlocksToScan && latestHeight - offset >= 0; offset += 1) {
+    const height = latestHeight - offset;
+    const listRes = await blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
+      ...requestOptions,
+      throwOnError: false,
+    });
+    const rows = Array.isArray(listRes?.result) ? listRes.result : [];
+    if (!rows.length) continue;
+
+    let slicedRows = rows;
+    if (remainingSkip > 0) {
+      if (rows.length <= remainingSkip) {
+        remainingSkip -= rows.length;
+        continue;
+      }
+      slicedRows = rows.slice(remainingSkip);
+      remainingSkip = 0;
+    }
+
+    txs.push(...slicedRows);
+    if (txs.length >= maxItems) break;
+  }
+
+  return {
+    result: txs.slice(0, maxItems),
+    totalCount: txs.length,
+  };
+}
+
+async function fetchPendingTransactionsSafe(limit = 20) {
+  const pendingFetcher = transactionService?.getPendingTransactions;
+  if (typeof pendingFetcher !== "function") {
+    if (import.meta.env.DEV) {
+      console.warn("transactionService.getPendingTransactions is unavailable; skipping mempool merge.");
+    }
+    return [];
+  }
+
+  try {
+    return await pendingFetcher.call(transactionService, limit);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Pending tx fetch failed; continuing without mempool data:", err);
+    return [];
+  }
 }
 
 // Data loading
@@ -207,7 +316,15 @@ async function loadLatestData(forceRefresh = false) {
         }
       }
 
-      return blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
+      try {
+        return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn("RPC latest block list unavailable, falling back to per-height fetch:", err);
+        }
+      }
+
+      return fetchLatestBlocksByHeight(6, 0, requestOptions);
     };
 
     const fetchLatestTransactions = async () => {
@@ -221,7 +338,15 @@ async function loadLatestData(forceRefresh = false) {
         }
       }
 
-      return transactionService.getList(6, 0, requestOptions);
+      try {
+        return await transactionService.getList(6, 0, requestOptions);
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn("RPC latest transaction list unavailable, falling back to per-block tx fetch:", err);
+        }
+      }
+
+      return fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
     };
 
     const blocksPromise = fetchLatestBlocks()
@@ -252,7 +377,7 @@ async function loadLatestData(forceRefresh = false) {
 
     const fastTxsPromise = Promise.allSettled([
       fetchLatestTransactions(),
-      transactionService.getPendingTransactions(6)
+      fetchPendingTransactionsSafe(6)
     ])
       .then(([txsRes, pendingTxsRes]) => {
         let nextTxs = [];
