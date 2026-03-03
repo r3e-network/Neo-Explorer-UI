@@ -151,3 +151,11 @@ export const checkAndSetEndpoints = async (preferredEnv = getCurrentEnv()) => {
     }, 0);
   }
 };
+
+// Expose a synchronous getter so that the API client uses the resolved URL immediately once it's set.
+export const awaitEndpointsSet = async (env) => {
+  if (!checked[env]) {
+    const network = NETWORKS.find(n => n.env === env) || NETWORKS[0];
+    await checkNetworkEndpoints(network);
+  }
+};

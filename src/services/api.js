@@ -248,16 +248,18 @@ const api = axios.create({
 
 import { checkAndSetEndpoints } from "../utils/healthCheck";
 
-// Initialize endpoint checks in the background.
-void checkAndSetEndpoints().catch((error) => {
-  if (import.meta.env.DEV) {
-    console.warn("Endpoint health check failed:", error);
-  }
-});
+// Wait for initial health check before making requests
+let initialCheckPromise = checkAndSetEndpoints();
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    try {
+      await initialCheckPromise;
+    } catch {
+      // ignore
+    }
+
     if (!config.__manualBaseURL) {
       config.baseURL = resolveRpcBaseUrl();
     }
