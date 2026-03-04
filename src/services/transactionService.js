@@ -104,10 +104,12 @@ export const transactionService = createService(
       if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
 
       try {
-        // Fallback 1: Fura might be lagging. Try native RPC directly.
+        // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
         const { rpc: neonRpc } = await import('@cityofzion/neon-js');
-        const { getRpcClientUrl } = await import('@/utils/env');
-        const client = new neonRpc.RPCClient(getRpcClientUrl());
+        const { getCurrentEnv } = await import('@/utils/env');
+        const isMainnet = getCurrentEnv() !== 'TestT5';
+        const endpoint = isMainnet ? 'https://mainnet1.neo.coz.io:443' : 'https://testnet1.neo.coz.io:443';
+        const client = new neonRpc.RPCClient(endpoint);
         const nativeTx = await client.getRawTransaction(hash, true);
         if (nativeTx && nativeTx.hash) {
           let blockIndex = 0;

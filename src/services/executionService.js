@@ -61,8 +61,10 @@ export const executionService = createService(
       if (!indexed && !legacy) {
         try {
           const { rpc: neonRpc } = await import('@cityofzion/neon-js');
-          const { getRpcClientUrl } = await import('@/utils/env');
-          const client = new neonRpc.RPCClient(getRpcClientUrl());
+          const { getCurrentEnv } = await import('@/utils/env');
+          const isMainnet = getCurrentEnv() !== 'TestT5';
+          const endpoint = isMainnet ? 'https://mainnet1.neo.coz.io:443' : 'https://testnet1.neo.coz.io:443';
+          const client = new neonRpc.RPCClient(endpoint);
           const nativeLog = await client.getApplicationLog(txHash);
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);

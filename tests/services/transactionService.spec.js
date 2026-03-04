@@ -2,11 +2,26 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactionService } from "../../src/services/transactionService.js";
 import * as api from "../../src/services/api.js";
 
+vi.mock("@cityofzion/neon-js", () => ({
+  rpc: {
+    RPCClient: vi.fn().mockImplementation(() => ({
+      getRawTransaction: vi.fn().mockRejectedValue(new Error("Mock network error")),
+      getBlockHeader: vi.fn().mockRejectedValue(new Error("Mock network error")),
+    })),
+  },
+}));
+
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
   safeRpc: vi.fn(),
   safeRpcList: vi.fn(),
   formatListResponse: vi.fn((r) => r),
+}));
+
+vi.mock("../../src/services/supabaseService.js", () => ({
+  supabaseService: {
+    getMempoolTransactions: vi.fn().mockResolvedValue([]),
+  },
 }));
 
 describe("transactionService", () => {
