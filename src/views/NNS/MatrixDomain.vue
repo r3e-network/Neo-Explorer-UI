@@ -286,7 +286,16 @@ const MATRIX_CONTRACT_HASH = getCurrentEnv() === 'TestT5'
 
 const RESERVED_DOMAINS = [
   "admin.matrix", "test.matrix", "system.matrix", "neo.matrix", 
-  "root.matrix", "registry.matrix", "oracle.matrix", "matrix.matrix"
+  "root.matrix", "registry.matrix", "oracle.matrix", "matrix.matrix",
+  "jimmy.matrix", "erik.matrix", "erikzhang.matrix", "da.matrix",
+  "dahongfei.matrix", "hongfei.matrix", "ngd.matrix", "r3e.matrix",
+  "coz.matrix", "axlabs.matrix", "nspcc.matrix", "red4sec.matrix",
+  "nnt.matrix", "neonewstoday.matrix", "neospcc.matrix", "flamingo.matrix",
+  "ghostmarket.matrix", "forthewin.matrix", "neoburger.matrix", "ndapp.matrix",
+  "onegate.matrix", "neoline.matrix", "o3.matrix", "nash.matrix",
+  "switcheo.matrix", "polynetwork.matrix", "neocli.matrix", "neogo.matrix",
+  "neofura.matrix", "grantshares.matrix", "frank.matrix", "steven.matrix",
+  "john.matrix"
 ];
 
 async function handleSearch() {
@@ -361,7 +370,7 @@ async function handleSearch() {
         admin = rawAdmin;
       }
       
-      if (!propData) {
+      if (!propData && !ownerAddr) {
         searchResult.value = {
           domain: query,
           available: !isReserved,
@@ -371,7 +380,7 @@ async function handleSearch() {
         searchResult.value = {
           domain: query,
           available: false,
-          reserved: isReserved,
+          reserved: false, // If it's already registered, it's no longer just reserved. Show the standard Taken state.
           owner: ownerAddr, 
           admin: admin,
           resolvedAddress: resolvedAddress
