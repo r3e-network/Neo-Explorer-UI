@@ -81,6 +81,9 @@
     <li>
       <router-link to="/contracts/1" class="nav-link" active-class="nav-link-active">{{ $t("nav.contracts") }}</router-link>
     </li>
+    <li>
+      <router-link to="/matrix" class="nav-link" active-class="nav-link-active">.matrix</router-link>
+    </li>
     <li
       class="nav-dropdown group"
       @mouseenter="$emit('open-dropdown', 'resources')"
@@ -113,7 +116,6 @@
       >
         <router-link to="/treasury" class="dropdown-link">{{ $t("nav.treasury") || "Treasury" }}</router-link>
         <router-link to="/nns" class="dropdown-link">Neo Name Service (.neo)</router-link>
-        <router-link to="/matrix" class="dropdown-link">Matrix Domain (.matrix)</router-link>
         <router-link to="/tools" class="dropdown-link">Tools</router-link>
         <router-link to="/echarts" class="dropdown-link">{{ $t("nav.chartsStats") }}</router-link>
         <router-link to="/gas-tracker" class="dropdown-link">{{ $t("nav.gasTracker") }}</router-link>
