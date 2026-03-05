@@ -2,7 +2,7 @@ import axios from "axios";
 import { rpc, safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
-import { rpc as neonRpc, sc } from "@cityofzion/neon-js";
+import { rpc as neonRpc, sc, wallet } from "@cityofzion/neon-js";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 
@@ -61,21 +61,21 @@ const normalizeExpirationMs = (raw) => {
     return 0;
 };
 
-const pickActiveDomain = (domains = []) => {
+const pickActiveDomain = (domains = [], suffix = NNS_SUFFIX) => {
     const now = Date.now();
     const normalized = [];
 
     for (const domain of domains) {
         const name = normalizeDomainName(domain?.name);
-        if (!name || !name.endsWith(NNS_SUFFIX)) continue;
+        if (!name || !name.endsWith(suffix)) continue;
 
-        const expirationMs = normalizeExpirationMs(domain);
-        if (!Number.isFinite(expirationMs) || expirationMs <= now) continue;
-
-        normalized.push({
-            name,
-            expirationMs,
-        });
+        if (suffix === MATRIX_SUFFIX) {
+            normalized.push({ name, expirationMs: Infinity });
+        } else {
+            const expirationMs = normalizeExpirationMs(domain);
+            if (!Number.isFinite(expirationMs) || expirationMs <= now) continue;
+            normalized.push({ name, expirationMs });
+        }
     }
 
     if (!normalized.length) return null;
@@ -88,6 +88,9 @@ const pickActiveDomain = (domains = []) => {
 const getActiveDomainFromMetadata = (metadata) => {
     if (!metadata || typeof metadata !== "object") return null;
     const name = normalizeDomainName(metadata.nns_domain || metadata.nnsDomain);
+    
+    if (name.endsWith(MATRIX_SUFFIX)) return name;
+
     if (!name || !name.endsWith(NNS_SUFFIX)) return null;
     let expirationMs = Number(
         metadata.nns_expiration_ms ??
@@ -135,11 +138,54 @@ export const nnsService = {
                     }, []);
 
                     if (Array.isArray(result) && result.length > 0) {
-                        const activeDomain = pickActiveDomain(result);
+                        const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
                         if (activeDomain?.name) {
                             return { nns: activeDomain.name };
                         }
                     }
+
+                    // Fallback to .matrix domain lookup via Transfers
+                    try {
+                        const scriptHash = wallet.getScriptHashFromAddress(address);
+                        const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
+                        
+                        if (transfersRes && Array.isArray(transfersRes.result)) {
+                            const MATRIX_CONTRACT_HASH = import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd";
+                            const matrixTransfers = transfersRes.result.filter(t => t.contract === MATRIX_CONTRACT_HASH);
+                            
+                            const tokenBalances = {};
+                            for (const t of matrixTransfers) {
+                                if (!t.tokenId) continue;
+                                if (!tokenBalances[t.tokenId]) tokenBalances[t.tokenId] = 0;
+                                if (t.to === scriptHash) tokenBalances[t.tokenId]++;
+                                if (t.from === scriptHash) tokenBalances[t.tokenId]--;
+                            }
+                            
+                            const ownedTokens = Object.entries(tokenBalances)
+                                .filter(([_, bal]) => bal > 0)
+                                .map(([id]) => id);
+                                
+                            if (ownedTokens.length > 0) {
+                                const domains = [];
+                                for (const b64Id of ownedTokens) {
+                                    try {
+                                        const decoded = atob(b64Id);
+                                        if (decoded.endsWith(MATRIX_SUFFIX)) domains.push({ name: decoded });
+                                    } catch(e) {
+                                    // Invalid base64 or other decode error, skip
+                                }
+                                }
+                                
+                                const activeMatrix = pickActiveDomain(domains, MATRIX_SUFFIX);
+                                if (activeMatrix?.name) {
+                                    return { nns: activeMatrix.name };
+                                }
+                            }
+                        }
+                    } catch (matrixErr) {
+                        if (import.meta.env.DEV) console.warn("Matrix fallback failed:", matrixErr);
+                    }
+
                     return null;
                 } catch (e) {
                     if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
