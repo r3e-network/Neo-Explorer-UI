@@ -7,8 +7,10 @@ import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
+const MATRIX_CONTRACT_HASH = import.meta.env.VITE_MATRIX_CONTRACT_HASH || "0x0000000000000000000000000000000000000000"; // Replace if configured
 const INVALID_REQUEST_CODE = "-32600";
 const NNS_SUFFIX = ".neo";
+const MATRIX_SUFFIX = ".matrix";
 
 const isInvalidRequestError = (error) => {
     const message = String(error?.message || "");
@@ -180,7 +182,9 @@ export const nnsService = {
      * @returns {Promise<string|null>} Address if resolved, null otherwise
      */
     async resolveDomain(domain) {
-        if (!domain || !domain.endsWith(".neo")) return null;
+        if (!domain) return null;
+        if (domain.endsWith(MATRIX_SUFFIX)) return this.resolveMatrixDomain(domain);
+        if (!domain.endsWith(NNS_SUFFIX)) return null;
         const env = getCurrentEnv();
         if (env !== NET_ENV.Mainnet) return null;
 
@@ -235,6 +239,48 @@ export const nnsService = {
                 return null;
             },
             CACHE_TTL.chart // Cache for 5 mins locally, backend handles long-term expiration caching
+        );
+    },
+
+    /**
+     * Resolve Matrix Domain to Address string
+     * @param {string} domain 
+     * @returns {Promise<string|null>} Address if resolved, null otherwise
+     */
+    async resolveMatrixDomain(domain) {
+        if (!domain || !domain.endsWith(MATRIX_SUFFIX)) return null;
+        const env = getCurrentEnv();
+        if (env !== NET_ENV.Mainnet) return null;
+
+        const key = getCacheKey("matrix_domain_to_address", { domain });
+        return cachedRequest(
+            key,
+            async () => {
+                try {
+                    const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
+                        const rpcClient = new neonRpc.RPCClient(endpoint);
+                        return rpcClient.invokeFunction(
+                            MATRIX_CONTRACT_HASH,
+                            "resolve",
+                            [sc.ContractParam.string(domain), sc.ContractParam.integer(16)]
+                        );
+                    });
+                    
+                    if (res.state === "HALT" && res.stack && res.stack.length > 0) {
+                      const item = res.stack[0];
+                      if (item.type === "ByteString" && item.value) {
+                         const decoded = atob(item.value);
+                         if (decoded && decoded.length === 34 && decoded.startsWith("N")) {
+                            return decoded;
+                         }
+                      }
+                    }
+                } catch (e) {
+                    if (import.meta.env.DEV) console.warn("Failed to resolve Matrix Domain directly via RPC:", domain, e);
+                }
+                return null;
+            },
+            CACHE_TTL.chart
         );
     }
 };

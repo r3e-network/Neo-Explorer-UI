@@ -277,7 +277,7 @@ function normalizeHash(value) {
 
 function isNnsDomain(value) {
   const normalized = String(value || "").trim();
-  return normalized.endsWith(".neo") && normalized.length > 4;
+  return (normalized.endsWith(".neo") && normalized.length > 4) || (normalized.endsWith(".matrix") && normalized.length > 7);
 }
 
 const filters = [

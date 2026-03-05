@@ -28,7 +28,7 @@ export function detectSearchType(query) {
   if (/^(0x)?[0-9a-fA-F]{40}$/.test(q)) return "contract";
 
   // NNS Domain
-  if (q.endsWith(".neo") && q.length > 4) return "address";
+  if ((q.endsWith(".neo") && q.length > 4) || (q.endsWith(".matrix") && q.length > 7)) return "address";
 
   return "unknown";
 }

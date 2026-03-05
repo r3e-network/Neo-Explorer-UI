@@ -107,8 +107,8 @@ async function _classifyAndDispatch(query) {
     if (account) hits.address = account;
   }
 
-  // NNS Domain (.neo)
-  if (query.endsWith(".neo") && query.length > 4) {
+  // NNS Domain (.neo or .matrix)
+  if ((query.endsWith(".neo") && query.length > 4) || (query.endsWith(".matrix") && query.length > 7)) {
     const resolvedAddress = await nnsService.resolveDomain(query);
     if (resolvedAddress && isValidNeoAddress(resolvedAddress)) {
       const account = await _lookupAddress(resolvedAddress);

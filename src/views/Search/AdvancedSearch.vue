@@ -352,8 +352,8 @@ function validate() {
     return false;
   }
 
-  if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q) && !(q.endsWith(".neo") && q.length > 4)) {
-    validationError.value = "Invalid address format. Must be a 34-char address starting with N, or a .neo domain.";
+  if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q) && !(q.endsWith(".neo") && q.length > 4) && !(q.endsWith(".matrix") && q.length > 7)) {
+    validationError.value = "Invalid address format. Must be a 34-char address starting with N, or a .neo/.matrix domain.";
     return false;
   }
   if (searchType.value === "transaction" && !/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {

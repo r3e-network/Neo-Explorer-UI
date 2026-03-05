@@ -72,6 +72,7 @@ const PageNotFound = lazyLoad(() => import("../views/NotFound/PageNotFound.vue")
 import MainLayout from "../components/layout/MainLayout.vue";
 
 const NNS = lazyLoad(() => import("../views/NNS/NNS.vue"));
+const MatrixDomain = lazyLoad(() => import("../views/NNS/MatrixDomain.vue"));
 const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
 const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
 const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"));
@@ -106,6 +107,12 @@ const routes = [
         name: "nns",
         meta: { title: "Neo Name Service" },
         component: NNS,
+      },
+      {
+        path: "/matrix",
+        name: "matrix",
+        meta: { title: "Matrix Domain Service" },
+        component: MatrixDomain,
       },
       {
         path: "/tools",

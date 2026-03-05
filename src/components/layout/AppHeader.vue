@@ -94,7 +94,8 @@
             <router-link to="/account/1" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
             <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">{{ $t("nav.consensusNodes") }}</router-link>
             <router-link to="/governance" class="mobile-link" @click="closeMobile">{{ $t("nav.governance") }}</router-link>
-            <router-link to="/nns" class="mobile-link" @click="closeMobile">NNS Domains</router-link>
+            <router-link to="/nns" class="mobile-link" @click="closeMobile">NNS Domains (.neo)</router-link>
+            <router-link to="/matrix" class="mobile-link" @click="closeMobile">Matrix Domain (.matrix)</router-link>
             <router-link to="/echarts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
             <router-link to="/burn" class="mobile-link" @click="closeMobile">{{ $t("nav.burnedGas") }}</router-link>
             <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">{{ $t("nav.gasTracker") }}</router-link>

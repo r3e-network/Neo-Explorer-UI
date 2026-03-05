@@ -14,7 +14,7 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";');
-    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testmagnet.ngd.network";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testnet1.neo.coz.io:443";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://neo-explorer.jimmy-bf0.workers.dev";');
@@ -33,7 +33,7 @@ describe("endpoint defaults", () => {
     expect(routeDest("/api/mainnet/primary")).toBe("https://rpc.r3e.network/mainnet");
     expect(routeDest("/api/mainnet/fallback")).toBe("https://neofura.ngd.network");
     expect(routeDest("/api/testnet/primary")).toBe("https://rpc.r3e.network/testnet");
-    expect(routeDest("/api/testnet/fallback")).toBe("https://testmagnet.ngd.network");
+    expect(routeDest("/api/testnet/fallback")).toBe("https://testnet1.neo.coz.io:443");
     expect(routeDest("/api/mainnet")).toBe("https://rpc.r3e.network/mainnet");
     expect(routeDest("/api/testnet")).toBe("https://rpc.r3e.network/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
