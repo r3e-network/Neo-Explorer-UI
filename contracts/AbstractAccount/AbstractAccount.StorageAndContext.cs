@@ -1,5 +1,7 @@
+using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
@@ -152,6 +154,28 @@ namespace AbstractAccount
         {
             StorageMap map = new StorageMap(Storage.CurrentContext, ExecutionLockPrefix);
             return map.Get(GetStorageKey(accountId)) != null;
+        }
+
+        private static void UpdateLastActiveTimestamp(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, LastActivePrefix);
+            map.Put(GetStorageKey(accountId), Runtime.Time);
+        }
+
+        [Safe]
+        public static BigInteger GetLastActiveTimestamp(ByteString accountId)
+        {
+            StorageMap map = new StorageMap(Storage.CurrentContext, LastActivePrefix);
+            ByteString data = map.Get(GetStorageKey(accountId));
+            if (data == null) return 0;
+            return (BigInteger)data;
+        }
+
+        [Safe]
+        public static BigInteger GetLastActiveTimestampByAddress(UInt160 accountAddress)
+        {
+            ByteString accountId = ResolveAccountIdByAddress(accountAddress);
+            return GetLastActiveTimestamp(accountId);
         }
 
         private static void AssertNoExternalMutationDuringExecution(ByteString accountId)

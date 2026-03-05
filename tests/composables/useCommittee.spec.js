@@ -218,4 +218,25 @@ describe("useCommittee", () => {
 
     expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
   });
+
+  it("does not block Dora validator metadata mapping when validator RPC is hanging", async () => {
+    rpcMock.mockImplementationOnce(() => new Promise(() => {}));
+    cachedRequestMock.mockResolvedValueOnce([
+      { pubkey: "FAST_0", name: "Dora Fast 0", scripthash: "0x0000000000000000000000000000000000000110", votes: 700 },
+      { pubkey: "FAST_1", name: "Dora Fast 1", scripthash: "0x0000000000000000000000000000000000000111", votes: 600 },
+      { pubkey: "FAST_2", name: "Dora Fast 2", scripthash: "0x0000000000000000000000000000000000000112", votes: 500 },
+      { pubkey: "FAST_3", name: "Dora Fast 3", scripthash: "0x0000000000000000000000000000000000000113", votes: 400 },
+      { pubkey: "FAST_4", name: "Dora Fast 4", scripthash: "0x0000000000000000000000000000000000000114", votes: 300 },
+      { pubkey: "FAST_5", name: "Dora Fast 5", scripthash: "0x0000000000000000000000000000000000000115", votes: 200 },
+      { pubkey: "FAST_6", name: "Dora Fast 6", scripthash: "0x0000000000000000000000000000000000000116", votes: 100 },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("Dora Fast 0");
+    expect(getPrimaryNodeAddress(0)).toBe("0x0000000000000000000000000000000000000110");
+  });
 });

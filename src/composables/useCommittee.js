@@ -182,11 +182,73 @@ const getValidatorMetadata = (validator) => {
   return null;
 };
 
+const loadDoraCommitteeMetadata = async () => {
+  try {
+    const env = getCurrentEnv().toLowerCase();
+    const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+    if (isTestnet) {
+      return { loaded: false, topConsensusValidators: [] };
+    }
+
+    const url = `https://dora.coz.io/api/v2/neo3/mainnet/committee`;
+    const data = await cachedRequest(
+      `dora_metadata_mainnet`,
+      () => fetch(url).then(r => r.ok ? r.json() : []),
+      300000 // 5 mins
+    );
+
+    const metaMap = {};
+    const addMeta = (key, item) => {
+      const normalized = normalizeMetaKey(key);
+      if (normalized) {
+        metaMap[normalized] = item;
+      }
+    };
+
+    let topConsensusValidators = [];
+
+    if (Array.isArray(data)) {
+      data.forEach(item => {
+        const normalizedMeta = {
+          ...item,
+          logoUrl: resolveCandidateLogo(item.logo),
+        };
+
+        addMeta(item.pubkey, normalizedMeta);
+        addMeta(item.scripthash, normalizedMeta);
+        addMeta(normalizeScriptHashKey(item.scripthash), normalizedMeta);
+
+        const itemAddress = deriveValidatorAddress({ publickey: item.pubkey });
+        if (itemAddress) {
+          addMeta(itemAddress, normalizedMeta);
+          const scriptHash = addressToScriptHash(itemAddress);
+          addMeta(scriptHash, normalizedMeta);
+          addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
+        }
+      });
+
+      // Prefer consensus-node mapping from top candidate order when available.
+      topConsensusValidators = buildTopConsensusValidatorsFromMetadata(data);
+      if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
+        validators.value = topConsensusValidators;
+      }
+    }
+
+    doraMetadata.value = metaMap;
+    return { loaded: true, topConsensusValidators };
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
+    return { loaded: false, topConsensusValidators: [] };
+  }
+};
+
 export function useCommittee() {
   async function loadCommittee(force = false) {
     if (initialized.value && !force) return;
     initialized.value = true;
     let validatorsLoaded = false;
+    // Start metadata fetch immediately so validator labels/logos are not blocked by slow RPC timeouts.
+    const doraPromise = loadDoraCommitteeMetadata();
 
     try {
       // primary index on blocks maps to the active consensus validators set.
@@ -218,56 +280,9 @@ export function useCommittee() {
       }
     }
 
-    // Load Dora metadata for names
-    try {
-      const env = getCurrentEnv().toLowerCase();
-      const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-      if (isTestnet) return; // Ignore coz endpoints on testnet
-
-      const url = `https://dora.coz.io/api/v2/neo3/mainnet/committee`;
-      const data = await cachedRequest(
-        `dora_metadata_mainnet`,
-        () => fetch(url).then(r => r.ok ? r.json() : []),
-        300000 // 5 mins
-      );
-
-      const metaMap = {};
-      const addMeta = (key, item) => {
-        const normalized = normalizeMetaKey(key);
-        if (normalized) {
-          metaMap[normalized] = item;
-        }
-      };
-
-      if (Array.isArray(data)) {
-        data.forEach(item => {
-          const normalizedMeta = {
-            ...item,
-            logoUrl: resolveCandidateLogo(item.logo),
-          };
-
-          addMeta(item.pubkey, normalizedMeta);
-          addMeta(item.scripthash, normalizedMeta);
-          addMeta(normalizeScriptHashKey(item.scripthash), normalizedMeta);
-
-          const itemAddress = deriveValidatorAddress({ publickey: item.pubkey });
-          if (itemAddress) {
-            addMeta(itemAddress, normalizedMeta);
-            const scriptHash = addressToScriptHash(itemAddress);
-            addMeta(scriptHash, normalizedMeta);
-            addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
-          }
-        });
-
-        // Prefer consensus-node mapping from top candidate order when available.
-        const topConsensusValidators = buildTopConsensusValidatorsFromMetadata(data);
-        if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
-          validators.value = topConsensusValidators;
-        }
-      }
-      doraMetadata.value = metaMap;
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
+    const doraResult = await doraPromise;
+    if (doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
+      validators.value = doraResult.topConsensusValidators;
     }
 
     validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
