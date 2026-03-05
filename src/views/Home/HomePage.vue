@@ -134,6 +134,29 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
   return true;
 }
 
+function hasSameOrderedTransactions(currentList = [], nextList = []) {
+  if (!hasSameOrderedHashes(currentList, nextList)) return false;
+
+  for (let index = 0; index < currentList.length; index += 1) {
+    const current = currentList[index] || {};
+    const next = nextList[index] || {};
+
+    const currentVmState = String(current.vmstate || current.vm_state || "").trim().toUpperCase();
+    const nextVmState = String(next.vmstate || next.vm_state || "").trim().toUpperCase();
+    if (currentVmState !== nextVmState) return false;
+
+    const currentStatus = String(current.status || "").trim().toLowerCase();
+    const nextStatus = String(next.status || "").trim().toLowerCase();
+    if (currentStatus !== nextStatus) return false;
+
+    const currentTime = Number(current.blocktime ?? current.timestamp ?? current.time ?? 0);
+    const nextTime = Number(next.blocktime ?? next.timestamp ?? next.time ?? 0);
+    if (currentTime !== nextTime) return false;
+  }
+
+  return true;
+}
+
 function mergeUniqueTransactions(primary = [], secondary = [], limit = 6) {
   const rows = [];
   const seen = new Set();
@@ -389,7 +412,7 @@ async function loadLatestData(forceRefresh = false) {
       } catch (err) {
         const pendingWithPrevious = mergeUniqueTransactions(await pendingPromise, previousRows, 6);
         if (pendingWithPrevious.length) {
-          if (!hasSameOrderedHashes(latestTxs.value, pendingWithPrevious)) {
+          if (!hasSameOrderedTransactions(latestTxs.value, pendingWithPrevious)) {
             latestTxs.value = pendingWithPrevious;
           }
           return;
@@ -400,13 +423,13 @@ async function loadLatestData(forceRefresh = false) {
       // Keep list continuity during transient sparse RPC responses.
       const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, 6);
       if (!initialRows.length && previousRows.length) {
-        if (!hasSameOrderedHashes(latestTxs.value, previousRows)) {
+        if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
           latestTxs.value = previousRows;
         }
         return;
       }
 
-      if (!hasSameOrderedHashes(latestTxs.value, initialRows)) {
+      if (!hasSameOrderedTransactions(latestTxs.value, initialRows)) {
         latestTxs.value = initialRows;
       }
       if (initialRows.length) {
@@ -424,7 +447,7 @@ async function loadLatestData(forceRefresh = false) {
             if (!fallbackRows.length) return;
 
             const mergedRows = mergeUniqueTransactions(initialRows, fallbackRows, 6);
-            if (!mergedRows.length || hasSameOrderedHashes(latestTxs.value, mergedRows)) return;
+            if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
             latestTxs.value = mergedRows;
 
             const nonPendingMerged = mergedRows.filter((tx) => tx.status !== "pending");
@@ -438,7 +461,7 @@ async function loadLatestData(forceRefresh = false) {
       // Merge pending transactions when ready without blocking initial confirmed tx rendering.
       void pendingPromise.then((pendingRows) => {
         const mergedRows = mergeUniqueTransactions(pendingRows, initialRows, 6);
-        if (!mergedRows.length || hasSameOrderedHashes(latestTxs.value, mergedRows)) return;
+        if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
         latestTxs.value = mergedRows;
       });
     })()
