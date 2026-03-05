@@ -123,6 +123,37 @@
           </div>
         </div>
 
+        <!-- Reserved State -->
+        <div v-else-if="searchResult.reserved" class="etherscan-card overflow-hidden rounded-3xl border-2 border-indigo-400/50 bg-gradient-to-b from-indigo-50/50 to-surface dark:from-indigo-950/20 shadow-xl">
+          <div class="p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div class="flex-1 space-y-4">
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-400 text-sm font-bold border border-indigo-200 dark:border-indigo-800/50">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>
+                Domain Reserved
+              </div>
+              <h3 class="text-4xl md:text-5xl font-black text-high tracking-tight">{{ searchResult.domain }}</h3>
+              <p class="text-mid text-base max-w-lg">
+                This domain name has been administratively reserved. It can only be claimed privately by authorized parties.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-3 min-w-[240px] shrink-0 bg-surface p-6 rounded-2xl shadow-sm border border-line-soft">
+              <div class="flex justify-between items-center pb-3 border-b border-line-soft">
+                <span class="text-sm font-medium text-mid">Status</span>
+                <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">Locked</span>
+              </div>
+              
+              <button 
+                disabled
+                class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-surface-muted px-6 py-4 text-base font-bold text-mid shadow-inner cursor-not-allowed border border-line-soft"
+              >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Public Registration Disabled
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Taken State -->
         <div v-else class="etherscan-card overflow-hidden rounded-3xl shadow-xl">
           <div class="bg-surface-muted/50 p-8 border-b border-line-soft flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -253,6 +284,11 @@ const MATRIX_CONTRACT_HASH = getCurrentEnv() === 'TestT5'
   ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
   : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
 
+const RESERVED_DOMAINS = [
+  "admin.matrix", "test.matrix", "system.matrix", "neo.matrix", 
+  "root.matrix", "registry.matrix", "oracle.matrix", "matrix.matrix"
+];
+
 async function handleSearch() {
   let query = searchQuery.value.trim().toLowerCase();
   if (!query) return;
@@ -266,6 +302,8 @@ async function handleSearch() {
   searchResult.value = null;
   
   try {
+    const isReserved = RESERVED_DOMAINS.includes(query);
+    
     const resolvedAddress = await nnsService.resolveMatrixDomain(query);
     const tokenBase64 = btoa(query);
     
@@ -326,12 +364,14 @@ async function handleSearch() {
       if (!propData) {
         searchResult.value = {
           domain: query,
-          available: true
+          available: !isReserved,
+          reserved: isReserved
         };
       } else {
         searchResult.value = {
           domain: query,
           available: false,
+          reserved: isReserved,
           owner: ownerAddr, 
           admin: admin,
           resolvedAddress: resolvedAddress
@@ -343,7 +383,8 @@ async function handleSearch() {
     toast.error("Failed to query domain. It might be available.");
     searchResult.value = {
       domain: query,
-      available: true
+      available: !RESERVED_DOMAINS.includes(query),
+      reserved: RESERVED_DOMAINS.includes(query)
     };
   } finally {
     searching.value = false;
