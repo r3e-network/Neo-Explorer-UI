@@ -64,10 +64,12 @@ import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { NETWORK_CHANGE_EVENT, getCurrentEnv } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { useTransferSummary } from "@/composables/useTransferSummary";
+import { useCommittee } from "@/composables/useCommittee";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
+const { loadCommittee } = useCommittee();
 
 // State
 const blocksLoading = ref(true);
@@ -156,6 +158,10 @@ function normalizeBlockSummary(block = {}) {
     block.txcount ??
     block.transactioncount ??
     block.txCount ??
+    block.transactionCount ??
+    block.tx_count ??
+    block.transaction_count ??
+    block.txs ??
     (Array.isArray(block.tx) ? block.tx.length : 0)
   );
   const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? 0);
@@ -372,7 +378,8 @@ async function loadLatestData(forceRefresh = false) {
     const blocksPromise = fetchLatestBlocks()
       .then((blocksRes) => {
         if (!blocksRes) return;
-        const nextBlocks = (blocksRes?.result || []).map((block) => {
+        const nextBlocks = (blocksRes?.result || []).map((rawBlock) => {
+          const block = normalizeBlockSummary(rawBlock);
           const cachedDetails = blockDetailsByHash.get(block.hash);
           return cachedDetails ? { ...block, ...cachedDetails } : block;
         });
@@ -555,6 +562,7 @@ const { start: startAutoRefresh } = useAutoRefresh(() => {
 });
 
 function handleNetworkChange() {
+  void loadCommittee(true);
   void loadLatestData(true);
   void loadStats(true);
   startAutoRefresh();
@@ -562,6 +570,7 @@ function handleNetworkChange() {
 
 // Lifecycle
 onMounted(() => {
+  void loadCommittee();
   loadData();
   startAutoRefresh();
   window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);

@@ -16,6 +16,7 @@ const supportsNeoTubeNetwork = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
+const loadCommitteeMock = vi.hoisted(() => vi.fn());
 const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
   enrichTransactionsMock: vi.fn(),
   transferSummaryByHashMock: {
@@ -70,6 +71,12 @@ vi.mock("@/composables/useAutoRefresh", () => ({
   }),
 }));
 
+vi.mock("@/composables/useCommittee", () => ({
+  useCommittee: () => ({
+    loadCommittee: loadCommitteeMock,
+  }),
+}));
+
 vi.mock("@/composables/useTransferSummary", () => ({
   useTransferSummary: () => ({
     transferSummaryByHash: transferSummaryByHashMock,
@@ -83,7 +90,8 @@ const LatestBlocksStub = defineComponent({
     loading: { type: Boolean, default: false },
     blocks: { type: Array, default: () => [] },
   },
-  template: '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)"></div>',
+  template:
+    '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)" :data-first-txcount="String(blocks?.[0]?.txcount ?? \'undefined\')"></div>',
 });
 
 const LatestTransactionsStub = defineComponent({
@@ -111,6 +119,7 @@ describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     enrichTransactionsMock.mockClear();
+    loadCommitteeMock.mockClear();
     supportsNeoTubeNetwork.mockReturnValue(false);
     getNeoTubeBlocks.mockResolvedValue({
       result: [{ hash: "0xneo-block", timestamp: Date.now(), txcount: 1 }],
@@ -170,6 +179,26 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("preloads committee metadata on mount to speed validator rendering in latest blocks", async () => {
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(loadCommitteeMock).toHaveBeenCalledTimes(1);
+    expect(loadCommitteeMock).toHaveBeenCalledWith();
+    wrapper.unmount();
+  });
+
   it("does not block latest blocks rendering on slow transactions response", async () => {
     let resolveTxList;
     getBlockList.mockResolvedValue({
@@ -207,6 +236,30 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
+
+  it("normalizes latest block transactionCount into txcount for rendering", async () => {
+    getBlockList.mockResolvedValueOnce({
+      result: [{ hash: "0xblock-camel", index: 123, timestamp: Date.now(), transactionCount: 7 }],
+      totalCount: 1,
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-first-txcount")).toBe("7");
     wrapper.unmount();
   });
 
