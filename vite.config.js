@@ -4,13 +4,32 @@ import compression from "vite-plugin-compression";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
-const DEFAULT_MAINNET_RPC_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testmagnet.ngd.network";
-const DEFAULT_MAINNET_BPI_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_BPI_PROXY_TARGET = "https://testmagnet.ngd.network";
+const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
+const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
+const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";
+const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testmagnet.ngd.network";
+const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
+const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const mainnetRpcPrimaryTarget =
+    env.VITE_MAINNET_RPC_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET;
+  const testnetRpcPrimaryTarget =
+    env.VITE_TESTNET_RPC_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET;
+  const mainnetRpcFallbackTarget =
+    env.VITE_MAINNET_RPC_FALLBACK_PROXY_TARGET ||
+    env.VITE_MAINNET_RPC_PROXY_TARGET ||
+    DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET;
+  const testnetRpcFallbackTarget =
+    env.VITE_TESTNET_RPC_FALLBACK_PROXY_TARGET ||
+    env.VITE_TESTNET_RPC_PROXY_TARGET ||
+    DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET;
+
+  const mainnetBpiPrimaryTarget =
+    env.VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET;
+  const testnetBpiPrimaryTarget =
+    env.VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET;
 
   return {
     plugins: [
@@ -48,48 +67,49 @@ export default defineConfig(({ mode }) => {
           rewrite: (p) => p.replace(/^\/neotube-api/, ""),
         },
         "/api/mainnet/primary": {
-          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
+          target: mainnetRpcPrimaryTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/mainnet",
         },
         "/api/mainnet/fallback": {
-          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
+          target: mainnetRpcFallbackTarget,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/testnet/primary": {
-          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
+          target: testnetRpcPrimaryTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/testnet",
         },
         "/api/testnet/fallback": {
-          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
+          target: testnetRpcFallbackTarget,
           changeOrigin: true,
           rewrite: () => "/",
         },
         "/api/mainnet": {
-          target: env.VITE_MAINNET_RPC_PROXY_TARGET || DEFAULT_MAINNET_RPC_PROXY_TARGET,
+          target: mainnetRpcPrimaryTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/mainnet",
         },
         "/api/testnet": {
-          target: env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET,
+          target: testnetRpcPrimaryTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/testnet",
         },
         "/bpi/mainnet": {
-          target: env.VITE_MAINNET_BPI_PROXY_TARGET || DEFAULT_MAINNET_BPI_PROXY_TARGET,
+          target: mainnetBpiPrimaryTarget,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi\/mainnet/, "/bpi"),
+          rewrite: (p) => p.replace(/^\/bpi\/mainnet/, "/mainnet/bpi"),
         },
         "/bpi/testnet": {
-          target: env.VITE_TESTNET_BPI_PROXY_TARGET || DEFAULT_TESTNET_BPI_PROXY_TARGET,
+          target: testnetBpiPrimaryTarget,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi\/testnet/, "/bpi"),
+          rewrite: (p) => p.replace(/^\/bpi\/testnet/, "/testnet/bpi"),
         },
         "/bpi": {
-          target: env.VITE_MAINNET_BPI_PROXY_TARGET || DEFAULT_MAINNET_BPI_PROXY_TARGET,
+          target: mainnetBpiPrimaryTarget,
           changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/bpi/, "/mainnet/bpi"),
         },
       },
     },

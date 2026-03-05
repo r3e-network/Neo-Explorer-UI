@@ -9,6 +9,7 @@ import { web3authService } from "./web3authService";
 import { rpc, tx, sc, u, wallet } from "@cityofzion/neon-js";
 import { ethers } from "ethers";
 import { getCurrentEnv } from "@/utils/env";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import {
   isHash160Hex,
   normalizeHash160,
@@ -17,15 +18,6 @@ import {
   normalizeSignMessageResult,
 } from "@/utils/walletNormalization";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
-
-const getRpcUrl = () => {
-  const env = getCurrentEnv().toLowerCase();
-  if (env.includes("test") || env.includes("t5")) {
-    const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
-    return seeds[Math.floor(Math.random() * seeds.length)];
-  }
-  return "https://mainnet1.neo.coz.io:443";
-};
 
 /** Supported wallet providers */
 const PROVIDERS = {
@@ -594,7 +586,6 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
       const account = await web3authService.getAccount();
-      const rpcClient = new rpc.RPCClient(getRpcUrl());
       const normalizedArgs = normalizeInvokeArgsForRpc(args);
       const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
 
@@ -612,42 +603,44 @@ export const walletService = {
       const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
       sb.emitAppCall(scriptHash, operation, mappedArgs);
       const script = sb.build();
-
-      const currentHeight = await rpcClient.getBlockCount();
-      const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
-
-      if (invokeRes.state === "FAULT") {
-        throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
-      }
-
-      let txn = new tx.Transaction({
-        signers: normalizedSigners,
-        validUntilBlock: currentHeight + 1000,
-        script: script,
-        systemFee: invokeRes.gasconsumed || 1000000,
-      });
-
       const magic = getCurrentEnv().toLowerCase().includes("test") ? 894710606 : 860833102;
-      txn.sign(account, magic);
 
-      const networkFee = await rpcClient.calculateNetworkFee(txn);
+      return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+        const rpcClient = new rpc.RPCClient(endpoint);
+        const currentHeight = await rpcClient.getBlockCount();
+        const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
 
-      // Resign with final explicit fees
-      txn = new tx.Transaction({
-        signers: normalizedSigners,
-        validUntilBlock: currentHeight + 1000,
-        script: script,
-        systemFee: invokeRes.gasconsumed || 1000000,
-        networkFee: networkFee
+        if (invokeRes.state === "FAULT") {
+          throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
+        }
+
+        let txn = new tx.Transaction({
+          signers: normalizedSigners,
+          validUntilBlock: currentHeight + 1000,
+          script: script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+        });
+        txn.sign(account, magic);
+
+        const networkFee = await rpcClient.calculateNetworkFee(txn);
+
+        // Resign with final explicit fees
+        txn = new tx.Transaction({
+          signers: normalizedSigners,
+          validUntilBlock: currentHeight + 1000,
+          script: script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+          networkFee: networkFee
+        });
+        txn.sign(account, magic);
+
+        if (broadcastOverride) {
+          return { signedTx: txn.serialize(true) };
+        }
+
+        const txid = await rpcClient.sendRawTransaction(txn);
+        return { txid };
       });
-      txn.sign(account, magic);
-
-      if (broadcastOverride) {
-        return { signedTx: txn.serialize(true) };
-      }
-
-      const txid = await rpcClient.sendRawTransaction(txn);
-      return { txid };
     }
 
     if (_connectedProvider === PROVIDERS.EVM_WALLET) {
@@ -778,14 +771,18 @@ export const walletService = {
     sb.emitAppCall(scriptHash, operation, mappedArgs);
     const script = sb.build();
 
-    const rpcClient = new rpc.RPCClient(getRpcUrl());
-    return rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+    return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+      const rpcClient = new rpc.RPCClient(endpoint);
+      return rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+    });
   },
 
   async broadcastSignedTx(signedTx) {
     if (!signedTx) throw new Error("Signed transaction is empty.");
-    const rpcClient = new rpc.RPCClient(getRpcUrl());
-    return rpcClient.sendRawTransaction(signedTx);
+    return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+      const rpcClient = new rpc.RPCClient(endpoint);
+      return rpcClient.sendRawTransaction(signedTx);
+    });
   },
 
 };

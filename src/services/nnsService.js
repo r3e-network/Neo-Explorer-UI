@@ -3,6 +3,7 @@ import { rpc, safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
 import { rpc as neonRpc, sc } from "@cityofzion/neon-js";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
 const INVALID_REQUEST_CODE = "-32600";
@@ -123,12 +124,14 @@ export const nnsService = {
                 }
 
                 try {
-                    const rpcClient = new neonRpc.RPCClient("https://mainnet1.neo.coz.io:443");
-                    const res = await rpcClient.invokeFunction(
-                      NNS_CONTRACT_HASH,
-                      "resolve",
-                      [sc.ContractParam.string(domain), sc.ContractParam.integer(16)]
-                    );
+                    const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
+                        const rpcClient = new neonRpc.RPCClient(endpoint);
+                        return rpcClient.invokeFunction(
+                            NNS_CONTRACT_HASH,
+                            "resolve",
+                            [sc.ContractParam.string(domain), sc.ContractParam.integer(16)]
+                        );
+                    });
                     
                     if (res.state === "HALT" && res.stack && res.stack.length > 0) {
                       const item = res.stack[0];

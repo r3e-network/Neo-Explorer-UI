@@ -127,6 +127,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
 import { rpc, tx, u, wallet } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
 const toast = useToast();
 const scriptFormat = ref("base64");
@@ -143,15 +144,6 @@ function removeSigner(index) {
   signers.value.splice(index, 1);
 }
 
-const getRpcUrl = () => {
-    const env = getCurrentEnv().toLowerCase();
-    if (env.includes("test") || env.includes("t5")) {
-        const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
-        return seeds[Math.floor(Math.random() * seeds.length)];
-    }
-    return "https://mainnet1.neo.coz.io:443";
-};
-
 function formatFee(rawIntStr) {
     if (!rawIntStr) return "0";
     return (Number(rawIntStr) / 100000000).toFixed(8).replace(/\.?0+$/, "");
@@ -165,8 +157,6 @@ async function estimateGas() {
   result.value = null;
   
   try {
-    const rpcClient = new rpc.RPCClient(getRpcUrl());
-    
     // Normalize Script
     let hexScript = "";
     if (scriptFormat.value === "hex") {
@@ -206,26 +196,26 @@ async function estimateGas() {
        }
     }
     
-    // 1. Estimate System Fee using invokeScript
     toast.info("Simulating execution...");
-    const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
-    
-    // 2. Estimate Network Fee using a dummy transaction
-    // To get the exact size, we build the object and sign it.
-    let txn = new tx.Transaction({
+    const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+      const rpcClient = new rpc.RPCClient(endpoint);
+      const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
+
+      // Build a dummy transaction for precise network-fee sizing.
+      const txn = new tx.Transaction({
         signers: invokeSigners,
         validUntilBlock: await rpcClient.getBlockCount() + 1000,
         script: hexScript,
         systemFee: invokeRes.gasconsumed || 0
+      });
+
+      for (const acc of accounts) {
+        txn.sign(acc, 860833102); // magic does not affect serialized size
+      }
+
+      const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
+      return { invokeRes, rawNetworkFee };
     });
-    
-    // NeonJS calculateNetworkFee requires the transaction to be fully structured.
-    // If it requires a signature to calculate byte cost:
-    for (const acc of accounts) {
-        txn.sign(acc, 860833102); // magic doesn't matter for size calc
-    }
-    
-    const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
     
     const sysFeeDec = Number(invokeRes.gasconsumed || 0) / 100000000;
     const netFeeDec = Number(rawNetworkFee || 0) / 100000000;

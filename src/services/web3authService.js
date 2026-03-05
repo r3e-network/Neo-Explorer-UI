@@ -10,17 +10,15 @@ let _web3auth = null;
 const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BAFNBNPk7tUWbM9L6TBy7ixKCSQ3QwmQ7mCj0r3ai3KBA9ITqb3d7ifD0BV5YDs3NQCLPFU83MptKVc4T_xBMpo";
 
 import { getCurrentEnv } from "@/utils/env";
+import { getPrimaryRpcEndpoint } from "@/utils/rpcEndpoints";
 
 const getChainConfig = () => {
   const isTestnet = getCurrentEnv().toLowerCase().includes("test") || getCurrentEnv().toLowerCase().includes("t5");
 
-  const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
-  const testnetRpc = seeds[Math.floor(Math.random() * seeds.length)];
-
   return {
     chainNamespace: CHAIN_NAMESPACES.OTHER,
     chainId: isTestnet ? "0x3354" : "0x334E", // Hex representation for Testnet (13140) / Mainnet (13134)
-    rpcTarget: isTestnet ? testnetRpc : "https://mainnet1.neo.coz.io:443",
+    rpcTarget: getPrimaryRpcEndpoint(getCurrentEnv()),
     displayName: isTestnet ? "Neo N3 Testnet" : "Neo N3 Mainnet",
     blockExplorerUrl: "https://neo3scan.com",
     ticker: "GAS",

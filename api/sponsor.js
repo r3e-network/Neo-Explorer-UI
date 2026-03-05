@@ -1,4 +1,5 @@
 const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
+const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -25,8 +26,8 @@ module.exports = async function handler(req, res) {
 
     if (!transactionHex) return res.status(400).json({ error: 'Missing transaction hex' });
 
-    const magic = network === 'testnet' ? 894710606 : 860833102;
-    const rpcUrl = network === 'testnet' ? 'https://testnet1.neo.coz.io:443' : 'https://mainnet1.neo.coz.io:443';
+    const normalizedNetwork = normalizeNetwork(network);
+    const magic = normalizedNetwork === 'testnet' ? 894710606 : 860833102;
 
     // Deserialize transaction
     const transaction = tx.Transaction.deserialize(transactionHex);
@@ -89,10 +90,12 @@ module.exports = async function handler(req, res) {
 
     // Broadcast
     const fullySignedHex = transaction.serialize(true);
-    const rpcClient = new rpc.RPCClient(rpcUrl);
     
     try {
-       const txid = await rpcClient.sendRawTransaction(fullySignedHex);
+       const txid = await callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+         const rpcClient = new rpc.RPCClient(endpoint);
+         return rpcClient.sendRawTransaction(fullySignedHex);
+       });
        return res.status(200).json({ txid, fullySignedHex });
     } catch (err) {
        return res.status(400).json({ error: 'Broadcast failed: ' + err.message });

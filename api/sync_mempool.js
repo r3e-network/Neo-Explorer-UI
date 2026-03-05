@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { callWithRpcEndpointFallback } = require('./lib/rpcEndpoints');
 
 module.exports.config = {
   runtime: 'edge',
@@ -9,10 +10,7 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const RPC_MAINNET = 'https://mainnet1.neo.coz.io:443';
-const RPC_TESTNET = 'https://testnet1.neo.coz.io:443';
-
-async function rpcCall(url, method, params = []) {
+async function postRpc(url, method, params = []) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,9 +21,12 @@ async function rpcCall(url, method, params = []) {
   return data.result;
 }
 
-async function syncNetwork(network, rpcUrl) {
+const rpcCall = (network, method, params = []) =>
+  callWithRpcEndpointFallback(network, (url) => postRpc(url, method, params));
+
+async function syncNetwork(network) {
   try {
-    const mempoolData = await rpcCall(rpcUrl, 'getrawmempool', [true]);
+    const mempoolData = await rpcCall(network, 'getrawmempool', [true]);
     const hashes = [...mempoolData.verified, ...mempoolData.unverified].slice(0, 1000);
     
     // Fetch currently stored hashes to find what's missing
@@ -41,7 +42,7 @@ async function syncNetwork(network, rpcUrl) {
     const newRecords = [];
     for (const hash of hashesToFetch) {
       try {
-        const txData = await rpcCall(rpcUrl, 'getrawtransaction', [hash, true]);
+        const txData = await rpcCall(network, 'getrawtransaction', [hash, true]);
         newRecords.push({
           hash,
           network,
@@ -75,7 +76,7 @@ async function syncNetwork(network, rpcUrl) {
     
     // Also, theoretically clean up if validuntilblock < current block height (done automatically via above sync as node drops them)
     // But we can double check
-    const blockCount = await rpcCall(rpcUrl, 'getblockcount', []);
+    const blockCount = await rpcCall(network, 'getblockcount', []);
     await supabase
       .from('mempool_transactions')
       .delete()
@@ -96,8 +97,8 @@ async function syncNetwork(network, rpcUrl) {
 
 module.exports = async function handler(req) {
   try {
-    const mainnetResult = await syncNetwork('mainnet', RPC_MAINNET);
-    const testnetResult = await syncNetwork('testnet', RPC_TESTNET);
+    const mainnetResult = await syncNetwork('mainnet');
+    const testnetResult = await syncNetwork('testnet');
     
     return new Response(JSON.stringify({
       success: true,

@@ -1,6 +1,7 @@
 const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 const { enforceRelayerRateLimit } = require('./lib/relayerRateLimit');
+const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 const aaMethodPolicy = require('../src/constants/aaMethodPolicy.json');
 
 module.exports.config = {
@@ -379,10 +380,36 @@ module.exports = async function handler(req, res) {
             return res.status(200).json({ relayerAddress: relayerAccount.address });
         }
 
-        const isTestnet = String(network).toLowerCase().includes('test') || String(network).toLowerCase().includes('t5');
+        const normalizedNetwork = normalizeNetwork(network);
+        const isTestnet = normalizedNetwork === 'testnet';
         const magic = isTestnet ? 894710606 : 860833102;
-        const rpcUrl = isTestnet ? 'https://testnet1.neo.coz.io:443' : 'https://mainnet1.neo.coz.io:443';
-        const rpcClient = new rpc.RPCClient(rpcUrl);
+        const rpcClient = {
+            invokeScript: (...args) =>
+                callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+                    const client = new rpc.RPCClient(endpoint);
+                    return client.invokeScript(...args);
+                }),
+            getBlockCount: (...args) =>
+                callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+                    const client = new rpc.RPCClient(endpoint);
+                    return client.getBlockCount(...args);
+                }),
+            calculateNetworkFee: (...args) =>
+                callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+                    const client = new rpc.RPCClient(endpoint);
+                    return client.calculateNetworkFee(...args);
+                }),
+            sendRawTransaction: (...args) =>
+                callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+                    const client = new rpc.RPCClient(endpoint);
+                    return client.sendRawTransaction(...args);
+                }),
+            getContractState: (...args) =>
+                callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+                    const client = new rpc.RPCClient(endpoint);
+                    return client.getContractState(...args);
+                }),
+        };
 
         const cleanAaHash = sanitizeHex(aaHash);
         let cleanAccountAddress;

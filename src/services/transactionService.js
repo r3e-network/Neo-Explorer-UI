@@ -5,6 +5,7 @@ import { executionService } from "./executionService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { neotubeService } from "./neotubeService";
 import { getCurrentEnv } from "../utils/env";
+import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
  * Transaction Service - Neo3 交易相关 API 调用
@@ -107,15 +108,19 @@ export const transactionService = createService(
         // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
         const { rpc: neonRpc } = await import('@cityofzion/neon-js');
         const { getCurrentEnv } = await import('@/utils/env');
-        const isMainnet = getCurrentEnv() !== 'TestT5';
-        const endpoint = isMainnet ? 'https://mainnet1.neo.coz.io:443' : 'https://testnet1.neo.coz.io:443';
-        const client = new neonRpc.RPCClient(endpoint);
-        const nativeTx = await client.getRawTransaction(hash, true);
+        const network = toNetworkMode(getCurrentEnv());
+        const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
+          const client = new neonRpc.RPCClient(endpoint);
+          return client.getRawTransaction(hash, true);
+        });
         if (nativeTx && nativeTx.hash) {
           let blockIndex = 0;
           if (nativeTx.blockhash) {
             try {
-              const blockHeader = await client.getBlockHeader(nativeTx.blockhash, true);
+              const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
+                const client = new neonRpc.RPCClient(endpoint);
+                return client.getBlockHeader(nativeTx.blockhash, true);
+              });
               blockIndex = blockHeader.index;
             } catch (e) { /* ignore */ }
           }

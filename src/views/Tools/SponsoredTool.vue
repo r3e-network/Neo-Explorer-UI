@@ -136,6 +136,7 @@ import { useToast } from "vue-toastification";
 import { rpc, wallet } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
 import { cachedRequest } from "@/services/cache";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
 const toast = useToast();
 const gasBalance = ref("0");
@@ -155,15 +156,6 @@ const isEligible = computed(() => {
   return Number(gasBalance.value) < eligibilityThreshold;
 });
 
-const getRpcUrl = () => {
-    const env = getCurrentEnv().toLowerCase();
-    if (env.includes("test") || env.includes("t5")) {
-        const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
-        return seeds[Math.floor(Math.random() * seeds.length)];
-    }
-    return "https://mainnet1.neo.coz.io:443";
-};
-
 async function fetchBalance() {
   if (!connectedAccount.value) {
     gasBalance.value = "0";
@@ -171,8 +163,10 @@ async function fetchBalance() {
   }
   
   try {
-    const rpcClient = new rpc.RPCClient(getRpcUrl());
-    const result = await rpcClient.getNep17Balances(connectedAccount.value);
+    const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+      const rpcClient = new rpc.RPCClient(endpoint);
+      return rpcClient.getNep17Balances(connectedAccount.value);
+    });
     const gasAsset = result.balance.find(b => b.assethash === '0xd2a4cff31913016155e38e474a2c06d08be276cf');
     if (gasAsset) {
       gasBalance.value = (Number(gasAsset.amount) / 100000000).toFixed(4);

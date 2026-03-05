@@ -4,6 +4,7 @@ import { contractService } from "./contractService";
 import { NATIVE_CONTRACTS, CONTRACT_MANAGEMENT_HASH } from "@/constants";
 import { decodeNotificationParams } from "@/utils/neoCodec";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
+import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
  * Execution Service - Neo3 交易执行追踪
@@ -62,10 +63,11 @@ export const executionService = createService(
         try {
           const { rpc: neonRpc } = await import('@cityofzion/neon-js');
           const { getCurrentEnv } = await import('@/utils/env');
-          const isMainnet = getCurrentEnv() !== 'TestT5';
-          const endpoint = isMainnet ? 'https://mainnet1.neo.coz.io:443' : 'https://testnet1.neo.coz.io:443';
-          const client = new neonRpc.RPCClient(endpoint);
-          const nativeLog = await client.getApplicationLog(txHash);
+          const network = toNetworkMode(getCurrentEnv());
+          const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
+            const client = new neonRpc.RPCClient(endpoint);
+            return client.getApplicationLog(txHash);
+          });
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);
           }

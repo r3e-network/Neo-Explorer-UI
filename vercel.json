@@ -16,7 +16,7 @@
   "rewrites": [
     {
       "source": "/api/mainnet/primary",
-      "destination": "https://neofura.ngd.network"
+      "destination": "https://rpc.r3e.network/mainnet"
     },
     {
       "source": "/api/mainnet/fallback",
@@ -24,7 +24,7 @@
     },
     {
       "source": "/api/testnet/primary",
-      "destination": "https://testmagnet.ngd.network"
+      "destination": "https://rpc.r3e.network/testnet"
     },
     {
       "source": "/api/testnet/fallback",
@@ -32,27 +32,27 @@
     },
     {
       "source": "/api/mainnet",
-      "destination": "https://neofura.ngd.network"
+      "destination": "https://rpc.r3e.network/mainnet"
     },
     {
       "source": "/api/testnet",
-      "destination": "https://testmagnet.ngd.network"
+      "destination": "https://rpc.r3e.network/testnet"
     },
     {
       "source": "/api",
-      "destination": "https://neofura.ngd.network"
+      "destination": "https://rpc.r3e.network/mainnet"
     },
     {
       "source": "/bpi/mainnet/(.*)",
-      "destination": "https://neofura.ngd.network/bpi/$1"
+      "destination": "https://rpc.r3e.network/mainnet/bpi/$1"
     },
     {
       "source": "/bpi/testnet/(.*)",
-      "destination": "https://testmagnet.ngd.network/bpi/$1"
+      "destination": "https://rpc.r3e.network/testnet/bpi/$1"
     },
     {
       "source": "/bpi/(.*)",
-      "destination": "https://neofura.ngd.network/bpi/$1"
+      "destination": "https://rpc.r3e.network/mainnet/bpi/$1"
     },
     {
       "source": "/neotube-api/(.*)",

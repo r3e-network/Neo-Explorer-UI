@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 
 module.exports.config = {
   runtime: 'edge',
@@ -11,17 +12,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY; // You need to add this in Vercel Dashboard
 
-const RPC_ENDPOINTS = {
-  mainnet: 'https://mainnet1.neo.coz.io:443',
-  testnet: 'https://testnet1.neo.coz.io:443'
+const getIndexedRpcCandidates = (network) => {
+  const normalized = normalizeNetwork(network);
+  if (normalized === 'testnet') {
+    return ['https://rpc.r3e.network/testnet', 'https://testmagnet.ngd.network'];
+  }
+  return ['https://rpc.r3e.network/mainnet', 'https://neofura.ngd.network'];
 };
 
-const NEOFURA_ENDPOINTS = {
-  mainnet: 'https://neofura.ngd.network',
-  testnet: 'https://testmagnet.ngd.network'
-};
-
-async function rpcCall(url, method, params = []) {
+const postRpc = async (url, method, params = []) => {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -30,18 +29,25 @@ async function rpcCall(url, method, params = []) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   return data.result;
-}
+};
 
-async function furaCall(url, method, params = {}) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
-}
+const rpcCall = (network, method, params = []) =>
+  callWithRpcEndpointFallback(network, (url) => postRpc(url, method, params));
+
+const indexedRpcCall = async (network, method, params = {}) => {
+  const candidates = getIndexedRpcCandidates(network);
+  let lastError = null;
+
+  for (const url of candidates) {
+    try {
+      return await postRpc(url, method, params);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('No indexed RPC endpoint candidates available');
+};
 
 // Helper to send email via Resend API
 async function sendEmailAlert(emailAddress, subject, htmlContent) {
@@ -73,8 +79,6 @@ async function sendEmailAlert(emailAddress, subject, htmlContent) {
 }
 
 async function checkNetworkAlerts(network) {
-  const rpcUrl = RPC_ENDPOINTS[network];
-  const furaUrl = NEOFURA_ENDPOINTS[network];
   let triggeredCount = 0;
 
   try {
@@ -89,8 +93,8 @@ async function checkNetworkAlerts(network) {
     if (!alerts || alerts.length === 0) return 0;
 
     // Pre-fetch global state to avoid redundant calls inside the loop
-    const blockCount = await rpcCall(rpcUrl, 'getblockcount', []);
-    const latestBlock = await rpcCall(rpcUrl, 'getblock', [blockCount - 1, 1]);
+    const blockCount = await rpcCall(network, 'getblockcount', []);
+    const latestBlock = await rpcCall(network, 'getblock', [blockCount - 1, 1]);
     const currentBlockTime = latestBlock.time * 1000; // ms
     const timeSinceLastBlock = Date.now() - currentBlockTime;
 
@@ -122,7 +126,7 @@ async function checkNetworkAlerts(network) {
         
         // Fetch committee if not already fetched
         if (!committee) {
-          committee = await rpcCall(rpcUrl, 'getcommittee', []);
+          committee = await rpcCall(network, 'getcommittee', []);
         }
 
         // Find the index of our target node in the active committee
@@ -168,7 +172,7 @@ async function checkNetworkAlerts(network) {
         const targetAddress = alert.target;
         
         try {
-          const furaRes = await furaCall(furaUrl, 'GetRawTransactionByAddress', {
+          const furaRes = await indexedRpcCall(network, 'GetRawTransactionByAddress', {
             Address: targetAddress,
             Limit: 1,
             Skip: 0

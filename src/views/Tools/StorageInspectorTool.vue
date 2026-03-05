@@ -99,6 +99,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
 import { rpc, u } from "@cityofzion/neon-js";
 import { getCurrentEnv } from "@/utils/env";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
 const toast = useToast();
 const contractHash = ref("");
@@ -140,15 +141,6 @@ const intResult = computed(() => {
   }
 });
 
-const getRpcUrl = () => {
-    const env = getCurrentEnv().toLowerCase();
-    if (env.includes("test") || env.includes("t5")) {
-        const seeds = ["http://seed5t5.neo.org:20332", "http://seed2t5.neo.org:20332", "http://seed4t5.neo.org:20332"];
-        return seeds[Math.floor(Math.random() * seeds.length)];
-    }
-    return "https://mainnet1.neo.coz.io:443";
-};
-
 async function fetchStorage() {
   if (!isValidInput.value) return;
   
@@ -157,8 +149,6 @@ async function fetchStorage() {
   rawBase64Result.value = "";
   
   try {
-    const rpcClient = new rpc.RPCClient(getRpcUrl());
-    
     let keyHex = "";
     if (keyFormat.value === "string") {
       keyHex = u.str2hexstring(storageKey.value);
@@ -169,8 +159,11 @@ async function fetchStorage() {
     }
     
     const hash = contractHash.value.startsWith('0x') ? contractHash.value : '0x' + contractHash.value;
-    
-    const result = await rpcClient.getStorage(hash, keyHex);
+
+    const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+      const rpcClient = new rpc.RPCClient(endpoint);
+      return rpcClient.getStorage(hash, keyHex);
+    });
     rawBase64Result.value = result || "";
     hasQueried.value = true;
   } catch (e) {
