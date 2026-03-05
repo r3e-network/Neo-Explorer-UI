@@ -131,6 +131,25 @@ function hasSameOrderedHashes(currentList = [], nextList = []) {
   return true;
 }
 
+function mergeUniqueTransactions(primary = [], secondary = [], limit = 6) {
+  const rows = [];
+  const seen = new Set();
+
+  const append = (items = []) => {
+    for (const tx of items) {
+      const hash = String(tx?.hash || "").trim();
+      if (!hash || seen.has(hash)) continue;
+      seen.add(hash);
+      rows.push(tx);
+      if (rows.length >= limit) return;
+    }
+  };
+
+  append(primary);
+  if (rows.length < limit) append(secondary);
+  return rows;
+}
+
 function normalizeBlockSummary(block = {}) {
   const index = Number(block.index ?? block.blockindex ?? block.height ?? 0);
   const txCount = Number(
@@ -375,45 +394,44 @@ async function loadLatestData(forceRefresh = false) {
         blocksLoading.value = false;
       });
 
-    const fastTxsPromise = Promise.allSettled([
-      fetchLatestTransactions(),
-      fetchPendingTransactionsSafe(6)
-    ])
-      .then(([txsRes, pendingTxsRes]) => {
-        let nextTxs = [];
-        
-        if (pendingTxsRes.status === "fulfilled" && pendingTxsRes.value) {
-          nextTxs = [...pendingTxsRes.value];
-        }
-        
-        if (txsRes.status === "fulfilled" && txsRes.value?.result) {
-          nextTxs = [...nextTxs, ...txsRes.value.result];
-        }
-        
-        // Remove duplicates if a tx just got included but still in pending cache
-        const uniqueTxs = [];
-        const seen = new Set();
-        for (const tx of nextTxs) {
-          if (!seen.has(tx.hash)) {
-            seen.add(tx.hash);
-            uniqueTxs.push(tx);
-          }
-        }
-        nextTxs = uniqueTxs.slice(0, 6);
+    const fastTxsPromise = (async () => {
+      const pendingPromise = fetchPendingTransactionsSafe(6)
+        .then((rows) => (Array.isArray(rows) ? rows : []))
+        .catch(() => []);
 
-        if (!hasSameOrderedHashes(latestTxs.value, nextTxs)) {
-          latestTxs.value = nextTxs;
+      let confirmedRows = [];
+      try {
+        const txsRes = await fetchLatestTransactions();
+        confirmedRows = Array.isArray(txsRes?.result) ? txsRes.result : [];
+      } catch (err) {
+        const pendingOnly = mergeUniqueTransactions(await pendingPromise, [], 6);
+        if (pendingOnly.length) {
+          if (!hasSameOrderedHashes(latestTxs.value, pendingOnly)) {
+            latestTxs.value = pendingOnly;
+          }
+          return;
         }
-        if (Array.isArray(nextTxs) && nextTxs.length) {
-          const nonPendingTxs = nextTxs.filter(tx => tx.status !== 'pending');
-          void enrichTransactions(nonPendingTxs, { maxItems: 6 });
+        throw err;
+      }
+
+      const initialRows = mergeUniqueTransactions(confirmedRows, [], 6);
+      if (!hasSameOrderedHashes(latestTxs.value, initialRows)) {
+        latestTxs.value = initialRows;
+      }
+      if (initialRows.length) {
+        const nonPendingInitial = initialRows.filter((tx) => tx.status !== "pending");
+        if (nonPendingInitial.length) {
+          void enrichTransactions(nonPendingInitial, { maxItems: 6 });
         }
-        
-        // Throw if both lists successfully resolved to empty arrays due to error catches upstream
-        if (txsRes.status === "rejected" && !nextTxs.length) {
-          throw txsRes.reason;
-        }
-      })
+      }
+
+      // Merge pending transactions when ready without blocking initial confirmed tx rendering.
+      void pendingPromise.then((pendingRows) => {
+        const mergedRows = mergeUniqueTransactions(pendingRows, confirmedRows, 6);
+        if (!mergedRows.length || hasSameOrderedHashes(latestTxs.value, mergedRows)) return;
+        latestTxs.value = mergedRows;
+      });
+    })()
       .catch((err) => {
         if (import.meta.env.DEV) console.warn("txs load err:", err);
         txsError.value = true;

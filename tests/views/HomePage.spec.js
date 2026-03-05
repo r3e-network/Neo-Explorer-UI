@@ -210,6 +210,42 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("does not block latest transactions rendering on slow pending-transactions response", async () => {
+    let resolvePendingTxs;
+    getTxList.mockResolvedValueOnce({
+      result: [{ hash: "0xtx-immediate" }],
+      totalCount: 1,
+    });
+    getPendingTransactions.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePendingTxs = resolve;
+        })
+    );
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("1");
+
+    resolvePendingTxs([{ hash: "0xpending" }]);
+    await flushPromises();
+
+    wrapper.unmount();
+  });
+
   it("prefers NeoTube endpoints on supported networks", async () => {
     supportsNeoTubeNetwork.mockReturnValue(true);
 

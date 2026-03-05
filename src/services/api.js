@@ -4,6 +4,7 @@ import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "..
 const LEGACY_RPC_BASE_URL = "/api";
 const DEFAULT_RPC_TIMEOUT_MS = 12000;
 const FAILOVER_RPC_TIMEOUT_MS = 8000;
+const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = 800;
 const HEDGE_DELAY_MS = 1200;
 const STARTUP_HEDGE_WINDOW_MS = 45000;
 const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
@@ -249,16 +250,28 @@ const api = axios.create({
 import { checkAndSetEndpoints } from "../utils/healthCheck";
 
 // Wait for initial health check before making requests
-let initialCheckPromise = checkAndSetEndpoints();
+let initialCheckResolved = false;
+const initialCheckPromise = Promise.resolve(checkAndSetEndpoints())
+  .catch(() => {})
+  .finally(() => {
+    initialCheckResolved = true;
+  });
+
+const waitForInitialHealthCheck = async () => {
+  if (initialCheckResolved) return;
+
+  await Promise.race([
+    initialCheckPromise,
+    new Promise((resolve) => {
+      setTimeout(resolve, INITIAL_HEALTH_CHECK_MAX_WAIT_MS);
+    }),
+  ]);
+};
 
 // Request interceptor
 api.interceptors.request.use(
   async (config) => {
-    try {
-      await initialCheckPromise;
-    } catch {
-      // ignore
-    }
+    await waitForInitialHealthCheck();
 
     if (!config.__manualBaseURL) {
       config.baseURL = resolveRpcBaseUrl();

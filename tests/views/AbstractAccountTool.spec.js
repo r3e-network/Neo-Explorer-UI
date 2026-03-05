@@ -7,8 +7,8 @@ const source = fs.readFileSync(sourcePath, "utf8");
 
 describe("AbstractAccountTool AA creation invariants", () => {
   it("calls the lowercase createAccountWithAddress contract method", () => {
-    expect(source).toMatch(/operation:\s*['"]createAccountWithAddress['"]/);
-    expect(source).not.toMatch(/operation:\s*['"]CreateAccount['"]/);
+    expect(source).toMatch(/method\s*=\s*['"]createAccountWithAddress['"]/);
+    expect(source).not.toMatch(/method\s*=\s*['"]CreateAccount['"]/);
   });
 
   it("sends accountId bytes with bound AA account hash160", () => {
