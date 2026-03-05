@@ -1,6 +1,24 @@
 import { FLAMINGO_TOKEN_CONTRACTS } from "./flamingoTokens";
 
 const STATIC_KNOWN_CONTRACTS = {
+  // Name Service Contracts (.neo / .matrix)
+  "0x50ac1c37690cc2cfc594472833cf57505d5f46de": {
+    name: "Neo Name Service",
+    symbol: "NNS",
+    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+  },
+  "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd": {
+    name: "Matrix Name Service",
+    symbol: "MATRIX",
+    // Keep matrix visual identity aligned with NNS as requested.
+    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+  },
+  "0x89908093c5ccc463e2c5744d6bacb06108b60a75": {
+    name: "Matrix Name Service (Testnet)",
+    symbol: "MATRIX",
+    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+  },
+
   // Flamingo Finance non-token contracts
   "0xec268efc0f4fce9d3afbcfb5c00d43328e895d4d": { name: "FlamingoBroker", logo: "https://flamingo.finance/favicon.ico" },
   "0x8b321a6edfaecbc4703bbaec05bf87da6a908da9": { name: "FlamingoRouter", logo: "https://flamingo.finance/favicon.ico" },
