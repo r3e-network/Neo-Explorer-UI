@@ -4,6 +4,7 @@ const sharp = require("sharp");
 
 const MAX_SOURCE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8000;
+const FALLBACK_LOGO_REDIRECT = "/favicon.ico";
 
 const clampInteger = (value, min, max, fallback) => {
   const numeric = Number.parseInt(value, 10);
@@ -66,6 +67,14 @@ const isDisallowedHostname = async (hostname) => {
 };
 
 module.exports = async function handler(req, res) {
+  const respondWithFallbackLogo = () => {
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+    );
+    return res.redirect(302, FALLBACK_LOGO_REDIRECT);
+  };
+
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
@@ -110,12 +119,12 @@ module.exports = async function handler(req, res) {
     });
   } catch {
     clearTimeout(timeout);
-    return res.status(502).json({ error: "Failed to fetch source image" });
+    return respondWithFallbackLogo();
   }
   clearTimeout(timeout);
 
   if (!upstream.ok) {
-    return res.status(502).json({ error: `Source image responded ${upstream.status}` });
+    return respondWithFallbackLogo();
   }
 
   const contentLength = Number.parseInt(upstream.headers.get("content-length") || "0", 10);
@@ -125,7 +134,7 @@ module.exports = async function handler(req, res) {
 
   const contentType = String(upstream.headers.get("content-type") || "").toLowerCase();
   if (contentType && !contentType.startsWith("image/")) {
-    return res.status(415).json({ error: "Source is not an image" });
+    return respondWithFallbackLogo();
   }
 
   let sourceBuffer;
@@ -133,11 +142,11 @@ module.exports = async function handler(req, res) {
     const data = await upstream.arrayBuffer();
     sourceBuffer = Buffer.from(data);
   } catch {
-    return res.status(502).json({ error: "Unable to read source image" });
+    return respondWithFallbackLogo();
   }
 
   if (!sourceBuffer.length) {
-    return res.status(502).json({ error: "Source image is empty" });
+    return respondWithFallbackLogo();
   }
 
   if (sourceBuffer.length > MAX_SOURCE_BYTES) {
