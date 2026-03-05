@@ -31,8 +31,14 @@ const normalizeAddressKey = (address) => String(address || "").trim();
 
 const getNetworkMode = (networkMode) => toNetworkMode(networkMode);
 
-const buildIndexerMetadataUrl = (network, resource, query = "") =>
-  `${INDEXER_METADATA_PREFIX}/${network}/metadata/${resource}${query}`;
+const buildIndexerMetadataUrl = (network, resource, query = "") => {
+  const path = `${INDEXER_METADATA_PREFIX}/${network}/metadata/${resource}${query}`;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return new URL(path, window.location.origin).toString();
+  }
+  // Fallback for node testing environments
+  return `http://localhost${path}`;
+};
 
 const fetchJsonWithTimeout = async (url, timeoutMs = METADATA_FETCH_TIMEOUT_MS) => {
   if (typeof fetch !== "function") {
