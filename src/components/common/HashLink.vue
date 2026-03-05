@@ -58,6 +58,7 @@ import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { contractService } from "@/services";
+import { supabaseService } from "@/services/supabaseService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
@@ -85,6 +86,7 @@ const shouldTruncate = computed(() =>
 
 const nnsName = ref("");
 const fetchedContractName = ref("");
+const fetchedContractLogo = ref("");
 const normalizedAddressHash = computed(() => {
   if (props.type !== "address" || !props.hash) return props.hash;
   return scriptHashToAddress(props.hash);
@@ -107,6 +109,7 @@ const knownName = computed(() => {
 
 const knownLogo = computed(() => {
   if (!props.hash) return null;
+  if (fetchedContractLogo.value) return fetchedContractLogo.value;
   if (props.type === "contract" || props.type === "token") {
     const hash = props.hash.toLowerCase();
     const known = KNOWN_CONTRACTS[hash];
@@ -143,6 +146,7 @@ watch(
   async ([newHash, type, resolveNns]) => {
     nnsName.value = "";
     fetchedContractName.value = "";
+    fetchedContractLogo.value = "";
     
     const lookupHash = type === "address" ? normalizedAddressHash.value : newHash;
 
@@ -156,11 +160,32 @@ watch(
     if ((type === "contract" || type === "token") && newHash && !knownName.value) {
       const hash = newHash.startsWith('0x') ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
       try {
+        const cachedMeta = await supabaseService.getContractMetadata(hash);
+        if (cachedMeta?.name || cachedMeta?.display_name) {
+          fetchedContractName.value = cachedMeta.display_name || cachedMeta.name;
+        }
+        if (cachedMeta?.logo_url) {
+          fetchedContractLogo.value = optimizeLogoUrl(cachedMeta.logo_url, { kind: "contract" });
+        }
+        if (fetchedContractName.value) {
+          return;
+        }
+
         let contract = await contractService.getByHash(hash);
         if (!contract || !contract.name) {
           // Try reversing the hash (endianness fallback)
           const cleanHash = hash.replace(/^0x/i, '');
           const reversed = '0x' + (cleanHash.match(/.{2}/g) || []).reverse().join('');
+          const reversedMeta = await supabaseService.getContractMetadata(reversed);
+          if (reversedMeta?.name || reversedMeta?.display_name) {
+            fetchedContractName.value = reversedMeta.display_name || reversedMeta.name;
+          }
+          if (reversedMeta?.logo_url) {
+            fetchedContractLogo.value = optimizeLogoUrl(reversedMeta.logo_url, { kind: "contract" });
+          }
+          if (fetchedContractName.value) {
+            return;
+          }
           contract = await contractService.getByHash(reversed);
         }
         if (contract && contract.name) {

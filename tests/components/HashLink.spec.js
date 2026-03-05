@@ -1,9 +1,10 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { resolveAddressToNNS, getByHash } = vi.hoisted(() => ({
+const { resolveAddressToNNS, getByHash, getContractMetadata } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
   getByHash: vi.fn(async () => null),
+  getContractMetadata: vi.fn(async () => null),
 }));
 
 const UNKNOWN_ADDRESS = "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -18,6 +19,12 @@ vi.mock("@/services", () => ({
   contractService: {
     getByHash,
   }
+}));
+
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getContractMetadata,
+  },
 }));
 
 import HashLink from "@/components/common/HashLink.vue";
