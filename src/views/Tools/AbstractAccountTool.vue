@@ -223,7 +223,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import CopyButton from "@/components/common/CopyButton.vue";
 import { connectedAccount, connectedProvider, PROVIDERS } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
