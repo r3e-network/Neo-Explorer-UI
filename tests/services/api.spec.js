@@ -240,6 +240,32 @@ describe("safeRpc", () => {
     }
   });
 
+  it("keeps hedged fallback enabled after long uptime to avoid 12s stalls", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.now() + 120_000);
+
+      axios.post
+        .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(() => resolve({ data: { result: { index: 101 } } }), 5000);
+            })
+        )
+        .mockResolvedValueOnce({ data: { result: { index: 202 } } });
+
+      const request = safeRpc("GetBlockCount", {});
+
+      await vi.advanceTimersByTimeAsync(1200);
+
+      expect(axios.post).toHaveBeenCalledTimes(3);
+      await expect(request).resolves.toEqual({ index: 202 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("fails over when the primary endpoint reports the wrong network magic", async () => {
     axios.post.mockImplementation((_url, payload, config) => {
       const method = payload?.method;

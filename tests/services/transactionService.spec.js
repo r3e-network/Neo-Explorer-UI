@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactionService } from "../../src/services/transactionService.js";
 import * as api from "../../src/services/api.js";
+import { accountService } from "../../src/services/accountService.js";
 
 vi.mock("@cityofzion/neon-js", () => ({
   rpc: {
@@ -21,6 +22,13 @@ vi.mock("../../src/services/api.js", () => ({
 vi.mock("../../src/services/supabaseService.js", () => ({
   supabaseService: {
     getMempoolTransactions: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock("../../src/services/accountService.js", () => ({
+  accountService: {
+    getNep17Transfers: vi.fn(),
+    getNep11Transfers: vi.fn(),
   },
 }));
 
@@ -100,6 +108,43 @@ describe("transactionService", () => {
       );
       
       expect(result.result[0].vmstate).toBe("HALT");
+    });
+
+    it("falls back to transfer txids when address transaction list is empty", async () => {
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
+      accountService.getNep17Transfers.mockResolvedValueOnce({
+        result: [
+          { txid: "0x111", timestamp: 100 },
+          { txid: "0x222", timestamp: 200 },
+        ],
+        totalCount: 2,
+      });
+      accountService.getNep11Transfers.mockResolvedValueOnce({
+        result: [
+          { txid: "0x222", timestamp: 200 },
+          { txid: "0x333", timestamp: 150 },
+        ],
+        totalCount: 2,
+      });
+
+      api.safeRpc.mockImplementation(async (method, params) => {
+        if (method === "GetRawTransactionByTransactionHash") {
+          return {
+            hash: params.TransactionHash,
+            vmstate: "HALT",
+            blocktime: 1700000000,
+          };
+        }
+        return null;
+      });
+
+      const result = await transactionService.getByAddress("NdzY4...", 2, 0);
+
+      expect(accountService.getNep17Transfers).toHaveBeenCalledTimes(1);
+      expect(accountService.getNep11Transfers).toHaveBeenCalledTimes(1);
+      expect(result.totalCount).toBe(3);
+      expect(result.result).toHaveLength(2);
+      expect(result.result.map((tx) => tx.hash)).toEqual(["0x222", "0x333"]);
     });
   });
 });

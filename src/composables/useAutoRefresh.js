@@ -54,6 +54,7 @@ export function useAutoRefresh(callback, options = {}) {
         _stopTimer();
       } else if (isIntentionallyActive.value) {
         _startTimer();
+        callback();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);

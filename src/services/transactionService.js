@@ -4,6 +4,7 @@ import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { executionService } from "./executionService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { neotubeService } from "./neotubeService";
+import { accountService } from "./accountService";
 import { getCurrentEnv } from "../utils/env";
 import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
@@ -183,6 +184,72 @@ export const transactionService = createService(
       );
     },
 
+    _extractTransferTxHash(transfer = {}) {
+      const hash = transfer?.txid ?? transfer?.txHash ?? transfer?.hash ?? "";
+      return String(hash || "").trim();
+    },
+
+    _extractTransferTimestamp(transfer = {}) {
+      const raw = transfer?.timestamp ?? transfer?.blocktime ?? transfer?.time ?? 0;
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+
+    _buildAddressTransferFallbackCandidates(nep17Transfers = [], nep11Transfers = []) {
+      const deduped = new Map();
+      for (const transfer of [...nep17Transfers, ...nep11Transfers]) {
+        const hash = this._extractTransferTxHash(transfer);
+        if (!hash) continue;
+
+        const timestamp = this._extractTransferTimestamp(transfer);
+        const existing = deduped.get(hash);
+        if (!existing || timestamp > existing.timestamp) {
+          deduped.set(hash, { hash, timestamp });
+        }
+      }
+
+      return Array.from(deduped.values()).sort((a, b) => b.timestamp - a.timestamp);
+    },
+
+    async _getAddressTransactionsFromTransferFallback(address, limit, skip, options = {}) {
+      const safeLimit = Math.max(1, Number(limit) || 20);
+      const safeSkip = Math.max(0, Number(skip) || 0);
+      const targetWindow = safeLimit + safeSkip;
+      const transferFetchLimit = Math.min(Math.max(targetWindow * 3, 60), 1000);
+
+      const [nep17Response, nep11Response] = await Promise.all([
+        accountService.getNep17Transfers(address, transferFetchLimit, 0, options),
+        accountService.getNep11Transfers(address, transferFetchLimit, 0, options),
+      ]);
+
+      const candidates = this._buildAddressTransferFallbackCandidates(
+        nep17Response?.result || [],
+        nep11Response?.result || []
+      );
+      if (!candidates.length) return null;
+
+      const pageCandidates = candidates.slice(safeSkip, safeSkip + safeLimit);
+      const hydratedPage = await Promise.all(
+        pageCandidates.map(async ({ hash, timestamp }) => {
+          try {
+            const fullTx = await this.getByHash(hash, options);
+            if (fullTx?.hash) return fullTx;
+          } catch (error) {
+            // Ignore per-tx hydration errors and keep fallback row.
+          }
+          return { hash, blocktime: timestamp, timestamp };
+        })
+      );
+
+      const totalCount = Math.max(
+        candidates.length,
+        Number(nep17Response?.totalCount || 0),
+        Number(nep11Response?.totalCount || 0)
+      );
+
+      return { result: hydratedPage.filter(Boolean), totalCount };
+    },
+
     /**
      * Fetch pending transactions from the mempool.
      * @param {number} [limit=20] - Max items to return.
@@ -299,8 +366,25 @@ export const transactionService = createService(
       const res = await this._getByAddress(address, limit, skip, requestOptions);
       if (!res || !res.result) return res;
 
+      let response = res;
+      if (Array.isArray(res.result) && res.result.length === 0 && Number(res.totalCount || 0) === 0) {
+        try {
+          const transferFallback = await this._getAddressTransactionsFromTransferFallback(
+            address,
+            limit,
+            skip,
+            requestOptions
+          );
+          if (transferFallback?.result?.length) {
+            response = transferFallback;
+          }
+        } catch (error) {
+          // Keep primary response when fallback retrieval fails.
+        }
+      }
+
       const enriched = await Promise.all(
-        res.result.map(async (tx) => {
+        response.result.map(async (tx) => {
           if (enrichMissingFields && !this._extractVmState(tx) && tx.hash) {
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
@@ -311,7 +395,7 @@ export const transactionService = createService(
           return tx;
         })
       );
-      return { ...res, result: enriched };
+      return { ...response, result: enriched };
     }
   }
 

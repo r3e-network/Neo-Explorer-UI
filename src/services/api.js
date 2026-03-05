@@ -6,7 +6,6 @@ const DEFAULT_RPC_TIMEOUT_MS = 12000;
 const FAILOVER_RPC_TIMEOUT_MS = 8000;
 const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = 800;
 const HEDGE_DELAY_MS = 1200;
-const STARTUP_HEDGE_WINDOW_MS = 45000;
 const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
 const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
@@ -15,7 +14,6 @@ const EXPECTED_NETWORK_MAGIC = {
   [NET_ENV.TestT5]: 894710606,
 };
 const endpointNetworkCache = new Map();
-const startupTimestamp = Date.now();
 
 export const __resetEndpointNetworkCacheForTests = () => {
   endpointNetworkCache.clear();
@@ -67,8 +65,6 @@ const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
 
   const parsed = parseNetworkBase(preferredBaseUrl);
   if (!parsed || parsed.endpoint) return false;
-
-  if (Date.now() - startupTimestamp > STARTUP_HEDGE_WINDOW_MS) return false;
 
   return /^(get|find|search|invoke)/i.test(String(method || ""));
 };

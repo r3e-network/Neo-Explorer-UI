@@ -109,5 +109,23 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(1);
       expect(cb).toHaveBeenCalledTimes(2);
     });
+
+    it("refreshes immediately when tab becomes visible again", () => {
+      const cb = vi.fn();
+      const { start } = useAutoRefresh(cb, { pauseWhenHidden: true });
+
+      start();
+      vi.advanceTimersByTime(4000);
+      expect(cb).toHaveBeenCalledTimes(0);
+
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(20000);
+      expect(cb).toHaveBeenCalledTimes(0);
+
+      Object.defineProperty(document, "hidden", { configurable: true, value: false });
+      document.dispatchEvent(new Event("visibilitychange"));
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
   });
 });
