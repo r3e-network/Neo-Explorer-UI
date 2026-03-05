@@ -4,9 +4,11 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
 import { rpc as neonRpc, sc } from "@cityofzion/neon-js";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
+import { supabaseService } from "@/services/supabaseService";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
 const INVALID_REQUEST_CODE = "-32600";
+const NNS_SUFFIX = ".neo";
 
 const isInvalidRequestError = (error) => {
     const message = String(error?.message || "");
@@ -36,6 +38,70 @@ const resolveDomainViaPrimary = async (domain) => {
     }
 };
 
+const normalizeDomainName = (value) => String(value || "").trim().toLowerCase();
+
+const normalizeExpirationMs = (raw) => {
+    const candidates = [
+        raw?.expiration,
+        raw?.expire,
+        raw?.expires,
+        raw?.expiredAt,
+        raw?.expiresAt,
+        raw?.expirationTime,
+        raw?.expiration_time,
+    ];
+
+    for (const item of candidates) {
+        const numeric = Number(item);
+        if (!Number.isFinite(numeric) || numeric <= 0) continue;
+        return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+    }
+
+    return 0;
+};
+
+const pickActiveDomain = (domains = []) => {
+    const now = Date.now();
+    const normalized = [];
+
+    for (const domain of domains) {
+        const name = normalizeDomainName(domain?.name);
+        if (!name || !name.endsWith(NNS_SUFFIX)) continue;
+
+        const expirationMs = normalizeExpirationMs(domain);
+        if (!Number.isFinite(expirationMs) || expirationMs <= now) continue;
+
+        normalized.push({
+            name,
+            expirationMs,
+        });
+    }
+
+    if (!normalized.length) return null;
+
+    // Prefer domain that remains valid the longest.
+    normalized.sort((a, b) => b.expirationMs - a.expirationMs);
+    return normalized[0];
+};
+
+const getActiveDomainFromMetadata = (metadata) => {
+    if (!metadata || typeof metadata !== "object") return null;
+    const name = normalizeDomainName(metadata.nns_domain || metadata.nnsDomain);
+    if (!name || !name.endsWith(NNS_SUFFIX)) return null;
+    let expirationMs = Number(
+        metadata.nns_expiration_ms ??
+        metadata.nnsExpirationMS ??
+        metadata.nns_expiration ??
+        metadata.nnsExpiration ??
+        0
+    );
+    if (Number.isFinite(expirationMs) && expirationMs > 0 && expirationMs < 1_000_000_000_000) {
+        expirationMs *= 1000;
+    }
+    if (!Number.isFinite(expirationMs) || expirationMs <= Date.now()) return null;
+    return name;
+};
+
 export const nnsService = {
     /**
      * Resolve an address to a Name Service profile (NNS domain name)
@@ -52,29 +118,25 @@ export const nnsService = {
             key,
             async () => {
                 try {
+                    const metadata = await supabaseService.getAddressTag(address, env);
+                    const cachedDomain = getActiveDomainFromMetadata(metadata);
+                    if (cachedDomain) {
+                        return { nns: cachedDomain };
+                    }
+                } catch (_metadataErr) {
+                    // Ignore metadata read errors and continue to RPC fallback.
+                }
+
+                try {
                     const result = await safeRpc("GetNNSNameByOwner", {
                         Asset: NNS_CONTRACT_HASH,
                         Owner: address
                     }, []);
 
                     if (Array.isArray(result) && result.length > 0) {
-                        const now = Date.now();
-                        // Find first valid, unexpired domain
-                        const validDomains = result.filter(domain => {
-                            if (domain.name && domain.expiration) {
-                                // expiration from neo3fura can be in seconds or ms.
-                                // NNS usually stores expiration in milliseconds.
-                                let exp = Number(domain.expiration);
-                                if (exp < 1000000000000) {
-                                    exp = exp * 1000;
-                                }
-                                return exp > now;
-                            }
-                            return false;
-                        });
-
-                        if (validDomains.length > 0) {
-                            return { nns: validDomains[0].name };
+                        const activeDomain = pickActiveDomain(result);
+                        if (activeDomain?.name) {
+                            return { nns: activeDomain.name };
                         }
                     }
                     return null;
@@ -85,6 +147,31 @@ export const nnsService = {
             },
             CACHE_TTL.chart // Cache for 5 mins
         );
+    },
+
+    /**
+     * Resolve many addresses and return alias map.
+     * Known callsites can use this for list prefetching.
+     * @param {string[]} addresses
+     * @returns {Promise<Record<string, string>>}
+     */
+    async resolveAddressesToNNS(addresses = []) {
+        if (!Array.isArray(addresses) || addresses.length === 0) return {};
+        const unique = [...new Set(addresses.map((a) => String(a || "").trim()).filter(Boolean))];
+        if (!unique.length) return {};
+
+        const pairs = await Promise.all(
+            unique.map(async (address) => {
+                const resolved = await this.resolveAddressToNNS(address);
+                return [address, resolved?.nns || null];
+            })
+        );
+
+        const out = {};
+        for (const [address, domain] of pairs) {
+            if (domain) out[address] = domain;
+        }
+        return out;
     },
 
     /**

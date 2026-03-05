@@ -96,7 +96,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useRoute } from "vue-router";
 import AppHeader from "./AppHeader.vue";
 import AppFooter from "./AppFooter.vue";
 import {
@@ -104,12 +103,9 @@ import {
   getCurrentEnv,
   getNetworkLabel,
 } from "@/utils/env";
-import { useCacheWarming } from "@/composables/useCacheWarming";
 
 const showBackToTop = ref(false);
 const activeNetwork = ref(getCurrentEnv());
-const route = useRoute();
-const { warmCriticalCache } = useCacheWarming();
 
 const isNetworkSwitching = ref(false);
 const networkToastVisible = ref(false);
@@ -162,10 +158,6 @@ function handleNetworkChange(event) {
 onMounted(() => {
   window.addEventListener("scroll", handleScroll, { passive: true });
   window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
-  // Home page already fetches critical lists immediately; avoid duplicate startup RPC burst.
-  if (route.path !== "/homepage") {
-    warmCriticalCache();
-  }
 });
 
 onBeforeUnmount(() => {

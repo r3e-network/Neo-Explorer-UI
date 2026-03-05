@@ -1,25 +1,43 @@
 <template>
   <div class="inline-flex items-center gap-1.5 min-w-0">
-    <!-- Known Address Badge -->
-    <router-link
-      v-if="knownName"
-      :to="linkPath"
-      class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
-      :title="hash"
-    >
-      <img v-if="knownLogo" :src="knownLogo" class="w-3.5 h-3.5 rounded-full object-cover bg-white" :alt="knownName" />
-      {{ knownName }}
-    </router-link>
+    <template v-if="type === 'address'">
+      <router-link
+        :to="linkPath"
+        class="etherscan-link font-hash truncate text-sm"
+        :title="normalizedAddressHash || hash"
+      >
+        {{ displayHash }}
+      </router-link>
+      <span
+        v-if="addressAlias"
+        class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+        :title="addressAlias"
+      >
+        {{ addressAlias }}
+      </span>
+    </template>
 
-    <router-link
-      v-else
-      :to="linkPath"
-      class="etherscan-link font-hash truncate text-sm"
-      :title="hash"
-    >
-      {{ displayHash }}
-    </router-link>
-    <CopyButton v-if="copyable" :text="hash" size="sm" class="flex-shrink-0" />
+    <template v-else>
+      <router-link
+        v-if="knownName"
+        :to="linkPath"
+        class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+        :title="hash"
+      >
+        <img v-if="knownLogo" :src="knownLogo" class="w-3.5 h-3.5 rounded-full object-cover bg-white" :alt="knownName" />
+        {{ knownName }}
+      </router-link>
+
+      <router-link
+        v-else
+        :to="linkPath"
+        class="etherscan-link font-hash truncate text-sm"
+        :title="hash"
+      >
+        {{ displayHash }}
+      </router-link>
+    </template>
+    <CopyButton v-if="copyable" :text="copyText" size="sm" class="flex-shrink-0" />
     
     <a 
       v-if="type === 'address' && showNeoChat" 
@@ -108,6 +126,18 @@ const knownLogo = computed(() => {
   return null;
 });
 
+const addressAlias = computed(() => {
+  if (props.type !== "address") return "";
+  return knownName.value || nnsName.value || "";
+});
+
+const copyText = computed(() => {
+  if (props.type === "address") {
+    return normalizedAddressHash.value || props.hash || "";
+  }
+  return props.hash || "";
+});
+
 watch(
   () => [props.hash, props.type, props.resolveNns],
   async ([newHash, type, resolveNns]) => {
@@ -144,7 +174,11 @@ watch(
 
 const displayHash = computed(() => {
   if (!props.hash) return "";
-  if (nnsName.value) return nnsName.value;
+  if (props.type === "address") {
+    const address = normalizedAddressHash.value || props.hash;
+    if (!shouldTruncate.value) return address;
+    return truncateHashValue(address, 8, 6);
+  }
   if (fetchedContractName.value) return fetchedContractName.value;
   if (!shouldTruncate.value) return props.hash;
   return truncateHashValue(props.hash, 8, 6);

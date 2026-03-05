@@ -2,6 +2,7 @@ import { rpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
+import { getCurrentEnv } from "@/utils/env";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -10,6 +11,40 @@ import { getRealtimeListCacheOptions } from "./serviceFactory";
  */
 
 const NETWORK_FEE_RATIO = 0.08;
+const INDEXER_STATS_TIMEOUT_MS = 2500;
+
+const resolveIndexerNetworkPath = () => {
+  const env = String(getCurrentEnv() || "").toLowerCase();
+  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+};
+
+const fetchIndexerTransactionTotal = async () => {
+  if (typeof fetch !== "function") return 0;
+
+  const network = resolveIndexerNetworkPath();
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  let timeoutId = null;
+
+  try {
+    if (controller) {
+      timeoutId = setTimeout(() => controller.abort(), INDEXER_STATS_TIMEOUT_MS);
+    }
+
+    const res = await fetch(`/indexer/${network}/transactions?limit=1&offset=0`, {
+      method: "GET",
+      signal: controller?.signal,
+    });
+
+    if (!res.ok) return 0;
+    const payload = await res.json();
+    const total = Number(payload?.paging?.total ?? payload?.total ?? 0);
+    return Number.isFinite(total) && total > 0 ? total : 0;
+  } catch (_err) {
+    return 0;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 /**
  * Calculate estimated network fee from GAS price.
@@ -145,18 +180,23 @@ export const statsService = createService(
 
       const fetchFn = async () => {
         try {
-          const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes] = await Promise.all([
+          const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes, indexedTxTotal] =
+            await Promise.all([
             rpc("GetBlockCount", {}).catch(() => null),
             rpc("GetTransactionCount", {}).catch(() => null),
             rpc("GetContractCount", {}).catch(() => null),
             rpc("GetCandidateCount", {}).catch(() => null),
             rpc("GetAddressCount", {}).catch(() => null),
             rpc("GetAssetCount", {}).catch(() => null),
+            fetchIndexerTransactionTotal().catch(() => 0),
           ]);
+
+          const rpcTxTotal = Number(extractCount(txsRes)) || 0;
+          const txs = Math.max(rpcTxTotal, Number(indexedTxTotal) || 0);
 
           const result = {
             blocks: extractCount(blocksRes),
-            txs: extractCount(txsRes),
+            txs,
             contracts: extractCount(contractsRes),
             candidates: extractCount(candidatesRes),
             addresses: extractCount(addressesRes),

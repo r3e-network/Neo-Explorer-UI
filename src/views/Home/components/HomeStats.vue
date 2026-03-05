@@ -92,7 +92,7 @@
               <div class="stat-label">Transactions</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !txCount" width="80px" height="28px" class="mt-1 inline-block" />
-                <span v-else>{{ formatLargeNumber(txCount) }}</span>
+                <span v-else>{{ formatNumber(txCount) }}</span>
               </div>
             </div>
           </div>

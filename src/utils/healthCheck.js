@@ -143,18 +143,21 @@ const checkNetworkEndpoints = async (network) => {
   }
 };
 
-export const checkAndSetEndpoints = async (preferredEnv = getCurrentEnv()) => {
+export const checkAndSetEndpoints = async (
+  preferredEnv = getCurrentEnv(),
+  { preloadOtherNetworks = false } = {}
+) => {
   const preferredNetwork = NETWORKS.find((network) => network.env === preferredEnv) || NETWORKS[0];
   const deferredNetworks = NETWORKS.filter((network) => network.env !== preferredNetwork.env);
 
-  // Resolve the active network first so first-page requests can use the best endpoint earlier.
+  // Resolve only the active network by default to avoid unnecessary cross-network requests.
   await checkNetworkEndpoints(preferredNetwork);
 
-  if (deferredNetworks.length > 0) {
-    setTimeout(() => {
-      void Promise.all(deferredNetworks.map((network) => checkNetworkEndpoints(network)));
-    }, 0);
-  }
+  if (!preloadOtherNetworks || deferredNetworks.length === 0) return;
+
+  setTimeout(() => {
+    void Promise.all(deferredNetworks.map((network) => checkNetworkEndpoints(network)));
+  }, 0);
 };
 
 // Expose a synchronous getter so that the API client uses the resolved URL immediately once it's set.

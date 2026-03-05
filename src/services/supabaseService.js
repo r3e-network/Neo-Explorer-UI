@@ -82,6 +82,18 @@ const normalizeAddressMetadata = (item = {}) => {
   const address = normalizeAddressKey(item.address);
   if (!address) return null;
   const tags = Array.isArray(item.tags) ? item.tags : [];
+  const nnsDomain = String(item.nns_domain || item.nnsDomain || "").trim().toLowerCase();
+  let nnsExpirationMS = Number(
+    item.nns_expiration_ms ?? item.nnsExpirationMS ?? item.nns_expiration ?? item.nnsExpiration ?? 0
+  );
+  if (Number.isFinite(nnsExpirationMS) && nnsExpirationMS > 0 && nnsExpirationMS < 1_000_000_000_000) {
+    nnsExpirationMS *= 1000;
+  }
+  if (!Number.isFinite(nnsExpirationMS) || nnsExpirationMS <= 0) {
+    nnsExpirationMS = 0;
+  }
+  const hasActiveNNS = Boolean(nnsDomain) && nnsExpirationMS > Date.now();
+
   return {
     ...item,
     address,
@@ -89,6 +101,9 @@ const normalizeAddressMetadata = (item = {}) => {
     display_name: item.display_name || item.label || address,
     category: item.category || tags[0] || item.source || null,
     tags,
+    nns_domain: nnsDomain,
+    nns_expiration_ms: nnsExpirationMS || null,
+    has_active_nns: hasActiveNNS,
     logo_url: optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "user" }),
   };
 };
