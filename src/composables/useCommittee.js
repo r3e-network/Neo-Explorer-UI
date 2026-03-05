@@ -233,9 +233,6 @@ const applyCommitteeMetadata = (data) => {
         scripthash: item.scripthash || item.address || "",
       }))
     );
-    if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
-      validators.value = topConsensusValidators;
-    }
   }
 
   doraMetadata.value = metaMap;
@@ -321,7 +318,12 @@ export function useCommittee() {
     }
 
     const doraResult = await doraPromise;
-    if (doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
+    if (
+      !validatorsLoaded &&
+      doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT
+    ) {
+      // Only use metadata-derived ordering as fallback when RPC validator set is unavailable.
+      // block.primary index must map to the RPC validator ordering for correct validator/logo display.
       validators.value = doraResult.topConsensusValidators;
     }
 
