@@ -37,6 +37,8 @@ describe("endpoint defaults", () => {
     expect(routeDest("/api/testnet")).toBe("https://rpc.r3e.network/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://rpc.r3e.network/testnet/bpi/$1");
+    expect(routeDest("/indexer/mainnet/(.*)")).toBe("https://rpc.r3e.network/indexer/v1/networks/mainnet/$1");
+    expect(routeDest("/indexer/testnet/(.*)")).toBe("https://rpc.r3e.network/indexer/v1/networks/testnet/$1");
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

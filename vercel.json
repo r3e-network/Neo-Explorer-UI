@@ -59,6 +59,14 @@
       "destination": "https://api.neotube.io/$1"
     },
     {
+      "source": "/indexer/mainnet/(.*)",
+      "destination": "https://rpc.r3e.network/indexer/v1/networks/mainnet/$1"
+    },
+    {
+      "source": "/indexer/testnet/(.*)",
+      "destination": "https://rpc.r3e.network/indexer/v1/networks/testnet/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

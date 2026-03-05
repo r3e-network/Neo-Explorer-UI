@@ -5,6 +5,7 @@ import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
+import { supabaseService } from "@/services/supabaseService";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
@@ -182,6 +183,66 @@ const getValidatorMetadata = (validator) => {
   return null;
 };
 
+const applyCommitteeMetadata = (data) => {
+  const metaMap = {};
+  const addMeta = (key, item) => {
+    const normalized = normalizeMetaKey(key);
+    if (normalized) {
+      metaMap[normalized] = item;
+    }
+  };
+
+  let topConsensusValidators = [];
+  if (Array.isArray(data)) {
+    data.forEach((item) => {
+      const normalizedMeta = {
+        ...item,
+        pubkey: item.pubkey || item.public_key || item.publicKey,
+        name: item.name || item.display_name || "",
+        scripthash: item.scripthash || item.address || "",
+        logo: item.logo || item.logo_url || "",
+        logoUrl: resolveCandidateLogo(item.logoUrl || item.logo_url || item.logo),
+      };
+
+      addMeta(normalizedMeta.pubkey, normalizedMeta);
+      addMeta(normalizedMeta.scripthash, normalizedMeta);
+      addMeta(normalizeScriptHashKey(normalizedMeta.scripthash), normalizedMeta);
+
+      const itemAddress = deriveValidatorAddress({ publickey: normalizedMeta.pubkey });
+      if (itemAddress) {
+        addMeta(itemAddress, normalizedMeta);
+        const scriptHash = addressToScriptHash(itemAddress);
+        addMeta(scriptHash, normalizedMeta);
+        addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
+      }
+    });
+
+    topConsensusValidators = buildTopConsensusValidatorsFromMetadata(
+      data.map((item) => ({
+        ...item,
+        pubkey: item.pubkey || item.public_key || item.publicKey,
+        scripthash: item.scripthash || item.address || "",
+      }))
+    );
+    if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
+      validators.value = topConsensusValidators;
+    }
+  }
+
+  doraMetadata.value = metaMap;
+  return { loaded: Array.isArray(data) && data.length > 0, topConsensusValidators };
+};
+
+const loadIndexerCommitteeMetadata = async () => {
+  try {
+    const data = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    return applyCommitteeMetadata(data);
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
+    return { loaded: false, topConsensusValidators: [] };
+  }
+};
+
 const loadDoraCommitteeMetadata = async () => {
   try {
     const env = getCurrentEnv().toLowerCase();
@@ -197,49 +258,19 @@ const loadDoraCommitteeMetadata = async () => {
       300000 // 5 mins
     );
 
-    const metaMap = {};
-    const addMeta = (key, item) => {
-      const normalized = normalizeMetaKey(key);
-      if (normalized) {
-        metaMap[normalized] = item;
-      }
-    };
-
-    let topConsensusValidators = [];
-
-    if (Array.isArray(data)) {
-      data.forEach(item => {
-        const normalizedMeta = {
-          ...item,
-          logoUrl: resolveCandidateLogo(item.logo),
-        };
-
-        addMeta(item.pubkey, normalizedMeta);
-        addMeta(item.scripthash, normalizedMeta);
-        addMeta(normalizeScriptHashKey(item.scripthash), normalizedMeta);
-
-        const itemAddress = deriveValidatorAddress({ publickey: item.pubkey });
-        if (itemAddress) {
-          addMeta(itemAddress, normalizedMeta);
-          const scriptHash = addressToScriptHash(itemAddress);
-          addMeta(scriptHash, normalizedMeta);
-          addMeta(normalizeScriptHashKey(scriptHash), normalizedMeta);
-        }
-      });
-
-      // Prefer consensus-node mapping from top candidate order when available.
-      topConsensusValidators = buildTopConsensusValidatorsFromMetadata(data);
-      if (topConsensusValidators.length === CONSENSUS_VALIDATOR_COUNT) {
-        validators.value = topConsensusValidators;
-      }
-    }
-
-    doraMetadata.value = metaMap;
-    return { loaded: true, topConsensusValidators };
+    return applyCommitteeMetadata(data);
   } catch (e) {
     if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
     return { loaded: false, topConsensusValidators: [] };
   }
+};
+
+const loadCommitteeMetadata = async () => {
+  const indexerResult = await loadIndexerCommitteeMetadata();
+  if (indexerResult.loaded) {
+    return indexerResult;
+  }
+  return loadDoraCommitteeMetadata();
 };
 
 export function useCommittee() {
@@ -248,7 +279,7 @@ export function useCommittee() {
     initialized.value = true;
     let validatorsLoaded = false;
     // Start metadata fetch immediately so validator labels/logos are not blocked by slow RPC timeouts.
-    const doraPromise = loadDoraCommitteeMetadata();
+    const doraPromise = loadCommitteeMetadata();
 
     try {
       // primary index on blocks maps to the active consensus validators set.

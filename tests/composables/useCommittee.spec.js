@@ -4,6 +4,7 @@ const rpcMock = vi.hoisted(() => vi.fn());
 const cachedRequestMock = vi.hoisted(() => vi.fn());
 const getCurrentEnvMock = vi.hoisted(() => vi.fn());
 const walletAccountMock = vi.hoisted(() => vi.fn());
+const getValidatorMetadataMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/api", () => ({
   rpc: rpcMock,
@@ -22,6 +23,12 @@ vi.mock("@/utils/env", () => ({
 vi.mock("@cityofzion/neon-js", () => ({
   wallet: {
     Account: walletAccountMock,
+  },
+}));
+
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getValidatorMetadata: getValidatorMetadataMock,
   },
 }));
 
@@ -45,6 +52,7 @@ describe("useCommittee", () => {
     walletAccountMock.mockImplementation(function () {
       this.address = "NFallbackAddress";
     });
+    getValidatorMetadataMock.mockResolvedValue([]);
     cachedRequestMock.mockResolvedValue([
       { pubkey: "PUBKEY1", name: "Consensus Node 1", scripthash: "0xcommittee1" },
     ]);
@@ -238,5 +246,71 @@ describe("useCommittee", () => {
 
     expect(getPrimaryNodeName(0)).toBe("Dora Fast 0");
     expect(getPrimaryNodeAddress(0)).toBe("0x0000000000000000000000000000000000000110");
+  });
+
+  it("prefers indexer validator metadata cache before Dora fallback", async () => {
+    rpcMock.mockResolvedValueOnce([{ publickey: "IDX_0" }]);
+    getValidatorMetadataMock.mockResolvedValueOnce([
+      {
+        public_key: "IDX_0",
+        display_name: "Indexer Node 0",
+        address: "0x0000000000000000000000000000000000000220",
+        votes: "700",
+        rank: 1,
+        logo_url: "https://example.com/indexer-node.png",
+      },
+      {
+        public_key: "IDX_1",
+        display_name: "Indexer Node 1",
+        address: "0x0000000000000000000000000000000000000221",
+        votes: "600",
+        rank: 2,
+      },
+      {
+        public_key: "IDX_2",
+        display_name: "Indexer Node 2",
+        address: "0x0000000000000000000000000000000000000222",
+        votes: "500",
+        rank: 3,
+      },
+      {
+        public_key: "IDX_3",
+        display_name: "Indexer Node 3",
+        address: "0x0000000000000000000000000000000000000223",
+        votes: "400",
+        rank: 4,
+      },
+      {
+        public_key: "IDX_4",
+        display_name: "Indexer Node 4",
+        address: "0x0000000000000000000000000000000000000224",
+        votes: "300",
+        rank: 5,
+      },
+      {
+        public_key: "IDX_5",
+        display_name: "Indexer Node 5",
+        address: "0x0000000000000000000000000000000000000225",
+        votes: "200",
+        rank: 6,
+      },
+      {
+        public_key: "IDX_6",
+        display_name: "Indexer Node 6",
+        address: "0x0000000000000000000000000000000000000226",
+        votes: "100",
+        rank: 7,
+      },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeName(0)).toBe("Indexer Node 0");
+    expect(getPrimaryNodeAddress(0)).toBe("0x0000000000000000000000000000000000000220");
+    expect(getPrimaryNodeLogo(0)).toBe("https://example.com/indexer-node.png");
+    expect(cachedRequestMock).not.toHaveBeenCalled();
   });
 });

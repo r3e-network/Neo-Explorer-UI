@@ -239,6 +239,7 @@ import { useToast } from 'vue-toastification';
 import { usePriceCache } from '@/composables/usePriceCache';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import { publicKeyToAddress } from '@/utils/neoHelpers';
+import { supabaseService } from '@/services/supabaseService';
 
 const toast = useToast();
 const { fetchPrices } = usePriceCache();
@@ -394,34 +395,45 @@ async function loadCandidates() {
 
     const isTestnet = doraEnv !== "mainnet";
 
-    const [rpcRes, doraRes] = await Promise.allSettled([
-      rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] })),
-      isTestnet ? Promise.resolve([]) : fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then(r => r.ok ? r.json() : [])
-    ]);
+    const rpcRes = await rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] }));
 
     let rawCandidates = [];
-    if (rpcRes.status === 'fulfilled' && rpcRes.value && rpcRes.value.length > 0) {
-       rawCandidates = rpcRes.value;
+    if (rpcRes && rpcRes.length > 0) {
+       rawCandidates = rpcRes;
     } else {
        throw new Error("Failed to fetch candidates from RPC node.");
     }
 
-    const doraData = (doraRes.status === 'fulfilled' && Array.isArray(doraRes.value)) ? doraRes.value : [];
+    let metadataRows = [];
+    try {
+      metadataRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    } catch (metadataErr) {
+      if (import.meta.env.DEV) console.warn("Failed to load cached validator metadata", metadataErr);
+    }
+
+    if ((!Array.isArray(metadataRows) || metadataRows.length === 0) && !isTestnet) {
+      try {
+        metadataRows = await fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then(r => r.ok ? r.json() : []);
+      } catch (fallbackErr) {
+        if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
+      }
+    }
     
-    // Create a map of pubkey -> Dora metadata
+    // Create a map of pubkey -> cached validator metadata
     const metadataMap = {};
-    for (const item of doraData) {
-      if (item.pubkey) {
-        metadataMap[item.pubkey] = {
-          name: item.name,
-          logo: item.logo,
-          description: item.description,
-          location: item.location
+    for (const item of Array.isArray(metadataRows) ? metadataRows : []) {
+      const pubkey = item.pubkey || item.public_key || item.publicKey;
+      if (pubkey) {
+        metadataMap[pubkey] = {
+          name: item.name || item.display_name || null,
+          logo: item.logo || item.logo_url || null,
+          description: item.description || null,
+          location: item.location || null,
         };
       }
     }
 
-    // Merge RPC candidate list with Dora API metadata, sorting by votes descending
+    // Merge RPC candidate list with cached metadata, sorting by votes descending
     candidates.value = rawCandidates.map(c => ({
       ...c,
       name: metadataMap[c.publickey]?.name || null,

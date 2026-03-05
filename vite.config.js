@@ -66,6 +66,16 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/neotube-api/, ""),
         },
+        "/indexer/mainnet": {
+          target: mainnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/indexer/v1/networks/mainnet"),
+        },
+        "/indexer/testnet": {
+          target: testnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/indexer/v1/networks/testnet"),
+        },
         "/api/mainnet/primary": {
           target: mainnetRpcPrimaryTarget,
           changeOrigin: true,

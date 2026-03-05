@@ -144,9 +144,10 @@ import AddressNftTransfersTab from "./components/AddressNftTransfersTab.vue";
 import AddressTokensTab from "./components/AddressTokensTab.vue";
 import AddressNftsTab from "./components/AddressNftsTab.vue";
 import AddressVotersTab from "./components/AddressVotersTab.vue";
-import { addressToScriptHash, scriptHashToAddress, publicKeyToAddress } from "@/utils/neoHelpers";
+import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
 import { cachedRequest } from '@/services/cache';
+import { supabaseService } from "@/services/supabaseService";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -438,50 +439,61 @@ async function loadSummary(addr) {
           }
           
           if (!isTestnet) {
-            const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
-            cachedRequest(
-              `dora_metadata_mainnet`,
-              () => fetch(url).then(r => r.ok ? r.json() : []),
-              300000 // 5 mins
-            ).then((data) => {
-            if (currentRequestId !== addressRequestId) return;
-            if (Array.isArray(data)) {
-              // Try to find by converting pubkey to address
-              let meta = null;
-              let foundPubKey = null;
-              for (const item of data) {
-                if (item.pubkey) {
-                  try {
-                    const itemAddr = publicKeyToAddress(item.pubkey);
-                    if (itemAddr === addr || addressToScriptHash(itemAddr) === addressToScriptHash(addr)) {
-                      meta = item;
-                      foundPubKey = item.pubkey;
-                      break;
-                    }
-                  } catch (e) {
-                    // Ignore decode errors
-                  }
-                }
+            let metadataRows = [];
+            try {
+              metadataRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+            } catch {
+              metadataRows = [];
+            }
+
+            if (!Array.isArray(metadataRows) || metadataRows.length === 0) {
+              const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
+              try {
+                metadataRows = await cachedRequest(
+                  `dora_metadata_mainnet`,
+                  () => fetch(url).then(r => r.ok ? r.json() : []),
+                  300000 // 5 mins
+                );
+              } catch {
+                metadataRows = [];
               }
-              
+            }
+
+            if (currentRequestId !== addressRequestId) return;
+
+            if (Array.isArray(metadataRows)) {
+              const targetScriptHash = (addressToScriptHash(addr) || "").toLowerCase();
+              let meta = metadataRows.find((item) => {
+                const scriptHash = String(item.scripthash || item.address || "").toLowerCase();
+                return scriptHash && targetScriptHash && scriptHash === targetScriptHash;
+              });
+
+              if (!meta && candidateData.value.publickey) {
+                meta = metadataRows.find((item) => {
+                  const pubkey = item.pubkey || item.public_key || item.publicKey;
+                  return pubkey && pubkey === candidateData.value.publickey;
+                });
+              }
+
+              const foundPubKey = meta?.pubkey || meta?.public_key || meta?.publicKey || null;
               if (foundPubKey && !candidateData.value.publickey) {
                 candidateData.value.publickey = foundPubKey;
               }
-              
+
               if (meta) {
-                candidateData.value.metaName = meta.name;
+                candidateData.value.metaName = meta.name || meta.display_name;
                 candidateData.value.metaLocation = meta.location;
-                if (meta.logo) {
-                  candidateData.value.metaLogo = meta.logo.startsWith("http") 
-                    ? meta.logo 
-                    : `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${meta.logo}`;
+                const logo = meta.logoUrl || meta.logo_url || meta.logo;
+                if (logo) {
+                  candidateData.value.metaLogo = logo.startsWith("http")
+                    ? logo
+                    : `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${logo}`;
                 } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
                   candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
                 }
               }
             }
-          }).catch(() => {});
-        }
+          }
         } else {
           isCandidate.value = false;
           candidateData.value = null;

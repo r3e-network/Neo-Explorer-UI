@@ -127,6 +127,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import { getCurrentEnv, NET_ENV } from '@/utils/env';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
+import { supabaseService } from "@/services/supabaseService";
 
 const { t } = useI18n();
 
@@ -149,38 +150,68 @@ const {
 
 const doraMetadata = ref({});
 
+function applyMetadataRows(data) {
+  const metaMap = {};
+  if (!Array.isArray(data)) return metaMap;
+
+  for (const item of data) {
+    const pubkey = item.pubkey || item.public_key || item.publicKey;
+    const scriptHash = item.scripthash || item.address;
+    const normalized = {
+      ...item,
+      pubkey,
+      name: item.name || item.display_name || "",
+      logo: item.logo || item.logo_url || "",
+      scripthash: scriptHash || "",
+    };
+
+    if (pubkey) {
+      metaMap[pubkey] = normalized;
+      try {
+        const addr = publicKeyToAddress(pubkey);
+        const derivedScriptHash = addressToScriptHash(addr);
+        metaMap[addr] = normalized;
+        if (derivedScriptHash) {
+          metaMap[derivedScriptHash] = normalized;
+        }
+      } catch {
+        // Ignore invalid pubkey rows.
+      }
+    }
+
+    if (scriptHash) {
+      metaMap[scriptHash] = normalized;
+    }
+  }
+
+  return metaMap;
+}
+
 async function loadDoraMetadata() {
+  try {
+    const indexerMetadata = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    if (Array.isArray(indexerMetadata) && indexerMetadata.length > 0) {
+      doraMetadata.value = applyMetadataRows(indexerMetadata);
+      return;
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Failed to load indexer candidate metadata", err);
+  }
+
   const env = getCurrentEnv().toLowerCase();
   const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
   if (isTestnet) return;
   const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
-  
+
   try {
     const data = await cachedRequest(
       `dora_metadata_mainnet`,
       () => fetch(url).then(r => r.ok ? r.json() : []),
       300000 // 5 minutes cache
     );
-    
-    const metaMap = {};
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.pubkey) {
-          try {
-             const addr = publicKeyToAddress(item.pubkey);
-             const scriptHash = addressToScriptHash(addr);
-             metaMap[item.pubkey] = item;
-             metaMap[addr] = item;
-             metaMap[scriptHash] = item;
-          } catch(e) {
-             // Ignore error mapping individual public keys
-          }
-        }
-      }
-    }
-    doraMetadata.value = metaMap;
+    doraMetadata.value = applyMetadataRows(data);
   } catch (err) {
-    if (import.meta.env.DEV) console.error("Failed to load Dora metadata", err);
+    if (import.meta.env.DEV) console.error("Failed to load Dora metadata fallback", err);
   }
 }
 
