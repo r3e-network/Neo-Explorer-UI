@@ -53,6 +53,13 @@
           <StatusBadge :status="txStatus" />
         </div>
         <p class="page-subtitle">Execution status, traceability, and asset movement for this transaction.</p>
+        <p
+          v-if="isSuccess === false"
+          class="mt-2 rounded-md border border-status-error/25 bg-status-error-bg/60 px-3 py-2 text-xs text-status-error break-all"
+        >
+          <span class="font-semibold">Failure Reason:</span>
+          {{ failureReason || "No exception detail returned by node" }}
+        </p>
       </div>
     </div>
   </div>
@@ -64,5 +71,6 @@ import StatusBadge from "@/components/common/StatusBadge.vue";
 defineProps({
   isSuccess: { type: [Boolean, null], default: null },
   txStatus: { type: String, default: "pending" },
+  failureReason: { type: String, default: "" },
 });
 </script>

@@ -5,7 +5,7 @@
       <Breadcrumb :items="breadcrumbs" />
 
       <!-- Page Header -->
-      <TxHeader :is-success="isSuccess" :tx-status="txStatus" />
+      <TxHeader :is-success="isSuccess" :tx-status="txStatus" :failure-reason="failureReason" />
 
       <!-- Action Summary Banner -->
       <div
