@@ -55,7 +55,7 @@
         <p class="page-subtitle">Execution status, traceability, and asset movement for this transaction.</p>
         <p
           v-if="isSuccess === false"
-          class="mt-2 rounded-md border border-status-error/25 bg-status-error-bg/60 px-3 py-2 text-xs text-status-error break-all"
+          class="mt-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 break-all dark:border-red-700/70 dark:bg-red-950/35 dark:text-red-300"
         >
           <span class="font-semibold">Failure Reason:</span>
           {{ failureReason || "No exception detail returned by node" }}
