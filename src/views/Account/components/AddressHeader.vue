@@ -20,7 +20,8 @@
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
-          <span v-if="publicTag" class="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+          <span v-if="publicTag" class="inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+            <img v-if="publicTagLogo" :src="publicTagLogo" class="h-3.5 w-3.5 rounded-full object-cover bg-white" alt="Address tag logo" />
             {{ publicTag }}
           </span>
           <h1 class="page-title">
@@ -152,13 +153,16 @@ defineEmits(["update:showQr"]);
 
 const nnsName = ref("");
 const publicTag = ref(null);
+const publicTagLogo = ref("");
 watch(() => props.address, async (newAddr) => {
   if (newAddr) {
     const tagData = await supabaseService.getAddressTag(newAddr);
     if (tagData) {
       publicTag.value = tagData.label;
+      publicTagLogo.value = tagData.logo_url || "";
     } else {
       publicTag.value = null;
+      publicTagLogo.value = "";
     }
   }
 }, { immediate: true });

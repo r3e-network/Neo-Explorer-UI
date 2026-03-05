@@ -240,6 +240,7 @@ import { usePriceCache } from '@/composables/usePriceCache';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import { publicKeyToAddress } from '@/utils/neoHelpers';
 import { supabaseService } from '@/services/supabaseService';
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const toast = useToast();
 const { fetchPrices } = usePriceCache();
@@ -309,15 +310,13 @@ function getKnownName(candidate) {
 function getLogo(candidate) {
   // 1. Check if Dora committee API provided a specific logo URL or NeoFS object ID
   if (candidate.logo) {
-    if (candidate.logo.startsWith("http")) return candidate.logo;
-    // Assume NeoFS object ID
-    return `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${candidate.logo}`;
+    return resolveCandidateLogoUrl(candidate.logo);
   }
   
   const env = getCurrentEnv();
   // Mainnet fallback to governance.neo.org
   if (env === NET_ENV.Mainnet) {
-    return `https://governance.neo.org/logo/${candidate.publickey}.png`;
+    return getDefaultCandidateLogoUrl(candidate.publickey);
   }
   
   // Testnet or others: no logo by default

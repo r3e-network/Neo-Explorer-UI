@@ -148,6 +148,7 @@ import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
 import { cachedRequest } from '@/services/cache';
 import { supabaseService } from "@/services/supabaseService";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -435,7 +436,7 @@ async function loadSummary(addr) {
           const env = getCurrentEnv().toLowerCase();
           const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
           if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
-             candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
+             candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
           }
           
           if (!isTestnet) {
@@ -485,11 +486,9 @@ async function loadSummary(addr) {
                 candidateData.value.metaLocation = meta.location;
                 const logo = meta.logoUrl || meta.logo_url || meta.logo;
                 if (logo) {
-                  candidateData.value.metaLogo = logo.startsWith("http")
-                    ? logo
-                    : `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${logo}`;
+                  candidateData.value.metaLogo = resolveCandidateLogoUrl(logo);
                 } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
-                  candidateData.value.metaLogo = `https://governance.neo.org/logo/${candidateData.value.publickey}.png`;
+                  candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
                 }
               }
             }

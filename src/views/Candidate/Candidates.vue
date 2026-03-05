@@ -128,6 +128,7 @@ import { getCurrentEnv, NET_ENV } from '@/utils/env';
 import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
 import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
 import { supabaseService } from "@/services/supabaseService";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const { t } = useI18n();
 
@@ -239,15 +240,15 @@ function getKnownName(address) {
 }
 
 function getLogo(candidate) {
-  if (candidate.metaLogo) {
-    if (candidate.metaLogo.startsWith("http")) return candidate.metaLogo;
-    return `https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/${candidate.metaLogo}`;
+  const metaLogo = String(candidate.metaLogo || "").trim();
+  if (metaLogo) {
+    return resolveCandidateLogoUrl(metaLogo);
   }
   
   const env = getCurrentEnv();
   const pubkey = candidate.publickey || candidate.metaPubkey;
   if (env === NET_ENV.Mainnet && pubkey) {
-    return `https://governance.neo.org/logo/${pubkey}.png`;
+    return getDefaultCandidateLogoUrl(pubkey);
   }
   return null;
 }

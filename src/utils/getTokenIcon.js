@@ -1,4 +1,5 @@
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const localImages = import.meta.glob("@/assets/gui/*.png", { eager: true, import: "default" });
 
@@ -24,7 +25,7 @@ export function getTokenIcon(hash, type = "NEP17") {
 
   const knownLogo = KNOWN_CONTRACTS[normalizedHash]?.logo;
   if (knownLogo) {
-    return knownLogo;
+    return optimizeLogoUrl(knownLogo, { kind: "token" });
   }
 
   return defaultIcon(type);

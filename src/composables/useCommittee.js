@@ -6,6 +6,7 @@ import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
 import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
 import { supabaseService } from "@/services/supabaseService";
+import { resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
@@ -35,10 +36,10 @@ const resolveCandidateLogo = (logo) => {
   if (!normalized) return null;
 
   if (/^https?:\/\//i.test(normalized)) {
-    return normalized;
+    return resolveCandidateLogoUrl(normalized);
   }
 
-  return `${NEOFS_LOGO_GATEWAY}/${normalized}`;
+  return resolveCandidateLogoUrl(`${NEOFS_LOGO_GATEWAY}/${normalized}`);
 };
 
 const getValidatorPublicKey = (validator) => {

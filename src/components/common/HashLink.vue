@@ -44,6 +44,7 @@ import { getKnownAddressName } from "@/constants/knownAddresses";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -91,16 +92,16 @@ const knownLogo = computed(() => {
   if (props.type === "contract" || props.type === "token") {
     const hash = props.hash.toLowerCase();
     const known = KNOWN_CONTRACTS[hash];
-    if (known && known.logo) return known.logo;
+    if (known && known.logo) return optimizeLogoUrl(known.logo, { kind: "contract" });
     
     // Auto-detect Flamingo contracts by name if we dynamically fetched it
     if (fetchedContractName.value) {
       const lowerName = fetchedContractName.value.toLowerCase();
       if (lowerName.includes('flamingo')) {
-        return "https://flamingo.finance/favicon.ico";
+        return optimizeLogoUrl("https://flamingo.finance/favicon.ico", { kind: "contract" });
       }
       if (lowerName.includes('burger')) {
-        return "https://app.neoburger.io/favicon.ico";
+        return optimizeLogoUrl("https://app.neoburger.io/favicon.ico", { kind: "contract" });
       }
     }
   }

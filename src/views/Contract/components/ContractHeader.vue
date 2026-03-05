@@ -64,6 +64,7 @@
 import { computed } from "vue";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { nepBadgeClass, nepTooltip } from "@/utils/nepBadges";
+import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const props = defineProps({
   contract: { type: Object, required: true },
@@ -75,13 +76,14 @@ const props = defineProps({
 const emit = defineEmits(["copyHash"]);
 
 const contractLogo = computed(() => {
-  const metadataLogo = props.metadata?.logo_url;
+  const metadataLogo = optimizeLogoUrl(props.metadata?.logo_url, { kind: "contract" });
   if (metadataLogo) return metadataLogo;
 
   const hash = String(props.contract?.hash || "").toLowerCase();
   if (!hash) return null;
 
-  return KNOWN_CONTRACTS[hash]?.logo || null;
+  const knownLogo = KNOWN_CONTRACTS[hash]?.logo;
+  return optimizeLogoUrl(knownLogo, { kind: "contract" }) || null;
 });
 </script>
 

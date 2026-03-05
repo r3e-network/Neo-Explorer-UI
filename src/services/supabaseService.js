@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { toNetworkMode } from "@/utils/rpcEndpoints";
+import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -72,7 +73,7 @@ const normalizeContractMetadata = (item = {}) => {
     display_name: displayName,
     name: displayName || symbol || contractHash,
     symbol,
-    logo_url: item.logo_url || item.logo || "",
+    logo_url: optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "contract" }),
     is_verified: Boolean(item.is_verified),
   };
 };
@@ -88,7 +89,7 @@ const normalizeAddressMetadata = (item = {}) => {
     display_name: item.display_name || item.label || address,
     category: item.category || tags[0] || item.source || null,
     tags,
-    logo_url: item.logo_url || "",
+    logo_url: optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "user" }),
   };
 };
 
@@ -283,7 +284,7 @@ export const supabaseService = {
         .map((item) => {
           const pubkey = String(item.public_key || item.pubkey || item.publicKey || "").trim();
           if (!pubkey) return null;
-          const logo = String(item.logo_url || item.logo || "").trim();
+          const logo = optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "validator" });
           return {
             ...item,
             pubkey,
