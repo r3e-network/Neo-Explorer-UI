@@ -9,6 +9,8 @@ const BNEO_HASH = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
 const NEOBURGER_LOGO = "https://app.neoburger.io/favicon.ico";
 const NEOX_BRIDGE_HASH = "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2";
 const NEOX_LOGO = "https://x.neo.org/favicon.ico";
+const FLAMINGO_STAKING_HASH = "0xd1a9f78e1940f6322fef4df2340a963a9ec46f63";
+const FLAMINGO_LOGO = "https://flamingo.finance/favicon.ico";
 
 describe("getTokenIcon Flamingo fallback", () => {
   it("exposes Flamingo token metadata in known contracts", () => {
@@ -38,6 +40,14 @@ describe("getTokenIcon Flamingo fallback", () => {
 
   it("treats known Flamingo logos as available token icons", () => {
     expect(hasTokenIcon(FLAMINGO_APE_HASH)).toBe(true);
+  });
+
+  it("maps Flamingo staking contract hash to Flamingo branding", () => {
+    expect(KNOWN_CONTRACTS[FLAMINGO_STAKING_HASH]).toMatchObject({
+      name: "FlamingoStaking",
+      logo: FLAMINGO_LOGO,
+    });
+    expect(getTokenIcon(FLAMINGO_STAKING_HASH, "NEP17")).toBe(FLAMINGO_LOGO);
   });
 
   it("keeps default icon fallback for unknown token hash", () => {
