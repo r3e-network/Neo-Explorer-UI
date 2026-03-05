@@ -28,7 +28,7 @@
     },
     {
       "source": "/api/testnet/fallback",
-      "destination": "https://testmagnet.ngd.network"
+      "destination": "https://testnet1.neo.coz.io:443"
     },
     {
       "source": "/api/mainnet",

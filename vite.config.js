@@ -7,7 +7,7 @@ import path from "path";
 const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testmagnet.ngd.network";
+const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testnet1.neo.coz.io:443";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://neo-explorer.jimmy-bf0.workers.dev";
