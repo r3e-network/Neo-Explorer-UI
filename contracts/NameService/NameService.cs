@@ -21,14 +21,11 @@ namespace Neo.SmartContract
     {
         public delegate void OnTransferDelegate(UInt160 from, UInt160 to, BigInteger amount, ByteString tokenId);
         public delegate void OnSetAdminDelegate(string name, UInt160 oldAdmin, UInt160 newAdmin);
-        public delegate void OnRenewDelegate(string name, BigInteger oldExpiration, BigInteger newExpiration);
 
         [DisplayName("Transfer")]
         public static event OnTransferDelegate OnTransfer;
         [DisplayName("SetAdmin")]
         public static event OnSetAdminDelegate OnSetAdmin;
-        [DisplayName("Renew")]
-        public static event OnRenewDelegate OnRenew;
 
         private const byte Prefix_TotalSupply = 0x00;
         private const byte Prefix_Balance = 0x01;
@@ -38,8 +35,6 @@ namespace Neo.SmartContract
         private const byte Prefix_Record = 0x22;
 
         private const int NameMaxLength = 255;
-        private const ulong OneYear = 365ul * 24 * 3600 * 1000;
-        private const ulong TenYears = OneYear * 10;
         private const string MatrixRoot = "matrix";
 
         [Safe]
@@ -56,7 +51,6 @@ namespace Neo.SmartContract
         {
             StorageMap nameMap = new(Storage.CurrentContext, Prefix_Name);
             NameState token = GetNameState(nameMap, GetKey(tokenId));
-            token.EnsureNotExpired();
             return token.Owner;
         }
 
@@ -65,10 +59,9 @@ namespace Neo.SmartContract
         {
             StorageMap nameMap = new(Storage.CurrentContext, Prefix_Name);
             NameState token = GetNameState(nameMap, GetKey(tokenId));
-            token.EnsureNotExpired();
+
             Map<string, object> map = new();
             map["name"] = token.Name;
-            map["expiration"] = token.Expiration;
             map["admin"] = token.Admin;
             map["image"] = "https://neo3.azureedge.net/images/neons.png";
             return map;
@@ -111,7 +104,6 @@ namespace Neo.SmartContract
             ByteString tokenBytes = nameMap[tokenKey];
             if (tokenBytes is null) throw new InvalidOperationException("Unknown token.");
             NameState token = (NameState)StdLib.Deserialize(tokenBytes);
-            token.EnsureNotExpired();
             UInt160 from = token.Owner;
             if (!Runtime.CheckWitness(from)) return false;
             if (from != to)
@@ -167,9 +159,7 @@ namespace Neo.SmartContract
             if (fragments is null) throw new FormatException("The format of the name is incorrect.");
             EnsureMatrixRoot(fragments);
             ByteString buffer = nameMap[GetKey(name)];
-            if (buffer is null) return true;
-            NameState token = (NameState)StdLib.Deserialize(buffer);
-            return Runtime.Time >= token.Expiration;
+            return buffer is null;
         }
 
         public static bool Register(string name, UInt160 owner)
@@ -189,24 +179,8 @@ namespace Neo.SmartContract
             UInt160 oldOwner = null;
             if (buffer is not null)
             {
-                token = (NameState)StdLib.Deserialize(buffer);
-                if (Runtime.Time < token.Expiration) return false;
-                oldOwner = token.Owner;
-                BigInteger balance = (BigInteger)balanceMap[oldOwner];
-                balance--;
-                if (balance.IsZero)
-                    balanceMap.Delete(oldOwner);
-                else
-                    balanceMap.Put(oldOwner, balance);
-                accountMap.Delete(oldOwner + tokenKey);
-
-                //clear records
-                StorageMap recordMap = new(context, Prefix_Record);
-                var allrecords = (Iterator<ByteString>)recordMap.Find(tokenKey, FindOptions.KeysOnly);
-                foreach (var key in allrecords)
-                {
-                    Storage.Delete(context, key);
-                }
+                // Without expiration, we shouldn't allow claiming an already registered token
+                return false;
             }
             else
             {
@@ -218,7 +192,7 @@ namespace Neo.SmartContract
             {
                 Owner = owner,
                 Name = name,
-                Expiration = Runtime.Time + OneYear
+                Admin = owner // By default Admin is the Owner
             };
             nameMap[tokenKey] = StdLib.Serialize(token);
             BigInteger ownerBalance = (BigInteger)balanceMap[owner];
@@ -227,32 +201,6 @@ namespace Neo.SmartContract
             accountMap[owner + tokenKey] = name;
             PostTransfer(oldOwner, owner, name, null);
             return true;
-        }
-
-        public static ulong Renew(string name)
-        {
-            return Renew(name, 1);
-        }
-
-        public static ulong Renew(string name, byte years)
-        {
-            if (years < 1 || years > 10) throw new ArgumentException("The argument `years` is out of range.");
-            if (name.Length > NameMaxLength) throw new FormatException("The format of the name is incorrect.");
-            string[] fragments = SplitAndCheck(name, false);
-            if (fragments is null) throw new FormatException("The format of the name is incorrect.");
-            EnsureMatrixRoot(fragments);
-            StorageMap nameMap = new(Storage.CurrentContext, Prefix_Name);
-            ByteString tokenKey = GetKey(name);
-            NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
-            token.CheckAdmin();
-            ulong oldExpiration = token.Expiration;
-            token.Expiration += OneYear * years;
-            if (token.Expiration > Runtime.Time + TenYears)
-                throw new ArgumentException("You can't renew a domain name for more than 10 years in total.");
-            nameMap[tokenKey] = StdLib.Serialize(token);
-            OnRenew(name, oldExpiration, token.Expiration);
-            return token.Expiration;
         }
 
         public static void SetAdmin(string name, UInt160 admin)
@@ -265,7 +213,6 @@ namespace Neo.SmartContract
             StorageMap nameMap = new(Storage.CurrentContext, Prefix_Name);
             ByteString tokenKey = GetKey(name);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             if (!Runtime.CheckWitness(token.Owner)) throw new InvalidOperationException("No authorization.");
             UInt160 old = token.Admin;
             token.Admin = admin;
@@ -301,7 +248,6 @@ namespace Neo.SmartContract
             string tokenId = GetTokenId(name, fragments);
             ByteString tokenKey = GetKey(tokenId);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             token.CheckAdmin();
             byte[] recordKey = GetRecordKey(tokenKey, name, type);
             recordMap.PutObject(recordKey, new RecordState
@@ -324,7 +270,6 @@ namespace Neo.SmartContract
             string tokenId = GetTokenId(name, fragments);
             ByteString tokenKey = GetKey(tokenId);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             byte[] recordKey = GetRecordKey(tokenKey, name, type);
             RecordState record = (RecordState)recordMap.GetObject(recordKey);
             if (record is null) return null;
@@ -342,7 +287,6 @@ namespace Neo.SmartContract
             EnsureMatrixRoot(fragments);
             ByteString tokenKey = GetKey(name);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             return (Iterator<RecordState>)recordMap.Find(tokenKey, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
         }
 
@@ -357,7 +301,6 @@ namespace Neo.SmartContract
             string tokenId = GetTokenId(name, fragments);
             ByteString tokenKey = GetKey(tokenId);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             token.CheckAdmin();
             byte[] recordKey = GetRecordKey(tokenKey, name, type);
             recordMap.Delete(recordKey);
@@ -399,7 +342,6 @@ namespace Neo.SmartContract
             string tokenId = GetTokenId(name, fragments);
             ByteString tokenKey = GetKey(tokenId);
             NameState token = GetNameState(nameMap, tokenKey);
-            token.EnsureNotExpired();
             byte[] recordKey = Helper.Concat((byte[])tokenKey, GetKey(name));
             return (Iterator<(ByteString, RecordState)>)recordMap.Find(recordKey, FindOptions.DeserializeValues);
         }
