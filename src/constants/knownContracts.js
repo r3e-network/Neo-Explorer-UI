@@ -5,18 +5,18 @@ const STATIC_KNOWN_CONTRACTS = {
   "0x50ac1c37690cc2cfc594472833cf57505d5f46de": {
     name: "Neo Name Service",
     symbol: "NNS",
-    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+    logo: "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg",
   },
   "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd": {
     name: "Matrix Name Service",
     symbol: "MATRIX",
     // Keep matrix visual identity aligned with NNS as requested.
-    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+    logo: "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg",
   },
   "0x89908093c5ccc463e2c5744d6bacb06108b60a75": {
     name: "Matrix Name Service (Testnet)",
     symbol: "MATRIX",
-    logo: "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
+    logo: "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg",
   },
 
   // Flamingo Finance non-token contracts
