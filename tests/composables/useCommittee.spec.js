@@ -313,4 +313,26 @@ describe("useCommittee", () => {
     expect(getPrimaryNodeLogo(0)).toBe("https://example.com/indexer-node.png");
     expect(cachedRequestMock).not.toHaveBeenCalled();
   });
+
+  it("keeps pre-proxied validator logo urls unchanged", async () => {
+    rpcMock.mockResolvedValueOnce([{ publickey: "IDX_PROXY_0" }]);
+    getValidatorMetadataMock.mockResolvedValueOnce([
+      {
+        public_key: "IDX_PROXY_0",
+        display_name: "Indexer Proxy Node",
+        address: "0x0000000000000000000000000000000000000330",
+        logo_url:
+          "/api/logo?u=https%3A%2F%2Fgovernance.neo.org%2Flogo%2Fidx_proxy.png&w=64&q=72&fit=contain",
+      },
+    ]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeLogo } = useCommittee();
+
+    await flush();
+
+    expect(getPrimaryNodeLogo(0)).toBe(
+      "/api/logo?u=https%3A%2F%2Fgovernance.neo.org%2Flogo%2Fidx_proxy.png&w=64&q=72&fit=contain"
+    );
+  });
 });

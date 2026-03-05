@@ -35,6 +35,14 @@ const resolveCandidateLogo = (logo) => {
   const normalized = String(logo || "").trim();
   if (!normalized) return null;
 
+  if (normalized.startsWith("/api/logo?")) {
+    return normalized;
+  }
+
+  if (normalized.startsWith("/")) {
+    return normalized;
+  }
+
   if (/^https?:\/\//i.test(normalized)) {
     return resolveCandidateLogoUrl(normalized);
   }
