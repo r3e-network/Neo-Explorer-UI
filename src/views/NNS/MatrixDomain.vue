@@ -177,6 +177,7 @@ import { connectedAccount } from '@/utils/wallet';
 import nnsService from '@/services/nnsService';
 import { safeRpc } from '@/services/api';
 import { scriptHashHexToAddress } from '@/utils/neoHelpers';
+import { getCurrentEnv } from '@/utils/env';
 
 const toast = useToast();
 const account = connectedAccount;
@@ -189,7 +190,9 @@ const actionLoading = ref(false);
 const showTransferModal = ref(false);
 const transferRecipient = ref('');
 
-const MATRIX_CONTRACT_HASH = import.meta.env.VITE_MATRIX_CONTRACT_HASH || "0x0000000000000000000000000000000000000000";
+const MATRIX_CONTRACT_HASH = getCurrentEnv() === 'TestT5' 
+  ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
+  : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
 
 function formatAccount(addr) {
   if (!addr) return '';

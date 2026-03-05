@@ -7,7 +7,6 @@ import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
-const MATRIX_CONTRACT_HASH = import.meta.env.VITE_MATRIX_CONTRACT_HASH || "0x0000000000000000000000000000000000000000"; // Replace if configured
 const INVALID_REQUEST_CODE = "-32600";
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
@@ -250,14 +249,17 @@ export const nnsService = {
     async resolveMatrixDomain(domain) {
         if (!domain || !domain.endsWith(MATRIX_SUFFIX)) return null;
         const env = getCurrentEnv();
-        if (env !== NET_ENV.Mainnet) return null;
+
+        const MATRIX_CONTRACT_HASH = env === NET_ENV.TestT5
+          ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
+          : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
 
         const key = getCacheKey("matrix_domain_to_address", { domain });
         return cachedRequest(
             key,
             async () => {
                 try {
-                    const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
+                    const res = await callWithRpcEndpointFallback(env, async (endpoint) => {
                         const rpcClient = new neonRpc.RPCClient(endpoint);
                         return rpcClient.invokeFunction(
                             MATRIX_CONTRACT_HASH,
