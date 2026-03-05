@@ -267,7 +267,8 @@ async function loadData() {
   void loadPrices();
 
   try {
-    await loadLatestData();
+    // Force first-load freshness so session-restored SWR cache never shows minutes-old head data.
+    await loadLatestData(true);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load homepage data:", err);
   }
