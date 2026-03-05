@@ -56,11 +56,11 @@
     },
     {
       "source": "/indexer/mainnet/(.*)",
-      "destination": "https://rpc.r3e.network/indexer/v1/networks/mainnet/$1"
+      "destination": "https://neo-explorer.jimmy-bf0.workers.dev/indexer/v1/networks/mainnet/$1"
     },
     {
       "source": "/indexer/testnet/(.*)",
-      "destination": "https://rpc.r3e.network/indexer/v1/networks/testnet/$1"
+      "destination": "https://neo-explorer.jimmy-bf0.workers.dev/indexer/v1/networks/testnet/$1"
     },
     {
       "source": "/(.*)",

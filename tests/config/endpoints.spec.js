@@ -17,6 +17,7 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testmagnet.ngd.network";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
+    expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://neo-explorer.jimmy-bf0.workers.dev";');
 
     expect(viteConfig).not.toMatch(/198\.244\.215\.132/);
     expect(viteConfig).not.toContain("testneofura.ngd.network");
@@ -37,8 +38,12 @@ describe("endpoint defaults", () => {
     expect(routeDest("/api/testnet")).toBe("https://rpc.r3e.network/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://rpc.r3e.network/testnet/bpi/$1");
-    expect(routeDest("/indexer/mainnet/(.*)")).toBe("https://rpc.r3e.network/indexer/v1/networks/mainnet/$1");
-    expect(routeDest("/indexer/testnet/(.*)")).toBe("https://rpc.r3e.network/indexer/v1/networks/testnet/$1");
+    expect(routeDest("/indexer/mainnet/(.*)")).toBe(
+      "https://neo-explorer.jimmy-bf0.workers.dev/indexer/v1/networks/mainnet/$1"
+    );
+    expect(routeDest("/indexer/testnet/(.*)")).toBe(
+      "https://neo-explorer.jimmy-bf0.workers.dev/indexer/v1/networks/testnet/$1"
+    );
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

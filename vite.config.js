@@ -10,6 +10,7 @@ const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";
 const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testmagnet.ngd.network";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
+const DEFAULT_INDEXER_PROXY_TARGET = "https://neo-explorer.jimmy-bf0.workers.dev";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -30,6 +31,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET;
   const testnetBpiPrimaryTarget =
     env.VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET;
+  const indexerProxyTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
 
   return {
     plugins: [
@@ -62,12 +64,12 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         "/indexer/mainnet": {
-          target: mainnetRpcPrimaryTarget,
+          target: indexerProxyTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/indexer/v1/networks/mainnet"),
         },
         "/indexer/testnet": {
-          target: testnetRpcPrimaryTarget,
+          target: indexerProxyTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/indexer/v1/networks/testnet"),
         },
