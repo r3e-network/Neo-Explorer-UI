@@ -349,7 +349,14 @@ export function useCommittee() {
 
   const resolvePrimaryIndex = (block) => {
     if (!block) return undefined;
-    if (block.primary !== undefined && block.primary !== null) return Number(block.primary);
+    const primaryCandidates = [block.primary, block.primary_node, block.primaryNode];
+    for (const rawPrimary of primaryCandidates) {
+      if (rawPrimary === undefined || rawPrimary === null) continue;
+      const numericPrimary = Number(rawPrimary);
+      if (Number.isFinite(numericPrimary) && numericPrimary >= 0) {
+        return numericPrimary;
+      }
+    }
     if (block.index !== undefined && block.index !== null) {
       const vCount = validators.value && validators.value.length > 0 ? validators.value.length : 7;
       return Number(block.index) % vCount;
