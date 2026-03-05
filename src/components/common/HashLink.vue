@@ -109,9 +109,16 @@ const knownName = computed(() => {
 
 const knownLogo = computed(() => {
   if (!props.hash) return null;
-  if (fetchedContractLogo.value) return fetchedContractLogo.value;
   if (props.type === "contract" || props.type === "token") {
     const hash = props.hash.toLowerCase();
+    const native = NATIVE_CONTRACTS[hash];
+
+    // Native contracts (NeoToken, GasToken, etc.) should use Neo brand icon.
+    if (native && props.type === "contract") {
+      return "/img/brand/neo.png";
+    }
+
+    if (fetchedContractLogo.value) return fetchedContractLogo.value;
     const known = KNOWN_CONTRACTS[hash];
     if (known && known.logo) return optimizeLogoUrl(known.logo, { kind: "contract" });
     
@@ -126,6 +133,7 @@ const knownLogo = computed(() => {
       }
     }
   }
+  if (fetchedContractLogo.value) return fetchedContractLogo.value;
   return null;
 });
 

@@ -1,5 +1,6 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { GAS_HASH, NEO_HASH } from "@/constants";
 
 const { resolveAddressToNNS, getByHash, getContractMetadata } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
@@ -161,5 +162,25 @@ describe("HashLink", () => {
     await flushPromises();
     const linkStub = wrapper.findComponent({ name: "RouterLink" });
     expect(linkStub.props("to")).toBe(`/account-profile/${COZ_ADDRESS}`);
+  });
+
+  it("uses Neo brand logo for native contract hashes", async () => {
+    const neoWrapper = mountHashLink({
+      hash: NEO_HASH,
+      type: "contract",
+    });
+    const gasWrapper = mountHashLink({
+      hash: GAS_HASH,
+      type: "contract",
+    });
+
+    await flushPromises();
+
+    const neoLogo = neoWrapper.find("img");
+    const gasLogo = gasWrapper.find("img");
+    expect(neoLogo.exists()).toBe(true);
+    expect(gasLogo.exists()).toBe(true);
+    expect(neoLogo.attributes("src")).toBe("/img/brand/neo.png");
+    expect(gasLogo.attributes("src")).toBe("/img/brand/neo.png");
   });
 });
