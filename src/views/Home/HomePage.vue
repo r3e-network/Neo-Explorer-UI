@@ -57,11 +57,11 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
-import { statsService, blockService, transactionService, searchService, neotubeService } from "@/services";
+import { statsService, blockService, transactionService, searchService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
-import { NETWORK_CHANGE_EVENT, getCurrentEnv } from "@/utils/env";
+import { NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
@@ -92,6 +92,7 @@ let lastFetchLatestTime = 0;
 let lastStatsRefreshTime = 0;
 const STATS_REFRESH_INTERVAL_MS = 60_000;
 const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
+const TX_FALLBACK_BATCH_SIZE = 4;
 const blockDetailsByHash = new Map();
 
 function getLatestKnownHeight() {
@@ -217,28 +218,39 @@ async function fetchLatestTransactionsByRecentBlocks(limit = 6, skip = 0, reques
 
   const maxBlocksToScan = Math.max(TX_FALLBACK_BLOCK_SCAN_LIMIT, maxItems * 4);
   const txs = [];
-
+  const heights = [];
   for (let offset = 0; offset < maxBlocksToScan && latestHeight - offset >= 0; offset += 1) {
-    const height = latestHeight - offset;
-    const listRes = await blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
-      ...requestOptions,
-      throwOnError: false,
-    });
-    const rows = Array.isArray(listRes?.result) ? listRes.result : [];
-    if (!rows.length) continue;
+    heights.push(latestHeight - offset);
+  }
 
-    let slicedRows = rows;
-    if (remainingSkip > 0) {
-      if (rows.length <= remainingSkip) {
-        remainingSkip -= rows.length;
-        continue;
+  for (let start = 0; start < heights.length && txs.length < maxItems; start += TX_FALLBACK_BATCH_SIZE) {
+    const batch = heights.slice(start, start + TX_FALLBACK_BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map((height) =>
+        blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
+          ...requestOptions,
+          throwOnError: false,
+        })
+      )
+    );
+
+    for (const listRes of batchResults) {
+      const rows = Array.isArray(listRes?.result) ? listRes.result : [];
+      if (!rows.length) continue;
+
+      let slicedRows = rows;
+      if (remainingSkip > 0) {
+        if (rows.length <= remainingSkip) {
+          remainingSkip -= rows.length;
+          continue;
+        }
+        slicedRows = rows.slice(remainingSkip);
+        remainingSkip = 0;
       }
-      slicedRows = rows.slice(remainingSkip);
-      remainingSkip = 0;
-    }
 
-    txs.push(...slicedRows);
-    if (txs.length >= maxItems) break;
+      txs.push(...slicedRows);
+      if (txs.length >= maxItems) break;
+    }
   }
 
   return {
@@ -284,31 +296,6 @@ async function loadData() {
 }
 
 async function loadStats(forceRefresh = false) {
-  const env = getCurrentEnv();
-
-  if (neotubeService.supportsNetwork(env)) {
-    try {
-      const fastStats = await neotubeService.getStatistics(env);
-      const blocks = Number(fastStats?.blocks || 0);
-      const txs = Number(fastStats?.txs || 0);
-
-      // NeoTube can intermittently return empty counters while still returning HTTP 200.
-      // Fall back to RPC dashboard stats in that case instead of showing zeroed values.
-      if (blocks > 0 && txs > 0) {
-        blockCount.value = resolveLiveBlockHeight(blocks);
-        txCount.value = txs;
-        lastStatsRefreshTime = Date.now();
-        return;
-      }
-
-      if (import.meta.env.DEV) {
-        console.warn("NeoTube stats contained empty counters, falling back to RPC stats:", fastStats);
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn("NeoTube stats unavailable, falling back to RPC stats:", err);
-    }
-  }
-
   try {
     const stats = await statsService.getDashboardStats(forceRefresh);
     blockCount.value = resolveLiveBlockHeight(stats.blocks || 0);
@@ -328,20 +315,9 @@ async function loadLatestData(forceRefresh = false) {
     blocksLoading.value = true;
     txsLoading.value = true;
 
-    const env = getCurrentEnv();
     const requestOptions = { forceRefresh };
 
     const fetchLatestBlocks = async () => {
-      if (neotubeService.supportsNetwork(env)) {
-        try {
-          return await neotubeService.getLatestBlocks(6, 0, env);
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn("NeoTube latest blocks unavailable, falling back to RPC list:", err);
-          }
-        }
-      }
-
       try {
         return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
       } catch (err) {
@@ -354,18 +330,15 @@ async function loadLatestData(forceRefresh = false) {
     };
 
     const fetchLatestTransactions = async () => {
-      if (neotubeService.supportsNetwork(env)) {
-        try {
-          return await neotubeService.getLatestTransactions(6, 0, env);
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn("NeoTube latest transactions unavailable, falling back to RPC list:", err);
-          }
-        }
-      }
-
       try {
-        return await transactionService.getList(6, 0, requestOptions);
+        const txListRes = await transactionService.getList(6, 0, requestOptions);
+        const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
+        if (rows.length > 0) {
+          return txListRes;
+        }
+
+        // No immediate rows available from primary list; use recent-block fallback synchronously.
+        return fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
       } catch (err) {
         if (import.meta.env.DEV) {
           console.warn("RPC latest transaction list unavailable, falling back to per-block tx fetch:", err);
@@ -403,6 +376,8 @@ async function loadLatestData(forceRefresh = false) {
       });
 
     const fastTxsPromise = (async () => {
+      const previousRows = Array.isArray(latestTxs.value) ? latestTxs.value : [];
+      const previousConfirmedRows = previousRows.filter((tx) => tx?.status !== "pending");
       const pendingPromise = fetchPendingTransactionsSafe(6)
         .then((rows) => (Array.isArray(rows) ? rows : []))
         .catch(() => []);
@@ -412,17 +387,25 @@ async function loadLatestData(forceRefresh = false) {
         const txsRes = await fetchLatestTransactions();
         confirmedRows = Array.isArray(txsRes?.result) ? txsRes.result : [];
       } catch (err) {
-        const pendingOnly = mergeUniqueTransactions(await pendingPromise, [], 6);
-        if (pendingOnly.length) {
-          if (!hasSameOrderedHashes(latestTxs.value, pendingOnly)) {
-            latestTxs.value = pendingOnly;
+        const pendingWithPrevious = mergeUniqueTransactions(await pendingPromise, previousRows, 6);
+        if (pendingWithPrevious.length) {
+          if (!hasSameOrderedHashes(latestTxs.value, pendingWithPrevious)) {
+            latestTxs.value = pendingWithPrevious;
           }
           return;
         }
         throw err;
       }
 
-      const initialRows = mergeUniqueTransactions(confirmedRows, [], 6);
+      // Keep list continuity during transient sparse RPC responses.
+      const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, 6);
+      if (!initialRows.length && previousRows.length) {
+        if (!hasSameOrderedHashes(latestTxs.value, previousRows)) {
+          latestTxs.value = previousRows;
+        }
+        return;
+      }
+
       if (!hasSameOrderedHashes(latestTxs.value, initialRows)) {
         latestTxs.value = initialRows;
       }
@@ -433,9 +416,28 @@ async function loadLatestData(forceRefresh = false) {
         }
       }
 
+      // Backfill to target size without blocking first paint.
+      if (initialRows.length > 0 && initialRows.length < 6) {
+        void fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions)
+          .then((fallbackRes) => {
+            const fallbackRows = Array.isArray(fallbackRes?.result) ? fallbackRes.result : [];
+            if (!fallbackRows.length) return;
+
+            const mergedRows = mergeUniqueTransactions(initialRows, fallbackRows, 6);
+            if (!mergedRows.length || hasSameOrderedHashes(latestTxs.value, mergedRows)) return;
+            latestTxs.value = mergedRows;
+
+            const nonPendingMerged = mergedRows.filter((tx) => tx.status !== "pending");
+            if (nonPendingMerged.length) {
+              void enrichTransactions(nonPendingMerged, { maxItems: 6 });
+            }
+          })
+          .catch(() => {});
+      }
+
       // Merge pending transactions when ready without blocking initial confirmed tx rendering.
       void pendingPromise.then((pendingRows) => {
-        const mergedRows = mergeUniqueTransactions(pendingRows, confirmedRows, 6);
+        const mergedRows = mergeUniqueTransactions(pendingRows, initialRows, 6);
         if (!mergedRows.length || hasSameOrderedHashes(latestTxs.value, mergedRows)) return;
         latestTxs.value = mergedRows;
       });

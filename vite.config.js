@@ -61,11 +61,6 @@ export default defineConfig(({ mode }) => {
         "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       },
       proxy: {
-        "/neotube-api": {
-          target: "https://api.neotube.io",
-          changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/neotube-api/, ""),
-        },
         "/indexer/mainnet": {
           target: mainnetRpcPrimaryTarget,
           changeOrigin: true,

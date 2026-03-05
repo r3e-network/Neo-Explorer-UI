@@ -2,10 +2,17 @@ import axios from "axios";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
 
 const LEGACY_RPC_BASE_URL = "/api";
-const DEFAULT_RPC_TIMEOUT_MS = 12000;
-const FAILOVER_RPC_TIMEOUT_MS = 8000;
+const parseTimeout = (value, fallbackMs) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
+};
+const DEFAULT_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_TIMEOUT_MS, 5000);
+const FAILOVER_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_FAILOVER_TIMEOUT_MS, 5000);
+const NETWORK_VALIDATION_TIMEOUT_MS = Number(import.meta.env.VITE_RPC_NETWORK_VALIDATION_TIMEOUT_MS || 1000);
 const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = 800;
-const HEDGE_DELAY_MS = 1200;
+const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
+const ENABLE_RPC_STARTUP_HEDGE =
+  String(import.meta.env.VITE_ENABLE_RPC_STARTUP_HEDGE ?? "true").trim().toLowerCase() !== "false";
 const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
 const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
@@ -61,10 +68,11 @@ const buildRetryBaseUrls = (baseUrl) => {
 };
 
 const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
+  if (!ENABLE_RPC_STARTUP_HEDGE) return false;
   if (!fallbackBaseUrl || useConfiguredBaseUrl) return false;
 
   const parsed = parseNetworkBase(preferredBaseUrl);
-  if (!parsed || parsed.endpoint) return false;
+  if (!parsed || parsed.endpoint === "fallback") return false;
 
   return /^(get|find|search|invoke)/i.test(String(method || ""));
 };
@@ -163,9 +171,12 @@ const validateEndpointNetwork = async ({ baseURL, timeout, signal }) => {
 
   try {
     const versionPayload = { jsonrpc: "2.0", id: nextRpcId(), method: "getversion", params: [] };
+    const validationTimeout = Number.isFinite(NETWORK_VALIDATION_TIMEOUT_MS)
+      ? Math.max(300, NETWORK_VALIDATION_TIMEOUT_MS)
+      : 1000;
     const versionResult = await executeRpcRequest(versionPayload, {
       baseURL,
-      timeout: Math.min(timeout, FAILOVER_RPC_TIMEOUT_MS),
+      timeout: Math.min(timeout, validationTimeout),
       signal,
     });
     const reportedNetworkMagic = Number(versionResult?.protocol?.network ?? versionResult?.network);
@@ -268,6 +279,10 @@ const waitForInitialHealthCheck = async () => {
 api.interceptors.request.use(
   async (config) => {
     await waitForInitialHealthCheck();
+    if (!useConfiguredBaseUrl) {
+      // Re-check endpoint health in the background so a stale primary/fallback choice self-recovers.
+      void checkAndSetEndpoints(getCurrentEnv());
+    }
 
     if (!config.__manualBaseURL) {
       config.baseURL = resolveRpcBaseUrl();

@@ -55,10 +55,6 @@
       "destination": "https://rpc.r3e.network/mainnet/bpi/$1"
     },
     {
-      "source": "/neotube-api/(.*)",
-      "destination": "https://api.neotube.io/$1"
-    },
-    {
       "source": "/indexer/mainnet/(.*)",
       "destination": "https://rpc.r3e.network/indexer/v1/networks/mainnet/$1"
     },

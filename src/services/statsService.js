@@ -2,8 +2,6 @@ import { rpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
-import { neotubeService } from "./neotubeService";
-import { getCurrentEnv } from "../utils/env";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -26,12 +24,6 @@ function extractCount(res) {
   if (!res) return 0;
   return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
 }
-
-function shouldUseNeoTube(options = {}) {
-  if (typeof options.useNeoTube === "boolean") return options.useNeoTube;
-  return import.meta.env.MODE !== "test";
-}
-
 
 /**
  * Helper to generate realistic mock data for endpoints not yet implemented by neo3fura backend.
@@ -153,30 +145,25 @@ export const statsService = createService(
 
       const fetchFn = async () => {
         try {
-          const env = getCurrentEnv();
-          const canUseNeoTube = shouldUseNeoTube({}) && neotubeService.supportsNetwork(env);
-
-          const fastStats = canUseNeoTube
-            ? await neotubeService.getStatistics(env).catch(() => null)
-            : null;
-
           const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes] = await Promise.all([
-            fastStats ? Promise.resolve(null) : rpc("GetBlockCount", {}).catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetTransactionCount", {}).catch(() => null),
+            rpc("GetBlockCount", {}).catch(() => null),
+            rpc("GetTransactionCount", {}).catch(() => null),
             rpc("GetContractCount", {}).catch(() => null),
             rpc("GetCandidateCount", {}).catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetAddressCount", {}).catch(() => null),
-            fastStats ? Promise.resolve(null) : rpc("GetAssetCount", {}).catch(() => null),
+            rpc("GetAddressCount", {}).catch(() => null),
+            rpc("GetAssetCount", {}).catch(() => null),
           ]);
 
-          return {
-            blocks: Number(fastStats?.blocks ?? extractCount(blocksRes)),
-            txs: Number(fastStats?.txs ?? extractCount(txsRes)),
+          const result = {
+            blocks: extractCount(blocksRes),
+            txs: extractCount(txsRes),
             contracts: extractCount(contractsRes),
             candidates: extractCount(candidatesRes),
-            addresses: Number(fastStats?.addresses ?? extractCount(addressesRes)),
-            tokens: Number(fastStats?.tokens ?? extractCount(tokensRes)),
+            addresses: extractCount(addressesRes),
+            tokens: extractCount(tokensRes),
           };
+
+          return result;
         } catch (error) {
           if (import.meta.env.DEV) console.error("Failed to get dashboard stats:", error);
           throw error;
@@ -213,24 +200,12 @@ export const statsService = createService(
         key,
         async () => {
           try {
-            const env = getCurrentEnv();
-            const canUseNeoTube = shouldUseNeoTube({}) && neotubeService.supportsNetwork(env);
-
-            const [latestTxRes, feeRes] = await Promise.all([
-              (async () => {
-                if (canUseNeoTube) {
-                  try {
-                    return await neotubeService.getLatestTransactions(1, 0, env);
-                  } catch {
-                    // fall through to RPC
-                  }
-                }
-                return rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null);
-              })(),
+            const [rpcTxRes, feeRes] = await Promise.all([
+              rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null),
               rpc("GetNetFeeRange", {}).catch(() => null),
             ]);
 
-            const latestTx = Array.isArray(latestTxRes?.result) ? latestTxRes.result[0] : null;
+            const latestTx = Array.isArray(rpcTxRes?.result) ? rpcTxRes.result[0] : null;
 
             return {
               latestNetworkFee: latestTx?.netfee ?? "0",

@@ -3,9 +3,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { executionService } from "./executionService";
 import { addressToScriptHash } from "../utils/neoHelpers";
-import { neotubeService } from "./neotubeService";
 import { accountService } from "./accountService";
-import { getCurrentEnv } from "../utils/env";
 import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
@@ -77,11 +75,6 @@ export const transactionService = createService(
     // via executionService — no dedicated backend endpoint exists.
   },
   {
-    _shouldUseNeoTube(options = {}) {
-      if (typeof options.useNeoTube === "boolean") return options.useNeoTube;
-      return import.meta.env.MODE !== "test";
-    },
-
     _extractCount(res) {
       const direct = Number(res);
       if (Number.isFinite(direct)) return direct;
@@ -291,19 +284,6 @@ export const transactionService = createService(
       return cachedRequest(
         key,
         async () => {
-          const env = getCurrentEnv();
-          const canUseNeoTube = this._shouldUseNeoTube(options) && neotubeService.supportsNetwork(env);
-
-          if (canUseNeoTube) {
-            try {
-              const stats = await neotubeService.getStatistics(env);
-              const fastCount = Number(stats?.txs || 0);
-              if (fastCount > 0) return fastCount;
-            } catch (error) {
-              if (import.meta.env.DEV) console.warn("[transactionService] NeoTube tx count fallback:", error);
-            }
-          }
-
           const res = await safeRpc("GetTransactionCount", {}, 0, cacheOpts);
           return this._extractCount(res);
         },
@@ -319,27 +299,8 @@ export const transactionService = createService(
       const key = getCacheKey("tx_list", { limit, skip });
       const res = await cachedRequest(
         key,
-        async () => {
-          const env = getCurrentEnv();
-          const canUseNeoTube = this._shouldUseNeoTube(requestOptions) && neotubeService.supportsNetwork(env);
-
-          if (canUseNeoTube) {
-            try {
-              return await neotubeService.getLatestTransactions(limit, skip, env);
-            } catch (error) {
-              if (import.meta.env.DEV) {
-                console.warn("[transactionService] NeoTube tx list fallback:", error);
-              }
-            }
-          }
-
-          return safeRpcList(
-            "GetTransactionList",
-            { Limit: limit, Skip: skip },
-            "get transaction list",
-            cacheOpts
-          );
-        },
+        () =>
+          safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts),
         CACHE_TTL.chart,
         cacheOpts
       );

@@ -1,20 +1,24 @@
 import axios from "axios";
-import { NET_ENV, getCurrentEnv, setActiveBasePath } from "./env";
+import { NET_ENV, getActiveBasePath, getCurrentEnv, setActiveBasePath } from "./env";
 
-let checked = {
-  [NET_ENV.Mainnet]: false,
-  [NET_ENV.TestT5]: false,
+const checkedState = {
+  [NET_ENV.Mainnet]: { done: false, lastCheckedAt: 0 },
+  [NET_ENV.TestT5]: { done: false, lastCheckedAt: 0 },
 };
 
 const EXPECTED_NETWORK_MAGIC = {
   [NET_ENV.Mainnet]: 860833102,
   [NET_ENV.TestT5]: 894710606,
 };
-
-const PUBLIC_RPC_FALLBACKS = {
-  [NET_ENV.Mainnet]: "https://neofura.ngd.network",
-  [NET_ENV.TestT5]: "https://testmagnet.ngd.network",
-};
+const HEALTHCHECK_TIMEOUT_MS = Math.max(500, Number(import.meta.env.VITE_RPC_HEALTHCHECK_TIMEOUT_MS || 1500));
+const HEALTHCHECK_RECHECK_INTERVAL_MS = Math.max(
+  10_000,
+  Number(import.meta.env.VITE_RPC_HEALTHCHECK_RECHECK_MS || 60_000)
+);
+const PRIMARY_LATENCY_BIAS_MS = Math.max(
+  0,
+  Number(import.meta.env.VITE_RPC_PRIMARY_LATENCY_BIAS_MS || 400)
+);
 
 const NETWORKS = [
   { env: NET_ENV.Mainnet, prefix: "/api/mainnet" },
@@ -31,7 +35,7 @@ const readNetworkMagic = async (url) => {
         method: "getversion",
         params: [],
       },
-      { timeout: 5000 }
+      { timeout: HEALTHCHECK_TIMEOUT_MS }
     );
 
     const version = res.data?.result || {};
@@ -66,7 +70,7 @@ const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
         method: "GetBlockCount",
         params: {},
       },
-      { timeout: 5000 }
+      { timeout: HEALTHCHECK_TIMEOUT_MS }
     );
 
     const result = res.data?.result;
@@ -93,8 +97,14 @@ const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
 };
 
 const checkNetworkEndpoints = async (network) => {
-  if (!network || checked[network.env]) return;
-  checked[network.env] = true;
+  if (!network) return;
+  const state = checkedState[network.env];
+  const now = Date.now();
+  if (state?.done && now-state.lastCheckedAt < HEALTHCHECK_RECHECK_INTERVAL_MS) return;
+  if (state) {
+    state.done = true;
+    state.lastCheckedAt = now;
+  }
 
   try {
     const expectedNetworkMagic = EXPECTED_NETWORK_MAGIC[network.env] ?? null;
@@ -102,37 +112,32 @@ const checkNetworkEndpoints = async (network) => {
       checkEndpointHeight(`${network.prefix}/primary`, expectedNetworkMagic),
       checkEndpointHeight(`${network.prefix}/fallback`, expectedNetworkMagic),
     ]);
+    const primaryHealthy = primaryHeight.height >= 0;
+    const fallbackHealthy = fallbackHeight.height >= 0;
+    const primaryFasterEnough =
+      primaryHeight.latencyMs <= fallbackHeight.latencyMs + PRIMARY_LATENCY_BIAS_MS;
 
-    if (primaryHeight.height === -1 && fallbackHeight.height === -1) {
-      // Both failed (including wrong-network endpoints), fallback to a known public RPC endpoint.
-      const publicFallback = PUBLIC_RPC_FALLBACKS[network.env];
-      setActiveBasePath(network.env, publicFallback || `${network.prefix}/primary`);
-    } else if (primaryHeight.height === -1 && fallbackHeight.height >= 0) {
-      setActiveBasePath(network.env, `${network.prefix}/fallback`);
-    } else if (fallbackHeight.height === -1 && primaryHeight.height >= 0) {
+    if (primaryHealthy && (!fallbackHealthy || primaryFasterEnough)) {
       setActiveBasePath(network.env, `${network.prefix}/primary`);
-    } else if (fallbackHeight.height - primaryHeight.height > 5) {
+      console.info(
+        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
+      );
+      return;
+    }
+
+    if (fallbackHealthy) {
       setActiveBasePath(network.env, `${network.prefix}/fallback`);
       console.info(
         `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
       );
-    } else if (primaryHeight.height - fallbackHeight.height > 5) {
-      setActiveBasePath(network.env, `${network.prefix}/primary`);
-      console.info(
-        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
-      );
-    } else if (fallbackHeight.latencyMs + 150 < primaryHeight.latencyMs) {
-      // Heights are close enough. Favor noticeably faster endpoint.
-      setActiveBasePath(network.env, `${network.prefix}/fallback`);
-      console.info(
-        `[HealthCheck] ${network.env} using fallback (latency). Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
-      );
-    } else {
-      setActiveBasePath(network.env, `${network.prefix}/primary`);
-      console.info(
-        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
-      );
+      return;
     }
+
+    // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
+    const current = getActiveBasePath(network.env);
+    console.warn(
+      `[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`
+    );
   } catch (e) {
     console.warn(`[HealthCheck] Failed for ${network.env}`, e);
   }
@@ -154,7 +159,7 @@ export const checkAndSetEndpoints = async (preferredEnv = getCurrentEnv()) => {
 
 // Expose a synchronous getter so that the API client uses the resolved URL immediately once it's set.
 export const awaitEndpointsSet = async (env) => {
-  if (!checked[env]) {
+  if (!checkedState[env]?.done) {
     const network = NETWORKS.find(n => n.env === env) || NETWORKS[0];
     await checkNetworkEndpoints(network);
   }

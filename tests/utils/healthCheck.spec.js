@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const post = vi.fn();
 const setActiveBasePath = vi.fn();
 const getCurrentEnv = vi.fn(() => "Mainnet");
+const getActiveBasePath = vi.fn((env) => (env === "TestT5" ? "/api/testnet/primary" : "/api/mainnet/primary"));
 
 vi.mock("axios", () => ({
   default: {
@@ -16,6 +17,7 @@ vi.mock("../../src/utils/env", () => ({
     TestT5: "TestT5",
   },
   getCurrentEnv,
+  getActiveBasePath,
   setActiveBasePath,
 }));
 
@@ -42,7 +44,7 @@ describe("healthCheck endpoint selection", () => {
     expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
   });
 
-  it("prefers lower-latency endpoint when heights are effectively equal", async () => {
+  it("prefers fallback when both are healthy but fallback is much faster", async () => {
     post.mockImplementation((url) => {
       if (url.includes("/api/mainnet/primary")) {
         return new Promise((resolve) =>
@@ -87,7 +89,7 @@ describe("healthCheck endpoint selection", () => {
     expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
   });
 
-  it("falls back to public rpc endpoint when all local candidates are wrong-network", async () => {
+  it("keeps current route when all local candidates are wrong-network", async () => {
     post.mockImplementation(async (url, payload) => {
       const method = payload?.method;
       if (url.includes("/api/mainnet/") && method === "getversion") {
@@ -102,6 +104,6 @@ describe("healthCheck endpoint selection", () => {
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "https://neofura.ngd.network");
+    expect(setActiveBasePath).not.toHaveBeenCalled();
   });
 });

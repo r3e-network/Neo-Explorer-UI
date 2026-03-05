@@ -154,10 +154,25 @@ describe("safeRpc", () => {
       code: "ECONNABORTED",
     });
 
-    axios.post
-      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
-      .mockRejectedValueOnce(timeoutError)
-      .mockResolvedValueOnce({ data: { result: { index: 123 } } });
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion" && baseURL === "/api/mainnet/primary") {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+        return Promise.reject(timeoutError);
+      }
+      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({ data: { result: { index: 123 } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
 
     const result = await safeRpc("GetBlockCount", {});
     expect(result).toEqual({ index: 123 });
@@ -182,17 +197,32 @@ describe("safeRpc", () => {
     );
   });
 
-  it("pins active base path to endpoint that succeeded after failover", async () => {
+  it("switches base path to fallback after a transient primary failover", async () => {
     const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
       code: "ECONNABORTED",
     });
 
-    axios.post
-      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
-      .mockRejectedValueOnce(timeoutError)
-      .mockResolvedValueOnce({ data: { result: { protocol: { network: 860833102 } } } })
-      .mockResolvedValueOnce({ data: { result: { count: 10 } } })
-      .mockResolvedValueOnce({ data: { result: { count: 11 } } });
+    let primaryCallCount = 0;
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion") {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+        primaryCallCount += 1;
+        if (primaryCallCount === 1) return Promise.reject(timeoutError);
+        return Promise.resolve({ data: { result: { count: 11 } } });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({ data: { result: { count: 10 } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
 
     await safeRpc("GetBlockCount", {});
     await safeRpc("GetBlockCount", {});
@@ -205,7 +235,7 @@ describe("safeRpc", () => {
     );
   });
 
-  it("starts a hedged fallback request on startup when primary is hanging", async () => {
+  it("starts a hedged fallback request when primary is hanging to avoid long stalls", async () => {
     vi.useFakeTimers();
     try {
       axios.post

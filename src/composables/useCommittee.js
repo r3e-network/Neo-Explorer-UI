@@ -347,19 +347,19 @@ export function useCommittee() {
     return undefined;
   };
 
-  const getPrimaryNodeName = (primaryIndex) => {
+  const getPrimaryNodeName = (primaryIndex, fallbackAddress = null) => {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) {
       // Avoid permanent "Loading..." labels when endpoint metadata is temporarily unavailable.
       if (!initialized.value) {
         void loadCommittee();
       }
-      return fallbackValidatorName(primaryIndex);
+      return fallbackValidatorName(primaryIndex, fallbackAddress);
     }
 
     const numericIndex = Number(primaryIndex);
     const validator = validators.value[numericIndex];
-    if (!validator) return fallbackValidatorName(numericIndex);
+    if (!validator) return fallbackValidatorName(numericIndex, fallbackAddress);
 
     const meta = getValidatorMetadata(validator);
     if (meta && meta.name) {
@@ -367,7 +367,7 @@ export function useCommittee() {
     }
 
     const address = meta?.scripthash || deriveValidatorAddress(validator);
-    return fallbackValidatorName(numericIndex, address);
+    return fallbackValidatorName(numericIndex, address || fallbackAddress);
   };
 
   const getPrimaryNodeAddress = (primaryIndex) => {

@@ -22,9 +22,10 @@ This repository includes a `vercel.json` configuration ready for Vue SPA deploym
 
 - Builds with `npm run build`
 - Serves static output from `dist/`
-- Rewrites `/api/mainnet` to `https://neofura.ngd.network`
-- Rewrites `/api/testnet` to `https://testmagnet.ngd.network`
+- Rewrites `/api/mainnet` to `https://rpc.r3e.network/mainnet` (primary)
+- Rewrites `/api/testnet` to `https://rpc.r3e.network/testnet` (primary)
 - Keeps `/api` as a backward-compatible alias to mainnet
+- Keeps `/api/mainnet/fallback` and `/api/testnet/fallback` as backup-only paths
 - Falls back all non-file SPA routes to `/index.html`
 
 The UI network dropdown (header utility bar) controls which RPC base path is used at runtime:
@@ -121,10 +122,13 @@ Configure build-time variables in `.env`, `.env.production`, or Vercel project s
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `VITE_RPC_BASE_URL` | Optional fixed RPC base URL. Leave unset to follow UI network switch. | unset |
-| `VITE_MAINNET_RPC_PROXY_TARGET` | Optional Vite dev proxy target for `/api/mainnet`. | `https://neofura.ngd.network` |
-| `VITE_TESTNET_RPC_PROXY_TARGET` | Optional Vite dev proxy target for `/api/testnet`. | `https://testmagnet.ngd.network` |
-| `VITE_MAINNET_BPI_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/mainnet`. | `https://neofura.ngd.network` |
-| `VITE_TESTNET_BPI_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/testnet`. | `https://testmagnet.ngd.network` |
+| `VITE_MAINNET_RPC_PRIMARY_PROXY_TARGET` | Optional Vite dev primary target for `/api/mainnet/primary`. | `https://rpc.r3e.network` |
+| `VITE_TESTNET_RPC_PRIMARY_PROXY_TARGET` | Optional Vite dev primary target for `/api/testnet/primary`. | `https://rpc.r3e.network` |
+| `VITE_MAINNET_RPC_FALLBACK_PROXY_TARGET` | Optional Vite dev fallback target for `/api/mainnet/fallback`. | `https://neofura.ngd.network` |
+| `VITE_TESTNET_RPC_FALLBACK_PROXY_TARGET` | Optional Vite dev fallback target for `/api/testnet/fallback`. | `https://testmagnet.ngd.network` |
+| `VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/mainnet`. | `https://rpc.r3e.network` |
+| `VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/testnet`. | `https://rpc.r3e.network` |
+| `VITE_ENABLE_RPC_STARTUP_HEDGE` | Enable startup hedge calls to fallback RPC. | `true` |
 
 Notes:
 

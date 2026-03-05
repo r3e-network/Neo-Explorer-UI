@@ -1,8 +1,6 @@
 import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
-import { neotubeService } from "./neotubeService";
-import { getCurrentEnv } from "../utils/env";
 
 /**
  * Block Service - Neo3 区块相关 API 调用
@@ -91,11 +89,6 @@ export const blockService = createService(
     },
   },
   {
-    _shouldUseNeoTube(options = {}) {
-      if (typeof options.useNeoTube === "boolean") return options.useNeoTube;
-      return import.meta.env.MODE !== "test";
-    },
-
     _extractCount(res) {
       const direct = Number(res);
       if (Number.isFinite(direct)) return direct;
@@ -112,19 +105,6 @@ export const blockService = createService(
       return cachedRequest(
         key,
         async () => {
-          const env = getCurrentEnv();
-          const canUseNeoTube = this._shouldUseNeoTube(options) && neotubeService.supportsNetwork(env);
-
-          if (canUseNeoTube) {
-            try {
-              const stats = await neotubeService.getStatistics(env);
-              const fastCount = Number(stats?.blocks || 0);
-              if (fastCount > 0) return fastCount;
-            } catch (error) {
-              if (import.meta.env.DEV) console.warn("[blockService] NeoTube block count fallback:", error);
-            }
-          }
-
           const res = await safeRpc("GetBlockCount", {}, null, cacheOpts);
           return this._extractCount(res);
         },
@@ -143,27 +123,7 @@ export const blockService = createService(
       const key = getCacheKey("block_list", { limit, skip });
       const res = await cachedRequest(
         key,
-        async () => {
-          const env = getCurrentEnv();
-          const canUseNeoTube = this._shouldUseNeoTube(requestOptions) && neotubeService.supportsNetwork(env);
-
-          if (canUseNeoTube) {
-            try {
-              return await neotubeService.getLatestBlocks(limit, skip, env);
-            } catch (error) {
-              if (import.meta.env.DEV) {
-                console.warn("[blockService] NeoTube block list fallback:", error);
-              }
-            }
-          }
-
-          return safeRpcList(
-            "GetBlockInfoList",
-            { Limit: limit, Skip: skip },
-            "get block list",
-            cacheOpts
-          );
-        },
+        () => safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list", cacheOpts),
         CACHE_TTL.chart,
         cacheOpts
       );

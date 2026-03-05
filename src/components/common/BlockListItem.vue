@@ -92,9 +92,22 @@ const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const resolvedPrimary = computed(() => resolvePrimaryIndex(props.block));
 
+const validatorHintAddress = computed(() => {
+  const raw =
+    props.block.nextconsensus ??
+    props.block.nextConsensus ??
+    props.block.speaker ??
+    props.block.validator ??
+    "";
+
+  if (!raw) return "";
+  if (String(raw).startsWith("N")) return String(raw);
+  return scriptHashToAddress(String(raw));
+});
+
 const validatorName = computed(() => {
   if (resolvedPrimary.value === undefined) return "Validator";
-  return getPrimaryNodeName(resolvedPrimary.value) || "Consensus Node";
+  return getPrimaryNodeName(resolvedPrimary.value, validatorHintAddress.value) || "Consensus Node";
 });
 
 const validatorLogo = computed(() => {
@@ -108,18 +121,7 @@ const validatorAddress = computed(() => {
     const directAddr = getPrimaryNodeAddress(resolvedPrimary.value);
     if (directAddr) return scriptHashToAddress(directAddr);
   }
-
-  // Fallback to legacy consensus pointers from indexed block
-  const raw =
-    props.block.nextconsensus ??
-    props.block.nextConsensus ??
-    props.block.speaker ??
-    props.block.validator ??
-    "";
-
-  if (!raw) return "";
-  if (String(raw).startsWith("N")) return String(raw);
-  return scriptHashToAddress(String(raw));
+  return validatorHintAddress.value;
 });
 
 const blockFee = computed(() => {

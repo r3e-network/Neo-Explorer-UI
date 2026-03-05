@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { blockService } from "../../src/services/blockService.js";
 import * as api from "../../src/services/api.js";
+import { neotubeService } from "../../src/services/neotubeService.js";
+import { clearAllCache } from "../../src/services/cache.js";
 
 // Mock api module
 vi.mock("../../src/services/api.js", () => ({
@@ -10,9 +12,20 @@ vi.mock("../../src/services/api.js", () => ({
   formatListResponse: vi.fn((r) => r),
 }));
 
+vi.mock("../../src/services/neotubeService.js", () => ({
+  neotubeService: {
+    supportsNetwork: vi.fn(() => true),
+    getLatestBlocks: vi.fn(),
+    getStatistics: vi.fn(),
+  },
+}));
+
 describe("blockService", () => {
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.clearAllMocks();
+    clearAllCache();
+    neotubeService.supportsNetwork.mockReturnValue(true);
   });
 
   describe("getCount", () => {
@@ -47,6 +60,37 @@ describe("blockService", () => {
     it("returns empty on error", async () => {
       api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
       const result = await blockService.getList();
+      expect(result).toEqual({ result: [], totalCount: 0 });
+    });
+
+    it("uses RPC list as primary even when NeoTube is enabled", async () => {
+      api.safeRpcList.mockResolvedValueOnce({
+        result: [{ hash: "0xrpc", index: 1, txcount: 2 }],
+        totalCount: 1,
+      });
+      neotubeService.getLatestBlocks.mockResolvedValueOnce({
+        result: [{ hash: "0xneo", index: 9, txcount: 9 }],
+        totalCount: 1,
+      });
+
+      const result = await blockService.getList(10, 0, { useNeoTube: true });
+
+      expect(api.safeRpcList).toHaveBeenCalled();
+      expect(neotubeService.getLatestBlocks).not.toHaveBeenCalled();
+      expect(result.result[0].hash).toBe("0xrpc");
+    });
+
+    it("does not fall back to NeoTube when RPC list is empty", async () => {
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
+      neotubeService.getLatestBlocks.mockResolvedValueOnce({
+        result: [{ hash: "0xneo", index: 9, txcount: 9 }],
+        totalCount: 1,
+      });
+
+      const result = await blockService.getList(10, 0, { useNeoTube: true });
+
+      expect(api.safeRpcList).toHaveBeenCalled();
+      expect(neotubeService.getLatestBlocks).not.toHaveBeenCalled();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
 

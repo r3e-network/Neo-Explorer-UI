@@ -47,13 +47,13 @@ The frontend connects to neo3fura via proxy configuration in `vite.config.js`:
 ```javascript
 server: {
   proxy: {
-    "/api/mainnet": {
-      target: "https://neofura.ngd.network",
-      rewrite: () => "/",
+    "/api/mainnet/primary": {
+      target: "https://rpc.r3e.network",
+      rewrite: () => "/mainnet",
     },
-    "/api/testnet": {
-      target: "https://testmagnet.ngd.network",
-      rewrite: () => "/",
+    "/api/testnet/primary": {
+      target: "https://rpc.r3e.network",
+      rewrite: () => "/testnet",
     },
   },
 }
@@ -63,8 +63,8 @@ server: {
 
 | Network | RPC Endpoint | WebSocket |
 |---------|--------------|-----------|
-| Mainnet | `https://neofura.ngd.network` (public neo3fura endpoint, also used by OneGate) | - |
-| Testnet | `https://testmagnet.ngd.network` (public neo3fura endpoint, also used by OneGate) | - |
+| Mainnet | `https://rpc.r3e.network/mainnet` (primary), with fallback only on failure | `wss://ws.r3e.network/mainnet` (primary) |
+| Testnet | `https://rpc.r3e.network/testnet` (primary), with fallback only on failure | `wss://ws.r3e.network/testnet` (primary) |
 
 ### Service Layer
 
@@ -139,11 +139,12 @@ Optional build-time environment variable:
 - `VITE_RPC_BASE_URL` (optional fixed override; default uses the in-app network switch)
 - `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET` (optional Vite dev proxy overrides)
 - `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET` (optional Vite dev BPI proxy overrides)
+- `VITE_ENABLE_RPC_STARTUP_HEDGE` (optional; default `true`)
 
 Vercel routing is defined in `vercel.json`:
 
-- `/api/mainnet` → `https://neofura.ngd.network`
-- `/api/testnet` → `https://testmagnet.ngd.network`
+- `/api/mainnet` → `https://rpc.r3e.network/mainnet`
+- `/api/testnet` → `https://rpc.r3e.network/testnet`
 - `/api` aliases to mainnet (backward compatible)
 - SPA fallback (`/:path*` → `/index.html`)
 

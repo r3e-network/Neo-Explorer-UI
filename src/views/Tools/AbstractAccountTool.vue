@@ -223,7 +223,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import { connectedAccount, connectedProvider, PROVIDERS } from '@/utils/wallet';
+import { connectedAccount } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 
@@ -279,7 +279,11 @@ const domeTimeout = ref(15768000000); // 6 months in ms default
 const isCreating = ref(false);
 const txHash = ref("");
 
-const isEvmWallet = computed(() => connectedProvider.value === PROVIDERS.EVM_WALLET);
+const isEvmWallet = computed(() => {
+  void connectedAccount.value;
+  const provider = walletService.provider || (typeof window !== "undefined" ? localStorage.getItem("walletProvider") : "");
+  return provider === walletService.PROVIDERS.EVM_WALLET;
+});
 
 let neonJs = null;
 const computedAddress = ref("");
@@ -460,7 +464,7 @@ async function createAccount() {
   @apply rounded-2xl p-3 shrink-0;
 }
 .etherscan-card {
-  @apply bg-surface rounded-3xl border border-line-soft overflow-hidden;
+  @apply bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden;
 }
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;

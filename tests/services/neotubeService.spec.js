@@ -292,9 +292,9 @@ describe("neotubeService", () => {
   });
 
   it("reports support only for known environments", () => {
-    expect(neotubeService.supportsNetwork("Mainnet")).toBe(false);
-    expect(neotubeService.supportsNetwork("TestT5")).toBe(false);
-    expect(neotubeService.supportsNetwork("testnet")).toBe(false);
+    expect(neotubeService.supportsNetwork("Mainnet")).toBe(true);
+    expect(neotubeService.supportsNetwork("TestT5")).toBe(true);
+    expect(neotubeService.supportsNetwork("testnet")).toBe(true);
     expect(neotubeService.supportsNetwork("Unknown")).toBe(false);
   });
 

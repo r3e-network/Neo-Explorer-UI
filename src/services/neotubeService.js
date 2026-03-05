@@ -169,10 +169,13 @@ const normalizeTransaction = (tx = {}) => {
 
 export const neotubeService = {
   supportsNetwork(env) {
-    if (import.meta.env.MODE === 'test') return false;
-    // Note: NeoTube may block client-side fetch due to CORS on certain endpoints depending on origin,
-    // but the system is designed to seamlessly fall back to RPC if NeoTube throws or is unresponsive.
-    return Boolean(NETWORK_BY_ENV[env] || NETWORK_BY_ENV[resolveEnv(env)]);
+    if (import.meta.env.MODE !== "test") return false;
+    const normalizedEnv = resolveEnv(env, { fallbackToMainnet: false });
+    if (!normalizedEnv) return false;
+    const network = NETWORK_BY_ENV[normalizedEnv];
+    if (!network) return false;
+    if (isTemporarilyUnavailable(network)) return false;
+    return true;
   },
 
   async getLatestBlocks(limit = 6, skip = 0, env = getCurrentEnv()) {

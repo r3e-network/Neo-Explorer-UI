@@ -9,5 +9,4 @@ export { candidateService } from "./candidateService";
 export { statsService } from "./statsService";
 export { searchService } from "./searchService";
 export { executionService } from "./executionService";
-export { neotubeService } from "./neotubeService";
 export * from "./cache";

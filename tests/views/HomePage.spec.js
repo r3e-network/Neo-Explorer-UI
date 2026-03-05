@@ -117,6 +117,7 @@ const HomeStatsStub = defineComponent({
 
 describe("HomePage initial loading", () => {
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.clearAllMocks();
     enrichTransactionsMock.mockClear();
     loadCommitteeMock.mockClear();
@@ -291,7 +292,7 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("1");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("2");
 
     resolvePendingTxs([{ hash: "0xpending" }]);
     await flushPromises();
@@ -299,8 +300,23 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("prefers NeoTube endpoints on supported networks", async () => {
-    supportsNeoTubeNetwork.mockReturnValue(true);
+  it("supplements short transaction list from recent blocks to avoid temporary one-item flashes", async () => {
+    getTxList.mockResolvedValueOnce({
+      result: [{ hash: "0xonly" }],
+      totalCount: 1,
+    });
+    getBlockCount.mockResolvedValueOnce(2);
+    getTxsByBlockHeight.mockResolvedValueOnce({
+      result: [
+        { hash: "0xonly", blocktime: Date.now() },
+        { hash: "0x2", blocktime: Date.now() },
+        { hash: "0x3", blocktime: Date.now() },
+        { hash: "0x4", blocktime: Date.now() },
+        { hash: "0x5", blocktime: Date.now() },
+        { hash: "0x6", blocktime: Date.now() },
+      ],
+      totalCount: 6,
+    });
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -316,18 +332,24 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getNeoTubeBlocks).toHaveBeenCalled();
-    expect(getNeoTubeTxs).toHaveBeenCalled();
-    expect(getNeoTubeStats).toHaveBeenCalled();
-    expect(getBlockList).not.toHaveBeenCalled();
-    expect(getTxList).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
     wrapper.unmount();
   });
 
-  it("falls back to RPC dashboard stats when NeoTube returns zero block/tx counts", async () => {
-    supportsNeoTubeNetwork.mockReturnValue(true);
-    getNeoTubeStats.mockResolvedValueOnce({ blocks: 0, txs: 0 });
-    getDashboardStats.mockResolvedValueOnce({ blocks: 111, txs: 222 });
+  it("renders short latest transaction list immediately without waiting for fallback block scans", async () => {
+    let resolveFallbackScan;
+    getTxList.mockResolvedValueOnce({
+      result: [{ hash: "0xonly" }],
+      totalCount: 1,
+    });
+    getBlockCount.mockResolvedValueOnce(2);
+    getTxsByBlockHeight.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFallbackScan = resolve;
+        })
+    );
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -343,8 +365,77 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getNeoTubeStats).toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThan(0);
+
+    resolveFallbackScan({ result: [{ hash: "0xonly" }], totalCount: 1 });
+    await flushPromises();
+    wrapper.unmount();
+  });
+
+  it("prefers RPC endpoints even when NeoTube is available", async () => {
+    supportsNeoTubeNetwork.mockReturnValue(true);
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getBlockList).toHaveBeenCalled();
+    expect(getTxList).toHaveBeenCalled();
     expect(getDashboardStats).toHaveBeenCalled();
+    expect(getNeoTubeBlocks).not.toHaveBeenCalled();
+    expect(getNeoTubeTxs).not.toHaveBeenCalled();
+    expect(getNeoTubeStats).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("falls back to per-height RPC loaders after latest list RPC failures", async () => {
+    supportsNeoTubeNetwork.mockReturnValue(true);
+    getBlockList.mockRejectedValueOnce(new Error("rpc blocks unavailable"));
+    getTxList.mockRejectedValueOnce(new Error("rpc txs unavailable"));
+    getBlockCount.mockResolvedValueOnce(5);
+    getBlockByHeight.mockResolvedValueOnce({
+      hash: "0xrpc-fallback-block",
+      index: 4,
+      timestamp: Date.now(),
+      txcount: 2,
+    });
+    getTxsByBlockHeight.mockResolvedValueOnce({
+      result: [{ hash: "0xrpc-fallback-tx", blocktime: Date.now() }],
+      totalCount: 1,
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getBlockList).toHaveBeenCalled();
+    expect(getTxList).toHaveBeenCalled();
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
+    expect(getNeoTubeBlocks).not.toHaveBeenCalled();
+    expect(getNeoTubeTxs).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -370,12 +461,11 @@ describe("HomePage initial loading", () => {
   });
 
   it("keeps block height aligned to latest block list even when stats endpoint lags", async () => {
-    supportsNeoTubeNetwork.mockReturnValue(true);
-    getNeoTubeBlocks.mockResolvedValueOnce({
-      result: [{ hash: "0xneo-block", index: 12345, timestamp: Date.now(), txcount: 1 }],
+    getBlockList.mockResolvedValueOnce({
+      result: [{ hash: "0xrpc-block", index: 12345, timestamp: Date.now(), txcount: 1 }],
       totalCount: 1,
     });
-    getNeoTubeStats.mockResolvedValueOnce({ blocks: 100, txs: 200 });
+    getDashboardStats.mockResolvedValueOnce({ blocks: 10, txs: 20 });
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -396,17 +486,16 @@ describe("HomePage initial loading", () => {
   });
 
   it("updates block height immediately when latest blocks refresh returns a newer height", async () => {
-    supportsNeoTubeNetwork.mockReturnValue(true);
-    getNeoTubeBlocks
+    getBlockList
       .mockResolvedValueOnce({
-        result: [{ hash: "0xneo-block-a", index: 5000, timestamp: Date.now(), txcount: 1 }],
+        result: [{ hash: "0xrpc-block-a", index: 5000, timestamp: Date.now(), txcount: 1 }],
         totalCount: 1,
       })
       .mockResolvedValueOnce({
-        result: [{ hash: "0xneo-block-b", index: 5001, timestamp: Date.now(), txcount: 1 }],
+        result: [{ hash: "0xrpc-block-b", index: 5001, timestamp: Date.now(), txcount: 1 }],
         totalCount: 1,
       });
-    getNeoTubeStats.mockResolvedValue({ blocks: 100, txs: 200 });
+    getDashboardStats.mockResolvedValue({ blocks: 100, txs: 200 });
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -427,6 +516,50 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("5002");
+    wrapper.unmount();
+  });
+
+  it("keeps previous latest transactions when a refresh returns sparse fallback data", async () => {
+    getTxList
+      .mockResolvedValueOnce({
+        result: [
+          { hash: "0xa" },
+          { hash: "0xb" },
+          { hash: "0xc" },
+          { hash: "0xd" },
+          { hash: "0xe" },
+          { hash: "0xf" },
+        ],
+        totalCount: 6,
+      })
+      .mockRejectedValueOnce(new Error("temporary tx list failure"));
+
+    getPendingTransactions
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ hash: "0xpending-only" }]);
+
+    getBlockCount.mockResolvedValueOnce(0);
+    getTxsByBlockHeight.mockResolvedValueOnce({ result: [], totalCount: 0 });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+
+    await wrapper.get('[data-testid="home-stats-fetch"]').trigger("click");
+    await flushPromises();
+
+    expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThanOrEqual(6);
     wrapper.unmount();
   });
 

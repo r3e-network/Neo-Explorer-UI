@@ -111,6 +111,11 @@ export const setActiveBasePath = (env, path) => {
   }
 };
 
+export const getActiveBasePath = (env) => {
+  const normalized = normalizeEnv(env);
+  return activeBasePaths[normalized] || RPC_API_BASE_PATHS[normalized] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+};
+
 // Get RPC URL based on selected environment
 export const getRpcUrl = () => activeBasePaths[getCurrentEnv()] || RPC_URLS[NET_ENV.Mainnet];
 
