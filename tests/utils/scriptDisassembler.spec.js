@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { disassembleScript } from "@/utils/scriptDisassembler";
+import { disassembleScript, extractContractInvocation } from "@/utils/scriptDisassembler";
 
 function bytesToBase64(bytes) {
   return btoa(String.fromCharCode(...bytes));
@@ -122,5 +122,15 @@ describe("scriptDisassembler syscall resolution", () => {
     expect(hashOperand).not.toContain("(Contract:");
     expect(syscall.operand).toBe("System.Contract.Call");
     expect(syscall.semantic).toBe("bNEO.requestService(...)");
+  });
+
+  it("extracts contract hash for real FAULT tx scripts even with extra opcodes before syscall", () => {
+    // mainnet tx:
+    // 0xa79d76270df4e43aa4134a76b6db95f98032636eeed626cea248a7d19d44f906
+    const script = "A1k/i+xhDAAAEcAfDAFiDBQNE1wwd5y+roq63Ql8g88r1Nh9dUFifVtS";
+    const invocation = extractContractInvocation(script);
+
+    expect(invocation).toBeTruthy();
+    expect(invocation.contractHash).toBe("0x757dd8d42bcf837c09ddba8aaebe9c77305c130d");
   });
 });

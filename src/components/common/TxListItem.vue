@@ -164,8 +164,7 @@ const vmState = computed(() => {
     if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") {
       return "PENDING";
     }
-    // Assume HALT for indexed transactions (like from NeoTube) that don't supply a vmstate
-    return "HALT";
+    return "";
   }
   
   return normalized;

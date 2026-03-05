@@ -121,7 +121,7 @@ export const transactionService = createService(
           return {
             ...tx,
             ...nativeTx,
-            vmstate: nativeTx.vmstate || "HALT",
+            vmstate: nativeTx.vmstate || "",
             netfee: nativeTx.netfee,
             sysfee: nativeTx.sysfee,
             blockindex: blockIndex,

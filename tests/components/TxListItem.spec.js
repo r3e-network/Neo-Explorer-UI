@@ -120,8 +120,8 @@ describe("TxListItem", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("HALT");
-    expect(wrapper.text()).not.toContain("Unknown");
+    expect(wrapper.text()).toContain("Unknown");
+    expect(wrapper.text()).not.toContain("HALT");
   });
 
   it("accepts Vmstate field casing from backend payloads", () => {

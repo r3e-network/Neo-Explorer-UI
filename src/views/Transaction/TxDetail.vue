@@ -98,6 +98,7 @@
               :tx-status="txStatus"
               :is-success="isSuccess"
               :vm-state="vmState"
+              :failure-reason="failureReason"
               :confirmations="confirmations"
               :total-fee="totalFee"
               :is-complex-tx="isComplexTx"
@@ -202,6 +203,7 @@ import { getCurrentEnv } from "@/utils/env";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
+import { extractFailureReasonFromAppLog } from "@/utils/txFailureReason";
 import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InternalOperations from "@/components/trace/InternalOperations.vue";
@@ -266,6 +268,11 @@ const isSuccess = computed(() => {
 const txStatus = computed(() => {
   if (isSuccess.value === null) return "pending";
   return isSuccess.value ? "success" : "failed";
+});
+
+const failureReason = computed(() => {
+  if (vmState.value !== "FAULT") return "";
+  return extractFailureReasonFromAppLog(appLog.value);
 });
 
 const confirmations = computed(() => {

@@ -28,6 +28,13 @@
         <span v-else class="text-mid">UNKNOWN</span>
       </InfoRow>
 
+      <InfoRow v-if="vmState === 'FAULT'" label="Failure Reason" tooltip="NeoVM exception returned for failed execution">
+        <code v-if="failureReason" class="block max-w-full whitespace-pre-wrap break-all rounded bg-status-error-bg/60 px-2 py-1 text-xs text-status-error">
+          {{ failureReason }}
+        </code>
+        <span v-else class="text-mid">No exception detail returned by node</span>
+      </InfoRow>
+
       <InfoRow label="Block">
         <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
           #{{ tx.blockIndex ?? tx.blockindex }}
@@ -174,6 +181,7 @@ const props = defineProps({
   txStatus: { type: String, default: "pending" },
   isSuccess: { type: [Boolean, null], default: null },
   vmState: { type: String, default: "" },
+  failureReason: { type: String, default: "" },
   confirmations: { type: Number, default: 0 },
   totalFee: { type: String, default: "0" },
   isComplexTx: { type: Boolean, default: false },
