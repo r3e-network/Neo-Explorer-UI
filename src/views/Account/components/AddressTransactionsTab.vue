@@ -135,6 +135,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { getKnownAddressName } from "@/constants/knownAddresses";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -180,6 +181,11 @@ function getTxMethod(tx) {
 }
 
 function getRecipient(tx) {
+  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash[tx.hash]);
+  if (summaryRecipient) {
+    return summaryRecipient;
+  }
+
   if (tx.to) {
     const isAddress = String(tx.to).startsWith("N");
     return { hash: tx.to, type: isAddress ? "address" : "contract" };
@@ -197,6 +203,34 @@ function getRecipient(tx) {
     return { hash: summary.contract, type: isAddress ? "address" : "contract" };
   }
   return null;
+}
+
+function getSummaryRecipient(summary) {
+  if (!summary || typeof summary !== "object") return null;
+
+  const candidate =
+    summary.recipient ||
+    summary.to ||
+    summary.toAddress ||
+    summary.toaddress ||
+    summary.receiver ||
+    null;
+  const recipient = String(candidate || "").trim();
+  if (!recipient) return null;
+
+  const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
+  const isSingleTarget =
+    summary.singleTarget === true ||
+    (Number.isFinite(targetCount) && targetCount === 1);
+  const isKnownAddressRecipient = Boolean(getKnownAddressName(recipient));
+
+  if (!isSingleTarget && !isKnownAddressRecipient) return null;
+
+  const normalizedType = String(summary.recipientType || "address").toLowerCase();
+  return {
+    hash: recipient,
+    type: isKnownAddressRecipient || normalizedType !== "contract" ? "address" : "contract",
+  };
 }
 
 function formatTxValue(tx) {

@@ -164,6 +164,53 @@ describe("TxListItem", () => {
     expect(toRecipient.exists()).toBe(true);
   });
 
+  it("prefers known recipient address over Neo/GAS contract for multi-target summaries", () => {
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x5656565656565656565656565656565656565656565656565656565656565656",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          contractHash: reverseScriptHash(NEO_HASH),
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "3 transfers",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+          targetCount: 3,
+          recipient: targetAddress,
+          recipientType: "address",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+            },
+            template: '<span data-testid="hash-link" :data-hash="hash" :data-type="type"></span>',
+          },
+        },
+      },
+    });
+
+    const toRecipient = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`
+    );
+    expect(toRecipient.exists()).toBe(true);
+  });
+
   it("shows single-transfer flow value between sender and recipient", () => {
     const senderAddress = "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc";
     const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";

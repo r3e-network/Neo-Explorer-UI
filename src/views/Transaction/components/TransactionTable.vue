@@ -133,6 +133,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { getKnownAddressName } from "@/constants/knownAddresses";
 import { supabaseService } from "@/services/supabaseService";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { ref, watch } from "vue";
@@ -247,13 +248,14 @@ function getSummaryRecipient(summary) {
   const isSingleTarget =
     summary.singleTarget === true ||
     (Number.isFinite(targetCount) && targetCount === 1);
+  const isKnownAddressRecipient = Boolean(getKnownAddressName(recipient));
 
-  if (!isSingleTarget) return null;
+  if (!isSingleTarget && !isKnownAddressRecipient) return null;
 
   const normalizedType = String(summary.recipientType || "address").toLowerCase();
   return {
     hash: recipient,
-    type: normalizedType === "contract" ? "contract" : "address",
+    type: isKnownAddressRecipient || normalizedType !== "contract" ? "address" : "contract",
   };
 }
 

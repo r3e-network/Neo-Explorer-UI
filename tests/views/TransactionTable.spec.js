@@ -284,6 +284,63 @@ describe("TransactionTable address rendering", () => {
     expect(recipientLink.exists()).toBe(true);
   });
 
+  it("prefers known recipient address over Neo/GAS contract for multi-target summaries", () => {
+    const txHash = "0x9a";
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: txHash,
+            blockhash: "0xb9a",
+            blockindex: 10,
+            blocktime: Date.now(),
+            sender: "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW",
+            contractHash: reverseScriptHash(NEO_HASH),
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {
+          [txHash]: {
+            text: "3 transfers",
+            contract: reverseScriptHash(NEO_HASH),
+            type: "NEP17",
+            targetCount: 3,
+            recipient: targetAddress,
+            recipientType: "address",
+          },
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const recipientLink = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`
+    );
+    expect(recipientLink.exists()).toBe(true);
+  });
+
   it("passes addressAliasAsPrimary to sender and recipient address links", () => {
     const sender = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
     const recipient = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
