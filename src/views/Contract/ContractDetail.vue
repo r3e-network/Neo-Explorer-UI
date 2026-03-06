@@ -24,7 +24,9 @@
       <!-- Overview Card -->
       <ContractOverviewCard
         v-if="!error"
-        :contract="contract" :metadata="contractMetadata"
+        :contract="contract"
+        :metadata="contractMetadata"
+        :manifest="manifest"
         :is-verified="isVerified"
         :supported-standards="supportedStandards"
         :methods-count="methodsCount"

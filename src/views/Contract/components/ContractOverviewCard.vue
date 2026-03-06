@@ -11,7 +11,19 @@
         :copyable="!!contract.hash"
         :copy-value="contract.hash"
       />
-      <InfoRow label="Name" :value="contract.name || '-'" />
+      <InfoRow label="Name" :value="displayName" />
+      <InfoRow v-if="developerName" label="Developer" :value="developerName" />
+      <InfoRow v-if="developerEmail" label="Developer Email">
+        <a :href="`mailto:${developerEmail}`" class="etherscan-link">{{ developerEmail }}</a>
+      </InfoRow>
+      <InfoRow v-if="contractDescription" label="Description">
+        <span class="whitespace-pre-wrap break-words">{{ contractDescription }}</span>
+      </InfoRow>
+      <InfoRow v-if="sourceCodeUrl" label="Source Code">
+        <a :href="sourceCodeUrl" target="_blank" rel="noopener noreferrer" class="etherscan-link break-all">
+          {{ sourceCodeUrl }}
+        </a>
+      </InfoRow>
       <InfoRow label="Creator" tooltip="The address that deployed this contract">
         <HashLink v-if="contract.sender" :hash="contract.sender" type="address" :truncated="false" :copyable="false" />
         <span v-else class="text-mid">-</span>
@@ -62,16 +74,26 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { formatNumber } from "@/utils/explorerFormat";
 import { nepBadgeClass } from "@/utils/nepBadges";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 
-defineProps({
+const props = defineProps({
   contract: { type: Object, required: true },
+  metadata: { type: Object, default: null },
+  manifest: { type: Object, default: null },
   isVerified: { type: Boolean, default: false },
   supportedStandards: { type: Array, default: () => [] },
   methodsCount: { type: Number, default: 0 },
   eventsCount: { type: Number, default: 0 },
 });
+
+const manifestExtra = computed(() => props.manifest?.extra || {});
+const displayName = computed(() => props.metadata?.name || props.manifest?.name || props.contract.name || '-');
+const developerName = computed(() => manifestExtra.value?.Author || manifestExtra.value?.author || '');
+const developerEmail = computed(() => manifestExtra.value?.Email || manifestExtra.value?.email || '');
+const contractDescription = computed(() => manifestExtra.value?.Description || manifestExtra.value?.description || '');
+const sourceCodeUrl = computed(() => manifestExtra.value?.Sourcecode || manifestExtra.value?.sourcecode || '');
 </script>
