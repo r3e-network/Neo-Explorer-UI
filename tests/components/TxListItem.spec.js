@@ -262,6 +262,51 @@ describe("TxListItem", () => {
     const flowNode = wrapper.find('[data-testid="single-transfer-flow"]');
     expect(flowNode.exists()).toBe(true);
     expect(flowNode.text()).toContain("1 NEO");
+    expect(flowNode.find('img').exists()).toBe(true);
+  });
+
+  it("uses the single-transfer flow only for one target address", () => {
+    const txHash = "0x8888888888888888888888888888888888888888888888888888888888888888";
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: txHash,
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "3 transfers",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+          targetCount: 3,
+          recipient: targetAddress,
+          recipientType: "address",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+            },
+            template: '<span data-testid="hash-link" :data-hash="hash" :data-type="type"></span>',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="single-transfer-flow"]').exists()).toBe(false);
   });
 
   it("passes addressAliasAsPrimary to sender and recipient address links", () => {

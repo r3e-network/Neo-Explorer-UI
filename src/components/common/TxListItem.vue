@@ -213,7 +213,16 @@ const summaryRecipient = computed(() => getSummaryRecipient(props.transferSummar
 
 const isSingleTransferFlow = computed(() => {
   if (!props.tx?.sender) return false;
-  if (!summaryRecipient.value) return false;
+  if (!summaryRecipient.value || summaryRecipient.value.type !== "address") return false;
+  const summary = props.transferSummary;
+  if (!summary || typeof summary !== "object") return false;
+
+  const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
+  const isSingleTarget =
+    summary.singleTarget === true ||
+    (Number.isFinite(targetCount) && targetCount === 1);
+
+  if (!isSingleTarget) return false;
   return Boolean(transferText.value && transferText.value !== "—");
 });
 
