@@ -134,4 +134,48 @@ describe("AppHeader wallet CTA", () => {
 
     wrapper.unmount();
   });
+
+  it("uses wallet-specific icons instead of the generic Neo logo", async () => {
+    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+      "NeoLine",
+      "O3",
+      "OneGate",
+      "Neon Wallet",
+      "WalletConnect",
+      "Google / Email (Web3Auth)",
+    ]);
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('img[alt="NeoLine"]').attributes("src")).toBe('/img/brand/neoline.svg');
+    expect(wrapper.find('img[alt="O3"]').attributes("src")).toBe('/img/brand/o3.png');
+    expect(wrapper.find('img[alt="OneGate"]').attributes("src")).toBe('/img/brand/onegate.ico');
+    expect(wrapper.find('img[alt="Neon Wallet"]').attributes("src")).toBe('/img/brand/neon.ico');
+    expect(wrapper.find('img[alt="WalletConnect"]').attributes("src")).toBe('/img/brand/walletconnect.ico');
+    expect(wrapper.find('img[alt="Web3Auth"]').attributes("src")).toBe('/img/brand/web3auth.png');
+  });
 });
