@@ -218,14 +218,14 @@ const addressAlias = computed(() => {
 const addressLogo = computed(() => {
   if (props.type !== "address") return "";
 
-  const metadataLogo = String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim();
-  if (metadataLogo) {
-    return optimizeLogoUrl(metadataLogo, { kind: "user" });
-  }
-
   const knownLogo = String(getKnownAddressLogo(normalizedAddressHash.value || props.hash) || "").trim();
   if (knownLogo) {
     return optimizeLogoUrl(knownLogo, { kind: "user" });
+  }
+
+  const metadataLogo = String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim();
+  if (metadataLogo) {
+    return optimizeLogoUrl(metadataLogo, { kind: "user" });
   }
 
   if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {

@@ -90,9 +90,9 @@ export const KNOWN_ADDRESSES = {
 };
 
 export const KNOWN_ADDRESS_LOGOS = {
-  "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "https://www.binance.com/favicon.ico",
-  "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "https://www.binance.com/favicon.ico",
-  "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "https://www.binance.com/favicon.ico",
+  "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "/img/known/binance.svg",
+  "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "/img/known/binance.svg",
+  "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "/img/known/binance.svg",
 };
 
 const normalizeKey = (value) => String(value || "").trim().toLowerCase();

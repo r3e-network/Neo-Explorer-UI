@@ -197,7 +197,7 @@ describe("HashLink", () => {
     expect(wrapper.text()).not.toContain("NUqLhf1");
     const logo = wrapper.find('img[alt="Binance"]');
     expect(logo.exists()).toBe(true);
-    expect(logo.attributes("src")).toBe("https://example.com/binance-logo.png");
+    expect(logo.attributes("src")).toBe("/img/known/binance.svg");
   });
 
   it("falls back to known address logo when metadata logo is missing", async () => {
@@ -214,7 +214,7 @@ describe("HashLink", () => {
 
     const logo = wrapper.find('img[alt="Binance"]');
     expect(logo.exists()).toBe(true);
-    expect(logo.attributes("src")).toContain("binance.com/favicon.ico");
+    expect(logo.attributes("src")).toBe("/img/known/binance.svg");
   });
 
   it("uses Neo brand logo for native contract hashes", async () => {
