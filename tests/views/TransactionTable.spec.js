@@ -119,6 +119,93 @@ describe("TransactionTable address rendering", () => {
     expect(recipientLink.attributes("data-hash")).toBe(NEO_HASH);
   });
 
+  it("uses the NeoToken token logo for native-token method badges", () => {
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: "0xfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeed",
+            blockhash: "0xabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcab",
+            blockindex: 125,
+            blocktime: Date.now(),
+            sender: "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW",
+            method: "NeoToken: transfer",
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {},
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const logo = wrapper.find('img[alt="NEO"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
+  });
+
+  it("does not show native-token badges for non-token Neo-prefixed contract names", () => {
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: "0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead",
+            blockhash: "0xdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefdefd",
+            blockindex: 126,
+            blocktime: Date.now(),
+            sender: "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW",
+            method: "NeoXBridge: lock",
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {},
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.find('img[alt="NEO"]').exists()).toBe(false);
+    expect(wrapper.find('img[alt="GAS"]').exists()).toBe(false);
+  });
+
   it("renders VM state badges as HALT / FAULT / UNKNOWN", () => {
     const wrapper = mount(TransactionTable, {
       props: {

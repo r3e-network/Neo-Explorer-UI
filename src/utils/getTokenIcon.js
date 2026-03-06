@@ -1,7 +1,13 @@
+import { GAS_HASH, NEO_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const localImages = import.meta.glob("@/assets/gui/*.png", { eager: true, import: "default" });
+
+const NATIVE_TOKEN_LOGOS = {
+  [NEO_HASH]: "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png",
+  [GAS_HASH]: "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png",
+};
 
 function normalizeHash(hash) {
   const normalized = String(hash || "").trim().toLowerCase();
@@ -17,6 +23,11 @@ function defaultIcon(type) {
 export function getTokenIcon(hash, type = "NEP17") {
   const normalizedHash = normalizeHash(hash);
   if (!normalizedHash) return defaultIcon(type);
+
+  const nativeLogo = NATIVE_TOKEN_LOGOS[normalizedHash];
+  if (nativeLogo) {
+    return optimizeLogoUrl(nativeLogo, { kind: "token" });
+  }
 
   const localPath = `/src/assets/gui/${normalizedHash}.png`;
   if (localImages[localPath]) {
@@ -34,6 +45,10 @@ export function getTokenIcon(hash, type = "NEP17") {
 export function hasTokenIcon(hash) {
   const normalizedHash = normalizeHash(hash);
   if (!normalizedHash) return false;
+
+  if (NATIVE_TOKEN_LOGOS[normalizedHash]) {
+    return true;
+  }
 
   const localPath = `/src/assets/gui/${normalizedHash}.png`;
   if (localImages[localPath]) {

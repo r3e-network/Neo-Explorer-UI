@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { GAS_HASH, NEO_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 
@@ -11,6 +12,8 @@ const NEOX_BRIDGE_HASH = "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2";
 const NEOX_LOGO = "https://x.neo.org/favicon.ico";
 const FLAMINGO_STAKING_HASH = "0xd1a9f78e1940f6322fef4df2340a963a9ec46f63";
 const FLAMINGO_LOGO = "https://flamingo.finance/favicon.ico";
+const NEO_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png";
+const GAS_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png";
 
 describe("getTokenIcon Flamingo fallback", () => {
   it("exposes Flamingo token metadata in known contracts", () => {
@@ -48,6 +51,14 @@ describe("getTokenIcon Flamingo fallback", () => {
       logo: FLAMINGO_LOGO,
     });
     expect(getTokenIcon(FLAMINGO_STAKING_HASH, "NEP17")).toBe(FLAMINGO_LOGO);
+  });
+
+  it("uses the NeoToken logo for the native NEO contract", () => {
+    expect(getTokenIcon(NEO_HASH, "NEP17")).toBe(NEO_TOKEN_LOGO);
+  });
+
+  it("uses the GasToken logo for the native GAS contract", () => {
+    expect(getTokenIcon(GAS_HASH, "NEP17")).toBe(GAS_TOKEN_LOGO);
   });
 
   it("keeps default icon fallback for unknown token hash", () => {

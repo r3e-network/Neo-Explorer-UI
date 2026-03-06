@@ -82,7 +82,7 @@ import nnsService from "@/services/nnsService";
 import { contractService } from "@/services";
 import { supabaseService } from "@/services/supabaseService";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
-import { NATIVE_CONTRACTS } from "@/constants/index";
+import { GAS_HASH, NATIVE_CONTRACTS, NEO_HASH } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
@@ -169,8 +169,9 @@ const knownLogo = computed(() => {
     const hash = props.hash.toLowerCase();
     const native = NATIVE_CONTRACTS[hash];
 
-    // Native contracts (NeoToken, GasToken, etc.) should use Neo brand icon.
-    if (native && props.type === "contract") {
+    const isNativeToken = hash === NEO_HASH || hash === GAS_HASH;
+
+    if (native && props.type === "contract" && !isNativeToken) {
       return "/img/brand/neo.png";
     }
 

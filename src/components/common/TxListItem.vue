@@ -87,8 +87,7 @@
               </span>
             </div>
             <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
-              <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
-              <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
+              <img v-if="methodBadge" :src="methodBadge.src" :alt="methodBadge.alt" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
               <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
             </div>
             <span v-else class="text-sm text-low">Contract Call</span>
@@ -134,6 +133,7 @@ import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { getTokenIcon } from "@/utils/getTokenIcon";
+import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { supabaseService } from "@/services/supabaseService";
 import { ref, watch } from "vue";
 
@@ -433,6 +433,8 @@ const methodName = computed(() => {
   if (tx.method) return tx.method;
   return null;
 });
+
+const methodBadge = computed(() => getNativeTokenBadge(recipient.value?.hash, methodName.value));
 
 const txFee = computed(() => {
   const net = props.tx?.netfee ?? props.tx?.net_fee ?? 0;

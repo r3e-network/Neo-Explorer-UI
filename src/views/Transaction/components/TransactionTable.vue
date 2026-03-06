@@ -51,8 +51,7 @@
               class="badge-soft inline-flex items-center gap-1.5 max-w-[150px] truncate"
               :title="getMethodName(tx)"
             >
-              <img v-if="/neo/i.test(getMethodName(tx)) || getRecipient(tx)?.hash === '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5'" :src="'/img/brand/neo.png'" alt="NEO" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
-              <img v-if="/gas/i.test(getMethodName(tx)) || getRecipient(tx)?.hash === '0xd2a4cff31913016155e38e474a2c06d08be276cf'" :src="'/img/brand/gas.png'" alt="GAS" class="w-3.5 h-3.5 rounded-full flex-shrink-0" />
+              <img v-if="getMethodBadge(tx)" :src="getMethodBadge(tx).src" :alt="getMethodBadge(tx).alt" class="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
               <span class="truncate">{{ getMethodName(tx) }}</span>
             </span>
           </td>
@@ -136,6 +135,7 @@ import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { supabaseService } from "@/services/supabaseService";
 import { getTokenIcon } from "@/utils/getTokenIcon";
+import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { ref, watch } from "vue";
 
 const props = defineProps({
@@ -200,6 +200,10 @@ function canonicalizeContractHash(value) {
   const reversed = reverseScriptHash(direct);
   if (reversed && getKnownContractName(reversed)) return reversed;
   return direct;
+}
+
+function getMethodBadge(tx) {
+  return getNativeTokenBadge(getRecipient(tx)?.hash, getMethodName(tx));
 }
 
 function getMethodName(tx) {

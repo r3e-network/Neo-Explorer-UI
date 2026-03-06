@@ -217,7 +217,7 @@ describe("HashLink", () => {
     expect(logo.attributes("src")).toBe("/img/known/binance.svg");
   });
 
-  it("uses Neo brand logo for native contract hashes", async () => {
+  it("uses token logos for NeoToken and GasToken contract hashes", async () => {
     const neoWrapper = mountHashLink({
       hash: NEO_HASH,
       type: "contract",
@@ -233,8 +233,8 @@ describe("HashLink", () => {
     const gasLogo = gasWrapper.find("img");
     expect(neoLogo.exists()).toBe(true);
     expect(gasLogo.exists()).toBe(true);
-    expect(neoLogo.attributes("src")).toBe("/img/brand/neo.png");
-    expect(gasLogo.attributes("src")).toBe("/img/brand/neo.png");
+    expect(neoLogo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
+    expect(gasLogo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png");
   });
 
   it("prefers active domain alias from address metadata and shows address logo", async () => {
