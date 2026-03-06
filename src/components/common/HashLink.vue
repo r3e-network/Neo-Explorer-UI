@@ -84,8 +84,8 @@ import { supabaseService } from "@/services/supabaseService";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
 import { GAS_HASH, NATIVE_CONTRACTS, NEO_HASH } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
-import { scriptHashToAddress } from "@/utils/neoHelpers";
-import { optimizeLogoUrl } from "@/utils/logoOptimization";
+import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
+import { optimizeLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -109,6 +109,7 @@ const shouldTruncate = computed(() =>
 
 const nnsName = ref("");
 const addressMetadata = ref(null);
+const candidateMetadata = ref(null);
 const fetchedContractName = ref("");
 const fetchedContractLogo = ref("");
 const DOMAIN_LOGO_URL = "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg";
@@ -147,6 +148,36 @@ const normalizedAddressHash = computed(() => {
   if (props.type !== "address" || !props.hash) return props.hash;
   return scriptHashToAddress(props.hash);
 });
+
+const normalizeHash160 = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw.startsWith("0x")) return raw;
+  if (/^[0-9a-f]{40}$/.test(raw)) return `0x${raw}`;
+  return "";
+};
+
+const findCandidateMetadata = async (lookupHash) => {
+  const normalizedAddress = String(lookupHash || "").trim();
+  if (!normalizedAddress) return null;
+
+  const targetScriptHash = normalizeHash160(addressToScriptHash(normalizedAddress) || normalizedAddress);
+
+  try {
+    const validators = await supabaseService.getValidatorMetadata();
+    if (!Array.isArray(validators) || validators.length === 0) return null;
+
+    return (
+      validators.find((item) => {
+        const candidateIdentifier = String(item.address || item.scripthash || "").trim();
+        const candidateScriptHash = normalizeHash160(item.scripthash || item.address);
+        return candidateIdentifier === normalizedAddress || (targetScriptHash && candidateScriptHash === targetScriptHash);
+      }) || null
+    );
+  } catch (_err) {
+    return null;
+  }
+};
 
 const knownName = computed(() => {
   if (!props.hash) return null;
@@ -229,6 +260,13 @@ const addressLogo = computed(() => {
     return optimizeLogoUrl(metadataLogo, { kind: "user" });
   }
 
+  const candidateLogo = String(
+    candidateMetadata.value?.logo_url || candidateMetadata.value?.logoUrl || candidateMetadata.value?.logo || ""
+  ).trim();
+  if (candidateLogo) {
+    return resolveCandidateLogoUrl(candidateLogo);
+  }
+
   if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {
     return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
   }
@@ -248,6 +286,7 @@ watch(
   async ([newHash, type, resolveNns]) => {
     nnsName.value = "";
     addressMetadata.value = null;
+    candidateMetadata.value = null;
     fetchedContractName.value = "";
     fetchedContractLogo.value = "";
     
@@ -261,6 +300,15 @@ watch(
         }
       } catch (_err) {
         // Ignore metadata lookup failure.
+      }
+
+      const hasKnownAddressLogo = Boolean(getKnownAddressLogo(lookupHash));
+      const hasAddressMetadataLogo = Boolean(
+        String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim()
+      );
+
+      if (!hasKnownAddressLogo && !hasAddressMetadataLogo) {
+        candidateMetadata.value = await findCandidateMetadata(lookupHash);
       }
 
       const hasMetadataAlias = Boolean(

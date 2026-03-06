@@ -2,11 +2,12 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GAS_HASH, NEO_HASH } from "@/constants";
 
-const { resolveAddressToNNS, getByHash, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
+const { resolveAddressToNNS, getByHash, getContractMetadata, getAddressTag, getValidatorMetadata } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
   getByHash: vi.fn(async () => null),
   getContractMetadata: vi.fn(async () => null),
   getAddressTag: vi.fn(async () => null),
+  getValidatorMetadata: vi.fn(async () => []),
 }));
 
 const UNKNOWN_ADDRESS = "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -27,6 +28,7 @@ vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
     getContractMetadata,
     getAddressTag,
+    getValidatorMetadata,
   },
 }));
 
@@ -36,6 +38,7 @@ const HASH = "0x1234567890abcdef1234567890abcdef1234567890abcdef";
 const COZ_SCRIPT_HASH = "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8";
 const COZ_ADDRESS = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
 const BINANCE_ADDRESS = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+const EVERSTAKE_ADDRESS = "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw";
 
 const mountHashLink = (props = {}) =>
   mount(HashLink, {
@@ -215,6 +218,30 @@ describe("HashLink", () => {
     const logo = wrapper.find('img[alt="Binance"]');
     expect(logo.exists()).toBe(true);
     expect(logo.attributes("src")).toBe("/img/known/binance.svg");
+  });
+
+  it("shows candidate logo for known validator addresses when address tags lack one", async () => {
+    getAddressTag.mockResolvedValueOnce(null);
+    getValidatorMetadata.mockResolvedValueOnce([
+      {
+        scripthash: EVERSTAKE_ADDRESS,
+        logo_url: "https://example.com/everstake.png",
+      },
+    ]);
+
+    const wrapper = mountHashLink({
+      hash: EVERSTAKE_ADDRESS,
+      type: "address",
+      resolveNns: false,
+      addressAliasAsPrimary: true,
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Everstake");
+    const logo = wrapper.find('img[alt="Everstake"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://example.com/everstake.png");
   });
 
   it("uses token logos for NeoToken and GasToken contract hashes", async () => {
