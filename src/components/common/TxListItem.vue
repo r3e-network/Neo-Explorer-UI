@@ -21,7 +21,13 @@
         <template v-if="isSingleTransferFlow">
           <div class="min-w-0 text-right">
             <p class="text-xs text-mid">From</p>
-            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
+            <HashLink
+              v-if="tx.sender"
+              :hash="tx.sender"
+              type="address"
+              :copyable="false"
+              :address-alias-as-primary="true"
+            />
           </div>
           <div data-testid="single-transfer-flow" class="min-w-0 px-2 text-center">
             <div class="mb-1 flex items-center justify-center gap-1.5 min-w-0">
@@ -40,13 +46,25 @@
           </div>
           <div class="min-w-0 text-left">
             <p class="text-xs text-mid">To</p>
-            <HashLink v-if="recipient" :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+            <HashLink
+              v-if="recipient"
+              :hash="recipient.hash"
+              :type="recipient.type"
+              :copyable="false"
+              :address-alias-as-primary="recipient.type === 'address'"
+            />
           </div>
         </template>
         <template v-else>
           <div class="min-w-0 text-right">
             <p class="text-xs text-mid">From</p>
-            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
+            <HashLink
+              v-if="tx.sender"
+              :hash="tx.sender"
+              type="address"
+              :copyable="false"
+              :address-alias-as-primary="true"
+            />
           </div>
           <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -54,7 +72,12 @@
           <div class="min-w-0 text-left">
             <p class="text-xs text-mid">To</p>
             <div v-if="recipient" class="flex items-center gap-1.5">
-              <HashLink :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+              <HashLink
+                :hash="recipient.hash"
+                :type="recipient.type"
+                :copyable="false"
+                :address-alias-as-primary="recipient.type === 'address'"
+              />
             </div>
             <div v-else-if="transferText && transferText !== '—'" class="flex items-center gap-1.5 min-w-0">
               <img v-if="transferLogo" :src="transferLogo" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />

@@ -283,4 +283,57 @@ describe("TransactionTable address rendering", () => {
     );
     expect(recipientLink.exists()).toBe(true);
   });
+
+  it("passes addressAliasAsPrimary to sender and recipient address links", () => {
+    const sender = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
+    const recipient = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: "0xa1",
+            blockhash: "0xba",
+            blockindex: 321,
+            blocktime: Date.now(),
+            sender,
+            to: recipient,
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {},
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+              addressAliasAsPrimary: { type: Boolean, default: false },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-primary="String(addressAliasAsPrimary)" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const senderLink = wrapper.find(`[data-testid="hash-link"][data-hash="${sender}"][data-type="address"]`);
+    const recipientLink = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${recipient}"][data-type="address"]`
+    );
+    expect(senderLink.exists()).toBe(true);
+    expect(recipientLink.exists()).toBe(true);
+    expect(senderLink.attributes("data-primary")).toBe("true");
+    expect(recipientLink.attributes("data-primary")).toBe("true");
+  });
 });

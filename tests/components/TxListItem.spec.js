@@ -217,6 +217,62 @@ describe("TxListItem", () => {
     expect(flowNode.text()).toContain("1 NEO");
   });
 
+  it("passes addressAliasAsPrimary to sender and recipient address links", () => {
+    const senderAddress = "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc";
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x7777777777777777777777777777777777777777777777777777777777777777",
+          blocktime: Date.now(),
+          sender: senderAddress,
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "1 NEO",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+          targetCount: 1,
+          recipient: targetAddress,
+          recipientType: "address",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              addressAliasAsPrimary: { type: Boolean, default: false },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-primary="String(addressAliasAsPrimary)"></span>',
+          },
+        },
+      },
+    });
+
+    const senderLink = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${senderAddress}"][data-type="address"]`
+    );
+    const recipientLink = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`
+    );
+
+    expect(senderLink.exists()).toBe(true);
+    expect(recipientLink.exists()).toBe(true);
+    expect(senderLink.attributes("data-primary")).toBe("true");
+    expect(recipientLink.attributes("data-primary")).toBe("true");
+  });
+
   it("shows Unknown when vmstate is missing", () => {
     const wrapper = mount(TxListItem, {
       props: {

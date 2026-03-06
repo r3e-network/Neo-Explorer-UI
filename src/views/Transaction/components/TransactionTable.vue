@@ -77,7 +77,7 @@
           <!-- From -->
           <td class="table-cell hidden md:table-cell">
             <div v-if="tx.sender" class="max-w-[150px] xl:max-w-[200px] 2xl:max-w-[240px] truncate">
-              <HashLink :hash="tx.sender" type="address" :truncated="true" />
+              <HashLink :hash="tx.sender" type="address" :truncated="true" :address-alias-as-primary="true" />
             </div>
             <span v-else class="text-xs text-low">-</span>
           </td>
@@ -93,7 +93,12 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="true" />
+              <HashLink
+                :hash="getRecipient(tx).hash"
+                :type="getRecipient(tx).type"
+                :truncated="true"
+                :address-alias-as-primary="getRecipient(tx).type === 'address'"
+              />
             </div>
             <span v-else class="text-xs text-low">-</span>
           </td>

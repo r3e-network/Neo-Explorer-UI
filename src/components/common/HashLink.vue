@@ -2,16 +2,10 @@
   <div class="inline-flex items-center gap-1.5 min-w-0">
     <template v-if="type === 'address'">
       <router-link
+        v-if="addressAliasAsPrimary && addressAlias"
         :to="linkPath"
-        class="etherscan-link font-hash truncate text-sm"
+        class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
         :title="normalizedAddressHash || hash"
-      >
-        {{ displayHash }}
-      </router-link>
-      <span
-        v-if="addressAlias"
-        class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-        :title="addressAlias"
       >
         <img
           v-if="addressLogo"
@@ -19,8 +13,30 @@
           class="w-3.5 h-3.5 rounded-full object-cover bg-white"
           :alt="addressAlias"
         />
-        {{ addressAlias }}
-      </span>
+        <span class="truncate">{{ addressAlias }}</span>
+      </router-link>
+      <template v-else>
+        <router-link
+          :to="linkPath"
+          class="etherscan-link font-hash truncate text-sm"
+          :title="normalizedAddressHash || hash"
+        >
+          {{ displayHash }}
+        </router-link>
+        <span
+          v-if="addressAlias"
+          class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+          :title="addressAlias"
+        >
+          <img
+            v-if="addressLogo"
+            :src="addressLogo"
+            class="w-3.5 h-3.5 rounded-full object-cover bg-white"
+            :alt="addressAlias"
+          />
+          {{ addressAlias }}
+        </span>
+      </template>
     </template>
 
     <template v-else>
@@ -84,6 +100,7 @@ const props = defineProps({
   copyable: { type: Boolean, default: true },
   showNeoChat: { type: Boolean, default: false },
   resolveNns: { type: Boolean, default: true },
+  addressAliasAsPrimary: { type: Boolean, default: false },
 });
 
 const shouldTruncate = computed(() =>

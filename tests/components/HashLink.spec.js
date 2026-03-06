@@ -178,6 +178,28 @@ describe("HashLink", () => {
     expect(wrapper.text()).toContain("Binance");
   });
 
+  it("shows known address name as primary link when addressAliasAsPrimary is true", async () => {
+    getAddressTag.mockResolvedValueOnce({
+      address: BINANCE_ADDRESS,
+      logo_url: "https://example.com/binance-logo.png",
+    });
+
+    const wrapper = mountHashLink({
+      hash: BINANCE_ADDRESS,
+      type: "address",
+      resolveNns: false,
+      addressAliasAsPrimary: true,
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Binance");
+    expect(wrapper.text()).not.toContain("NUqLhf1");
+    const logo = wrapper.find('img[alt="Binance"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://example.com/binance-logo.png");
+  });
+
   it("uses Neo brand logo for native contract hashes", async () => {
     const neoWrapper = mountHashLink({
       hash: NEO_HASH,
