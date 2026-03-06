@@ -102,7 +102,7 @@
       <InfoRow label="System Fee">
         <span class="inline-flex items-center gap-1.5">
           <span>{{ formatGas(tx.sysfee) }} GAS</span>
-          <span class="text-status-error text-xs font-semibold uppercase tracking-wide">burned</span>
+          <span class="text-red-600 dark:text-red-400 text-xs font-semibold uppercase tracking-wide">burned</span>
         </span>
       </InfoRow>
 

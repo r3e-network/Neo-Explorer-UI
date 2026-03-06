@@ -49,7 +49,7 @@ describe("TxOverviewTab", () => {
     expect(systemFeeRow.exists()).toBe(true);
     expect(systemFeeRow.text()).toContain("1 GAS");
     expect(systemFeeRow.text()).toContain("burned");
-    const burnedBadge = systemFeeRow.find('.text-status-error');
+    const burnedBadge = systemFeeRow.find('.text-red-600');
     expect(burnedBadge.exists()).toBe(true);
   });
 });
