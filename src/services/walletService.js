@@ -75,6 +75,14 @@ function isOneGateAvailable() {
   return !!getOneGateDapi();
 }
 
+function getWalletConnectProjectId() {
+  return String(import.meta.env.VITE_WC_PROJECT_ID || "").trim();
+}
+
+function isWalletConnectConfigured() {
+  return !!getWalletConnectProjectId();
+}
+
 /**
  * Check if an EVM Wallet is available.
  */
@@ -294,8 +302,8 @@ export const walletService = {
     if (isO3Available()) providers.push(PROVIDERS.O3);
     if (isOneGateAvailable()) providers.push(PROVIDERS.ONEGATE);
     if (isEthereumAvailable()) providers.push(PROVIDERS.EVM_WALLET);
-    providers.push(PROVIDERS.WALLETCONNECT);
-    providers.push(PROVIDERS.NEON);
+    if (isWalletConnectConfigured()) providers.push(PROVIDERS.WALLETCONNECT);
+    if (isWalletConnectConfigured()) providers.push(PROVIDERS.NEON);
     providers.push(PROVIDERS.WEB3AUTH);
     return [...new Set(providers)];
   },
@@ -422,7 +430,11 @@ export const walletService = {
     }
 
     if (providerName === PROVIDERS.WALLETCONNECT || providerName === PROVIDERS.NEON) {
-      await walletConnectService.init(import.meta.env.VITE_WC_PROJECT_ID || "");
+      const projectId = getWalletConnectProjectId();
+      if (!projectId) {
+        throw new Error("WalletConnect is not configured. Set VITE_WC_PROJECT_ID to enable this wallet.");
+      }
+      await walletConnectService.init(projectId);
       const { uri, approval } = await walletConnectService.connect();
       return {
         uri,

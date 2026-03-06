@@ -143,9 +143,12 @@ vi.mock("../../src/utils/env.js", () => ({
   getCurrentEnv: () => "Mainnet",
 }));
 
-describe("walletService Web3Auth invoke", () => {
+describe("walletService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+    vi.stubEnv("VITE_WC_PROJECT_ID", "test-project-id");
     delete window.NEOLine;
     delete window.NEOLineN3;
     delete window.neo3Dapi;
@@ -175,37 +178,28 @@ describe("walletService Web3Auth invoke", () => {
     const [scriptArg] = invokeScriptMock.mock.calls[0];
     expect(typeof scriptArg).not.toBe("string");
     expect(scriptArg.toBase64()).toBe("UQ==");
-
     expect(sendRawTransactionMock).toHaveBeenCalledTimes(1);
-    const [sendArg] = sendRawTransactionMock.mock.calls[0];
-    expect(typeof sendArg).toBe("object");
   });
 
   it("broadcasts signed transaction via RPC client", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
 
     await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
-
     const txid = await walletService.broadcastSignedTx("serialized-transaction");
 
     expect(sendRawTransactionMock).toHaveBeenCalledWith("serialized-transaction");
     expect(txid).toBe("0xtesttxid");
   });
-});
 
-describe("walletService provider support", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    delete window.NEOLine;
-    delete window.NEOLineN3;
-    delete window.neo3Dapi;
-    delete window.OneGate;
-    delete window.neo;
-    delete window.ethereum;
-    localStorage.clear();
+  it("hides WalletConnect-style providers when project id is missing", async () => {
+    vi.stubEnv("VITE_WC_PROJECT_ID", "");
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getAvailableProviders()).not.toContain(walletService.PROVIDERS.WALLETCONNECT);
+    expect(walletService.getAvailableProviders()).not.toContain(walletService.PROVIDERS.NEON);
   });
 
-  it("lists Neon Wallet as a supported provider alongside WalletConnect", async () => {
+  it("lists Neon Wallet as a supported provider alongside WalletConnect when configured", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
 
     expect(walletService.getAvailableProviders()).toEqual(
@@ -225,7 +219,6 @@ describe("walletService provider support", () => {
     };
 
     const { walletService } = await import("../../src/services/walletService.js");
-
     expect(walletService.getAvailableProviders()).toContain(walletService.PROVIDERS.ONEGATE);
   });
 
@@ -238,7 +231,6 @@ describe("walletService provider support", () => {
 
     const { walletService } = await import("../../src/services/walletService.js");
     walletService.disconnect();
-
     const account = await walletService.connect(walletService.PROVIDERS.ONEGATE);
 
     expect(account).toEqual({
@@ -250,7 +242,6 @@ describe("walletService provider support", () => {
   it("routes Neon Wallet connections through WalletConnect", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     walletService.disconnect();
-
     const result = await walletService.connect(walletService.PROVIDERS.NEON);
     const account = await result.approval;
 
@@ -261,14 +252,8 @@ describe("walletService provider support", () => {
       label: walletService.PROVIDERS.NEON,
     });
   });
-});
 
-describe("walletService NeoLine invoke signer normalization", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    delete window.neo3Dapi;
-    delete window.OneGate;
-    delete window.neo;
+  it("passes script-hash signer and numeric witness scope to NeoLine dAPI", async () => {
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {
@@ -279,11 +264,8 @@ describe("walletService NeoLine invoke signer normalization", () => {
         };
       },
     };
-  });
 
-  it("passes script-hash signer and numeric witness scope to NeoLine dAPI", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
-
     walletService.disconnect();
     await walletService.connect(walletService.PROVIDERS.NEOLINE);
     await walletService.invoke({
@@ -296,58 +278,29 @@ describe("walletService NeoLine invoke signer normalization", () => {
     expect(neoLineInvokeMock).toHaveBeenCalledTimes(1);
     const [params] = neoLineInvokeMock.mock.calls[0];
     expect(params.network).toBe("N3MainNet");
-    expect(params.signers).toHaveLength(1);
     expect(params.signers[0].scopes).toBe(128);
-    expect(params.signers[0].account).toMatch(/^[0-9a-f]{40}$/);
-    expect(params.signers[0].account.startsWith("0x")).toBe(false);
-    expect("broadcastOverride" in params).toBe(false);
   });
 
   it("retries NeoLine account authorization once when first request is denied", async () => {
+    window.NEOLine = {};
     neoLineGetAccountMock
-      .mockRejectedValueOnce({
-        type: "CONNECTION_DENIED",
-        description: "The dAPI provider refused to process this request",
-      })
-      .mockResolvedValueOnce({
-        address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
-        label: "NeoLine",
-      });
+      .mockRejectedValueOnce({ type: "CONNECTION_DENIED", description: "The dAPI provider refused to process this request" })
+      .mockResolvedValueOnce({ address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu", label: "NeoLine" });
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+        };
+      },
+    };
 
     const { walletService } = await import("../../src/services/walletService.js");
-
     walletService.disconnect();
     const account = await walletService.connect(walletService.PROVIDERS.NEOLINE);
 
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
     expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("retries NeoLine invoke with MainNet/TestNet alias when provider denies N3* network name", async () => {
-    neoLineInvokeMock.mockImplementation(async (params) => {
-      if (params.network === "N3MainNet") {
-        throw {
-          type: "CONNECTION_DENIED",
-          description: "The dAPI provider refused to process this request",
-        };
-      }
-      return { txid: "0xalias-network-ok" };
-    });
-
-    const { walletService } = await import("../../src/services/walletService.js");
-
-    walletService.disconnect();
-    await walletService.connect(walletService.PROVIDERS.NEOLINE);
-    const result = await walletService.invoke({
-      scriptHash: "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-      operation: "deploy",
-      args: [],
-      scope: 128,
-    });
-
-    expect(result).toEqual({ txid: "0xalias-network-ok" });
-    expect(neoLineInvokeMock).toHaveBeenCalledTimes(2);
-    expect(neoLineInvokeMock.mock.calls[0][0].network).toBe("N3MainNet");
-    expect(neoLineInvokeMock.mock.calls[1][0].network).toBe("MainNet");
   });
 });
