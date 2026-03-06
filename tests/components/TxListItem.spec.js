@@ -164,6 +164,59 @@ describe("TxListItem", () => {
     expect(toRecipient.exists()).toBe(true);
   });
 
+  it("shows single-transfer flow value between sender and recipient", () => {
+    const senderAddress = "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc";
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x6666666666666666666666666666666666666666666666666666666666666666",
+          blocktime: Date.now(),
+          sender: senderAddress,
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "1 NEO",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+          targetCount: 1,
+          recipient: targetAddress,
+          recipientType: "address",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type">{{ type }}:{{ hash }}</span>',
+          },
+        },
+      },
+    });
+
+    expect(
+      wrapper.find(`[data-testid="hash-link"][data-hash="${senderAddress}"][data-type="address"]`).exists()
+    ).toBe(true);
+    expect(
+      wrapper.find(`[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`).exists()
+    ).toBe(true);
+    const flowNode = wrapper.find('[data-testid="single-transfer-flow"]');
+    expect(flowNode.exists()).toBe(true);
+    expect(flowNode.text()).toContain("1 NEO");
+  });
+
   it("shows Unknown when vmstate is missing", () => {
     const wrapper = mount(TxListItem, {
       props: {

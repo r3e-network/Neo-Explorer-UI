@@ -18,32 +18,59 @@
 
       <!-- From -> To (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
-        <div class="min-w-0 text-right">
-          <p class="text-xs text-mid">From</p>
-          <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
-        </div>
-        <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-        </svg>
-        <div class="min-w-0 text-left">
-          <p class="text-xs text-mid">To</p>
-          <div v-if="recipient" class="flex items-center gap-1.5">
-            <HashLink :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+        <template v-if="isSingleTransferFlow">
+          <div class="min-w-0 text-right">
+            <p class="text-xs text-mid">From</p>
+            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
           </div>
-          <div v-else-if="transferText && transferText !== '—'" class="flex items-center gap-1.5 min-w-0">
-            <img v-if="transferLogo" :src="transferLogo" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
-            <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">
-              {{ transferText }}
-              <svg v-if="supabaseMeta?.is_verified" class="h-3 w-3 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </span>
+          <div data-testid="single-transfer-flow" class="min-w-0 px-2 text-center">
+            <div class="mb-1 flex items-center justify-center gap-1.5 min-w-0">
+              <img
+                v-if="transferLogo"
+                :src="transferLogo"
+                class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+              />
+              <span class="text-sm text-high font-medium truncate" :title="transferText">
+                {{ transferText }}
+              </span>
+            </div>
+            <svg class="mx-auto h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
           </div>
-          <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
-            <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
-            <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
-            <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
+          <div class="min-w-0 text-left">
+            <p class="text-xs text-mid">To</p>
+            <HashLink v-if="recipient" :hash="recipient.hash" :type="recipient.type" :copyable="false" />
           </div>
-          <span v-else class="text-sm text-low">Contract Call</span>
-        </div>
+        </template>
+        <template v-else>
+          <div class="min-w-0 text-right">
+            <p class="text-xs text-mid">From</p>
+            <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :copyable="false" />
+          </div>
+          <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+          <div class="min-w-0 text-left">
+            <p class="text-xs text-mid">To</p>
+            <div v-if="recipient" class="flex items-center gap-1.5">
+              <HashLink :hash="recipient.hash" :type="recipient.type" :copyable="false" />
+            </div>
+            <div v-else-if="transferText && transferText !== '—'" class="flex items-center gap-1.5 min-w-0">
+              <img v-if="transferLogo" :src="transferLogo" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
+              <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">
+                {{ transferText }}
+                <svg v-if="supabaseMeta?.is_verified" class="h-3 w-3 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              </span>
+            </div>
+            <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
+              <img v-if="/neo/i.test(methodName)" :src="'/img/brand/neo.png'" alt="NEO" class="w-4 h-4 rounded-full flex-shrink-0" />
+              <img v-if="/gas/i.test(methodName)" :src="'/img/brand/gas.png'" alt="GAS" class="w-4 h-4 rounded-full flex-shrink-0" />
+              <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
+            </div>
+            <span v-else class="text-sm text-low">Contract Call</span>
+          </div>
+        </template>
       </div>
 
       <!-- Status + Fee -->
@@ -157,6 +184,14 @@ const transferLogo = computed(() => {
   return getTokenIcon(summaryContract, props.transferSummary?.type);
 });
 
+const summaryRecipient = computed(() => getSummaryRecipient(props.transferSummary));
+
+const isSingleTransferFlow = computed(() => {
+  if (!props.tx?.sender) return false;
+  if (!summaryRecipient.value) return false;
+  return Boolean(transferText.value && transferText.value !== "—");
+});
+
 
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
@@ -265,9 +300,8 @@ const invocation = computed(() => {
 
 const recipient = computed(() => {
   const tx = props.tx;
-  const summaryRecipient = getSummaryRecipient(props.transferSummary);
-  if (summaryRecipient) {
-    return summaryRecipient;
+  if (summaryRecipient.value) {
+    return summaryRecipient.value;
   }
 
   if (invocation.value?.contractHash) {
