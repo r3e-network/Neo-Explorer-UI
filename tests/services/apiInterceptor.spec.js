@@ -101,4 +101,50 @@ describe("API request interceptor startup behavior", () => {
     // Request preparation should not wait the full startup health check duration.
     expect(elapsedMs).toBeLessThan(1200);
   });
+
+  it("keeps first request startup delay minimal even when health check is still running", async () => {
+    let requestInterceptor;
+    const healthCheckDelayMs = 3000;
+
+    vi.doMock("axios", () => {
+      const instance = {
+        post: vi.fn(),
+        interceptors: {
+          request: {
+            use: vi.fn((handler) => {
+              requestInterceptor = handler;
+            }),
+          },
+          response: { use: vi.fn() },
+        },
+      };
+
+      return {
+        default: {
+          create: vi.fn(() => instance),
+          post: vi.fn(),
+        },
+      };
+    });
+
+    vi.doMock("../../src/utils/healthCheck.js", () => ({
+      checkAndSetEndpoints: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, healthCheckDelayMs);
+          })
+      ),
+    }));
+
+    await import("../../src/services/api.js");
+
+    expect(typeof requestInterceptor).toBe("function");
+
+    const start = Date.now();
+    await requestInterceptor({ headers: {} });
+    const elapsedMs = Date.now() - start;
+
+    // Keep first paint snappy: do not block requests on startup probes.
+    expect(elapsedMs).toBeLessThan(300);
+  });
 });

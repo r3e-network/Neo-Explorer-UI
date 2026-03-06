@@ -8,8 +8,11 @@ const parseTimeout = (value, fallbackMs) => {
 };
 const DEFAULT_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_TIMEOUT_MS, 5000);
 const FAILOVER_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_FAILOVER_TIMEOUT_MS, 5000);
-const NETWORK_VALIDATION_TIMEOUT_MS = Number(import.meta.env.VITE_RPC_NETWORK_VALIDATION_TIMEOUT_MS || 1000);
-const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = 800;
+const NETWORK_VALIDATION_TIMEOUT_MS = Number(import.meta.env.VITE_RPC_NETWORK_VALIDATION_TIMEOUT_MS || 350);
+const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
+  import.meta.env.VITE_RPC_STARTUP_WAIT_MS,
+  120
+);
 const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
 const ENABLE_RPC_STARTUP_HEDGE =
   String(import.meta.env.VITE_ENABLE_RPC_STARTUP_HEDGE ?? "true").trim().toLowerCase() !== "false";
