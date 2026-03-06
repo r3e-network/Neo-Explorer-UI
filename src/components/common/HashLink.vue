@@ -10,9 +10,15 @@
       </router-link>
       <span
         v-if="addressAlias"
-        class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+        class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
         :title="addressAlias"
       >
+        <img
+          v-if="addressLogo"
+          :src="addressLogo"
+          class="w-3.5 h-3.5 rounded-full object-cover bg-white"
+          :alt="addressAlias"
+        />
         {{ addressAlias }}
       </span>
     </template>
@@ -85,8 +91,41 @@ const shouldTruncate = computed(() =>
 );
 
 const nnsName = ref("");
+const addressMetadata = ref(null);
 const fetchedContractName = ref("");
 const fetchedContractLogo = ref("");
+const DOMAIN_LOGO_URL = "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg";
+
+const normalizeExpirationMs = (raw) => {
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return value < 1_000_000_000_000 ? value * 1000 : value;
+};
+
+const getActiveDomainFromAddressMetadata = (metadata) => {
+  if (!metadata || typeof metadata !== "object") return "";
+
+  const domain = String(metadata.nns_domain || metadata.nnsDomain || "").trim().toLowerCase();
+  if (!domain) return "";
+
+  if (domain.endsWith(".matrix")) {
+    return domain;
+  }
+
+  if (metadata.has_active_nns === true) {
+    return domain;
+  }
+
+  const expirationMs = normalizeExpirationMs(
+    metadata.nns_expiration_ms ??
+      metadata.nnsExpirationMS ??
+      metadata.nns_expiration ??
+      metadata.nnsExpiration
+  );
+
+  return expirationMs > Date.now() ? domain : "";
+};
+
 const normalizedAddressHash = computed(() => {
   if (props.type !== "address" || !props.hash) return props.hash;
   return scriptHashToAddress(props.hash);
@@ -137,9 +176,41 @@ const knownLogo = computed(() => {
   return null;
 });
 
+const addressDomainAlias = computed(() =>
+  props.type === "address" ? getActiveDomainFromAddressMetadata(addressMetadata.value) : ""
+);
+
+const addressMetadataAlias = computed(() => {
+  if (props.type !== "address") return "";
+  const meta = addressMetadata.value;
+  if (!meta || typeof meta !== "object") return "";
+
+  const alias = String(meta.display_name || meta.label || "").trim();
+  if (!alias) return "";
+
+  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
+  if (alias === normalized) return "";
+  return alias;
+});
+
 const addressAlias = computed(() => {
   if (props.type !== "address") return "";
-  return knownName.value || nnsName.value || "";
+  return addressDomainAlias.value || knownName.value || addressMetadataAlias.value || nnsName.value || "";
+});
+
+const addressLogo = computed(() => {
+  if (props.type !== "address") return "";
+
+  const metadataLogo = String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim();
+  if (metadataLogo) {
+    return optimizeLogoUrl(metadataLogo, { kind: "user" });
+  }
+
+  if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {
+    return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
+  }
+
+  return "";
 });
 
 const copyText = computed(() => {
@@ -153,15 +224,32 @@ watch(
   () => [props.hash, props.type, props.resolveNns],
   async ([newHash, type, resolveNns]) => {
     nnsName.value = "";
+    addressMetadata.value = null;
     fetchedContractName.value = "";
     fetchedContractLogo.value = "";
     
     const lookupHash = type === "address" ? normalizedAddressHash.value : newHash;
 
-    if (resolveNns && type === "address" && lookupHash && !knownName.value) {
-      const res = await nnsService.resolveAddressToNNS(lookupHash);
-      if (res && res.nns) {
-        nnsName.value = res.nns;
+    if (type === "address" && lookupHash) {
+      try {
+        const metadata = await supabaseService.getAddressTag(lookupHash);
+        if (metadata) {
+          addressMetadata.value = metadata;
+        }
+      } catch (_err) {
+        // Ignore metadata lookup failure.
+      }
+
+      const hasMetadataAlias = Boolean(
+        getActiveDomainFromAddressMetadata(addressMetadata.value) ||
+          String(addressMetadata.value?.display_name || addressMetadata.value?.label || "").trim()
+      );
+
+      if (resolveNns && !knownName.value && !hasMetadataAlias) {
+        const res = await nnsService.resolveAddressToNNS(lookupHash);
+        if (res && res.nns) {
+          nnsName.value = res.nns;
+        }
       }
     }
 

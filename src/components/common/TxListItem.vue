@@ -106,6 +106,33 @@ const getSummaryContractHash = (summary) => {
   );
 };
 
+const getSummaryRecipient = (summary) => {
+  if (!summary || typeof summary !== "object") return null;
+
+  const candidate =
+    summary.recipient ||
+    summary.to ||
+    summary.toAddress ||
+    summary.toaddress ||
+    summary.receiver ||
+    null;
+  const recipient = String(candidate || "").trim();
+  if (!recipient) return null;
+
+  const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
+  const isSingleTarget =
+    summary.singleTarget === true ||
+    (Number.isFinite(targetCount) && targetCount === 1);
+
+  if (!isSingleTarget) return null;
+
+  const normalizedType = String(summary.recipientType || "address").toLowerCase();
+  return {
+    hash: recipient,
+    type: normalizedType === "contract" ? "contract" : "address",
+  };
+};
+
 const supabaseMeta = ref({});
 watch(() => props.transferSummary, async (newSummary) => {
   const contract = getSummaryContractHash(newSummary);
@@ -238,6 +265,11 @@ const invocation = computed(() => {
 
 const recipient = computed(() => {
   const tx = props.tx;
+  const summaryRecipient = getSummaryRecipient(props.transferSummary);
+  if (summaryRecipient) {
+    return summaryRecipient;
+  }
+
   if (invocation.value?.contractHash) {
     const hash = canonicalizeContractHash(invocation.value.contractHash);
     return { hash, type: "contract" };

@@ -225,7 +225,39 @@ function getMethodName(tx) {
   return "Transfer";
 }
 
+function getSummaryRecipient(summary) {
+  if (!summary || typeof summary !== "object") return null;
+
+  const candidate =
+    summary.recipient ||
+    summary.to ||
+    summary.toAddress ||
+    summary.toaddress ||
+    summary.receiver ||
+    null;
+  const recipient = String(candidate || "").trim();
+  if (!recipient) return null;
+
+  const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
+  const isSingleTarget =
+    summary.singleTarget === true ||
+    (Number.isFinite(targetCount) && targetCount === 1);
+
+  if (!isSingleTarget) return null;
+
+  const normalizedType = String(summary.recipientType || "address").toLowerCase();
+  return {
+    hash: recipient,
+    type: normalizedType === "contract" ? "contract" : "address",
+  };
+}
+
 function getRecipient(tx) {
+  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash?.[tx.hash]);
+  if (summaryRecipient) {
+    return summaryRecipient;
+  }
+
   // Always prioritize the explicit tx.to or tx.contractHash fields if present in the model
   const to = tx.contractHash || tx.to || tx.recipient;
   if (to) {

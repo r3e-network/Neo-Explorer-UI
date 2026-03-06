@@ -1,7 +1,17 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import TransactionTable from "@/views/Transaction/components/TransactionTable.vue";
 import { NEO_HASH } from "@/constants";
+
+const { getContractMetadataBatch } = vi.hoisted(() => ({
+  getContractMetadataBatch: vi.fn(async () => ({})),
+}));
+
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getContractMetadataBatch,
+  },
+}));
 
 function reverseScriptHash(hash) {
   const body = String(hash || "").replace(/^0x/i, "");
@@ -215,5 +225,62 @@ describe("TransactionTable address rendering", () => {
     const labels = wrapper.findAll("span").map((node) => node.text());
     expect(labels).toContain("FAULT");
     expect(labels).not.toContain("HALT");
+  });
+
+  it("prefers single-target transfer recipient address over contract recipient", () => {
+    const txHash = "0x9";
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TransactionTable, {
+      props: {
+        transactions: [
+          {
+            hash: txHash,
+            blockhash: "0xb9",
+            blockindex: 9,
+            blocktime: Date.now(),
+            sender: "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW",
+            contractHash: reverseScriptHash(NEO_HASH),
+            netfee: 0,
+            sysfee: 0,
+          },
+        ],
+        showAbsoluteTime: false,
+        transferSummaryByHash: {
+          [txHash]: {
+            text: "1 NEO",
+            contract: reverseScriptHash(NEO_HASH),
+            type: "NEP17",
+            targetCount: 1,
+            recipient: targetAddress,
+            recipientType: "address",
+          },
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+              truncated: { type: Boolean, default: true },
+            },
+            template:
+              '<span data-testid="hash-link" :data-hash="hash" :data-type="type" :data-truncated="String(truncated)"></span>',
+          },
+        },
+      },
+    });
+
+    const recipientLink = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`
+    );
+    expect(recipientLink.exists()).toBe(true);
   });
 });

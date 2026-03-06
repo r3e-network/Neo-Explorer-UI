@@ -1,7 +1,26 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import TxListItem from "@/components/common/TxListItem.vue";
 import { NEO_HASH } from "@/constants";
+
+const { resolveAddressToNNS, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
+  resolveAddressToNNS: vi.fn(async () => null),
+  getContractMetadata: vi.fn(async () => null),
+  getAddressTag: vi.fn(async () => null),
+}));
+
+vi.mock("@/services/nnsService", () => ({
+  default: {
+    resolveAddressToNNS,
+  },
+}));
+
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getContractMetadata,
+    getAddressTag,
+  },
+}));
 
 function reverseScriptHash(hash) {
   const body = String(hash || "").replace(/^0x/i, "");
@@ -96,6 +115,53 @@ describe("TxListItem", () => {
 
     expect(wrapper.text()).toContain("NeoToken");
     expect(wrapper.text()).not.toContain("Contract Call");
+  });
+
+  it("prefers single-target transfer recipient address over contract recipient", () => {
+    const targetAddress = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x5555555555555555555555555555555555555555555555555555555555555555",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          contractHash: reverseScriptHash(NEO_HASH),
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "1 NEO",
+          contract: reverseScriptHash(NEO_HASH),
+          type: "NEP17",
+          targetCount: 1,
+          recipient: targetAddress,
+          recipientType: "address",
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+          HashLink: {
+            name: "HashLink",
+            props: {
+              hash: { type: String, default: "" },
+              type: { type: String, default: "" },
+            },
+            template: '<span data-testid="hash-link" :data-hash="hash" :data-type="type"></span>',
+          },
+        },
+      },
+    });
+
+    const toRecipient = wrapper.find(
+      `[data-testid="hash-link"][data-hash="${targetAddress}"][data-type="address"]`
+    );
+    expect(toRecipient.exists()).toBe(true);
   });
 
   it("shows Unknown when vmstate is missing", () => {

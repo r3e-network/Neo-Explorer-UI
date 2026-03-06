@@ -43,6 +43,39 @@ export function useTransferSummary() {
     return extra > 0 ? ` +${extra}` : "";
   }
 
+  function normalizeTotalCount(value, fallback = 1) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+    return fallback;
+  }
+
+  function extractRecipientAddress(item) {
+    if (!item || typeof item !== "object") return "";
+    const candidate =
+      item.to ||
+      item.toAddress ||
+      item.toaddress ||
+      item.receiver ||
+      item.recipient ||
+      "";
+    return String(candidate || "").trim();
+  }
+
+  function buildSummary(base, totalCount, recipient) {
+    const targetCount = normalizeTotalCount(totalCount, 1);
+    const singleTarget = Boolean(recipient) && targetCount === 1;
+
+    return {
+      ...base,
+      targetCount,
+      recipient: recipient || null,
+      recipientType: singleTarget ? "address" : null,
+      singleTarget,
+    };
+  }
+
   async function loadSummary(hash) {
     if (!hash || transferSummaryByHash.value[hash] || pendingHashes.has(hash)) {
       return;
@@ -58,12 +91,24 @@ export function useTransferSummary() {
       if (nep17) {
         const amount = formatTokenAmount(nep17.value ?? 0, Number(nep17.decimals ?? 0), 8);
         const symbol = nep17.symbol || nep17.tokenname || "Token";
-        const suffix = extraTransferSuffix(nep17Res?.totalCount);
-        setSummary(hash, {
-          text: `${amount} ${symbol}${suffix}`,
-          contract: extractContractHash(nep17),
-          type: "NEP17",
-        });
+        const totalCount = normalizeTotalCount(
+          nep17Res?.totalCount,
+          Array.isArray(nep17Res?.result) ? nep17Res.result.length : 1
+        );
+        const suffix = extraTransferSuffix(totalCount);
+        const recipient = extractRecipientAddress(nep17);
+        setSummary(
+          hash,
+          buildSummary(
+            {
+              text: `${amount} ${symbol}${suffix}`,
+              contract: extractContractHash(nep17),
+              type: "NEP17",
+            },
+            totalCount,
+            recipient
+          )
+        );
         return;
       }
 
@@ -74,13 +119,25 @@ export function useTransferSummary() {
       if (nep11) {
         const symbol = nep11.symbol || nep11.tokenname || "NFT";
         const tokenId = nep11.tokenid || nep11.tokenId;
-        const suffix = extraTransferSuffix(nep11Res?.totalCount);
+        const totalCount = normalizeTotalCount(
+          nep11Res?.totalCount,
+          Array.isArray(nep11Res?.result) ? nep11Res.result.length : 1
+        );
+        const suffix = extraTransferSuffix(totalCount);
         const readableId = truncateTokenId(tokenId);
-        setSummary(hash, {
-          text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
-          contract: extractContractHash(nep11),
-          type: "NEP11",
-        });
+        const recipient = extractRecipientAddress(nep11);
+        setSummary(
+          hash,
+          buildSummary(
+            {
+              text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
+              contract: extractContractHash(nep11),
+              type: "NEP11",
+            },
+            totalCount,
+            recipient
+          )
+        );
         return;
       }
 

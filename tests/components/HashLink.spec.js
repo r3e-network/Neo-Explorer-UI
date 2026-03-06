@@ -2,10 +2,11 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GAS_HASH, NEO_HASH } from "@/constants";
 
-const { resolveAddressToNNS, getByHash, getContractMetadata } = vi.hoisted(() => ({
+const { resolveAddressToNNS, getByHash, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
   getByHash: vi.fn(async () => null),
   getContractMetadata: vi.fn(async () => null),
+  getAddressTag: vi.fn(async () => null),
 }));
 
 const UNKNOWN_ADDRESS = "Naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -25,6 +26,7 @@ vi.mock("@/services", () => ({
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
     getContractMetadata,
+    getAddressTag,
   },
 }));
 
@@ -33,6 +35,7 @@ import HashLink from "@/components/common/HashLink.vue";
 const HASH = "0x1234567890abcdef1234567890abcdef1234567890abcdef";
 const COZ_SCRIPT_HASH = "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8";
 const COZ_ADDRESS = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
+const BINANCE_ADDRESS = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
 
 const mountHashLink = (props = {}) =>
   mount(HashLink, {
@@ -164,6 +167,17 @@ describe("HashLink", () => {
     expect(linkStub.props("to")).toBe(`/account-profile/${COZ_ADDRESS}`);
   });
 
+  it("shows Binance label for configured known Binance address", async () => {
+    const wrapper = mountHashLink({
+      hash: BINANCE_ADDRESS,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain("Binance");
+  });
+
   it("uses Neo brand logo for native contract hashes", async () => {
     const neoWrapper = mountHashLink({
       hash: NEO_HASH,
@@ -182,5 +196,29 @@ describe("HashLink", () => {
     expect(gasLogo.exists()).toBe(true);
     expect(neoLogo.attributes("src")).toBe("/img/brand/neo.png");
     expect(gasLogo.attributes("src")).toBe("/img/brand/neo.png");
+  });
+
+  it("prefers active domain alias from address metadata and shows address logo", async () => {
+    const logo = "https://example.com/domain-logo.png";
+    getAddressTag.mockResolvedValueOnce({
+      address: UNKNOWN_ADDRESS,
+      nns_domain: "alice.neo",
+      has_active_nns: true,
+      nns_expiration_ms: Date.now() + 60_000,
+      logo_url: logo,
+    });
+
+    const wrapper = mountHashLink({
+      hash: UNKNOWN_ADDRESS,
+      type: "address",
+      resolveNns: true,
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("alice.neo");
+    const aliasLogo = wrapper.find('img[alt="alice.neo"]');
+    expect(aliasLogo.exists()).toBe(true);
+    expect(aliasLogo.attributes("src")).toBe(logo);
   });
 });

@@ -71,6 +71,7 @@ export const KNOWN_ADDRESSES = {
   "NhUHywGfUYevMjtbpRDDgGBgkwzYiGD9W9": "Flamingo",
   "NaxjMApXDkYQc3paoyAErLsm6XWo1FUw4X": "HashKey Cloud",
   "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "BinanceStaking1",
+  "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "Binance",
   "NRpsHvG4WY6WcAZpSb58d547cSQFiBxrUS": "MakeNeoGreatAgain",
   "NaqNz8kAYezSMUnK6CZxduc7oFxDaYZeCb": "bNEO representative",
   "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw": "Everstake",
