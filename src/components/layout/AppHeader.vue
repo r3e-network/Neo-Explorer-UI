@@ -40,7 +40,7 @@
 
         <!-- Global Wallet Button (desktop) -->
         <button
-          class="ml-3 hidden items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all lg:inline-flex shadow-sm active:scale-95"
+          class="ml-3 hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all min-w-[10rem] lg:inline-flex shadow-sm active:scale-95"
           :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 border border-transparent text-white hover:bg-emerald-600 shadow-emerald-500/20'"
           :disabled="walletLoading"
           @click="toggleWallet"
