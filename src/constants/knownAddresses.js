@@ -89,29 +89,38 @@ export const KNOWN_ADDRESSES = {
   "NNTw7SisSeQrTizGD74HUfwm5JSWKsr3po": "NGD7",
 };
 
+export const KNOWN_ADDRESS_LOGOS = {
+  "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "https://www.binance.com/favicon.ico",
+  "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "https://www.binance.com/favicon.ico",
+  "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "https://www.binance.com/favicon.ico",
+};
+
 const normalizeKey = (value) => String(value || "").trim().toLowerCase();
 
-const KNOWN_ADDRESS_INDEX = (() => {
+const buildKnownAddressIndex = (sourceMap) => {
   const index = {};
-  const add = (key, name) => {
+  const add = (key, value) => {
     const normalized = normalizeKey(key);
     if (normalized) {
-      index[normalized] = name;
+      index[normalized] = value;
     }
   };
 
-  Object.entries(KNOWN_ADDRESSES).forEach(([address, name]) => {
-    add(address, name);
+  Object.entries(sourceMap || {}).forEach(([address, value]) => {
+    add(address, value);
 
     const scriptHash = addressToScriptHash(address);
     if (scriptHash) {
-      add(scriptHash, name);
-      add(scriptHash.replace(/^0x/i, ""), name);
+      add(scriptHash, value);
+      add(scriptHash.replace(/^0x/i, ""), value);
     }
   });
 
   return index;
-})();
+};
+
+const KNOWN_ADDRESS_INDEX = buildKnownAddressIndex(KNOWN_ADDRESSES);
+const KNOWN_ADDRESS_LOGO_INDEX = buildKnownAddressIndex(KNOWN_ADDRESS_LOGOS);
 
 export function getKnownAddressName(value) {
   const raw = String(value || "").trim();
@@ -123,6 +132,21 @@ export function getKnownAddressName(value) {
   const asAddress = scriptHashToAddress(raw);
   if (asAddress) {
     return KNOWN_ADDRESS_INDEX[normalizeKey(asAddress)] || null;
+  }
+
+  return null;
+}
+
+export function getKnownAddressLogo(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const directMatch = KNOWN_ADDRESS_LOGO_INDEX[normalizeKey(raw)];
+  if (directMatch) return directMatch;
+
+  const asAddress = scriptHashToAddress(raw);
+  if (asAddress) {
+    return KNOWN_ADDRESS_LOGO_INDEX[normalizeKey(asAddress)] || null;
   }
 
   return null;

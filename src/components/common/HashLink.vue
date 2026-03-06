@@ -81,7 +81,7 @@ import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
 import { contractService } from "@/services";
 import { supabaseService } from "@/services/supabaseService";
-import { getKnownAddressName } from "@/constants/knownAddresses";
+import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
 import { NATIVE_CONTRACTS } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
@@ -221,6 +221,11 @@ const addressLogo = computed(() => {
   const metadataLogo = String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim();
   if (metadataLogo) {
     return optimizeLogoUrl(metadataLogo, { kind: "user" });
+  }
+
+  const knownLogo = String(getKnownAddressLogo(normalizedAddressHash.value || props.hash) || "").trim();
+  if (knownLogo) {
+    return optimizeLogoUrl(knownLogo, { kind: "user" });
   }
 
   if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {

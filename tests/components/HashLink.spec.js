@@ -200,6 +200,23 @@ describe("HashLink", () => {
     expect(logo.attributes("src")).toBe("https://example.com/binance-logo.png");
   });
 
+  it("falls back to known address logo when metadata logo is missing", async () => {
+    getAddressTag.mockResolvedValueOnce(null);
+
+    const wrapper = mountHashLink({
+      hash: BINANCE_ADDRESS,
+      type: "address",
+      resolveNns: false,
+      addressAliasAsPrimary: true,
+    });
+
+    await flushPromises();
+
+    const logo = wrapper.find('img[alt="Binance"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toContain("binance.com/favicon.ico");
+  });
+
   it("uses Neo brand logo for native contract hashes", async () => {
     const neoWrapper = mountHashLink({
       hash: NEO_HASH,
