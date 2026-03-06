@@ -1,9 +1,9 @@
 <template>
   <div class="detail-hero">
     <div class="flex items-start gap-3">
-      <!-- Icon logic: Show logo if candidate has one, else standard or special icon -->
-      <div v-if="candidateData?.metaLogo" class="h-10 w-10 flex-shrink-0">
-        <img :src="candidateData.metaLogo" class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="Candidate Logo" @error="$event.target.src = '/img/brand/neo.png'" />
+      <!-- Icon logic: Show resolved identity logo first, else standard or special icon -->
+      <div v-if="headerLogo" class="h-10 w-10 flex-shrink-0">
+        <img :src="headerLogo" class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white" :alt="primaryIdentityName || 'Address Logo'" @error="$event.target.src = '/img/brand/neo.png'" />
       </div>
       <div v-else-if="isNeoFoundation" class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -47,6 +47,9 @@
           </span>
           <span v-else-if="knownName" class="detail-chip font-bold" :class="isNeoFoundation ? 'text-blue-600 dark:text-blue-400' : 'text-primary-600 dark:text-primary-400'">
             {{ knownName }}
+          </span>
+          <span v-else-if="contractIdentityName" class="detail-chip font-bold text-violet-600 dark:text-violet-300">
+            {{ contractIdentityName }}
           </span>
           <span v-if="nnsName" class="detail-chip font-bold text-primary-600 dark:text-primary-400">
             {{ nnsName }}
@@ -135,7 +138,11 @@ import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
-import { getKnownAddressName } from "@/constants/knownAddresses";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { addressToScriptHash } from "@/utils/neoHelpers";
+import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
+import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const props = defineProps({
 
@@ -154,19 +161,53 @@ defineEmits(["update:showQr"]);
 const nnsName = ref("");
 const publicTag = ref(null);
 const publicTagLogo = ref("");
+const contractMeta = ref(null);
+
+const normalizeContractHash = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  return raw.startsWith("0x") ? raw : `0x${raw}`;
+};
+
 watch(() => props.address, async (newAddr) => {
-  if (newAddr) {
+  publicTag.value = null;
+  publicTagLogo.value = "";
+
+  if (!newAddr) return;
+
+  try {
     const tagData = await supabaseService.getAddressTag(newAddr);
     if (tagData) {
       publicTag.value = tagData.label;
       publicTagLogo.value = tagData.logo_url || "";
-    } else {
-      publicTag.value = null;
-      publicTagLogo.value = "";
     }
+  } catch (_err) {
+    publicTag.value = null;
+    publicTagLogo.value = "";
   }
 }, { immediate: true });
 
+watch(
+  () => [props.address, props.isContract],
+  async ([newAddr, isContract]) => {
+    contractMeta.value = null;
+
+    if (!newAddr || !isContract) return;
+
+    const contractHash = normalizeContractHash(addressToScriptHash(newAddr));
+    if (!contractHash) return;
+
+    try {
+      const metadata = await supabaseService.getContractMetadata(contractHash);
+      if (metadata) {
+        contractMeta.value = metadata;
+      }
+    } catch (_err) {
+      contractMeta.value = null;
+    }
+  },
+  { immediate: true }
+);
 
 const knownName = computed(() => {
   return getKnownAddressName(props.address) || null;
@@ -176,6 +217,45 @@ const isNeoFoundation = computed(() => {
   if (!knownName.value) return false;
   const name = knownName.value.toLowerCase();
   return name.includes("neo foundation") || name.includes("neo bond") || name.includes("nf binance");
+});
+
+const knownLogo = computed(() => {
+  const logo = String(getKnownAddressLogo(props.address) || "").trim();
+  return logo ? optimizeLogoUrl(logo, { kind: "user" }) : "";
+});
+
+const contractIdentityName = computed(() => {
+  if (!props.isContract) return "";
+
+  const contractHash = normalizeContractHash(addressToScriptHash(props.address));
+  const native = contractHash ? NATIVE_CONTRACTS[contractHash] : null;
+  if (native?.name) return native.name;
+
+  const known = contractHash ? KNOWN_CONTRACTS[contractHash] : null;
+  if (known?.name) return known.name;
+
+  return String(contractMeta.value?.display_name || contractMeta.value?.name || "").trim();
+});
+
+const contractIdentityLogo = computed(() => {
+  if (!props.isContract) return "";
+
+  const contractHash = normalizeContractHash(addressToScriptHash(props.address));
+  const native = contractHash ? NATIVE_CONTRACTS[contractHash] : null;
+  if (native?.logo) return optimizeLogoUrl(native.logo, { kind: "contract" });
+
+  const known = contractHash ? KNOWN_CONTRACTS[contractHash] : null;
+  if (known?.logo) return optimizeLogoUrl(known.logo, { kind: "contract" });
+
+  return String(contractMeta.value?.logo_url || contractMeta.value?.logo || "").trim();
+});
+
+const primaryIdentityName = computed(() => {
+  return publicTag.value || props.candidateData?.metaName || knownName.value || contractIdentityName.value || "";
+});
+
+const headerLogo = computed(() => {
+  return publicTagLogo.value || props.candidateData?.metaLogo || knownLogo.value || contractIdentityLogo.value || "";
 });
 
 const candidateVotesDisplay = computed(() => pickBestCandidateVotes(props.candidateData));

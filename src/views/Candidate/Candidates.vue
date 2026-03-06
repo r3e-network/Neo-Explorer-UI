@@ -77,7 +77,7 @@
                       <span v-if="candidate.metaName || getKnownName(candidate.candidate)" class="inline-block font-semibold text-high text-sm">
                         {{ candidate.metaName || getKnownName(candidate.candidate) }}
                       </span>
-                      <HashLink :hash="candidate.candidate" type="address" :truncated="true" />
+                      <HashLink v-if="!(candidate.metaName || getKnownName(candidate.candidate))" :hash="candidate.candidate" type="address" :truncated="true" />
                       <span v-if="candidate.publickey || candidate.metaPubkey" class="text-low text-[10px] font-mono break-all">{{ candidate.publickey || candidate.metaPubkey }}</span>
                     </div>
                   </div>
@@ -125,7 +125,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { getCurrentEnv, NET_ENV } from '@/utils/env';
-import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
+import { getKnownAddressName } from '@/constants/knownAddresses';
 import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
@@ -236,7 +236,7 @@ const candidatesWithMeta = computed(() => {
 });
 
 function getKnownName(address) {
-  return KNOWN_ADDRESSES[address] || null;
+  return getKnownAddressName(address) || null;
 }
 
 function getLogo(candidate) {

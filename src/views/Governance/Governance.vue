@@ -173,9 +173,10 @@
                       <span v-if="getKnownName(candidate)" class="inline-block font-semibold text-high text-sm">
                         {{ getKnownName(candidate) }}
                       </span>
-                      <router-link 
-                        :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`" 
-                        class="etherscan-link font-hash text-xs break-all" 
+                      <router-link
+                        v-if="!getKnownName(candidate)"
+                        :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`"
+                        class="etherscan-link font-hash text-xs break-all"
                         :title="candidate.publickey"
                       >
                         {{ publicKeyToAddress(candidate.publickey) }}
@@ -237,7 +238,7 @@ import Skeleton from '@/components/common/Skeleton.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import { useToast } from 'vue-toastification';
 import { usePriceCache } from '@/composables/usePriceCache';
-import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
+import { getKnownAddressName } from '@/constants/knownAddresses';
 import { publicKeyToAddress } from '@/utils/neoHelpers';
 import { supabaseService } from '@/services/supabaseService';
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
@@ -301,10 +302,12 @@ const sortedCandidates = computed(() => {
 });
 
 function getKnownName(candidate) {
-  // 1. Check if Dora committee API provided a custom name
   if (candidate.name) return candidate.name;
-  // 2. Fallback to hardcoded constants map
-  return KNOWN_ADDRESSES[candidate.publickey] || null;
+  try {
+    return getKnownAddressName(publicKeyToAddress(candidate.publickey)) || null;
+  } catch {
+    return null;
+  }
 }
 
 function getLogo(candidate) {

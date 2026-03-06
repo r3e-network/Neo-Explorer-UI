@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
-import { KNOWN_ADDRESSES } from "@/constants/knownAddresses";
+import { getKnownAddressName } from "@/constants/knownAddresses";
 import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
 import { supabaseService } from "@/services/supabaseService";
@@ -150,8 +150,9 @@ const deriveValidatorAddress = (validator) => {
 
 const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
   const address = scriptHashToAddress(String(maybeAddress || ""));
-  if (address && KNOWN_ADDRESSES[address]) {
-    return KNOWN_ADDRESSES[address];
+  const knownName = getKnownAddressName(address || maybeAddress);
+  if (knownName) {
+    return knownName;
   }
 
   const numericIndex = Number(primaryIndex);

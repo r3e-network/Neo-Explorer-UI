@@ -100,7 +100,7 @@ const props = defineProps({
   copyable: { type: Boolean, default: true },
   showNeoChat: { type: Boolean, default: false },
   resolveNns: { type: Boolean, default: true },
-  addressAliasAsPrimary: { type: Boolean, default: false },
+  addressAliasAsPrimary: { type: Boolean, default: true },
 });
 
 const shouldTruncate = computed(() =>
@@ -110,6 +110,7 @@ const shouldTruncate = computed(() =>
 const nnsName = ref("");
 const addressMetadata = ref(null);
 const candidateMetadata = ref(null);
+const addressContractMetadata = ref(null);
 const fetchedContractName = ref("");
 const fetchedContractLogo = ref("");
 const DOMAIN_LOGO_URL = "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg";
@@ -156,6 +157,11 @@ const normalizeHash160 = (value) => {
   if (/^[0-9a-f]{40}$/.test(raw)) return `0x${raw}`;
   return "";
 };
+
+const addressScriptHash = computed(() => {
+  if (props.type !== "address") return "";
+  return normalizeHash160(addressToScriptHash(normalizedAddressHash.value || props.hash) || normalizedAddressHash.value || props.hash);
+});
 
 const findCandidateMetadata = async (lookupHash) => {
   const normalizedAddress = String(lookupHash || "").trim();
@@ -242,9 +248,63 @@ const addressMetadataAlias = computed(() => {
   return alias;
 });
 
+const addressCandidateAlias = computed(() => {
+  if (props.type !== "address") return "";
+
+  const alias = String(candidateMetadata.value?.display_name || candidateMetadata.value?.name || "").trim();
+  if (!alias) return "";
+
+  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
+  if (alias === normalized) return "";
+  return alias;
+});
+
+const addressContractAlias = computed(() => {
+  if (props.type !== "address") return "";
+
+  const hash = addressScriptHash.value;
+  if (!hash) return "";
+
+  const native = NATIVE_CONTRACTS[hash];
+  if (native?.name) return native.name;
+
+  const known = KNOWN_CONTRACTS[hash];
+  if (known?.name) return known.name;
+
+  const alias = String(addressContractMetadata.value?.display_name || addressContractMetadata.value?.name || "").trim();
+  if (!alias) return "";
+
+  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
+  if (alias === normalized) return "";
+  return alias;
+});
+
+const addressContractLogo = computed(() => {
+  if (props.type !== "address") return "";
+
+  const hash = addressScriptHash.value;
+  if (!hash) return "";
+
+  const native = NATIVE_CONTRACTS[hash];
+  if (native?.logo) return optimizeLogoUrl(native.logo, { kind: "contract" });
+
+  const known = KNOWN_CONTRACTS[hash];
+  if (known?.logo) return optimizeLogoUrl(known.logo, { kind: "contract" });
+
+  return String(addressContractMetadata.value?.logo_url || addressContractMetadata.value?.logo || "").trim();
+});
+
 const addressAlias = computed(() => {
   if (props.type !== "address") return "";
-  return addressDomainAlias.value || knownName.value || addressMetadataAlias.value || nnsName.value || "";
+  return (
+    addressDomainAlias.value ||
+    addressMetadataAlias.value ||
+    knownName.value ||
+    addressCandidateAlias.value ||
+    addressContractAlias.value ||
+    nnsName.value ||
+    ""
+  );
 });
 
 const addressLogo = computed(() => {
@@ -267,6 +327,11 @@ const addressLogo = computed(() => {
     return resolveCandidateLogoUrl(candidateLogo);
   }
 
+  const contractLogo = String(addressContractLogo.value || "").trim();
+  if (contractLogo) {
+    return contractLogo;
+  }
+
   if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {
     return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
   }
@@ -287,6 +352,7 @@ watch(
     nnsName.value = "";
     addressMetadata.value = null;
     candidateMetadata.value = null;
+    addressContractMetadata.value = null;
     fetchedContractName.value = "";
     fetchedContractLogo.value = "";
     
@@ -302,6 +368,17 @@ watch(
         // Ignore metadata lookup failure.
       }
 
+      if (addressScriptHash.value) {
+        try {
+          const contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value);
+          if (contractMetadata) {
+            addressContractMetadata.value = contractMetadata;
+          }
+        } catch (_err) {
+          // Ignore contract metadata lookup failure.
+        }
+      }
+
       const hasKnownAddressLogo = Boolean(getKnownAddressLogo(lookupHash));
       const hasAddressMetadataLogo = Boolean(
         String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim()
@@ -311,12 +388,15 @@ watch(
         candidateMetadata.value = await findCandidateMetadata(lookupHash);
       }
 
-      const hasMetadataAlias = Boolean(
+      const hasResolvedAlias = Boolean(
         getActiveDomainFromAddressMetadata(addressMetadata.value) ||
-          String(addressMetadata.value?.display_name || addressMetadata.value?.label || "").trim()
+          String(addressMetadata.value?.display_name || addressMetadata.value?.label || "").trim() ||
+          knownName.value ||
+          addressCandidateAlias.value ||
+          addressContractAlias.value
       );
 
-      if (resolveNns && !knownName.value && !hasMetadataAlias) {
+      if (resolveNns && !hasResolvedAlias) {
         const res = await nnsService.resolveAddressToNNS(lookupHash);
         if (res && res.nns) {
           nnsName.value = res.nns;

@@ -1,6 +1,7 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GAS_HASH, NEO_HASH } from "@/constants";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const { resolveAddressToNNS, getByHash, getContractMetadata, getAddressTag, getValidatorMetadata } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
@@ -242,6 +243,48 @@ describe("HashLink", () => {
     const logo = wrapper.find('img[alt="Everstake"]');
     expect(logo.exists()).toBe(true);
     expect(logo.attributes("src")).toBe("https://example.com/everstake.png");
+  });
+
+  it("uses validator metadata names as primary address labels by default", async () => {
+    getAddressTag.mockResolvedValueOnce(null);
+    getValidatorMetadata.mockResolvedValueOnce([
+      {
+        address: UNKNOWN_ADDRESS,
+        display_name: "Validator Alpha",
+        logo_url: "https://example.com/validator-alpha.png",
+      },
+    ]);
+
+    const wrapper = mountHashLink({
+      hash: UNKNOWN_ADDRESS,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Validator Alpha");
+    expect(wrapper.text()).not.toContain("Naaaaaaaa");
+    const logo = wrapper.find('img[alt="Validator Alpha"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://example.com/validator-alpha.png");
+  });
+
+  it("uses known contract names and logos for contract addresses rendered as address links", async () => {
+    const neoTokenAddress = scriptHashToAddress(NEO_HASH);
+
+    const wrapper = mountHashLink({
+      hash: neoTokenAddress,
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("NeoToken");
+    const logo = wrapper.find('img[alt="NeoToken"]');
+    expect(logo.exists()).toBe(true);
+    expect(logo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
   });
 
   it("uses token logos for NeoToken and GasToken contract hashes", async () => {

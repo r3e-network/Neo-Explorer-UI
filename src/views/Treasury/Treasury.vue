@@ -155,7 +155,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { usePriceCache } from '@/composables/usePriceCache';
 import { formatNumber, formatLargeNumber } from '@/utils/explorerFormat';
-import { KNOWN_ADDRESSES } from '@/constants/knownAddresses';
+import { getTreasuryKnownAddresses } from '@/constants/knownAddresses';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import HashLink from '@/components/common/HashLink.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
@@ -209,9 +209,7 @@ async function loadPrices() {
 }
 
 async function fetchTreasuryDataFromRpc() {
-  const treasuryAddresses = Object.entries(KNOWN_ADDRESSES)
-    .filter(([_, name]) => name.includes("Neo Foundation") || name.includes("Neo Bond") || name.includes("NF Binance Deposit"))
-    .map(([addr, name]) => ({ address: addr, name }));
+  const treasuryAddresses = getTreasuryKnownAddresses();
 
   const rpcClient = new rpc.RPCClient(getRpcClientUrl());
   const BATCH_SIZE = 5;

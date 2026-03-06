@@ -151,3 +151,19 @@ export function getKnownAddressLogo(value) {
 
   return null;
 }
+
+export function getKnownAddressEntries(filterFn = null) {
+  return Object.entries(KNOWN_ADDRESSES)
+    .map(([address, name]) => ({
+      address,
+      name,
+      logo: getKnownAddressLogo(address) || null,
+    }))
+    .filter((entry) => (typeof filterFn === "function" ? filterFn(entry) : true));
+}
+
+export function getTreasuryKnownAddresses() {
+  return getKnownAddressEntries(({ name }) =>
+    name.includes("Neo Foundation") || name.includes("Neo Bond") || name.includes("NF Binance Deposit")
+  );
+}

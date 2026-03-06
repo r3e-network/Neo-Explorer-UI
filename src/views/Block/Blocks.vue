@@ -179,14 +179,14 @@
                       </span>
                     </div>
                     <router-link
-                      v-if="getActiveValidatorAddress(block)"
+                      v-if="getActiveValidatorAddress(block) && !hasNamedValidatorIdentity(block)"
                       :to="`/account-profile/${getActiveValidatorAddress(block)}`"
                       :title="getActiveValidatorAddress(block)"
                       class="etherscan-link font-hash text-xs"
                     >
                       {{ truncateHash(getActiveValidatorAddress(block), 8, 6) }}
                     </router-link>
-                    <span v-else class="text-xs text-low">--</span>
+                    <span v-else-if="!hasNamedValidatorIdentity(block)" class="text-xs text-low">--</span>
                   </div>
                 </td>
                 <!-- Size -->
@@ -242,6 +242,15 @@ function getActiveValidatorLogo(block) {
   const resolvedPrimary = resolvePrimaryIndex(block);
   if (resolvedPrimary === undefined) return null;
   return getPrimaryNodeLogo(resolvedPrimary) || null;
+}
+
+function hasNamedValidatorIdentity(block) {
+  const resolvedPrimary = resolvePrimaryIndex(block);
+  if (resolvedPrimary === undefined) return false;
+
+  const name = String(getPrimaryNodeName(resolvedPrimary) || "").trim();
+  if (!name || name === "Validator" || name === "Unknown Validator") return false;
+  return !/^Consensus Node(?: \d+)?$/i.test(name);
 }
 const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 const showAbsoluteTime = ref(false);

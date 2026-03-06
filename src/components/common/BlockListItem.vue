@@ -43,7 +43,7 @@
             <span v-else>{{ validatorName }}</span>
           </span>
         </p>
-        <div class="text-sm font-medium text-high truncate">
+        <div v-if="!hasNamedValidatorIdentity" class="text-sm font-medium text-high truncate">
           <router-link
             v-if="validatorAddress"
             :to="`/account-profile/${validatorAddress}`"
@@ -122,6 +122,12 @@ const validatorAddress = computed(() => {
     if (directAddr) return scriptHashToAddress(directAddr);
   }
   return validatorHintAddress.value;
+});
+
+const hasNamedValidatorIdentity = computed(() => {
+  const name = String(validatorName.value || "").trim();
+  if (!name || name === "Validator" || name === "Unknown Validator") return false;
+  return !/^Consensus Node(?: \d+)?$/i.test(name);
 });
 
 const blockFee = computed(() => {

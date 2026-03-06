@@ -85,13 +85,7 @@ const timeAgo = computed(() => {
 
       <!-- Validator / Next Consensus -->
       <InfoRow label="Validated By" tooltip="The consensus node that proposed this block">
-        <div class="flex flex-wrap items-center gap-2" v-if="validatorAddress">
-          <span class="text-sm font-semibold text-high" v-if="resolvePrimaryIndex(block) !== undefined">
-            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) }}
-          </span>
-          <span class="text-mid" v-if="resolvePrimaryIndex(block) !== undefined">-</span>
-          <HashLink :hash="validatorAddress" type="address" />
-        </div>
+        <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" />
         <span v-else class="text-mid">--</span>
       </InfoRow>
 
@@ -232,13 +226,7 @@ const timeAgo = computed(() => {
         </span>
       </InfoRow>
       <InfoRow label="Validator" v-if="resolvePrimaryIndex(block) !== undefined">
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-semibold text-high">
-            {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
-          </span>
-          <span class="text-mid mx-1">-</span>
-          <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" :truncated="false" />
-        </div>
+        <HashLink v-if="validatorAddress" :hash="validatorAddress" type="address" :truncated="false" />
       </InfoRow>
     </div>
   </div>
