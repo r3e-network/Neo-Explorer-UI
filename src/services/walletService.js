@@ -419,6 +419,14 @@ export const walletService = {
     throw new Error(`Unknown provider: ${providerName}`);
   },
 
+  hydrateSession(providerName, account) {
+    if (!providerName || !account?.address) {
+      throw new Error("Invalid wallet session payload.");
+    }
+    _connectedProvider = providerName;
+    _account = account;
+  },
+
   /** Disconnect wallet */
   disconnect() {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT) {

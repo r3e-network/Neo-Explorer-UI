@@ -7,10 +7,17 @@ const toast = {
   warning: vi.fn(),
 };
 const walletServiceMock = {
-  PROVIDERS: { NEOLINE: "NeoLine" },
+  PROVIDERS: {
+    NEOLINE: "NeoLine",
+    O3: "O3",
+    WALLETCONNECT: "WalletConnect",
+    WEB3AUTH: "Google / Email (Web3Auth)",
+  },
   isConnected: false,
   account: null,
   invoke: vi.fn(),
+  hydrateSession: vi.fn(),
+  connect: vi.fn(),
 };
 
 vi.mock("vue-toastification", () => ({
@@ -32,10 +39,13 @@ describe("utils/wallet connectWallet", () => {
     vi.resetModules();
     delete window.NEOLine;
     delete window.NEOLineN3;
+    delete window.neo3Dapi;
     localStorage.clear();
     walletServiceMock.isConnected = false;
     walletServiceMock.account = null;
     walletServiceMock.invoke.mockReset();
+    walletServiceMock.hydrateSession.mockReset();
+    walletServiceMock.connect.mockReset();
   });
 
   it("connects when NeoLineN3 is injected after the ready event", async () => {
@@ -64,6 +74,73 @@ describe("utils/wallet connectWallet", () => {
     expect(getAccount).toHaveBeenCalledTimes(1);
   });
 
+  it("rehydrates walletService for a restored NeoLine session", async () => {
+    const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getAccount: vi.fn().mockResolvedValue({ address, label: "NeoLine" }),
+        };
+      },
+    };
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
+      walletServiceMock.PROVIDERS.NEOLINE,
+      { address, label: "NeoLine" }
+    );
+  });
+
+  it("rehydrates walletService for a restored O3 session", async () => {
+    const address = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
+    window.neo3Dapi = {
+      getAccount: vi.fn().mockResolvedValue({ address, label: "O3" }),
+    };
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.O3);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
+      walletServiceMock.PROVIDERS.O3,
+      { address, label: "O3" }
+    );
+  });
+
+  it("clears a stale stored session when NeoLine is unavailable on reload", async () => {
+    const staleAddress = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    localStorage.setItem("connectedWallet", staleAddress);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
+  it("clears unsupported WalletConnect sessions on reload instead of leaving stale UI", async () => {
+    const staleAddress = "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw";
+    localStorage.setItem("connectedWallet", staleAddress);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.WALLETCONNECT);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
   it("does not overwrite connected account from NeoLine focus when active provider is Web3Auth", async () => {
     const neoLineAddress = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
     const web3AuthAddress = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
@@ -81,7 +158,7 @@ describe("utils/wallet connectWallet", () => {
     await wallet.connectWallet();
 
     expect(wallet.connectedAccount.value).toBe(neoLineAddress);
-    localStorage.setItem("walletProvider", "Google / Email (Web3Auth)");
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.WEB3AUTH);
     wallet.connectedAccount.value = web3AuthAddress;
 
     getAccount.mockResolvedValue({ address: "NVXXh9JpVh2xGvW67Xhdq8z9x8xY1vM8qX" });
