@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { tokenService } from "@/services";
 import { formatTokenAmount } from "@/utils/explorerFormat";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 /**
  * Composable for lazily loading and caching transfer value summaries
@@ -63,6 +64,63 @@ export function useTransferSummary() {
     return String(candidate || "").trim();
   }
 
+  function extractSenderAddress(item) {
+    if (!item || typeof item !== "object") return "";
+    const candidate =
+      item.from ||
+      item.fromAddress ||
+      item.fromaddress ||
+      item.sender ||
+      "";
+    return String(candidate || "").trim();
+  }
+
+  function normalizeComparableAddress(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return scriptHashToAddress(raw) || raw;
+  }
+
+  function selectPreferredTransfer(result = [], totalCount = 0) {
+    const rows = Array.isArray(result) ? result.filter(Boolean) : [];
+    if (!rows.length) {
+      return {
+        preferred: null,
+        recipient: "",
+        targetCount: normalizeTotalCount(totalCount, 0),
+        transferCount: normalizeTotalCount(totalCount, 0),
+      };
+    }
+
+    const senderSet = new Set(
+      rows
+        .map((item) => normalizeComparableAddress(extractSenderAddress(item)))
+        .filter(Boolean)
+    );
+
+    const eligibleTransfers = rows.filter((item) => {
+      const recipient = normalizeComparableAddress(extractRecipientAddress(item));
+      if (!recipient) return false;
+      return !senderSet.has(recipient);
+    });
+
+    const preferred = eligibleTransfers[0] || rows[0] || null;
+    const recipient = extractRecipientAddress(preferred);
+    const uniqueRecipients = [
+      ...new Set(
+        eligibleTransfers
+          .map((item) => normalizeComparableAddress(extractRecipientAddress(item)))
+          .filter(Boolean)
+      ),
+    ];
+    const targetCount =
+      uniqueRecipients.length || normalizeTotalCount(totalCount, rows.length || 1);
+    const transferCount =
+      eligibleTransfers.length || normalizeTotalCount(totalCount, rows.length || 1);
+
+    return { preferred, recipient, targetCount, transferCount };
+  }
+
   function buildSummary(base, totalCount, recipient) {
     const targetCount = normalizeTotalCount(totalCount, 1);
     const singleTarget = Boolean(recipient) && targetCount === 1;
@@ -85,18 +143,14 @@ export function useTransferSummary() {
 
     try {
       // Try NEP-17 first
-      const nep17Res = await tokenService.getTransfersByTxHash(hash, 1, 0);
-      const nep17 = nep17Res?.result?.[0];
+      const nep17Res = await tokenService.getTransfersByTxHash(hash, 8, 0);
+      const nep17Selection = selectPreferredTransfer(nep17Res?.result, nep17Res?.totalCount);
+      const nep17 = nep17Selection.preferred;
 
       if (nep17) {
         const amount = formatTokenAmount(nep17.value ?? 0, Number(nep17.decimals ?? 0), 8);
         const symbol = nep17.symbol || nep17.tokenname || "Token";
-        const totalCount = normalizeTotalCount(
-          nep17Res?.totalCount,
-          Array.isArray(nep17Res?.result) ? nep17Res.result.length : 1
-        );
-        const suffix = extraTransferSuffix(totalCount);
-        const recipient = extractRecipientAddress(nep17);
+        const suffix = extraTransferSuffix(nep17Selection.transferCount);
         setSummary(
           hash,
           buildSummary(
@@ -105,27 +159,23 @@ export function useTransferSummary() {
               contract: extractContractHash(nep17),
               type: "NEP17",
             },
-            totalCount,
-            recipient
+            nep17Selection.targetCount,
+            nep17Selection.recipient
           )
         );
         return;
       }
 
       // Fallback to NEP-11
-      const nep11Res = await tokenService.getNep11TransfersByTxHash(hash, 1, 0);
-      const nep11 = nep11Res?.result?.[0];
+      const nep11Res = await tokenService.getNep11TransfersByTxHash(hash, 8, 0);
+      const nep11Selection = selectPreferredTransfer(nep11Res?.result, nep11Res?.totalCount);
+      const nep11 = nep11Selection.preferred;
 
       if (nep11) {
         const symbol = nep11.symbol || nep11.tokenname || "NFT";
         const tokenId = nep11.tokenid || nep11.tokenId;
-        const totalCount = normalizeTotalCount(
-          nep11Res?.totalCount,
-          Array.isArray(nep11Res?.result) ? nep11Res.result.length : 1
-        );
-        const suffix = extraTransferSuffix(totalCount);
+        const suffix = extraTransferSuffix(nep11Selection.transferCount);
         const readableId = truncateTokenId(tokenId);
-        const recipient = extractRecipientAddress(nep11);
         setSummary(
           hash,
           buildSummary(
@@ -134,8 +184,8 @@ export function useTransferSummary() {
               contract: extractContractHash(nep11),
               type: "NEP11",
             },
-            totalCount,
-            recipient
+            nep11Selection.targetCount,
+            nep11Selection.recipient
           )
         );
         return;

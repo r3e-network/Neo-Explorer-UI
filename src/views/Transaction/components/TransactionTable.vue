@@ -133,6 +133,7 @@ import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
@@ -235,7 +236,13 @@ function getMethodName(tx) {
   return "Transfer";
 }
 
-function getSummaryRecipient(summary) {
+function normalizeComparableSummaryAddress(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return scriptHashToAddress(raw) || raw;
+}
+
+function getSummaryRecipient(summary, sender = "") {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
@@ -247,6 +254,12 @@ function getSummaryRecipient(summary) {
     null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
+
+  const normalizedRecipient = normalizeComparableSummaryAddress(recipient).toLowerCase();
+  const normalizedSender = normalizeComparableSummaryAddress(sender).toLowerCase();
+  if (normalizedRecipient && normalizedSender && normalizedRecipient === normalizedSender) {
+    return null;
+  }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
   const isSingleTarget =
@@ -264,7 +277,7 @@ function getSummaryRecipient(summary) {
 }
 
 function getRecipient(tx) {
-  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash?.[tx.hash]);
+  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash?.[tx.hash], tx.sender);
   if (summaryRecipient) {
     return summaryRecipient;
   }

@@ -136,6 +136,7 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { getKnownAddressName } from "@/constants/knownAddresses";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -181,7 +182,7 @@ function getTxMethod(tx) {
 }
 
 function getRecipient(tx) {
-  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash[tx.hash]);
+  const summaryRecipient = getSummaryRecipient(props.transferSummaryByHash[tx.hash], tx.sender);
   if (summaryRecipient) {
     return summaryRecipient;
   }
@@ -205,7 +206,13 @@ function getRecipient(tx) {
   return null;
 }
 
-function getSummaryRecipient(summary) {
+function normalizeComparableSummaryAddress(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return scriptHashToAddress(raw) || raw;
+}
+
+function getSummaryRecipient(summary, sender = "") {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
@@ -217,6 +224,12 @@ function getSummaryRecipient(summary) {
     null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
+
+  const normalizedRecipient = normalizeComparableSummaryAddress(recipient).toLowerCase();
+  const normalizedSender = normalizeComparableSummaryAddress(sender).toLowerCase();
+  if (normalizedRecipient && normalizedSender && normalizedRecipient === normalizedSender) {
+    return null;
+  }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
   const isSingleTarget =

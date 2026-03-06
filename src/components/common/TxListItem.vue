@@ -132,6 +132,7 @@ import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { supabaseService } from "@/services/supabaseService";
@@ -157,7 +158,13 @@ const getSummaryContractHash = (summary) => {
   );
 };
 
-const getSummaryRecipient = (summary) => {
+function normalizeComparableSummaryAddress(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return scriptHashToAddress(raw) || raw;
+}
+
+const getSummaryRecipient = (summary, sender = "") => {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
@@ -169,6 +176,12 @@ const getSummaryRecipient = (summary) => {
     null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
+
+  const normalizedRecipient = normalizeComparableSummaryAddress(recipient).toLowerCase();
+  const normalizedSender = normalizeComparableSummaryAddress(sender).toLowerCase();
+  if (normalizedRecipient && normalizedSender && normalizedRecipient === normalizedSender) {
+    return null;
+  }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
   const isSingleTarget =
@@ -209,7 +222,7 @@ const transferLogo = computed(() => {
   return getTokenIcon(summaryContract, props.transferSummary?.type);
 });
 
-const summaryRecipient = computed(() => getSummaryRecipient(props.transferSummary));
+const summaryRecipient = computed(() => getSummaryRecipient(props.transferSummary, props.tx?.sender));
 
 const isSingleTransferFlow = computed(() => {
   if (!props.tx?.sender) return false;
