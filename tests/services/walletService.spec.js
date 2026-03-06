@@ -10,7 +10,6 @@ const connectMock = vi.fn(async () => web3AuthAccount);
 const getAccountMock = vi.fn(async () => web3AuthAccount);
 
 const invokeScriptMock = vi.fn(async (script) => {
-  // Neo RPC expects base64 input; raw hex strings return "Invalid params".
   if (typeof script === "string") {
     throw new Error("Invalid params");
   }
@@ -26,6 +25,21 @@ const neoLineGetAccountMock = vi.fn(async () => ({
   address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
   label: "NeoLine",
 }));
+const oneGateInvokeMock = vi.fn(async () => ({ txid: "0xonegate" }));
+const oneGateGetNetworksMock = vi.fn(async () => ({ defaultNetwork: "MainNet" }));
+const oneGateGetAccountMock = vi.fn(async () => ({
+  address: "Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y",
+  label: "OneGate",
+}));
+const walletConnectInitMock = vi.fn();
+const walletConnectConnectMock = vi.fn(async () => ({
+  uri: "wc:test-uri",
+  approval: Promise.resolve(),
+}));
+const walletConnectInvokeMock = vi.fn(async () => ({ txid: "0xwalletconnect" }));
+const walletConnectSignMessageMock = vi.fn(async () => ({ data: "wc-signature" }));
+const walletConnectDisconnectMock = vi.fn();
+const walletConnectAccount = { address: "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM", label: "WalletConnect" };
 
 class MockRpcClient {
   async getBlockCount() {
@@ -61,7 +75,7 @@ class MockScriptBuilder {
   emitAppCall() {}
 
   build() {
-    return "51"; // PUSH1 in hex
+    return "51";
   }
 }
 
@@ -80,10 +94,17 @@ class MockWalletAccount {
 vi.mock("@cityofzion/neon-js", () => ({
   rpc: { RPCClient: MockRpcClient },
   tx: { Transaction: MockTransaction },
-  wallet: { Account: MockWalletAccount },
+  wallet: {
+    Account: MockWalletAccount,
+    getAddressFromScriptHash: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
+  },
   sc: {
     ScriptBuilder: MockScriptBuilder,
-    ContractParam: { fromJson: (arg) => arg },
+    ContractParam: {
+      fromJson: (arg) => arg,
+      byteArray: (value) => value,
+    },
+    createScript: () => "51",
   },
   u: {
     str2hexstring: (value) => value,
@@ -92,17 +113,21 @@ vi.mock("@cityofzion/neon-js", () => ({
         toBase64: () => Buffer.from(hex, "hex").toString("base64"),
       }),
     },
+    reverseHex: (value) => String(value || "").replace(/^0x/i, ""),
+    hash160: () => "0x1234567890abcdef1234567890abcdef12345678",
   },
 }));
 
 vi.mock("../../src/services/walletConnectService.js", () => ({
   walletConnectService: {
-    init: vi.fn(),
-    connect: vi.fn(),
-    account: null,
-    invoke: vi.fn(),
-    signMessage: vi.fn(),
-    disconnect: vi.fn(),
+    init: walletConnectInitMock,
+    connect: walletConnectConnectMock,
+    get account() {
+      return walletConnectAccount;
+    },
+    invoke: walletConnectInvokeMock,
+    signMessage: walletConnectSignMessageMock,
+    disconnect: walletConnectDisconnectMock,
   },
 }));
 
@@ -121,6 +146,13 @@ vi.mock("../../src/utils/env.js", () => ({
 describe("walletService Web3Auth invoke", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete window.NEOLine;
+    delete window.NEOLineN3;
+    delete window.neo3Dapi;
+    delete window.OneGate;
+    delete window.neo;
+    delete window.ethereum;
+    localStorage.clear();
   });
 
   it("converts script to HexString/base64 before invokescript RPC and sends Transaction object for broadcast", async () => {
@@ -161,9 +193,82 @@ describe("walletService Web3Auth invoke", () => {
   });
 });
 
+describe("walletService provider support", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete window.NEOLine;
+    delete window.NEOLineN3;
+    delete window.neo3Dapi;
+    delete window.OneGate;
+    delete window.neo;
+    delete window.ethereum;
+    localStorage.clear();
+  });
+
+  it("lists Neon Wallet as a supported provider alongside WalletConnect", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getAvailableProviders()).toEqual(
+      expect.arrayContaining([
+        walletService.PROVIDERS.WALLETCONNECT,
+        walletService.PROVIDERS.NEON,
+        walletService.PROVIDERS.WEB3AUTH,
+      ])
+    );
+  });
+
+  it("lists OneGate when a compatible dAPI object is injected", async () => {
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      invoke: oneGateInvokeMock,
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getAvailableProviders()).toContain(walletService.PROVIDERS.ONEGATE);
+  });
+
+  it("connects to OneGate via a compatible dAPI provider", async () => {
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      invoke: oneGateInvokeMock,
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const account = await walletService.connect(walletService.PROVIDERS.ONEGATE);
+
+    expect(account).toEqual({
+      address: "Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y",
+      label: "OneGate",
+    });
+  });
+
+  it("routes Neon Wallet connections through WalletConnect", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const result = await walletService.connect(walletService.PROVIDERS.NEON);
+    const account = await result.approval;
+
+    expect(walletConnectInitMock).toHaveBeenCalledTimes(1);
+    expect(walletConnectConnectMock).toHaveBeenCalledTimes(1);
+    expect(account).toEqual({
+      address: walletConnectAccount.address,
+      label: walletService.PROVIDERS.NEON,
+    });
+  });
+});
+
 describe("walletService NeoLine invoke signer normalization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete window.neo3Dapi;
+    delete window.OneGate;
+    delete window.neo;
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {

@@ -92,4 +92,46 @@ describe("AppHeader wallet CTA", () => {
 
     wrapper.unmount();
   });
+
+  it("shows Neon Wallet and OneGate when the provider service exposes them", async () => {
+    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+      "NeoLine",
+      "O3",
+      "OneGate",
+      "Neon Wallet",
+      "WalletConnect",
+      "Google / Email (Web3Auth)",
+    ]);
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("OneGate");
+    expect(wrapper.text()).toContain("Neon Wallet");
+
+    wrapper.unmount();
+  });
 });

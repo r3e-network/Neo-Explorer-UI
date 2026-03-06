@@ -19,7 +19,7 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              v-for="provider in ['NeoLine', 'O3', 'WalletConnect']"
+              v-for="provider in ['NeoLine', 'O3', 'OneGate', 'Neon Wallet', 'WalletConnect']"
               :key="provider"
               class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/45"
               :disabled="walletConnecting"

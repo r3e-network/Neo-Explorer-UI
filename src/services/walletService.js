@@ -23,7 +23,9 @@ import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 const PROVIDERS = {
   NEOLINE: "NeoLine",
   O3: "O3",
+  ONEGATE: "OneGate",
   WALLETCONNECT: "WalletConnect",
+  NEON: "Neon Wallet",
   WEB3AUTH: "Google / Email (Web3Auth)",
   EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
 };
@@ -46,8 +48,31 @@ function isNeoLineAvailable() {
  * Check if O3 wallet is available.
  * O3 injects `window.neo3Dapi` or `window.NEOLineN3`.
  */
+function unwrapNeoDapiProvider(candidate) {
+  if (!candidate) return null;
+  if (typeof candidate.getAccount === "function") return candidate;
+  if (candidate.neo3Dapi && typeof candidate.neo3Dapi.getAccount === "function") {
+    return candidate.neo3Dapi;
+  }
+  return null;
+}
+
+function getO3Dapi() {
+  if (typeof window === "undefined") return null;
+  return unwrapNeoDapiProvider(window.neo3Dapi);
+}
+
 function isO3Available() {
-  return typeof window !== "undefined" && window.neo3Dapi !== undefined;
+  return !!getO3Dapi();
+}
+
+function getOneGateDapi() {
+  if (typeof window === "undefined") return null;
+  return unwrapNeoDapiProvider(window.OneGate) || unwrapNeoDapiProvider(window.neo);
+}
+
+function isOneGateAvailable() {
+  return !!getOneGateDapi();
 }
 
 /**
@@ -267,10 +292,12 @@ export const walletService = {
     const providers = [];
     if (isNeoLineAvailable()) providers.push(PROVIDERS.NEOLINE);
     if (isO3Available()) providers.push(PROVIDERS.O3);
+    if (isOneGateAvailable()) providers.push(PROVIDERS.ONEGATE);
     if (isEthereumAvailable()) providers.push(PROVIDERS.EVM_WALLET);
-    providers.push(PROVIDERS.WALLETCONNECT); // always available
-    providers.push(PROVIDERS.WEB3AUTH); // always available via web
-    return providers;
+    providers.push(PROVIDERS.WALLETCONNECT);
+    providers.push(PROVIDERS.NEON);
+    providers.push(PROVIDERS.WEB3AUTH);
+    return [...new Set(providers)];
   },
 
   /**
@@ -324,7 +351,7 @@ export const walletService = {
     }
 
     if (providerName === PROVIDERS.O3) {
-      const dapi = window.neo3Dapi;
+      const dapi = getO3Dapi();
       if (!dapi) throw new Error("O3 wallet not detected");
       const account = await requestAccountWithDeniedRetry(PROVIDERS.O3, () => dapi.getAccount());
 
@@ -359,15 +386,52 @@ export const walletService = {
       return _account;
     }
 
-    if (providerName === PROVIDERS.WALLETCONNECT) {
+    if (providerName === PROVIDERS.ONEGATE) {
+      const dapi = getOneGateDapi();
+      if (!dapi) throw new Error("OneGate wallet not detected");
+      const account = await requestAccountWithDeniedRetry(PROVIDERS.ONEGATE, () => dapi.getAccount());
+
+      let networks = null;
+      if (typeof dapi.getNetworks === "function") {
+        try {
+          networks = await dapi.getNetworks();
+        } catch {
+          networks = null;
+        }
+      }
+      const walletNetwork = networks?.defaultNetwork || "";
+      if (!isWalletNetworkCompatible(walletNetwork)) {
+        let switchSuccess = false;
+        try {
+          if (typeof dapi.switchNetwork === "function") {
+            const target = isExplorerTestnet() ? "TestNet" : "MainNet";
+            await dapi.switchNetwork({ network: target });
+            switchSuccess = true;
+          }
+        } catch (e) {
+          console.warn("Auto-switch network failed:", e);
+        }
+
+        if (!switchSuccess) {
+          throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+        }
+      }
+      _connectedProvider = PROVIDERS.ONEGATE;
+      _account = { address: account.address, label: account.label || PROVIDERS.ONEGATE };
+      return _account;
+    }
+
+    if (providerName === PROVIDERS.WALLETCONNECT || providerName === PROVIDERS.NEON) {
       await walletConnectService.init(import.meta.env.VITE_WC_PROJECT_ID || "");
       const { uri, approval } = await walletConnectService.connect();
-      // Return URI + approval promise so caller can show modal while waiting
       return {
         uri,
         approval: approval.then(() => {
-          _connectedProvider = PROVIDERS.WALLETCONNECT;
-          _account = walletConnectService.account;
+          _connectedProvider = providerName;
+          _account = {
+            ...(walletConnectService.account || {}),
+            label: providerName,
+          };
           return _account;
         }),
       };
@@ -429,7 +493,7 @@ export const walletService = {
 
   /** Disconnect wallet */
   disconnect() {
-    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       walletConnectService.disconnect();
     }
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
@@ -482,11 +546,16 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
-      const dapi = window.neo3Dapi;
+      const dapi = getO3Dapi();
       return normalizeSignMessageResult(await dapi.signMessage({ message }));
     }
 
-    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
+    if (_connectedProvider === PROVIDERS.ONEGATE) {
+      const dapi = getOneGateDapi();
+      return normalizeSignMessageResult(await dapi.signMessage({ message }));
+    }
+
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       return normalizeSignMessageResult(await walletConnectService.signMessage(message));
     }
 
@@ -561,7 +630,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.O3) {
-      const dapi = window.neo3Dapi;
+      const dapi = getO3Dapi();
       const requestBase = {
         scriptHash,
         operation,
@@ -586,9 +655,33 @@ export const walletService = {
       return broadcastOverride ? result : { txid: result.txid };
     }
 
-    if (_connectedProvider === PROVIDERS.WALLETCONNECT) {
-      // WalletConnect doesn't support broadcastOverride natively in the same way via Neo dAPI wrapper out of the box,
-      // but we pass it anyway.
+    if (_connectedProvider === PROVIDERS.ONEGATE) {
+      const dapi = getOneGateDapi();
+      const requestBase = {
+        scriptHash,
+        operation,
+        args: dapiArgs,
+        signers: dapiSigners
+      };
+      const invokeWithNetwork = async (network) => {
+        const request = { ...requestBase, network };
+        if (broadcastOverride) request.broadcastOverride = true;
+        return dapi.invoke(request);
+      };
+
+      let result;
+      try {
+        result = await invokeWithNetwork(expectedNetwork);
+      } catch (err) {
+        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+          throw err;
+        }
+        result = await invokeWithNetwork(legacyNetworkAlias);
+      }
+      return broadcastOverride ? result : { txid: result.txid };
+    }
+
+    if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
     }
 

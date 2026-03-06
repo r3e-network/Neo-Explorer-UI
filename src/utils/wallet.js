@@ -96,9 +96,9 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && provider === "WalletConnect") {
+    } else if (connectedAccount.value && (provider === walletService.PROVIDERS.WALLETCONNECT || provider === walletService.PROVIDERS.NEON)) {
         clearStoredWalletState();
-    } else if (connectedAccount.value && provider === "Google / Email (Web3Auth)") {
+    } else if (connectedAccount.value && provider === walletService.PROVIDERS.WEB3AUTH) {
         // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
         import('@/services/walletService').then(({ walletService }) => {
             walletService.connect("Google / Email (Web3Auth)").then(acc => {
