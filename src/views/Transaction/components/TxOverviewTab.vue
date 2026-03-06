@@ -99,7 +99,12 @@
       </InfoRow>
 
       <InfoRow label="Network Fee" :value="`${formatGas(tx.netfee)} GAS`" />
-      <InfoRow label="System Fee" :value="`${formatGas(tx.sysfee)} GAS`" />
+      <InfoRow label="System Fee">
+        <span class="inline-flex items-center gap-1.5">
+          <span>{{ formatGas(tx.sysfee) }} GAS</span>
+          <span class="text-status-error text-xs font-semibold uppercase tracking-wide">burned</span>
+        </span>
+      </InfoRow>
 
       <InfoRow label="Total Fee">
         <span class="text-high font-medium">{{ totalFee }} GAS</span>
