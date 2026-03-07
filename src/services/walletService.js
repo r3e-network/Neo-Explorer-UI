@@ -296,6 +296,18 @@ export const walletService = {
    * Detect available wallet providers.
    * @returns {string[]} List of available provider names
    */
+  getSupportedProviders() {
+    return [
+      PROVIDERS.NEOLINE,
+      PROVIDERS.O3,
+      PROVIDERS.ONEGATE,
+      PROVIDERS.WALLETCONNECT,
+      PROVIDERS.NEON,
+      PROVIDERS.WEB3AUTH,
+      PROVIDERS.EVM_WALLET,
+    ];
+  },
+
   getAvailableProviders() {
     const providers = [];
     if (isNeoLineAvailable()) providers.push(PROVIDERS.NEOLINE);

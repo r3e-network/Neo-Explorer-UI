@@ -191,6 +191,21 @@ describe("walletService", () => {
     expect(txid).toBe("0xtesttxid");
   });
 
+  it("returns the full supported provider list regardless of availability", async () => {
+    vi.stubEnv("VITE_WC_PROJECT_ID", "");
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getSupportedProviders()).toEqual([
+      walletService.PROVIDERS.NEOLINE,
+      walletService.PROVIDERS.O3,
+      walletService.PROVIDERS.ONEGATE,
+      walletService.PROVIDERS.WALLETCONNECT,
+      walletService.PROVIDERS.NEON,
+      walletService.PROVIDERS.WEB3AUTH,
+      walletService.PROVIDERS.EVM_WALLET,
+    ]);
+  });
+
   it("hides WalletConnect-style providers when project id is missing", async () => {
     vi.stubEnv("VITE_WC_PROJECT_ID", "");
     const { walletService } = await import("../../src/services/walletService.js");
