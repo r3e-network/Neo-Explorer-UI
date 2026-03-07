@@ -8,6 +8,7 @@ const disconnectWalletMock = vi.fn();
 const connectedAccountRef = { value: null };
 const walletServiceMock = {
   getAvailableProviders: vi.fn(() => []),
+  getSupportedProviders: vi.fn(() => []),
   connect: vi.fn(),
   disconnect: vi.fn(),
 };
@@ -59,6 +60,15 @@ describe("AppHeader wallet CTA", () => {
       neoChange: 0,
       gasChange: 0,
     });
+    walletServiceMock.getSupportedProviders.mockReturnValue([
+      "NeoLine",
+      "O3",
+      "OneGate",
+      "WalletConnect",
+      "Neon Wallet",
+      "Google / Email (Web3Auth)",
+      "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
+    ]);
   });
 
   it("keeps the desktop connect wallet button on one line", async () => {
@@ -89,17 +99,12 @@ describe("AppHeader wallet CTA", () => {
     expect(button.attributes("class")).toContain("shrink-0");
     expect(button.attributes("class")).toContain("whitespace-nowrap");
     expect(button.attributes("class")).toContain("min-w-[10rem]");
-
-    wrapper.unmount();
   });
 
-  it("shows Neon Wallet and OneGate when the provider service exposes them", async () => {
+  it("shows all supported wallet options even when only some are available", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "NeoLine",
-      "O3",
-      "OneGate",
-      "Neon Wallet",
-      "WalletConnect",
+      "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
       "Google / Email (Web3Auth)",
     ]);
 
@@ -129,21 +134,17 @@ describe("AppHeader wallet CTA", () => {
     await connectButton.trigger("click");
     await flushPromises();
 
+    expect(wrapper.text()).toContain("NeoLine");
+    expect(wrapper.text()).toContain("O3");
     expect(wrapper.text()).toContain("OneGate");
+    expect(wrapper.text()).toContain("WalletConnect");
     expect(wrapper.text()).toContain("Neon Wallet");
-
-    wrapper.unmount();
+    expect(wrapper.text()).toContain("Google / Email (Web3Auth)");
+    expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
   });
 
   it("uses wallet-specific icons instead of the generic Neo logo", async () => {
-    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
-      "NeoLine",
-      "O3",
-      "OneGate",
-      "Neon Wallet",
-      "WalletConnect",
-      "Google / Email (Web3Auth)",
-    ]);
+    walletServiceMock.getAvailableProviders.mockReturnValueOnce(walletServiceMock.getSupportedProviders());
 
     const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
     const wrapper = mount(AppHeader, {

@@ -117,7 +117,7 @@
           </div>
           <div class="p-6 space-y-3">
             <button 
-              v-for="provider in availableProviders" 
+              v-for="provider in supportedProviders" 
               :key="provider"
               @click="handleConnect(provider)"
               class="w-full flex items-center justify-between p-4 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group"
@@ -223,6 +223,7 @@ function closeMobile() {
 
 const showWalletModal = ref(false);
 const availableProviders = ref([]);
+const supportedProviders = ref([]);
 const wcUri = ref("");
 
 async function handleConnect(provider) {
@@ -275,6 +276,9 @@ async function toggleWallet() {
       return;
     }
     availableProviders.value = walletService.getAvailableProviders();
+    supportedProviders.value = typeof walletService.getSupportedProviders === "function"
+      ? walletService.getSupportedProviders()
+      : walletService.getAvailableProviders();
     showWalletModal.value = true;
   } finally {
     walletLoading.value = false;
