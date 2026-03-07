@@ -80,6 +80,7 @@ describe("AppHeader wallet CTA", () => {
       "Google / Email (Web3Auth)",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
     ]);
+    window.open = vi.fn();
   });
 
   it("keeps the desktop connect wallet button on one line", async () => {
@@ -154,7 +155,7 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
   });
 
-  it("disables unavailable wallet options instead of trying to connect them", async () => {
+  it("redirects unavailable wallets to their install pages", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
@@ -187,18 +188,15 @@ describe("AppHeader wallet CTA", () => {
     await connectButton.trigger("click");
     await flushPromises();
 
-    const buttons = wrapper.findAll('button');
-    const neonButton = buttons.find((candidate) => candidate.text().includes('Neon Wallet'));
-    const walletConnectButton = buttons.find((candidate) => candidate.text().includes('WalletConnect'));
-    const oneGateButton = buttons.find((candidate) => candidate.text().includes('OneGate'));
-    const o3Button = buttons.find((candidate) => candidate.text().includes('O3'));
-    const neoLineButton = buttons.find((candidate) => candidate.text().includes('NeoLine'));
+    const buttons = wrapper.findAll("button");
+    const neonButton = buttons.find((candidate) => candidate.text().includes("Neon Wallet"));
+    const oneGateButton = buttons.find((candidate) => candidate.text().includes("OneGate"));
 
-    expect(neonButton.attributes('disabled')).toBeDefined();
-    expect(walletConnectButton.attributes('disabled')).toBeDefined();
-    expect(oneGateButton.attributes('disabled')).toBeDefined();
-    expect(o3Button.attributes('disabled')).toBeDefined();
-    expect(neoLineButton.attributes('disabled')).toBeUndefined();
+    await neonButton.trigger("click");
+    await oneGateButton.trigger("click");
+
+    expect(window.open).toHaveBeenCalledWith("https://neon.coz.io/", "_blank", "noopener,noreferrer");
+    expect(window.open).toHaveBeenCalledWith("https://onegate.space/", "_blank", "noopener,noreferrer");
   });
 
   it("uses wallet-specific icons instead of the generic Neo logo", async () => {

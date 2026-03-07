@@ -119,7 +119,7 @@
             <button 
               v-for="provider in supportedProviders" 
               :key="provider"
-              :disabled="walletLoading || !isProviderAvailable(provider)"
+              :disabled="walletLoading"
               :title="isProviderAvailable(provider) ? provider : getProviderUnavailableReason(provider)"
               @click="handleConnect(provider)"
               class="w-full flex items-center justify-between p-4 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
@@ -233,26 +233,56 @@ function isProviderAvailable(provider) {
 }
 
 function getProviderUnavailableReason(provider) {
-  if (provider === walletService.PROVIDERS.WALLETCONNECT || provider === walletService.PROVIDERS.NEON) {
-    return "Requires WalletConnect configuration";
+  if (provider === walletService.PROVIDERS.WALLETCONNECT) {
+    return "Open WalletConnect website to learn how to pair a supported wallet";
+  }
+  if (provider === walletService.PROVIDERS.NEON) {
+    return "Open Neon Wallet download page";
   }
   if (provider === walletService.PROVIDERS.ONEGATE) {
-    return "Install OneGate to use this wallet";
+    return "Open OneGate install page";
   }
   if (provider === walletService.PROVIDERS.O3) {
-    return "Install O3 to use this wallet";
+    return "Open O3 download page";
   }
   if (provider === walletService.PROVIDERS.NEOLINE) {
-    return "Install NeoLine to use this wallet";
+    return "Open NeoLine install page";
   }
   if (provider === walletService.PROVIDERS.EVM_WALLET) {
-    return "Install an EVM wallet to use this option";
+    return "Open MetaMask install page";
   }
   return "Wallet is currently unavailable";
 }
 
+function getProviderInstallUrl(provider) {
+  if (provider === walletService.PROVIDERS.NEOLINE) {
+    return "https://neoline.io/en/";
+  }
+  if (provider === walletService.PROVIDERS.O3) {
+    return "https://www.o3.network/";
+  }
+  if (provider === walletService.PROVIDERS.ONEGATE) {
+    return "https://onegate.space/";
+  }
+  if (provider === walletService.PROVIDERS.WALLETCONNECT) {
+    return "https://walletconnect.network/";
+  }
+  if (provider === walletService.PROVIDERS.NEON) {
+    return "https://neon.coz.io/";
+  }
+  if (provider === walletService.PROVIDERS.EVM_WALLET) {
+    return "https://metamask.io/download/";
+  }
+  return "";
+}
+
 async function handleConnect(provider) {
   if (!isProviderAvailable(provider)) {
+    const installUrl = getProviderInstallUrl(provider);
+    if (installUrl && typeof window !== "undefined" && typeof window.open === "function") {
+      window.open(installUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     toast.info(getProviderUnavailableReason(provider));
     return;
   }
