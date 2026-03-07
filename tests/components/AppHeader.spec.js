@@ -6,7 +6,21 @@ const fetchPricesMock = vi.fn();
 const initWalletMock = vi.fn();
 const disconnectWalletMock = vi.fn();
 const connectedAccountRef = { value: null };
+const toast = {
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+};
 const walletServiceMock = {
+  PROVIDERS: {
+    NEOLINE: "NeoLine",
+    O3: "O3",
+    ONEGATE: "OneGate",
+    WALLETCONNECT: "WalletConnect",
+    NEON: "Neon Wallet",
+    WEB3AUTH: "Google / Email (Web3Auth)",
+    EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
+  },
   getAvailableProviders: vi.fn(() => []),
   getSupportedProviders: vi.fn(() => []),
   connect: vi.fn(),
@@ -44,10 +58,7 @@ vi.mock("@/services/walletService", () => ({
 }));
 
 vi.mock("vue-toastification", () => ({
-  useToast: () => ({
-    success: vi.fn(),
-    error: vi.fn(),
-  }),
+  useToast: () => toast,
 }));
 
 describe("AppHeader wallet CTA", () => {
@@ -141,6 +152,53 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.text()).toContain("Neon Wallet");
     expect(wrapper.text()).toContain("Google / Email (Web3Auth)");
     expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
+  });
+
+  it("disables unavailable wallet options instead of trying to connect them", async () => {
+    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+      "NeoLine",
+      "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
+      "Google / Email (Web3Auth)",
+    ]);
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const buttons = wrapper.findAll('button');
+    const neonButton = buttons.find((candidate) => candidate.text().includes('Neon Wallet'));
+    const walletConnectButton = buttons.find((candidate) => candidate.text().includes('WalletConnect'));
+    const oneGateButton = buttons.find((candidate) => candidate.text().includes('OneGate'));
+    const o3Button = buttons.find((candidate) => candidate.text().includes('O3'));
+    const neoLineButton = buttons.find((candidate) => candidate.text().includes('NeoLine'));
+
+    expect(neonButton.attributes('disabled')).toBeDefined();
+    expect(walletConnectButton.attributes('disabled')).toBeDefined();
+    expect(oneGateButton.attributes('disabled')).toBeDefined();
+    expect(o3Button.attributes('disabled')).toBeDefined();
+    expect(neoLineButton.attributes('disabled')).toBeUndefined();
   });
 
   it("uses wallet-specific icons instead of the generic Neo logo", async () => {

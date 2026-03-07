@@ -119,8 +119,10 @@
             <button 
               v-for="provider in supportedProviders" 
               :key="provider"
+              :disabled="walletLoading || !isProviderAvailable(provider)"
+              :title="isProviderAvailable(provider) ? provider : getProviderUnavailableReason(provider)"
               @click="handleConnect(provider)"
-              class="w-full flex items-center justify-between p-4 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group"
+              class="w-full flex items-center justify-between p-4 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div class="flex items-center gap-3">
                 <div class="h-10 w-10 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-line-soft p-2">
@@ -226,7 +228,34 @@ const availableProviders = ref([]);
 const supportedProviders = ref([]);
 const wcUri = ref("");
 
+function isProviderAvailable(provider) {
+  return availableProviders.value.includes(provider);
+}
+
+function getProviderUnavailableReason(provider) {
+  if (provider === walletService.PROVIDERS.WALLETCONNECT || provider === walletService.PROVIDERS.NEON) {
+    return "Requires WalletConnect configuration";
+  }
+  if (provider === walletService.PROVIDERS.ONEGATE) {
+    return "Install OneGate to use this wallet";
+  }
+  if (provider === walletService.PROVIDERS.O3) {
+    return "Install O3 to use this wallet";
+  }
+  if (provider === walletService.PROVIDERS.NEOLINE) {
+    return "Install NeoLine to use this wallet";
+  }
+  if (provider === walletService.PROVIDERS.EVM_WALLET) {
+    return "Install an EVM wallet to use this option";
+  }
+  return "Wallet is currently unavailable";
+}
+
 async function handleConnect(provider) {
+  if (!isProviderAvailable(provider)) {
+    toast.info(getProviderUnavailableReason(provider));
+    return;
+  }
   showWalletModal.value = false;
   walletLoading.value = true;
   try {
