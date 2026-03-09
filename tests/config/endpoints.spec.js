@@ -23,6 +23,39 @@ describe("endpoint defaults", () => {
     expect(viteConfig).not.toContain("testneofura.ngd.network");
   });
 
+  it("configures compression plugin with verbose logging disabled", () => {
+    const viteConfig = readFile("vite.config.js");
+    expect(viteConfig).toContain("verbose: false");
+  });
+
+
+
+  it("keeps a fallback vendor chunk for residual third-party modules", () => {
+    const viteConfig = readFile("vite.config.js");
+    expect(viteConfig).toContain('return "vendor";');
+  });
+
+  it("raises the chunk warning limit to the tuned post-split baseline", () => {
+    const viteConfig = readFile("vite.config.js");
+    expect(viteConfig).toContain("chunkSizeWarningLimit: 1100");
+  });
+
+  it("splits large third-party libraries into dedicated chunks", () => {
+    const viteConfig = readFile("vite.config.js");
+    expect(viteConfig).toContain('if (id.includes("ethers")) {');
+    expect(viteConfig).toContain('return "ethers";');
+    expect(viteConfig).toContain('if (id.includes("@supabase")) {');
+    expect(viteConfig).toContain('return "supabase";');
+
+    expect(viteConfig).toContain('id.includes("engine.io-client") ||');
+    expect(viteConfig).toContain('return "walletconnect";');
+    expect(viteConfig).toContain('id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")');
+    expect(viteConfig).toContain('return "web3auth";');
+    expect(viteConfig).toContain('id.includes("react-qrcode-logo") || id.includes("qrcode-generator")');
+    expect(viteConfig).toContain('if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {');
+    expect(viteConfig).toContain('return "syntax";');
+  });
+
   it("keeps vercel rewrites on external non-self-hosted endpoints", () => {
     const vercelConfig = JSON.parse(readFile("vercel.json"));
     const rewrites = vercelConfig.rewrites || [];

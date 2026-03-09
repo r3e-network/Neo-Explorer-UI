@@ -1,7 +1,8 @@
-import { ref } from "vue";
+import { ref, getCurrentInstance, onBeforeUnmount, onMounted } from "vue";
 import { rpc } from "@/services/api";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from "@/utils/dora";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
@@ -12,6 +13,10 @@ import { resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 const validators = ref([]);
 const doraMetadata = ref({});
 const initialized = ref(false);
+
+let committeeNetworkListener = null;
+let committeeNetworkListenerConsumers = 0;
+let latestLoadCommittee = null;
 
 const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
 
@@ -258,9 +263,9 @@ const loadDoraCommitteeMetadata = async () => {
       return { loaded: false, topConsensusValidators: [] };
     }
 
-    const url = `https://dora.coz.io/api/v2/neo3/mainnet/committee`;
+    const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
     const data = await cachedRequest(
-      `dora_metadata_mainnet`,
+      getDoraCommitteeCacheKey(NET_ENV.Mainnet),
       () => fetch(url).then(r => r.ok ? r.json() : []),
       300000 // 5 mins
     );
@@ -339,14 +344,33 @@ export function useCommittee() {
 
   // Kickoff load immediately if not done
   loadCommittee();
+  latestLoadCommittee = loadCommittee;
 
-  if (typeof window !== "undefined" && !window.__committee_listener_added__) {
-    window.__committee_listener_added__ = true;
-    window.addEventListener(NETWORK_CHANGE_EVENT, () => {
-      loadCommittee(true);
+  const instance = getCurrentInstance();
+  if (instance) {
+    onMounted(() => {
+      if (typeof window === "undefined") return;
+      committeeNetworkListenerConsumers += 1;
+      if (!committeeNetworkListener) {
+        committeeNetworkListener = () => {
+          if (typeof latestLoadCommittee === "function") {
+            latestLoadCommittee(true);
+          }
+        };
+        window.addEventListener(NETWORK_CHANGE_EVENT, committeeNetworkListener);
+      }
+    });
+
+    onBeforeUnmount(() => {
+      if (typeof window === "undefined") return;
+      committeeNetworkListenerConsumers = Math.max(0, committeeNetworkListenerConsumers - 1);
+      if (committeeNetworkListenerConsumers === 0 && committeeNetworkListener) {
+        window.removeEventListener(NETWORK_CHANGE_EVENT, committeeNetworkListener);
+        committeeNetworkListener = null;
+        latestLoadCommittee = null;
+      }
     });
   }
-
 
   const resolvePrimaryIndex = (block) => {
     if (!block) return undefined;

@@ -110,6 +110,7 @@ import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
 import { walletService } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
 import { useTransactionTracker } from "@/composables/useTransactionTracker";
 import TabsNav from "@/components/common/TabsNav.vue";
@@ -127,6 +128,7 @@ const route = useRoute();
 const { t } = useI18n();
 let fetchGeneration = 0;
 const contract = ref({});
+const contractMetadata = ref(null);
 const manifest = ref(null);
 const loading = ref(false);
 const error = ref(null);
@@ -248,6 +250,13 @@ async function checkVerification(hash) {
 function copyHash() {
   if (contract.value?.hash) navigator.clipboard.writeText(contract.value.hash).catch(() => {});
 }
+
+function handleNetworkChange() {
+  const hash = route.params.hash;
+  if (hash) loadContract(hash);
+}
+
+useNetworkChange(handleNetworkChange);
 
 // Route watcher - load contract on hash change
 watch(

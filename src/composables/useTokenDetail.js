@@ -7,6 +7,7 @@ import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import { responseConverter } from "@/utils/neoHelpers";
 import { invokeContractFunction } from "@/utils/contractInvocation";
 import { supabaseService } from "@/services/supabaseService";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 
 /**
  * Shared composable for NEP-17 and NEP-11 token detail views.
@@ -80,6 +81,8 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // Internal timers
   // ---------------------------------------------------------------------------
   let copyTimer = null;
+
+  useNetworkChange(handleNetworkChange);
 
   onBeforeUnmount(() => {
     if (copyTimer) clearTimeout(copyTimer);
@@ -173,6 +176,12 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
     const hash = route.params.hash;
     if (hash) {
       executeTokenFetch(hash);
+    }
+  }
+
+  function handleNetworkChange() {
+    if (tokenId.value) {
+      loadAllData();
     }
   }
 

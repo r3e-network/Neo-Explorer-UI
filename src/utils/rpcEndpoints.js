@@ -1,4 +1,4 @@
-import { getCurrentEnv } from "./env";
+import { getConfiguredRpcBaseUrl, getCurrentEnv, toAbsoluteUrl } from "./env";
 
 const DEFAULT_NETWORK = "mainnet";
 
@@ -22,6 +22,43 @@ const FALLBACK_WS_ENDPOINTS = Object.freeze({
   testnet: ["wss://testmagnet.ngd.network/ws"],
 });
 
+const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+
+const normalizeBaseUrl = (value) => {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\/+$/, "");
+};
+
+const parseConfiguredNetworkBase = (value) => {
+  const normalized = normalizeBaseUrl(value);
+  const matched = normalized.match(NETWORK_BASE_PATTERN);
+  if (!matched) return null;
+
+  const basePrefix = normalized.slice(0, matched.index);
+  const network = matched[1].toLowerCase();
+
+  return {
+    normalized,
+    prefix: `${basePrefix}/api/${network}`,
+    endpoint: (matched[2] || "").toLowerCase() || null,
+  };
+};
+
+const getConfiguredRpcEndpointCandidates = (value = getCurrentEnv()) => {
+  const configuredBaseUrl = normalizeBaseUrl(getConfiguredRpcBaseUrl(value));
+  if (!configuredBaseUrl) return null;
+
+  const parsed = parseConfiguredNetworkBase(configuredBaseUrl);
+  if (!parsed) return [toAbsoluteUrl(configuredBaseUrl)];
+
+  const primary = toAbsoluteUrl(`${parsed.prefix}/primary`);
+  const fallback = toAbsoluteUrl(`${parsed.prefix}/fallback`);
+
+  if (parsed.endpoint === "primary") return [primary, fallback];
+  if (parsed.endpoint === "fallback") return [fallback, primary];
+  return [primary, fallback];
+};
+
 export const toNetworkMode = (value = getCurrentEnv()) => {
   const raw = String(value || "").trim().toLowerCase();
   if (!raw) return DEFAULT_NETWORK;
@@ -32,6 +69,9 @@ export const toNetworkMode = (value = getCurrentEnv()) => {
 };
 
 export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
+  const configured = getConfiguredRpcEndpointCandidates(value);
+  if (configured?.length) return configured;
+
   const network = toNetworkMode(value);
   const primary = PRIMARY_RPC_ENDPOINTS[network] || PRIMARY_RPC_ENDPOINTS.mainnet;
   const fallback = FALLBACK_RPC_ENDPOINTS[network] || FALLBACK_RPC_ENDPOINTS.mainnet;

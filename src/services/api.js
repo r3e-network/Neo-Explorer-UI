@@ -16,7 +16,7 @@ const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
 const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
 const ENABLE_RPC_STARTUP_HEDGE =
   String(import.meta.env.VITE_ENABLE_RPC_STARTUP_HEDGE ?? "true").trim().toLowerCase() !== "false";
-const NETWORK_BASE_PATTERN = /^\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
 const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
 const EXPECTED_NETWORK_MAGIC = {
@@ -39,28 +39,49 @@ const configuredRpcBaseUrl = normalizeBaseUrl(import.meta.env.VITE_RPC_BASE_URL 
 
 const useConfiguredBaseUrl = Boolean(configuredRpcBaseUrl && configuredRpcBaseUrl !== LEGACY_RPC_BASE_URL);
 
-const resolveRpcBaseUrl = () => {
-  if (useConfiguredBaseUrl) {
-    return configuredRpcBaseUrl;
-  }
-
-  return getRpcApiBasePath();
-};
+const getNetworkBasePrefix = (env = getCurrentEnv()) =>
+  env === NET_ENV.TestT5 ? "/api/testnet" : "/api/mainnet";
 
 const parseNetworkBase = (baseUrl) => {
   const normalized = normalizeBaseUrl(baseUrl);
   const matched = normalized.match(NETWORK_BASE_PATTERN);
   if (!matched) return null;
+
+  const network = matched[1].toLowerCase();
+  const basePrefix = normalized.slice(0, matched.index);
+
   return {
     normalized,
-    prefix: `/api/${matched[1].toLowerCase()}`,
+    network,
+    basePrefix,
+    prefix: `${basePrefix}/api/${network}`,
     endpoint: (matched[2] || "").toLowerCase() || null,
   };
 };
 
+const configuredRpcBaseMatch = parseNetworkBase(configuredRpcBaseUrl);
+const useFixedConfiguredBaseUrl = useConfiguredBaseUrl && !configuredRpcBaseMatch;
+
+const rewriteConfiguredBaseUrl = (baseUrl, env = getCurrentEnv()) => {
+  const normalized = normalizeBaseUrl(baseUrl);
+  const parsed = parseNetworkBase(normalized);
+  if (!parsed) return normalized;
+
+  const targetPrefix = `${parsed.basePrefix}${getNetworkBasePrefix(env)}`;
+  return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
+};
+
+const resolveRpcBaseUrl = () => {
+  if (useConfiguredBaseUrl) {
+    return rewriteConfiguredBaseUrl(configuredRpcBaseUrl);
+  }
+
+  return getRpcApiBasePath();
+};
+
 const buildRetryBaseUrls = (baseUrl) => {
   const parsed = parseNetworkBase(baseUrl);
-  if (!parsed || useConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
+  if (!parsed || useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
 
   const primary = `${parsed.prefix}/primary`;
   const fallback = `${parsed.prefix}/fallback`;
@@ -72,7 +93,7 @@ const buildRetryBaseUrls = (baseUrl) => {
 
 const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
   if (!ENABLE_RPC_STARTUP_HEDGE) return false;
-  if (!fallbackBaseUrl || useConfiguredBaseUrl) return false;
+  if (!fallbackBaseUrl || useFixedConfiguredBaseUrl) return false;
 
   const parsed = parseNetworkBase(preferredBaseUrl);
   if (!parsed || parsed.endpoint === "fallback") return false;
@@ -117,7 +138,7 @@ const createNetworkMismatchError = (baseURL, expected, actual) => {
 const getEnvForBaseUrl = (baseUrl) => {
   const parsed = parseNetworkBase(baseUrl);
   if (!parsed) return null;
-  return parsed.prefix === "/api/mainnet" ? NET_ENV.Mainnet : NET_ENV.TestT5;
+  return parsed.network === "mainnet" ? NET_ENV.Mainnet : NET_ENV.TestT5;
 };
 
 const getExpectedNetworkMagic = (baseUrl) => {

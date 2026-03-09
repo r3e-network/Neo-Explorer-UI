@@ -132,6 +132,40 @@ const getAddressTagCacheEntry = (network, address) => {
   );
 };
 
+const isMissingSupabaseColumnError = (error, column) => {
+  const normalizedColumn = String(column || "").trim().toLowerCase();
+  if (!normalizedColumn) return false;
+
+  const details = [error?.message, error?.details, error?.hint, error?.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return Boolean(
+    details &&
+      details.includes(normalizedColumn) &&
+      (details.includes("column") || details.includes("schema") || details.includes("does not exist"))
+  );
+};
+
+const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {
+  for (const column of ["network", "network_mode"]) {
+    try {
+      const { data, error } = await queryFactory().eq(column, network);
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      if (!isMissingSupabaseColumnError(error, column)) {
+        throw error;
+      }
+    }
+  }
+
+  const { data, error } = await queryFactory();
+  if (error) throw error;
+  return data || [];
+};
+
 export const supabaseService = {
   async getContractMetadata(hash, networkMode) {
     if (!hash) return null;
@@ -181,12 +215,13 @@ export const supabaseService = {
 
       if (!loadedFromIndexer && supabase) {
         try {
-          const { data, error } = await supabase
-            .from("contract_metadata")
-            .select("*")
-            .in("contract_hash", toFetch);
-
-          if (error) throw error;
+          const data = await fetchSupabaseRowsForNetwork(
+            () => supabase
+              .from("contract_metadata")
+              .select("*")
+              .in("contract_hash", toFetch),
+            network
+          );
 
           toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
           if (data) {
@@ -258,12 +293,13 @@ export const supabaseService = {
 
       if (!loadedFromIndexer && supabase) {
         try {
-          const { data, error } = await supabase
-            .from("address_tags")
-            .select("address, label, category")
-            .in("address", toFetch);
-
-          if (error) throw error;
+          const data = await fetchSupabaseRowsForNetwork(
+            () => supabase
+              .from("address_tags")
+              .select("address, label, category")
+              .in("address", toFetch),
+            network
+          );
 
           toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
 
@@ -329,14 +365,34 @@ export const supabaseService = {
     }
   },
 
-  async getMultisigRequests() {
+  async getMultisigRequests(networkMode) {
     if (!supabase) return [];
     try {
-      const { data } = await supabase
-        .from('multisig_requests')
-        .select('*, signatures:multisig_signatures(*)')
-        .order('created_at', { ascending: false });
-      return data || [];
+      const network = getNetworkMode(networkMode);
+      return await (async () => {
+        for (const column of ["network", "network_mode"]) {
+          try {
+            const { data, error } = await supabase
+              .from('multisig_requests')
+              .select('*, signatures:multisig_signatures(*)')
+              .eq(column, network)
+              .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+          } catch (error) {
+            if (!isMissingSupabaseColumnError(error, column)) {
+              throw error;
+            }
+          }
+        }
+
+        const { data, error } = await supabase
+          .from('multisig_requests')
+          .select('*, signatures:multisig_signatures(*)')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      })();
     } catch (err) {
       return [];
     }

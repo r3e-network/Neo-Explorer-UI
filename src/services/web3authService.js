@@ -4,6 +4,7 @@ import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
 import { wallet } from "@cityofzion/neon-js";
 
 let _web3auth = null;
+let _chainConfigKey = null;
 
 // Replace with a default client ID or read from env.
 // For demonstration, a placeholder is used. In production, provide VITE_WEB3AUTH_CLIENT_ID
@@ -20,22 +21,43 @@ const getChainConfig = () => {
     chainId: isTestnet ? "0x3354" : "0x334E", // Hex representation for Testnet (13140) / Mainnet (13134)
     rpcTarget: getPrimaryRpcEndpoint(getCurrentEnv()),
     displayName: isTestnet ? "Neo N3 Testnet" : "Neo N3 Mainnet",
-    blockExplorerUrl: "https://neo3scan.com",
+    blockExplorerUrl: typeof window !== "undefined" ? window.location.origin : "https://neo3scan.com",
     ticker: "GAS",
     tickerName: "Neo GAS",
     logo: "https://neo3scan.com/img/brand/neo.png",
   };
 };
 
+const getChainConfigKey = (chainConfig = getChainConfig()) => JSON.stringify({
+  chainId: chainConfig.chainId,
+  rpcTarget: chainConfig.rpcTarget,
+  displayName: chainConfig.displayName,
+});
+
 export const web3authService = {
   /**
    * Initializes the Web3Auth instance and its Modal UI
    */
   async init() {
-    if (_web3auth) return;
+    const chainConfig = getChainConfig();
+    const chainConfigKey = getChainConfigKey(chainConfig);
+
+    if (_web3auth && _chainConfigKey === chainConfigKey) return;
+
+    if (_web3auth && _chainConfigKey !== chainConfigKey && _web3auth.connected) {
+      try {
+        await _web3auth.logout();
+      } catch (_logoutError) {
+        // best-effort reset when switching networks
+      }
+    }
+
+    _web3auth = null;
+    _chainConfigKey = null;
+
     try {
       const privateKeyProvider = new CommonPrivateKeyProvider({
-        config: { chainConfig: getChainConfig() },
+        config: { chainConfig },
       });
 
       const lang = localStorage.getItem("lang") || "en";
@@ -57,6 +79,7 @@ export const web3authService = {
       });
 
       await _web3auth.initModal();
+      _chainConfigKey = chainConfigKey;
     } catch (e) {
       console.error("Web3Auth init failed:", e);
       throw e;

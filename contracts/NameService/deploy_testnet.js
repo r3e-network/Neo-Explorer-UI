@@ -2,9 +2,10 @@ const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const fs = require('fs');
 const path = require('path');
 
-const deployerWif = "Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U";
+const deployerWif = process.env.NAMESERVICE_TESTNET_DEPLOYER_WIF || process.env.DEPLOYER_WIF || "";
+if (!deployerWif) throw new Error("Missing NAMESERVICE_TESTNET_DEPLOYER_WIF or DEPLOYER_WIF");
 const account = new wallet.Account(deployerWif);
-const rpcUrl = 'https://testnet1.neo.coz.io:443';
+const rpcUrl = process.env.RPC_URL || 'https://testnet1.neo.coz.io:443';
 const rpcClient = new rpc.RPCClient(rpcUrl);
 
 const nefPath = path.resolve(__dirname, './bin/sc/NameService.nef');

@@ -50,7 +50,14 @@ vi.mock("vue-toastification", () => ({
 }));
 
 vi.mock("@/utils/env", () => ({
+  NET_ENV: {
+    Mainnet: "Mainnet",
+    TestT5: "TestT5",
+  },
   getCurrentEnv: () => "Mainnet",
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
+  getConfiguredRpcBaseUrl: () => "",
+  toAbsoluteUrl: (value) => value,
 }));
 
 vi.mock("@/services/cache", () => ({

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import axios from "axios";
 import {
   __resetEndpointNetworkCacheForTests,
@@ -94,11 +94,21 @@ describe("formatListResponse", () => {
   });
 });
 
+let consoleErrorSpy;
+let consoleWarnSpy;
+
 describe("safeRpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     envState.currentBasePath = "/api/mainnet";
     __resetEndpointNetworkCacheForTests();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy?.mockRestore();
+    consoleWarnSpy?.mockRestore();
   });
 
   it("returns result on success", async () => {

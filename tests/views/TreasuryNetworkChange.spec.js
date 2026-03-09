@@ -1,0 +1,79 @@
+import { mount, flushPromises } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const envState = { value: "MainNet" };
+const fetchPricesMock = vi.hoisted(() => vi.fn().mockResolvedValue({ neo: 1, gas: 1 }));
+const cachedRequestMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+
+vi.mock("@/composables/usePriceCache", () => ({
+  usePriceCache: () => ({ fetchPrices: fetchPricesMock }),
+}));
+
+vi.mock("@/utils/healthCheck", () => ({
+  checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock("@/utils/env", () => ({
+  getRpcClientUrl: () => "http://rpc.test",
+  getCurrentEnv: () => envState.value,
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
+  NET_ENV: { TestT5: "TestT5", Mainnet: "MainNet" },
+}));
+
+vi.mock("@/components/common/HashLink.vue", () => ({
+  default: { name: "HashLink", template: "<span><slot /></span>" },
+}));
+
+vi.mock("@/services/cache", () => ({
+  cachedRequest: cachedRequestMock,
+  CACHE_TTL: { chart: 300000 },
+}));
+
+vi.mock("@/constants/knownAddresses", () => ({
+  getTreasuryKnownAddresses: () => [{ name: "Treasury A", address: "Naddr" }],
+}));
+
+vi.mock("@cityofzion/neon-js", () => ({
+  rpc: {
+    RPCClient: class {},
+    Query: class {
+      constructor(config) {
+        this.config = config;
+      }
+    },
+  },
+}));
+
+describe("Treasury network changes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    envState.value = "MainNet";
+    fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
+    cachedRequestMock.mockResolvedValue([{ name: "Treasury A", address: "Naddr", neo: 1, gas: 2, usdValue: 0 }]);
+  });
+
+  it("reloads treasury data with the active network cache key after a network switch", async () => {
+    const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
+    const wrapper = mount(Treasury, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          HashLink: true,
+          Skeleton: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(cachedRequestMock).toHaveBeenCalledTimes(1);
+    expect(cachedRequestMock.mock.calls[0][0]).toBe("MainNet:treasury_data");
+
+    envState.value = "TestT5";
+    window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
+    await flushPromises();
+
+    expect(cachedRequestMock).toHaveBeenCalledTimes(2);
+    expect(cachedRequestMock.mock.calls[1][0]).toBe("TestT5:treasury_data");
+    wrapper.unmount();
+  });
+});

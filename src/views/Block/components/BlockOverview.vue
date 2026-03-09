@@ -7,7 +7,7 @@ import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
 
-const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+const { resolvePrimaryIndex, getPrimaryNodeAddress } = useCommittee();
 
 const validatorAddress = computed(() => {
   const resolvedPrimary = resolvePrimaryIndex(props.block);

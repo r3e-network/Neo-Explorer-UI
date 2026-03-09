@@ -280,7 +280,7 @@ const actionLoading = ref(false);
 const showTransferModal = ref(false);
 const transferRecipient = ref('');
 
-const MATRIX_CONTRACT_HASH = getCurrentEnv() === 'TestT5' 
+const getMatrixContractHash = () => getCurrentEnv() === 'TestT5'
   ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
   : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
 
@@ -317,12 +317,12 @@ async function handleSearch() {
     const tokenBase64 = btoa(query);
     
     const props = await safeRpc("GetNep11PropertiesByContractHashTokenId", {
-      ContractHash: MATRIX_CONTRACT_HASH,
+      ContractHash: getMatrixContractHash(),
       TokenIds: [tokenBase64]
     }, null);
     
     const fallbackProps = props && props.result ? props : await safeRpc("GetNep11PropertiesByContractHashTokenId", {
-      ContractHash: MATRIX_CONTRACT_HASH,
+      ContractHash: getMatrixContractHash(),
       TokenId: btoa(query)
     }, null);
     
@@ -336,7 +336,7 @@ async function handleSearch() {
       let ownerAddressFromNNS = null;
       try {
         const ownerRes = await safeRpc("GetNep11TransferByContractHashTokenId", {
-            ContractHash: MATRIX_CONTRACT_HASH,
+            ContractHash: getMatrixContractHash(),
             TokenId: btoa(query)
         }, null);
         if (ownerRes && Array.isArray(ownerRes) && ownerRes.length > 0) {
@@ -419,7 +419,7 @@ async function registerDomain() {
       sc.ContractParam.hash160(scriptHash)
     ];
     
-    const txid = await invokeContract(MATRIX_CONTRACT_HASH, "register", params, [
+    const txid = await invokeContract(getMatrixContractHash(), "register", params, [
       { account: scriptHash, scopes: "CalledByEntry" }
     ]);
     
@@ -453,7 +453,7 @@ async function transferDomain() {
       sc.ContractParam.any()
     ];
     
-    const txid = await invokeContract(MATRIX_CONTRACT_HASH, "transfer", params, [
+    const txid = await invokeContract(getMatrixContractHash(), "transfer", params, [
       { account: fromScriptHash, scopes: "CalledByEntry" }
     ]);
     

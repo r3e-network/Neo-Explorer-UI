@@ -121,7 +121,7 @@ Configure build-time variables in `.env`, `.env.production`, or Vercel project s
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VITE_RPC_BASE_URL` | Optional fixed RPC base URL. Leave unset to follow UI network switch. | unset |
+| `VITE_RPC_BASE_URL` | Optional RPC base URL. Leave unset to follow UI network switch, or use a URL ending in `/api/mainnet` / `/api/testnet` to keep switch-aware behavior. | unset |
 | `VITE_MAINNET_RPC_PRIMARY_PROXY_TARGET` | Optional Vite dev primary target for `/api/mainnet/primary`. | `https://rpc.r3e.network` |
 | `VITE_TESTNET_RPC_PRIMARY_PROXY_TARGET` | Optional Vite dev primary target for `/api/testnet/primary`. | `https://rpc.r3e.network` |
 | `VITE_MAINNET_RPC_FALLBACK_PROXY_TARGET` | Optional Vite dev fallback target for `/api/mainnet/fallback`. | `https://neofura.ngd.network` |
@@ -132,7 +132,8 @@ Configure build-time variables in `.env`, `.env.production`, or Vercel project s
 
 Notes:
 
-- If `VITE_RPC_BASE_URL` is set to a custom value (e.g. external URL), it overrides the runtime switch.
+- If `VITE_RPC_BASE_URL` is set to a generic custom value (e.g. `https://rpc.example.com/api`), it overrides the runtime switch.
+- If it ends with `/api/mainnet`, `/api/testnet`, `/api/mainnet/primary`, or `/api/testnet/fallback`, the app rewrites that suffix to the active UI network automatically.
 - Keep it unset to use Mainnet/Testnet switching in UI.
 
 ## Health Checks

@@ -100,17 +100,15 @@ export async function initWallet() {
         clearStoredWalletState();
     } else if (connectedAccount.value && provider === walletService.PROVIDERS.WEB3AUTH) {
         // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
-        import('@/services/walletService').then(({ walletService }) => {
-            walletService.connect("Google / Email (Web3Auth)").then(acc => {
-                if (acc && acc.address) {
-                    connectedAccount.value = acc.address;
-                    localStorage.setItem("connectedWallet", acc.address);
-                } else {
-                    clearStoredWalletState();
-                }
-            }).catch(() => {
+        walletService.connect(walletService.PROVIDERS.WEB3AUTH).then((account) => {
+            if (account && account.address) {
+                connectedAccount.value = account.address;
+                localStorage.setItem("connectedWallet", account.address);
+            } else {
                 clearStoredWalletState();
-            });
+            }
+        }).catch(() => {
+            clearStoredWalletState();
         });
     }
 }

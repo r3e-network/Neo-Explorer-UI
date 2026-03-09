@@ -19,6 +19,7 @@ vi.mock("vue-toastification", () => ({
 vi.mock("@/utils/env", () => ({
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => "TestT5",
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { TestT5: "TestT5", Mainnet: "MainNet" },
 }));
 

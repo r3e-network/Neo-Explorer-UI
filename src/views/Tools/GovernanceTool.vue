@@ -219,6 +219,9 @@ import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
 import { getRpcUrl, getCurrentEnv } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { toNetworkMode } from '@/utils/rpcEndpoints';
+import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -313,8 +316,10 @@ async function loadCommittee() {
 async function loadRequests() {
   try {
     const data = await supabaseService.getMultisigRequests();
-    // Only show governance proposals (could filter by type if added, or target_contract matching native ones)
-    requests.value = data.filter(r => Object.values(NATIVE_CONTRACTS).includes(r.target_contract) || r.type === 'governance') || [];
+    const activeNetwork = getCurrentEnv();
+    requests.value = Array.isArray(data)
+      ? data.filter((request) => isGovernanceRequest(request, NATIVE_CONTRACTS) && matchesRequestNetwork(request, activeNetwork))
+      : [];
   } catch (e) {
     console.error("Error loading requests", e);
   }
@@ -418,7 +423,7 @@ async function handleCreateProposal() {
       signers_required: threshold.value,
       eligible_signers: committeePubkeys.value,
       status: "PENDING",
-      network: getCurrentEnv().toLowerCase() || "mainnet",
+      network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
         hash: txHash,
@@ -534,15 +539,22 @@ async function handleBroadcast(req) {
   }
 }
 
+async function handleNetworkChange() {
+  await loadCommittee();
+  await loadRequests();
+}
+
 onMounted(async () => {
   try {
     neonJs = window.Neon || await import('@cityofzion/neon-js');
     await loadCommittee();
     await loadRequests();
-  } catch (e) {
+      } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);
   } finally {
     loading.value = false;
   }
 });
+
+useNetworkChange(handleNetworkChange);
 </script>

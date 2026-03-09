@@ -24,11 +24,20 @@ The app runs at `http://localhost:5173`.
 
 `.env` is optional for default behavior.
 
-- `VITE_RPC_BASE_URL`: optional fixed RPC base URL override.
+- `VITE_RPC_BASE_URL`: optional RPC base URL override.
   - If unset, the UI uses network-aware base paths (`/api/mainnet` and `/api/testnet`).
-  - If set, it bypasses the in-app network switch.
+  - If set to a generic custom URL, it bypasses the in-app network switch.
+  - If it ends with `/api/mainnet`, `/api/testnet`, `/api/mainnet/primary`, or `/api/testnet/fallback`, the app rewrites that suffix to the active UI network.
 - `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET`: optional Vite dev proxy target overrides.
 - `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET`: optional Vite dev BPI proxy target overrides.
+
+## Build Notes
+
+- See `docs/BUILD_NOTES.md` for current chunking rationale, remaining third-party build notices, and verification commands.
+
+## Scripts
+
+- See `scripts/README.md` for the current ad hoc script inventory and the isolated `scripts/abstract-account-test/` package notes.
 
 ## Architecture Notes
 
@@ -36,6 +45,15 @@ The app runs at `http://localhost:5173`.
 - Network selection and API base-path logic live in `src/utils/env.js`.
 - RPC method usage should be validated against backend APIs/docs before release.
 - Developer API docs page method metadata is centralized in `src/constants/rpcApiDocs.mjs`.
+
+## Network Switching Conventions
+
+- Treat `getCurrentEnv()` as runtime state, not as a value to snapshot once at module load or component setup when behavior must follow later network switches.
+- For component or view reactions to network changes, prefer `src/composables/useNetworkChange.js` over manual `window.addEventListener(...)` wiring.
+- For computed network-dependent values that must always track the active explorer network, resolve them at call time or update a reactive ref inside the network-change handler.
+- For persisted request data stored in Supabase, always normalize request payload networks to `mainnet` / `testnet` aliases and scope reads back to the active network.
+- `src/utils/governanceRequests.js` is the shared place for request-type and request-network normalization logic used by multisig and governance tools.
+- `src/services/supabaseService.js` should prefer network-scoped reads and only fall back to unscoped legacy tables when `network` / `network_mode` columns are unavailable.
 
 ## Quality Gates
 

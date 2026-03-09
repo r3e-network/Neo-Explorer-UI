@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { usePriceCache } from '@/composables/usePriceCache';
 import { formatNumber, formatLargeNumber } from '@/utils/explorerFormat';
 import { getTreasuryKnownAddresses } from '@/constants/knownAddresses';
@@ -162,6 +162,7 @@ import Skeleton from '@/components/common/Skeleton.vue';
 import { cachedRequest, CACHE_TTL } from '@/services/cache';
 import { rpc } from '@cityofzion/neon-js';
 import { getRpcClientUrl, getCurrentEnv } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
 
 const { fetchPrices } = usePriceCache();
 const loading = ref(true);
@@ -276,9 +277,18 @@ async function loadTreasuryData(forceRefresh = false) {
   }
 }
 
+async function handleNetworkChange() {
+  await loadTreasuryData(true);
+}
+
 onMounted(async () => {
   await loadPrices();
   await loadTreasuryData();
+  });
+
+useNetworkChange(handleNetworkChange);
+
+onBeforeUnmount(() => {
 });
 </script>
 

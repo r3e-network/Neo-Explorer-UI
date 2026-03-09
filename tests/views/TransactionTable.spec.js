@@ -7,6 +7,10 @@ const { getContractMetadataBatch } = vi.hoisted(() => ({
   getContractMetadataBatch: vi.fn(async () => ({})),
 }));
 
+
+vi.mock("@/utils/healthCheck", () => ({
+  checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
+}));
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
     getContractMetadataBatch,

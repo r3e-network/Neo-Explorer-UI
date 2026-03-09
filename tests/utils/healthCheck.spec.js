@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const post = vi.fn();
 const setActiveBasePath = vi.fn();
@@ -21,10 +21,20 @@ vi.mock("../../src/utils/env", () => ({
   setActiveBasePath,
 }));
 
+let consoleInfoSpy;
+let consoleWarnSpy;
+
 describe("healthCheck endpoint selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    consoleInfoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleInfoSpy?.mockRestore();
+    consoleWarnSpy?.mockRestore();
   });
 
   it("selects fallback when primary endpoint fails and fallback is healthy", async () => {

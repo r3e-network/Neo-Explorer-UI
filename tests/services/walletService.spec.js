@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const envState = vi.hoisted(() => ({ value: "Mainnet" }));
 const web3AuthAccount = {
   address: "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf",
   publicKey: "03e66f7f5f327f7eb5c11bfb2bde0864e80f98f2f0f9f4f23ae86f0fd82d4f0f60",
@@ -19,6 +20,8 @@ const invokeScriptMock = vi.fn(async (script) => {
 const getBlockCountMock = vi.fn(async () => 123456);
 const calculateNetworkFeeMock = vi.fn(async () => "1000");
 const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
+const executeMock = vi.fn(async () => ({ protocol: { network: 860833102 } }));
+const signTxMock = vi.fn();
 const neoLineInvokeMock = vi.fn(async () => ({ txid: "0xneoline" }));
 const neoLineGetNetworksMock = vi.fn(async () => ({ defaultNetwork: "MainNet" }));
 const neoLineGetAccountMock = vi.fn(async () => ({
@@ -57,6 +60,10 @@ class MockRpcClient {
   async sendRawTransaction(serialized) {
     return sendRawTransactionMock(serialized);
   }
+
+  async execute(query) {
+    return executeMock(query);
+  }
 }
 
 class MockTransaction {
@@ -64,7 +71,9 @@ class MockTransaction {
     this.data = data;
   }
 
-  sign() {}
+  sign(account, magic) {
+    signTxMock(account, magic);
+  }
 
   serialize() {
     return "serialized-transaction";
@@ -92,7 +101,7 @@ class MockWalletAccount {
 }
 
 vi.mock("@cityofzion/neon-js", () => ({
-  rpc: { RPCClient: MockRpcClient },
+  rpc: { RPCClient: MockRpcClient, Query: class { constructor(config) { this.config = config; } } },
   tx: { Transaction: MockTransaction },
   wallet: {
     Account: MockWalletAccount,
@@ -140,7 +149,9 @@ vi.mock("../../src/services/web3authService.js", () => ({
 }));
 
 vi.mock("../../src/utils/env.js", () => ({
-  getCurrentEnv: () => "Mainnet",
+  getCurrentEnv: () => envState.value,
+  getConfiguredRpcBaseUrl: () => "",
+  toAbsoluteUrl: (value) => value,
 }));
 
 describe("walletService", () => {
@@ -149,6 +160,8 @@ describe("walletService", () => {
     vi.unstubAllEnvs();
     vi.resetModules();
     vi.stubEnv("VITE_WC_PROJECT_ID", "test-project-id");
+    envState.value = "Mainnet";
+    executeMock.mockResolvedValue({ protocol: { network: 860833102 } });
     delete window.NEOLine;
     delete window.NEOLineN3;
     delete window.neo3Dapi;
@@ -318,4 +331,27 @@ describe("walletService", () => {
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
     expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
   });
+  it("uses RPC getversion network magic for Web3Auth signing", async () => {
+    envState.value = "PrivateNet";
+    executeMock.mockResolvedValue({ protocol: { network: 123456789 } });
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
+    await walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "vote",
+      args: [
+        { type: "Hash160", value: "a62eb3c767ef3d39d98c704f70fc4e869349a6fd" },
+        { type: "PublicKey", value: "03c95f8e6fe4f6e9de4dbf67bf3ff47a1465644d0f32956543e12b3d6b0ffb02d7" },
+      ],
+      signers: [{ account: "a62eb3c767ef3d39d98c704f70fc4e869349a6fd", scopes: 1 }],
+    });
+
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    expect(signTxMock).toHaveBeenCalled();
+    const usedMagic = signTxMock.mock.calls.at(-1)?.[1];
+    expect(usedMagic).toBe(123456789);
+  });
+
 });

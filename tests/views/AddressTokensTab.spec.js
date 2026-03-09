@@ -1,5 +1,11 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getContractMetadataBatch: vi.fn().mockResolvedValue({}),
+  },
+}));
 
 import AddressTokensTab from "@/views/Account/components/AddressTokensTab.vue";
 

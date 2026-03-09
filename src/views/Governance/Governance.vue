@@ -229,9 +229,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { rpc } from '@cityofzion/neon-js';
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { getDoraCommitteeUrl } from '@/utils/dora';
 import { connectedAccount, voteForCandidate } from '@/utils/wallet';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
@@ -415,7 +417,7 @@ async function loadCandidates() {
 
     if ((!Array.isArray(metadataRows) || metadataRows.length === 0) && !isTestnet) {
       try {
-        metadataRows = await fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then(r => r.ok ? r.json() : []);
+        metadataRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then(r => r.ok ? r.json() : []);
       } catch (fallbackErr) {
         if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
       }
@@ -491,8 +493,17 @@ async function handleVote(candidate) {
   }
 }
 
+function handleNetworkChange() {
+  loadCandidates();
+}
+
 onMounted(() => {
   loadPrices();
   loadCandidates();
+  });
+
+useNetworkChange(handleNetworkChange);
+
+onBeforeUnmount(() => {
 });
 </script>

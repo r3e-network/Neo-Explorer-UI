@@ -1,6 +1,6 @@
 import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getDashboardStats = vi.fn();
 const getBlockList = vi.fn();
@@ -115,9 +115,14 @@ const HomeStatsStub = defineComponent({
     '<div data-testid="home-stats" :data-block-count="String(blockCount)"><button data-testid="home-stats-fetch" @click="$emit(\'fetch-latest\')">refresh</button></div>',
 });
 
+let consoleWarnSpy;
+let consoleErrorSpy;
+
 describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.clearAllMocks();
     enrichTransactionsMock.mockClear();
     loadCommitteeMock.mockClear();

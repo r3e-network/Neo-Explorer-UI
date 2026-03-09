@@ -1,4 +1,4 @@
-import { onBeforeUnmount, ref, onActivated, onDeactivated } from "vue";
+import { getCurrentInstance, onBeforeUnmount, ref, onActivated, onDeactivated } from "vue";
 import { getNetworkRefreshIntervalMs, NETWORK_CHANGE_EVENT } from "@/utils/env";
 
 /**
@@ -14,6 +14,7 @@ import { getNetworkRefreshIntervalMs, NETWORK_CHANGE_EVENT } from "@/utils/env";
 export function useAutoRefresh(callback, options = {}) {
   const { intervalMs = null, pauseWhenHidden = true, immediate = false } = options;
 
+  const hasComponentInstance = Boolean(getCurrentInstance());
   const isActive = ref(false);
   const isIntentionallyActive = ref(false);
   let timerId = null;
@@ -58,16 +59,16 @@ export function useAutoRefresh(callback, options = {}) {
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    onBeforeUnmount(() => {
+    if (hasComponentInstance) onBeforeUnmount(() => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     });
   }
 
-  onDeactivated(() => {
+  if (hasComponentInstance) onDeactivated(() => {
     _stopTimer();
   });
 
-  onActivated(() => {
+  if (hasComponentInstance) onActivated(() => {
     if (isIntentionallyActive.value) {
       _startTimer();
       callback(); // trigger immediate refresh on return
@@ -83,12 +84,12 @@ export function useAutoRefresh(callback, options = {}) {
     };
 
     window.addEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);
-    onBeforeUnmount(() => {
+    if (hasComponentInstance) onBeforeUnmount(() => {
       window.removeEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);
     });
   }
 
-  onBeforeUnmount(stop);
+  if (hasComponentInstance) onBeforeUnmount(stop);
 
   if (immediate) {
     start();

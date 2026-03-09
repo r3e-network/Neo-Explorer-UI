@@ -200,6 +200,7 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
 import { getCurrentEnv } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
@@ -467,6 +468,15 @@ function clearPolling() {
     pollInterval = null;
   }
 }
+
+function handleNetworkChange() {
+  if (route.params.txhash) {
+    clearPolling();
+    loadTx(route.params.txhash);
+  }
+}
+
+useNetworkChange(handleNetworkChange);
 
 watch(
   () => route.params.txhash,

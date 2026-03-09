@@ -146,6 +146,8 @@ import AddressNftsTab from "./components/AddressNftsTab.vue";
 import AddressVotersTab from "./components/AddressVotersTab.vue";
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from '@/utils/dora';
 import { cachedRequest } from '@/services/cache';
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
@@ -448,10 +450,10 @@ async function loadSummary(addr) {
             }
 
             if (!Array.isArray(metadataRows) || metadataRows.length === 0) {
-              const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
+              const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
               try {
                 metadataRows = await cachedRequest(
-                  `dora_metadata_mainnet`,
+                  getDoraCommitteeCacheKey(NET_ENV.Mainnet),
                   () => fetch(url).then(r => r.ok ? r.json() : []),
                   300000 // 5 mins
                 );
@@ -624,6 +626,14 @@ async function initializeData(addr) {
     });
   }
 }
+
+function handleNetworkChange() {
+  if (address.value) {
+    void initializeData(address.value);
+  }
+}
+
+useNetworkChange(handleNetworkChange);
 
 onBeforeUnmount(() => {
   abortController.value?.abort();

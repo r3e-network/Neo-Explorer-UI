@@ -105,6 +105,38 @@ const activeBasePaths = {
   [NET_ENV.TestT5]: "/api/testnet",
 };
 
+const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+
+const normalizeBaseUrl = (value) => {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\/+$/, "");
+};
+
+const configuredRpcBaseUrl = normalizeBaseUrl(import.meta.env.VITE_RPC_BASE_URL || "");
+
+const parseConfiguredNetworkBase = (value) => {
+  const normalized = normalizeBaseUrl(value);
+  const matched = normalized.match(NETWORK_BASE_PATTERN);
+  if (!matched) return null;
+
+  return {
+    normalized,
+    basePrefix: normalized.slice(0, matched.index),
+    endpoint: (matched[2] || "").toLowerCase() || null,
+  };
+};
+
+export const getConfiguredRpcBaseUrl = (env = getCurrentEnv()) => {
+  if (!configuredRpcBaseUrl) return "";
+
+  const parsed = parseConfiguredNetworkBase(configuredRpcBaseUrl);
+  if (!parsed) return configuredRpcBaseUrl;
+
+  const network = normalizeEnv(env) === NET_ENV.TestT5 ? "testnet" : "mainnet";
+  const targetPrefix = `${parsed.basePrefix}/api/${network}`;
+  return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
+};
+
 export const setActiveBasePath = (env, path) => {
   if (activeBasePaths[env]) {
     activeBasePaths[env] = path;
@@ -117,10 +149,12 @@ export const getActiveBasePath = (env) => {
 };
 
 // Get RPC URL based on selected environment
-export const getRpcUrl = () => activeBasePaths[getCurrentEnv()] || RPC_URLS[NET_ENV.Mainnet];
+export const getRpcUrl = (env = getCurrentEnv()) =>
+  getConfiguredRpcBaseUrl(env) || activeBasePaths[normalizeEnv(env)] || RPC_URLS[NET_ENV.Mainnet];
 
 // Get API base path (proxied in dev + Vercel rewrites)
-export const getRpcApiBasePath = () => activeBasePaths[getCurrentEnv()] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+export const getRpcApiBasePath = (env = getCurrentEnv()) =>
+  getConfiguredRpcBaseUrl(env) || activeBasePaths[normalizeEnv(env)] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
 
 const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i;
 

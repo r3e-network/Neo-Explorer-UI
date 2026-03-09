@@ -182,6 +182,8 @@ import { walletService } from "@/services/walletService";
 import candidateService from "@/services/candidateService";
 import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from "@/utils/dora";
 import { addressToScriptHash, isPublicKeyHex } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
 
@@ -283,8 +285,8 @@ async function loadExistingProfile(address) {
     const isTestnet = doraEnv !== "mainnet";
     if (isTestnet) return;
     const profileList = await cachedRequest(
-      `dora_metadata_mainnet`,
-      () => fetch(`https://dora.coz.io/api/v1/neo3/mainnet/committee`).then((res) => (res.ok ? res.json() : [])),
+      getDoraCommitteeCacheKey(NET_ENV.Mainnet),
+      () => fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then((res) => (res.ok ? res.json() : [])),
       300000
     );
 
@@ -345,4 +347,10 @@ watch(
   },
   { immediate: true }
 );
+
+function handleNetworkChange() {
+  void loadExistingProfile(connectedAccount.value);
+}
+
+useNetworkChange(handleNetworkChange);
 </script>

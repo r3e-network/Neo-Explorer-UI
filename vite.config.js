@@ -49,6 +49,7 @@ export default defineConfig(({ mode }) => {
         ext: ".gz",
         threshold: 10240,
         deleteOriginFile: false,
+        verbose: false,
       }),
     ],
     resolve: {
@@ -121,7 +122,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      chunkSizeWarningLimit: 500,
+      chunkSizeWarningLimit: 1100,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -132,22 +133,58 @@ export default defineConfig(({ mode }) => {
               if (id.includes("@walletconnect")) {
                 return "walletconnect";
               }
-              if (id.includes("@web3auth")) {
+              if (
+                id.includes("engine.io-client") ||
+                id.includes("engine.io-parser") ||
+                id.includes("socket.io-client") ||
+                id.includes("socket.io-parser") ||
+                id.includes("@msgpack/msgpack") ||
+                id.includes("multiformats") ||
+                id.includes("uint8arrays") ||
+                id.includes("/ox/") ||
+                id.includes("bowser")
+              ) {
+                return "walletconnect";
+              }
+              if (id.includes("@web3auth") || id.includes("@toruslabs")) {
                 return "web3auth";
+              }
+              if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")) {
+                return "web3auth";
+              }
+              if (id.includes("ethers")) {
+                return "ethers";
+              }
+              if (id.includes("@supabase")) {
+                return "supabase";
+              }
+              if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {
+                return "syntax";
               }
               if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
                 return "vue-core";
               }
-              if (id.includes("echarts")) {
-                return "echarts";
-              }
               if (id.includes("axios")) {
                 return "axios";
               }
-              if (id.includes("@toruslabs") || id.includes("@web3auth")) {
+              if (id.includes("qrcode.vue")) {
+                return "qrcode";
+              }
+              if (id.includes("react-qrcode-logo") || id.includes("qrcode-generator")) {
                 return "web3auth";
               }
-
+              if (id.includes("ethereum-cryptography") || id.includes("crypto-js")) {
+                return "crypto";
+              }
+              if (id.includes("chart.js")) {
+                return "chartjs";
+              }
+              if (id.includes("core-js") || id.includes("vite-plugin-node-polyfills")) {
+                return "polyfills";
+              }
+              if (id.includes("timeago.js")) {
+                return "timeago";
+              }
               return "vendor";
             }
           },

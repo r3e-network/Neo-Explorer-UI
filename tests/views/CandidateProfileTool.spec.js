@@ -30,6 +30,7 @@ vi.mock("@/services/cache", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { Mainnet: "Mainnet", TestT5: "TestNet" },
 }));
 

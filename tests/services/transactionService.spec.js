@@ -5,12 +5,14 @@ import { accountService } from "../../src/services/accountService.js";
 import { neotubeService } from "../../src/services/neotubeService.js";
 import { clearAllCache } from "../../src/services/cache.js";
 
+class MockRpcClient {
+  getRawTransaction = vi.fn().mockRejectedValue(new Error("Mock network error"));
+  getBlockHeader = vi.fn().mockRejectedValue(new Error("Mock network error"));
+}
+
 vi.mock("@cityofzion/neon-js", () => ({
   rpc: {
-    RPCClient: vi.fn().mockImplementation(() => ({
-      getRawTransaction: vi.fn().mockRejectedValue(new Error("Mock network error")),
-      getBlockHeader: vi.fn().mockRejectedValue(new Error("Mock network error")),
-    })),
+    RPCClient: MockRpcClient,
   },
 }));
 

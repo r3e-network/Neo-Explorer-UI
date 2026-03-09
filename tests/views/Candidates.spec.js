@@ -32,6 +32,7 @@ vi.mock("@/services/supabaseService", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: () => "MainNet",
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { TestT5: "TestT5", Mainnet: "MainNet" },
 }));
 

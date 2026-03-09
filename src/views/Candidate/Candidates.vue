@@ -125,6 +125,8 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { getCurrentEnv, NET_ENV } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from '@/utils/dora';
 import { getKnownAddressName } from '@/constants/knownAddresses';
 import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
 import { supabaseService } from "@/services/supabaseService";
@@ -202,11 +204,11 @@ async function loadDoraMetadata() {
   const env = getCurrentEnv().toLowerCase();
   const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
   if (isTestnet) return;
-  const url = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
+  const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
 
   try {
     const data = await cachedRequest(
-      `dora_metadata_mainnet`,
+      getDoraCommitteeCacheKey(NET_ENV.Mainnet),
       () => fetch(url).then(r => r.ok ? r.json() : []),
       300000 // 5 minutes cache
     );
@@ -221,6 +223,13 @@ watch(candidates, () => {
     loadDoraMetadata();
   }
 }, { immediate: true });
+
+function handleNetworkChange() {
+  doraMetadata.value = {};
+  loadPage(currentPage.value, { forceRefresh: true });
+}
+
+useNetworkChange(handleNetworkChange);
 
 const candidatesWithMeta = computed(() => {
   return candidates.value.map(c => {

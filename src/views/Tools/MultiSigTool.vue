@@ -322,6 +322,10 @@ import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
 import { getRpcUrl, getCurrentEnv } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { toNetworkMode } from '@/utils/rpcEndpoints';
+import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
+import { NATIVE_CONTRACTS } from '@/constants';
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -364,7 +368,10 @@ const isCreating = ref(false);
 async function loadRequests() {
   try {
     const data = await supabaseService.getMultisigRequests();
-    requests.value = data.filter(r => r.type !== 'governance') || [];
+    const activeNetwork = getCurrentEnv();
+    requests.value = Array.isArray(data)
+      ? data.filter((request) => !isGovernanceRequest(request, NATIVE_CONTRACTS) && matchesRequestNetwork(request, activeNetwork))
+      : [];
   } catch (e) {
     console.error("Error loading requests", e);
   }
@@ -489,7 +496,7 @@ async function handleCreateRequest() {
       signers_required: threshold,
       eligible_signers: eligibleSigners,
       status: "PENDING",
-      network: getCurrentEnv().toLowerCase() || "mainnet",
+      network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
         hash: t.hash(),
@@ -609,15 +616,21 @@ async function handleBroadcast(req) {
   }
 }
 
+function handleNetworkChange() {
+  void loadRequests();
+}
+
 onMounted(async () => {
   try {
     neonJs = window.Neon || await import('@cityofzion/neon-js');
     loadSavedConfigs();
     await loadRequests();
-  } catch (e) {
+      } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);
   } finally {
     loading.value = false;
   }
 });
+
+useNetworkChange(handleNetworkChange);
 </script>

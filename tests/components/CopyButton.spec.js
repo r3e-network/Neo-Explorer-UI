@@ -5,13 +5,17 @@ vi.mock("@/constants", () => ({ COPY_FEEDBACK_TIMEOUT_MS: 2000 }));
 
 import CopyButton from "@/components/common/CopyButton.vue";
 
+let consoleErrorSpy;
+
 describe("CopyButton", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue() } });
   });
 
   afterEach(() => {
+    consoleErrorSpy?.mockRestore();
     vi.useRealTimers();
   });
 

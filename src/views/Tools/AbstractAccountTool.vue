@@ -226,6 +226,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
+import { useNetworkChange } from '@/composables/useNetworkChange';
 
 import hljs from 'highlight.js/lib/core';
 import csharp from 'highlight.js/lib/languages/csharp';
@@ -344,6 +345,10 @@ watch(isEvmWallet, (evm) => {
   }
 });
 
+function handleNetworkChange() {
+  deriveAccount();
+}
+
 onMounted(async () => {
   try {
     neonJs = window.Neon || await import('@cityofzion/neon-js');
@@ -352,10 +357,12 @@ onMounted(async () => {
     } else if (isEvmWallet.value && walletService.account?.pubKey) {
       uuid.value = walletService.account.pubKey;
     }
-  } catch (e) {
+      } catch (e) {
     console.error(e);
   }
 });
+
+useNetworkChange(handleNetworkChange);
 
 function formatErrorMessage(err) {
   if (!err) return "Unknown error";

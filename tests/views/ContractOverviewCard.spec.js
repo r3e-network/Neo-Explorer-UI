@@ -1,8 +1,22 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ContractOverviewCard from "@/views/Contract/components/ContractOverviewCard.vue";
 
+let consoleWarnSpy;
+
+
+vi.mock("@/utils/healthCheck", () => ({
+  checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
+}));
 describe("ContractOverviewCard", () => {
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy?.mockRestore();
+  });
+
   it("shows manifest contact metadata from the contract manifest extra block", () => {
     const wrapper = mount(ContractOverviewCard, {
       props: {

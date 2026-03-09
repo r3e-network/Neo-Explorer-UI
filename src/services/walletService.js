@@ -728,11 +728,15 @@ export const walletService = {
       const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
       sb.emitAppCall(scriptHash, operation, mappedArgs);
       const script = sb.build();
-      const magic = getCurrentEnv().toLowerCase().includes("test") ? 894710606 : 860833102;
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
         const rpcClient = new rpc.RPCClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
+        const versionRes = await rpcClient.execute(new rpc.Query({ method: "getversion" }));
+        const magic = Number(versionRes?.protocol?.network);
+        if (!Number.isFinite(magic)) {
+          throw new Error("Failed to resolve network magic from RPC getversion.");
+        }
         const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
 
         if (invokeRes.state === "FAULT") {

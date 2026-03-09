@@ -134,7 +134,9 @@ import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 import { rpc, wallet } from "@cityofzion/neon-js";
-import { getCurrentEnv } from "@/utils/env";
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { useNetworkChange } from '@/composables/useNetworkChange';
+import { getDoraCommitteeUrl } from "@/utils/dora";
 import { cachedRequest } from "@/services/cache";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
@@ -189,8 +191,12 @@ async function loadCandidates() {
     const env = getCurrentEnv().toLowerCase();
     const networkMode = (env.includes("test") || env.includes("t5")) ? "testnet" : "mainnet";
     const isTestnet = networkMode !== "mainnet";
-    if (isTestnet) return;
-    const doraUrl = `https://dora.coz.io/api/v1/neo3/mainnet/committee`;
+    if (isTestnet) {
+      candidateList.value = [];
+      candidatePubKey.value = '';
+      return;
+    }
+    const doraUrl = getDoraCommitteeUrl(NET_ENV.Mainnet);
     
     const candidates = await cachedRequest(
       `dora_committee_${networkMode}`,
@@ -206,10 +212,18 @@ async function loadCandidates() {
   }
 }
 
+function handleNetworkChange() {
+  txHash.value = '';
+  fetchBalance();
+  loadCandidates();
+}
+
 onMounted(() => {
   fetchBalance();
   loadCandidates();
-});
+  });
+
+useNetworkChange(handleNetworkChange);
 
 async function executeSponsoredTx() {
   if (!connectedAccount.value) return;

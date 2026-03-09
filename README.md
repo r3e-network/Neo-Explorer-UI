@@ -136,7 +136,7 @@ npx vercel --prod
 
 Optional build-time environment variable:
 
-- `VITE_RPC_BASE_URL` (optional fixed override; default uses the in-app network switch)
+- `VITE_RPC_BASE_URL` (optional RPC base override; leave unset to use the in-app network switch, or point it at `/api/mainnet` / `/api/testnet` to stay network-aware)
 - `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET` (optional Vite dev proxy overrides)
 - `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET` (optional Vite dev BPI proxy overrides)
 - `VITE_ENABLE_RPC_STARTUP_HEDGE` (optional; default `true`)

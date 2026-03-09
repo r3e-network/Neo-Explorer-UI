@@ -137,21 +137,30 @@ import { ref } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { supabaseService } from '@/services/supabaseService';
 import { getCurrentEnv } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
 
 const loading = ref(false);
 const successMsg = ref('');
 const errorMsg = ref('');
 
-const currentEnv = getCurrentEnv()?.toLowerCase() || 'mainnet';
-const initialNetwork = currentEnv.includes('test') || currentEnv.includes('t5') ? 'testnet' : 'mainnet';
+const resolveActiveNetwork = () => {
+  const currentEnv = getCurrentEnv()?.toLowerCase() || 'mainnet';
+  return currentEnv.includes('test') || currentEnv.includes('t5') ? 'testnet' : 'mainnet';
+};
 
 const form = ref({
-  network: initialNetwork,
+  network: resolveActiveNetwork(),
   alertType: 'consensus_stuck',
   threshold: 30,
   target: '',
   contact: ''
 });
+
+function handleNetworkChange() {
+  form.value.network = resolveActiveNetwork();
+}
+
+useNetworkChange(handleNetworkChange);
 
 const submitAlert = async () => {
   loading.value = true;

@@ -61,7 +61,7 @@ import { statsService, blockService, transactionService, searchService } from "@
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
-import { NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
@@ -598,12 +598,12 @@ onMounted(() => {
   void loadCommittee();
   loadData();
   startAutoRefresh();
-  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
 });
+
+useNetworkChange(handleNetworkChange);
 
 // Clean up network change listener (auto-refresh cleanup is handled by composable)
 onBeforeUnmount(() => {
-  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
 });
 </script>
 

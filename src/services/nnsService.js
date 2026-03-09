@@ -11,20 +11,45 @@ const INVALID_REQUEST_CODE = "-32600";
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
 
+const getMatrixContractHash = (env = getCurrentEnv()) =>
+    env === NET_ENV.TestT5
+        ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
+        : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
+
 const isInvalidRequestError = (error) => {
     const message = String(error?.message || "");
     return message.includes(INVALID_REQUEST_CODE) || message.includes("Invalid request");
 };
 
+const MAINNET_RPC_BRIDGE_PATTERN = /\/api\/mainnet(?:\/(primary|fallback))?$/i;
+
+const parseMainnetRpcBridgeBase = (value = getRpcApiBasePath(NET_ENV.Mainnet)) => {
+    const normalized = String(value || "").trim().replace(/\/+$/, "");
+    const matched = normalized.match(MAINNET_RPC_BRIDGE_PATTERN);
+    if (!matched) return null;
+
+    return {
+        normalized,
+        basePrefix: normalized.slice(0, matched.index),
+        endpoint: (matched[1] || "").toLowerCase() || null,
+    };
+};
+
 const shouldRetryResolveAgainstPrimary = (env) => {
     if (env !== NET_ENV.Mainnet) return false;
-    return String(getRpcApiBasePath() || "").endsWith("/api/mainnet/fallback");
+    return parseMainnetRpcBridgeBase()?.endpoint === "fallback";
+};
+
+const getMainnetRpcBridgeEndpoint = (endpoint = "primary") => {
+    const parsed = parseMainnetRpcBridgeBase();
+    if (!parsed) return `/api/mainnet/${endpoint}`;
+    return `${parsed.basePrefix}/api/mainnet/${endpoint}`;
 };
 
 const resolveDomainViaPrimary = async (domain) => {
     try {
         const response = await axios.post(
-            "/api/mainnet/primary",
+            getMainnetRpcBridgeEndpoint("primary"),
             {
                 jsonrpc: "2.0",
                 id: 1,
@@ -115,7 +140,6 @@ export const nnsService = {
     async resolveAddressToNNS(address) {
         if (!address) return null;
         const env = getCurrentEnv();
-        if (env !== NET_ENV.Mainnet) return null;
 
         const key = getCacheKey("nns_address_to_name", { address });
         return cachedRequest(
@@ -131,66 +155,68 @@ export const nnsService = {
                     // Ignore metadata read errors and continue to RPC fallback.
                 }
 
-                try {
-                    const result = await safeRpc("GetNNSNameByOwner", {
-                        Asset: NNS_CONTRACT_HASH,
-                        Owner: address
-                    }, []);
-
-                    if (Array.isArray(result) && result.length > 0) {
-                        const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
-                        if (activeDomain?.name) {
-                            return { nns: activeDomain.name };
-                        }
-                    }
-
-                    // Fallback to .matrix domain lookup via Transfers
+                if (env === NET_ENV.Mainnet) {
                     try {
-                        const scriptHash = wallet.getScriptHashFromAddress(address);
-                        const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
-                        
-                        if (transfersRes && Array.isArray(transfersRes.result)) {
-                            const MATRIX_CONTRACT_HASH = import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd";
-                            const matrixTransfers = transfersRes.result.filter(t => t.contract === MATRIX_CONTRACT_HASH);
-                            
-                            const tokenBalances = {};
-                            for (const t of matrixTransfers) {
-                                if (!t.tokenId) continue;
-                                if (!tokenBalances[t.tokenId]) tokenBalances[t.tokenId] = 0;
-                                if (t.to === scriptHash) tokenBalances[t.tokenId]++;
-                                if (t.from === scriptHash) tokenBalances[t.tokenId]--;
-                            }
-                            
-                            const ownedTokens = Object.entries(tokenBalances)
-                                .filter(([_, bal]) => bal > 0)
-                                .map(([id]) => id);
-                                
-                            if (ownedTokens.length > 0) {
-                                const domains = [];
-                                for (const b64Id of ownedTokens) {
-                                    try {
-                                        const decoded = atob(b64Id);
-                                        if (decoded.endsWith(MATRIX_SUFFIX)) domains.push({ name: decoded });
-                                    } catch(e) {
-                                    // Invalid base64 or other decode error, skip
-                                }
-                                }
-                                
-                                const activeMatrix = pickActiveDomain(domains, MATRIX_SUFFIX);
-                                if (activeMatrix?.name) {
-                                    return { nns: activeMatrix.name };
-                                }
+                        const result = await safeRpc("GetNNSNameByOwner", {
+                            Asset: NNS_CONTRACT_HASH,
+                            Owner: address
+                        }, []);
+
+                        if (Array.isArray(result) && result.length > 0) {
+                            const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
+                            if (activeDomain?.name) {
+                                return { nns: activeDomain.name };
                             }
                         }
-                    } catch (matrixErr) {
-                        if (import.meta.env.DEV) console.warn("Matrix fallback failed:", matrixErr);
+                    } catch (e) {
+                        if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
                     }
-
-                    return null;
-                } catch (e) {
-                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
-                    return null;
                 }
+
+                try {
+                    const scriptHash = wallet.getScriptHashFromAddress(address);
+                    const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
+                    
+                    if (transfersRes && Array.isArray(transfersRes.result)) {
+                        const matrixContractHash = String(getMatrixContractHash(env)).toLowerCase();
+                        const matrixTransfers = transfersRes.result.filter(
+                            (t) => String(t.contract || "").toLowerCase() === matrixContractHash
+                        );
+                        
+                        const tokenBalances = {};
+                        for (const t of matrixTransfers) {
+                            if (!t.tokenId) continue;
+                            if (!tokenBalances[t.tokenId]) tokenBalances[t.tokenId] = 0;
+                            if (t.to === scriptHash) tokenBalances[t.tokenId]++;
+                            if (t.from === scriptHash) tokenBalances[t.tokenId]--;
+                        }
+                        
+                        const ownedTokens = Object.entries(tokenBalances)
+                            .filter(([_, bal]) => bal > 0)
+                            .map(([id]) => id);
+                            
+                        if (ownedTokens.length > 0) {
+                            const domains = [];
+                            for (const b64Id of ownedTokens) {
+                                try {
+                                    const decoded = atob(b64Id);
+                                    if (decoded.endsWith(MATRIX_SUFFIX)) domains.push({ name: decoded });
+                                } catch(e) {
+                                // Invalid base64 or other decode error, skip
+                            }
+                            }
+                            
+                            const activeMatrix = pickActiveDomain(domains, MATRIX_SUFFIX);
+                            if (activeMatrix?.name) {
+                                return { nns: activeMatrix.name };
+                            }
+                        }
+                    }
+                } catch (matrixErr) {
+                    if (import.meta.env.DEV) console.warn("Matrix fallback failed:", matrixErr);
+                }
+
+                return null;
             },
             CACHE_TTL.chart // Cache for 5 mins
         );
@@ -296,9 +322,7 @@ export const nnsService = {
         if (!domain || !domain.endsWith(MATRIX_SUFFIX)) return null;
         const env = getCurrentEnv();
 
-        const MATRIX_CONTRACT_HASH = env === NET_ENV.TestT5
-          ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
-          : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
+        const MATRIX_CONTRACT_HASH = getMatrixContractHash(env);
 
         const key = getCacheKey("matrix_domain_to_address", { domain });
         return cachedRequest(

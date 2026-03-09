@@ -109,6 +109,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { supabaseService } from '@/services/supabaseService';
 import { getCurrentEnv, getNetworkRefreshIntervalMs } from '@/utils/env';
+import { useNetworkChange } from '@/composables/useNetworkChange';
 import { useNow } from '@vueuse/core';
 import { formatAge as _formatAge, formatGas } from '@/utils/explorerFormat';
 
@@ -117,10 +118,12 @@ const loading = ref(false);
 const searchQuery = ref('');
 let pollInterval = null;
 
-const currentNetwork = computed(() => {
+const resolveCurrentNetwork = () => {
   const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
   return env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
-});
+};
+
+const currentNetwork = ref(resolveCurrentNetwork());
 
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
@@ -153,10 +156,23 @@ const filteredTransactions = computed(() => {
   );
 });
 
+function restartPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(fetchMempool, getNetworkRefreshIntervalMs());
+}
+
+function handleNetworkChange() {
+  currentNetwork.value = resolveCurrentNetwork();
+  fetchMempool();
+  restartPolling();
+}
+
 onMounted(() => {
   fetchMempool();
-  pollInterval = setInterval(fetchMempool, getNetworkRefreshIntervalMs());
-});
+  restartPolling();
+  });
+
+useNetworkChange(handleNetworkChange);
 
 onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval);

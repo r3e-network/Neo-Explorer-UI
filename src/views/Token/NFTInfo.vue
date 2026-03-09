@@ -94,6 +94,7 @@ import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveImageUrl } from "@/utils/neoHelpers";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -147,6 +148,14 @@ async function loadNFT() {
 }
 
 // watch with immediate replaces the watch + created pattern
+function handleNetworkChange() {
+  if (contractHash.value && tokenId.value) {
+    loadNFT();
+  }
+}
+
+useNetworkChange(handleNetworkChange);
+
 watch(
   () => [contractHash.value, tokenId.value],
   () => loadNFT(),

@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/utils/explorerFormat", () => ({
   formatGas: (value) => String(value),
@@ -7,13 +7,27 @@ vi.mock("@/utils/explorerFormat", () => ({
   formatTime: () => "Thu, 01 Jan 1970 00:00:00 GMT",
 }));
 
+
+vi.mock("@/utils/healthCheck", () => ({
+  checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
+}));
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
     getContractMetadataBatch: vi.fn().mockResolvedValue({}),
   },
 }));
 
+let consoleWarnSpy;
+
 describe("TxOverviewTab", () => {
+  beforeEach(() => {
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleWarnSpy?.mockRestore();
+  });
+
   it("marks system fee as burned in red after the fee value", async () => {
     const TxOverviewTab = (await import("@/views/Transaction/components/TxOverviewTab.vue")).default;
     const wrapper = mount(TxOverviewTab, {
@@ -49,7 +63,7 @@ describe("TxOverviewTab", () => {
     expect(systemFeeRow.exists()).toBe(true);
     expect(systemFeeRow.text()).toContain("1 GAS");
     expect(systemFeeRow.text()).toContain("burned");
-    const burnedBadge = systemFeeRow.find('.text-red-600');
+    const burnedBadge = systemFeeRow.find(".text-red-600");
     expect(burnedBadge.exists()).toBe(true);
   });
 });

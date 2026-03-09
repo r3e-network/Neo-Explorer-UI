@@ -54,7 +54,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { blockService } from "@/services";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
-import { NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -340,11 +340,11 @@ function navigateBlock(height) {
 
 onMounted(() => {
   startAutoRefresh();
-  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
 });
 
+useNetworkChange(handleNetworkChange);
+
 onBeforeUnmount(() => {
-  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
   abortController.value?.abort();
 });
 
