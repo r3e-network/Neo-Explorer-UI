@@ -2,6 +2,22 @@
 
 All notable changes to Neo Explorer UI will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed network switching across explorer pages, detail views, and tool workflows.
+- Fixed configured RPC base URL rewriting and failover to stay aligned with the active explorer network.
+- Fixed stale Supabase metadata and multisig/governance request data leaking across mainnet and testnet.
+- Fixed Web3Auth network reinitialization and Web3Auth wallet signing to use RPC-derived network magic.
+- Fixed listener lifecycle cleanup for shared network-change handlers.
+
+### Changed
+
+- Added a shared `useNetworkChange` composable for consistent network-switch event handling.
+- Added shared request-network normalization helpers for governance and multisig tools.
+- Updated development docs with network-switching conventions and refreshed build/test baseline notes.
+
 ## [1.1.0] - 2026-02-19
 
 ### Added
