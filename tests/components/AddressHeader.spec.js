@@ -1,12 +1,13 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
 import AddressHeader from "@/views/Account/components/AddressHeader.vue";
 import { formatTokenAmount } from "@/utils/gasFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
-const { getAddressTag, getContractMetadata } = vi.hoisted(() => ({
+const { getAddressTag, getContractMetadata, resolveAddressToNNS } = vi.hoisted(() => ({
   getAddressTag: vi.fn().mockResolvedValue(null),
   getContractMetadata: vi.fn().mockResolvedValue(null),
+  resolveAddressToNNS: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("@/services/supabaseService", () => ({
@@ -18,7 +19,7 @@ vi.mock("@/services/supabaseService", () => ({
 
 vi.mock("@/services/nnsService", () => ({
   default: {
-    resolveAddressToNNS: vi.fn().mockResolvedValue(null),
+    resolveAddressToNNS,
   },
 }));
 
@@ -73,6 +74,34 @@ describe("AddressHeader", () => {
     expect(wrapper.text()).toContain("Neo Name Service");
     const logo = wrapper.find('img[alt="Neo Name Service"]');
     expect(logo.exists()).toBe(true);
+  });
+
+  it("shows resolved NNS for contract address pages", async () => {
+    resolveAddressToNNS.mockResolvedValueOnce({ nns: "oracle.morpheus.neo" });
+    const contractHash = "0x017520f068fd602082fe5572596185e62a4ad991";
+
+    const wrapper = mount(AddressHeader, {
+      props: {
+        address: scriptHashToAddress(contractHash),
+        isContract: true,
+        showQr: false,
+        neoBalance: "0",
+        gasBalance: "0",
+        txCount: 0,
+        tokenCount: 0,
+        candidateData: null,
+      },
+      global: {
+        stubs: {
+          CopyButton: true,
+          QrcodeVue: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("oracle.morpheus.neo");
   });
 
 });

@@ -158,6 +158,15 @@ const normalizeHash160 = (value) => {
   return "";
 };
 
+const reverseHash160 = (value) => {
+  const normalized = normalizeHash160(value);
+  if (!normalized) return "";
+  const clean = normalized.replace(/^0x/i, "");
+  const pairs = clean.match(/.{2}/g) || [];
+  if (!pairs.length) return "";
+  return `0x${pairs.reverse().join("")}`;
+};
+
 const addressScriptHash = computed(() => {
   if (props.type !== "address") return "";
   return normalizeHash160(addressToScriptHash(normalizedAddressHash.value || props.hash) || normalizedAddressHash.value || props.hash);
@@ -191,6 +200,7 @@ const knownName = computed(() => {
     return getKnownAddressName(normalizedAddressHash.value) || null;
   }
   if (props.type === "contract" || props.type === "token") {
+    if (nnsName.value) return nnsName.value;
     const hash = props.hash.toLowerCase();
     const native = NATIVE_CONTRACTS[hash];
     if (native && native.name) return native.name;
@@ -203,6 +213,9 @@ const knownName = computed(() => {
 const knownLogo = computed(() => {
   if (!props.hash) return null;
   if (props.type === "contract" || props.type === "token") {
+    if (nnsName.value) {
+      return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
+    }
     const hash = props.hash.toLowerCase();
     const native = NATIVE_CONTRACTS[hash];
 
@@ -332,7 +345,10 @@ const addressLogo = computed(() => {
     return contractLogo;
   }
 
-  if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {
+  if (
+    addressDomainAlias.value.endsWith(".neo") ||
+    addressDomainAlias.value.endsWith(".matrix")
+  ) {
     return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
   }
 
@@ -370,7 +386,13 @@ watch(
 
       if (addressScriptHash.value) {
         try {
-          const contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value);
+          let contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value);
+          if (!contractMetadata) {
+            const reversedHash = reverseHash160(addressScriptHash.value);
+            if (reversedHash && reversedHash !== addressScriptHash.value) {
+              contractMetadata = await supabaseService.getContractMetadata(reversedHash);
+            }
+          }
           if (contractMetadata) {
             addressContractMetadata.value = contractMetadata;
           }
@@ -407,6 +429,25 @@ watch(
     if ((type === "contract" || type === "token") && newHash && !knownName.value) {
       const hash = newHash.startsWith('0x') ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
       try {
+        const metadata = await supabaseService.getAddressTag(hash);
+        if (metadata) {
+          const activeDomain = getActiveDomainFromAddressMetadata(metadata);
+          if (activeDomain) {
+            nnsName.value = activeDomain;
+          }
+        }
+      } catch (_err) {
+        // Ignore metadata lookup failure.
+      }
+
+      if (resolveNns && !nnsName.value) {
+        const res = await nnsService.resolveAddressToNNS(hash);
+        if (res && res.nns) {
+          nnsName.value = res.nns;
+        }
+      }
+
+      try {
         const cachedMeta = await supabaseService.getContractMetadata(hash);
         if (cachedMeta?.name || cachedMeta?.display_name) {
           fetchedContractName.value = cachedMeta.display_name || cachedMeta.name;
@@ -418,11 +459,9 @@ watch(
           return;
         }
 
-        let contract = await contractService.getByHash(hash);
-        if (!contract || !contract.name) {
-          // Try reversing the hash (endianness fallback)
-          const cleanHash = hash.replace(/^0x/i, '');
-          const reversed = '0x' + (cleanHash.match(/.{2}/g) || []).reverse().join('');
+        const cleanHash = hash.replace(/^0x/i, '');
+        const reversed = '0x' + (cleanHash.match(/.{2}/g) || []).reverse().join('');
+        if (reversed !== hash) {
           const reversedMeta = await supabaseService.getContractMetadata(reversed);
           if (reversedMeta?.name || reversedMeta?.display_name) {
             fetchedContractName.value = reversedMeta.display_name || reversedMeta.name;
@@ -433,6 +472,10 @@ watch(
           if (fetchedContractName.value) {
             return;
           }
+        }
+
+        let contract = await contractService.getByHash(hash);
+        if (!contract || !contract.name) {
           contract = await contractService.getByHash(reversed);
         }
         if (contract && contract.name) {

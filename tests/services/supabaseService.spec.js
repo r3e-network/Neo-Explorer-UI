@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const createClientMock = vi.hoisted(() => vi.fn(() => null));
 
@@ -137,5 +138,53 @@ describe("supabaseService metadata", () => {
     expect(table.inMock).toHaveBeenCalledWith("address", ["Nabc"]);
     expect(table.query.eq).toHaveBeenCalledWith("network", "testnet");
     expect(result.Nabc?.label).toBe("Testnet Label");
+  });
+
+  it("maps script-hash metadata rows back to the requested base58 address", async () => {
+    const scriptHash = "0x017520f068fd602082fe5572596185e62a4ad991";
+    const address = scriptHashToAddress(scriptHash);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              address: scriptHash,
+              nns_domain: "oracle.morpheus.neo",
+              nns_expiration_ms: Date.now() + 60_000,
+            },
+          ],
+        }),
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
+
+    expect(result[address]?.nns_domain).toBe("oracle.morpheus.neo");
+  });
+
+  it("collapses duplicated nns domains from metadata payloads", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              address: "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
+              nns_domain: "pricefeed.morpheus.neopricefeed.morpheus.neo",
+              nns_expiration_ms: Date.now() + 60_000,
+            },
+          ],
+        }),
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTag("0x03013f49c42a14546c8bbe58f9d434c3517fccab", "mainnet");
+
+    expect(result?.nns_domain).toBe("pricefeed.morpheus.neo");
   });
 });

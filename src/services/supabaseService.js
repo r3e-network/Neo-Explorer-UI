@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
+import { addressToScriptHash } from "@/utils/neoHelpers";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -28,6 +29,25 @@ const normalizeContractHash = (hash) => {
 };
 
 const normalizeAddressKey = (address) => String(address || "").trim();
+
+const normalizeNnsDomain = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  const half = raw.length / 2;
+  if (Number.isInteger(half) && raw.slice(0, half) === raw.slice(half)) {
+    return raw.slice(0, half);
+  }
+  return raw;
+};
+
+const expandAddressLookupKeys = (address) => {
+  const normalized = normalizeAddressKey(address);
+  if (!normalized) return [];
+  const keys = new Set([normalized]);
+  const scriptHash = normalizeContractHash(addressToScriptHash(normalized));
+  if (scriptHash) keys.add(scriptHash);
+  return [...keys];
+};
 
 const getNetworkMode = (networkMode) => toNetworkMode(networkMode);
 
@@ -88,7 +108,7 @@ const normalizeAddressMetadata = (item = {}) => {
   const address = normalizeAddressKey(item.address);
   if (!address) return null;
   const tags = Array.isArray(item.tags) ? item.tags : [];
-  const nnsDomain = String(item.nns_domain || item.nnsDomain || "").trim().toLowerCase();
+  const nnsDomain = normalizeNnsDomain(item.nns_domain || item.nnsDomain);
   let nnsExpirationMS = Number(
     item.nns_expiration_ms ?? item.nnsExpirationMS ?? item.nns_expiration ?? item.nnsExpiration ?? 0
   );
@@ -266,7 +286,19 @@ export const supabaseService = {
     if (!addresses || !addresses.length) return {};
     const network = getNetworkMode(networkMode);
     const uniqueAddrs = [...new Set(addresses.map((a) => normalizeAddressKey(a)).filter(Boolean))];
-    const toFetch = uniqueAddrs.filter((addr) => getAddressTagCacheEntry(network, addr) === undefined);
+    const requestedAliases = new Map();
+    const expandedAddresses = [];
+    for (const addr of uniqueAddrs) {
+      const aliases = expandAddressLookupKeys(addr);
+      for (const alias of aliases) {
+        expandedAddresses.push(alias);
+        const items = requestedAliases.get(alias) || [];
+        items.push(addr);
+        requestedAliases.set(alias, items);
+      }
+    }
+    const queryAddresses = [...new Set(expandedAddresses)];
+    const toFetch = queryAddresses.filter((addr) => getAddressTagCacheEntry(network, addr) === undefined);
 
     if (toFetch.length > 0) {
       let loadedFromIndexer = false;
@@ -285,6 +317,8 @@ export const supabaseService = {
           const normalized = normalizeAddressMetadata(item);
           if (!normalized) return;
           setAddressTagCacheEntry(network, normalized.address, normalized);
+          const aliases = requestedAliases.get(normalized.address) || [];
+          aliases.forEach((alias) => setAddressTagCacheEntry(network, alias, normalized));
         });
         loadedFromIndexer = true;
       } catch (err) {
@@ -308,6 +342,8 @@ export const supabaseService = {
               const normalized = normalizeAddressMetadata(item);
               if (!normalized) return;
               setAddressTagCacheEntry(network, normalized.address, normalized);
+              const aliases = requestedAliases.get(normalized.address) || [];
+              aliases.forEach((alias) => setAddressTagCacheEntry(network, alias, normalized));
             });
           }
         } catch (err) {

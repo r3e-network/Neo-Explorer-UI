@@ -175,8 +175,12 @@ watch(() => props.address, async (newAddr) => {
 
   if (!newAddr) return;
 
+  const lookupTarget = props.isContract
+    ? normalizeContractHash(addressToScriptHash(newAddr)) || newAddr
+    : newAddr;
+
   try {
-    const tagData = await supabaseService.getAddressTag(newAddr);
+    const tagData = await supabaseService.getAddressTag(lookupTarget);
     if (tagData) {
       publicTag.value = tagData.label;
       publicTagLogo.value = tagData.logo_url || "";
@@ -264,8 +268,11 @@ watch(
   () => props.address,
   async (newAddr) => {
     nnsName.value = "";
-    if (newAddr && !props.isContract && !knownName.value) {
-      const res = await nnsService.resolveAddressToNNS(newAddr);
+    const lookupTarget = props.isContract
+      ? normalizeContractHash(addressToScriptHash(newAddr))
+      : newAddr;
+    if (lookupTarget && !knownName.value) {
+      const res = await nnsService.resolveAddressToNNS(lookupTarget);
       if (res && res.nns) {
         nnsName.value = res.nns;
       }

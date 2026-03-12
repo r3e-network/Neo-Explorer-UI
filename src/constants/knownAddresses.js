@@ -78,6 +78,7 @@ export const KNOWN_ADDRESSES = {
   "NhkVeDbeZc6So1LbzhAt9KNH8A9yuPEhDS": "Nash.io",
   "NhRDsXGjsdbzXNTpA4tRfHPRgCE3GRk6Cg": "chainnode",
   "Nc8EimiHubCEX329XAnVFsS15yzwdnRYj1": "GhostMarket",
+  "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32": "MorpheusOracle",
   "NfiCaZsXmDZHy4LHoZXGdLdz9yeUhTFGw9": "NGD3",
   "NSLuC9wGAkTaHYC87mXR4xynLcitGBwRbN": "NGD2",
   "NYKMfwzN1PdFK4i172zUWPXjWDBzCg1YrV": "NGD1",

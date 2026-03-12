@@ -128,23 +128,44 @@ describe("HashLink", () => {
     expect(resolveAddressToNNS).toHaveBeenCalledWith(UNKNOWN_ADDRESS);
   });
 
-  it("dynamically resolves missing contract names and falls back to reverse-endian", async () => {
-    // Return null for normal endian, return mock for reverse-endian
-    getByHash.mockImplementation(async (hash) => {
-      if (hash === "0x11223344") return null;
-      if (hash === "0x44332211") return { name: "ReverseEndianContract" };
-      return null;
+  it("resolves NNS for contract links and prefers the domain label", async () => {
+    getAddressTag.mockResolvedValueOnce({
+      nns_domain: "oracle.morpheus.neo",
+      nns_expiration_ms: Date.now() + 60_000,
+    });
+    getContractMetadata.mockResolvedValueOnce({
+      display_name: "Morpheus Oracle",
     });
 
     const wrapper = mountHashLink({
-      hash: "0x11223344",
+      hash: "0x017520f068fd602082fe5572596185e62a4ad991",
       type: "contract",
     });
 
     await flushPromises();
-    expect(getByHash).toHaveBeenCalledTimes(2);
-    expect(getByHash).toHaveBeenNthCalledWith(1, "0x11223344");
-    expect(getByHash).toHaveBeenNthCalledWith(2, "0x44332211");
+
+    expect(wrapper.text()).toContain("oracle.morpheus.neo");
+    expect(wrapper.text()).not.toContain("Morpheus Oracle");
+  });
+
+  it("dynamically resolves missing contract names and falls back to reverse-endian", async () => {
+    const contractHash = "0x1122334411223344112233441122334411223344";
+    const reversedHash = "0x4433221144332211443322114433221144332211";
+
+    getContractMetadata.mockImplementation(async (hash) => {
+      if (hash === contractHash) return null;
+      if (hash === reversedHash) return { display_name: "ReverseEndianContract" };
+      return null;
+    });
+
+    const wrapper = mountHashLink({
+      hash: contractHash,
+      type: "contract",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    await flushPromises();
     expect(wrapper.text()).toContain("ReverseEndianContract");
   });
 
@@ -157,6 +178,17 @@ describe("HashLink", () => {
 
     await flushPromises();
     expect(wrapper.text()).toContain("COZ");
+  });
+
+  it("shows known address name for Morpheus sender script hash", async () => {
+    const wrapper = mountHashLink({
+      hash: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain("MorpheusOracle");
   });
 
   it("routes known script-hash addresses to canonical account address", async () => {

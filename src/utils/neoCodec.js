@@ -8,6 +8,8 @@
  */
 import { scriptHashBase64ToAddress } from "@/utils/neoHelpers";
 
+const HASH160_TEXT = /^0x[0-9a-fA-F]{40}$/;
+
 /**
  * Convert a base64-encoded 20-byte script hash to a Neo N3 address (N...).
  * @param {string} base64ScriptHash - Base64-encoded script hash
@@ -124,6 +126,13 @@ export function decodeStackItem(stackItem, depth = 0) {
       // Try as readable UTF-8
       const utf8 = base64ToUtf8(value);
       if (utf8) {
+        if (HASH160_TEXT.test(utf8)) {
+          const normalized = utf8.toLowerCase();
+          result.type = "Hash160";
+          result.decodedValue = normalized;
+          result.displayValue = normalized;
+          break;
+        }
         result.decodedValue = utf8;
         result.displayValue = utf8;
         break;

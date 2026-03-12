@@ -157,4 +157,46 @@ describe("nnsService.resolveDomain", () => {
     expect(resolved).toEqual({ nns: "alice.matrix" });
   });
 
+  it("resolves hash160 targets via admin lookup when owner lookup is empty", async () => {
+    currentEnv = "Mainnet";
+    getAddressTag.mockResolvedValueOnce(null);
+    const targetHash = "0x1111111111111111111111111111111111111111";
+
+    safeRpc.mockImplementation(async (method) => {
+      if (method === "GetNNSNameByOwner") return [];
+      if (method === "GetNNSNameByAdmin") {
+        return [
+          {
+            name: "oracle.morpheus.neo",
+            expiration: Date.now() + 60_000,
+          },
+        ];
+      }
+      return [];
+    });
+
+    const { default: nnsService } = await import("../../src/services/nnsService.js");
+    const resolved = await nnsService.resolveAddressToNNS(targetHash);
+
+    expect(safeRpc).toHaveBeenNthCalledWith(
+      1,
+      "GetNNSNameByOwner",
+      {
+        Asset: "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+        Owner: targetHash,
+      },
+      []
+    );
+    expect(safeRpc).toHaveBeenNthCalledWith(
+      2,
+      "GetNNSNameByAdmin",
+      {
+        Asset: "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+        Admin: targetHash,
+      },
+      []
+    );
+    expect(resolved).toEqual({ nns: "oracle.morpheus.neo" });
+  });
+
 });

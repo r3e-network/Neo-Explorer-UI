@@ -5,6 +5,7 @@ import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
 import { rpc as neonRpc, sc, wallet } from "@cityofzion/neon-js";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
+import { normalizeHash160 } from "@/utils/walletNormalization";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
 const INVALID_REQUEST_CODE = "-32600";
@@ -65,6 +66,31 @@ const resolveDomainViaPrimary = async (domain) => {
 };
 
 const normalizeDomainName = (value) => String(value || "").trim().toLowerCase();
+
+const normalizeHash160WithPrefix = (value) => {
+    const normalized = String(normalizeHash160(value) || "").trim().toLowerCase();
+    if (!normalized) return "";
+    if (/^0x[0-9a-f]{40}$/.test(normalized)) return normalized;
+    if (/^[0-9a-f]{40}$/.test(normalized)) return `0x${normalized}`;
+    return "";
+};
+
+const normalizeHashLookupValue = (value) => {
+    const hash = normalizeHash160WithPrefix(value);
+    if (hash) return hash;
+    return String(value || "").trim().toLowerCase();
+};
+
+const extractResolvedTarget = (value) => {
+    const hash = normalizeHash160WithPrefix(value);
+    if (hash) return hash;
+
+    const text = String(value || "").trim();
+    if (text.length === 34 && text.startsWith("N")) {
+        return text;
+    }
+    return null;
+};
 
 const normalizeExpirationMs = (raw) => {
     const candidates = [
@@ -139,42 +165,71 @@ export const nnsService = {
      */
     async resolveAddressToNNS(address) {
         if (!address) return null;
+        const target = String(address || "").trim();
+        if (!target) return null;
         const env = getCurrentEnv();
+        const normalizedHash = normalizeHash160WithPrefix(target);
+        const lookupTargets = [...new Set([target, normalizedHash].filter(Boolean))];
 
-        const key = getCacheKey("nns_address_to_name", { address });
+        const key = getCacheKey("nns_address_to_name", { address: target });
         return cachedRequest(
             key,
             async () => {
-                try {
-                    const metadata = await supabaseService.getAddressTag(address, env);
-                    const cachedDomain = getActiveDomainFromMetadata(metadata);
-                    if (cachedDomain) {
-                        return { nns: cachedDomain };
+                for (const lookupTarget of lookupTargets) {
+                    try {
+                        const metadata = await supabaseService.getAddressTag(lookupTarget, env);
+                        const cachedDomain = getActiveDomainFromMetadata(metadata);
+                        if (cachedDomain) {
+                            return { nns: cachedDomain };
+                        }
+                    } catch (_metadataErr) {
+                        // Ignore metadata read errors and continue to RPC fallback.
                     }
-                } catch (_metadataErr) {
-                    // Ignore metadata read errors and continue to RPC fallback.
                 }
 
                 if (env === NET_ENV.Mainnet) {
-                    try {
-                        const result = await safeRpc("GetNNSNameByOwner", {
-                            Asset: NNS_CONTRACT_HASH,
-                            Owner: address
-                        }, []);
+                    for (const lookupTarget of lookupTargets) {
+                        try {
+                            const result = await safeRpc("GetNNSNameByOwner", {
+                                Asset: NNS_CONTRACT_HASH,
+                                Owner: lookupTarget
+                            }, []);
 
-                        if (Array.isArray(result) && result.length > 0) {
-                            const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
-                            if (activeDomain?.name) {
-                                return { nns: activeDomain.name };
+                            if (Array.isArray(result) && result.length > 0) {
+                                const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
+                                if (activeDomain?.name) {
+                                    return { nns: activeDomain.name };
+                                }
                             }
+                        } catch (e) {
+                            if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", lookupTarget, e);
                         }
-                    } catch (e) {
-                        if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", address, e);
+                    }
+
+                    if (normalizedHash) {
+                        try {
+                            const adminDomains = await safeRpc("GetNNSNameByAdmin", {
+                                Asset: NNS_CONTRACT_HASH,
+                                Admin: normalizedHash,
+                            }, []);
+
+                            if (Array.isArray(adminDomains) && adminDomains.length > 0) {
+                                const activeDomain = pickActiveDomain(adminDomains, NNS_SUFFIX);
+                                if (activeDomain?.name) {
+                                    return { nns: activeDomain.name };
+                                }
+                            }
+                        } catch (e) {
+                            if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile by admin:", normalizedHash, e);
+                        }
                     }
                 }
 
                 try {
-                    const scriptHash = wallet.getScriptHashFromAddress(address);
+                    const scriptHash =
+                        normalizedHash ||
+                        normalizeHashLookupValue(wallet.getScriptHashFromAddress(target));
+                    if (!scriptHash) return null;
                     const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
                     
                     if (transfersRes && Array.isArray(transfersRes.result)) {
@@ -187,8 +242,8 @@ export const nnsService = {
                         for (const t of matrixTransfers) {
                             if (!t.tokenId) continue;
                             if (!tokenBalances[t.tokenId]) tokenBalances[t.tokenId] = 0;
-                            if (t.to === scriptHash) tokenBalances[t.tokenId]++;
-                            if (t.from === scriptHash) tokenBalances[t.tokenId]--;
+                            if (normalizeHashLookupValue(t.to) === scriptHash) tokenBalances[t.tokenId]++;
+                            if (normalizeHashLookupValue(t.from) === scriptHash) tokenBalances[t.tokenId]--;
                         }
                         
                         const ownedTokens = Object.entries(tokenBalances)
@@ -265,18 +320,19 @@ export const nnsService = {
             async () => {
                 try {
                     const resolveResult = await rpc("GetNNSResolve", { Domain: domain });
-                    const resolvedAddress =
+                    const resolvedAddress = extractResolvedTarget(
                         (typeof resolveResult === "string" ? resolveResult : null) ||
                         resolveResult?.address ||
                         resolveResult?.result?.address ||
-                        null;
+                        null
+                    );
 
                     if (resolvedAddress) {
                         return resolvedAddress;
                     }
                 } catch (e) {
                     if (isInvalidRequestError(e) && shouldRetryResolveAgainstPrimary(env)) {
-                        const primaryResolved = await resolveDomainViaPrimary(domain);
+                        const primaryResolved = extractResolvedTarget(await resolveDomainViaPrimary(domain));
                         if (primaryResolved) return primaryResolved;
                     }
 
@@ -299,8 +355,9 @@ export const nnsService = {
                       const item = res.stack[0];
                       if (item.type === "ByteString" && item.value) {
                          const decoded = atob(item.value);
-                         if (decoded && decoded.length === 34 && decoded.startsWith("N")) {
-                            return decoded;
+                         const resolvedTarget = extractResolvedTarget(decoded);
+                         if (resolvedTarget) {
+                            return resolvedTarget;
                          }
                       }
                     }
