@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import TxListItem from "@/components/common/TxListItem.vue";
 import { NEO_HASH } from "@/constants";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const { resolveAddressToNNS, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
@@ -90,6 +91,59 @@ describe("TxListItem", () => {
 
     expect(wrapper.text()).toContain("NeoToken");
     expect(wrapper.text()).not.toContain("Contract Call");
+  });
+
+  it("renders Morpheus sender alias and collapses duplicated NNS recipient labels", async () => {
+    const contractHash = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
+    const contractAddress = scriptHashToAddress(contractHash);
+    getAddressTag.mockImplementation(async (address) => {
+      if (address === contractHash || address === contractAddress) {
+        return {
+          address,
+          nns_domain: "pricefeed.morpheus.neopricefeed.morpheus.neo",
+          nns_expiration_ms: Date.now() + 60_000,
+        };
+      }
+      return null;
+    });
+
+    const wrapper = mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0x5f21212121212121212121212121212121212121212121212121212121a8a3",
+          blocktime: Date.now(),
+          sender: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          netfee: 0,
+          sysfee: 0,
+        },
+        transferSummary: {
+          text: "1 OracleResponse",
+          contract: contractHash,
+          type: "NEP17",
+          targetCount: 1,
+          recipient: contractHash,
+          recipientType: "address",
+          singleTarget: true,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const text = wrapper.text();
+    expect(text).toContain("MorpheusOracle");
+    expect(text).toContain("pricefeed.morpheus.neo");
+    expect(text).not.toContain("pricefeed.morpheus.neopricefeed.morpheus.neo");
   });
 
   it("uses receiver field as recipient fallback when tx.to is missing", () => {

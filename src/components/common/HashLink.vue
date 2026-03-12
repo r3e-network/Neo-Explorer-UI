@@ -121,10 +121,20 @@ const normalizeExpirationMs = (raw) => {
   return value < 1_000_000_000_000 ? value * 1000 : value;
 };
 
+const normalizeDomainAlias = (value) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  const half = raw.length / 2;
+  if (Number.isInteger(half) && raw.slice(0, half) === raw.slice(half)) {
+    return raw.slice(0, half);
+  }
+  return raw;
+};
+
 const getActiveDomainFromAddressMetadata = (metadata) => {
   if (!metadata || typeof metadata !== "object") return "";
 
-  const domain = String(metadata.nns_domain || metadata.nnsDomain || "").trim().toLowerCase();
+  const domain = normalizeDomainAlias(metadata.nns_domain || metadata.nnsDomain);
   if (!domain) return "";
 
   if (domain.endsWith(".matrix")) {

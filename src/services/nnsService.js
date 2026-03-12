@@ -65,7 +65,15 @@ const resolveDomainViaPrimary = async (domain) => {
     }
 };
 
-const normalizeDomainName = (value) => String(value || "").trim().toLowerCase();
+const normalizeDomainName = (value) => {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw) return "";
+    const half = raw.length / 2;
+    if (Number.isInteger(half) && raw.slice(0, half) === raw.slice(half)) {
+        return raw.slice(0, half);
+    }
+    return raw;
+};
 
 const normalizeHash160WithPrefix = (value) => {
     const normalized = String(normalizeHash160(value) || "").trim().toLowerCase();
