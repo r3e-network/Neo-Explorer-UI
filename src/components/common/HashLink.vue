@@ -11,7 +11,8 @@
           v-if="addressLogo"
           :src="addressLogo"
           class="w-3.5 h-3.5 rounded-full object-cover bg-white"
-          :alt="addressAlias"
+          alt=""
+          aria-hidden="true"
         />
         <span class="truncate">{{ addressAlias }}</span>
       </router-link>
@@ -32,7 +33,8 @@
             v-if="addressLogo"
             :src="addressLogo"
             class="w-3.5 h-3.5 rounded-full object-cover bg-white"
-            :alt="addressAlias"
+            alt=""
+            aria-hidden="true"
           />
           {{ addressAlias }}
         </span>
@@ -266,8 +268,11 @@ const addressMetadataAlias = computed(() => {
   const alias = String(meta.display_name || meta.label || "").trim();
   if (!alias) return "";
 
-  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
-  if (alias === normalized) return "";
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAlias = alias.toLowerCase();
+  if (normalizedAlias === normalizedAddress) return "";
+  if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
   return alias;
 });
 
@@ -277,8 +282,11 @@ const addressCandidateAlias = computed(() => {
   const alias = String(candidateMetadata.value?.display_name || candidateMetadata.value?.name || "").trim();
   if (!alias) return "";
 
-  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
-  if (alias === normalized) return "";
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAlias = alias.toLowerCase();
+  if (normalizedAlias === normalizedAddress) return "";
+  if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
   return alias;
 });
 
@@ -297,8 +305,11 @@ const addressContractAlias = computed(() => {
   const alias = String(addressContractMetadata.value?.display_name || addressContractMetadata.value?.name || "").trim();
   if (!alias) return "";
 
-  const normalized = String(normalizedAddressHash.value || props.hash || "").trim();
-  if (alias === normalized) return "";
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAlias = alias.toLowerCase();
+  if (normalizedAlias === normalizedAddress) return "";
+  if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
   return alias;
 });
 

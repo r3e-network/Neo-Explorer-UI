@@ -180,6 +180,23 @@ describe("HashLink", () => {
     expect(wrapper.text()).toContain("COZ");
   });
 
+  it("ignores metadata aliases that only repeat the same script hash", async () => {
+    getAddressTag.mockResolvedValueOnce({
+      address: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      display_name: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+    });
+
+    const wrapper = mountHashLink({
+      hash: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      type: "address",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    expect(wrapper.text()).toContain("MorpheusOracle");
+    expect(wrapper.text()).not.toContain("0x6d0656f6dd91469db1c90cc1e574380613f43738");
+  });
+
   it("shows known address name for Morpheus sender script hash", async () => {
     const wrapper = mountHashLink({
       hash: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
