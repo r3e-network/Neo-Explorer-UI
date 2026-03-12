@@ -81,7 +81,7 @@ const MAX_DECODE_DEPTH = 10;
  * @param {number} depth - Current recursion depth (internal use)
  * @returns {{ type: string, rawValue: *, decodedValue: string, displayValue: string }}
  */
-export function decodeStackItem(stackItem, depth = 0) {
+export function decodeStackItem(stackItem, depth = 0, options = {}) {
   if (!stackItem) return { type: "Any", rawValue: null, decodedValue: "null", displayValue: "null" };
 
   if (depth >= MAX_DECODE_DEPTH) {
@@ -94,6 +94,9 @@ export function decodeStackItem(stackItem, depth = 0) {
   }
 
   const { type, value } = stackItem;
+  const abiType = String(options?.abiType || "").trim().toLowerCase();
+  const preserveByteStringSemantics =
+    abiType === "bytestring" || abiType === "bytearray" || abiType === "string";
   const result = { type, originalType: type, rawValue: value, decodedValue: "", displayValue: "" };
 
   switch (type) {
@@ -114,7 +117,7 @@ export function decodeStackItem(stackItem, depth = 0) {
         break;
       }
       // Try as Neo address (20-byte script hash)
-      if (isScriptHash(value)) {
+      if (!preserveByteStringSemantics && isScriptHash(value)) {
         const addr = scriptHashToAddress(value);
         if (addr) {
           result.type = "Hash160";
@@ -126,7 +129,7 @@ export function decodeStackItem(stackItem, depth = 0) {
       // Try as readable UTF-8
       const utf8 = base64ToUtf8(value);
       if (utf8) {
-        if (HASH160_TEXT.test(utf8)) {
+        if (!preserveByteStringSemantics && HASH160_TEXT.test(utf8)) {
           const normalized = utf8.toLowerCase();
           result.type = "Hash160";
           result.decodedValue = normalized;
@@ -217,12 +220,12 @@ export function decodeNotificationParams(state, eventDef = null) {
   const abiParams = eventDef?.parameters ?? [];
 
   return rawItems.map((item, i) => {
-    const decoded = decodeStackItem(item);
     const abiParam = abiParams[i];
+    const decoded = decodeStackItem(item, 0, { abiType: abiParam?.type });
     return {
       index: i,
       name: abiParam?.name ?? null,
-      type: decoded.type,
+      type: abiParam?.type ?? decoded.type,
       decoded,
     };
   });
