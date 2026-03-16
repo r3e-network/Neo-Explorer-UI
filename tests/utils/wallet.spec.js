@@ -125,6 +125,37 @@ describe("utils/wallet connectWallet", () => {
     );
   });
 
+  it("does not expose a stored NeoLine address before session rehydration succeeds", async () => {
+    const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    let resolveAccount;
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getAccount: vi.fn().mockImplementation(
+            () =>
+              new Promise((resolve) => {
+                resolveAccount = resolve;
+              })
+          ),
+        };
+      },
+    };
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
+
+    const wallet = await import("@/utils/wallet");
+    const initPromise = wallet.initWallet();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(wallet.connectedAccount.value).toBe("");
+
+    resolveAccount({ address, label: "NeoLine" });
+    await initPromise;
+
+    expect(wallet.connectedAccount.value).toBe(address);
+  });
+
   it("rehydrates walletService for a restored O3 session", async () => {
     const address = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
     window.neo3Dapi = {

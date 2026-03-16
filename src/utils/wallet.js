@@ -11,7 +11,7 @@ function getStoredWalletAddress() {
     return sessionStorage.getItem("connectedWallet") || localStorage.getItem("connectedWallet") || "";
 }
 
-export const connectedAccount = ref(getStoredWalletAddress());
+export const connectedAccount = ref("");
 
 function clearStoredWalletState() {
     connectedAccount.value = "";
@@ -56,10 +56,17 @@ function setupNeoLineEventListeners() {
 export async function initWallet() {
     if (typeof window === "undefined") return;
 
-    // Attempt generic reconnect if we had an active session stored
+    const storedAddress = getStoredWalletAddress();
     const provider = getStoredWalletProvider();
+    if (!storedAddress || !provider) {
+        clearStoredWalletState();
+        return;
+    }
 
-    if (connectedAccount.value && provider === "NeoLine") {
+    // Don't expose a stored wallet as connected until the provider session is revalidated.
+    connectedAccount.value = "";
+
+    if (provider === "NeoLine") {
         const hasNeoLine = await waitForNeoLineN3(1000);
         if (!hasNeoLine) {
             clearStoredWalletState();
@@ -83,7 +90,7 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && provider === "O3") {
+    } else if (provider === "O3") {
         if (!window.neo3Dapi) {
             clearStoredWalletState();
             return;
@@ -104,9 +111,9 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && provider === walletService.PROVIDERS.WALLETCONNECT) {
+    } else if (provider === walletService.PROVIDERS.WALLETCONNECT) {
         clearStoredWalletState();
-    } else if (connectedAccount.value && provider === walletService.PROVIDERS.TESTNET_WIF) {
+    } else if (provider === walletService.PROVIDERS.TESTNET_WIF) {
         try {
             const wif = sessionStorage.getItem("devTestWif") || "";
             const account = await walletService.restoreSession(walletService.PROVIDERS.TESTNET_WIF, { wif });
@@ -119,7 +126,7 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && provider === walletService.PROVIDERS.NEON) {
+    } else if (provider === walletService.PROVIDERS.NEON) {
         try {
             const account = await walletService.restoreSession(walletService.PROVIDERS.NEON);
             if (account && account.address) {
@@ -131,7 +138,7 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && provider === walletService.PROVIDERS.WEB3AUTH) {
+    } else if (provider === walletService.PROVIDERS.WEB3AUTH) {
         // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
         walletService.connect(walletService.PROVIDERS.WEB3AUTH).then((account) => {
             if (account && account.address) {
@@ -143,6 +150,8 @@ export async function initWallet() {
         }).catch(() => {
             clearStoredWalletState();
         });
+    } else {
+        clearStoredWalletState();
     }
 }
 
