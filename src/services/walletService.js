@@ -309,6 +309,91 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
   });
 }
 
+function requestNeoLineInvoke(n3, request, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let waitingForAuthorization = false;
+    let retryStarted = false;
+    let connectedEventReceived = false;
+
+    const cleanup = () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("NEOLine.NEO.EVENT.CONNECTED", handleEvent);
+        window.removeEventListener("NEOLine.N3.EVENT.CONNECTED", handleEvent);
+      }
+      clearTimeout(timer);
+    };
+
+    const finishResolve = (result) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+
+    const finishReject = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const retryInvoke = () => {
+      if (settled || retryStarted) return;
+      retryStarted = true;
+
+      Promise.resolve()
+        .then(() => n3.invoke(request))
+        .then(finishResolve)
+        .catch((error) => {
+          if (isDapiCanceled(error)) {
+            finishReject(new Error("Transaction canceled by user."));
+            return;
+          }
+          finishReject(error);
+        });
+    };
+
+    const handleEvent = () => {
+      connectedEventReceived = true;
+      if (waitingForAuthorization) {
+        retryInvoke();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("NEOLine.NEO.EVENT.CONNECTED", handleEvent);
+      window.addEventListener("NEOLine.N3.EVENT.CONNECTED", handleEvent);
+    }
+
+    const timer = setTimeout(() => {
+      if (waitingForAuthorization) {
+        finishReject(toConnectionDeniedError(PROVIDERS.NEOLINE));
+        return;
+      }
+      finishReject(new Error("NeoLine invocation timed out."));
+    }, timeoutMs);
+
+    Promise.resolve()
+      .then(() => n3.invoke(request))
+      .then(finishResolve)
+      .catch((error) => {
+        if (isDapiConnectionDenied(error)) {
+          waitingForAuthorization = true;
+          if (connectedEventReceived) {
+            retryInvoke();
+          }
+          return;
+        }
+        if (isDapiCanceled(error)) {
+          finishReject(new Error("Transaction canceled by user."));
+          return;
+        }
+        finishReject(error);
+      });
+  });
+}
+
 async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRetry = null) {
   try {
     return await getAccount();
@@ -827,7 +912,7 @@ export const walletService = {
         signers: dapiSigners
       };
       if (broadcastOverride) request.broadcastOverride = true;
-      const result = await n3.invoke(request);
+      const result = await requestNeoLineInvoke(n3, request);
       // broadcastOverride returns { signedTx } instead of { txid }
       return broadcastOverride ? result : { txid: result.txid };
     }
