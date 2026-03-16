@@ -235,7 +235,6 @@ function toConnectionDeniedError(providerName) {
 function requestNeoLineAccount(n3, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    let retryInFlight = false;
     let pendingConnectionDenied = false;
 
     const cleanup = () => {
@@ -264,20 +263,12 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
 
     const handleEvent = (event) => {
       const address = String(event?.detail?.address || "").trim();
-      if (!address || retryInFlight || settled) return;
+      if (!address || settled) return;
 
-      retryInFlight = true;
-      Promise.resolve()
-        .then(() => n3.getAccount())
-        .then((account) => {
-          retryInFlight = false;
-          if (account?.address) {
-            finishResolve(account);
-          }
-        })
-        .catch(() => {
-          retryInFlight = false;
-        });
+      finishResolve({
+        address,
+        label: String(event?.detail?.label || PROVIDERS.NEOLINE).trim() || PROVIDERS.NEOLINE,
+      });
     };
 
     if (typeof window !== "undefined") {

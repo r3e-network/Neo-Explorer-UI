@@ -578,8 +578,7 @@ describe("walletService", () => {
   it("waits for a NeoLine connected event instead of immediately retrying account authorization", async () => {
     window.NEOLine = {};
     neoLineGetAccountMock
-      .mockRejectedValueOnce({ type: "CONNECTION_DENIED", description: "The dAPI provider refused to process this request" })
-      .mockResolvedValueOnce({ address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu", label: "NeoLine" });
+      .mockRejectedValueOnce({ type: "CONNECTION_DENIED", description: "The dAPI provider refused to process this request" });
     window.NEOLineN3 = {
       Init: function Init() {
         return {
@@ -610,14 +609,14 @@ describe("walletService", () => {
 
     const account = await connectPromise;
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
-    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
+    expect(account.label).toBe("NeoLine");
+    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(1);
   });
 
   it("accepts NeoLine connected events when getAccount hangs after approval", async () => {
     window.NEOLine = {};
     neoLineGetAccountMock
-      .mockImplementationOnce(() => new Promise(() => {}))
-      .mockResolvedValueOnce({ address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu", label: "NeoLine" });
+      .mockImplementationOnce(() => new Promise(() => {}));
     window.NEOLineN3 = {
       Init: function Init() {
         return {
@@ -651,7 +650,7 @@ describe("walletService", () => {
       address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
       label: "NeoLine",
     });
-    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
+    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(1);
   });
 
   it("uses RPC getversion network magic for Web3Auth signing", async () => {
