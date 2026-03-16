@@ -37,6 +37,7 @@ let _account = null;
 let _neolineN3 = null;
 let _directWifAccount = null;
 const AA_ALLOWED_META_METHODS = new Set(Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : []);
+const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
 
 function isDirectWifProviderEnabled() {
   return Boolean(import.meta.env.DEV);
@@ -232,7 +233,7 @@ function toConnectionDeniedError(providerName) {
   );
 }
 
-function requestNeoLineAccount(n3, timeoutMs = 15000) {
+function requestNeoLineAccount(n3, timeoutMs = NEOLINE_APPROVAL_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let pendingConnectionDenied = false;
@@ -309,7 +310,7 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
   });
 }
 
-function requestNeoLineInvoke(n3, request, timeoutMs = 15000) {
+function requestNeoLineInvoke(n3, request, timeoutMs = NEOLINE_APPROVAL_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let waitingForAuthorization = false;

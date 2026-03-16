@@ -511,7 +511,7 @@ describe("walletService", () => {
       const [params] = neoLineInvokeMock.mock.calls[0];
       expect(params).not.toHaveProperty("network");
 
-      await vi.advanceTimersByTimeAsync(15000);
+      await vi.advanceTimersByTimeAsync(60000);
       const invokeError = await invokeErrorPromise;
       expect(invokeError).toBeInstanceOf(Error);
       expect(invokeError.message).toMatch(/NeoLine refused this request/i);
@@ -521,48 +521,104 @@ describe("walletService", () => {
   });
 
   it("retries NeoLine invoke once after the authorization popup emits a connected event", async () => {
-    window.NEOLine = {};
-    neoLineInvokeMock.mockReset();
-    neoLineInvokeMock
-      .mockRejectedValueOnce({
-        type: "CONNECTION_DENIED",
-        description: "The dAPI provider refused to process this request",
-      })
-      .mockResolvedValueOnce({ txid: "0xafterauth" });
-    window.NEOLineN3 = {
-      Init: function Init() {
-        return {
-          getNetworks: neoLineGetNetworksMock,
-          getAccount: neoLineGetAccountMock,
-          invoke: neoLineInvokeMock,
-        };
-      },
-    };
-
-    const { walletService } = await import("../../src/services/walletService.js");
-    walletService.disconnect();
-    await walletService.connect(walletService.PROVIDERS.NEOLINE);
-
-    const invokePromise = walletService.invoke({
-      scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
-      operation: "register",
-      args: [{ type: "String", value: "eventretry.matrix" }],
-    });
-
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent("NEOLine.NEO.EVENT.CONNECTED", {
-          detail: {
-            address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
-            label: "testnet",
-          },
+    vi.useFakeTimers();
+    try {
+      window.NEOLine = {};
+      neoLineInvokeMock.mockReset();
+      neoLineInvokeMock
+        .mockRejectedValueOnce({
+          type: "CONNECTION_DENIED",
+          description: "The dAPI provider refused to process this request",
         })
-      );
-    }, 20);
+        .mockResolvedValueOnce({ txid: "0xafterauth" });
+      window.NEOLineN3 = {
+        Init: function Init() {
+          return {
+            getNetworks: neoLineGetNetworksMock,
+            getAccount: neoLineGetAccountMock,
+            invoke: neoLineInvokeMock,
+          };
+        },
+      };
 
-    await expect(invokePromise).resolves.toEqual({ txid: "0xafterauth" });
-    expect(neoLineInvokeMock).toHaveBeenCalledTimes(2);
-    expect(neoLineInvokeMock.mock.calls[0]?.[0]).toEqual(neoLineInvokeMock.mock.calls[1]?.[0]);
+      const { walletService } = await import("../../src/services/walletService.js");
+      walletService.disconnect();
+      await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+      const invokePromise = walletService.invoke({
+        scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+        operation: "register",
+        args: [{ type: "String", value: "eventretry.matrix" }],
+      });
+
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("NEOLine.NEO.EVENT.CONNECTED", {
+            detail: {
+              address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+              label: "testnet",
+            },
+          })
+        );
+      }, 20);
+
+      await vi.advanceTimersByTimeAsync(20);
+      await expect(invokePromise).resolves.toEqual({ txid: "0xafterauth" });
+      expect(neoLineInvokeMock).toHaveBeenCalledTimes(2);
+      expect(neoLineInvokeMock.mock.calls[0]?.[0]).toEqual(neoLineInvokeMock.mock.calls[1]?.[0]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("allows slower NeoLine authorization flows before timing out the invoke request", async () => {
+    vi.useFakeTimers();
+    try {
+      window.NEOLine = {};
+      neoLineInvokeMock.mockReset();
+      neoLineInvokeMock
+        .mockRejectedValueOnce({
+          type: "CONNECTION_DENIED",
+          description: "The dAPI provider refused to process this request",
+        })
+        .mockResolvedValueOnce({ txid: "0xslowauth" });
+      window.NEOLineN3 = {
+        Init: function Init() {
+          return {
+            getNetworks: neoLineGetNetworksMock,
+            getAccount: neoLineGetAccountMock,
+            invoke: neoLineInvokeMock,
+          };
+        },
+      };
+
+      const { walletService } = await import("../../src/services/walletService.js");
+      walletService.disconnect();
+      await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+      const invokePromise = walletService.invoke({
+        scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+        operation: "register",
+        args: [{ type: "String", value: "slowauth.matrix" }],
+      });
+
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("NEOLine.NEO.EVENT.CONNECTED", {
+            detail: {
+              address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+              label: "testnet",
+            },
+          })
+        );
+      }, 20000);
+
+      await vi.advanceTimersByTimeAsync(20000);
+      await expect(invokePromise).resolves.toEqual({ txid: "0xslowauth" });
+      expect(neoLineInvokeMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("uses the explorer testnet network when NeoLine signs raw transactions", async () => {
