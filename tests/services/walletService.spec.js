@@ -564,9 +564,9 @@ describe("walletService", () => {
 
   it("accepts NeoLine connected events when getAccount hangs after approval", async () => {
     window.NEOLine = {};
-    neoLineGetAccountMock.mockImplementationOnce(
-      () => new Promise(() => {})
-    );
+    neoLineGetAccountMock
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce({ address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu", label: "NeoLine" });
     window.NEOLineN3 = {
       Init: function Init() {
         return {
@@ -600,6 +600,7 @@ describe("walletService", () => {
       address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
       label: "NeoLine",
     });
+    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
   });
 
   it("uses RPC getversion network magic for Web3Auth signing", async () => {
