@@ -440,7 +440,7 @@ describe("walletService", () => {
 
     expect(neoLineInvokeMock).toHaveBeenCalledTimes(1);
     const [params] = neoLineInvokeMock.mock.calls[0];
-    expect(params.network).toBe("N3MainNet");
+    expect(params).not.toHaveProperty("network");
     expect(params.signers[0].scopes).toBe(128);
   });
 
@@ -507,11 +507,8 @@ describe("walletService", () => {
     });
 
     expect(neoLineInvokeMock).toHaveBeenCalledTimes(1);
-    expect(neoLineInvokeMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        network: "N3MainNet",
-      })
-    );
+    const [params] = neoLineInvokeMock.mock.calls[0];
+    expect(params).not.toHaveProperty("network");
   });
 
   it("uses the explorer testnet network when NeoLine signs raw transactions", async () => {

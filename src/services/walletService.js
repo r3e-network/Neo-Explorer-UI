@@ -820,27 +820,14 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
-      const requestBase = {
+      const request = {
         scriptHash,
         operation,
         args: dapiArgs,
         signers: dapiSigners
       };
-      const invokeWithNetwork = async (network) => {
-        const request = { ...requestBase, network };
-        if (broadcastOverride) request.broadcastOverride = true;
-        return n3.invoke(request);
-      };
-
-      let result;
-      try {
-        result = await invokeWithNetwork(expectedNetwork);
-      } catch (err) {
-        if (!shouldRetryWithLegacyDapiNetwork(err, expectedNetwork, legacyNetworkAlias)) {
-          throw err;
-        }
-        result = await invokeWithNetwork(legacyNetworkAlias);
-      }
+      if (broadcastOverride) request.broadcastOverride = true;
+      const result = await n3.invoke(request);
       // broadcastOverride returns { signedTx } instead of { txid }
       return broadcastOverride ? result : { txid: result.txid };
     }
