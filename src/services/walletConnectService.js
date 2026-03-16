@@ -78,6 +78,22 @@ export const walletConnectService = {
     };
   },
 
+  restoreSession() {
+    if (!_client) throw new Error("WalletConnect not initialized");
+    if (_session) return this.account;
+
+    const sessions = typeof _client.session?.getAll === "function" ? _client.session.getAll() : [];
+    const restoredSession = sessions.find((candidate) => {
+      const accounts = candidate?.namespaces?.neo3?.accounts;
+      return Array.isArray(accounts) && accounts.length > 0;
+    });
+
+    if (!restoredSession) return null;
+
+    _session = restoredSession;
+    return this.account;
+  },
+
   /**
    * Invoke a contract method via the connected wallet.
    */

@@ -4,14 +4,23 @@ import { ref } from "vue";
 
 const envState = { value: "Mainnet" };
 const getMultisigRequestsMock = vi.fn();
+const getValidatorMetadataMock = vi.fn();
+const createMultisigRequestMock = vi.fn();
 const connectedAccount = ref("");
 const getCommitteeMock = vi.fn();
+const walletServiceMock = {
+  isConnected: false,
+  signRawTransaction: vi.fn(),
+};
 
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
     getMultisigRequests: getMultisigRequestsMock,
-    createMultisigRequest: vi.fn(),
+    getValidatorMetadata: getValidatorMetadataMock,
+    createMultisigRequest: createMultisigRequestMock,
     addMultisigSignature: vi.fn(),
+    getMultisigRequestById: vi.fn(),
+    updateMultisigRequestStatus: vi.fn(),
   },
 }));
 
@@ -20,15 +29,19 @@ vi.mock("@/utils/wallet", () => ({
 }));
 
 vi.mock("@/services/walletService", () => ({
-  walletService: {
-    isConnected: false,
-    signRawTransaction: vi.fn(),
-  },
+  walletService: walletServiceMock,
 }));
 
 vi.mock("@/utils/env", () => ({
-  getRpcUrl: () => "http://rpc.test",
+  NET_ENV: {
+    Mainnet: "Mainnet",
+    TestT5: "TestT5",
+  },
+  getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => envState.value,
+  getActiveBasePath: () => "/api/mainnet",
+  getRpcApiBasePath: () => "/api/mainnet",
+  setActiveBasePath: vi.fn(),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 
@@ -49,6 +62,8 @@ describe("GovernanceTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     envState.value = "Mainnet";
+    connectedAccount.value = "";
+    walletServiceMock.isConnected = false;
     window.Neon = {
       wallet: {
         Account: class {
@@ -61,23 +76,58 @@ describe("GovernanceTool network changes", () => {
           }
         },
       },
-      tx: { WitnessScope: { Global: 1 }, Witness: class {}, Transaction: class {} },
+      tx: {
+        WitnessScope: { Global: 1 },
+        Witness: class {},
+        Transaction: class {
+          constructor(config) {
+            Object.assign(this, config);
+          }
+          serialize() {
+            if (typeof this.systemFee === "number" || typeof this.networkFee === "number") {
+              throw new Error("this.systemFee.toReverseHex is not a function");
+            }
+            return "001122";
+          }
+          hash() {
+            return "0xdeadbeef";
+          }
+        },
+      },
       rpc: {
         RPCClient: class {
           async getCommittee() {
             return getCommitteeMock();
           }
+          async getBlockCount() {
+            return 123;
+          }
         },
       },
-      sc: { ContractParam: { fromJson: (value) => value }, createScript: vi.fn() },
+      sc: {
+        ContractParam: {
+          fromJson: (value) => value,
+          integer: (value) => value,
+          hash160: (value) => value,
+          any: (value) => value,
+          array: (value) => value,
+          string: (value) => value,
+        },
+        createScript: vi.fn(() => "51"),
+      },
       u: { HexString: { fromHex: (value) => value } },
     };
     getCommitteeMock.mockResolvedValue(["PK1", "PK2", "PK3", "PK4"]);
+    getValidatorMetadataMock.mockResolvedValue([
+      { address: "APK1", display_name: "Council Alpha", logo_url: "https://example.com/alpha.png" },
+      { address: "APK2", display_name: "Council Beta", logo_url: "https://example.com/beta.png" },
+    ]);
     getMultisigRequestsMock.mockResolvedValue([
-      { id: 1, type: "governance", description: "Mainnet Proposal", network: "mainnet", signatures: [], eligible_signers: [] },
+      { id: 1, type: "governance", description: "Mainnet Proposal", network: "mainnet", signatures: [{ signer_address: "APK1" }], eligible_signers: [] },
       { id: 2, type: "governance", description: "Testnet Proposal", network: "testnet", signatures: [], eligible_signers: [] },
       { id: 3, type: "multisig", description: "Wallet Request", network: "mainnet", signatures: [], eligible_signers: [] },
     ]);
+    createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 99 } });
   });
 
   it("reloads committee state and proposal list for the active network", async () => {
@@ -94,6 +144,7 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
     expect(wrapper.html()).toContain("Mainnet Proposal");
+    expect(wrapper.html()).toContain("Council Alpha");
     expect(wrapper.html()).not.toContain("Testnet Proposal");
     expect(wrapper.html()).not.toContain("Wallet Request");
 
@@ -105,6 +156,52 @@ describe("GovernanceTool network changes", () => {
     expect(getMultisigRequestsMock).toHaveBeenCalledTimes(2);
     expect(wrapper.html()).not.toContain("Mainnet Proposal");
     expect(wrapper.html()).toContain("Testnet Proposal");
+    wrapper.unmount();
+  });
+
+  it("lets a council signer create and persist a governance proposal", async () => {
+    connectedAccount.value = "APK1";
+    walletServiceMock.isConnected = true;
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    await newProposalButton.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Proposal Description");
+
+    const textInputs = wrapper.findAll("input");
+    await textInputs[0].setValue("Adjust GAS emissions");
+    await textInputs[1].setValue("100000000");
+
+    const createButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Create Proposal"));
+    await createButton.trigger("click");
+    await flushPromises();
+
+    expect(createMultisigRequestMock).toHaveBeenCalledTimes(1);
+    expect(createMultisigRequestMock.mock.calls[0][0]).toMatchObject({
+      type: "governance",
+      creator_address: "APK1",
+      method: "setFeePerByte",
+      description: "Adjust GAS emissions",
+      signers_required: 3,
+      eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
+      status: "PENDING",
+      network: "mainnet",
+    });
     wrapper.unmount();
   });
 });

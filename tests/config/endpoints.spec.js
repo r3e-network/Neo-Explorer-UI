@@ -18,6 +18,8 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/mainnet/, "/indexer/v1/networks/mainnet"),');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/testnet/, "/indexer/v1/networks/testnet"),');
 
     expect(viteConfig).not.toMatch(/198\.244\.215\.132/);
     expect(viteConfig).not.toContain("testneofura.ngd.network");

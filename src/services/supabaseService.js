@@ -434,29 +434,188 @@ export const supabaseService = {
     }
   },
 
+  async getMultisigRequestById(requestId, networkMode) {
+    if (!supabase || !requestId) return null;
+    try {
+      const network = getNetworkMode(networkMode);
+      return await (async () => {
+        for (const column of ["network", "network_mode"]) {
+          try {
+            const { data, error } = await supabase
+              .from("multisig_requests")
+              .select("*, signatures:multisig_signatures(*)")
+              .eq("id", requestId)
+              .eq(column, network)
+              .single();
+            if (error) throw error;
+            return data || null;
+          } catch (error) {
+            if (!isMissingSupabaseColumnError(error, column)) {
+              throw error;
+            }
+          }
+        }
+
+        const { data, error } = await supabase
+          .from("multisig_requests")
+          .select("*, signatures:multisig_signatures(*)")
+          .eq("id", requestId)
+          .single();
+        if (error) throw error;
+        return data || null;
+      })();
+    } catch (_err) {
+      return null;
+    }
+  },
+
   async createMultisigRequest(payload) {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const { data, error } = await supabase
-        .from('multisig_requests')
-        .insert([payload])
-        .select()
-        .single();
-      if (error) throw error;
-      return { success: true, data };
+      const optionalColumns = ["type"];
+      let currentPayload = { ...payload };
+      let lastError = null;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('multisig_requests')
+          .insert([currentPayload])
+          .select()
+          .single();
+
+        if (!error) {
+          return { success: true, data };
+        }
+
+        lastError = error;
+        const removableColumn = optionalColumns.find((column) =>
+          column in currentPayload && isMissingSupabaseColumnError(error, column)
+        );
+
+        if (!removableColumn) {
+          throw error;
+        }
+
+        const nextPayload = { ...currentPayload };
+        delete nextPayload[removableColumn];
+        currentPayload = nextPayload;
+      }
     } catch (err) {
       return { success: false, error: err.message };
     }
   },
 
-  async addMultisigSignature(requestId, signerAddress, signature) {
+  async addMultisigSignature(requestId, signerAddress, signature, options = {}) {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const { data, error } = await supabase
-        .from('multisig_signatures')
-        .insert([{ request_id: requestId, signer_address: signerAddress, signature }]);
-      if (error) throw error;
-      return { success: true, data };
+      const duplicateQuery = supabase
+        .from("multisig_signatures")
+        .select("id, signer_address")
+        .eq("request_id", requestId)
+        .eq("signer_address", signerAddress);
+
+      const duplicateReader =
+        typeof duplicateQuery.maybeSingle === "function"
+          ? duplicateQuery.maybeSingle.bind(duplicateQuery)
+          : duplicateQuery.single?.bind(duplicateQuery);
+
+      if (duplicateReader) {
+        const { data: existing, error } = await duplicateReader();
+        if (error && !String(error.message || "").toLowerCase().includes("no rows")) {
+          throw error;
+        }
+        if (existing) {
+          return { success: false, error: "This council member has already signed the proposal." };
+        }
+      }
+
+      const basePayload = {
+        request_id: requestId,
+        signer_address: signerAddress,
+        signature,
+      };
+
+      const extendedPayload = {
+        ...basePayload,
+        ...(options.publicKey ? { public_key: options.publicKey } : {}),
+        ...(options.witness ? { witness: options.witness } : {}),
+        ...(options.invocationScript ? { invocation_script: options.invocationScript } : {}),
+        ...(options.verificationScript ? { verification_script: options.verificationScript } : {}),
+      };
+
+      const payloads = [extendedPayload, basePayload].filter(
+        (payload, index, arr) => index === 0 || JSON.stringify(payload) !== JSON.stringify(arr[0])
+      );
+
+      let lastError = null;
+      for (const payload of payloads) {
+        const { data, error } = await supabase
+          .from("multisig_signatures")
+          .insert([payload])
+          .select();
+
+        if (!error) {
+          return { success: true, data };
+        }
+
+        lastError = error;
+        const optionalColumns = ["public_key", "witness", "invocation_script", "verification_script"];
+        const missingOptionalColumn = optionalColumns.some((column) =>
+          isMissingSupabaseColumnError(error, column)
+        );
+        if (!missingOptionalColumn) {
+          throw error;
+        }
+      }
+
+      throw lastError || new Error("Failed to save signature.");
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  async updateMultisigRequestStatus(requestId, status, extras = {}) {
+    if (!supabase) return { success: false, error: "Supabase not configured" };
+    try {
+      const basePayload = {
+        status,
+        ...(extras.tx_hash ? { tx_hash: extras.tx_hash } : {}),
+      };
+
+      const extendedPayload = {
+        ...basePayload,
+        ...(extras.executed_at ? { executed_at: extras.executed_at } : {}),
+        ...(extras.params ? { params: extras.params } : {}),
+      };
+
+      const payloads = [extendedPayload, basePayload].filter(
+        (payload, index, arr) => index === 0 || JSON.stringify(payload) !== JSON.stringify(arr[0])
+      );
+
+      let lastError = null;
+      for (const payload of payloads) {
+        const { data, error } = await supabase
+          .from("multisig_requests")
+          .update(payload)
+          .eq("id", requestId)
+          .select()
+          .single();
+
+        if (!error) {
+          return { success: true, data };
+        }
+
+        lastError = error;
+        const optionalColumns = ["executed_at", "params"];
+        const missingOptionalColumn = optionalColumns.some((column) =>
+          isMissingSupabaseColumnError(error, column)
+        );
+        if (!missingOptionalColumn) {
+          throw error;
+        }
+      }
+
+      throw lastError || new Error("Failed to update request status.");
     } catch (err) {
       return { success: false, error: err.message };
     }

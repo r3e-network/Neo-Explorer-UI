@@ -55,9 +55,29 @@ server: {
       target: "https://rpc.r3e.network",
       rewrite: () => "/testnet",
     },
+    "/indexer/mainnet": {
+      target: "https://api.n3index.dev",
+      rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/indexer/mainnet"),
+    },
+    "/indexer/testnet": {
+      target: "https://api.n3index.dev",
+      rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/indexer/testnet"),
+    },
   },
 }
 ```
+
+Primary indexer route style:
+
+- short form: `/indexer/{network}/...`
+- compatibility form: `/indexer/v1/networks/{network}/...`
+
+Examples:
+
+- `/indexer/mainnet/status`
+- `/indexer/testnet/status`
+- `/indexer/mainnet/accounts/<address>/transactions`
+- `/indexer/mainnet/contracts/<hash>/events`
 
 ### Switching Networks
 

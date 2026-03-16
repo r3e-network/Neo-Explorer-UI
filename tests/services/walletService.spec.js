@@ -23,6 +23,8 @@ const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
 const executeMock = vi.fn(async () => ({ protocol: { network: 860833102 } }));
 const signTxMock = vi.fn();
 const neoLineInvokeMock = vi.fn(async () => ({ txid: "0xneoline" }));
+const neoLineSignTransactionMock = vi.fn(async () => ({ signature: "neoline-signature" }));
+const neoLineSwitchNetworkMock = vi.fn(async () => ({ defaultNetwork: "N3TestNet" }));
 const neoLineGetNetworksMock = vi.fn(async () => ({ defaultNetwork: "MainNet" }));
 const neoLineGetAccountMock = vi.fn(async () => ({
   address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
@@ -42,7 +44,10 @@ const walletConnectConnectMock = vi.fn(async () => ({
 const walletConnectInvokeMock = vi.fn(async () => ({ txid: "0xwalletconnect" }));
 const walletConnectSignMessageMock = vi.fn(async () => ({ data: "wc-signature" }));
 const walletConnectDisconnectMock = vi.fn();
+const walletConnectRestoreSessionMock = vi.fn(async () => null);
 const walletConnectAccount = { address: "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM", label: "WalletConnect" };
+const directWifHexSignMock = vi.fn(() => "f".repeat(128));
+const DIRECT_WIF = "LtestDirectWif11111111111111111111111111111111111111111111";
 
 class MockRpcClient {
   async getBlockCount() {
@@ -71,6 +76,14 @@ class MockTransaction {
     this.data = data;
   }
 
+  static deserialize() {
+    return new MockTransaction();
+  }
+
+  hash() {
+    return "abcd";
+  }
+
   sign(account, magic) {
     signTxMock(account, magic);
   }
@@ -91,11 +104,23 @@ class MockScriptBuilder {
 class MockWalletAccount {
   constructor(input) {
     const value = String(input || "");
+    this.WIF = value;
+    this.privateKey = `${value}-private`;
+    this.publicKey = `${value}-public`;
+
     if (value === "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu") {
+      this.address = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
       this.scriptHash = "13ef519c362973f9a34648a9eac5b71250b2a80a";
       return;
     }
 
+    if (value === DIRECT_WIF) {
+      this.address = "NTestWifAccount111111111111111111111";
+      this.scriptHash = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
+      return;
+    }
+
+    this.address = `N${value.slice(0, 33)}`;
     this.scriptHash = value.replace(/^0x/i, "").toLowerCase();
   }
 }
@@ -106,6 +131,8 @@ vi.mock("@cityofzion/neon-js", () => ({
   wallet: {
     Account: MockWalletAccount,
     getAddressFromScriptHash: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
+    isWIF: (value) => value === DIRECT_WIF,
+    sign: directWifHexSignMock,
   },
   sc: {
     ScriptBuilder: MockScriptBuilder,
@@ -122,6 +149,7 @@ vi.mock("@cityofzion/neon-js", () => ({
         toBase64: () => Buffer.from(hex, "hex").toString("base64"),
       }),
     },
+    num2hexstring: () => "01020304",
     reverseHex: (value) => String(value || "").replace(/^0x/i, ""),
     hash160: () => "0x1234567890abcdef1234567890abcdef12345678",
   },
@@ -131,6 +159,7 @@ vi.mock("../../src/services/walletConnectService.js", () => ({
   walletConnectService: {
     init: walletConnectInitMock,
     connect: walletConnectConnectMock,
+    restoreSession: walletConnectRestoreSessionMock,
     get account() {
       return walletConnectAccount;
     },
@@ -216,6 +245,7 @@ describe("walletService", () => {
       walletService.PROVIDERS.NEON,
       walletService.PROVIDERS.WEB3AUTH,
       walletService.PROVIDERS.EVM_WALLET,
+      walletService.PROVIDERS.TESTNET_WIF,
     ]);
   });
 
@@ -237,6 +267,32 @@ describe("walletService", () => {
         walletService.PROVIDERS.WEB3AUTH,
       ])
     );
+  });
+
+  it("lists the direct testnet WIF provider only when the explorer is on testnet", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getSupportedProviders()).toContain(walletService.PROVIDERS.TESTNET_WIF);
+    expect(walletService.getAvailableProviders()).toContain(walletService.PROVIDERS.TESTNET_WIF);
+  });
+
+  it("detects NeoLine when only the NEOLine N3 API is injected", async () => {
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getAvailableProviders()).toContain(walletService.PROVIDERS.NEOLINE);
   });
 
   it("lists OneGate when a compatible dAPI object is injected", async () => {
@@ -281,6 +337,83 @@ describe("walletService", () => {
     });
   });
 
+  it("connects to the direct testnet WIF provider without persisting session state", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const account = await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, { wif: DIRECT_WIF });
+
+    expect(account).toEqual({
+      address: "NTestWifAccount111111111111111111111",
+      label: walletService.PROVIDERS.TESTNET_WIF,
+      persistSession: "session",
+    });
+  });
+
+  it("signs raw transactions with the direct testnet WIF provider", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, { wif: DIRECT_WIF });
+
+    const signature = await walletService.signRawTransaction("001122");
+
+    expect(directWifHexSignMock).toHaveBeenCalledTimes(1);
+    expect(signature).toBe("f".repeat(128));
+  });
+
+  it("invokes contracts with the direct testnet WIF provider using a signed fee-calculation transaction", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, { wif: DIRECT_WIF });
+
+    await walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "vote",
+      args: [
+        { type: "Hash160", value: "a62eb3c767ef3d39d98c704f70fc4e869349a6fd" },
+        { type: "PublicKey", value: "03c95f8e6fe4f6e9de4dbf67bf3ff47a1465644d0f32956543e12b3d6b0ffb02d7" },
+      ],
+      signers: [{ account: "a62eb3c767ef3d39d98c704f70fc4e869349a6fd", scopes: 1 }],
+    });
+
+    expect(calculateNetworkFeeMock).toHaveBeenCalledTimes(1);
+    expect(signTxMock).toHaveBeenCalled();
+    expect(sendRawTransactionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores a persisted Neon Wallet session without starting a new pairing flow", async () => {
+    walletConnectRestoreSessionMock.mockResolvedValueOnce(walletConnectAccount);
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    const account = await walletService.restoreSession(walletService.PROVIDERS.NEON);
+
+    expect(walletConnectInitMock).toHaveBeenCalledTimes(1);
+    expect(walletConnectRestoreSessionMock).toHaveBeenCalledTimes(1);
+    expect(walletConnectConnectMock).not.toHaveBeenCalled();
+    expect(account).toEqual({
+      address: walletConnectAccount.address,
+      label: walletService.PROVIDERS.NEON,
+    });
+  });
+
+  it("restores a direct testnet WIF session when the WIF is provided again", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const account = await walletService.restoreSession(walletService.PROVIDERS.TESTNET_WIF, { wif: DIRECT_WIF });
+
+    expect(account).toEqual({
+      address: "NTestWifAccount111111111111111111111",
+      label: walletService.PROVIDERS.TESTNET_WIF,
+      persistSession: "session",
+    });
+  });
+
   it("passes script-hash signer and numeric witness scope to NeoLine dAPI", async () => {
     window.NEOLine = {};
     window.NEOLineN3 = {
@@ -289,6 +422,8 @@ describe("walletService", () => {
           getNetworks: neoLineGetNetworksMock,
           getAccount: neoLineGetAccountMock,
           invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
         };
       },
     };
@@ -309,6 +444,99 @@ describe("walletService", () => {
     expect(params.signers[0].scopes).toBe(128);
   });
 
+  it("normalizes numeric ContractParam types and HexString-like values for NeoLine invoke", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    await walletService.invoke({
+      scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+      operation: "register",
+      args: [
+        { type: 19, value: "quasarproof.matrix" },
+        { type: 20, value: { toString: () => "13ef519c362973f9a34648a9eac5b71250b2a80a" } },
+      ],
+      signers: [{ account: "13ef519c362973f9a34648a9eac5b71250b2a80a", scopes: "CalledByEntry" }],
+    });
+
+    const [params] = neoLineInvokeMock.mock.calls.at(-1);
+    expect(params.args).toEqual([
+      { type: "String", value: "quasarproof.matrix" },
+      { type: "Hash160", value: "13ef519c362973f9a34648a9eac5b71250b2a80a" },
+    ]);
+  });
+
+  it("uses the explorer testnet network when NeoLine signs raw transactions", async () => {
+    envState.value = "TestT5";
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    const signature = await walletService.signRawTransaction("001122");
+
+    expect(signature).toBe("neoline-signature");
+    expect(neoLineSwitchNetworkMock).toHaveBeenCalledWith({ network: "N3TestNet" });
+    expect(neoLineSignTransactionMock).toHaveBeenCalledWith({
+      transaction: "001122",
+      network: "N3TestNet",
+    });
+  });
+
+  it("extracts a bare signature from NeoLine signTransaction witness results", async () => {
+    envState.value = "TestT5";
+    neoLineSignTransactionMock.mockResolvedValueOnce({
+      witnesses: [
+        {
+          invocationScript: `0c40${"ab".repeat(64)}`,
+          verificationScript: "2103deadbeef",
+        },
+      ],
+    });
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    const signature = await walletService.signRawTransaction("001122");
+
+    expect(signature).toBe("ab".repeat(64));
+  });
+
   it("retries NeoLine account authorization once when first request is denied", async () => {
     window.NEOLine = {};
     neoLineGetAccountMock
@@ -320,6 +548,8 @@ describe("walletService", () => {
           getNetworks: neoLineGetNetworksMock,
           getAccount: neoLineGetAccountMock,
           invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
         };
       },
     };

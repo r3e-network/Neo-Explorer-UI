@@ -23,6 +23,13 @@ const EXPECTED_NETWORK_MAGIC = {
   [NET_ENV.Mainnet]: 860833102,
   [NET_ENV.TestT5]: 894710606,
 };
+const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
+  /ByAddress$/i,
+  /HeldByAddress$/i,
+  /ByTransactionHash$/i,
+  /ByContractHash(?:TokenId)?$/i,
+  /ByCandidateAddress$/i,
+];
 const endpointNetworkCache = new Map();
 
 export const __resetEndpointNetworkCacheForTests = () => {
@@ -148,6 +155,17 @@ const getExpectedNetworkMagic = (baseUrl) => {
   return Number.isFinite(expected) ? expected : null;
 };
 
+const shouldPreferFallbackFirst = (method, baseUrls = []) => {
+  if (!Array.isArray(baseUrls) || baseUrls.length < 2) return false;
+  const methodName = String(method || "").trim();
+  if (!methodName) return false;
+
+  const env = getEnvForBaseUrl(baseUrls[0]);
+  if (env !== NET_ENV.Mainnet) return false;
+
+  return FALLBACK_FIRST_INDEXED_METHOD_PATTERNS.some((pattern) => pattern.test(methodName));
+};
+
 const markActiveEndpoint = (baseUrl) => {
   if (useConfiguredBaseUrl) return;
   const parsed = parseNetworkBase(baseUrl);
@@ -170,11 +188,12 @@ const extractAggregateError = (error) => {
   return meaningful || error.errors[0] || error;
 };
 
-const executeRpcRequest = async (payload, { baseURL, timeout, signal }) => {
+const executeRpcRequest = async (payload, { baseURL, timeout, signal, suppressDevErrorLog = true }) => {
   const requestConfig = {
     timeout,
     baseURL,
     __manualBaseURL: true,
+    __suppressDevErrorLog: suppressDevErrorLog,
   };
   if (signal) requestConfig.signal = signal;
 
@@ -321,7 +340,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (import.meta.env.DEV) console.error("API Error:", error.message);
+    if (import.meta.env.DEV && !error?.config?.__suppressDevErrorLog) {
+      console.error("API Error:", error.message);
+    }
     return Promise.reject(error);
   }
 );
@@ -338,11 +359,14 @@ const nextRpcId = () => (_rpcId = (_rpcId + 1) % 2147483647);
  * @param {AbortSignal} [options.signal] - AbortController signal to cancel the request
  * @returns {Promise<any>}
  */
-export const rpc = async (method, params = [], { signal } = {}) => {
+export const rpc = async (method, params = [], { signal, suppressLog = false } = {}) => {
   const payload = { jsonrpc: "2.0", id: nextRpcId(), method, params };
   const preferredBaseUrl = resolveRpcBaseUrl();
   const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl).filter(Boolean))];
-  const baseUrls = retryBaseUrls.length ? retryBaseUrls : [preferredBaseUrl];
+  const orderedBaseUrls = shouldPreferFallbackFirst(method, retryBaseUrls)
+    ? [...retryBaseUrls].reverse()
+    : retryBaseUrls;
+  const baseUrls = orderedBaseUrls.length ? orderedBaseUrls : [preferredBaseUrl];
   const startupHedgeEnabled = shouldUseStartupHedge(method, preferredBaseUrl, baseUrls[1]);
   let lastError = null;
 
@@ -374,14 +398,14 @@ export const rpc = async (method, params = [], { signal } = {}) => {
         if (!hasFallback || !isRetryableTransportError(error)) {
           throw error;
         }
-        if (import.meta.env.DEV) {
+        if (import.meta.env.DEV && !suppressLog) {
           console.warn(`[RPC] ${method} failed on ${baseURL}, retrying fallback endpoint`);
         }
       }
     }
     throw lastError || new Error(`RPC request failed for ${method}`);
   } catch (error) {
-    if (import.meta.env.DEV) console.error(`RPC Error [${method}]:`, error);
+    if (import.meta.env.DEV && !suppressLog) console.error(`RPC Error [${method}]:`, error);
     throw error;
   }
 };
@@ -395,12 +419,11 @@ export const rpc = async (method, params = [], { signal } = {}) => {
  */
 export const safeRpc = async (method, params = [], defaultValue = null, { signal, throwOnError } = {}) => {
   try {
-    const result = await rpc(method, params, { signal });
+    const result = await rpc(method, params, { signal, suppressLog: true });
     const normalized = normalizeItem(result);
     return normalized ?? defaultValue;
   } catch (error) {
     if (signal?.aborted || throwOnError) throw error;
-    if (import.meta.env.DEV) console.error(`SafeRPC Error [${method}]:`, error.message);
     return defaultValue;
   }
 };
@@ -472,11 +495,10 @@ export const formatListResponse = (result) => {
  */
 export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal, throwOnError } = {}) => {
   try {
-    const result = await rpc(method, params, { signal });
+    const result = await rpc(method, params, { signal, suppressLog: true });
     return formatListResponse(result);
   } catch (error) {
     if (signal?.aborted || throwOnError) throw error;
-    if (import.meta.env.DEV) console.error(`Failed to ${errorMsg}:`, error.message);
     return { result: [], totalCount: 0 };
   }
 };

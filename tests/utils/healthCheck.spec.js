@@ -116,4 +116,24 @@ describe("healthCheck endpoint selection", () => {
 
     expect(setActiveBasePath).not.toHaveBeenCalled();
   });
+
+  it("treats slower but healthy probes as valid when the default timeout budget covers them", async () => {
+    post.mockImplementation(async (_url, payload, config) => {
+      const requiredTimeoutMs = payload?.method === "getversion" ? 2000 : 2200;
+      if ((config?.timeout || 0) < requiredTimeoutMs) {
+        throw new Error(`timeout of ${config?.timeout}ms exceeded`);
+      }
+
+      if (payload?.method === "getversion") {
+        return { data: { result: { protocol: { network: 860833102 } } } };
+      }
+
+      return { data: { result: { index: 500 } } };
+    });
+
+    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
+    await checkAndSetEndpoints("Mainnet");
+
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/primary");
+  });
 });

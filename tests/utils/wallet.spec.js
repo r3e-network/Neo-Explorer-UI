@@ -11,6 +11,8 @@ const walletServiceMock = {
     NEOLINE: "NeoLine",
     O3: "O3",
     WALLETCONNECT: "WalletConnect",
+    NEON: "Neon Wallet",
+    TESTNET_WIF: "Testnet WIF (Local Dev)",
     WEB3AUTH: "Google / Email (Web3Auth)",
   },
   isConnected: false,
@@ -18,6 +20,7 @@ const walletServiceMock = {
   invoke: vi.fn(),
   hydrateSession: vi.fn(),
   connect: vi.fn(),
+  restoreSession: vi.fn(),
 };
 
 vi.mock("vue-toastification", () => ({
@@ -41,6 +44,7 @@ describe("utils/wallet connectWallet", () => {
     delete window.NEOLineN3;
     delete window.neo3Dapi;
     localStorage.clear();
+    sessionStorage.clear();
     walletServiceMock.isConnected = false;
     walletServiceMock.account = null;
     walletServiceMock.invoke.mockReset();
@@ -65,6 +69,30 @@ describe("utils/wallet connectWallet", () => {
         },
       };
       window.dispatchEvent(new Event("NEOLine.NEO.EVENT.READY"));
+    }, 25);
+
+    const result = await connection;
+
+    expect(result).toBe(address);
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(getAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it("connects when NeoLineN3 is injected after the N3 ready event", async () => {
+    const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    const getNetworks = vi.fn().mockResolvedValue({ defaultNetwork: "MainNet" });
+    const getAccount = vi.fn().mockResolvedValue({ address });
+
+    const wallet = await import("@/utils/wallet");
+    const connection = wallet.connectWallet();
+
+    setTimeout(() => {
+      window.NEOLineN3 = {
+        Init: function Init() {
+          return { getNetworks, getAccount };
+        },
+      };
+      window.dispatchEvent(new Event("NEOLine.N3.EVENT.READY"));
     }, 25);
 
     const result = await connection;
@@ -139,6 +167,45 @@ describe("utils/wallet connectWallet", () => {
     expect(wallet.connectedAccount.value).toBe("");
     expect(localStorage.getItem("connectedWallet")).toBeNull();
     expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
+  it("restores a stored Neon Wallet session on reload", async () => {
+    const address = "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw";
+    walletServiceMock.restoreSession.mockResolvedValueOnce({
+      address,
+      label: walletServiceMock.PROVIDERS.NEON,
+    });
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEON);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(walletServiceMock.restoreSession).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.NEON);
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(localStorage.getItem("connectedWallet")).toBe(address);
+    expect(localStorage.getItem("walletProvider")).toBe(walletServiceMock.PROVIDERS.NEON);
+  });
+
+  it("restores a stored direct testnet WIF session from session storage", async () => {
+    const address = "NTestWifAccount111111111111111111111";
+    walletServiceMock.restoreSession.mockResolvedValueOnce({
+      address,
+      label: walletServiceMock.PROVIDERS.TESTNET_WIF,
+      persistSession: "session",
+    });
+    sessionStorage.setItem("connectedWallet", address);
+    sessionStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.TESTNET_WIF);
+    sessionStorage.setItem("devTestWif", "LtestDirectWif11111111111111111111111111111111111111111111");
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(walletServiceMock.restoreSession).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.TESTNET_WIF, {
+      wif: "LtestDirectWif11111111111111111111111111111111111111111111",
+    });
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(sessionStorage.getItem("connectedWallet")).toBe(address);
   });
 
   it("does not overwrite connected account from NeoLine focus when active provider is Web3Auth", async () => {

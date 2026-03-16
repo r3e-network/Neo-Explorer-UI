@@ -76,6 +76,7 @@ const MatrixDomain = lazyLoad(() => import("../views/NNS/MatrixDomain.vue"));
 const ToolsIndex = lazyLoad(() => import("../views/Tools/ToolsIndex.vue"));
 const MultiSigTool = lazyLoad(() => import("../views/Tools/MultiSigTool.vue"));
 const GovernanceTool = lazyLoad(() => import("../views/Tools/GovernanceTool.vue"));
+const GovernanceProposalDetail = lazyLoad(() => import("../views/Tools/GovernanceProposalDetail.vue"));
 const FormatConverterTool = lazyLoad(() => import("../views/Tools/FormatConverterTool.vue"));
 const NeoFSTool = lazyLoad(() => import("../views/Tools/NeoFSTool.vue"));
 const CandidateProfileTool = lazyLoad(() => import("../views/Tools/CandidateProfileTool.vue"));
@@ -131,6 +132,12 @@ const routes = [
         name: "governance-tool",
         meta: { title: "Council Governance" },
         component: GovernanceTool,
+      },
+      {
+        path: "/tools/governance/:id",
+        name: "governance-proposal-detail",
+        meta: { title: "Council Proposal Detail" },
+        component: GovernanceProposalDetail,
       },
             {
         path: "/tools/b64",

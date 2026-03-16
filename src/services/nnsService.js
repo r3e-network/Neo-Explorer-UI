@@ -1,14 +1,12 @@
-import axios from "axios";
-import { rpc, safeRpc } from "./api";
+import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
-import { getCurrentEnv, getRpcApiBasePath, NET_ENV } from "../utils/env";
-import { rpc as neonRpc, sc, wallet } from "@cityofzion/neon-js";
+import { getCurrentEnv, NET_ENV } from "../utils/env";
+import { rpc as neonRpc, sc, wallet, u } from "@cityofzion/neon-js";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de"; // Mainnet
-const INVALID_REQUEST_CODE = "-32600";
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
 
@@ -16,54 +14,6 @@ const getMatrixContractHash = (env = getCurrentEnv()) =>
     env === NET_ENV.TestT5
         ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
         : (import.meta.env.VITE_MATRIX_CONTRACT_HASH_MAINNET || "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd");
-
-const isInvalidRequestError = (error) => {
-    const message = String(error?.message || "");
-    return message.includes(INVALID_REQUEST_CODE) || message.includes("Invalid request");
-};
-
-const MAINNET_RPC_BRIDGE_PATTERN = /\/api\/mainnet(?:\/(primary|fallback))?$/i;
-
-const parseMainnetRpcBridgeBase = (value = getRpcApiBasePath(NET_ENV.Mainnet)) => {
-    const normalized = String(value || "").trim().replace(/\/+$/, "");
-    const matched = normalized.match(MAINNET_RPC_BRIDGE_PATTERN);
-    if (!matched) return null;
-
-    return {
-        normalized,
-        basePrefix: normalized.slice(0, matched.index),
-        endpoint: (matched[1] || "").toLowerCase() || null,
-    };
-};
-
-const shouldRetryResolveAgainstPrimary = (env) => {
-    if (env !== NET_ENV.Mainnet) return false;
-    return parseMainnetRpcBridgeBase()?.endpoint === "fallback";
-};
-
-const getMainnetRpcBridgeEndpoint = (endpoint = "primary") => {
-    const parsed = parseMainnetRpcBridgeBase();
-    if (!parsed) return `/api/mainnet/${endpoint}`;
-    return `${parsed.basePrefix}/api/mainnet/${endpoint}`;
-};
-
-const resolveDomainViaPrimary = async (domain) => {
-    try {
-        const response = await axios.post(
-            getMainnetRpcBridgeEndpoint("primary"),
-            {
-                jsonrpc: "2.0",
-                id: 1,
-                method: "GetNNSResolve",
-                params: { Domain: domain },
-            },
-            { timeout: 8000 }
-        );
-        return response?.data?.result?.address || null;
-    } catch (_error) {
-        return null;
-    }
-};
 
 const normalizeDomainName = (value) => {
     const raw = String(value || "").trim().toLowerCase();
@@ -120,6 +70,56 @@ const normalizeExpirationMs = (raw) => {
     return 0;
 };
 
+const decodeBooleanStackItem = (item) => {
+    if (!item || typeof item !== "object") return false;
+    if (item.type !== "Boolean") return false;
+    return item.value === true || item.value === "true";
+};
+
+const decodeUtf8Base64 = (value) => {
+    try {
+        return atob(String(value || ""));
+    } catch {
+        return "";
+    }
+};
+
+const decodeHash160Address = (value) => {
+    try {
+        const raw = atob(String(value || ""));
+        if (!raw) return null;
+        const hex = Array.from(raw)
+            .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
+            .join("");
+        return wallet.getAddressFromScriptHash(u.reverseHex(hex));
+    } catch {
+        return null;
+    }
+};
+
+const decodePropertiesMap = (stackItem) => {
+    const entries = Array.isArray(stackItem?.value) ? stackItem.value : [];
+    const out = {};
+    for (const entry of entries) {
+        const key = decodeUtf8Base64(entry?.key?.value);
+        if (!key) continue;
+        const value = entry?.value?.value;
+        if (key === "admin") {
+            out.admin = decodeHash160Address(value);
+            continue;
+        }
+        out[key] = decodeUtf8Base64(value);
+    }
+    return out;
+};
+
+const invokeContract = async (env, contractHash, operation, args = []) => {
+    return callWithRpcEndpointFallback(env, async (endpoint) => {
+        const rpcClient = new neonRpc.RPCClient(endpoint);
+        return rpcClient.invokeFunction(contractHash, operation, args);
+    });
+};
+
 const pickActiveDomain = (domains = [], suffix = NNS_SUFFIX) => {
     const now = Date.now();
     const normalized = [];
@@ -166,6 +166,46 @@ const getActiveDomainFromMetadata = (metadata) => {
 };
 
 export const nnsService = {
+    async getMatrixDomainProfile(domain) {
+        const normalizedDomain = normalizeDomainName(domain);
+        if (!normalizedDomain.endsWith(MATRIX_SUFFIX)) return null;
+
+        const env = getCurrentEnv();
+        const contractHash = getMatrixContractHash(env);
+
+        const availability = await invokeContract(env, contractHash, "isAvailable", [
+            sc.ContractParam.string(normalizedDomain),
+        ]);
+        const available = decodeBooleanStackItem(availability?.stack?.[0]);
+        if (available) {
+            return {
+                domain: normalizedDomain,
+                available: true,
+                owner: null,
+                admin: null,
+                resolvedAddress: null,
+            };
+        }
+
+        const tokenId = btoa(normalizedDomain);
+        const [ownerRes, propertiesRes, resolvedAddress] = await Promise.all([
+            invokeContract(env, contractHash, "ownerOf", [sc.ContractParam.byteArray(tokenId)]).catch(() => null),
+            invokeContract(env, contractHash, "properties", [sc.ContractParam.byteArray(tokenId)]).catch(() => null),
+            this.resolveMatrixDomain(normalizedDomain),
+        ]);
+
+        const owner = decodeHash160Address(ownerRes?.stack?.[0]?.value);
+        const properties = decodePropertiesMap(propertiesRes?.stack?.[0]);
+
+        return {
+            domain: normalizedDomain,
+            available: false,
+            owner,
+            admin: properties.admin || null,
+            resolvedAddress: resolvedAddress || null,
+        };
+    },
+
     /**
      * Resolve an address to a Name Service profile (NNS domain name)
      * @param {string} address The base58 NEO address
@@ -327,29 +367,6 @@ export const nnsService = {
             key,
             async () => {
                 try {
-                    const resolveResult = await rpc("GetNNSResolve", { Domain: domain });
-                    const resolvedAddress = extractResolvedTarget(
-                        (typeof resolveResult === "string" ? resolveResult : null) ||
-                        resolveResult?.address ||
-                        resolveResult?.result?.address ||
-                        null
-                    );
-
-                    if (resolvedAddress) {
-                        return resolvedAddress;
-                    }
-                } catch (e) {
-                    if (isInvalidRequestError(e) && shouldRetryResolveAgainstPrimary(env)) {
-                        const primaryResolved = extractResolvedTarget(await resolveDomainViaPrimary(domain));
-                        if (primaryResolved) return primaryResolved;
-                    }
-
-                    if (import.meta.env.DEV) {
-                        console.warn("Failed to resolve NNS Domain via RPC bridge:", domain, e);
-                    }
-                }
-
-                try {
                     const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
                         const rpcClient = new neonRpc.RPCClient(endpoint);
                         return rpcClient.invokeFunction(
@@ -370,7 +387,7 @@ export const nnsService = {
                       }
                     }
                 } catch (e) {
-                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain directly via RPC:", domain, e);
+                    if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain via native RPC:", domain, e);
                 }
                 return null;
             },
@@ -394,14 +411,10 @@ export const nnsService = {
             key,
             async () => {
                 try {
-                    const res = await callWithRpcEndpointFallback(env, async (endpoint) => {
-                        const rpcClient = new neonRpc.RPCClient(endpoint);
-                        return rpcClient.invokeFunction(
-                            MATRIX_CONTRACT_HASH,
-                            "resolve",
-                            [sc.ContractParam.string(domain), sc.ContractParam.integer(16)]
-                        );
-                    });
+                    const res = await invokeContract(env, MATRIX_CONTRACT_HASH, "resolve", [
+                        sc.ContractParam.string(domain),
+                        sc.ContractParam.integer(16),
+                    ]);
                     
                     if (res.state === "HALT" && res.stack && res.stack.length > 0) {
                       const item = res.stack[0];

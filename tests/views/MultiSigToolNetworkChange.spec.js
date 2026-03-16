@@ -26,7 +26,7 @@ vi.mock("@/services/walletService", () => ({
 }));
 
 vi.mock("@/utils/env", () => ({
-  getRpcUrl: () => "http://rpc.test",
+  getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => envState.value,
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));

@@ -2,8 +2,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const envState = { value: "Mainnet" };
-const resolveMatrixDomain = vi.fn();
-const safeRpc = vi.fn();
+const getMatrixDomainProfile = vi.fn();
 const errorToast = vi.fn();
 
 vi.mock("vue-toastification", () => ({
@@ -17,16 +16,21 @@ vi.mock("vue-toastification", () => ({
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: () => envState.value,
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
+  NET_ENV: {
+    Mainnet: "Mainnet",
+    TestT5: "TestT5",
+  },
+  getActiveBasePath: () => "/api/testnet",
+  getRpcApiBasePath: () => "/api/testnet",
+  setActiveBasePath: vi.fn(),
+  getConfiguredRpcBaseUrl: () => "",
+  toAbsoluteUrl: (value) => value,
 }));
 
 vi.mock("@/services/nnsService", () => ({
   default: {
-    resolveMatrixDomain,
+    getMatrixDomainProfile,
   },
-}));
-
-vi.mock("@/services/api", () => ({
-  safeRpc,
 }));
 
 vi.mock("@/utils/wallet", () => ({
@@ -39,21 +43,14 @@ vi.mock("@cityofzion/neon-js", () => ({
   wallet: { getScriptHashFromAddress: vi.fn(() => "0xabc") },
 }));
 
-vi.mock("@/utils/neoHelpers", () => ({
-  scriptHashHexToAddress: vi.fn((value) => value),
-  addressToScriptHash: vi.fn(() => "0xabc"),
-  scriptHashToAddress: vi.fn((value) => value),
-}));
-
 describe("MatrixDomain network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     envState.value = "Mainnet";
-    resolveMatrixDomain.mockResolvedValue(null);
-    safeRpc.mockResolvedValue(null);
+    getMatrixDomainProfile.mockResolvedValue({ domain: "hello.matrix", available: true });
   });
 
-  it("uses the updated network contract hash after a network switch", async () => {
+  it("uses the updated environment when the network changes", async () => {
     const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
     const wrapper = mount(MatrixDomain, {
       global: {
@@ -70,16 +67,12 @@ describe("MatrixDomain network changes", () => {
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
 
-    safeRpc.mockResolvedValueOnce({ result: null });
-    safeRpc.mockResolvedValueOnce({ result: null });
-
     const searchButton = wrapper.findAll('button').find((node) => node.text().includes('Search'));
     await searchButton.trigger("click");
     await flushPromises();
 
-    expect(safeRpc).toHaveBeenCalled();
-    const firstContractHash = safeRpc.mock.calls[0][1]?.ContractHash;
-    expect(firstContractHash).toBe("0x89908093c5ccc463e2c5744d6bacb06108b60a75");
+    expect(getMatrixDomainProfile).toHaveBeenCalledWith("hello.matrix");
+    expect(wrapper.text()).toContain("Live on Testnet");
 
     wrapper.unmount();
   });

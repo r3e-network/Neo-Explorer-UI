@@ -44,6 +44,8 @@ vi.mock("../../src/utils/healthCheck.js", () => ({
   checkAndSetEndpoints: vi.fn(() => Promise.resolve()),
 }));
 
+const responseErrorHandler = axios.interceptors.response.use.mock.calls[0]?.[1];
+
 describe("formatListResponse", () => {
   it("returns empty result for null input", () => {
     const result = formatListResponse(null);
@@ -128,6 +130,7 @@ describe("safeRpc", () => {
 
     const result = await safeRpc("GetBlockCount", {}, { blockHeight: 0 });
     expect(result).toEqual({ blockHeight: 0 });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it("returns null as default when not specified", async () => {
@@ -186,6 +189,8 @@ describe("safeRpc", () => {
 
     const result = await safeRpc("GetBlockCount", {});
     expect(result).toEqual({ index: 123 });
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
 
     expect(axios.post).toHaveBeenNthCalledWith(
       1,
@@ -338,6 +343,41 @@ describe("safeRpc", () => {
     expect(result).toEqual({ index: 321 });
     expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
   });
+
+  it("prefers the fallback endpoint first for indexed by-hash explorer APIs on mainnet", async () => {
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({
+          data: { result: { protocol: { network: 860833102 } } },
+        });
+      }
+
+      if (method === "GetRawTransactionByTransactionHash" && baseURL === "/api/mainnet/fallback") {
+        return Promise.resolve({ data: { result: { hash: "0xabc" } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
+
+    const result = await safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: "0xabc" });
+
+    expect(result).toEqual({ hash: "0xabc" });
+    expect(axios.post).toHaveBeenNthCalledWith(
+      1,
+      "",
+      expect.objectContaining({ method: "getversion" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+    );
+    expect(axios.post).toHaveBeenNthCalledWith(
+      2,
+      "",
+      expect.objectContaining({ method: "GetRawTransactionByTransactionHash" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+    );
+  });
 });
 
 describe("rpc", () => {
@@ -363,5 +403,30 @@ describe("rpc", () => {
       expect.objectContaining({ method: "getnextblockvalidators", params: [] }),
       expect.any(Object)
     );
+  });
+});
+
+describe("api response interceptor logging", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy?.mockRestore();
+  });
+
+  it("suppresses dev error logging for internal requests flagged as silent", async () => {
+    const error = { message: "timeout of 350ms exceeded", config: { __suppressDevErrorLog: true } };
+
+    await expect(responseErrorHandler(error)).rejects.toBe(error);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("logs dev errors for non-suppressed requests", async () => {
+    const error = { message: "Network error", config: {} };
+
+    await expect(responseErrorHandler(error)).rejects.toBe(error);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("API Error:", "Network error");
   });
 });

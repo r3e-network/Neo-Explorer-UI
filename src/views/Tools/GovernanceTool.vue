@@ -77,6 +77,7 @@
                 <span>Created: {{ new Date(req.created_at).toLocaleDateString() }}</span>
               </div>
               <div class="mt-2 flex gap-2">
+                 <RouterLink :to="{ name: 'governance-proposal-detail', params: { id: req.id } }" class="text-xs text-primary-500 hover:underline">Open Proposal Page</RouterLink>
                  <button @click="viewDetails(req)" class="text-xs text-primary-500 hover:underline">View JSON / Details</button>
               </div>
             </div>
@@ -111,8 +112,21 @@
           <div v-if="req.signatures?.length > 0" class="mt-4 pt-3 border-t border-line-soft">
             <div class="text-xs font-semibold text-mid mb-2">Approved By:</div>
             <div class="flex flex-wrap gap-2">
-               <span v-for="sig in req.signatures" :key="sig.id" class="inline-flex items-center px-2 py-1 rounded bg-surface-muted border border-line-soft text-xs font-mono text-low" :title="sig.signer_address">
-                 {{ sig.signer_address === connectedAccount ? 'You' : sig.signer_address.slice(0, 4) + '...' + sig.signer_address.slice(-4) }}
+               <span
+                 v-for="sig in req.signatures"
+                 :key="sig.id"
+                 class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded bg-surface-muted border border-line-soft text-xs text-low"
+                 :title="sig.signer_address"
+               >
+                 <img
+                   v-if="getCouncilIdentity(sig.signer_address).logo"
+                   :src="getCouncilIdentity(sig.signer_address).logo"
+                   alt=""
+                   class="h-5 w-5 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                 />
+                 <span class="font-medium text-high">
+                   {{ sig.signer_address === connectedAccount ? `You · ${getCouncilIdentity(sig.signer_address).name}` : getCouncilIdentity(sig.signer_address).name }}
+                 </span>
                </span>
             </div>
           </div>
@@ -131,6 +145,11 @@
            <div class="p-3 bg-surface-muted rounded-lg border border-line-soft font-mono text-[10px] break-all text-low overflow-y-auto max-h-32">
              {{ signModalReq.params?.unsigned_tx }}
            </div>
+           <ScriptViewer
+             v-if="signModalDecodedScript"
+             :script="signModalDecodedScript"
+             label="Decoded Contract Script"
+           />
            <div>
              <label class="block text-sm font-medium text-high mb-1">Option 1: Auto Sign</label>
              <button @click="autoSignTx" :disabled="isSigning" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50">
@@ -165,7 +184,7 @@
         </div>
         <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
            <div>
-             <label class="block text-sm font-medium text-high mb-1">Proposal Name</label>
+             <label class="block text-sm font-medium text-high mb-1">Proposal Description</label>
              <input v-model="createForm.description" type="text" class="form-input w-full" placeholder="e.g. Decrease GAS Network Fee" />
            </div>
            <div>
@@ -203,6 +222,9 @@
         </div>
         <div class="p-6 overflow-y-auto font-mono text-xs text-low whitespace-pre-wrap">
           {{ JSON.stringify(detailsModalReq, null, 2) }}
+          <div v-if="detailsModalDecodedScript" class="mt-6 whitespace-normal font-sans">
+            <ScriptViewer :script="detailsModalDecodedScript" label="Decoded Contract Script" />
+          </div>
         </div>
       </div>
     </div>
@@ -215,13 +237,16 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
+import ScriptViewer from "@/components/trace/ScriptViewer.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
-import { getRpcUrl, getCurrentEnv } from '@/utils/env';
+import { getRpcClientUrl, getCurrentEnv } from '@/utils/env';
 import { useNetworkChange } from '@/composables/useNetworkChange';
 import { toNetworkMode } from '@/utils/rpcEndpoints';
 import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
+import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
+import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -233,8 +258,10 @@ const committeePubkeys = ref([]);
 const committeeMultiSig = ref(null);
 const threshold = ref(0);
 const committeeSize = ref(0);
+const validatorMetadata = ref([]);
 
 let neonJs = null;
+const councilIdentityMap = computed(() => buildCouncilIdentityMap(validatorMetadata.value));
 
 const isCouncilNode = computed(() => {
   if (!connectedAccount.value || !committeeMultiSig.value || !neonJs) return false;
@@ -301,12 +328,12 @@ watch(() => createForm.value.selectedContract, () => {
 async function loadCommittee() {
   if (!neonJs) return;
   try {
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcUrl());
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const committee = await rpcClient.getCommittee();
     const sorted = [...committee].sort((a,b) => a.localeCompare(b));
     committeePubkeys.value = sorted;
     committeeSize.value = sorted.length;
-    threshold.value = sorted.length - Math.floor((sorted.length - 1) / 3);
+    threshold.value = Math.floor(sorted.length / 2) + 1;
     committeeMultiSig.value = neonJs.wallet.Account.createMultiSig(threshold.value, sorted);
   } catch (e) {
     console.error("Failed to load committee:", e);
@@ -325,16 +352,42 @@ async function loadRequests() {
   }
 }
 
+async function loadValidatorMetadata() {
+  try {
+    validatorMetadata.value = await supabaseService.getValidatorMetadata(getCurrentEnv());
+  } catch {
+    validatorMetadata.value = [];
+  }
+}
+
 function hasSigned(req) {
   if (!connectedAccount.value || !req.signatures) return false;
   return req.signatures.some(s => s.signer_address === connectedAccount.value);
 }
 
+function getCommitteeAddresses(pubkeys = committeePubkeys.value) {
+  if (!neonJs) return [];
+  return pubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
+}
+
 const signModalReq = ref(null);
 const manualSignature = ref("");
 const isSigning = ref(false);
+const signModalDecodedScript = computed(() =>
+  extractScriptBase64FromUnsignedTx(signModalReq.value?.params?.unsigned_tx || "")
+);
 
 const detailsModalReq = ref(null);
+const detailsModalDecodedScript = computed(() =>
+  extractScriptBase64FromUnsignedTx(detailsModalReq.value?.params?.unsigned_tx || "")
+);
+function getCouncilIdentity(address) {
+  const resolved = resolveCouncilIdentity(address, councilIdentityMap.value);
+  return {
+    ...resolved,
+    name: resolved.name === address ? "Council Signer" : resolved.name,
+  };
+}
 function viewDetails(req) {
   detailsModalReq.value = req;
 }
@@ -382,7 +435,7 @@ async function handleCreateProposal() {
 
   isCreating.value = true;
   try {
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcUrl());
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     
     const targetContract = NATIVE_CONTRACTS[createForm.value.selectedContract];
@@ -402,33 +455,29 @@ async function handleCreateProposal() {
     const t = new neonJs.tx.Transaction({
       signers: [{ account: committeeMultiSig.value.scriptHash, scopes: neonJs.tx.WitnessScope.Global }],
       validUntilBlock: currentHeight + 100000, // Long expiration for multisig gathering (~17 days)
-      systemFee: 0,
-      networkFee: 0,
+      systemFee: "100000000", // 1 GAS
+      networkFee: "500000000", // 5 GAS
       script: neonJs.u.HexString.fromHex(script)
     });
-    
-    // Calculate fees manually as we cannot directly send
-    // Just set an arbitrary high fee to ensure it passes when broadcasted.
-    t.systemFee = 100000000; // 1 GAS
-    t.networkFee = 500000000; // 5 GAS
     
     const unsignedTxHex = t.serialize(false);
     const txHash = t.hash();
     
     const payload = {
+      type: "governance",
       creator_address: connectedAccount.value,
       target_contract: targetContract,
       method: method,
       description: createForm.value.description,
       signers_required: threshold.value,
-      eligible_signers: committeePubkeys.value,
+      eligible_signers: getCommitteeAddresses(),
       status: "PENDING",
       network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
         hash: txHash,
         scriptHash: committeeMultiSig.value.scriptHash,
-        committee: committeePubkeys.value
+        committee_pubkeys: committeePubkeys.value
       }
     };
     
@@ -471,12 +520,28 @@ async function submitSig(signatureHex) {
     throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
   }
   try {
-    const res = await supabaseService.addMultisigSignature(signModalReq.value.id, connectedAccount.value, signatureHex);
+    const requestId = signModalReq.value.id;
+    const res = await supabaseService.addMultisigSignature(
+      requestId,
+      connectedAccount.value,
+      signatureHex,
+      {
+        witness: {
+          signer_address: connectedAccount.value,
+          signature: signatureHex,
+        },
+      }
+    );
     if (!res.success) throw new Error(res.error);
     
     toast.success("Signature added successfully!");
     signModalReq.value = null;
     await loadRequests();
+
+    const updatedRequest = await supabaseService.getMultisigRequestById(requestId, getCurrentEnv());
+    if (updatedRequest && (updatedRequest.signatures?.length || 0) >= updatedRequest.signers_required) {
+      await handleBroadcast(updatedRequest);
+    }
   } catch (e) {
     throw new Error("Failed to submit signature: " + e.message);
   }
@@ -493,7 +558,7 @@ async function handleBroadcast(req) {
     const t = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
     
     // Sort signatures based on the order of public keys in the committee
-    const committee = req.params.committee; // Array of pubkeys
+    const committee = req.params?.committee_pubkeys || req.params?.committee || []; // Array of pubkeys
     const sortedSignatures = [];
     
     for (const pubkey of committee) {
@@ -525,13 +590,22 @@ async function handleBroadcast(req) {
     const signedTxHex = t.serialize(true);
     
     toast.info("Broadcasting to network...");
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcUrl());
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(signedTxHex);
     
     toast.success("Transaction broadcasted! TXID: " + txid);
-    
-    // Optionally update status in supabase
-    // await supabaseService.updateMultisigStatus(req.id, "EXECUTED", txid);
+    await supabaseService.updateMultisigRequestStatus(req.id, "EXECUTED", {
+      tx_hash: txid,
+      executed_at: new Date().toISOString(),
+      params: {
+        ...req.params,
+        broadcast_witness: {
+          invocationScript,
+          verificationScript,
+        },
+      },
+    });
+    await loadRequests();
     
   } catch (e) {
     console.error(e);
@@ -540,15 +614,13 @@ async function handleBroadcast(req) {
 }
 
 async function handleNetworkChange() {
-  await loadCommittee();
-  await loadRequests();
+  await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
 }
 
 onMounted(async () => {
   try {
     neonJs = window.Neon || await import('@cityofzion/neon-js');
-    await loadCommittee();
-    await loadRequests();
+    await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
       } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);
   } finally {

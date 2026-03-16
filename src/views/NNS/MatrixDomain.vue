@@ -13,7 +13,7 @@
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            Live on Mainnet
+            Live on {{ currentNetworkLabel }}
           </div>
           
           <h1 class="text-balance text-4xl font-black tracking-tight text-white md:text-6xl drop-shadow-sm">
@@ -254,15 +254,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useToast } from 'vue-toastification';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from '@/utils/wallet';
 import nnsService from '@/services/nnsService';
-import { safeRpc } from '@/services/api';
-import { scriptHashHexToAddress } from '@/utils/neoHelpers';
-import { getCurrentEnv } from '@/utils/env';
+import { getCurrentEnv, NETWORK_CHANGE_EVENT } from '@/utils/env';
 
 const toast = useToast();
 const account = connectedAccount;
@@ -279,6 +277,20 @@ const searchResult = ref(null);
 const actionLoading = ref(false);
 const showTransferModal = ref(false);
 const transferRecipient = ref('');
+const currentNetwork = ref(getCurrentEnv());
+const currentNetworkLabel = computed(() => (currentNetwork.value === 'TestT5' ? 'Testnet' : 'Mainnet'));
+
+function handleNetworkChange(event) {
+  currentNetwork.value = event?.detail?.env || getCurrentEnv();
+}
+
+onMounted(() => {
+  window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+});
 
 const getMatrixContractHash = () => getCurrentEnv() === 'TestT5'
   ? (import.meta.env.VITE_MATRIX_CONTRACT_HASH_TESTNET || "0x89908093c5ccc463e2c5744d6bacb06108b60a75")
@@ -312,80 +324,29 @@ async function handleSearch() {
   
   try {
     const isReserved = RESERVED_DOMAINS.includes(query);
-    
-    const resolvedAddress = await nnsService.resolveMatrixDomain(query);
-    const tokenBase64 = btoa(query);
-    
-    const props = await safeRpc("GetNep11PropertiesByContractHashTokenId", {
-      ContractHash: getMatrixContractHash(),
-      TokenIds: [tokenBase64]
-    }, null);
-    
-    const fallbackProps = props && props.result ? props : await safeRpc("GetNep11PropertiesByContractHashTokenId", {
-      ContractHash: getMatrixContractHash(),
-      TokenId: btoa(query)
-    }, null);
-    
-    if (!fallbackProps && !props) {
+    const profile = await nnsService.getMatrixDomainProfile(query);
+
+    if (!profile) {
       searchResult.value = {
         domain: query,
-        available: true
+        available: !isReserved,
+        reserved: isReserved,
+      };
+    } else if (profile.available) {
+      searchResult.value = {
+        domain: query,
+        available: !isReserved,
+        reserved: isReserved,
       };
     } else {
-      let admin = null;
-      let ownerAddressFromNNS = null;
-      try {
-        const ownerRes = await safeRpc("GetNep11TransferByContractHashTokenId", {
-            ContractHash: getMatrixContractHash(),
-            TokenId: btoa(query)
-        }, null);
-        if (ownerRes && Array.isArray(ownerRes) && ownerRes.length > 0) {
-             ownerAddressFromNNS = ownerRes[0].to;
-        } else if (ownerRes && ownerRes.result && Array.isArray(ownerRes.result) && ownerRes.result.length > 0) {
-             ownerAddressFromNNS = ownerRes.result[0].to;
-        }
-      } catch(_e) { /* ignore */ }
-
-      let ownerAddr = resolvedAddress || ownerAddressFromNNS;
-      
-      let propData = null;
-      const activeProps = fallbackProps || props;
-      if (activeProps && Array.isArray(activeProps.result) && activeProps.result.length > 0) {
-        propData = activeProps.result.find(p => p.name === query);
-      } else if (Array.isArray(activeProps) && activeProps.length > 0) {
-        propData = activeProps.find(p => p.name === query);
-      } else if (activeProps && !Array.isArray(activeProps) && !activeProps.result) {
-        if (activeProps.name === query) {
-           propData = activeProps;
-        }
-      }
-      
-      if (propData && propData.admin) {
-        let rawAdmin = propData.admin;
-        if (rawAdmin.startsWith("0x")) {
-           try { 
-               rawAdmin = scriptHashHexToAddress(rawAdmin.slice(2)); 
-           } catch(_e) { /* ignore */ }
-        }
-        admin = rawAdmin;
-      }
-      
-      if (!propData && !ownerAddr) {
-        searchResult.value = {
-          domain: query,
-          available: !isReserved,
-          reserved: isReserved
-        };
-      } else {
-        searchResult.value = {
-          domain: query,
-          available: false,
-          reserved: false, // If it's already registered, it's no longer just reserved. Show the standard Taken state.
-          owner: ownerAddr, 
-          admin: admin,
-          resolvedAddress: resolvedAddress
-        };
-      }
+      searchResult.value = {
+        domain: query,
+        available: false,
+        reserved: false,
+        owner: profile.owner,
+        admin: profile.admin,
+        resolvedAddress: profile.resolvedAddress,
+      };
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error("Search NNS failed", e);

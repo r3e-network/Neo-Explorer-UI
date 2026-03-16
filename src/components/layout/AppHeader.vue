@@ -107,29 +107,30 @@
     </nav>
   
     <transition name="fade">
-      <div v-if="showWalletModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div class="bg-surface w-full max-w-sm rounded-2xl shadow-2xl border border-line-soft overflow-hidden relative" @click.stop>
-          <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
+      <div v-if="showWalletModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 p-5">
+        <div class="bg-surface-base w-full max-w-md rounded-2xl shadow-2xl border-2 border-line-soft ring-1 ring-black/40 overflow-hidden relative" @click.stop>
+          <div class="px-7 py-5 border-b border-line-soft flex items-center justify-between">
             <h2 class="text-lg font-bold text-high">Connect Wallet</h2>
-            <button @click="showWalletModal = false" class="text-low hover:text-high transition-colors">
+            <button @click="showWalletModal = false; resetDevWifForm()" class="text-low hover:text-high transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
-          <div class="p-6 space-y-3">
+          <div class="p-7 space-y-4">
             <button 
               v-for="provider in supportedProviders" 
               :key="provider"
               :disabled="walletLoading"
               :title="isProviderAvailable(provider) ? provider : getProviderUnavailableReason(provider)"
               @click="handleConnect(provider)"
-              class="w-full flex items-center justify-between p-4 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
+              class="w-full flex items-center justify-between p-5 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-line-soft p-2">
+              <div class="flex items-center gap-4">
+                <div class="h-11 w-11 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-line-soft p-2">
                   <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'Neon Wallet'" :src="'/img/brand/neon.ico'" alt="Neon Wallet" class="w-full h-full object-contain" />
+                  <img v-else-if="provider === 'Testnet WIF (Local Dev)'" :src="'/img/brand/neo.png'" alt="Testnet WIF (Local Dev)" class="w-full h-full object-contain" />
                   <img v-else-if="provider === 'OneGate'" :src="'/img/brand/onegate.ico'" alt="OneGate" class="w-full h-full object-contain" />
                   <img v-else-if="provider === 'Google / Email (Web3Auth)'" :src="'/img/brand/web3auth.png'" alt="Web3Auth" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'EVM Wallets (MetaMask, OKX, Rabby, etc.)'" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="w-full h-full object-contain" />
@@ -139,6 +140,37 @@
               </div>
               <svg class="w-5 h-5 text-low group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
+
+            <div v-if="showDevWifForm" class="mt-4 rounded-xl border border-line-soft bg-surface-muted p-4 space-y-3">
+              <div>
+                <label class="block text-sm font-medium text-high mb-1">Testnet WIF</label>
+                <input
+                  v-model="devWifInput"
+                  type="password"
+                  class="form-input w-full font-mono text-sm"
+                  placeholder="Paste local testnet WIF"
+                  autocomplete="off"
+                />
+              </div>
+              <div class="flex gap-2">
+                <button
+                  @click="handleDevWifConnect"
+                  :disabled="walletLoading || !devWifInput.trim()"
+                  class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  Connect Testnet WIF
+                </button>
+                <button
+                  @click="resetDevWifForm"
+                  class="rounded-lg border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:bg-line-soft transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p class="text-xs text-mid">
+                Development-only. The WIF is used only in memory and is not persisted to local storage.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -227,6 +259,8 @@ const showWalletModal = ref(false);
 const availableProviders = ref([]);
 const supportedProviders = ref([]);
 const wcUri = ref("");
+const showDevWifForm = ref(false);
+const devWifInput = ref("");
 
 function isProviderAvailable(provider) {
   return availableProviders.value.includes(provider);
@@ -238,6 +272,9 @@ function getProviderUnavailableReason(provider) {
   }
   if (provider === walletService.PROVIDERS.NEON) {
     return "Open Neon Wallet download page";
+  }
+  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+    return "Switch the explorer to testnet to use local WIF testing";
   }
   if (provider === walletService.PROVIDERS.ONEGATE) {
     return "Open OneGate install page";
@@ -270,13 +307,29 @@ function getProviderInstallUrl(provider) {
   if (provider === walletService.PROVIDERS.NEON) {
     return "https://neon.coz.io/";
   }
+  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+    return "";
+  }
   if (provider === walletService.PROVIDERS.EVM_WALLET) {
     return "https://metamask.io/download/";
   }
   return "";
 }
 
+function resetDevWifForm() {
+  showDevWifForm.value = false;
+  devWifInput.value = "";
+}
+
 async function handleConnect(provider) {
+  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+    if (!isProviderAvailable(provider)) {
+      toast.info(getProviderUnavailableReason(provider));
+      return;
+    }
+    showDevWifForm.value = true;
+    return;
+  }
   if (!isProviderAvailable(provider)) {
     const installUrl = getProviderInstallUrl(provider);
     if (installUrl && typeof window !== "undefined" && typeof window.open === "function") {
@@ -310,8 +363,16 @@ async function handleConnect(provider) {
      
      if (result && result.address) {
        connectedAccount.value = result.address;
-       localStorage.setItem("connectedWallet", result.address);
-       localStorage.setItem("walletProvider", provider);
+       if (result.persistSession === "session") {
+         sessionStorage.setItem("connectedWallet", result.address);
+         sessionStorage.setItem("walletProvider", provider);
+         sessionStorage.setItem("devTestWif", devWifInput.value.trim());
+       } else if (result.persistSession !== false) {
+         localStorage.setItem("connectedWallet", result.address);
+         localStorage.setItem("walletProvider", provider);
+       }
+       resetDevWifForm();
+       showWalletModal.value = false;
        toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
      }
   } catch (err) {
@@ -321,6 +382,31 @@ async function handleConnect(provider) {
      toast.error(errMsg || "Failed to connect wallet.");
   } finally {
      walletLoading.value = false;
+  }
+}
+
+async function handleDevWifConnect() {
+  walletLoading.value = true;
+  try {
+    const result = await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, {
+      wif: devWifInput.value.trim(),
+    });
+    if (result?.address) {
+      connectedAccount.value = result.address;
+      if (result.persistSession === "session") {
+        sessionStorage.setItem("connectedWallet", result.address);
+        sessionStorage.setItem("walletProvider", walletService.PROVIDERS.TESTNET_WIF);
+        sessionStorage.setItem("devTestWif", devWifInput.value.trim());
+      }
+      resetDevWifForm();
+      showWalletModal.value = false;
+      toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
+    }
+  } catch (err) {
+    const errMsg = err?.message || err?.description || "Failed to connect wallet.";
+    toast.error(errMsg);
+  } finally {
+    walletLoading.value = false;
   }
 }
 
@@ -338,6 +424,7 @@ async function toggleWallet() {
     supportedProviders.value = typeof walletService.getSupportedProviders === "function"
       ? walletService.getSupportedProviders()
       : walletService.getAvailableProviders();
+    resetDevWifForm();
     showWalletModal.value = true;
   } finally {
     walletLoading.value = false;

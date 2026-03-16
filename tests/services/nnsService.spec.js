@@ -2,24 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const safeRpc = vi.fn();
 const rpc = vi.fn();
-const axiosPost = vi.fn();
+const callWithRpcEndpointFallback = vi.fn();
 const getCacheKey = vi.fn(() => "nns-cache-key");
 const cachedRequest = vi.fn((_key, fetchFn) => fetchFn());
 const getAddressTag = vi.fn();
 const getScriptHashFromAddress = vi.fn();
+const getAddressFromScriptHash = vi.fn((value) => `N${String(value).slice(0, 10)}`);
+const reverseHex = vi.fn((value) => String(value).match(/../g)?.reverse().join("") || value);
+const invokeFunctionMock = vi.fn();
 
 let currentEnv = "Mainnet";
-let currentBasePath = "/api/mainnet/fallback";
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
   rpc,
 }));
 
-vi.mock("axios", () => ({
-  default: {
-    post: axiosPost,
-  },
+vi.mock("../../src/utils/rpcEndpoints.js", () => ({
+  callWithRpcEndpointFallback,
 }));
 
 vi.mock("../../src/services/cache.js", () => ({
@@ -35,15 +35,27 @@ vi.mock("../../src/services/supabaseService.js", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => ({
-  rpc: {},
+  rpc: {
+    RPCClient: class {
+      constructor() {}
+      invokeFunction(...args) {
+        return invokeFunctionMock(...args);
+      }
+    },
+  },
   sc: {
     ContractParam: {
       string: vi.fn(),
       integer: vi.fn(),
+      byteArray: vi.fn((value) => value),
     },
   },
   wallet: {
     getScriptHashFromAddress,
+    getAddressFromScriptHash,
+  },
+  u: {
+    reverseHex,
   },
 }));
 
@@ -53,7 +65,6 @@ vi.mock("../../src/utils/env.js", () => ({
     TestT5: "TestT5",
   },
   getCurrentEnv: () => currentEnv,
-  getRpcApiBasePath: () => currentBasePath,
 }));
 
 describe("nnsService.resolveDomain", () => {
@@ -61,67 +72,40 @@ describe("nnsService.resolveDomain", () => {
     vi.clearAllMocks();
     vi.resetModules();
     currentEnv = "Mainnet";
-    currentBasePath = "/api/mainnet/fallback";
+    callWithRpcEndpointFallback.mockImplementation((_env, handler) => handler("https://rpc.test"));
   });
 
-  it("retries using mainnet primary when fallback endpoint rejects GetNNSResolve", async () => {
+  it("resolves .neo domains via native RPC invokeFunction", async () => {
     const domain = "flamingo.neo";
     const expectedAddress = "NNf8jxEBxsahLSiYtuHWsMFn93THdTFryw";
 
-    rpc.mockRejectedValueOnce(new Error("RPC Error -32600: Invalid request"));
-    axiosPost.mockResolvedValueOnce({
-      data: {
-        result: {
-          address: expectedAddress,
+    callWithRpcEndpointFallback.mockResolvedValueOnce({
+      state: "HALT",
+      stack: [
+        {
+          type: "ByteString",
+          value: Buffer.from(expectedAddress, "binary").toString("base64"),
         },
-      },
+      ],
     });
 
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveDomain(domain);
 
-    expect(rpc).toHaveBeenCalledWith("GetNNSResolve", { Domain: domain });
-    expect(axiosPost).toHaveBeenCalledWith(
-      "/api/mainnet/primary",
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "GetNNSResolve",
-        params: { Domain: domain },
-      },
-      { timeout: 8000 }
-    );
+    expect(callWithRpcEndpointFallback).toHaveBeenCalledTimes(1);
     expect(resolved).toBe(expectedAddress);
   });
 
-  it("retries using configured mainnet primary when an external fallback endpoint rejects GetNNSResolve", async () => {
+  it("returns null when native RPC domain resolution fails", async () => {
     const domain = "flamingo.neo";
-    const expectedAddress = "NNf8jxEBxsahLSiYtuHWsMFn93THdTFryw";
 
-    currentBasePath = "https://rpc-proxy.example.com/api/mainnet/fallback";
-    rpc.mockRejectedValueOnce(new Error("RPC Error -32600: Invalid request"));
-    axiosPost.mockResolvedValueOnce({
-      data: {
-        result: {
-          address: expectedAddress,
-        },
-      },
-    });
+    callWithRpcEndpointFallback.mockRejectedValueOnce(new Error("rpc failed"));
 
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveDomain(domain);
 
-    expect(axiosPost).toHaveBeenCalledWith(
-      "https://rpc-proxy.example.com/api/mainnet/primary",
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "GetNNSResolve",
-        params: { Domain: domain },
-      },
-      { timeout: 8000 }
-    );
-    expect(resolved).toBe(expectedAddress);
+    expect(callWithRpcEndpointFallback).toHaveBeenCalledTimes(1);
+    expect(resolved).toBeNull();
   });
 
 
@@ -155,6 +139,55 @@ describe("nnsService.resolveDomain", () => {
       null
     );
     expect(resolved).toEqual({ nns: "alice.matrix" });
+  });
+
+  it("loads matrix domain profile from standard contract methods on testnet", async () => {
+    currentEnv = "TestT5";
+    const resolvedAddress = "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM";
+
+    invokeFunctionMock
+      .mockResolvedValueOnce({
+        state: "HALT",
+        stack: [{ type: "Boolean", value: false }],
+      })
+      .mockResolvedValueOnce({
+        state: "HALT",
+        stack: [{ type: "ByteString", value: "CqiyUBK3xeqpSEaj+XMpNpxR7xM=" }],
+      })
+      .mockResolvedValueOnce({
+        state: "HALT",
+        stack: [{
+          type: "Map",
+          value: [
+            {
+              key: { type: "ByteString", value: "YWRtaW4=" },
+              value: { type: "ByteString", value: "CqiyUBK3xeqpSEaj+XMpNpxR7xM=" },
+            },
+          ],
+        }],
+      })
+      .mockResolvedValueOnce({
+        state: "HALT",
+        stack: [{ type: "ByteString", value: Buffer.from(resolvedAddress, "binary").toString("base64") }],
+      });
+
+    const { default: nnsService } = await import("../../src/services/nnsService.js");
+    const profile = await nnsService.getMatrixDomainProfile("alice.matrix");
+
+    expect(callWithRpcEndpointFallback).toHaveBeenCalled();
+    expect(invokeFunctionMock).toHaveBeenNthCalledWith(
+      1,
+      "0x89908093c5ccc463e2c5744d6bacb06108b60a75",
+      "isAvailable",
+      [undefined]
+    );
+    expect(profile).toEqual({
+      domain: "alice.matrix",
+      available: false,
+      owner: expect.stringMatching(/^N/),
+      admin: expect.stringMatching(/^N/),
+      resolvedAddress,
+    });
   });
 
   it("resolves hash160 targets via admin lookup when owner lookup is empty", async () => {

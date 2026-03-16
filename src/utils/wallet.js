@@ -6,18 +6,26 @@ import { walletService } from "@/services/walletService";
 import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 
 
-export const connectedAccount = ref(typeof window !== "undefined" ? localStorage.getItem("connectedWallet") || "" : "");
+function getStoredWalletAddress() {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("connectedWallet") || localStorage.getItem("connectedWallet") || "";
+}
+
+export const connectedAccount = ref(getStoredWalletAddress());
 
 function clearStoredWalletState() {
     connectedAccount.value = "";
     if (typeof window === "undefined") return;
     localStorage.removeItem("connectedWallet");
     localStorage.removeItem("walletProvider");
+    sessionStorage.removeItem("connectedWallet");
+    sessionStorage.removeItem("walletProvider");
+    sessionStorage.removeItem("devTestWif");
 }
 
 function getStoredWalletProvider() {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("walletProvider");
+    return sessionStorage.getItem("walletProvider") || localStorage.getItem("walletProvider");
 }
 
 function isNeoLineSessionActive() {
@@ -49,7 +57,7 @@ export async function initWallet() {
     if (typeof window === "undefined") return;
 
     // Attempt generic reconnect if we had an active session stored
-    const provider = localStorage.getItem("walletProvider");
+    const provider = getStoredWalletProvider();
 
     if (connectedAccount.value && provider === "NeoLine") {
         const hasNeoLine = await waitForNeoLineN3(1000);
@@ -96,8 +104,33 @@ export async function initWallet() {
         } catch (e) {
             clearStoredWalletState();
         }
-    } else if (connectedAccount.value && (provider === walletService.PROVIDERS.WALLETCONNECT || provider === walletService.PROVIDERS.NEON)) {
+    } else if (connectedAccount.value && provider === walletService.PROVIDERS.WALLETCONNECT) {
         clearStoredWalletState();
+    } else if (connectedAccount.value && provider === walletService.PROVIDERS.TESTNET_WIF) {
+        try {
+            const wif = sessionStorage.getItem("devTestWif") || "";
+            const account = await walletService.restoreSession(walletService.PROVIDERS.TESTNET_WIF, { wif });
+            if (account && account.address) {
+                connectedAccount.value = account.address;
+                sessionStorage.setItem("connectedWallet", account.address);
+            } else {
+                clearStoredWalletState();
+            }
+        } catch (e) {
+            clearStoredWalletState();
+        }
+    } else if (connectedAccount.value && provider === walletService.PROVIDERS.NEON) {
+        try {
+            const account = await walletService.restoreSession(walletService.PROVIDERS.NEON);
+            if (account && account.address) {
+                connectedAccount.value = account.address;
+                localStorage.setItem("connectedWallet", account.address);
+            } else {
+                clearStoredWalletState();
+            }
+        } catch (e) {
+            clearStoredWalletState();
+        }
     } else if (connectedAccount.value && provider === walletService.PROVIDERS.WEB3AUTH) {
         // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
         walletService.connect(walletService.PROVIDERS.WEB3AUTH).then((account) => {
@@ -132,10 +165,12 @@ function waitForNeoLineN3(timeout = 3000) {
 
         const cleanup = () => {
             window.removeEventListener("NEOLine.NEO.EVENT.READY", onReady);
+            window.removeEventListener("NEOLine.N3.EVENT.READY", onReady);
             clearTimeout(timer);
         };
 
         window.addEventListener("NEOLine.NEO.EVENT.READY", onReady);
+        window.addEventListener("NEOLine.N3.EVENT.READY", onReady);
 
         const timer = setTimeout(() => {
             cleanup();
@@ -190,10 +225,7 @@ export async function connectWallet() {
 }
 
 export async function disconnectWallet() {
-    connectedAccount.value = "";
-    if (typeof window !== "undefined") {
-        localStorage.removeItem("connectedWallet");
-    }
+    clearStoredWalletState();
 }
 
 export async function voteForCandidate(candidatePubkey) {

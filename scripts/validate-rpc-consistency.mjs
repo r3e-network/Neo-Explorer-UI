@@ -27,7 +27,8 @@ const docsNoiseMethods = new Set(["transfer", "stake"]);
 
 const frontendPatterns = [/rpcMethod:\s*"([A-Za-z0-9_]+)"/g, /rpc\(\s*"([A-Za-z0-9_]+)"/g];
 const backendHandlerPattern = /func \(me \*T\) ([A-Za-z0-9_]+)\(/g;
-const backendApiAllowlistPattern = /"([A-Za-z0-9_]+)"\s*:\s*true,/g;
+const backendApiAllowlistMapPattern = /"([A-Za-z0-9_]+)"\s*:\s*true,/g;
+const backendApiAllowlistSlicePattern = /"([A-Za-z0-9_]+)"/g;
 const docsMethodPattern = /"method"\s*:\s*"([A-Za-z0-9_]+)"/g;
 
 async function exists(targetPath) {
@@ -149,6 +150,22 @@ export function buildHandlerCoverageSet(handlerMethods) {
     coverage.add(`${method.slice(0, 1).toLowerCase()}${method.slice(1)}`);
   }
   return coverage;
+}
+
+export function extractBackendAllowedApis(source) {
+  if (!source || typeof source !== "string") return new Set();
+
+  const mapBlockMatch = /var\s+Apis\s*=\s*map\[string\]bool\s*\{([\s\S]*?)\n\}/m.exec(source);
+  if (mapBlockMatch) {
+    return collectMatches(mapBlockMatch[1], [backendApiAllowlistMapPattern]);
+  }
+
+  const sliceBlockMatch = /var\s+Apis\s*=\s*\[\]string\s*\{([\s\S]*?)\n\}/m.exec(source);
+  if (sliceBlockMatch) {
+    return collectMatches(sliceBlockMatch[1], [backendApiAllowlistSlicePattern]);
+  }
+
+  return new Set();
 }
 
 function escapeRegExp(input) {
@@ -382,7 +399,7 @@ async function main() {
 
   const backendHandlerCoverage = buildHandlerCoverageSet(backendHandlers);
   const backendConfigContent = await fs.readFile(backendApiConfig, "utf8");
-  const backendAllowedApis = collectMatches(backendConfigContent, [backendApiAllowlistPattern]);
+  const backendAllowedApis = extractBackendAllowedApis(backendConfigContent);
 
   let docsMethods = await collectDocsMethods(backendDocsFiles);
 

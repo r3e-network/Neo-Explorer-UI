@@ -11,8 +11,7 @@
           v-if="addressLogo"
           :src="addressLogo"
           class="w-3.5 h-3.5 rounded-full object-cover bg-white"
-          alt=""
-          aria-hidden="true"
+          :alt="addressAlias"
         />
         <span class="truncate">{{ addressAlias }}</span>
       </router-link>
@@ -33,8 +32,7 @@
             v-if="addressLogo"
             :src="addressLogo"
             class="w-3.5 h-3.5 rounded-full object-cover bg-white"
-            alt=""
-            aria-hidden="true"
+            :alt="addressAlias"
           />
           {{ addressAlias }}
         </span>

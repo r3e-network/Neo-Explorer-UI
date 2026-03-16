@@ -321,7 +321,7 @@ import CopyButton from "@/components/common/CopyButton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
-import { getRpcUrl, getCurrentEnv } from '@/utils/env';
+import { getRpcClientUrl, getCurrentEnv } from '@/utils/env';
 import { useNetworkChange } from '@/composables/useNetworkChange';
 import { toNetworkMode } from '@/utils/rpcEndpoints';
 import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
@@ -460,7 +460,7 @@ async function handleCreateRequest() {
     const mAccount = neonJs.wallet.Account.createMultiSig(threshold, pubkeys);
     const eligibleSigners = pubkeys.map(pk => new neonJs.wallet.Account(pk).address);
 
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcUrl());
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     
     let args = [];
@@ -601,7 +601,7 @@ async function handleBroadcast(req) {
     const signedTxHex = t.serialize(true);
     
     toast.info("Broadcasting to network...");
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcUrl());
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(signedTxHex);
     
     toast.success("Transaction broadcasted! TXID: " + txid);

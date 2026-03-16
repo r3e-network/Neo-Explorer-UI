@@ -178,8 +178,8 @@ export const API_DOCS_RPC_METHODS = [
     type: "indexed",
   },
   {
-    name: "GetExecutionTraceByTransactionHash",
-    desc: "Get opcode-level execution trace by tx hash.",
+    name: "GetExecutionByTransactionHash",
+    desc: "Get indexed execution metadata by tx hash.",
     category: "stats",
     params: { TransactionHash: "0x..." },
     type: "indexed",

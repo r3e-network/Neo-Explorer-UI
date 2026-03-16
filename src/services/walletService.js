@@ -26,6 +26,7 @@ const PROVIDERS = {
   ONEGATE: "OneGate",
   WALLETCONNECT: "WalletConnect",
   NEON: "Neon Wallet",
+  TESTNET_WIF: "Testnet WIF (Local Dev)",
   WEB3AUTH: "Google / Email (Web3Auth)",
   EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
 };
@@ -34,14 +35,27 @@ const PROVIDERS = {
 let _connectedProvider = null;
 let _account = null;
 let _neolineN3 = null;
+let _directWifAccount = null;
 const AA_ALLOWED_META_METHODS = new Set(Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : []);
+
+function isDirectWifProviderEnabled() {
+  return Boolean(import.meta.env.DEV);
+}
 
 /**
  * Check if NeoLine extension is available.
- * NeoLine injects `window.NEOLine` after page load.
+ * NeoLine injects `window.NEOLine` and `window.NEOLineN3` after page load.
  */
-function isNeoLineAvailable() {
+function hasNeoLineLegacyApi() {
   return typeof window !== "undefined" && window.NEOLine !== undefined;
+}
+
+function hasNeoLineN3Api() {
+  return typeof window !== "undefined" && window.NEOLineN3 !== undefined;
+}
+
+function isNeoLineAvailable() {
+  return hasNeoLineLegacyApi() || hasNeoLineN3Api();
 }
 
 /**
@@ -96,7 +110,7 @@ function isEthereumAvailable() {
  */
 async function getNeoLineN3() {
   if (_neolineN3) return _neolineN3;
-  if (!isNeoLineAvailable()) throw new Error("NeoLine extension not detected");
+  if (!hasNeoLineN3Api()) throw new Error("NeoLine extension not detected");
   _neolineN3 = await new window.NEOLineN3.Init();
   return _neolineN3;
 }
@@ -109,13 +123,21 @@ async function getNeoLineN3() {
 function waitForNeoLine(timeout = 3000) {
   return new Promise((resolve) => {
     if (isNeoLineAvailable()) return resolve(true);
+
     const handler = () => {
-      window.removeEventListener("NEOLine.NEO.EVENT.READY", handler);
+      cleanup();
       resolve(true);
     };
-    window.addEventListener("NEOLine.NEO.EVENT.READY", handler);
-    setTimeout(() => {
+
+    const cleanup = () => {
       window.removeEventListener("NEOLine.NEO.EVENT.READY", handler);
+      window.removeEventListener("NEOLine.N3.EVENT.READY", handler);
+    };
+
+    window.addEventListener("NEOLine.NEO.EVENT.READY", handler);
+    window.addEventListener("NEOLine.N3.EVENT.READY", handler);
+    setTimeout(() => {
+      cleanup();
       resolve(isNeoLineAvailable());
     }, timeout);
   });
@@ -297,7 +319,7 @@ export const walletService = {
    * @returns {string[]} List of available provider names
    */
   getSupportedProviders() {
-    return [
+    const providers = [
       PROVIDERS.NEOLINE,
       PROVIDERS.O3,
       PROVIDERS.ONEGATE,
@@ -306,6 +328,8 @@ export const walletService = {
       PROVIDERS.WEB3AUTH,
       PROVIDERS.EVM_WALLET,
     ];
+    if (isDirectWifProviderEnabled()) providers.push(PROVIDERS.TESTNET_WIF);
+    return providers;
   },
 
   getAvailableProviders() {
@@ -316,6 +340,7 @@ export const walletService = {
     if (isEthereumAvailable()) providers.push(PROVIDERS.EVM_WALLET);
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.WALLETCONNECT);
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.NEON);
+    if (isDirectWifProviderEnabled() && isExplorerTestnet()) providers.push(PROVIDERS.TESTNET_WIF);
     providers.push(PROVIDERS.WEB3AUTH);
     return [...new Set(providers)];
   },
@@ -325,7 +350,7 @@ export const walletService = {
    * @param {string} providerName - "NeoLine" or "O3"
    * @returns {Promise<{address: string, label: string}>}
    */
-  async connect(providerName) {
+  async connect(providerName, options = {}) {
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
       let n3 = await getNeoLineN3();
@@ -441,6 +466,30 @@ export const walletService = {
       return _account;
     }
 
+    if (providerName === PROVIDERS.TESTNET_WIF) {
+      if (!isDirectWifProviderEnabled()) {
+        throw new Error("Direct WIF testing is only available in local development.");
+      }
+      if (!isExplorerTestnet()) {
+        throw new Error("Direct WIF testing is only allowed while the explorer is on testnet.");
+      }
+
+      const wif = String(options?.wif || "").trim();
+      if (!wallet.isWIF(wif)) {
+        throw new Error("Invalid WIF.");
+      }
+
+      const account = new wallet.Account(wif);
+      _connectedProvider = PROVIDERS.TESTNET_WIF;
+      _directWifAccount = account;
+      _account = {
+        address: account.address,
+        label: PROVIDERS.TESTNET_WIF,
+        persistSession: "session",
+      };
+      return _account;
+    }
+
     if (providerName === PROVIDERS.WALLETCONNECT || providerName === PROVIDERS.NEON) {
       const projectId = getWalletConnectProjectId();
       if (!projectId) {
@@ -515,6 +564,30 @@ export const walletService = {
     _account = account;
   },
 
+  async restoreSession(providerName, options = {}) {
+    if (providerName === PROVIDERS.TESTNET_WIF) {
+      const wif = String(options?.wif || "").trim();
+      if (!wif) return null;
+      return this.connect(providerName, { wif });
+    }
+
+    if (providerName !== PROVIDERS.NEON) return null;
+
+    const projectId = getWalletConnectProjectId();
+    if (!projectId) return null;
+
+    await walletConnectService.init(projectId);
+    const account = await walletConnectService.restoreSession();
+    if (!account?.address) return null;
+
+    _connectedProvider = providerName;
+    _account = {
+      ...account,
+      label: providerName,
+    };
+    return _account;
+  },
+
   /** Disconnect wallet */
   disconnect() {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
@@ -526,6 +599,7 @@ export const walletService = {
     _connectedProvider = null;
     _account = null;
     _neolineN3 = null;
+    _directWifAccount = null;
   },
 
   /**
@@ -543,8 +617,27 @@ export const walletService = {
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
       if (typeof n3.signTransaction === 'function') {
-         const res = await n3.signTransaction({ transaction: unsignedTxHex });
-         return res.signature || res.data;
+         let walletNetwork = "";
+         if (typeof n3.getNetworks === "function") {
+           try {
+             const networks = await n3.getNetworks();
+             walletNetwork = String(networks?.defaultNetwork || "");
+           } catch {
+             walletNetwork = "";
+           }
+         }
+
+         const expectedNetwork = getDapiNetworkName();
+         if (!isWalletNetworkCompatible(walletNetwork) && typeof n3.switchNetwork === "function") {
+           try {
+             await n3.switchNetwork({ network: expectedNetwork });
+           } catch {
+             // Best effort. signTransaction still receives the target network below.
+           }
+         }
+
+         const res = await n3.signTransaction({ transaction: unsignedTxHex, network: expectedNetwork });
+         return extractNeoLineSignature(res);
       }
       throw new Error("NeoLine does not support signTransaction.");
     }
@@ -556,6 +649,21 @@ export const walletService = {
       const transaction = tx.Transaction.deserialize(unsignedTxHex);
       const hash = transaction.hash();
       return account.sign(hash);
+    }
+
+    if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
+      if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
+      const transaction = tx.Transaction.deserialize(unsignedTxHex);
+      const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+        const rpcClient = new rpc.RPCClient(endpoint);
+        return rpcClient.execute(new rpc.Query({ method: "getversion" }));
+      });
+      const magic = Number(versionRes?.protocol?.network);
+      if (!Number.isFinite(magic)) {
+        throw new Error("Failed to resolve network magic from RPC getversion.");
+      }
+      const payloadToSign = u.num2hexstring(magic, 4, true) + u.reverseHex(transaction.hash());
+      return wallet.sign(payloadToSign, _directWifAccount.WIF);
     }
     
     throw new Error("Provider does not support raw transaction signing in browser.");
@@ -581,6 +689,17 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       return normalizeSignMessageResult(await walletConnectService.signMessage(message));
+    }
+
+    if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
+      if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
+      const messageHex = u.str2hexstring(message);
+      return normalizeSignMessageResult({
+        publicKey: _directWifAccount.publicKey,
+        data: wallet.sign(messageHex, _directWifAccount.WIF),
+        salt: "",
+        message,
+      });
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
@@ -614,10 +733,7 @@ export const walletService = {
   async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
     if (!_account) throw new Error("Wallet not connected");
 
-    const dapiArgs = args.map((a) => ({
-      type: mapParamType(a.type),
-      value: a.value,
-    }));
+    const dapiArgs = args.map(normalizeArgForDapi);
 
     const defaultSignerAccount = normalizeHash160(_account.address);
     const invokeSigners = signers || [{ account: defaultSignerAccount, scopes: scope }];
@@ -707,6 +823,67 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
+    }
+
+    if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
+      if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
+
+      const normalizedArgs = normalizeInvokeArgsForRpc(args);
+      const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
+
+      const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
+      if (invalidArg) {
+        throw new Error(`Invalid Hash160 argument for "${operation}".`);
+      }
+
+      const invalidSigner = normalizedSigners.find((signer) => !isHash160Hex(signer?.account));
+      if (invalidSigner) {
+        throw new Error(`Invalid signer account for "${operation}".`);
+      }
+
+      const sb = new sc.ScriptBuilder();
+      const mappedArgs = normalizedArgs.map((arg) => sc.ContractParam.fromJson(arg));
+      sb.emitAppCall(scriptHash, operation, mappedArgs);
+      const script = sb.build();
+
+      return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+        const rpcClient = new rpc.RPCClient(endpoint);
+        const currentHeight = await rpcClient.getBlockCount();
+        const versionRes = await rpcClient.execute(new rpc.Query({ method: "getversion" }));
+        const magic = Number(versionRes?.protocol?.network);
+        if (!Number.isFinite(magic)) {
+          throw new Error("Failed to resolve network magic from RPC getversion.");
+        }
+        const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+        if (invokeRes.state === "FAULT") {
+          throw new Error("Simulation Faulted: " + invokeRes.exception);
+        }
+
+        let txn = new tx.Transaction({
+          signers: normalizedSigners,
+          validUntilBlock: currentHeight + 1000,
+          script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+        });
+
+        txn.sign(_directWifAccount, magic);
+        const networkFee = await rpcClient.calculateNetworkFee(txn);
+
+        txn = new tx.Transaction({
+          signers: normalizedSigners,
+          validUntilBlock: currentHeight + 1000,
+          script,
+          systemFee: invokeRes.gasconsumed || 1000000,
+          networkFee,
+        });
+        txn.sign(_directWifAccount, magic);
+
+        if (broadcastOverride) {
+          return { signedTx: txn.serialize(true) };
+        }
+
+        return { txid: await rpcClient.sendRawTransaction(txn) };
+      });
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
@@ -923,6 +1100,17 @@ export const walletService = {
  */
 function mapParamType(abiType) {
   const map = {
+    0: "Any",
+    16: "Boolean",
+    17: "Integer",
+    18: "ByteArray",
+    19: "String",
+    20: "Hash160",
+    21: "Hash256",
+    22: "PublicKey",
+    23: "Signature",
+    32: "Array",
+    34: "Map",
     Integer: "Integer",
     String: "String",
     Boolean: "Boolean",
@@ -936,6 +1124,57 @@ function mapParamType(abiType) {
     Any: "Any",
   };
   return map[abiType] || "String";
+}
+
+function normalizeArgValueForDapi(type, value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (item && typeof item === "object" && "type" in item) {
+        return normalizeArgForDapi(item);
+      }
+      return item;
+    });
+  }
+
+  if (!value || typeof value !== "object") return value;
+
+  if (type === "Hash160" || type === "Hash256" || type === "PublicKey" || type === "Signature" || type === "ByteArray") {
+    if (typeof value.toString === "function" && value.toString !== Object.prototype.toString) {
+      return value.toString();
+    }
+  }
+
+  return value;
+}
+
+function normalizeArgForDapi(arg = {}) {
+  const type = mapParamType(arg?.type);
+  return {
+    type,
+    value: normalizeArgValueForDapi(type, arg?.value),
+  };
+}
+
+function extractNeoLineSignature(result) {
+  if (!result || typeof result !== "object") {
+    return result?.signature || result?.data;
+  }
+
+  if (typeof result.signature === "string" && result.signature) {
+    return result.signature;
+  }
+
+  if (typeof result.data === "string" && result.data) {
+    return result.data;
+  }
+
+  const invocationScript = String(result?.witnesses?.[0]?.invocationScript || "").trim();
+  const match = invocationScript.match(/^(?:0c40|40)([0-9a-fA-F]{128})/);
+  if (match) {
+    return match[1];
+  }
+
+  return undefined;
 }
 
 export default walletService;

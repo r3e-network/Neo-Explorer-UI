@@ -31,7 +31,7 @@ export const executionService = createService(
     },
     getDetailedTrace: {
       cacheKey: "exec_detailed_trace",
-      rpcMethod: "GetExecutionTraceByTransactionHash",
+      rpcMethod: "GetExecutionByTransactionHash",
       fallback: null,
       ttl: CACHE_TTL.trace,
       buildParams: ([txHash]) => ({ TransactionHash: txHash }),
