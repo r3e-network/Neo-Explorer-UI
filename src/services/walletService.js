@@ -220,6 +220,12 @@ function isDapiCanceled(err) {
   return type === "CANCELED" || /user canceled|canceled/.test(msg);
 }
 
+function shouldRetryWithLegacyDapiNetwork(err, expectedNetwork, legacyNetworkAlias) {
+  if (legacyNetworkAlias === expectedNetwork) return false;
+  if (isDapiConnectionDenied(err) || isDapiCanceled(err)) return false;
+  return true;
+}
+
 function toConnectionDeniedError(providerName) {
   return new Error(
     `${providerName} refused this request. Open ${providerName}, unlock it, approve this site, and retry.`
@@ -833,7 +839,7 @@ export const walletService = {
       try {
         result = await invokeWithNetwork(expectedNetwork);
       } catch (err) {
-        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+        if (!shouldRetryWithLegacyDapiNetwork(err, expectedNetwork, legacyNetworkAlias)) {
           throw err;
         }
         result = await invokeWithNetwork(legacyNetworkAlias);
@@ -860,7 +866,7 @@ export const walletService = {
       try {
         result = await invokeWithNetwork(expectedNetwork);
       } catch (err) {
-        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+        if (!shouldRetryWithLegacyDapiNetwork(err, expectedNetwork, legacyNetworkAlias)) {
           throw err;
         }
         result = await invokeWithNetwork(legacyNetworkAlias);
@@ -886,7 +892,7 @@ export const walletService = {
       try {
         result = await invokeWithNetwork(expectedNetwork);
       } catch (err) {
-        if (!isDapiConnectionDenied(err) || legacyNetworkAlias === expectedNetwork) {
+        if (!shouldRetryWithLegacyDapiNetwork(err, expectedNetwork, legacyNetworkAlias)) {
           throw err;
         }
         result = await invokeWithNetwork(legacyNetworkAlias);

@@ -476,6 +476,44 @@ describe("walletService", () => {
     ]);
   });
 
+  it("does not retry NeoLine invoke with a legacy network alias while authorization is pending", async () => {
+    window.NEOLine = {};
+    neoLineInvokeMock.mockRejectedValueOnce({
+      type: "CONNECTION_DENIED",
+      description: "The dAPI provider refused to process this request",
+    });
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    await expect(
+      walletService.invoke({
+        scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+        operation: "register",
+        args: [{ type: "String", value: "loopproof.matrix" }],
+      })
+    ).rejects.toMatchObject({
+      type: "CONNECTION_DENIED",
+    });
+
+    expect(neoLineInvokeMock).toHaveBeenCalledTimes(1);
+    expect(neoLineInvokeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        network: "N3MainNet",
+      })
+    );
+  });
+
   it("uses the explorer testnet network when NeoLine signs raw transactions", async () => {
     envState.value = "TestT5";
     window.NEOLine = {};
