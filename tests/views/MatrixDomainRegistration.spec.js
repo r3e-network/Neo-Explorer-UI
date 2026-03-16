@@ -100,4 +100,37 @@ describe("MatrixDomain registration", () => {
     );
     expect(successToast).toHaveBeenCalledWith("Registration transaction sent: 0xtesttxid");
   });
+
+  it("wraps long available domains so the register panel stays visible", async () => {
+    getMatrixDomainProfile.mockResolvedValueOnce({
+      domain: "averyveryveryveryveryveryveryveryverylongdomainname.matrix",
+      available: true,
+      owner: null,
+      admin: null,
+      resolvedAddress: null,
+    });
+
+    const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
+    const wrapper = mount(MatrixDomain, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          HashLink: true,
+        },
+      },
+    });
+
+    await wrapper.find('input[type="text"]').setValue("averyveryveryveryveryveryveryveryverylongdomainname");
+    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("Search"));
+    await searchButton.trigger("click");
+    await flushPromises();
+
+    const title = wrapper.find("h3");
+    expect(title.exists()).toBe(true);
+    expect(title.attributes("class")).toContain("break-all");
+
+    const actionPanel = wrapper.findAll("div").find((node) => node.attributes("class")?.includes("min-w-[240px]"));
+    expect(actionPanel).toBeTruthy();
+    expect(actionPanel.attributes("class")).toContain("md:self-start");
+  });
 });

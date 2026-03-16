@@ -85,19 +85,19 @@
 
         <!-- Available State -->
         <div v-else-if="searchResult.available" class="etherscan-card overflow-hidden rounded-3xl border-2 border-emerald-400/50 bg-gradient-to-b from-emerald-50/50 to-surface dark:from-emerald-950/20 shadow-xl">
-          <div class="p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div class="flex-1 space-y-4">
+          <div class="p-8 md:p-10 flex flex-col md:flex-row md:items-start justify-between gap-8">
+            <div class="flex-1 min-w-0 space-y-4">
               <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 text-sm font-bold border border-emerald-200 dark:border-emerald-800/50">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 Domain Available
               </div>
-              <h3 class="text-4xl md:text-5xl font-black text-high tracking-tight">{{ searchResult.domain }}</h3>
+              <h3 class="text-4xl md:text-5xl font-black text-high tracking-tight break-all">{{ searchResult.domain }}</h3>
               <p class="text-mid text-base max-w-lg">
                 This domain is unregistered. You can claim it permanently and feelessly to your connected wallet right now.
               </p>
             </div>
 
-            <div class="flex flex-col gap-3 min-w-[240px] shrink-0 bg-surface p-6 rounded-2xl shadow-sm border border-line-soft">
+            <div class="flex flex-col gap-3 min-w-[240px] shrink-0 md:self-start bg-surface p-6 rounded-2xl shadow-sm border border-line-soft">
               <div class="flex justify-between items-center pb-3 border-b border-line-soft">
                 <span class="text-sm font-medium text-mid">Registration Fee</span>
                 <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">Free</span>
