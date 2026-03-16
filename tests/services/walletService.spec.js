@@ -561,6 +561,47 @@ describe("walletService", () => {
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
     expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
   });
+
+  it("accepts NeoLine connected events when getAccount hangs after approval", async () => {
+    window.NEOLine = {};
+    neoLineGetAccountMock.mockImplementationOnce(
+      () => new Promise(() => {})
+    );
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const connectPromise = walletService.connect(walletService.PROVIDERS.NEOLINE);
+    setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("NEOLine.NEO.EVENT.CONNECTED", {
+          detail: {
+            address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+            label: "NeoLine",
+          },
+        })
+      );
+    }, 20);
+
+    const account = await connectPromise;
+
+    expect(account).toEqual({
+      address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+      label: "NeoLine",
+    });
+  });
+
   it("uses RPC getversion network magic for Web3Auth signing", async () => {
     envState.value = "PrivateNet";
     executeMock.mockResolvedValue({ protocol: { network: 123456789 } });

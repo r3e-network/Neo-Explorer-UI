@@ -226,6 +226,69 @@ function toConnectionDeniedError(providerName) {
   );
 }
 
+function requestNeoLineAccount(n3, timeoutMs = 15000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const cleanup = () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("NEOLine.NEO.EVENT.CONNECTED", handleEvent);
+        window.removeEventListener("NEOLine.N3.EVENT.CONNECTED", handleEvent);
+        window.removeEventListener("NEOLine.NEO.EVENT.ACCOUNT_CHANGED", handleEvent);
+        window.removeEventListener("NEOLine.N3.EVENT.ACCOUNT_CHANGED", handleEvent);
+      }
+      clearTimeout(timer);
+    };
+
+    const finishResolve = (account) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(account);
+    };
+
+    const finishReject = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const handleEvent = (event) => {
+      const address = String(event?.detail?.address || "").trim();
+      if (!address) return;
+      finishResolve({
+        address,
+        label: event?.detail?.label || PROVIDERS.NEOLINE,
+      });
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("NEOLine.NEO.EVENT.CONNECTED", handleEvent);
+      window.addEventListener("NEOLine.N3.EVENT.CONNECTED", handleEvent);
+      window.addEventListener("NEOLine.NEO.EVENT.ACCOUNT_CHANGED", handleEvent);
+      window.addEventListener("NEOLine.N3.EVENT.ACCOUNT_CHANGED", handleEvent);
+    }
+
+    const timer = setTimeout(() => {
+      finishReject(new Error("NeoLine connection timed out."));
+    }, timeoutMs);
+
+    Promise.resolve()
+      .then(() => n3.getAccount())
+      .then((account) => {
+        if (account?.address) {
+          finishResolve(account);
+          return;
+        }
+        finishReject(new Error("NeoLine returned no account."));
+      })
+      .catch((error) => {
+        finishReject(error);
+      });
+  });
+}
+
 async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRetry = null) {
   try {
     return await getAccount();
@@ -356,7 +419,7 @@ export const walletService = {
       let n3 = await getNeoLineN3();
       const account = await requestAccountWithDeniedRetry(
         PROVIDERS.NEOLINE,
-        () => n3.getAccount(),
+        () => requestNeoLineAccount(n3),
         async () => {
           _neolineN3 = null;
           n3 = await getNeoLineN3();
