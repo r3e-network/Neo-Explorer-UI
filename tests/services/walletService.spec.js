@@ -575,7 +575,7 @@ describe("walletService", () => {
     expect(signature).toBe("ab".repeat(64));
   });
 
-  it("retries NeoLine account authorization once when first request is denied", async () => {
+  it("waits for a NeoLine connected event instead of immediately retrying account authorization", async () => {
     window.NEOLine = {};
     neoLineGetAccountMock
       .mockRejectedValueOnce({ type: "CONNECTION_DENIED", description: "The dAPI provider refused to process this request" })
@@ -594,8 +594,21 @@ describe("walletService", () => {
 
     const { walletService } = await import("../../src/services/walletService.js");
     walletService.disconnect();
-    const account = await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    const connectPromise = walletService.connect(walletService.PROVIDERS.NEOLINE);
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
+    expect(neoLineGetAccountMock).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(
+      new CustomEvent("NEOLine.NEO.EVENT.CONNECTED", {
+        detail: {
+          address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+          label: "NeoLine",
+        },
+      })
+    );
+
+    const account = await connectPromise;
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
     expect(neoLineGetAccountMock).toHaveBeenCalledTimes(2);
   });

@@ -236,6 +236,7 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let retryInFlight = false;
+    let pendingConnectionDenied = false;
 
     const cleanup = () => {
       if (typeof window !== "undefined") {
@@ -287,6 +288,10 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
     }
 
     const timer = setTimeout(() => {
+      if (pendingConnectionDenied) {
+        finishReject(toConnectionDeniedError(PROVIDERS.NEOLINE));
+        return;
+      }
       finishReject(new Error("NeoLine connection timed out."));
     }, timeoutMs);
 
@@ -300,6 +305,14 @@ function requestNeoLineAccount(n3, timeoutMs = 15000) {
         finishReject(new Error("NeoLine returned no account."));
       })
       .catch((error) => {
+        if (isDapiConnectionDenied(error)) {
+          pendingConnectionDenied = true;
+          return;
+        }
+        if (isDapiCanceled(error)) {
+          finishReject(new Error("Connection canceled by user."));
+          return;
+        }
         finishReject(error);
       });
   });
@@ -432,15 +445,8 @@ export const walletService = {
   async connect(providerName, options = {}) {
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
-      let n3 = await getNeoLineN3();
-      const account = await requestAccountWithDeniedRetry(
-        PROVIDERS.NEOLINE,
-        () => requestNeoLineAccount(n3),
-        async () => {
-          _neolineN3 = null;
-          n3 = await getNeoLineN3();
-        }
-      );
+      const n3 = await getNeoLineN3();
+      const account = await requestNeoLineAccount(n3);
 
       let networks = null;
       if (typeof n3.getNetworks === "function") {
