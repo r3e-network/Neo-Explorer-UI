@@ -42,11 +42,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <label class="block text-sm font-bold text-high tracking-tight">Contract Hash</label>
-                <input type="text" v-model="encodeForm.contractHash" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="e.g. 0xef4073a0..." />
+                <input type="text" v-model="encodeForm.contractHash" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="e.g. 0xef4073a0..." />
               </div>
               <div class="space-y-2">
                 <label class="block text-sm font-bold text-high tracking-tight">Method Name</label>
-                <input type="text" v-model="encodeForm.method" class="form-input w-full bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="e.g. transfer" />
+                <input type="text" v-model="encodeForm.method" class="form-input w-full bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="e.g. transfer" />
               </div>
             </div>
             
@@ -64,7 +64,7 @@
                 <div v-for="(param, i) in encodeForm.params" :key="i" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-surface-muted p-2 pr-3 rounded-2xl border border-line-soft relative group hover:border-primary-400 transition-colors shadow-sm">
                   <div class="w-full sm:w-1/3 flex items-center">
                     <div class="px-3 text-mid font-mono text-xs opacity-50 shrink-0">{{ i + 1 }}</div>
-                    <select v-model="param.type" class="form-input w-full bg-surface text-sm font-semibold text-high rounded-xl border-transparent focus:border-fuchsia-400 focus:ring-0 shadow-sm cursor-pointer outline-none">
+                    <select v-model="param.type" class="form-input w-full bg-surface text-sm font-semibold text-high border-transparent cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none">
                       <option value="String">String</option>
                       <option value="Integer">Integer</option>
                       <option value="Hash160">Hash160 (Address)</option>
@@ -76,7 +76,7 @@
                     </select>
                   </div>
                   <div class="w-full sm:w-flex-1 relative">
-                    <input type="text" v-model="param.value" class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent focus:border-fuchsia-400 focus:ring-0 rounded-xl shadow-sm" placeholder="Value..." />
+                    <input type="text" v-model="param.value" class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="Value..." />
                     <button @click="removeParam(i)" class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-md transition-colors" title="Remove param">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
@@ -114,12 +114,12 @@
             <div class="space-y-3">
               <div class="flex items-center justify-between">
                 <label class="block text-sm font-bold text-high tracking-tight">Compiled Script</label>
-                <select v-model="decodeFormat" class="form-input bg-surface text-xs py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
+                <select v-model="decodeFormat" class="form-input bg-surface text-xs py-1.5 px-3 border-line-soft transition-colors cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none">
                   <option value="base64">Base64</option>
                   <option value="hex">Hex String</option>
                 </select>
               </div>
-              <textarea v-model="decodeInput" class="form-input w-full h-40 bg-surface text-high font-mono text-sm rounded-2xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20" placeholder="Paste raw transaction script payload here..."></textarea>
+              <textarea v-model="decodeInput" class="form-input w-full h-40 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="Paste raw transaction script payload here..."></textarea>
             </div>
             
             <div class="pt-6 flex justify-end border-t border-line-soft">

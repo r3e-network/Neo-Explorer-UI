@@ -15,23 +15,23 @@
         </div>
       </div>
 
-      <div class="etherscan-card p-6">
+      <div class="etherscan-card p-6 md:p-8">
         <div class="max-w-3xl mx-auto space-y-6">
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2 md:col-span-2">
               <label class="block text-sm font-semibold text-high">Contract Hash</label>
-              <input type="text" v-model="contractHash" class="form-input w-full bg-surface text-high font-mono text-sm" placeholder="e.g. 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5" />
+              <input type="text" v-model="contractHash" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none" placeholder="e.g. 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5" />
             </div>
 
             <div class="space-y-2">
               <label class="block text-sm font-semibold text-high">Storage Key</label>
-              <input type="text" v-model="storageKey" class="form-input w-full bg-surface text-high font-mono text-sm" placeholder="e.g. totalSupply or 0x01..." @keyup.enter="fetchStorage" />
+              <input type="text" v-model="storageKey" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none" placeholder="e.g. totalSupply or 0x01..." @keyup.enter="fetchStorage" />
             </div>
 
             <div class="space-y-2">
               <label class="block text-sm font-semibold text-high">Key Format</label>
-              <select v-model="keyFormat" class="form-input w-full bg-surface text-high text-sm appearance-none">
+              <select v-model="keyFormat" class="form-input w-full bg-surface text-high text-sm appearance-none rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none">
                 <option value="string">String (UTF-8)</option>
                 <option value="hex">Hex String</option>
                 <option value="base64">Base64</option>

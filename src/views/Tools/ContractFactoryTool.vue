@@ -45,7 +45,7 @@
         
         <!-- Form Area -->
         <div class="lg:col-span-8">
-          <div class="etherscan-card p-6 min-h-[400px] flex flex-col">
+          <div class="etherscan-card p-6 md:p-8 min-h-[400px] flex flex-col">
             <h2 class="text-lg font-bold text-high mb-4">
               Configure {{ activeTemplate.name }}
             </h2>
@@ -62,7 +62,7 @@
                 <label class="block text-sm font-semibold text-high mb-1.5">{{ field.label }} <span v-if="field.required" class="text-red-500">*</span></label>
                 
                 <div v-if="field.type === 'neofs_upload'" class="flex flex-col sm:flex-row gap-3">
-                  <input type="text" v-model="formData[field.id]" class="form-input flex-1 bg-surface text-high text-sm font-mono" :placeholder="field.placeholder" />
+                  <input type="text" v-model="formData[field.id]" class="form-input flex-1 bg-surface text-high text-sm font-mono rounded-xl shadow-inner focus:ring-2 focus:ring-violet-500/20 hover:border-violet-400 focus:border-violet-400 transition-all outline-none" :placeholder="field.placeholder" />
                   <button 
                     @click="triggerLogoInput(field.id)"
                     class="shrink-0 btn-outline flex items-center justify-center gap-2 text-sm px-4 py-2"
@@ -75,9 +75,9 @@
                   <input type="file" :ref="setLogoInputRef(field.id)" class="hidden" accept="image/*" @change="e => uploadLogoToNeoFS(e, field.id)" />
                 </div>
                 
-                <textarea v-else-if="field.type === 'textarea'" v-model="formData[field.id]" class="form-input w-full h-24 bg-surface text-high text-sm" :placeholder="field.placeholder"></textarea>
+                <textarea v-else-if="field.type === 'textarea'" v-model="formData[field.id]" class="form-input w-full h-24 bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-violet-500/20 hover:border-violet-400 focus:border-violet-400 transition-all outline-none" :placeholder="field.placeholder"></textarea>
                 
-                <input v-else :type="field.type" v-model="formData[field.id]" class="form-input w-full bg-surface text-high text-sm" :placeholder="field.placeholder" />
+                <input v-else :type="field.type" v-model="formData[field.id]" class="form-input w-full bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-violet-500/20 hover:border-violet-400 focus:border-violet-400 transition-all outline-none" :placeholder="field.placeholder" />
                 
                 <p v-if="field.hint" class="text-xs text-mid mt-1.5">{{ field.hint }}</p>
               </div>

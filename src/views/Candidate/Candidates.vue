@@ -191,31 +191,47 @@ function applyMetadataRows(data) {
 }
 
 async function loadDoraMetadata() {
-  try {
-    const indexerMetadata = await supabaseService.getValidatorMetadata(getCurrentEnv());
-    if (Array.isArray(indexerMetadata) && indexerMetadata.length > 0) {
-      doraMetadata.value = applyMetadataRows(indexerMetadata);
-      return;
+  let doraRows = [];
+  const env = getCurrentEnv().toLowerCase();
+  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+  
+  if (!isTestnet) {
+    const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
+    try {
+      doraRows = await cachedRequest(
+        getDoraCommitteeCacheKey(NET_ENV.Mainnet),
+        () => fetch(url).then(r => r.ok ? r.json() : []),
+        300000 // 5 minutes cache
+      );
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("Failed to load Dora metadata fallback", err);
     }
+  }
+
+  let indexerMetadata = [];
+  try {
+    indexerMetadata = await supabaseService.getValidatorMetadata(getCurrentEnv());
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load indexer candidate metadata", err);
   }
 
-  const env = getCurrentEnv().toLowerCase();
-  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-  if (isTestnet) return;
-  const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
-
-  try {
-    const data = await cachedRequest(
-      getDoraCommitteeCacheKey(NET_ENV.Mainnet),
-      () => fetch(url).then(r => r.ok ? r.json() : []),
-      300000 // 5 minutes cache
-    );
-    doraMetadata.value = applyMetadataRows(data);
-  } catch (err) {
-    if (import.meta.env.DEV) console.error("Failed to load Dora metadata fallback", err);
+  const metaMap = applyMetadataRows(doraRows);
+  const indexerMap = applyMetadataRows(indexerMetadata);
+  
+  // Merge indexer metadata over Dora metadata
+  for (const key in indexerMap) {
+    if (indexerMap[key]) {
+      metaMap[key] = {
+        ...metaMap[key],
+        ...indexerMap[key],
+        // Ensure truthy values override appropriately
+        name: indexerMap[key].name || metaMap[key]?.name || "",
+        logo: indexerMap[key].logo || metaMap[key]?.logo || "",
+      };
+    }
   }
+  
+  doraMetadata.value = metaMap;
 }
 
 watch(candidates, () => {

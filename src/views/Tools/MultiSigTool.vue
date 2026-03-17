@@ -90,13 +90,13 @@
                   
                   <div>
                     <label class="block text-sm font-medium text-high mb-1">Signer Public Keys (comma separated)</label>
-                    <textarea v-model="createForm.pubkeys" class="form-input w-full font-mono text-xs h-20" placeholder="03..., 02..."></textarea>
+                    <textarea v-model="createForm.pubkeys" class="form-input w-full font-mono text-xs h-20 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder="03..., 02..."></textarea>
                   </div>
                   
                   <div class="flex items-center gap-4">
                     <div class="flex-1">
                       <label class="block text-sm font-medium text-high mb-1">Required Signatures (Threshold)</label>
-                      <input v-model="createForm.threshold" type="number" class="form-input w-full" value="2" min="1" />
+                      <input v-model="createForm.threshold" type="number" class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" value="2" min="1" />
                     </div>
                     <div class="flex-1 flex items-end h-full pt-6">
                        <button @click="saveCurrentConfig" class="w-full px-4 py-2 border border-line-soft text-sm font-medium rounded-lg hover:bg-surface-muted transition-colors flex items-center justify-center gap-2 text-mid hover:text-high">
@@ -124,12 +124,12 @@
                   
                   <div>
                     <label class="block text-sm font-medium text-high mb-1">Request Description</label>
-                    <input v-model="createForm.description" type="text" class="form-input w-full" placeholder="e.g. Monthly Payroll Transfer" />
+                    <input v-model="createForm.description" type="text" class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder="e.g. Monthly Payroll Transfer" />
                   </div>
                   
                   <div>
                     <label class="block text-sm font-medium text-high mb-1">Target Contract Hash</label>
-                    <input v-model="createForm.targetContract" type="text" class="form-input w-full font-mono text-sm" placeholder="0x..." list="fast-contracts" />
+                    <input v-model="createForm.targetContract" type="text" class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder="0x..." list="fast-contracts" />
                     <datalist id="fast-contracts">
                        <option value="0xf0151f528127558851b39c2cd8aa47da7418ab28">Flamingo (FLM)</option>
                        <option value="0x48c40d4666f93408be1bef038b6722404d9a4c2a">NeoBurger (bNEO)</option>
@@ -141,13 +141,13 @@
                   <div class="flex gap-4">
                     <div class="flex-1">
                       <label class="block text-sm font-medium text-high mb-1">Method</label>
-                      <input v-model="createForm.method" type="text" class="form-input w-full font-mono text-sm" placeholder="e.g. transfer" />
+                      <input v-model="createForm.method" type="text" class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder="e.g. transfer" />
                     </div>
                   </div>
 
                   <div>
                     <label class="block text-sm font-medium text-high mb-1">Arguments (JSON Array)</label>
-                    <textarea v-model="createForm.argsStr" class="form-input w-full font-mono text-xs h-24" placeholder='[{"type":"Hash160","value":"0x..."}]'></textarea>
+                    <textarea v-model="createForm.argsStr" class="form-input w-full font-mono text-xs h-24 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder='[{"type":"Hash160","value":"0x..."}]'></textarea>
                   </div>
                 </div>
 
@@ -256,23 +256,28 @@
       </div>
       
       <!-- Sign Modal -->
-      <div v-if="signModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-        <div class="w-full max-w-lg rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950">
-          <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-surface-muted">
-            <h2 class="text-lg font-bold text-high">Sign Transaction</h2>
-            <button @click="signModalReq = null" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      <div v-if="signModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+        <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col">
+          <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              </div>
+              <h2 class="text-xl font-bold text-high tracking-tight">Sign Transaction</h2>
+            </div>
+            <button @click="signModalReq = null" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
           </div>
           <div class="p-6 space-y-6">
              <div>
                <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
-               <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner">
+               <div class="p-3 bg-surface-muted rounded-xl border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner">
                  {{ signModalReq.params?.unsigned_tx }}
                </div>
              </div>
              
              <div class="space-y-3">
                <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
-               <button @click="autoSignTx" :disabled="isSigning" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50">
+               <button @click="autoSignTx" :disabled="isSigning" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md">
                  <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                  {{ isSigning ? 'Awaiting Wallet...' : 'Sign with Connected Wallet' }}
@@ -282,13 +287,13 @@
              
              <div class="relative py-2">
                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
-               <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase">OR</span></div>
+               <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">OR</span></div>
              </div>
   
              <div class="space-y-3">
                <label class="block text-sm font-bold text-high">Option 2: Manual Entry</label>
-               <input v-model="manualSignature" type="text" class="form-input w-full font-mono text-xs rounded-xl" placeholder="Paste 64-byte signature hex here..." />
-               <button @click="submitManualSignature" :disabled="!manualSignature || manualSignature.length < 128" class="w-full px-4 py-2.5 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-line-soft transition-colors disabled:opacity-50">
+               <input v-model="manualSignature" type="text" class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none" placeholder="Paste 64-byte signature hex here..." />
+               <button @click="submitManualSignature" :disabled="!manualSignature || manualSignature.length < 128" class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed">
                  Submit Manual Signature
                </button>
              </div>
@@ -297,13 +302,18 @@
       </div>
   
       <!-- Details Modal -->
-      <div v-if="detailsModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-        <div class="w-full max-w-2xl rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
-          <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-surface-muted">
-            <h2 class="text-lg font-bold text-high">Request Details JSON</h2>
-            <button @click="detailsModalReq = null" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      <div v-if="detailsModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+        <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
+          <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+              </div>
+              <h2 class="text-xl font-bold text-high tracking-tight">Request Details JSON</h2>
+            </div>
+            <button @click="detailsModalReq = null" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
           </div>
-          <div class="p-6 overflow-y-auto font-mono text-xs text-mid whitespace-pre-wrap bg-slate-50 dark:bg-slate-900 shadow-inner">
+          <div class="p-6 overflow-y-auto font-mono text-xs text-mid whitespace-pre-wrap bg-surface-muted shadow-inner">
             {{ JSON.stringify(detailsModalReq, null, 2) }}
           </div>
         </div>

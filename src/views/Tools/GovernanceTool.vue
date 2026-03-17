@@ -46,7 +46,7 @@
       <div class="mt-1 text-xs opacity-80">Threshold: {{ threshold }} / {{ committeeSize }} nodes</div>
     </div>
 
-    <div class="etherscan-card p-6">
+    <div class="etherscan-card p-6 md:p-8">
       <div v-if="loading" class="space-y-4">
         <Skeleton v-for="i in 3" :key="i" height="80px" />
       </div>
@@ -135,39 +135,50 @@
     </div>
     
     <!-- Sign Modal -->
-    <div v-if="signModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-      <div class="w-full max-w-lg rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950">
-        <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
-          <h2 class="text-lg font-bold text-high">Sign Proposal</h2>
-          <button @click="signModalReq = null" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    <div v-if="signModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+      <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col">
+        <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-high tracking-tight">Sign Proposal</h2>
+          </div>
+          <button @click="signModalReq = null" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="p-6 space-y-4">
-           <div class="p-3 bg-surface-muted rounded-lg border border-line-soft font-mono text-[10px] break-all text-low overflow-y-auto max-h-32">
-             {{ signModalReq.params?.unsigned_tx }}
+        <div class="p-6 space-y-6">
+           <div>
+             <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
+             <div class="p-3 bg-surface-muted rounded-xl border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner">
+               {{ signModalReq.params?.unsigned_tx }}
+             </div>
            </div>
+           
            <ScriptViewer
              v-if="signModalDecodedScript"
              :script="signModalDecodedScript"
              label="Decoded Contract Script"
            />
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">Option 1: Auto Sign</label>
-             <button @click="autoSignTx" :disabled="isSigning" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50">
-               {{ isSigning ? 'Waiting for wallet...' : 'Sign via connected wallet' }}
+           
+           <div class="space-y-3">
+             <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
+             <button @click="autoSignTx" :disabled="isSigning" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md">
+               <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+               <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+               {{ isSigning ? 'Awaiting Wallet...' : 'Sign with Connected Wallet' }}
              </button>
-             <p class="text-xs text-mid mt-1 text-center">Requires Web3Auth or compatible raw-sign wallet.</p>
+             <p class="text-[11px] text-mid text-center">Requires a wallet capable of signing raw bytes.</p>
            </div>
            
            <div class="relative py-2">
              <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
-             <div class="relative flex justify-center"><span class="px-2 bg-white dark:bg-slate-950 text-xs text-mid">OR</span></div>
+             <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">OR</span></div>
            </div>
 
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">Option 2: Manual Signature</label>
-             <p class="text-xs text-mid mb-2">Use neo-cli to sign the transaction hex above, then paste the signature below.</p>
-             <input v-model="manualSignature" type="text" class="form-input w-full font-mono text-sm" placeholder="Paste 64-byte signature hex here..." />
-             <button @click="submitManualSignature" :disabled="!manualSignature || manualSignature.length < 128" class="mt-2 w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 text-high border border-line-soft rounded-lg font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50">
+           <div class="space-y-3">
+             <label class="block text-sm font-bold text-high">Option 2: Manual Entry</label>
+             <input v-model="manualSignature" type="text" class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none" placeholder="Paste 64-byte signature hex here..." />
+             <button @click="submitManualSignature" :disabled="!manualSignature || manualSignature.length < 128" class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed">
                Submit Manual Signature
              </button>
            </div>
@@ -176,37 +187,74 @@
     </div>
 
     <!-- Create Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-      <div class="w-full max-w-lg rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950">
-        <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
-          <h2 class="text-lg font-bold text-high">Create Council Proposal</h2>
-          <button @click="showCreateModal = false" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+      <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
+        <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-high tracking-tight">Create Council Proposal</h2>
+          </div>
+          <button @click="showCreateModal = false" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">Proposal Description</label>
-             <input v-model="createForm.description" type="text" class="form-input w-full" placeholder="e.g. Decrease GAS Network Fee" />
+        <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+           <div class="space-y-2">
+             <label class="block text-sm font-bold text-high tracking-tight">Proposal Description</label>
+             <input v-model="createForm.description" type="text" class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none" placeholder="e.g. Decrease GAS Network Fee" />
            </div>
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">Target Native Contract</label>
-             <select v-model="createForm.selectedContract" class="form-input w-full bg-surface">
-               <option v-for="(addr, name) in NATIVE_CONTRACTS" :key="name" :value="name">{{ name }}</option>
-             </select>
-           </div>
-           <div>
-             <label class="block text-sm font-medium text-high mb-1">Method to Invoke</label>
-             <select v-model="createForm.selectedMethod" class="form-input w-full bg-surface">
-               <option v-for="m in availableMethods" :key="m.name" :value="m.name">{{ m.name }}</option>
-             </select>
-           </div>
-           <div v-for="(param, idx) in methodParams" :key="idx">
-             <label class="block text-sm font-medium text-high mb-1">{{ param.name }} ({{ param.type }})</label>
-             <input v-model="createForm.params[param.name]" type="text" class="form-input w-full" :placeholder="`Enter ${param.type} value`" />
+
+           <div class="space-y-6">
+             <div v-for="(inv, idx) in createForm.invocations" :key="idx" class="p-5 rounded-2xl bg-surface-muted/50 border border-line-soft space-y-5 relative group transition-colors hover:border-amber-400">
+               <div class="flex justify-between items-center pb-2 border-b border-line-soft">
+                 <h3 class="text-sm font-bold text-high tracking-tight flex items-center gap-2">
+                   <span class="flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 text-xs">{{ idx + 1 }}</span>
+                   Invocation
+                 </h3>
+                 <button v-if="createForm.invocations.length > 1" @click="removeInvocation(idx)" class="text-red-500 hover:text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors flex items-center gap-1">
+                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                   Remove
+                 </button>
+               </div>
+
+               <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div class="space-y-2">
+                   <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">Target Contract</label>
+                   <select v-model="inv.selectedContract" @change="handleContractChange(idx)" class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all cursor-pointer outline-none">
+                     <option v-for="(addr, name) in NATIVE_CONTRACTS" :key="name" :value="name">{{ name }}</option>
+                   </select>
+                 </div>
+                 <div class="space-y-2">
+                   <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">Method to Invoke</label>
+                   <select v-model="inv.selectedMethod" @change="inv.params = {}" class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all cursor-pointer outline-none">
+                     <option v-for="m in getAvailableMethods(inv.selectedContract)" :key="m.name" :value="m.name">{{ m.name }}</option>
+                   </select>
+                 </div>
+               </div>
+
+               <div v-if="getMethodParams(inv.selectedContract, inv.selectedMethod).length > 0" class="space-y-3 pt-2">
+                 <div v-for="(param, pIdx) in getMethodParams(inv.selectedContract, inv.selectedMethod)" :key="pIdx" class="space-y-1.5">
+                   <label class="block text-xs font-bold text-high tracking-tight">{{ param.name }} <span class="font-normal text-mid ml-1">({{ param.type }})</span></label>
+                   <input v-model="inv.params[param.name]" type="text" class="form-input w-full bg-surface text-sm py-2 px-3 rounded-lg border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all outline-none" :placeholder="`Enter ${param.type} value`" />
+                 </div>
+               </div>
+               
+               <div v-else class="p-4 text-center border border-dashed border-line-soft rounded-xl bg-surface/50 text-mid text-xs">
+                 No parameters required for this method.
+               </div>
+             </div>
+             
+             <button @click="addInvocation" class="w-full py-3.5 border-2 border-dashed border-line-soft rounded-2xl text-amber-600 dark:text-amber-500 font-bold hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:border-amber-400 transition-all flex items-center justify-center gap-2 group">
+               <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+               Add Another Invocation
+             </button>
            </div>
         </div>
-        <div class="px-6 py-4 border-t border-line-soft bg-slate-50 flex justify-end gap-3 dark:bg-slate-900">
-          <button @click="showCreateModal = false" class="px-4 py-2 text-sm font-medium text-mid hover:text-high transition-colors">Cancel</button>
-          <button @click="handleCreateProposal" :disabled="isCreating" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors active:scale-95 disabled:opacity-50">
+        <div class="px-6 py-4 border-t border-line-soft bg-surface/50 flex justify-end gap-3">
+          <button @click="showCreateModal = false" class="px-6 py-2.5 text-sm font-bold text-mid hover:text-high hover:bg-surface-muted rounded-xl transition-all">Cancel</button>
+          <button @click="handleCreateProposal" :disabled="isCreating || !createForm.description" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-amber-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95">
+            <svg v-if="isCreating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             {{ isCreating ? 'Creating...' : 'Create Proposal' }}
           </button>
         </div>
@@ -214,13 +262,18 @@
     </div>
     
     <!-- Details Modal -->
-    <div v-if="detailsModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-      <div class="w-full max-w-2xl rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
-          <h2 class="text-lg font-bold text-high">Proposal Details</h2>
-          <button @click="detailsModalReq = null" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    <div v-if="detailsModalReq" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+      <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
+        <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-high tracking-tight">Proposal Details JSON</h2>
+          </div>
+          <button @click="detailsModalReq = null" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="p-6 overflow-y-auto font-mono text-xs text-low whitespace-pre-wrap">
+        <div class="p-6 overflow-y-auto font-mono text-xs text-mid whitespace-pre-wrap bg-surface-muted shadow-inner">
           {{ JSON.stringify(detailsModalReq, null, 2) }}
           <div v-if="detailsModalDecodedScript" class="mt-6 whitespace-normal font-sans">
             <ScriptViewer :script="detailsModalDecodedScript" label="Decoded Contract Script" />
@@ -234,7 +287,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
@@ -301,29 +354,54 @@ const NATIVE_METHODS = {
 
 const createForm = ref({
   description: '',
-  selectedContract: 'PolicyContract',
-  selectedMethod: '',
-  params: {}
+  invocations: [{
+    selectedContract: 'PolicyContract',
+    selectedMethod: '',
+    params: {}
+  }]
 });
 
 const isCreating = ref(false);
 
-const availableMethods = computed(() => {
-  return NATIVE_METHODS[createForm.value.selectedContract] || [];
-});
+function getAvailableMethods(contract) {
+  return NATIVE_METHODS[contract] || [];
+}
 
-const methodParams = computed(() => {
-  const methods = availableMethods.value;
-  const method = methods.find(m => m.name === createForm.value.selectedMethod);
+function getMethodParams(contract, methodName) {
+  const methods = getAvailableMethods(contract);
+  const method = methods.find(m => m.name === methodName);
   return method ? method.params : [];
-});
+}
 
-watch(() => createForm.value.selectedContract, () => {
-  if (availableMethods.value.length > 0) {
-    createForm.value.selectedMethod = availableMethods.value[0].name;
-    createForm.value.params = {};
+function handleContractChange(index) {
+  const inv = createForm.value.invocations[index];
+  const methods = getAvailableMethods(inv.selectedContract);
+  if (methods.length > 0) {
+    inv.selectedMethod = methods[0].name;
+    inv.params = {};
   }
-}, { immediate: true });
+}
+
+function addInvocation() {
+  const contract = 'PolicyContract';
+  const methods = getAvailableMethods(contract);
+  createForm.value.invocations.push({
+    selectedContract: contract,
+    selectedMethod: methods.length > 0 ? methods[0].name : '',
+    params: {}
+  });
+}
+
+function removeInvocation(index) {
+  if (createForm.value.invocations.length > 1) {
+    createForm.value.invocations.splice(index, 1);
+  }
+}
+
+// Initialize the first invocation's default method
+if (getAvailableMethods('PolicyContract').length > 0) {
+  createForm.value.invocations[0].selectedMethod = getAvailableMethods('PolicyContract')[0].name;
+}
 
 async function loadCommittee() {
   if (!neonJs) return;
@@ -432,24 +510,34 @@ async function handleCreateProposal() {
     toast.error("Please enter a description.");
     return;
   }
+  if (createForm.value.invocations.length === 0) {
+    toast.error("At least one invocation is required.");
+    return;
+  }
 
   isCreating.value = true;
   try {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     
-    const targetContract = NATIVE_CONTRACTS[createForm.value.selectedContract];
-    const method = createForm.value.selectedMethod;
-    
-    // Parse args
-    const mDef = availableMethods.value.find(m => m.name === method);
-    const args = mDef.params.map(p => {
-      const val = createForm.value.params[p.name];
-      if (val === undefined || val === '') throw new Error(`Missing param: ${p.name}`);
-      return normalizeArg(val, p.type);
+    // Parse args for all invocations
+    const intents = createForm.value.invocations.map(inv => {
+      const targetContract = NATIVE_CONTRACTS[inv.selectedContract];
+      const method = inv.selectedMethod;
+      
+      const methods = getAvailableMethods(inv.selectedContract);
+      const mDef = methods.find(m => m.name === method);
+      
+      const args = mDef.params.map(p => {
+        const val = inv.params[p.name];
+        if (val === undefined || val === '') throw new Error(`Missing param: ${p.name} in method ${method}`);
+        return normalizeArg(val, p.type);
+      });
+      
+      return { scriptHash: targetContract, operation: method, args };
     });
     
-    const script = neonJs.sc.createScript({ scriptHash: targetContract, operation: method, args });
+    const script = neonJs.sc.createScript(...intents);
     
     // Create unsigned transaction
     const t = new neonJs.tx.Transaction({
@@ -463,11 +551,15 @@ async function handleCreateProposal() {
     const unsignedTxHex = t.serialize(false);
     const txHash = t.hash();
     
+    // Format descriptive targets for the UI representation
+    const targets = createForm.value.invocations.map(inv => NATIVE_CONTRACTS[inv.selectedContract]).join(',');
+    const methods = createForm.value.invocations.map(inv => inv.selectedMethod).join(',');
+
     const payload = {
       type: "governance",
       creator_address: connectedAccount.value,
-      target_contract: targetContract,
-      method: method,
+      target_contract: targets.length > 255 ? targets.substring(0, 250) + "..." : targets,
+      method: methods.length > 255 ? methods.substring(0, 250) + "..." : methods,
       description: createForm.value.description,
       signers_required: threshold.value,
       eligible_signers: getCommitteeAddresses(),
@@ -477,7 +569,8 @@ async function handleCreateProposal() {
         unsigned_tx: unsignedTxHex,
         hash: txHash,
         scriptHash: committeeMultiSig.value.scriptHash,
-        committee_pubkeys: committeePubkeys.value
+        committee_pubkeys: committeePubkeys.value,
+        invocations: createForm.value.invocations // Optional, for details later
       }
     };
     

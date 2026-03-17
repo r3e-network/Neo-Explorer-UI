@@ -408,16 +408,17 @@ async function loadCandidates() {
        throw new Error("Failed to fetch candidates from RPC node.");
     }
 
-    let metadataRows = [];
+    let indexerRows = [];
     try {
-      metadataRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+      indexerRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
     } catch (metadataErr) {
       if (import.meta.env.DEV) console.warn("Failed to load cached validator metadata", metadataErr);
     }
 
-    if ((!Array.isArray(metadataRows) || metadataRows.length === 0) && !isTestnet) {
+    let doraRows = [];
+    if (!isTestnet) {
       try {
-        metadataRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then(r => r.ok ? r.json() : []);
+        doraRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then(r => r.ok ? r.json() : []);
       } catch (fallbackErr) {
         if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
       }
@@ -425,8 +426,10 @@ async function loadCandidates() {
     
     // Create a map of pubkey -> cached validator metadata
     const metadataMap = {};
-    for (const item of Array.isArray(metadataRows) ? metadataRows : []) {
-      const pubkey = item.pubkey || item.public_key || item.publicKey;
+    
+    // 1. Populate with Dora defaults first
+    for (const item of Array.isArray(doraRows) ? doraRows : []) {
+      const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
       if (pubkey) {
         metadataMap[pubkey] = {
           name: item.name || item.display_name || null,
@@ -437,13 +440,30 @@ async function loadCandidates() {
       }
     }
 
+    // 2. Override with Indexer/Supabase customizations
+    for (const item of Array.isArray(indexerRows) ? indexerRows : []) {
+      const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
+      if (pubkey) {
+        metadataMap[pubkey] = {
+          ...metadataMap[pubkey],
+          ...(item.name || item.display_name ? { name: item.name || item.display_name } : {}),
+          ...(item.logo || item.logo_url ? { logo: item.logo || item.logo_url } : {}),
+          ...(item.description ? { description: item.description } : {}),
+          ...(item.location ? { location: item.location } : {}),
+        };
+      }
+    }
+
     // Merge RPC candidate list with cached metadata, sorting by votes descending
-    candidates.value = rawCandidates.map(c => ({
-      ...c,
-      name: metadataMap[c.publickey]?.name || null,
-      logo: metadataMap[c.publickey]?.logo || null,
-      location: metadataMap[c.publickey]?.location || null
-    })).sort((a, b) => Number(b.votes) - Number(a.votes));
+    candidates.value = rawCandidates.map(c => {
+      const key = String(c.publickey || "").toLowerCase();
+      return {
+        ...c,
+        name: metadataMap[key]?.name || null,
+        logo: metadataMap[key]?.logo || null,
+        location: metadataMap[key]?.location || null
+      };
+    }).sort((a, b) => Number(b.votes) - Number(a.votes));
     
     // Fetch liveness data passively in the background
     fetch(`/api/liveness?network=${doraEnv}`)

@@ -15,7 +15,7 @@
         </div>
       </div>
 
-      <div class="etherscan-card p-6">
+      <div class="etherscan-card p-6 md:p-8">
         <div class="max-w-3xl mx-auto space-y-6">
           
           <div class="p-4 rounded-xl bg-amber-50/80 backdrop-blur-sm border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/50 text-amber-800 dark:text-amber-300">
@@ -87,7 +87,7 @@
 
             <div v-if="operation === 'vote'" class="space-y-2 pt-2 animate-fade-in">
               <label class="block text-sm font-semibold text-high">Select Candidate</label>
-              <select v-model="candidatePubKey" class="form-input w-full bg-surface text-high text-sm appearance-none cursor-pointer">
+              <select v-model="candidatePubKey" class="form-input w-full bg-surface text-high text-sm appearance-none cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none">
                 <option value="" disabled selected>-- Select a consensus node candidate --</option>
                 <option v-for="c in candidateList" :key="c.pubkey" :value="c.pubkey">
                   {{ c.name || c.pubkey.slice(0, 12) + '...' }} ({{ formatVotes(c.votes) }} votes)

@@ -28,7 +28,7 @@
       </div>
 
       <div v-else class="space-y-6">
-        <div class="etherscan-card p-6">
+        <div class="etherscan-card p-6 md:p-8">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="flex items-center gap-2 mb-2">
@@ -76,7 +76,7 @@
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div class="etherscan-card p-6">
+          <div class="etherscan-card p-6 md:p-8">
             <h2 class="text-lg font-bold text-high mb-4">Proposal Detail</h2>
 
             <div class="space-y-4">
@@ -121,7 +121,7 @@
           </div>
 
           <div class="space-y-6">
-            <div class="etherscan-card p-6">
+            <div class="etherscan-card p-6 md:p-8">
               <h2 class="text-lg font-bold text-high mb-4">Council Vote Status</h2>
               <div class="space-y-2">
                 <div
@@ -150,7 +150,7 @@
               </div>
             </div>
 
-            <div class="etherscan-card p-6">
+            <div class="etherscan-card p-6 md:p-8">
               <h2 class="text-lg font-bold text-high mb-4">Action</h2>
 
               <div v-if="proposal.status === 'EXECUTED'" class="text-sm text-emerald-600 font-semibold">
@@ -186,50 +186,68 @@
         </div>
       </div>
 
-      <div v-if="showSignModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4">
-        <div class="w-full max-w-lg rounded-2xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950">
-          <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
-            <h2 class="text-lg font-bold text-high">Vote / Sign Proposal</h2>
-            <button @click="closeSignModal" class="text-low hover:text-high">
+      <div v-if="showSignModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+        <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col">
+          <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              </div>
+              <h2 class="text-xl font-bold text-high tracking-tight">Vote / Sign Proposal</h2>
+            </div>
+            <button @click="closeSignModal" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
-          <div class="p-6 space-y-4">
-            <div class="rounded-xl border border-line-soft bg-surface-muted p-3 font-mono text-[11px] break-all text-low max-h-40 overflow-y-auto">
-              {{ proposal?.params?.unsigned_tx }}
+          <div class="p-6 space-y-6">
+            <div>
+              <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
+              <div class="rounded-xl border border-line-soft bg-surface-muted p-3 font-mono text-[10px] break-all text-low max-h-40 overflow-y-auto shadow-inner">
+                {{ proposal?.params?.unsigned_tx }}
+              </div>
             </div>
+            
             <ScriptViewer
               v-if="decodedUnsignedScript"
               :script="decodedUnsignedScript"
               label="Decoded Contract Script"
             />
-            <button
-              @click="autoSignTx"
-              :disabled="isSigning"
-              class="w-full rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {{ isSigning ? "Waiting for wallet..." : "Sign with connected wallet" }}
-            </button>
+            
+            <div class="space-y-3">
+              <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
+              <button
+                @click="autoSignTx"
+                :disabled="isSigning"
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
+              >
+                <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                {{ isSigning ? "Waiting for wallet..." : "Sign with connected wallet" }}
+              </button>
+              <p class="text-[11px] text-mid text-center">Requires Web3Auth or compatible raw-sign wallet.</p>
+            </div>
+            
             <div class="relative py-2">
               <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
-              <div class="relative flex justify-center"><span class="px-2 bg-white dark:bg-slate-950 text-xs text-mid">OR</span></div>
+              <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">OR</span></div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-high mb-1">Manual signature</label>
+            
+            <div class="space-y-3">
+              <label class="block text-sm font-bold text-high">Option 2: Manual Signature</label>
               <input
                 v-model="manualSignature"
                 type="text"
-                class="form-input w-full font-mono text-xs"
+                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
                 placeholder="Paste 64-byte signature hex here..."
               />
+              <button
+                @click="submitManualSignature"
+                :disabled="manualSignature.trim().length < 128"
+                class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit manual signature
+              </button>
             </div>
-            <button
-              @click="submitManualSignature"
-              :disabled="manualSignature.trim().length < 128"
-              class="w-full rounded-lg border border-line-soft bg-surface-muted px-4 py-2 text-sm font-semibold text-high hover:bg-line-soft transition-colors disabled:opacity-50"
-            >
-              Submit manual signature
-            </button>
           </div>
         </div>
       </div>

@@ -22,14 +22,14 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <label class="text-sm font-bold text-high tracking-tight">Input Type</label>
-            <select v-model="inputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
+            <select v-model="inputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 border-line-soft transition-colors cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-pink-500/20 hover:border-pink-400 focus:border-pink-400 transition-all outline-none">
               <option value="string">String / UTF-8</option>
               <option value="hex">Hex String</option>
               <option value="base64">Base64</option>
             </select>
           </div>
           <div class="relative group">
-             <textarea v-model="inputValue" @input="convertData" class="form-input w-full h-40 font-mono text-sm resize-none rounded-2xl shadow-inner focus:ring-2 focus:ring-pink-500/20" placeholder="Paste value here..."></textarea>
+             <textarea v-model="inputValue" @input="convertData" class="form-input w-full h-40 font-mono text-sm resize-none rounded-xl shadow-inner focus:ring-2 focus:ring-pink-500/20 hover:border-pink-400 focus:border-pink-400 transition-all outline-none" placeholder="Paste value here..."></textarea>
              <button v-if="inputValue" @click="inputValue = ''; convertData()" class="absolute top-3 right-3 p-1.5 rounded-lg bg-surface hover:bg-red-50 dark:hover:bg-red-900/30 text-mid hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100" title="Clear input">
                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
              </button>
@@ -40,14 +40,14 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <label class="text-sm font-bold text-high tracking-tight">Convert To</label>
-            <select v-model="outputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none">
+            <select v-model="outputType" @change="convertData" class="form-input bg-surface text-sm py-1.5 px-3 border-line-soft transition-colors cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-pink-500/20 hover:border-pink-400 focus:border-pink-400 transition-all outline-none">
               <option value="base64">Base64 (RPC Argument Format)</option>
               <option value="hex">Hex String</option>
               <option value="string">String / UTF-8</option>
             </select>
           </div>
           <div class="relative group">
-            <textarea readonly :value="outputValue" class="form-input w-full h-40 font-mono text-sm bg-surface-elevated text-pink-600 dark:text-pink-400 resize-none cursor-text rounded-2xl shadow-inner outline-none"></textarea>
+            <textarea readonly :value="outputValue" class="form-input w-full h-40 font-mono text-sm bg-surface-elevated text-pink-600 dark:text-pink-400 resize-none cursor-text rounded-xl shadow-inner focus:ring-2 focus:ring-pink-500/20 hover:border-pink-400 focus:border-pink-400 transition-all outline-none"></textarea>
             
             <button v-if="outputValue" @click="copyToClipboard" class="absolute top-3 right-3 p-2 rounded-xl bg-white dark:bg-slate-800 border border-line-soft text-low hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-200 dark:hover:border-pink-800 shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95" title="Copy to clipboard">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>

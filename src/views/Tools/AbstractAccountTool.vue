@@ -38,7 +38,7 @@
                   <label class="block text-sm font-bold text-high">Account UUID</label>
                   <button @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">Regenerate</button>
                 </div>
-                <input type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-xs rounded-xl focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+                <input type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
               </div>
 
               <!-- Derived Address Preview -->
@@ -97,7 +97,7 @@
                 </h3>
                 <p class="text-xs text-mid">Admins have full execution and configuration authority.</p>
                 <div v-for="(admin, index) in admins" :key="'admin-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="admins[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="N... or 0x..." />
+                  <input type="text" v-model="admins[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
                   <button @click="admins.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
@@ -106,7 +106,7 @@
                   <button @click="admins.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Admin</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="adminThreshold" min="1" :max="Math.max(1, admins.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-lg" />
+                     <input type="number" v-model.number="adminThreshold" min="1" :max="Math.max(1, admins.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
               </div>
@@ -118,7 +118,7 @@
                 </h3>
                 <p class="text-xs text-mid">Managers can execute whitelisted dApp transactions but cannot reconfigure the account.</p>
                 <div v-for="(manager, index) in managers" :key="'manager-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="managers[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="N... or 0x..." />
+                  <input type="text" v-model="managers[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
                   <button @click="managers.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
@@ -127,7 +127,7 @@
                   <button @click="managers.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Manager</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="managerThreshold" min="0" :max="Math.max(0, managers.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-lg" />
+                     <input type="number" v-model.number="managerThreshold" min="0" :max="Math.max(0, managers.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
               </div>
@@ -139,7 +139,7 @@
                 </h3>
                 <p class="text-xs text-mid">Dome accounts can take control of the wallet if all Admins and Managers are inactive for the specified timeout period.</p>
                 <div v-for="(dome, index) in domes" :key="'dome-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="domes[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl" placeholder="N... or 0x..." />
+                  <input type="text" v-model="domes[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
                   <button @click="domes.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
@@ -148,14 +148,14 @@
                   <button @click="domes.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Dome Account</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="domeThreshold" min="0" :max="Math.max(0, domes.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-lg" />
+                     <input type="number" v-model.number="domeThreshold" min="0" :max="Math.max(0, domes.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
                 
                 <div class="flex items-center gap-4 mt-3" v-if="domes.length > 0">
                   <div class="flex-1">
                     <label class="block text-xs font-bold text-high mb-1">Inactivity Timeout (ms)</label>
-                    <input type="number" v-model.number="domeTimeout" class="form-input w-full py-2 bg-surface text-high font-mono text-sm rounded-lg" placeholder="e.g. 15768000000 (6 months)" />
+                    <input type="number" v-model.number="domeTimeout" class="form-input w-full py-2 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 15768000000 (6 months)" />
                   </div>
                 </div>
               </div>

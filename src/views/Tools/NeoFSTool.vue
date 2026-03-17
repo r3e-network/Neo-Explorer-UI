@@ -27,11 +27,11 @@
     </div>
 
     <!-- Search / Retrieval Tool -->
-    <div class="etherscan-card p-6 mb-8">
+    <div class="etherscan-card p-6 md:p-8 mb-8">
       <h2 class="text-base font-semibold text-high mb-4">Retrieve from NeoFS</h2>
       <div class="flex gap-3">
-        <input v-model="searchUrl" type="text" class="form-input flex-1" placeholder="Enter NeoFS URL (neofs://...) or Container ID" @keyup.enter="handleSearch" />
-        <button @click="handleSearch" :disabled="!searchUrl.trim() || isSearching" class="btn-primary min-w-[100px] flex items-center justify-center">
+        <input v-model="searchUrl" type="text" class="form-input flex-1 rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none" placeholder="Enter NeoFS URL (neofs://...) or Container ID" @keyup.enter="handleSearch" />
+        <button @click="handleSearch" :disabled="!searchUrl.trim() || isSearching" class="min-w-[100px] flex items-center justify-center inline-flex gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95">
           <svg v-if="isSearching" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
           <span v-else>Fetch</span>
         </button>
@@ -47,7 +47,7 @@
     </div>
 
     <!-- My Files / Containers -->
-    <div class="etherscan-card p-6">
+    <div class="etherscan-card p-6 md:p-8">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-base font-semibold text-high">My NeoFS Assets</h2>
         <div v-if="connectedAccount" class="flex items-center gap-2">
@@ -72,7 +72,7 @@
         </div>
         <p class="text-high font-medium mb-1">No containers found</p>
         <p class="text-sm text-mid mb-6">You don't have any NeoFS containers associated with this account yet.</p>
-        <button @click="showUploadModal = true" class="btn-primary">Create Your First Container</button>
+        <button @click="showUploadModal = true" class="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95">Create Your First Container</button>
       </div>
 
       <div v-else class="space-y-4">
@@ -109,7 +109,7 @@
               </div>
               <div class="flex gap-2">
                 <button @click="viewObjects(container)" class="btn-outline py-1 px-3 text-[11px]">View Objects</button>
-                <button @click="openUploadForContainer(container.id)" class="btn-primary py-1 px-3 text-[11px]">Upload</button>
+                <button @click="openUploadForContainer(container.id)" class="py-1 px-3 inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95">Upload</button>
               </div>
             </div>
           </div>
@@ -119,17 +119,22 @@
 
     
     <!-- View Objects Modal -->
-    <div v-if="showObjectsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-      <div class="bg-surface w-full max-w-2xl rounded-2xl shadow-2xl border border-line-soft overflow-hidden relative z-10 flex flex-col max-h-[85vh]">
-        <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between shrink-0">
-          <div>
-            <h2 class="text-lg font-bold text-high">Objects in Container</h2>
-            <p class="text-xs text-mid font-mono mt-1">{{ activeContainer?.name || activeContainer?.id }}</p>
+    <div v-if="showObjectsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+      <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[85vh]">
+        <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-high tracking-tight">Objects in Container</h2>
+              <p class="text-xs text-mid font-mono mt-0.5 opacity-80">{{ activeContainer?.name || activeContainer?.id }}</p>
+            </div>
           </div>
-          <button @click="showObjectsModal = false" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+          <button @click="showObjectsModal = false" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
         
-        <div class="p-6 overflow-y-auto flex-1 relative min-h-[300px]">
+        <div class="p-6 overflow-y-auto flex-1 relative min-h-[300px] custom-scrollbar bg-surface-muted/30">
            <div v-if="isLoadingObjects" class="absolute inset-0 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-sm z-20">
              <svg class="animate-spin h-8 w-8 text-cyan-500 mb-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
              <p class="text-sm font-medium text-high">Fetching objects from NeoFS nodes...</p>
@@ -170,47 +175,52 @@
     
     <!-- Upload Modal -->
 
-    <div v-if="showUploadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-      <div class="bg-surface w-full max-w-lg rounded-2xl shadow-2xl border border-line-soft overflow-hidden relative z-10">
-        <div class="px-6 py-4 border-b border-line-soft flex items-center justify-between">
-          <h2 class="text-lg font-bold text-high">Upload to NeoFS</h2>
-          <button @click="showUploadModal = false" class="text-low hover:text-high"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    <div v-if="showUploadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
+      <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col">
+        <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400 rounded-xl">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-high tracking-tight">Upload to NeoFS</h2>
+          </div>
+          <button @click="showUploadModal = false" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
-        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           <div 
-            class="border-2 border-dashed border-line-soft rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all"
+            class="border-2 border-dashed border-line-soft rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all"
             :class="selectedFile ? 'border-cyan-500 bg-cyan-50/30 dark:bg-cyan-900/10' : 'hover:bg-surface-muted hover:border-cyan-400'"
             @click="$refs.fileInput.click()"
           >
             <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
             
             <template v-if="!selectedFile">
-              <svg class="w-10 h-10 text-cyan-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-              <p class="text-sm font-semibold text-high">Click to browse or drag file here</p>
+              <svg class="w-10 h-10 text-cyan-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+              <p class="text-sm font-bold text-high">Click to browse or drag file here</p>
               <p class="text-xs text-mid mt-1">Supports images, JSON, and documents up to 10MB</p>
             </template>
             <template v-else>
-               <div class="p-3 rounded-lg bg-cyan-500/10 mb-2">
+               <div class="p-3 rounded-xl bg-cyan-500/10 mb-3">
                  <svg class="w-8 h-8 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                </div>
-               <p class="text-sm font-bold text-high">{{ selectedFile.name }}</p>
-               <p class="text-xs text-mid mt-1">{{ (selectedFile.size / 1024).toFixed(2) }} KB</p>
-               <button @click.stop="selectedFile = null" class="mt-3 text-xs text-red-500 hover:underline">Remove file</button>
+               <p class="text-sm font-bold text-high truncate max-w-full px-4">{{ selectedFile.name }}</p>
+               <p class="text-xs text-mid mt-1 font-mono">{{ (selectedFile.size / 1024).toFixed(2) }} KB</p>
+               <button @click.stop="selectedFile = null" class="mt-3 text-xs font-bold text-red-500 hover:text-red-600 transition-colors bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg">Remove file</button>
             </template>
           </div>
           
-          <div>
-            <label class="block text-sm font-medium text-high mb-1">Target Container</label>
-            <select v-model="uploadContainer" class="form-input w-full bg-surface">
+          <div class="space-y-2">
+            <label class="block text-sm font-bold text-high tracking-tight">Target Container</label>
+            <select v-model="uploadContainer" class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all cursor-pointer outline-none">
                <option v-for="c in assets" :key="c.id" :value="c.id">{{ c.name }} ({{ c.id.slice(0, 8) }}...)</option>
                <option value="new_public">Create New Public Container</option>
                <option value="new_private">Create New Private Container</option>
             </select>
           </div>
 
-          <div v-if="uploadContainer.startsWith('new')">
-            <label class="block text-sm font-medium text-high mb-1">New Container Name</label>
-            <input type="text" v-model="newContainerName" class="form-input w-full bg-surface" placeholder="e.g. My Website Assets" />
+          <div v-if="uploadContainer.startsWith('new')" class="space-y-2">
+            <label class="block text-sm font-bold text-high tracking-tight">New Container Name</label>
+            <input type="text" v-model="newContainerName" class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none" placeholder="e.g. My Website Assets" />
           </div>
         </div>
         <div class="px-6 py-4 border-t border-line-soft bg-surface-muted flex justify-end gap-3">
@@ -218,7 +228,7 @@
           <button 
             @click="handleUpload" 
             :disabled="!selectedFile || (uploadContainer.startsWith('new') && !newContainerName)"
-            class="btn-primary"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
             :class="{'opacity-50 cursor-not-allowed': !selectedFile || (uploadContainer.startsWith('new') && !newContainerName)}"
           >
             {{ isUploading ? 'Uploading...' : 'Upload File' }}

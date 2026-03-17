@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <div class="etherscan-card p-6">
+      <div class="etherscan-card p-6 md:p-8">
         <div class="max-w-3xl mx-auto space-y-6">
           
           <div class="p-4 rounded-xl bg-indigo-50/80 backdrop-blur-sm border border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-800/50 text-indigo-800 dark:text-indigo-300">
@@ -55,7 +55,7 @@
             </div>
             <textarea 
               v-model="message" 
-              class="form-input w-full h-40 resize-y bg-surface text-high placeholder:text-mid/60 font-mono text-sm" 
+              class="form-input w-full h-40 resize-y bg-surface text-high placeholder:text-mid/60 font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" 
               placeholder="Enter the message or arbitrary data you want to permanently store on the blockchain... (e.g. 'Hello Neo', JSON data, or a document hash)"
             ></textarea>
             <p v-if="messageBytes > 65535" class="text-xs text-red-500 mt-2 font-medium">Message exceeds maximum remark payload size (65535 bytes).</p>

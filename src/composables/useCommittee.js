@@ -198,7 +198,7 @@ const getValidatorMetadata = (validator) => {
   return null;
 };
 
-const applyCommitteeMetadata = (data) => {
+const processCommitteeMetadata = (data) => {
   const metaMap = {};
   const addMeta = (key, item) => {
     const normalized = normalizeMetaKey(key);
@@ -241,48 +241,56 @@ const applyCommitteeMetadata = (data) => {
     );
   }
 
-  doraMetadata.value = metaMap;
-  return { loaded: Array.isArray(data) && data.length > 0, topConsensusValidators };
-};
-
-const loadIndexerCommitteeMetadata = async () => {
-  try {
-    const data = await supabaseService.getValidatorMetadata(getCurrentEnv());
-    return applyCommitteeMetadata(data);
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
-    return { loaded: false, topConsensusValidators: [] };
-  }
-};
-
-const loadDoraCommitteeMetadata = async () => {
-  try {
-    const env = getCurrentEnv().toLowerCase();
-    const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-    if (isTestnet) {
-      return { loaded: false, topConsensusValidators: [] };
-    }
-
-    const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
-    const data = await cachedRequest(
-      getDoraCommitteeCacheKey(NET_ENV.Mainnet),
-      () => fetch(url).then(r => r.ok ? r.json() : []),
-      300000 // 5 mins
-    );
-
-    return applyCommitteeMetadata(data);
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
-    return { loaded: false, topConsensusValidators: [] };
-  }
+  return { metaMap, topConsensusValidators, loaded: Array.isArray(data) && data.length > 0 };
 };
 
 const loadCommitteeMetadata = async () => {
-  const indexerResult = await loadIndexerCommitteeMetadata();
-  if (indexerResult.loaded) {
-    return indexerResult;
+  const env = getCurrentEnv().toLowerCase();
+  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+  
+  let doraData = [];
+  if (!isTestnet) {
+    try {
+      const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
+      doraData = await cachedRequest(
+        getDoraCommitteeCacheKey(NET_ENV.Mainnet),
+        () => fetch(url).then(r => r.ok ? r.json() : []),
+        300000 // 5 mins
+      );
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
+    }
   }
-  return loadDoraCommitteeMetadata();
+
+  let indexerData = [];
+  try {
+    indexerData = await supabaseService.getValidatorMetadata(getCurrentEnv());
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
+  }
+
+  const doraResult = processCommitteeMetadata(doraData);
+  const indexerResult = processCommitteeMetadata(indexerData);
+
+  const mergedMap = { ...doraResult.metaMap };
+  for (const key in indexerResult.metaMap) {
+    mergedMap[key] = {
+      ...mergedMap[key],
+      ...indexerResult.metaMap[key],
+      name: indexerResult.metaMap[key].name || mergedMap[key]?.name || "",
+      logo: indexerResult.metaMap[key].logo || mergedMap[key]?.logo || "",
+      logoUrl: indexerResult.metaMap[key].logoUrl || mergedMap[key]?.logoUrl || "",
+    };
+  }
+
+  doraMetadata.value = mergedMap;
+  
+  return { 
+    loaded: doraResult.loaded || indexerResult.loaded, 
+    topConsensusValidators: indexerResult.topConsensusValidators.length > 0 
+      ? indexerResult.topConsensusValidators 
+      : doraResult.topConsensusValidators
+  };
 };
 
 export function useCommittee() {

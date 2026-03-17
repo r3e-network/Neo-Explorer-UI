@@ -58,60 +58,60 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
         <!-- Validator Identity Section -->
-        <div class="etherscan-card p-6">
+        <div class="etherscan-card p-6 md:p-8">
           <h2 class="text-lg font-bold text-high mb-4">On-Chain Identity</h2>
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-high mb-1">Public Key</label>
-              <input type="text" v-model="form.publicKey" class="form-input w-full bg-surface" placeholder="03..." disabled />
+              <input type="text" v-model="form.publicKey" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="03..." disabled />
               <p class="text-xs text-mid mt-1">Your validator public key, derived from your connected wallet.</p>
             </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-high mb-1">Name</label>
-                <input type="text" v-model="form.name" class="form-input w-full bg-surface" placeholder="e.g. My Neo Node" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+                <input type="text" v-model="form.name" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="e.g. My Neo Node" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-high mb-1">Location</label>
-                <input type="text" v-model="form.location" class="form-input w-full bg-surface" placeholder="e.g. Zurich, Switzerland" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+                <input type="text" v-model="form.location" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="e.g. Zurich, Switzerland" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
             </div>
 
             <div>
               <label class="block text-sm font-medium text-high mb-1">Website</label>
-              <input type="url" v-model="form.website" class="form-input w-full bg-surface" placeholder="https://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+              <input type="url" v-model="form.website" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="https://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-high mb-1">Description</label>
-              <textarea v-model="form.description" rows="3" class="form-input w-full bg-surface resize-none" placeholder="Brief description of your node operation and infrastructure..." :disabled="!connectedAccount || !isCandidate || loadingProfile"></textarea>
+              <textarea v-model="form.description" rows="3" class="form-input w-full bg-surface resize-none rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="Brief description of your node operation and infrastructure..." :disabled="!connectedAccount || !isCandidate || loadingProfile"></textarea>
             </div>
           </div>
         </div>
 
         <!-- Social Links Section -->
-        <div class="etherscan-card p-6">
+        <div class="etherscan-card p-6 md:p-8">
           <h2 class="text-lg font-bold text-high mb-4">Social Links</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-high mb-1">Twitter / X</label>
               <div class="relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-mid">@</span>
-                <input type="text" v-model="form.twitter" class="form-input w-full bg-surface pl-8" placeholder="username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+                <input type="text" v-model="form.twitter" class="form-input w-full bg-surface pl-8 rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
               </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">GitHub</label>
-              <input type="text" v-model="form.github" class="form-input w-full bg-surface" placeholder="https://github.com/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+              <input type="text" v-model="form.github" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="https://github.com/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">Discord</label>
-              <input type="text" v-model="form.discord" class="form-input w-full bg-surface" placeholder="Server invite or username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+              <input type="text" v-model="form.discord" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="Server invite or username" :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
             <div>
               <label class="block text-sm font-medium text-high mb-1">Telegram</label>
-              <input type="text" v-model="form.telegram" class="form-input w-full bg-surface" placeholder="t.me/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+              <input type="text" v-model="form.telegram" class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="t.me/..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@
       <!-- Sidebar -->
       <div class="space-y-6">
         <!-- Logo Upload Section -->
-        <div class="etherscan-card p-6">
+        <div class="etherscan-card p-6 md:p-8">
           <h2 class="text-lg font-bold text-high mb-4">Node Logo</h2>
           
           <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-line-soft rounded-xl mb-4 relative" :class="{ 'bg-surface-elevated': !form.logoUrl }">
@@ -144,12 +144,12 @@
           
           <div>
             <label class="block text-sm font-medium text-high mb-1">NeoFS Object URL</label>
-            <input type="text" v-model="form.logoUrl" class="form-input w-full bg-surface text-xs" placeholder="neofs://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
+            <input type="text" v-model="form.logoUrl" class="form-input w-full bg-surface text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none" placeholder="neofs://..." :disabled="!connectedAccount || !isCandidate || loadingProfile" />
           </div>
         </div>
 
         <!-- Preview Card -->
-        <div class="etherscan-card p-6 bg-gradient-to-br from-surface to-surface-elevated">
+        <div class="etherscan-card p-6 md:p-8 bg-gradient-to-br from-surface to-surface-elevated">
           <h2 class="text-lg font-bold text-high mb-4">Preview</h2>
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-full border border-line-soft bg-surface flex items-center justify-center overflow-hidden shrink-0">
