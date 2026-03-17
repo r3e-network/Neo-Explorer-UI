@@ -225,7 +225,15 @@ function formatTransferAmount(t) {
 
 const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
 
+function hasOracleResponseAttribute(tx) {
+  return Boolean(
+    tx?.attributes &&
+      tx.attributes.some((a) => a?.type === "OracleResponse" || a?.usage === "OracleResponse" || a?.type === 0x11)
+  );
+}
+
 const txMethod = computed(() => {
+  if (hasOracleResponseAttribute(props.tx)) return "Oracle Callback";
   if (props.tx?.method) return props.tx.method;
   if (props.tx?.notifications?.length > 0) {
     return props.tx.notifications[0].eventname || "Transfer";

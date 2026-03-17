@@ -341,8 +341,18 @@ function formatTransferAmount(t) {
 
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
+function hasOracleResponseAttribute(tx) {
+  return Boolean(
+    tx?.attributes &&
+      tx.attributes.some((a) => a?.type === "OracleResponse" || a?.usage === "OracleResponse" || a?.type === 0x11)
+  );
+}
+
 function buildActionSummary() {
   if (!tx.value.hash) return "";
+  if (hasOracleResponseAttribute(tx.value)) {
+    return "Oracle Callback";
+  }
   const transfers = allTransfers.value;
   if (transfers.length === 1) {
     const t = transfers[0];

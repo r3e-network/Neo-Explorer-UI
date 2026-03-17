@@ -66,4 +66,41 @@ describe("TxOverviewTab", () => {
     const burnedBadge = systemFeeRow.find(".text-red-600");
     expect(burnedBadge.exists()).toBe(true);
   });
+
+  it("labels transactions with OracleResponse attributes as Oracle Callback", async () => {
+    const TxOverviewTab = (await import("@/views/Transaction/components/TxOverviewTab.vue")).default;
+    const wrapper = mount(TxOverviewTab, {
+      props: {
+        tx: {
+          hash: "0xtx",
+          sender: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+          sysfee: 1,
+          netfee: 2,
+          attributes: [{ type: "OracleResponse" }],
+        },
+        txStatus: "success",
+        vmState: "HALT",
+        confirmations: 1,
+        totalFee: "3",
+        allTransfers: [],
+        showMore: false,
+      },
+      global: {
+        stubs: {
+          InfoRow: {
+            props: ["label", "value", "tooltip", "copyable", "copyValue"],
+            template: '<div :data-label="label"><slot>{{ value }}</slot></div>',
+          },
+          HashLink: true,
+          StatusBadge: true,
+          GasBreakdown: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    const methodRow = wrapper.find('[data-label="Method"]');
+    expect(methodRow.exists()).toBe(true);
+    expect(methodRow.text()).toContain("Oracle Callback");
+  });
 });
