@@ -220,14 +220,18 @@ async function loadContract(hash) {
   error.value = null;
   manifest.value = null;
   try {
-    contract.value = (await contractService.getByHash(hash)) || {};
+    contract.value = (await contractService.getByHashWithFallback(hash)) || {};
     if (myGeneration !== fetchGeneration) return;
+    if (!contract.value?.hash) {
+      error.value = t("errors.loadContractDetails");
+      return;
+    }
     const [, manifestData] = await Promise.all([
       checkVerification(hash),
       contractService.getManifest(hash).catch(() => null),
     ]);
     if (myGeneration !== fetchGeneration) return;
-    manifest.value = manifestData;
+    manifest.value = manifestData || contract.value?.manifest || null;
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);

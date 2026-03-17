@@ -1,4 +1,5 @@
 import axios from "axios";
+import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 
@@ -89,6 +90,29 @@ export const contractService = createService(
     },
   },
   {
+    async getChainStateByHash(hash, options = {}) {
+      const key = getCacheKey("contract_chain_state", { hash });
+      return cachedRequest(
+        key,
+        () => safeRpc("getcontractstate", [hash], null, options),
+        CACHE_TTL.contract,
+        options
+      );
+    },
+
+    async getByHashWithFallback(hash, options = {}) {
+      const indexedContract = await contractService.getByHash(hash, options);
+      if (indexedContract?.hash) return indexedContract;
+
+      const chainState = await this.getChainStateByHash(hash, options);
+      if (!chainState?.hash) return null;
+
+      return {
+        ...chainState,
+        name: chainState?.manifest?.name || chainState?.name || hash,
+      };
+    },
+
     /**
      * 获取合约 manifest（带缓存，极少变更）
      * Calls getByHash internally — cannot be expressed as a single RPC config.
@@ -100,7 +124,7 @@ export const contractService = createService(
       return cachedRequest(
         key,
         async () => {
-          const contract = await contractService.getByHash(hash, options);
+          const contract = await contractService.getByHashWithFallback(hash, options);
           if (contract?.manifest && typeof contract.manifest === "string") {
             try {
               return JSON.parse(contract.manifest);
