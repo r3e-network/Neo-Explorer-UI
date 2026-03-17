@@ -273,7 +273,6 @@ const {
   unreadCount,
   notifications,
   restoreChatSession,
-  ensureInteractiveChatSession,
   refreshNotifications,
   clearChatSession,
 } = useChatSession();
@@ -423,12 +422,7 @@ async function handleConnect(provider) {
           connectedAccount.value = account.address;
           localStorage.setItem("connectedWallet", account.address);
           localStorage.setItem("walletProvider", provider);
-          try {
-            await ensureInteractiveChatSession();
-            await refreshNotifications();
-          } catch (_err) {
-            // Chat auth is best-effort and must not block wallet connection.
-          }
+          await bootstrapChatSession();
           toast.success(`Connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
         } catch(e) {
           wcUri.value = "";
@@ -449,12 +443,7 @@ async function handleConnect(provider) {
        }
        resetDevWifForm();
        showWalletModal.value = false;
-       try {
-         await ensureInteractiveChatSession();
-         await refreshNotifications();
-       } catch (_err) {
-         // Chat auth is best-effort and must not block wallet connection.
-       }
+       await bootstrapChatSession();
        toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
      }
   } catch (err) {
@@ -482,12 +471,7 @@ async function handleDevWifConnect() {
       }
       resetDevWifForm();
       showWalletModal.value = false;
-      try {
-        await ensureInteractiveChatSession();
-        await refreshNotifications();
-      } catch (_err) {
-        // Chat auth is best-effort and must not block wallet connection.
-      }
+      await bootstrapChatSession();
       toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
     }
   } catch (err) {

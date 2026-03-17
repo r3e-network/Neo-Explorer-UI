@@ -769,6 +769,16 @@ export const walletService = {
       return this.connect(providerName, { wif });
     }
 
+    if (providerName === PROVIDERS.WEB3AUTH) {
+      await web3authService.init();
+      const account = await web3authService.getAccount();
+      if (!account?.address) return null;
+
+      _connectedProvider = PROVIDERS.WEB3AUTH;
+      _account = { address: account.address, label: "Web3Auth Account" };
+      return _account;
+    }
+
     if (providerName !== PROVIDERS.NEON) return null;
 
     const projectId = getWalletConnectProjectId();

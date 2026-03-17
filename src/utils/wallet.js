@@ -23,6 +23,15 @@ function clearStoredWalletState() {
     sessionStorage.removeItem("devTestWif");
 }
 
+function setStoredWalletAddress(provider, address) {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("walletProvider") === provider) {
+        sessionStorage.setItem("connectedWallet", address);
+        return;
+    }
+    localStorage.setItem("connectedWallet", address);
+}
+
 function getStoredWalletProvider() {
     if (typeof window === "undefined") return null;
     return sessionStorage.getItem("walletProvider") || localStorage.getItem("walletProvider");
@@ -63,7 +72,7 @@ export async function initWallet() {
         return;
     }
 
-    // Don't expose a stored wallet as connected until the provider session is revalidated.
+    // Passive restore only. Do not call interactive wallet APIs during app boot.
     connectedAccount.value = "";
 
     if (provider === "NeoLine") {
@@ -74,19 +83,13 @@ export async function initWallet() {
         }
 
         try {
-            const neoline = new window.NEOLineN3.Init();
             setupNeoLineEventListeners();
-            const account = await neoline.getAccount();
-            if (account && account.address) {
-                connectedAccount.value = account.address;
-                localStorage.setItem("connectedWallet", account.address);
-                walletService.hydrateSession(walletService.PROVIDERS.NEOLINE, {
-                    address: account.address,
-                    label: account.label || walletService.PROVIDERS.NEOLINE,
-                });
-            } else {
-                clearStoredWalletState();
-            }
+            connectedAccount.value = storedAddress;
+            setStoredWalletAddress(walletService.PROVIDERS.NEOLINE, storedAddress);
+            walletService.hydrateSession(walletService.PROVIDERS.NEOLINE, {
+                address: storedAddress,
+                label: walletService.PROVIDERS.NEOLINE,
+            });
         } catch (e) {
             clearStoredWalletState();
         }
@@ -97,17 +100,28 @@ export async function initWallet() {
         }
 
         try {
-            const account = await window.neo3Dapi.getAccount();
-            if (account && account.address) {
-                connectedAccount.value = account.address;
-                localStorage.setItem("connectedWallet", account.address);
-                walletService.hydrateSession(walletService.PROVIDERS.O3, {
-                    address: account.address,
-                    label: account.label || walletService.PROVIDERS.O3,
-                });
-            } else {
-                clearStoredWalletState();
-            }
+            connectedAccount.value = storedAddress;
+            setStoredWalletAddress(walletService.PROVIDERS.O3, storedAddress);
+            walletService.hydrateSession(walletService.PROVIDERS.O3, {
+                address: storedAddress,
+                label: walletService.PROVIDERS.O3,
+            });
+        } catch (e) {
+            clearStoredWalletState();
+        }
+    } else if (provider === walletService.PROVIDERS.ONEGATE) {
+        if (!window.OneGate && !window.neo) {
+            clearStoredWalletState();
+            return;
+        }
+
+        try {
+            connectedAccount.value = storedAddress;
+            setStoredWalletAddress(walletService.PROVIDERS.ONEGATE, storedAddress);
+            walletService.hydrateSession(walletService.PROVIDERS.ONEGATE, {
+                address: storedAddress,
+                label: walletService.PROVIDERS.ONEGATE,
+            });
         } catch (e) {
             clearStoredWalletState();
         }
@@ -139,17 +153,17 @@ export async function initWallet() {
             clearStoredWalletState();
         }
     } else if (provider === walletService.PROVIDERS.WEB3AUTH) {
-        // Web3Auth handles its own session recovery on init, but we can actively connect it to restore the account memory object.
-        walletService.connect(walletService.PROVIDERS.WEB3AUTH).then((account) => {
+        try {
+            const account = await walletService.restoreSession(walletService.PROVIDERS.WEB3AUTH);
             if (account && account.address) {
                 connectedAccount.value = account.address;
-                localStorage.setItem("connectedWallet", account.address);
+                setStoredWalletAddress(walletService.PROVIDERS.WEB3AUTH, account.address);
             } else {
                 clearStoredWalletState();
             }
-        }).catch(() => {
+        } catch (e) {
             clearStoredWalletState();
-        });
+        }
     } else {
         clearStoredWalletState();
     }

@@ -22,6 +22,7 @@ const ensureInteractiveChatSessionMock = vi.fn(async () => true);
 const refreshNotificationsMock = vi.fn(async () => undefined);
 const restoreChatSessionMock = vi.fn(async () => chatSessionRef.value);
 const clearChatSessionMock = vi.fn();
+const walletServiceConnectMock = vi.fn();
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -63,7 +64,7 @@ vi.mock("@/services/walletService", () => ({
     },
     getAvailableProviders: vi.fn(() => []),
     getSupportedProviders: vi.fn(() => []),
-    connect: vi.fn(),
+    connect: walletServiceConnectMock,
     disconnect: vi.fn(),
   },
 }));
@@ -109,6 +110,50 @@ describe("AppHeader chat notifications", () => {
         unreadCount: 2,
       },
     ];
+  });
+
+  it("does not auto-request NeoChat authorization after a wallet connection", async () => {
+    connectedAccountRef.value = null;
+    chatSessionRef.value = null;
+    unreadCountRef.value = 0;
+    notificationsRef.value = [];
+
+    const { walletService } = await import("@/services/walletService");
+    walletService.getAvailableProviders.mockReturnValueOnce(["NeoLine"]);
+    walletService.getSupportedProviders.mockReturnValueOnce(["NeoLine"]);
+    walletServiceConnectMock.mockResolvedValueOnce({
+      address: "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w",
+    });
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper.findAll("button").find((candidate) => candidate.text().trim() === "Connect Wallet");
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const neoLineButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("NeoLine"));
+    await neoLineButton.trigger("click");
+    await flushPromises();
+
+    expect(walletServiceConnectMock).toHaveBeenCalledWith("NeoLine");
+    expect(ensureInteractiveChatSessionMock).not.toHaveBeenCalled();
   });
 
   it("shows unread chat badge for connected users with an active chat session", async () => {

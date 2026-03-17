@@ -10,6 +10,7 @@ const walletServiceMock = {
   PROVIDERS: {
     NEOLINE: "NeoLine",
     O3: "O3",
+    ONEGATE: "OneGate",
     WALLETCONNECT: "WalletConnect",
     NEON: "Neon Wallet",
     TESTNET_WIF: "Testnet WIF (Local Dev)",
@@ -104,11 +105,12 @@ describe("utils/wallet connectWallet", () => {
 
   it("rehydrates walletService for a restored NeoLine session", async () => {
     const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    const getAccount = vi.fn();
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {
         return {
-          getAccount: vi.fn().mockResolvedValue({ address, label: "NeoLine" }),
+          getAccount,
         };
       },
     };
@@ -119,47 +121,18 @@ describe("utils/wallet connectWallet", () => {
     await wallet.initWallet();
 
     expect(wallet.connectedAccount.value).toBe(address);
+    expect(getAccount).not.toHaveBeenCalled();
     expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
       walletServiceMock.PROVIDERS.NEOLINE,
-      { address, label: "NeoLine" }
+      { address, label: walletServiceMock.PROVIDERS.NEOLINE }
     );
-  });
-
-  it("does not expose a stored NeoLine address before session rehydration succeeds", async () => {
-    const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
-    let resolveAccount;
-    window.NEOLine = {};
-    window.NEOLineN3 = {
-      Init: function Init() {
-        return {
-          getAccount: vi.fn().mockImplementation(
-            () =>
-              new Promise((resolve) => {
-                resolveAccount = resolve;
-              })
-          ),
-        };
-      },
-    };
-    localStorage.setItem("connectedWallet", address);
-    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
-
-    const wallet = await import("@/utils/wallet");
-    const initPromise = wallet.initWallet();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(wallet.connectedAccount.value).toBe("");
-
-    resolveAccount({ address, label: "NeoLine" });
-    await initPromise;
-
-    expect(wallet.connectedAccount.value).toBe(address);
   });
 
   it("rehydrates walletService for a restored O3 session", async () => {
     const address = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
+    const getAccount = vi.fn();
     window.neo3Dapi = {
-      getAccount: vi.fn().mockResolvedValue({ address, label: "O3" }),
+      getAccount,
     };
     localStorage.setItem("connectedWallet", address);
     localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.O3);
@@ -168,9 +141,43 @@ describe("utils/wallet connectWallet", () => {
     await wallet.initWallet();
 
     expect(wallet.connectedAccount.value).toBe(address);
+    expect(getAccount).not.toHaveBeenCalled();
     expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
       walletServiceMock.PROVIDERS.O3,
-      { address, label: "O3" }
+      { address, label: walletServiceMock.PROVIDERS.O3 }
+    );
+  });
+
+  it("passively restores a stored Web3Auth session without calling interactive connect", async () => {
+    const address = "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw";
+    walletServiceMock.restoreSession.mockResolvedValueOnce({
+      address,
+      label: walletServiceMock.PROVIDERS.WEB3AUTH,
+    });
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.WEB3AUTH);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(walletServiceMock.restoreSession).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.WEB3AUTH);
+    expect(walletServiceMock.connect).not.toHaveBeenCalled();
+    expect(wallet.connectedAccount.value).toBe(address);
+  });
+
+  it("passively hydrates a stored OneGate session without calling interactive account APIs", async () => {
+    const address = "NfM3NJFuDtBwZchLh6DYpk1yPigRNmjcTQ";
+    window.OneGate = {};
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.ONEGATE);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe(address);
+    expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
+      walletServiceMock.PROVIDERS.ONEGATE,
+      { address, label: walletServiceMock.PROVIDERS.ONEGATE }
     );
   });
 
