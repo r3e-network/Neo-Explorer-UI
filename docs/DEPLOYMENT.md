@@ -129,12 +129,28 @@ Configure build-time variables in `.env`, `.env.production`, or Vercel project s
 | `VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/mainnet`. | `https://rpc.r3e.network` |
 | `VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET` | Optional Vite dev proxy target for `/bpi/testnet`. | `https://rpc.r3e.network` |
 | `VITE_ENABLE_RPC_STARTUP_HEDGE` | Enable startup hedge calls to fallback RPC. | `true` |
+| `CHAT_DATABASE_URL` | Required by the Vercel NeoChat API routes for direct Supabase Postgres access. | unset |
+| `CHAT_SESSION_SECRET` | HMAC secret used to sign the NeoChat session cookie. | unset |
 
 Notes:
 
 - If `VITE_RPC_BASE_URL` is set to a generic custom value (e.g. `https://rpc.example.com/api`), it overrides the runtime switch.
 - If it ends with `/api/mainnet`, `/api/testnet`, `/api/mainnet/primary`, or `/api/testnet/fallback`, the app rewrites that suffix to the active UI network automatically.
 - Keep it unset to use Mainnet/Testnet switching in UI.
+
+### NeoChat setup
+
+To enable the internal NeoChat replacement:
+
+1. Apply the SQL schema in [chat_schema.sql](/home/neo/git/Neo-Explorer-UI/supabase/chat_schema.sql) to Supabase.
+2. Set `CHAT_DATABASE_URL` in Vercel to the Supabase Postgres DSN used for chat storage.
+3. Set `CHAT_SESSION_SECRET` to a long random secret so the one-time chat login session cookie can be signed server-side.
+
+NeoChat v1 is:
+- peer-to-peer only
+- network-agnostic
+- backed by Supabase history and `read_at` markers
+- authenticated by a one-time wallet signature challenge, not by per-message signatures
 
 ## Health Checks
 

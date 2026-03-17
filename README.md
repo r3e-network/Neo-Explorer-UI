@@ -13,6 +13,7 @@ A modern blockchain explorer for the Neo ecosystem. Visualize Neo chain data fro
 - **Token Tracking** - NEP-17 tokens and NFT (NEP-11) gallery support
 - **Contract Viewer** - Inspect smart contracts with source code verification
 - **Developer Tools** - API documentation, contract verification, and dev utilities
+- **NeoChat (P2P)** - Internal peer-to-peer chat with persistent history, unread tracking, and Supabase storage
 - **Charts & Analytics** - Network statistics and historical data visualization
 - **Multi-language** - Internationalization support (i18n)
 - **Responsive Design** - Mobile-friendly with Tailwind CSS
@@ -100,6 +101,38 @@ All neo3fura API calls are encapsulated in `src/services/`:
 | `candidateService` | Consensus candidates |
 | `statsService` | Dashboard statistics |
 | `searchService` | Global search |
+| `chatService` | Internal NeoChat API client |
+
+## 💬 NeoChat
+
+This repository now includes an internal NeoChat replacement for the old external `chat.neo.org` deep links.
+
+### Current v1 behavior
+
+- 1:1 peer-to-peer chat only
+- no group chat
+- network-agnostic rooms
+- one canonical room per sorted address pair, so `A ↔ B` is always the same room
+- message history stored in Supabase
+- unread tracking with `read_at` markers
+- header notification badge and click-through into the relevant room
+
+### Authentication model
+
+- Users do **not** sign every message.
+- Users complete a **one-time NeoChat login signature** to create a server-validated chat session.
+- After that, the Vercel API trusts the session cookie for send/read/unread operations.
+
+### Required setup
+
+1. Apply the SQL schema in [chat_schema.sql](/home/neo/git/Neo-Explorer-UI/supabase/chat_schema.sql) to your Supabase project.
+2. Add these environment variables to Vercel:
+   - `CHAT_DATABASE_URL`
+   - `CHAT_SESSION_SECRET`
+
+### Current provider limitation
+
+The v1 server-side verification flow expects a verifiable Neo public key from the wallet sign-in challenge. Neo-native providers are the intended path. WalletConnect/Neon may need a follow-up compatibility pass if their sign-message flow does not expose the public key needed for verification.
 
 ## 🚀 Quick Start
 

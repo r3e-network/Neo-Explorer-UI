@@ -61,16 +61,14 @@
     </template>
     <CopyButton v-if="copyable" :text="copyText" size="sm" class="flex-shrink-0" />
     
-    <a 
-      v-if="type === 'address' && showNeoChat" 
-      :href="`https://chat.neo.org/?to=${hash}`" 
-      target="_blank" 
-      rel="noopener noreferrer"
+    <router-link
+      v-if="type === 'address' && showNeoChat"
+      :to="{ path: '/chat', query: { with: normalizedAddressHash || hash } }"
       class="flex-shrink-0 transition-transform hover:scale-110"
-      title="Chat via NeoChat"
+      title="Open NeoChat"
     >
       <img src="@/assets/neochat.svg" class="w-4 h-4" alt="NeoChat" />
-    </a>
+    </router-link>
   </div>
 </template>
 

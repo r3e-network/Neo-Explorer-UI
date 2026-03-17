@@ -38,6 +38,65 @@
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
+        <div v-if="connectedAccount" class="relative ml-3 hidden lg:block">
+          <button
+            data-testid="chat-notifications-button"
+            class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line-soft bg-surface-base text-high transition hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
+            @click="toggleChatNotifications"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h5m-9 5h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span
+              v-if="unreadCount > 0"
+              data-testid="chat-unread-badge"
+              class="absolute -right-1.5 -top-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white shadow"
+            >
+              {{ unreadCount > 99 ? "99+" : unreadCount }}
+            </span>
+          </button>
+
+          <div
+            v-if="chatNotificationsOpen"
+            class="absolute right-0 z-20 mt-2 w-80 rounded-2xl border border-line-soft bg-surface-base p-3 shadow-2xl"
+          >
+            <div class="mb-2 flex items-center justify-between">
+              <p class="text-sm font-semibold text-high">NeoChat</p>
+              <button class="text-xs font-medium text-emerald-600 hover:text-emerald-500" @click="openChatPage">
+                Open
+              </button>
+            </div>
+            <div v-if="notifications.length === 0" class="rounded-xl bg-surface-muted px-3 py-4 text-sm text-mid">
+              No unread messages.
+            </div>
+            <button
+              v-for="notification in notifications"
+              :key="notification.roomId"
+              data-testid="chat-notification-item"
+              class="mb-2 flex w-full items-start gap-3 rounded-xl bg-surface-muted px-3 py-3 text-left transition hover:bg-emerald-50/60 dark:hover:bg-emerald-900/10"
+              @click="handleChatNotificationClick(notification)"
+            >
+              <div class="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-600">
+                {{ getNotificationInitials(notification) }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="truncate text-sm font-semibold text-high">
+                    {{ notification.otherParticipantLabel || notification.otherParticipantAddress }}
+                  </p>
+                  <span
+                    v-if="notification.unreadCount"
+                    class="inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white"
+                  >
+                    {{ notification.unreadCount }}
+                  </span>
+                </div>
+                <p class="mt-1 truncate text-xs text-mid">{{ notification.preview || "New message" }}</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <!-- Global Wallet Button (desktop) -->
         <button
           class="ml-3 hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all min-w-[10rem] lg:inline-flex shadow-sm active:scale-95"
@@ -203,11 +262,21 @@ import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
+import { useChatSession } from "@/composables/useChatSession";
 
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
 const toast = useToast();
+const {
+  chatSession,
+  unreadCount,
+  notifications,
+  restoreChatSession,
+  ensureInteractiveChatSession,
+  refreshNotifications,
+  clearChatSession,
+} = useChatSession();
 
 const NETWORKS = NETWORK_OPTIONS;
 
@@ -227,6 +296,7 @@ const networkFee = ref(0);
 
 const currentNetwork = ref(getCurrentEnv());
 const walletLoading = ref(false);
+const chatNotificationsOpen = ref(false);
 
 const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
 const walletButtonLabel = computed(() => {
@@ -353,6 +423,12 @@ async function handleConnect(provider) {
           connectedAccount.value = account.address;
           localStorage.setItem("connectedWallet", account.address);
           localStorage.setItem("walletProvider", provider);
+          try {
+            await ensureInteractiveChatSession();
+            await refreshNotifications();
+          } catch (_err) {
+            // Chat auth is best-effort and must not block wallet connection.
+          }
           toast.success(`Connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
         } catch(e) {
           wcUri.value = "";
@@ -373,6 +449,12 @@ async function handleConnect(provider) {
        }
        resetDevWifForm();
        showWalletModal.value = false;
+       try {
+         await ensureInteractiveChatSession();
+         await refreshNotifications();
+       } catch (_err) {
+         // Chat auth is best-effort and must not block wallet connection.
+       }
        toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
      }
   } catch (err) {
@@ -400,6 +482,12 @@ async function handleDevWifConnect() {
       }
       resetDevWifForm();
       showWalletModal.value = false;
+      try {
+        await ensureInteractiveChatSession();
+        await refreshNotifications();
+      } catch (_err) {
+        // Chat auth is best-effort and must not block wallet connection.
+      }
       toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
     }
   } catch (err) {
@@ -418,6 +506,7 @@ async function toggleWallet() {
       await disconnectWallet();
       walletService.disconnect();
       localStorage.removeItem("walletProvider");
+      clearChatSession();
       return;
     }
     availableProviders.value = walletService.getAvailableProviders();
@@ -452,6 +541,10 @@ function handleClickOutside(e) {
   const networkDropdownEl = utilityBarRef.value?.networkDropdown;
   if (networkDropdownEl && !networkDropdownEl.contains(e.target)) {
     networkDropdownOpen.value = false;
+  }
+  const chatDropdownEl = document.querySelector('[data-testid="chat-notifications-button"]')?.parentElement;
+  if (chatDropdownEl && !chatDropdownEl.contains(e.target)) {
+    chatNotificationsOpen.value = false;
   }
 }
 
@@ -496,11 +589,48 @@ async function loadPrices() {
   networkFee.value = calculateNetworkFee();
 }
 
+async function bootstrapChatSession() {
+  try {
+    await restoreChatSession();
+    if (connectedAccount.value && chatSession.value) {
+      await refreshNotifications();
+    }
+  } catch (_err) {
+    // Chat restore is best-effort.
+  }
+}
+
+function getNotificationInitials(notification) {
+  const label = String(notification?.otherParticipantLabel || notification?.otherParticipantAddress || "?").trim();
+  if (!label) return "?";
+  return label.slice(0, 2).toUpperCase();
+}
+
+async function toggleChatNotifications() {
+  chatNotificationsOpen.value = !chatNotificationsOpen.value;
+  if (chatNotificationsOpen.value && connectedAccount.value && chatSession.value) {
+    await refreshNotifications();
+  }
+}
+
+function openChatPage() {
+  chatNotificationsOpen.value = false;
+  Promise.resolve(router.push({ path: "/chat" })).catch(() => {});
+}
+
+function handleChatNotificationClick(notification) {
+  chatNotificationsOpen.value = false;
+  Promise.resolve(router.push({
+    path: "/chat",
+    query: { room: notification.roomId },
+  })).catch(() => {});
+}
+
 onMounted(async () => {
   currentNetwork.value = getCurrentEnv();
 
   // Initialize wallet state
-  initWallet();
+  void Promise.resolve(initWallet()).then(() => bootstrapChatSession());
 
   try {
     await loadPrices();

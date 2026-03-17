@@ -403,4 +403,23 @@ describe("HashLink", () => {
     expect(aliasLogo.exists()).toBe(true);
     expect(aliasLogo.attributes("src")).toBe(logo);
   });
+
+  it("routes address chat actions to the internal chat page instead of external NeoChat", async () => {
+    const wrapper = mountHashLink({
+      hash: COZ_ADDRESS,
+      type: "address",
+      resolveNns: false,
+      showNeoChat: true,
+    });
+
+    await flushPromises();
+
+    const links = wrapper.findAllComponents({ name: "RouterLink" });
+    expect(links.length).toBeGreaterThan(1);
+    const chatLink = links[links.length - 1];
+    expect(chatLink.props("to")).toEqual({
+      path: "/chat",
+      query: { with: COZ_ADDRESS },
+    });
+  });
 });

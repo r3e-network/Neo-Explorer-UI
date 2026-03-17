@@ -64,6 +64,7 @@ const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 const GasTracker = lazyLoad(() => import("../views/GasTracker/GasTracker.vue"));
 const AdvancedSearch = lazyLoad(() => import("../views/Search/AdvancedSearch.vue"));
 const Governance = lazyLoad(() => import("../views/Governance/Governance.vue"));
+const ChatPage = lazyLoad(() => import("../views/Chat/ChatPage.vue"));
 
 // Error pages
 const Search = lazyLoad(() => import("../views/NotFound/SearchNotFound.vue"));
@@ -360,6 +361,12 @@ const routes = [
         name: "governance",
         meta: { title: "Governance" },
         component: Governance,
+      },
+      {
+        path: "/chat",
+        name: "chat",
+        meta: { title: "NeoChat" },
+        component: ChatPage,
       },
       {
         path: "/tx/:txhash/trace",
