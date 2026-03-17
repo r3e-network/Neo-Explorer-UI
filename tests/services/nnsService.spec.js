@@ -232,4 +232,75 @@ describe("nnsService.resolveDomain", () => {
     expect(resolved).toEqual({ nns: "oracle.morpheus.neo" });
   });
 
+  it("prefers the shortest available domain across .neo and .matrix candidates", async () => {
+    currentEnv = "Mainnet";
+    getAddressTag.mockResolvedValueOnce({
+      nns_domain: "betadomain.neo",
+      nns_expiration_ms: Date.now() + 60_000,
+    });
+    getScriptHashFromAddress.mockReturnValueOnce("0xabc123");
+
+    safeRpc.mockImplementation(async (method) => {
+      if (method === "GetNNSNameByOwner") {
+        return [
+          { name: "betadomain.neo", expiration: Date.now() + 60_000 },
+          { name: "zeta.neo", expiration: Date.now() + 60_000 },
+        ];
+      }
+      if (method === "GetNNSNameByAdmin") return [];
+      if (method === "GetNep11TransferByAddress") {
+        return {
+          result: [
+            {
+              contract: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+              tokenId: btoa("alpha.matrix"),
+              to: "0xabc123",
+              from: null,
+            },
+          ],
+        };
+      }
+      return [];
+    });
+
+    const { default: nnsService } = await import("../../src/services/nnsService.js");
+    const resolved = await nnsService.resolveAddressToNNS("NTestAddress123");
+
+    expect(resolved).toEqual({ nns: "zeta.neo" });
+  });
+
+  it("breaks equal-length ties alphabetically and then prefers .matrix over .neo", async () => {
+    currentEnv = "Mainnet";
+    getAddressTag.mockResolvedValueOnce(null);
+    getScriptHashFromAddress.mockReturnValueOnce("0xabc123");
+
+    safeRpc.mockImplementation(async (method) => {
+      if (method === "GetNNSNameByOwner") {
+        return [
+          { name: "zeta.neo", expiration: Date.now() + 60_000 },
+          { name: "beta.neo", expiration: Date.now() + 60_000 },
+        ];
+      }
+      if (method === "GetNNSNameByAdmin") return [];
+      if (method === "GetNep11TransferByAddress") {
+        return {
+          result: [
+            {
+              contract: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+              tokenId: btoa("beta.matrix"),
+              to: "0xabc123",
+              from: null,
+            },
+          ],
+        };
+      }
+      return [];
+    });
+
+    const { default: nnsService } = await import("../../src/services/nnsService.js");
+    const resolved = await nnsService.resolveAddressToNNS("NTestAddress123");
+
+    expect(resolved).toEqual({ nns: "beta.matrix" });
+  });
+
 });

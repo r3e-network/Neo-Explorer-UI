@@ -111,3 +111,4 @@ typings/
 # Vercel local project metadata
 .vercel/
 .vercel
+.serena/

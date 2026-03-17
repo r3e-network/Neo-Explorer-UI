@@ -120,28 +120,75 @@ const invokeContract = async (env, contractHash, operation, args = []) => {
     });
 };
 
-const pickActiveDomain = (domains = [], suffix = NNS_SUFFIX) => {
+const getDomainSuffix = (name) => {
+    if (name.endsWith(MATRIX_SUFFIX)) return MATRIX_SUFFIX;
+    if (name.endsWith(NNS_SUFFIX)) return NNS_SUFFIX;
+    return "";
+};
+
+const toDomainCandidate = (name) => {
+    const normalizedName = normalizeDomainName(name);
+    const suffix = getDomainSuffix(normalizedName);
+    if (!normalizedName || !suffix) return null;
+
+    return {
+        name: normalizedName,
+        suffix,
+        label: normalizedName.slice(0, normalizedName.length - suffix.length),
+    };
+};
+
+const collectActiveDomains = (domains = [], suffix = NNS_SUFFIX) => {
     const now = Date.now();
-    const normalized = [];
+    const candidates = [];
 
     for (const domain of domains) {
-        const name = normalizeDomainName(domain?.name);
-        if (!name || !name.endsWith(suffix)) continue;
+        const candidate = toDomainCandidate(domain?.name);
+        if (!candidate || candidate.suffix !== suffix) continue;
 
         if (suffix === MATRIX_SUFFIX) {
-            normalized.push({ name, expirationMs: Infinity });
+            candidates.push(candidate);
         } else {
             const expirationMs = normalizeExpirationMs(domain);
             if (!Number.isFinite(expirationMs) || expirationMs <= now) continue;
-            normalized.push({ name, expirationMs });
+            candidates.push(candidate);
         }
     }
 
-    if (!normalized.length) return null;
+    return candidates;
+};
 
-    // Prefer domain that remains valid the longest.
-    normalized.sort((a, b) => b.expirationMs - a.expirationMs);
-    return normalized[0];
+const compareDomainCandidates = (left, right) => {
+    const labelLengthDiff = left.label.length - right.label.length;
+    if (labelLengthDiff !== 0) return labelLengthDiff;
+
+    const labelDiff = left.label.localeCompare(right.label);
+    if (labelDiff !== 0) return labelDiff;
+
+    const suffixPriority = left.suffix === right.suffix
+        ? 0
+        : left.suffix === MATRIX_SUFFIX
+            ? -1
+            : 1;
+    if (suffixPriority !== 0) return suffixPriority;
+
+    return left.name.localeCompare(right.name);
+};
+
+const pickPreferredDomain = (domains = []) => {
+    const deduped = new Map();
+    for (const domain of domains) {
+        if (!domain?.name) continue;
+        if (!deduped.has(domain.name)) {
+            deduped.set(domain.name, domain);
+        }
+    }
+
+    const candidates = Array.from(deduped.values());
+    if (!candidates.length) return null;
+
+    candidates.sort(compareDomainCandidates);
+    return candidates[0];
 };
 
 const getActiveDomainFromMetadata = (metadata) => {
@@ -223,12 +270,15 @@ export const nnsService = {
         return cachedRequest(
             key,
             async () => {
+                const candidates = [];
+
                 for (const lookupTarget of lookupTargets) {
                     try {
                         const metadata = await supabaseService.getAddressTag(lookupTarget, env);
                         const cachedDomain = getActiveDomainFromMetadata(metadata);
                         if (cachedDomain) {
-                            return { nns: cachedDomain };
+                            const metadataCandidate = toDomainCandidate(cachedDomain);
+                            if (metadataCandidate) candidates.push(metadataCandidate);
                         }
                     } catch (_metadataErr) {
                         // Ignore metadata read errors and continue to RPC fallback.
@@ -244,10 +294,7 @@ export const nnsService = {
                             }, []);
 
                             if (Array.isArray(result) && result.length > 0) {
-                                const activeDomain = pickActiveDomain(result, NNS_SUFFIX);
-                                if (activeDomain?.name) {
-                                    return { nns: activeDomain.name };
-                                }
+                                candidates.push(...collectActiveDomains(result, NNS_SUFFIX));
                             }
                         } catch (e) {
                             if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", lookupTarget, e);
@@ -262,10 +309,7 @@ export const nnsService = {
                             }, []);
 
                             if (Array.isArray(adminDomains) && adminDomains.length > 0) {
-                                const activeDomain = pickActiveDomain(adminDomains, NNS_SUFFIX);
-                                if (activeDomain?.name) {
-                                    return { nns: activeDomain.name };
-                                }
+                                candidates.push(...collectActiveDomains(adminDomains, NNS_SUFFIX));
                             }
                         } catch (e) {
                             if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile by admin:", normalizedHash, e);
@@ -306,20 +350,18 @@ export const nnsService = {
                                     if (decoded.endsWith(MATRIX_SUFFIX)) domains.push({ name: decoded });
                                 } catch(e) {
                                 // Invalid base64 or other decode error, skip
-                            }
+                                }
                             }
                             
-                            const activeMatrix = pickActiveDomain(domains, MATRIX_SUFFIX);
-                            if (activeMatrix?.name) {
-                                return { nns: activeMatrix.name };
-                            }
+                            candidates.push(...collectActiveDomains(domains, MATRIX_SUFFIX));
                         }
                     }
                 } catch (matrixErr) {
                     if (import.meta.env.DEV) console.warn("Matrix fallback failed:", matrixErr);
                 }
 
-                return null;
+                const preferredDomain = pickPreferredDomain(candidates);
+                return preferredDomain?.name ? { nns: preferredDomain.name } : null;
             },
             CACHE_TTL.chart // Cache for 5 mins
         );
