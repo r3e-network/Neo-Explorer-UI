@@ -83,9 +83,7 @@
             <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
               Stack Result
             </h4>
-            <pre class="text-high max-h-32 overflow-auto font-mono text-xs">{{
-              JSON.stringify(exec.stack, null, 2)
-            }}</pre>
+            <StackViewer :stack="exec.stack" />
           </div>
 
           <!-- Notifications -->
@@ -153,6 +151,7 @@
 
 <script setup>
 import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
+import StackViewer from "@/components/trace/StackViewer.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { formatGas } from "@/utils/explorerFormat";
