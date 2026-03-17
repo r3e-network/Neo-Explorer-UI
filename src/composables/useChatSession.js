@@ -50,6 +50,14 @@ async function ensureInteractiveChatSession() {
     return existing;
   }
 
+  const chatAuthSupport =
+    typeof walletService.getChatAuthSupport === "function"
+      ? walletService.getChatAuthSupport()
+      : { supported: true, reason: "" };
+  if (!chatAuthSupport.supported) {
+    throw new Error(chatAuthSupport.reason || "This wallet is not supported for NeoChat login.");
+  }
+
   const challenge = await chatService.requestChallenge(connectedAccount.value);
   const signed = await walletService.signMessage(challenge.message);
   const signature = String(signed?.signature || signed?.data || "").trim();
@@ -59,7 +67,9 @@ async function ensureInteractiveChatSession() {
     normalizePublicKey(walletService.account?.pubKey);
 
   if (!signature || !publicKey) {
-    throw new Error("This wallet does not expose a verifiable Neo public key for NeoChat login.");
+    throw new Error(
+      "This wallet connection did not provide the verifiable Neo public key required for NeoChat login."
+    );
   }
 
   const session = await chatService.verifyChallenge({

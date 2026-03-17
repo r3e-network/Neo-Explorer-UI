@@ -277,6 +277,58 @@ describe("walletService", () => {
     expect(walletService.getAvailableProviders()).toContain(walletService.PROVIDERS.TESTNET_WIF);
   });
 
+  it("reports Neo-native providers as supported for NeoChat auth", async () => {
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+          signMessage: vi.fn(async () => ({ publicKey: neoLineGetAccountMock().publicKey, data: "sig" })),
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    expect(walletService.getChatAuthSupport()).toEqual({ supported: true, reason: "" });
+  });
+
+  it("reports EVM wallets as unsupported for NeoChat auth", async () => {
+    window.ethereum = {
+      request: vi.fn(),
+    };
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: "04deadbeef",
+      evmAddress: "0xabc",
+    });
+
+    expect(walletService.getChatAuthSupport()).toEqual({
+      supported: false,
+      reason: "NeoChat is not yet supported for EVM wallet connections. Use a Neo-native wallet or Testnet WIF.",
+    });
+  });
+
+  it("reports WalletConnect-style providers as unsupported for NeoChat auth until public key exposure is available", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.hydrateSession(walletService.PROVIDERS.NEON, {
+      address: "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM",
+      label: "Neon Wallet",
+    });
+
+    expect(walletService.getChatAuthSupport()).toEqual({
+      supported: false,
+      reason:
+        "This wallet connection does not reliably expose the Neo public key needed for NeoChat login yet. Use NeoLine, O3, OneGate, Web3Auth, or Testnet WIF.",
+    });
+  });
+
   it("detects NeoLine when only the NEOLine N3 API is injected", async () => {
     window.NEOLineN3 = {
       Init: function Init() {
