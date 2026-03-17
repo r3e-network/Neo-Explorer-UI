@@ -11,10 +11,10 @@ describe("endpoint defaults", () => {
   it("keeps vite proxy defaults on external non-self-hosted endpoints", () => {
     const viteConfig = readFile("vite.config.js");
 
-    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
-    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
-    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";');
-    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testnet1.neo.coz.io:443";');
+    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
@@ -65,12 +65,12 @@ describe("endpoint defaults", () => {
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
-    expect(routeDest("/api/mainnet/primary")).toBe("https://rpc.r3e.network/mainnet");
-    expect(routeDest("/api/mainnet/fallback")).toBe("https://neofura.ngd.network");
-    expect(routeDest("/api/testnet/primary")).toBe("https://rpc.r3e.network/testnet");
-    expect(routeDest("/api/testnet/fallback")).toBe("https://testnet1.neo.coz.io:443");
-    expect(routeDest("/api/mainnet")).toBe("https://rpc.r3e.network/mainnet");
-    expect(routeDest("/api/testnet")).toBe("https://rpc.r3e.network/testnet");
+    expect(routeDest("/api/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/api/mainnet/fallback")).toBe("https://api1.n3index.dev/mainnet");
+    expect(routeDest("/api/testnet/primary")).toBe("https://api.n3index.dev/testnet");
+    expect(routeDest("/api/testnet/fallback")).toBe("https://api1.n3index.dev/testnet");
+    expect(routeDest("/api/mainnet")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/api/testnet")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://rpc.r3e.network/testnet/bpi/$1");
     expect(routeDest("/indexer/mainnet/(.*)")).toBe(

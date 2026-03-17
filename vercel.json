@@ -16,31 +16,31 @@
   "rewrites": [
     {
       "source": "/api/mainnet/primary",
-      "destination": "https://rpc.r3e.network/mainnet"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/api/mainnet/fallback",
-      "destination": "https://neofura.ngd.network"
+      "destination": "https://api1.n3index.dev/mainnet"
     },
     {
       "source": "/api/testnet/primary",
-      "destination": "https://rpc.r3e.network/testnet"
+      "destination": "https://api.n3index.dev/testnet"
     },
     {
       "source": "/api/testnet/fallback",
-      "destination": "https://testnet1.neo.coz.io:443"
+      "destination": "https://api1.n3index.dev/testnet"
     },
     {
       "source": "/api/mainnet",
-      "destination": "https://rpc.r3e.network/mainnet"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/api/testnet",
-      "destination": "https://rpc.r3e.network/testnet"
+      "destination": "https://api.n3index.dev/testnet"
     },
     {
       "source": "/api",
-      "destination": "https://rpc.r3e.network/mainnet"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/bpi/mainnet/(.*)",

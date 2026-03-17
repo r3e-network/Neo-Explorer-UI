@@ -4,10 +4,10 @@ import compression from "vite-plugin-compression";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
-const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
-const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
-const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://neofura.ngd.network";
-const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://testnet1.neo.coz.io:443";
+const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";
+const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";
+const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";
+const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
@@ -82,7 +82,7 @@ export default defineConfig(({ mode }) => {
         "/api/mainnet/fallback": {
           target: mainnetRpcFallbackTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/mainnet",
         },
         "/api/testnet/primary": {
           target: testnetRpcPrimaryTarget,
@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
         "/api/testnet/fallback": {
           target: testnetRpcFallbackTarget,
           changeOrigin: true,
-          rewrite: () => "/",
+          rewrite: () => "/testnet",
         },
         "/api/mainnet": {
           target: mainnetRpcPrimaryTarget,

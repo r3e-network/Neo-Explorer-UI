@@ -30,6 +30,16 @@ const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
   /ByContractHash(?:TokenId)?$/i,
   /ByCandidateAddress$/i,
 ];
+const ABSOLUTE_RPC_FALLBACK_ENDPOINTS = Object.freeze({
+  mainnet: [
+    "https://api2.n3index.dev/mainnet",
+    "https://api3.n3index.dev/mainnet",
+  ],
+  testnet: [
+    "https://api2.n3index.dev/testnet",
+    "https://api3.n3index.dev/testnet",
+  ],
+});
 const endpointNetworkCache = new Map();
 
 export const __resetEndpointNetworkCacheForTests = () => {
@@ -90,12 +100,14 @@ const buildRetryBaseUrls = (baseUrl) => {
   const parsed = parseNetworkBase(baseUrl);
   if (!parsed || useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
 
+  const extraFallbacks = ABSOLUTE_RPC_FALLBACK_ENDPOINTS[parsed.network] || [];
+
   const primary = `${parsed.prefix}/primary`;
   const fallback = `${parsed.prefix}/fallback`;
 
-  if (parsed.endpoint === "primary") return [primary, fallback];
-  if (parsed.endpoint === "fallback") return [fallback, primary];
-  return [primary, fallback];
+  if (parsed.endpoint === "primary") return [primary, fallback, ...extraFallbacks];
+  if (parsed.endpoint === "fallback") return [fallback, ...extraFallbacks];
+  return [primary, fallback, ...extraFallbacks];
 };
 
 const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
@@ -364,7 +376,7 @@ export const rpc = async (method, params = [], { signal, suppressLog = false } =
   const preferredBaseUrl = resolveRpcBaseUrl();
   const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl).filter(Boolean))];
   const orderedBaseUrls = shouldPreferFallbackFirst(method, retryBaseUrls)
-    ? [...retryBaseUrls].reverse()
+    ? [...retryBaseUrls.slice(1), retryBaseUrls[0]]
     : retryBaseUrls;
   const baseUrls = orderedBaseUrls.length ? orderedBaseUrls : [preferredBaseUrl];
   const startupHedgeEnabled = shouldUseStartupHedge(method, preferredBaseUrl, baseUrls[1]);

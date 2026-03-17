@@ -1,13 +1,21 @@
 const DEFAULT_NETWORK = 'mainnet';
 
 const PRIMARY_RPC_ENDPOINTS = Object.freeze({
-  mainnet: 'https://rpc.r3e.network/mainnet',
-  testnet: 'https://rpc.r3e.network/testnet',
+  mainnet: 'https://api.n3index.dev/mainnet',
+  testnet: 'https://api.n3index.dev/testnet',
 });
 
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
-  mainnet: ['https://mainnet1.neo.coz.io:443', 'https://neofura.ngd.network'],
-  testnet: ['https://testnet1.neo.coz.io:443', 'https://testmagnet.ngd.network'],
+  mainnet: [
+    'https://api1.n3index.dev/mainnet',
+    'https://api2.n3index.dev/mainnet',
+    'https://api3.n3index.dev/mainnet',
+  ],
+  testnet: [
+    'https://api1.n3index.dev/testnet',
+    'https://api2.n3index.dev/testnet',
+    'https://api3.n3index.dev/testnet',
+  ],
 });
 
 const PRIMARY_WS_ENDPOINTS = Object.freeze({

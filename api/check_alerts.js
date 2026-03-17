@@ -15,9 +15,19 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY; // You need to add this in Ve
 const getIndexedRpcCandidates = (network) => {
   const normalized = normalizeNetwork(network);
   if (normalized === 'testnet') {
-    return ['https://rpc.r3e.network/testnet', 'https://testmagnet.ngd.network'];
+    return [
+      'https://api.n3index.dev/testnet',
+      'https://api1.n3index.dev/testnet',
+      'https://api2.n3index.dev/testnet',
+      'https://api3.n3index.dev/testnet',
+    ];
   }
-  return ['https://rpc.r3e.network/mainnet', 'https://neofura.ngd.network'];
+  return [
+    'https://api.n3index.dev/mainnet',
+    'https://api1.n3index.dev/mainnet',
+    'https://api2.n3index.dev/mainnet',
+    'https://api3.n3index.dev/mainnet',
+  ];
 };
 
 const postRpc = async (url, method, params = []) => {

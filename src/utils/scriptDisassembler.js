@@ -370,7 +370,8 @@ export function disassembleScript(base64Script) {
         
         let contractRef = hashInst.operand || "";
         let methodName = methodInst.operand || "";
-        const callFlags = formatCallFlags(getInstructionInteger(flagsInst));
+        const callFlagsValue = getInstructionInteger(flagsInst);
+        const callFlags = formatCallFlags(callFlagsValue);
         
         // Clean up string quotes
         if (methodName.startsWith('"') && methodName.endsWith('"')) {
@@ -392,7 +393,8 @@ export function disassembleScript(base64Script) {
         }
         
         if (contractRef && methodName && !methodName.includes("0x")) {
-          inst.semantic = `${contractRef}.${methodName}(...)${callFlags ? ` [${callFlags}]` : ""}`;
+          const semanticTarget = Number.isInteger(callFlagsValue) ? flagsInst : inst;
+          semanticTarget.semantic = `${contractRef}.${methodName}(...)${callFlags ? ` [${callFlags}]` : ""}`;
         }
       }
     }

@@ -20,4 +20,18 @@ describe("rpcEndpoints configured base URL", () => {
       "https://rpc-proxy.example.com/api/testnet/fallback",
     ]);
   });
+
+  it("defaults to api.n3index.dev primary with api1/api2/api3 backups", async () => {
+    const env = await import("../../src/utils/env.js");
+    env.setCurrentEnv(env.NET_ENV.Mainnet);
+
+    const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
+
+    expect(getRpcEndpointCandidates()).toEqual([
+      "https://api.n3index.dev/mainnet",
+      "https://api1.n3index.dev/mainnet",
+      "https://api2.n3index.dev/mainnet",
+      "https://api3.n3index.dev/mainnet",
+    ]);
+  });
 });

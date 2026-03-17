@@ -212,6 +212,44 @@ describe("safeRpc", () => {
     );
   });
 
+  it("continues beyond the first fallback and retries api2 then api3 backups", async () => {
+    const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
+      code: "ECONNABORTED",
+    });
+
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion" && (baseURL === "/api/mainnet/primary" || baseURL === "/api/mainnet/fallback")) {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+
+      if (method === "GetBlockCount" && (baseURL === "/api/mainnet/primary" || baseURL === "/api/mainnet/fallback")) {
+        return Promise.reject(timeoutError);
+      }
+
+      if (method === "getversion" && baseURL === "https://api2.n3index.dev/mainnet") {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
+        return Promise.resolve({ data: { result: { index: 456 } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
+
+    const result = await safeRpc("GetBlockCount", {});
+
+    expect(result).toEqual({ index: 456 });
+    expect(axios.post).toHaveBeenCalledWith(
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "https://api2.n3index.dev/mainnet" })
+    );
+  });
+
   it("switches base path to fallback after a transient primary failover", async () => {
     const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
       code: "ECONNABORTED",
