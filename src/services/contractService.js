@@ -102,10 +102,18 @@ export const contractService = createService(
 
     async getByHashWithFallback(hash, options = {}) {
       const indexedContract = await contractService.getByHash(hash, options);
-      if (indexedContract?.hash) return indexedContract;
-
       const chainState = await this.getChainStateByHash(hash, options);
-      if (!chainState?.hash) return null;
+      if (indexedContract?.hash && !chainState?.hash) return indexedContract;
+      if (!indexedContract?.hash && !chainState?.hash) return null;
+
+      if (indexedContract?.hash && chainState?.hash) {
+        return {
+          ...indexedContract,
+          ...chainState,
+          name: indexedContract?.name || chainState?.manifest?.name || chainState?.name || hash,
+          manifest: indexedContract?.manifest || chainState?.manifest || null,
+        };
+      }
 
       return {
         ...chainState,

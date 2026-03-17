@@ -55,4 +55,49 @@ describe("contractService manifest fallback", () => {
       },
     });
   });
+
+  it("merges native chain state into partial indexed contract rows", async () => {
+    const hash = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
+    safeRpcMock.mockImplementation(async (method) => {
+      if (method === "GetContractByContractHash") {
+        return {
+          hash,
+          name: "NameService",
+          totalsccall: 415,
+          sender: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+        };
+      }
+      if (method === "getcontractstate") {
+        return {
+          hash,
+          updatecounter: 0,
+          manifest: {
+            name: "NameService",
+            abi: {
+              methods: [{ name: "register", safe: false }],
+              events: [{ name: "Transfer" }, { name: "SetAdmin" }],
+            },
+          },
+        };
+      }
+      return null;
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const contract = await contractService.getByHashWithFallback(hash);
+
+    expect(contract).toMatchObject({
+      hash,
+      name: "NameService",
+      totalsccall: 415,
+      sender: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+      updatecounter: 0,
+      manifest: {
+        abi: {
+          methods: [{ name: "register", safe: false }],
+          events: [{ name: "Transfer" }, { name: "SetAdmin" }],
+        },
+      },
+    });
+  });
 });
