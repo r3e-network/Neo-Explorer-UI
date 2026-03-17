@@ -140,6 +140,72 @@ describe("supabaseService metadata", () => {
     expect(result.Nabc?.label).toBe("Testnet Label");
   });
 
+  it("skips Supabase fallback for transient indexer transport aborts", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(Object.assign(new Error("Failed to fetch"), { name: "AbortError" }))
+    );
+
+    const table = createSupabaseTableMock({
+      eqResult: {
+        data: [{ address: "Nabc", label: "Should Not Load", category: "exchange" }],
+        error: null,
+      },
+    });
+    createClientMock.mockReturnValue({ from: table.from });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTagsBatch(["Nabc"], "testnet");
+
+    expect(table.from).not.toHaveBeenCalled();
+    expect(result).toEqual({});
+  });
+
+  it("skips contract metadata Supabase fallback for transient indexer transport aborts", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(Object.assign(new Error("Failed to fetch"), { name: "AbortError" }))
+    );
+
+    const table = createSupabaseTableMock({
+      eqResult: {
+        data: [{ contract_hash: "0xabc", display_name: "Should Not Load" }],
+        error: null,
+      },
+    });
+    createClientMock.mockReturnValue({ from: table.from });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getContractMetadataBatch(["0xabc"], "testnet");
+
+    expect(table.from).not.toHaveBeenCalled();
+    expect(result).toEqual({});
+  });
+
+  it("still falls back to Supabase when the indexer fails with a generic fetch error", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Failed to fetch")));
+
+    const table = createSupabaseTableMock({
+      eqResult: {
+        data: [{ address: "Nabc", label: "Recovered Label", category: "exchange" }],
+        error: null,
+      },
+    });
+    createClientMock.mockReturnValue({ from: table.from });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTagsBatch(["Nabc"], "testnet");
+
+    expect(table.from).toHaveBeenCalledWith("address_tags");
+    expect(result.Nabc?.label).toBe("Recovered Label");
+  });
+
   it("maps script-hash metadata rows back to the requested base58 address", async () => {
     const scriptHash = "0x017520f068fd602082fe5572596185e62a4ad991";
     const address = scriptHashToAddress(scriptHash);

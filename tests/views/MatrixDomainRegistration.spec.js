@@ -133,4 +133,35 @@ describe("MatrixDomain registration", () => {
     expect(actionPanel).toBeTruthy();
     expect(actionPanel.attributes("class")).toContain("md:self-start");
   });
+
+  it("shows the wallet error description when registration is denied", async () => {
+    invokeContract.mockRejectedValueOnce({
+      type: "CONNECTION_DENIED",
+      description: "The dAPI provider refused to process this request",
+      data: null,
+    });
+
+    const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
+    const wrapper = mount(MatrixDomain, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          HashLink: true,
+        },
+      },
+    });
+
+    await wrapper.find('input[type="text"]').setValue("hello");
+    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("Search"));
+    await searchButton.trigger("click");
+    await flushPromises();
+
+    const registerButton = wrapper.findAll("button").find((node) => node.text().includes("Register Domain"));
+    await registerButton.trigger("click");
+    await flushPromises();
+
+    expect(errorToast).toHaveBeenCalledWith(
+      "Registration failed: The dAPI provider refused to process this request"
+    );
+  });
 });

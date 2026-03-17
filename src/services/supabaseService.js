@@ -168,6 +168,22 @@ const isMissingSupabaseColumnError = (error, column) => {
   );
 };
 
+const isTransientIndexerMetadataError = (error) => {
+  const details = [error?.name, error?.message, error?.details, error?.hint, error?.code]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return Boolean(
+    details &&
+      (details.includes("abort") ||
+        details.includes("signal is aborted") ||
+        details.includes("network changed") ||
+        details.includes("err_network_changed") ||
+        details.includes("err_canceled"))
+  );
+};
+
 const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {
   for (const column of ["network", "network_mode"]) {
     try {
@@ -212,6 +228,7 @@ export const supabaseService = {
 
     if (toFetch.length > 0) {
       let loadedFromIndexer = false;
+      let indexerError = null;
       try {
         const query = `?hashes=${encodeURIComponent(toFetch.join(","))}&limit=${Math.min(
           Math.max(toFetch.length, 1),
@@ -230,10 +247,11 @@ export const supabaseService = {
         });
         loadedFromIndexer = true;
       } catch (err) {
+        indexerError = err;
         if (import.meta.env.DEV) console.warn("Indexer contract metadata fetch failed:", err);
       }
 
-      if (!loadedFromIndexer && supabase) {
+      if (!loadedFromIndexer && supabase && !isTransientIndexerMetadataError(indexerError)) {
         try {
           const data = await fetchSupabaseRowsForNetwork(
             () => supabase
@@ -302,6 +320,7 @@ export const supabaseService = {
 
     if (toFetch.length > 0) {
       let loadedFromIndexer = false;
+      let indexerError = null;
       try {
         const query = `?addresses=${encodeURIComponent(toFetch.join(","))}&limit=${Math.min(
           Math.max(toFetch.length, 1),
@@ -322,10 +341,11 @@ export const supabaseService = {
         });
         loadedFromIndexer = true;
       } catch (err) {
+        indexerError = err;
         if (import.meta.env.DEV) console.warn("Indexer address metadata fetch failed:", err);
       }
 
-      if (!loadedFromIndexer && supabase) {
+      if (!loadedFromIndexer && supabase && !isTransientIndexerMetadataError(indexerError)) {
         try {
           const data = await fetchSupabaseRowsForNetwork(
             () => supabase

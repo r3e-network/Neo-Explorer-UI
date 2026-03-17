@@ -310,6 +310,19 @@ const RESERVED_DOMAINS = [
   "john.matrix"
 ];
 
+function getWalletErrorMessage(error) {
+  const candidates = [
+    error?.message,
+    error?.description,
+    error?.error?.message,
+    error?.error?.description,
+    error?.data?.message,
+    error?.data?.description,
+  ];
+
+  return candidates.find((value) => typeof value === "string" && value.trim()) || "";
+}
+
 async function handleSearch() {
   let query = searchQuery.value.trim().toLowerCase();
   if (!query) return;
@@ -391,7 +404,8 @@ async function registerDomain() {
     }
   } catch (e) {
     console.error("Register failed", e);
-    toast.error("Registration failed or was rejected");
+    const message = getWalletErrorMessage(e);
+    toast.error(message ? `Registration failed: ${message}` : "Registration failed or was rejected");
   } finally {
     actionLoading.value = false;
   }
@@ -426,7 +440,8 @@ async function transferDomain() {
     }
   } catch (e) {
     console.error("Transfer failed", e);
-    toast.error("Transfer failed or was rejected");
+    const message = getWalletErrorMessage(e);
+    toast.error(message ? `Transfer failed: ${message}` : "Transfer failed or was rejected");
   } finally {
     actionLoading.value = false;
   }
