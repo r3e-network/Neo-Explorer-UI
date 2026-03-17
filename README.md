@@ -105,7 +105,7 @@ All neo3fura API calls are encapsulated in `src/services/`:
 
 ## 💬 NeoChat
 
-This repository now includes an internal NeoChat replacement for the old external `chat.neo.org` deep links.
+This repository now includes an internal NeoChat route and no longer depends on the old external NeoChat deep-link flow.
 
 ### Current v1 behavior
 
