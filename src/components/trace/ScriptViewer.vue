@@ -135,6 +135,13 @@
                 <span v-else>{{ inst.semantic.split('.')[0] }}</span>
                 <span>.{{ inst.semantic.split('.').slice(1).join('.') }}</span>
               </span>
+              <span
+                v-if="inst.annotationLabel && inst.annotationValue"
+                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400"
+              >
+                // {{ inst.annotationLabel }}:
+                <span>{{ inst.annotationValue }}</span>
+              </span>
             </td>
           </tr>
         </tbody>

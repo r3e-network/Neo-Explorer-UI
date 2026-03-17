@@ -120,6 +120,14 @@ function formatCallFlags(value) {
   return parts.length ? parts.join("|") : String(numeric);
 }
 
+function formatCallFlagAnnotation(value) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) return null;
+
+  const parts = CALL_FLAG_MASKS.filter(([, mask]) => (numeric & mask) === mask).map(([label]) => label);
+  return parts.length ? parts.join("|") : numeric === 0 ? "None" : String(numeric);
+}
+
 function getNativeContractName(hash) {
   const lower = hash.toLowerCase();
   if (lower === NEO_HASH) return "NEO";
@@ -351,6 +359,8 @@ export function disassembleScript(base64Script) {
       rawHex,
       desc: opDef.desc,
       semantic: null,
+      annotationLabel: null,
+      annotationValue: null,
     });
   }
 
@@ -371,7 +381,7 @@ export function disassembleScript(base64Script) {
         let contractRef = hashInst.operand || "";
         let methodName = methodInst.operand || "";
         const callFlagsValue = getInstructionInteger(flagsInst);
-        const callFlags = formatCallFlags(callFlagsValue);
+        const callFlagAnnotation = formatCallFlagAnnotation(callFlagsValue);
         
         // Clean up string quotes
         if (methodName.startsWith('"') && methodName.endsWith('"')) {
@@ -393,8 +403,11 @@ export function disassembleScript(base64Script) {
         }
         
         if (contractRef && methodName && !methodName.includes("0x")) {
-          const semanticTarget = Number.isInteger(callFlagsValue) ? flagsInst : inst;
-          semanticTarget.semantic = `${contractRef}.${methodName}(...)${callFlags ? ` [${callFlags}]` : ""}`;
+          inst.semantic = `${contractRef}.${methodName}(...)`;
+          if (Number.isInteger(callFlagsValue) && callFlagAnnotation) {
+            flagsInst.annotationLabel = "CallFlag";
+            flagsInst.annotationValue = callFlagAnnotation;
+          }
         }
       }
     }

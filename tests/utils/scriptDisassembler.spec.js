@@ -122,8 +122,9 @@ describe("scriptDisassembler syscall resolution", () => {
     expect(hashOperand).toContain("(Contract)");
     expect(hashOperand).not.toContain("(Contract:");
     expect(syscall.operand).toBe("System.Contract.Call");
-    expect(callFlags?.semantic).toBe("bNEO.requestService(...) [All: ReadStates|WriteStates|AllowCall|AllowNotify]");
-    expect(syscall.semantic).toBeNull();
+    expect(callFlags?.annotationLabel).toBe("CallFlag");
+    expect(callFlags?.annotationValue).toBe("ReadStates|WriteStates|AllowCall|AllowNotify");
+    expect(syscall.semantic).toBe("bNEO.requestService(...)");
   });
 
   it("decodes inline call flags for System.Contract.Call into readable labels", () => {
@@ -158,8 +159,9 @@ describe("scriptDisassembler syscall resolution", () => {
     const callFlags = instructions.find((inst) => inst.opcode === "PUSH5");
     const syscall = instructions[instructions.length - 1];
 
-    expect(callFlags?.semantic).toBe("bNEO.balanceOf(...) [ReadOnly: ReadStates|AllowCall]");
-    expect(syscall.semantic).toBeNull();
+    expect(callFlags?.annotationLabel).toBe("CallFlag");
+    expect(callFlags?.annotationValue).toBe("ReadStates|AllowCall");
+    expect(syscall.semantic).toBe("bNEO.balanceOf(...)");
   });
 
   it("extracts contract hash for real FAULT tx scripts even with extra opcodes before syscall", () => {
