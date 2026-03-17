@@ -1,6 +1,7 @@
 import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
+import { contractService } from "./contractService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
@@ -97,7 +98,9 @@ async function _classifyAndDispatch(query) {
   // Contract hash (40 hex chars)
   if (/^(0x)?[a-fA-F0-9]{40}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
-    const contract = await safeRpc("GetContractByContractHash", { ContractHash: hash }, null);
+    const contract =
+      (await safeRpc("GetContractByContractHash", { ContractHash: hash }, null)) ||
+      (await contractService.getByHashWithFallback(hash));
     if (contract) hits.contract = contract;
   }
 

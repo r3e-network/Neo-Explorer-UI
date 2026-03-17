@@ -7,12 +7,14 @@ const {
   push,
   getTokenByHash,
   getContractByHash,
+  getContractByHashWithFallback,
   getContractMetadata,
 } = vi.hoisted(() => ({
   route: { params: { hash: "0xtoken" } },
   push: vi.fn(),
   getTokenByHash: vi.fn(),
   getContractByHash: vi.fn(),
+  getContractByHashWithFallback: vi.fn(),
   getContractMetadata: vi.fn(),
 }));
 
@@ -33,6 +35,7 @@ vi.mock("@/services", () => ({
   },
   contractService: {
     getByHash: getContractByHash,
+    getByHashWithFallback: getContractByHashWithFallback,
   },
 }));
 
@@ -54,6 +57,7 @@ describe("useTokenDetail network changes", () => {
     route.params.hash = "0xtoken";
     getTokenByHash.mockResolvedValue({ hash: "0xtoken", tokenname: "Token", decimals: 8 });
     getContractByHash.mockResolvedValue({ hash: "0xtoken", manifest: "{}", updatecounter: 0 });
+    getContractByHashWithFallback.mockResolvedValue({ hash: "0xtoken", manifest: "{}", updatecounter: 0 });
     getContractMetadata.mockResolvedValue(null);
     push.mockResolvedValue();
   });
@@ -71,14 +75,44 @@ describe("useTokenDetail network changes", () => {
     await flushPromises();
 
     expect(getTokenByHash).toHaveBeenCalledTimes(1);
-    expect(getContractByHash).toHaveBeenCalledTimes(1);
+    expect(getContractByHashWithFallback).toHaveBeenCalledTimes(1);
 
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
 
     expect(getTokenByHash).toHaveBeenCalledTimes(2);
-    expect(getContractByHash).toHaveBeenCalledTimes(2);
+    expect(getContractByHashWithFallback).toHaveBeenCalledTimes(2);
     expect(getContractMetadata).toHaveBeenCalledTimes(2);
+
+    wrapper.unmount();
+  });
+
+  it("preserves object manifests returned by native contract-state fallback", async () => {
+    getContractByHashWithFallback.mockResolvedValueOnce({
+      hash: "0xtoken",
+      manifest: {
+        abi: {
+          methods: [{ name: "transfer" }],
+          events: [{ name: "Transfer" }],
+        },
+      },
+      updatecounter: 1,
+    });
+
+    let exposed;
+    const Harness = defineComponent({
+      template: "<div />",
+      setup() {
+        exposed = useTokenDetail({ defaultTab: "transfers", tabs: [] });
+        return {};
+      },
+    });
+
+    const wrapper = mount(Harness);
+    await flushPromises();
+
+    expect(exposed.manifest.value?.abi?.methods?.length).toBe(1);
+    expect(exposed.updateCounter.value).toBe(1);
 
     wrapper.unmount();
   });

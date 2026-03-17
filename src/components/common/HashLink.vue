@@ -493,9 +493,9 @@ watch(
           }
         }
 
-        let contract = await contractService.getByHash(hash);
+        let contract = await contractService.getByHashWithFallback(hash);
         if (!contract || !contract.name) {
-          contract = await contractService.getByHash(reversed);
+          contract = await contractService.getByHashWithFallback(reversed);
         }
         if (contract && contract.name) {
           fetchedContractName.value = contract.name;

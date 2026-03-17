@@ -412,7 +412,7 @@ async function loadSummary(addr) {
     tokenCount.value = summary.tokenCount;
 
     try {
-      const contract = await contractService.getByHash(addr);
+      const contract = await contractService.getByHashWithFallback(addr);
       if (currentRequestId !== addressRequestId) return;
       isContract.value = !!(contract && contract.hash);
     } catch {

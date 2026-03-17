@@ -3,9 +3,16 @@ import { addressToScriptHash } from "../../src/utils/neoHelpers";
 
 const safeRpc = vi.fn();
 const resolveDomain = vi.fn();
+const getByHashWithFallback = vi.fn();
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
+}));
+
+vi.mock("../../src/services/contractService.js", () => ({
+  contractService: {
+    getByHashWithFallback,
+  },
 }));
 
 vi.mock("../../src/services/nnsService.js", () => ({
@@ -23,6 +30,7 @@ vi.mock("../../src/services/cache.js", () => ({
 describe("searchService address lookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getByHashWithFallback.mockReset();
   });
 
   it("finds account by converting Neo address to script hash first", async () => {
@@ -86,6 +94,25 @@ describe("searchService address lookup", () => {
     expect(result).toEqual({
       type: "contract",
       data: { hash: query, name: "GasToken" },
+    });
+  });
+
+  it("falls back to native contract state for 40-char hash queries when indexed rows are missing", async () => {
+    const query = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
+    safeRpc.mockImplementation(async (method, params) => {
+      if (method === "GetContractByContractHash" && params?.ContractHash === query) {
+        return null;
+      }
+      return null;
+    });
+    getByHashWithFallback.mockResolvedValueOnce({ hash: query, manifest: { name: "MorpheusDataFeed" } });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(result).toEqual({
+      type: "contract",
+      data: { hash: query, manifest: { name: "MorpheusDataFeed" } },
     });
   });
 });

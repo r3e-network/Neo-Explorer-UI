@@ -55,10 +55,16 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
     }
   );
 
-  const { execute: executeContractFetch } = useAsync((id, { signal }) => contractService.getByHash(id, { signal }), {
+  const { execute: executeContractFetch } = useAsync((id, { signal }) => contractService.getByHashWithFallback(id, { signal }), {
     onSuccess: (res) => {
       try {
-        manifest.value = JSON.parse(res?.manifest || "{}");
+        if (typeof res?.manifest === "string") {
+          manifest.value = JSON.parse(res.manifest || "{}");
+        } else if (res?.manifest && typeof res.manifest === "object") {
+          manifest.value = res.manifest;
+        } else {
+          manifest.value = {};
+        }
       } catch {
         manifest.value = {};
       }

@@ -3,9 +3,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GAS_HASH, NEO_HASH } from "@/constants";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
-const { resolveAddressToNNS, getByHash, getContractMetadata, getAddressTag, getValidatorMetadata } = vi.hoisted(() => ({
+const { resolveAddressToNNS, getByHash, getByHashWithFallback, getContractMetadata, getAddressTag, getValidatorMetadata } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
   getByHash: vi.fn(async () => null),
+  getByHashWithFallback: vi.fn(async () => null),
   getContractMetadata: vi.fn(async () => null),
   getAddressTag: vi.fn(async () => null),
   getValidatorMetadata: vi.fn(async () => []),
@@ -22,6 +23,7 @@ vi.mock("@/services/nnsService", () => ({
 vi.mock("@/services", () => ({
   contractService: {
     getByHash,
+    getByHashWithFallback,
   }
 }));
 
@@ -167,6 +169,28 @@ describe("HashLink", () => {
     await flushPromises();
     await flushPromises();
     expect(wrapper.text()).toContain("ReverseEndianContract");
+  });
+
+  it("falls back to native contract state names when indexed contract rows are missing", async () => {
+    const contractHash = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
+    getContractMetadata.mockResolvedValueOnce(null);
+    getContractMetadata.mockResolvedValueOnce(null);
+    getByHash.mockResolvedValueOnce(null);
+    getByHashWithFallback.mockResolvedValueOnce({
+      hash: contractHash,
+      name: "MorpheusDataFeed",
+    });
+
+    const wrapper = mountHashLink({
+      hash: contractHash,
+      type: "contract",
+      resolveNns: false,
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("MorpheusDataFeed");
   });
 
   it("shows known address name when hash is a known script hash", async () => {

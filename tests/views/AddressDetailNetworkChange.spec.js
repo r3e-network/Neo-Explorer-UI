@@ -6,6 +6,7 @@ const route = { params: { accountAddress: "NTestAddress123" } };
 const getByAddress = vi.fn();
 const getAssets = vi.fn();
 const getContractByHash = vi.fn();
+const getContractByHashWithFallback = vi.fn();
 const getCandidateByAddress = vi.fn();
 const getVotesByAddress = vi.fn();
 const getCandidateCount = vi.fn();
@@ -42,6 +43,7 @@ vi.mock("@/services", () => ({
   },
   contractService: {
     getByHash: getContractByHash,
+    getByHashWithFallback: getContractByHashWithFallback,
   },
   candidateService: {
     getByAddress: getCandidateByAddress,
@@ -125,6 +127,7 @@ describe("AddressDetail network changes", () => {
     getAssets.mockResolvedValue([{ hash: "0xasset", balance: "1", tokenname: "Asset", decimals: 0, standard: "NEP17" }]);
     getByAddress.mockResolvedValue({});
     getContractByHash.mockResolvedValue(null);
+    getContractByHashWithFallback.mockResolvedValue(null);
     getCandidateByAddress.mockResolvedValue(null);
     getVotesByAddress.mockResolvedValue(null);
     getCandidateCount.mockResolvedValue(0);
