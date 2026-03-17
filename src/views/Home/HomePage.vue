@@ -57,7 +57,7 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
-import { statsService, blockService, transactionService, searchService } from "@/services";
+import { statsService, blockService, transactionService, searchService, indexerReadService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
@@ -177,7 +177,7 @@ function mergeUniqueTransactions(primary = [], secondary = [], limit = 6) {
 }
 
 function normalizeBlockSummary(block = {}) {
-  const index = Number(block.index ?? block.blockindex ?? block.height ?? 0);
+  const index = Number(block.index ?? block.blockindex ?? block.block_index ?? block.height ?? 0);
   const txCount = Number(
     block.txcount ??
     block.transactioncount ??
@@ -188,7 +188,7 @@ function normalizeBlockSummary(block = {}) {
     block.txs ??
     (Array.isArray(block.tx) ? block.tx.length : 0)
   );
-  const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? 0);
+  const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? block.time_ms ?? 0);
 
   return {
     ...block,
@@ -202,6 +202,21 @@ function normalizeBlockSummary(block = {}) {
     nextconsensus: block.nextconsensus ?? block.nextConsensus ?? block.speaker ?? block.validator,
     speaker: block.speaker ?? block.nextconsensus ?? block.nextConsensus ?? block.validator,
     validator: block.validator ?? block.speaker ?? block.nextconsensus ?? block.nextConsensus,
+  };
+}
+
+function normalizeHomepageTransaction(tx = {}) {
+  return {
+    ...tx,
+    hash: tx.hash || tx.txid || "",
+    blocktime: tx.blocktime ?? tx.timestamp ?? tx.block_time_ms ?? tx.time_ms ?? 0,
+    sender: tx.sender || tx.sender_address || "",
+    sysfee: tx.sysfee ?? tx.sys_fee ?? 0,
+    netfee: tx.netfee ?? tx.net_fee ?? 0,
+    validUntilBlock: tx.validUntilBlock ?? tx.valid_until_block,
+    contractHash: tx.contractHash || tx.contract_hash || "",
+    vmstate: tx.vmstate || tx.vm_state || "",
+    status: tx.status || (String(tx.vmstate || tx.vm_state || "").toUpperCase() === "HALT" ? "success" : ""),
   };
 }
 
@@ -342,6 +357,19 @@ async function loadLatestData(forceRefresh = false) {
 
     const fetchLatestBlocks = async () => {
       try {
+        const indexerRes = await indexerReadService.getBlocks(6, 0);
+        const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
+        if (rows.length > 0) {
+          return {
+            result: rows,
+            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
+          };
+        }
+      } catch {
+        // fallback below
+      }
+
+      try {
         return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
       } catch (err) {
         if (import.meta.env.DEV) {
@@ -353,6 +381,21 @@ async function loadLatestData(forceRefresh = false) {
     };
 
     const fetchLatestTransactions = async () => {
+      try {
+        const indexerRes = await indexerReadService.getTransactions(6, 0);
+        const rows = Array.isArray(indexerRes?.data)
+          ? indexerRes.data.map(normalizeHomepageTransaction)
+          : [];
+        if (rows.length > 0) {
+          return {
+            result: rows,
+            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
+          };
+        }
+      } catch {
+        // fallback below
+      }
+
       try {
         const txListRes = await transactionService.getList(6, 0, requestOptions);
         const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];

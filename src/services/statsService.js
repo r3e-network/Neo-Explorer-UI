@@ -2,6 +2,7 @@ import { rpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
+import { indexerReadService } from "./indexerReadService";
 import { getCurrentEnv } from "@/utils/env";
 
 /**
@@ -168,27 +169,27 @@ export const statsService = createService(
 
       const fetchFn = async () => {
         try {
-          const [blocksRes, txsRes, contractsRes, candidatesRes, addressesRes, tokensRes, indexedTxTotal] =
-            await Promise.all([
-            rpc("GetBlockCount", {}).catch(() => null),
-            rpc("GetTransactionCount", {}).catch(() => null),
+          const [summary, contractsRes, candidatesRes, blocksRes, txsRes] = await Promise.all([
+            indexerReadService.getSummary().catch(() => null),
             rpc("GetContractCount", {}).catch(() => null),
             rpc("GetCandidateCount", {}).catch(() => null),
-            rpc("GetAddressCount", {}).catch(() => null),
-            rpc("GetAssetCount", {}).catch(() => null),
-            fetchIndexerTransactionTotal().catch(() => 0),
+            rpc("GetBlockCount", {}).catch(() => null),
+            rpc("GetTransactionCount", {}).catch(() => null),
           ]);
 
-          const rpcTxTotal = Number(extractCount(txsRes)) || 0;
-          const txs = Math.max(rpcTxTotal, Number(indexedTxTotal) || 0);
+          const blocks = Number(summary?.total_block_count) || extractCount(blocksRes);
+          const txsFromSummary = Number(summary?.total_tx_count) || 0;
+          const txsFromIndexerStats = Number(await fetchIndexerTransactionTotal().catch(() => 0)) || 0;
+          const txsFromRpc = Number(extractCount(txsRes)) || 0;
+          const txs = Math.max(txsFromSummary, txsFromIndexerStats, txsFromRpc);
 
           const result = {
-            blocks: extractCount(blocksRes),
+            blocks,
             txs,
             contracts: extractCount(contractsRes),
             candidates: extractCount(candidatesRes),
-            addresses: extractCount(addressesRes),
-            tokens: extractCount(tokensRes),
+            addresses: Number(summary?.total_address_count) || 0,
+            tokens: Number(summary?.total_asset_count) || 0,
           };
 
           return result;

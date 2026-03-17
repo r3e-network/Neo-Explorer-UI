@@ -9,4 +9,5 @@ export { candidateService } from "./candidateService";
 export { statsService } from "./statsService";
 export { searchService } from "./searchService";
 export { executionService } from "./executionService";
+export { indexerReadService } from "./indexerReadService";
 export * from "./cache";

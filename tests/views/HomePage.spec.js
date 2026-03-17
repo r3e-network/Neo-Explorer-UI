@@ -13,6 +13,9 @@ const getNeoTubeBlocks = vi.fn();
 const getNeoTubeTxs = vi.fn();
 const getNeoTubeStats = vi.fn();
 const supportsNeoTubeNetwork = vi.fn();
+const getIndexerSummary = vi.fn();
+const getIndexerBlocks = vi.fn();
+const getIndexerTransactions = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
@@ -53,6 +56,11 @@ vi.mock("@/services", () => ({
     getLatestBlocks: getNeoTubeBlocks,
     getLatestTransactions: getNeoTubeTxs,
     getStatistics: getNeoTubeStats,
+  },
+  indexerReadService: {
+    getSummary: getIndexerSummary,
+    getBlocks: getIndexerBlocks,
+    getTransactions: getIndexerTransactions,
   },
   searchService: {
     search,
@@ -136,6 +144,9 @@ describe("HomePage initial loading", () => {
       totalCount: 1,
     });
     getNeoTubeStats.mockResolvedValue({ blocks: 100, txs: 200 });
+    getIndexerSummary.mockResolvedValue(null);
+    getIndexerBlocks.mockResolvedValue(null);
+    getIndexerTransactions.mockResolvedValue(null);
     getDashboardStats.mockResolvedValue({ blocks: 10, txs: 20 });
     getBlockList.mockResolvedValue({
       result: [{ hash: "0xblock", timestamp: Date.now(), txcount: 1 }],
@@ -182,6 +193,40 @@ describe("HomePage initial loading", () => {
     expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: true, enrichMissingFields: false });
     expect(getBlockList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
     expect(getTxList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
+    wrapper.unmount();
+  });
+
+  it("prefers indexed homepage endpoints before legacy RPC list calls", async () => {
+    getIndexerBlocks.mockResolvedValueOnce({
+      data: [{ hash: "0xidx-block", block_index: 12, time_ms: Date.now(), tx_count: 2 }],
+      paging: { total: 12 },
+    });
+    getIndexerTransactions.mockResolvedValueOnce({
+      data: [{ txid: "0xidx-tx", block_time_ms: Date.now(), vm_state: "HALT" }],
+      paging: { total: 1 },
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getIndexerBlocks).toHaveBeenCalledWith(6, 0);
+    expect(getIndexerTransactions).toHaveBeenCalledWith(6, 0);
+    expect(getBlockList).not.toHaveBeenCalled();
+    expect(getTxList).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("1");
+    expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThanOrEqual(1);
+
     wrapper.unmount();
   });
 
