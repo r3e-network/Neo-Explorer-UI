@@ -18,20 +18,37 @@ export function useAutoRefresh(callback, options = {}) {
   const isActive = ref(false);
   const isIntentionallyActive = ref(false);
   let timerId = null;
+  let callbackInFlight = false;
 
   function getInterval() {
     return intervalMs ?? getNetworkRefreshIntervalMs();
   }
 
-  function _startTimer() {
+  async function _runCallback() {
+    if (callbackInFlight) return;
+    callbackInFlight = true;
+    try {
+      await callback();
+    } finally {
+      callbackInFlight = false;
+    }
+  }
+
+  function _scheduleNextTick() {
     if (timerId !== null) return;
-    timerId = setInterval(callback, getInterval());
+    timerId = setTimeout(async () => {
+      timerId = null;
+      await _runCallback();
+      if (isIntentionallyActive.value && (!pauseWhenHidden || !document.hidden)) {
+        _scheduleNextTick();
+      }
+    }, getInterval());
     isActive.value = true;
   }
 
   function _stopTimer() {
     if (timerId !== null) {
-      clearInterval(timerId);
+      clearTimeout(timerId);
       timerId = null;
     }
     isActive.value = false;
@@ -40,7 +57,7 @@ export function useAutoRefresh(callback, options = {}) {
   function start() {
     _stopTimer();
     isIntentionallyActive.value = true;
-    _startTimer();
+    _scheduleNextTick();
   }
 
   function stop() {
@@ -54,8 +71,8 @@ export function useAutoRefresh(callback, options = {}) {
       if (document.hidden) {
         _stopTimer();
       } else if (isIntentionallyActive.value) {
-        _startTimer();
-        callback();
+        _scheduleNextTick();
+        void _runCallback();
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -70,8 +87,8 @@ export function useAutoRefresh(callback, options = {}) {
 
   if (hasComponentInstance) onActivated(() => {
     if (isIntentionallyActive.value) {
-      _startTimer();
-      callback(); // trigger immediate refresh on return
+      _scheduleNextTick();
+      void _runCallback(); // trigger immediate refresh on return
     }
   });
 
@@ -79,8 +96,8 @@ export function useAutoRefresh(callback, options = {}) {
     const onNetworkChange = () => {
       if (!isIntentionallyActive.value) return;
       _stopTimer();
-      _startTimer();
-      callback();
+      _scheduleNextTick();
+      void _runCallback();
     };
 
     window.addEventListener(NETWORK_CHANGE_EVENT, onNetworkChange);

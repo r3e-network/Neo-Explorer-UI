@@ -28,7 +28,7 @@ describe("useAutoRefresh", () => {
   });
 
   describe("start()", () => {
-    it("sets isActive to true and calls callback on interval", () => {
+    it("sets isActive to true and calls callback on interval", async () => {
       const cb = vi.fn();
       const { start, isActive } = useAutoRefresh(cb);
 
@@ -36,10 +36,10 @@ describe("useAutoRefresh", () => {
       expect(isActive.value).toBe(true);
       expect(cb).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(15000);
+      await vi.advanceTimersByTimeAsync(15000);
       expect(cb).toHaveBeenCalledTimes(1);
 
-      vi.advanceTimersByTime(15000);
+      await vi.advanceTimersByTimeAsync(15000);
       expect(cb).toHaveBeenCalledTimes(2);
     });
   });
@@ -68,15 +68,15 @@ describe("useAutoRefresh", () => {
       expect(cb).toHaveBeenCalledTimes(1);
     });
 
-    it("custom intervalMs is used", () => {
+    it("custom intervalMs is used", async () => {
       const cb = vi.fn();
       const { start } = useAutoRefresh(cb, { intervalMs: 5000 });
 
       start();
-      vi.advanceTimersByTime(5000);
+      await vi.advanceTimersByTimeAsync(5000);
       expect(cb).toHaveBeenCalledTimes(1);
 
-      vi.advanceTimersByTime(5000);
+      await vi.advanceTimersByTimeAsync(5000);
       expect(cb).toHaveBeenCalledTimes(2);
     });
 
@@ -92,7 +92,7 @@ describe("useAutoRefresh", () => {
       expect(cb).toHaveBeenCalledTimes(1);
     });
 
-    it("restarts timer and refreshes immediately on network switch", () => {
+    it("restarts timer and refreshes immediately on network switch", async () => {
       const cb = vi.fn();
       const { start } = useAutoRefresh(cb);
 
@@ -106,7 +106,7 @@ describe("useAutoRefresh", () => {
       vi.advanceTimersByTime(14999);
       expect(cb).toHaveBeenCalledTimes(1);
 
-      vi.advanceTimersByTime(1);
+      await vi.advanceTimersByTimeAsync(1);
       expect(cb).toHaveBeenCalledTimes(2);
     });
 
@@ -127,5 +127,25 @@ describe("useAutoRefresh", () => {
       document.dispatchEvent(new Event("visibilitychange"));
       expect(cb).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("does not overlap async callback executions", async () => {
+    const cb = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(resolve, 20000);
+        })
+    );
+    const { start } = useAutoRefresh(cb, { intervalMs: 5000 });
+
+    start();
+    vi.advanceTimersByTime(5000);
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(5000);
+    expect(cb).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(cb).toHaveBeenCalledTimes(2);
   });
 });
