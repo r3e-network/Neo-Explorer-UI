@@ -19,6 +19,10 @@ const PRIMARY_LATENCY_BIAS_MS = Math.max(
   0,
   Number(import.meta.env.VITE_RPC_PRIMARY_LATENCY_BIAS_MS || 400)
 );
+const ENDPOINT_SWITCH_HYSTERESIS_MS = Math.max(
+  0,
+  Number(import.meta.env.VITE_RPC_ENDPOINT_SWITCH_HYSTERESIS_MS || 1000)
+);
 
 const NETWORKS = [
   { env: NET_ENV.Mainnet, prefix: "/api/mainnet" },
@@ -116,25 +120,54 @@ const checkNetworkEndpoints = async (network) => {
     const fallbackHealthy = fallbackHeight.height >= 0;
     const primaryFasterEnough =
       primaryHeight.latencyMs <= fallbackHeight.latencyMs + PRIMARY_LATENCY_BIAS_MS;
+    const current = getActiveBasePath(network.env);
+    const primaryPath = `${network.prefix}/primary`;
+    const fallbackPath = `${network.prefix}/fallback`;
+    const currentIsPrimary = current === primaryPath;
+    const currentIsFallback = current === fallbackPath;
+    const shouldSwitchToFallback =
+      primaryHealthy &&
+      fallbackHealthy &&
+      currentIsPrimary &&
+      fallbackHeight.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS < primaryHeight.latencyMs;
+    const shouldSwitchToPrimary =
+      primaryHealthy &&
+      fallbackHealthy &&
+      currentIsFallback &&
+      primaryFasterEnough &&
+      primaryHeight.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS < fallbackHeight.latencyMs;
+
+    const commitSelection = (path, message) => {
+      if (current === path) return;
+      setActiveBasePath(network.env, path);
+      console.info(message);
+    };
+
+    if (currentIsPrimary && primaryHealthy && (!fallbackHealthy || !shouldSwitchToFallback)) {
+      return;
+    }
+
+    if (currentIsFallback && fallbackHealthy && (!primaryHealthy || !shouldSwitchToPrimary)) {
+      return;
+    }
 
     if (primaryHealthy && (!fallbackHealthy || primaryFasterEnough)) {
-      setActiveBasePath(network.env, `${network.prefix}/primary`);
-      console.info(
+      commitSelection(
+        primaryPath,
         `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
       );
       return;
     }
 
     if (fallbackHealthy) {
-      setActiveBasePath(network.env, `${network.prefix}/fallback`);
-      console.info(
+      commitSelection(
+        fallbackPath,
         `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
       );
       return;
     }
 
     // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
-    const current = getActiveBasePath(network.env);
     console.warn(
       `[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`
     );

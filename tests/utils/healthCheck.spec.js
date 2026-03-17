@@ -58,7 +58,7 @@ describe("healthCheck endpoint selection", () => {
     post.mockImplementation((url) => {
       if (url.includes("/api/mainnet/primary")) {
         return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 220)
+          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 1600)
         );
       }
       if (url.includes("/api/mainnet/fallback")) {
@@ -134,6 +134,57 @@ describe("healthCheck endpoint selection", () => {
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/primary");
+    expect(setActiveBasePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current mainnet endpoint when it remains healthy and the alternative is only slightly faster", async () => {
+    getActiveBasePath.mockImplementation((env) =>
+      env === "Mainnet" ? "/api/mainnet/primary" : "/api/testnet/primary"
+    );
+
+    post.mockImplementation((url) => {
+      if (url.includes("/api/mainnet/primary")) {
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 220)
+        );
+      }
+      if (url.includes("/api/mainnet/fallback")) {
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 40)
+        );
+      }
+      throw new Error("ignore deferred network calls");
+    });
+
+    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
+    await checkAndSetEndpoints("Mainnet");
+
+    expect(setActiveBasePath).not.toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
+  });
+
+  it("does not log an endpoint switch when the selected endpoint is unchanged", async () => {
+    getActiveBasePath.mockImplementation((env) =>
+      env === "Mainnet" ? "/api/mainnet/fallback" : "/api/testnet/primary"
+    );
+
+    post.mockImplementation((url) => {
+      if (url.includes("/api/mainnet/primary")) {
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 260)
+        );
+      }
+      if (url.includes("/api/mainnet/fallback")) {
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 25)
+        );
+      }
+      throw new Error("ignore deferred network calls");
+    });
+
+    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
+    await checkAndSetEndpoints("Mainnet");
+
+    expect(setActiveBasePath).not.toHaveBeenCalled();
+    expect(consoleInfoSpy).not.toHaveBeenCalled();
   });
 });
