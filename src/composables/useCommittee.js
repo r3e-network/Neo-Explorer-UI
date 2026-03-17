@@ -247,7 +247,23 @@ const processCommitteeMetadata = (data) => {
 const loadCommitteeMetadata = async () => {
   const env = getCurrentEnv().toLowerCase();
   const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-  
+
+  let indexerData = [];
+  try {
+    indexerData = await supabaseService.getValidatorMetadata(getCurrentEnv());
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
+  }
+
+  const indexerResult = processCommitteeMetadata(indexerData);
+  if (indexerResult.loaded && indexerResult.topConsensusValidators.length > 0) {
+    doraMetadata.value = { ...indexerResult.metaMap };
+    return {
+      loaded: true,
+      topConsensusValidators: indexerResult.topConsensusValidators,
+    };
+  }
+
   let doraData = [];
   if (!isTestnet) {
     try {
@@ -262,15 +278,7 @@ const loadCommitteeMetadata = async () => {
     }
   }
 
-  let indexerData = [];
-  try {
-    indexerData = await supabaseService.getValidatorMetadata(getCurrentEnv());
-  } catch (e) {
-    if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
-  }
-
   const doraResult = processCommitteeMetadata(doraData);
-  const indexerResult = processCommitteeMetadata(indexerData);
 
   const mergedMap = { ...doraResult.metaMap };
   for (const key in indexerResult.metaMap) {
