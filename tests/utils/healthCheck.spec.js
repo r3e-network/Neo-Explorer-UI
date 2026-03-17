@@ -119,7 +119,7 @@ describe("healthCheck endpoint selection", () => {
 
   it("treats slower but healthy probes as valid when the default timeout budget covers them", async () => {
     post.mockImplementation(async (_url, payload, config) => {
-      const requiredTimeoutMs = payload?.method === "getversion" ? 2000 : 2200;
+      const requiredTimeoutMs = payload?.method === "getversion" ? 3000 : 3500;
       if ((config?.timeout || 0) < requiredTimeoutMs) {
         throw new Error(`timeout of ${config?.timeout}ms exceeded`);
       }
