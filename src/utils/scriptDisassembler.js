@@ -48,13 +48,6 @@ const CALL_FLAG_MASKS = [
   ["AllowNotify", 0x08],
 ];
 
-const CALL_FLAG_ALIASES = {
-  0x00: "None",
-  0x03: "States",
-  0x05: "ReadOnly",
-  0x0f: "All",
-};
-
 // Some networks/tools emit modern syscall IDs that are not present
 // in the legacy static table.
 const SYSCALL_HASH_FALLBACKS = {
@@ -103,21 +96,6 @@ function getInstructionInteger(inst) {
     return Number(inst.operand.trim());
   }
   return null;
-}
-
-function formatCallFlags(value) {
-  const numeric = Number(value);
-  if (!Number.isInteger(numeric) || numeric < 0) return null;
-
-  if (numeric in CALL_FLAG_ALIASES) {
-    const alias = CALL_FLAG_ALIASES[numeric];
-    if (numeric === 0x00) return alias;
-    const parts = CALL_FLAG_MASKS.filter(([, mask]) => (numeric & mask) === mask).map(([label]) => label);
-    return parts.length ? `${alias}: ${parts.join("|")}` : alias;
-  }
-
-  const parts = CALL_FLAG_MASKS.filter(([, mask]) => (numeric & mask) === mask).map(([label]) => label);
-  return parts.length ? parts.join("|") : String(numeric);
 }
 
 function formatCallFlagAnnotation(value) {
