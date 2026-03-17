@@ -494,6 +494,7 @@ export const formatListResponse = (result) => {
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
 export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal, throwOnError } = {}) => {
+  void errorMsg;
   try {
     const result = await rpc(method, params, { signal, suppressLog: true });
     return formatListResponse(result);

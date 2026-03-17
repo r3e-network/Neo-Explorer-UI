@@ -41,6 +41,20 @@ function reverseHexStr(hex) {
   return out;
 }
 
+const CALL_FLAG_MASKS = [
+  ["ReadStates", 0x01],
+  ["WriteStates", 0x02],
+  ["AllowCall", 0x04],
+  ["AllowNotify", 0x08],
+];
+
+const CALL_FLAG_ALIASES = {
+  0x00: "None",
+  0x03: "States",
+  0x05: "ReadOnly",
+  0x0f: "All",
+};
+
 // Some networks/tools emit modern syscall IDs that are not present
 // in the legacy static table.
 const SYSCALL_HASH_FALLBACKS = {
@@ -69,6 +83,41 @@ function resolveSyscallName(hex) {
   }
 
   return null;
+}
+
+function getInlinePushInteger(name) {
+  if (!name) return null;
+  if (name === "PUSHM1") return -1;
+  if (name === "PUSH0") return 0;
+  const match = name.match(/^PUSH(\d{1,2})$/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : null;
+}
+
+function getInstructionInteger(inst) {
+  if (!inst) return null;
+  const inline = getInlinePushInteger(inst.opcode);
+  if (inline !== null) return inline;
+  if (typeof inst.operand === "string" && /^-?\d+$/.test(inst.operand.trim())) {
+    return Number(inst.operand.trim());
+  }
+  return null;
+}
+
+function formatCallFlags(value) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) return null;
+
+  if (numeric in CALL_FLAG_ALIASES) {
+    const alias = CALL_FLAG_ALIASES[numeric];
+    if (numeric === 0x00) return alias;
+    const parts = CALL_FLAG_MASKS.filter(([, mask]) => (numeric & mask) === mask).map(([label]) => label);
+    return parts.length ? `${alias}: ${parts.join("|")}` : alias;
+  }
+
+  const parts = CALL_FLAG_MASKS.filter(([, mask]) => (numeric & mask) === mask).map(([label]) => label);
+  return parts.length ? parts.join("|") : String(numeric);
 }
 
 function getNativeContractName(hash) {
@@ -128,10 +177,14 @@ function tryUtf8(bytes) {
  * @returns {string} - Human-readable operand
  */
 function formatOperand(opDef, operandBytes) {
+  const name = opDef.name;
+  const inlinePushInteger = getInlinePushInteger(name);
+  if ((!operandBytes || operandBytes.length === 0) && inlinePushInteger !== null) {
+    return String(inlinePushInteger);
+  }
   if (!operandBytes || operandBytes.length === 0) return "";
 
   const hex = bytesToHex(operandBytes);
-  const name = opDef.name;
   
   if (name.startsWith("PUSHINT")) {
      // Neo uses little endian for integers
@@ -309,13 +362,15 @@ export function disassembleScript(base64Script) {
     if (inst.opcode === "SYSCALL" && (inst.operand === "System.Contract.Call" || inst.operand === "System.Contract.CallNative")) {
       // The N3 calling convention typically pushes args, then flags, then method name, then contract hash
       // So the instruction right before SYSCALL is usually the contract hash
-      // And the one before that is the method name
+      // And the one before that is the method name, with call flags before it.
       if (i >= 2) {
         const hashInst = instructions[i - 1];
         const methodInst = instructions[i - 2];
+        const flagsInst = i >= 3 ? instructions[i - 3] : null;
         
         let contractRef = hashInst.operand || "";
         let methodName = methodInst.operand || "";
+        const callFlags = formatCallFlags(getInstructionInteger(flagsInst));
         
         // Clean up string quotes
         if (methodName.startsWith('"') && methodName.endsWith('"')) {
@@ -337,7 +392,7 @@ export function disassembleScript(base64Script) {
         }
         
         if (contractRef && methodName && !methodName.includes("0x")) {
-          inst.semantic = `${contractRef}.${methodName}(...)`;
+          inst.semantic = `${contractRef}.${methodName}(...)${callFlags ? ` [${callFlags}]` : ""}`;
         }
       }
     }

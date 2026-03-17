@@ -494,9 +494,8 @@ export const supabaseService = {
     try {
       const optionalColumns = ["type"];
       let currentPayload = { ...payload };
-      let lastError = null;
 
-      while (true) {
+      for (;;) {
         const { data, error } = await supabase
           .from('multisig_requests')
           .insert([currentPayload])
@@ -507,7 +506,6 @@ export const supabaseService = {
           return { success: true, data };
         }
 
-        lastError = error;
         const removableColumn = optionalColumns.find((column) =>
           column in currentPayload && isMissingSupabaseColumnError(error, column)
         );

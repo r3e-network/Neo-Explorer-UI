@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const route = { params: { hash: "0xabc" } };
 const getByHash = vi.fn();
+const getByHashWithFallback = vi.fn();
 const getManifest = vi.fn();
 const getVerifiedByHash = vi.fn();
 const invokeRead = vi.fn();
@@ -27,6 +28,7 @@ vi.mock("vue-i18n", () => ({
 vi.mock("@/services", () => ({
   contractService: {
     getByHash,
+    getByHashWithFallback,
     getManifest,
     getVerifiedByHash,
     invokeRead,
@@ -62,7 +64,7 @@ describe("ContractDetail network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     route.params.hash = "0xabc";
-    getByHash.mockResolvedValue({ hash: "0xabc", name: "Test Contract", updatecounter: 0 });
+    getByHashWithFallback.mockResolvedValue({ hash: "0xabc", name: "Test Contract", updatecounter: 0 });
     getManifest.mockResolvedValue({ abi: { methods: [], events: [] } });
     getVerifiedByHash.mockResolvedValue(null);
   });
@@ -87,13 +89,13 @@ describe("ContractDetail network changes", () => {
     });
 
     await flushPromises();
-    expect(getByHash).toHaveBeenCalledTimes(1);
+    expect(getByHashWithFallback).toHaveBeenCalledTimes(1);
 
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
 
-    expect(getByHash).toHaveBeenCalledTimes(2);
-    expect(getByHash).toHaveBeenNthCalledWith(2, "0xabc");
+    expect(getByHashWithFallback).toHaveBeenCalledTimes(2);
+    expect(getByHashWithFallback).toHaveBeenNthCalledWith(2, "0xabc");
     wrapper.unmount();
   });
 });
