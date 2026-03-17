@@ -7,16 +7,29 @@ function resolveIndexerNetworkPath() {
   return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
 }
 
-async function fetchIndexerJson(path, timeoutMs = INDEXER_TIMEOUT_MS) {
+function withCacheBusting(path, forceRefresh = false) {
+  if (!forceRefresh) return path;
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}_ts=${Date.now()}`;
+}
+
+async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRefresh = false } = {}) {
   if (typeof fetch !== "function") return null;
 
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const requestPath = withCacheBusting(path, forceRefresh);
+  const headers = { Accept: "application/json" };
+  if (forceRefresh) {
+    headers["Cache-Control"] = "no-cache";
+    headers.Pragma = "no-cache";
+  }
 
   try {
-    const res = await fetch(path, {
+    const res = await fetch(requestPath, {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers,
+      ...(forceRefresh ? { cache: "no-store" } : {}),
       signal: controller?.signal,
     });
     if (!res.ok) return null;
@@ -29,28 +42,28 @@ async function fetchIndexerJson(path, timeoutMs = INDEXER_TIMEOUT_MS) {
 }
 
 export const indexerReadService = {
-  async getSummary() {
+  async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
-    const payload = await fetchIndexerJson(`/indexer/${network}/summary`);
+    const payload = await fetchIndexerJson(`/indexer/${network}/summary`, options);
     return payload?.data || null;
   },
 
-  async getBlocks(limit = 20, offset = 0) {
+  async getBlocks(limit = 20, offset = 0, options = {}) {
     const network = resolveIndexerNetworkPath();
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
     });
-    return await fetchIndexerJson(`/indexer/${network}/blocks?${params.toString()}`);
+    return await fetchIndexerJson(`/indexer/${network}/blocks?${params.toString()}`, options);
   },
 
-  async getTransactions(limit = 20, offset = 0) {
+  async getTransactions(limit = 20, offset = 0, options = {}) {
     const network = resolveIndexerNetworkPath();
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
     });
-    return await fetchIndexerJson(`/indexer/${network}/transactions?${params.toString()}`);
+    return await fetchIndexerJson(`/indexer/${network}/transactions?${params.toString()}`, options);
   },
 };
 

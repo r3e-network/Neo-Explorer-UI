@@ -357,7 +357,7 @@ async function loadLatestData(forceRefresh = false) {
 
     const fetchLatestBlocks = async () => {
       try {
-        const indexerRes = await indexerReadService.getBlocks(6, 0);
+        const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
           return {
@@ -382,7 +382,7 @@ async function loadLatestData(forceRefresh = false) {
 
     const fetchLatestTransactions = async () => {
       try {
-        const indexerRes = await indexerReadService.getTransactions(6, 0);
+        const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data)
           ? indexerRes.data.map(normalizeHomepageTransaction)
           : [];

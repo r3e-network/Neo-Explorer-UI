@@ -220,8 +220,8 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getIndexerBlocks).toHaveBeenCalledWith(6, 0);
-    expect(getIndexerTransactions).toHaveBeenCalledWith(6, 0);
+    expect(getIndexerBlocks).toHaveBeenCalledWith(6, 0, { forceRefresh: true });
+    expect(getIndexerTransactions).toHaveBeenCalledWith(6, 0, { forceRefresh: true });
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("1");
