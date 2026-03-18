@@ -175,179 +175,198 @@
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_360px]">
           <div class="space-y-6">
-            <div class="etherscan-card p-6 md:p-8">
-              <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <h2 class="text-xl font-bold text-high">Proposal Packet</h2>
-                  <p class="mt-1 text-sm text-mid">The exact unsigned payload and supporting witness data that council members are approving.</p>
+            <div class="etherscan-card overflow-hidden">
+              <div class="border-b border-line-soft bg-surface/30 px-6 py-6 md:px-8">
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 class="text-xl font-black text-high tracking-tight">Proposal Payload</h2>
+                    <p class="mt-1.5 text-sm text-mid max-w-xl leading-relaxed">The decoded transaction packet and its supporting witness signatures that council members are mathematically validating.</p>
+                  </div>
+                  <span class="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-800/30 dark:text-indigo-400">
+                    Governance Packet
+                  </span>
                 </div>
-                <span class="inline-flex items-center rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-low">
-                  Governance Payload
-                </span>
               </div>
 
-              <div class="mt-6 space-y-5">
-                <div class="grid gap-4 md:grid-cols-2">
-                  <div class="rounded-2xl border border-line-soft bg-surface-muted/50 p-4">
-                    <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low mb-2">Method</div>
-                    <div class="text-base font-bold text-high">{{ proposal.method }}</div>
-                  </div>
-                  <div class="rounded-2xl border border-line-soft bg-surface-muted/50 p-4">
-                    <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low mb-2">Target Contract</div>
-                    <div class="font-mono text-sm break-all text-low">{{ proposal.target_contract }}</div>
-                  </div>
-                </div>
-
-                <div v-if="decodedUnsignedScript" class="rounded-3xl border border-line-soft bg-surface p-5 shadow-sm">
-                  <div class="mb-4">
-                    <div class="flex items-center gap-2">
-                      <div class="p-1.5 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-lg">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+              <div class="p-6 md:p-8 space-y-8">
+                
+                <!-- Core Method & Target -->
+                <div class="grid gap-5 md:grid-cols-2">
+                  <div class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/80 to-surface p-5 shadow-sm">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center dark:bg-blue-900/30 dark:text-blue-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                       </div>
-                      <h3 class="text-sm font-bold text-high tracking-tight">Decoded Contract Script</h3>
+                      <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Target Method</div>
                     </div>
-                    <p class="mt-2 text-xs text-mid">This is the actual human-readable contract invocation that council members are voting on.</p>
+                    <div class="text-lg font-black text-high tracking-tight">{{ proposal.method }}</div>
                   </div>
-                  <div class="bg-surface-muted/50 rounded-2xl border border-line-soft overflow-hidden">
-                    <ScriptViewer
-                      :script="decodedUnsignedScript"
-                    />
+                  <div class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/80 to-surface p-5 shadow-sm">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="h-6 w-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center dark:bg-purple-900/30 dark:text-purple-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                      </div>
+                      <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Smart Contract</div>
+                    </div>
+                    <div class="font-mono text-sm font-semibold text-high break-all">{{ proposal.target_contract }}</div>
                   </div>
                 </div>
 
-                <div class="rounded-3xl border border-line-soft bg-surface-muted/50 p-4">
-                  <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Unsigned Transaction Hex</div>
-                      <p class="mt-1 text-xs text-mid">The raw packet signed by wallets before the final multisig witness is assembled.</p>
+                <!-- Decoded Script Panel -->
+                <div v-if="decodedUnsignedScript" class="rounded-3xl border border-line-soft bg-surface shadow-md overflow-hidden">
+                  <div class="border-b border-line-soft bg-surface-muted/40 px-5 py-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center dark:bg-amber-900/30 dark:text-amber-400">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        </div>
+                        <div>
+                          <h3 class="text-base font-bold text-high tracking-tight">Decoded Execution Script</h3>
+                          <p class="text-[11px] text-mid font-medium mt-0.5">The translated contract invocation that council nodes are actively signing.</p>
+                        </div>
+                      </div>
                     </div>
-                    <span class="text-[10px] font-semibold uppercase tracking-[0.18em] text-low">Payload</span>
                   </div>
-                  <div class="mt-3 rounded-2xl border border-line-soft bg-surface p-3 font-mono text-[11px] break-all text-low max-h-48 overflow-y-auto shadow-inner">
+                  <div class="bg-[#0f172a] p-2 dark:bg-[#020617]">
+                    <ScriptViewer :script="decodedUnsignedScript" />
+                  </div>
+                </div>
+
+                <!-- Raw Unsigned Tx Hex -->
+                <div class="rounded-3xl border border-line-soft bg-surface shadow-sm p-5">
+                  <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <div>
+                      <div class="text-xs font-bold text-high tracking-tight">Raw Unsigned Transaction</div>
+                      <p class="mt-1 text-[11px] text-mid">The literal hex byte array presented to wallets for the ECDSA signature.</p>
+                    </div>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-low px-2 py-1 bg-surface-muted rounded-md">Hex Payload</span>
+                  </div>
+                  <div class="rounded-2xl border border-line-soft bg-[#0f172a] p-4 font-mono text-xs break-all text-slate-300 max-h-32 overflow-y-auto shadow-inner leading-relaxed dark:bg-[#020617]">
                     {{ proposal.params?.unsigned_tx || "Unavailable" }}
                   </div>
                 </div>
 
-                <div>
-                  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+                <!-- Collected Witnesses -->
+                <div class="pt-6 border-t border-line-soft">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
-                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Collected Witnesses</div>
-                      <p class="mt-1 text-sm text-mid">Each stored signature is shown with the signer identity that will contribute to the final governance witness.</p>
+                      <h3 class="text-lg font-black tracking-tight text-high">Collected Signatures</h3>
+                      <p class="mt-1 text-sm text-mid">Valid ECDSA signatures stored off-chain until quorum is reached.</p>
                     </div>
-                    <span class="inline-flex items-center rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-low">
-                      {{ signatureWitnessRows.length }} stored
-                    </span>
+                    <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl dark:bg-emerald-950/20 dark:border-emerald-900/30">
+                      <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <span class="text-xs font-black uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-400">
+                        {{ signatureWitnessRows.length }} Stored
+                      </span>
+                    </div>
                   </div>
 
-                  <div v-if="signatureWitnessRows.length" class="space-y-3">
+                  <div v-if="signatureWitnessRows.length" class="space-y-6">
                     <div
                       v-for="(row, index) in signatureWitnessRows"
                       :key="row.signerAddress"
                       data-testid="signature-witness-card"
-                      class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/70 to-surface p-5 shadow-sm"
+                      class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/40 to-surface p-6 shadow-sm hover:shadow-md transition-all duration-300"
                     >
-                      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div class="flex min-w-0 items-start gap-4">
+                      <!-- Witness Header -->
+                      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between mb-5">
+                        <div class="flex min-w-0 items-center gap-4">
                           <img
                             :src="row.logo"
                             :data-testid="`signature-witness-logo-${row.signerAddress}`"
                             alt=""
-                            class="h-11 w-11 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                            class="h-14 w-14 rounded-full object-cover ring-2 ring-white shadow-md bg-white shrink-0 dark:ring-slate-800"
                             @error="$event.target.src = '/img/brand/neo.png'"
                           />
                           <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                              <span class="rounded-full border border-line-soft bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-low dark:bg-slate-950/70">
-                                Witness {{ index + 1 }}
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                              <span class="rounded-md bg-slate-200/70 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                Sig #{{ index + 1 }}
                               </span>
                               <span
                                 v-if="row.signerAddress === connectedAccount"
-                                class="rounded-full bg-primary-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                                class="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400"
                               >
                                 You
                               </span>
                             </div>
-                            <div class="mt-2 text-base font-bold text-high">{{ row.name }}</div>
-                            <div class="mt-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Signer Address</div>
-                            <div class="mt-1 font-mono text-xs break-all text-low">{{ row.signerAddress }}</div>
+                            <div class="text-lg font-black text-high truncate tracking-tight">{{ row.name }}</div>
+                            <div class="mt-1 font-mono text-[11px] text-mid truncate opacity-80" :title="row.signerAddress">{{ row.signerAddress }}</div>
                           </div>
                         </div>
 
-                        <span class="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          Witness Ready
-                        </span>
+                        <div class="flex items-center gap-2 rounded-xl bg-surface px-4 py-2 border border-line-soft shrink-0">
+                           <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                           <span class="text-xs font-bold text-high">Cryptographically Valid</span>
+                        </div>
                       </div>
 
-                      <div class="mt-4 grid gap-3 xl:grid-cols-2">
+                      <!-- Witness Data Grid -->
+                      <div class="grid gap-4 xl:grid-cols-2">
                         <div class="rounded-2xl border border-line-soft bg-surface p-4">
-                          <div class="mb-2 flex items-center justify-between">
-                            <span class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Stored Signature</span>
-                          </div>
-                          <div class="rounded-xl border border-line-soft bg-surface-muted p-2.5 font-mono text-[10px] break-all text-low shadow-inner">
+                          <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">Stored ECDSA Signature</div>
+                          <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner border border-line-soft">
                             {{ row.signature }}
                           </div>
-                          <p class="mt-2 text-[11px] text-mid">Raw ECDSA signature fragment stored for final multisig witness assembly.</p>
                         </div>
                         <div class="rounded-2xl border border-line-soft bg-surface p-4">
-                          <div class="mb-2 flex items-center justify-between">
-                            <span class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">
-                              {{ row.witnessJson ? "Witness Metadata" : "Witness Payload" }}
-                            </span>
+                          <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">
+                            {{ row.witnessJson ? "Attached Witness Meta" : "Empty Fragment" }}
                           </div>
-                          <div class="rounded-xl border border-line-soft bg-surface-muted p-2.5 font-mono text-[10px] break-all text-low shadow-inner max-h-[70px] overflow-y-auto">
-                            {{ row.witnessJson || "Stored off-chain until the final threshold-signed witness is assembled." }}
+                          <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner border border-line-soft max-h-[80px] overflow-y-auto">
+                            {{ row.witnessJson || "Awaiting final multisig assembly..." }}
                           </div>
                         </div>
                       </div>
 
-                      <div v-if="row.invocationScriptBase64" class="mt-4 rounded-2xl border border-line-soft bg-surface shadow-sm overflow-hidden">
-                        <div class="border-b border-line-soft bg-surface-muted/50 px-4 py-3">
+                      <!-- Parsed Invocation Script Window -->
+                      <div v-if="row.invocationScriptBase64" class="mt-5 rounded-2xl border border-line-soft bg-[#0f172a] shadow-lg overflow-hidden dark:bg-[#020617]">
+                        <div class="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2.5">
                           <div class="flex items-center gap-2">
-                            <div class="p-1.5 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                            </div>
-                            <h4 class="text-sm font-bold tracking-tight text-high">Parsed Invocation Script</h4>
+                            <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="text-[11px] font-bold tracking-wider text-slate-300 uppercase">Parsed Invocation OpCodes</span>
                           </div>
-                          <p class="ml-9 mt-1 text-[11px] text-mid">Generated from the stored signature fragment so the witness can be reviewed as NeoVM opcodes instead of raw hex only.</p>
                         </div>
                         <div class="p-2">
-                          <ScriptViewer
-                            :script="row.invocationScriptBase64"
-                          />
+                          <ScriptViewer :script="row.invocationScriptBase64" />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div v-else class="rounded-3xl border border-dashed border-line-soft bg-surface-muted/40 p-5 text-sm text-mid">
-                    No collected witnesses yet. Once council nodes sign, their stored witness fragments will appear here automatically.
+                  <div v-else class="mt-6 flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-line-soft bg-surface-muted/30 py-16 text-center">
+                    <div class="h-16 w-16 rounded-full bg-surface shadow-sm border border-line-soft flex items-center justify-center mb-4 text-mid">
+                       <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </div>
+                    <h4 class="text-base font-bold text-high tracking-tight">No signatures stored yet</h4>
+                    <p class="mt-2 max-w-sm text-sm text-mid leading-relaxed">Once council nodes approve and sign this payload, their ECDSA witness fragments will automatically stream here.</p>
                   </div>
                 </div>
 
                 <div
                   v-if="proposal.params?.broadcast_witness"
-                  class="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-5 dark:border-emerald-900/40 dark:bg-emerald-950/10"
+                  class="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-slate-950"
                 >
-                  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
                     <div>
-                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-emerald-700 dark:text-emerald-400">Broadcast Witness</div>
-                      <p class="mt-1 text-sm text-mid">The final witness that was assembled and attached to the transaction broadcast.</p>
+                      <h3 class="text-lg font-black tracking-tight text-emerald-800 dark:text-emerald-400">Final Broadcast Witness</h3>
+                      <p class="mt-1 text-sm text-emerald-600/80 dark:text-emerald-400/80">Quorum reached. The multi-sig witness assembled to broadcast.</p>
                     </div>
-                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      Finalized
+                    <span class="inline-flex items-center rounded-full bg-emerald-500 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-md shadow-emerald-500/20">
+                      Successfully Broadcast
                     </span>
                   </div>
 
-                  <div class="mt-4 grid gap-3 md:grid-cols-2">
-                    <div>
-                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low mb-1">Invocation Script</div>
-                      <div class="rounded-2xl border border-line-soft bg-surface p-3 font-mono text-[11px] break-all text-low max-h-40 overflow-y-auto">
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
+                      <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Assembled Invocation Script</div>
+                      <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner max-h-40 overflow-y-auto">
                         {{ proposal.params.broadcast_witness.invocationScript || "Unavailable" }}
                       </div>
                     </div>
-                    <div>
-                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low mb-1">Verification Script</div>
-                      <div class="rounded-2xl border border-line-soft bg-surface p-3 font-mono text-[11px] break-all text-low max-h-40 overflow-y-auto">
+                    <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
+                      <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Council Verification Script</div>
+                      <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner max-h-40 overflow-y-auto">
                         {{ proposal.params.broadcast_witness.verificationScript || "Unavailable" }}
                       </div>
                     </div>
