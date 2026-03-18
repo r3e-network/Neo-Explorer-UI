@@ -20,7 +20,7 @@ export function useTheme() {
     if (saved) {
       isDark.value = saved === "dark";
     } else {
-      isDark.value = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      isDark.value = false;
     }
   };
 

@@ -228,7 +228,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="bg-[#0f172a] p-2 dark:bg-[#020617]">
+                  <div class="dark bg-[#0f172a] p-2 dark:bg-[#020617]">
                     <ScriptViewer :script="decodedUnsignedScript" />
                   </div>
                 </div>
@@ -306,7 +306,7 @@
                       <div class="grid gap-4 xl:grid-cols-2">
                         <div class="rounded-2xl border border-line-soft bg-surface p-4">
                           <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">Stored ECDSA Signature</div>
-                          <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner border border-line-soft">
+                          <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner dark:bg-[#020617]">
                             {{ row.signature }}
                           </div>
                         </div>
@@ -314,7 +314,7 @@
                           <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">
                             {{ row.witnessJson ? "Attached Witness Meta" : "Empty Fragment" }}
                           </div>
-                          <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner border border-line-soft max-h-[80px] overflow-y-auto">
+                          <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-[80px] overflow-y-auto dark:bg-[#020617]">
                             {{ row.witnessJson || "Awaiting final multisig assembly..." }}
                           </div>
                         </div>
@@ -328,7 +328,7 @@
                             <span class="text-[11px] font-bold tracking-wider text-slate-300 uppercase">Parsed Invocation OpCodes</span>
                           </div>
                         </div>
-                        <div class="p-2">
+                        <div class="dark p-2">
                           <ScriptViewer :script="row.invocationScriptBase64" />
                         </div>
                       </div>
@@ -361,13 +361,13 @@
                   <div class="grid gap-4 md:grid-cols-2">
                     <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Assembled Invocation Script</div>
-                      <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner max-h-40 overflow-y-auto">
+                      <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-40 overflow-y-auto dark:bg-[#020617]">
                         {{ proposal.params.broadcast_witness.invocationScript || "Unavailable" }}
                       </div>
                     </div>
                     <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Council Verification Script</div>
-                      <div class="rounded-xl bg-surface-muted/50 p-3 font-mono text-[10px] break-all text-low shadow-inner max-h-40 overflow-y-auto">
+                      <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-40 overflow-y-auto dark:bg-[#020617]">
                         {{ proposal.params.broadcast_witness.verificationScript || "Unavailable" }}
                       </div>
                     </div>
@@ -503,16 +503,17 @@
           <div class="p-6 space-y-6">
             <div>
               <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
-              <div class="rounded-xl border border-line-soft bg-surface-muted p-3 font-mono text-[10px] break-all text-low max-h-40 overflow-y-auto shadow-inner">
+              <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 max-h-40 overflow-y-auto shadow-inner dark:bg-[#020617]">
                 {{ proposal?.params?.unsigned_tx }}
               </div>
             </div>
             
-            <ScriptViewer
-              v-if="decodedUnsignedScript"
-              :script="decodedUnsignedScript"
-              label="Decoded Contract Script"
-            />
+            <div v-if="decodedUnsignedScript" class="dark bg-[#0f172a] p-3 rounded-xl border border-line-soft shadow-inner dark:bg-[#020617]">
+              <ScriptViewer
+                :script="decodedUnsignedScript"
+                label="Decoded Contract Script"
+              />
+            </div>
             
             <div class="space-y-3">
               <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>

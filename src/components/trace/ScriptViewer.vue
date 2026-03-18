@@ -1,8 +1,8 @@
 <template>
-  <div class="script-viewer">
+  <div class="script-viewer dark text-slate-300">
     <!-- Header with toggle -->
     <div class="flex items-center justify-between mb-3">
-      <h4 class="text-high text-sm font-semibold">
+      <h4 class="text-slate-200 text-sm font-semibold">
         {{ label }}
       </h4>
       <div class="flex items-center gap-2">
@@ -10,8 +10,8 @@
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           :class="
             showRaw
-              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
-              : 'badge-soft hover:text-high'
+              ? 'bg-primary-900/40 text-primary-300'
+              : 'badge-soft text-slate-400 hover:text-slate-200'
           "
           @click="showRaw = !showRaw"
         >
@@ -37,44 +37,30 @@
     <!-- Raw hex view -->
     <pre
       v-if="showRaw"
-      class="panel-muted text-mid max-h-48 overflow-auto rounded-lg break-all whitespace-pre-wrap p-3 font-mono text-xs"
+      class="bg-[#020617] text-slate-400 max-h-48 overflow-auto rounded-lg break-all whitespace-pre-wrap p-3 font-mono text-xs border border-white/5 shadow-inner"
       >{{ rawHex }}</pre
     >
 
     <!-- Decoded opcodes table -->
     <div
       v-else
-      class="soft-divider overflow-x-auto rounded-lg border"
+      class="overflow-x-auto rounded-lg border border-white/10 bg-[#020617] shadow-inner"
     >
       <table class="w-full text-xs">
         <thead>
-          <tr
-            class="table-head soft-divider border-b"
-          >
-            <th
-              class="text-low w-16 px-3 py-2 text-left font-medium"
-            >
-              Offset
-            </th>
-            <th
-              class="text-low w-32 px-3 py-2 text-left font-medium"
-            >
-              Opcode
-            </th>
-            <th
-              class="text-low px-3 py-2 text-left font-medium"
-            >
-              Operand
-            </th>
+          <tr class="border-b border-white/10 bg-white/5">
+            <th class="text-slate-400 w-16 px-3 py-2 text-left font-medium">Offset</th>
+            <th class="text-slate-400 w-32 px-3 py-2 text-left font-medium">Opcode</th>
+            <th class="text-slate-400 px-3 py-2 text-left font-medium">Operand</th>
           </tr>
         </thead>
-        <tbody class="soft-divider divide-y">
+        <tbody class="divide-y divide-white/5">
           <tr
             v-for="(inst, idx) in visibleInstructions"
             :key="idx"
-            class="list-row group"
+            class="group hover:bg-white/[0.02] transition-colors"
           >
-            <td class="text-low px-3 py-1.5 font-mono">
+            <td class="text-slate-500 px-3 py-1.5 font-mono">
               {{ formatOffset(inst.offset) }}
             </td>
             <td class="px-3 py-1.5">
@@ -85,26 +71,24 @@
                 {{ inst.opcode }}
               </span>
             </td>
-            <td
-              class="text-high break-all px-3 py-1.5 font-mono"
-            >
+            <td class="text-slate-300 break-all px-3 py-1.5 font-mono">
               <template v-if="inst.operand">
                 <span v-if="parseOperand(inst.operand)" :class="operandClass(inst)">
                   {{ parseOperand(inst.operand).hash }}
-                  <span class="text-mid font-normal">(</span>
-                  <span v-if="parseOperand(inst.operand).type === 'account'" class="text-mid font-normal">Account: </span>
-                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-mid font-normal">Native: </span>
-                  <span v-else-if="parseOperand(inst.operand).type === 'contract'" class="text-mid font-normal">Contract</span>
-                  <span v-else-if="parseOperand(inst.operand).type === 'tx'" class="text-mid font-normal">Hash256: </span>
+                  <span class="text-slate-500 font-normal">(</span>
+                  <span v-if="parseOperand(inst.operand).type === 'account'" class="text-slate-500 font-normal">Account: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-slate-500 font-normal">Native: </span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'contract'" class="text-slate-500 font-normal">Contract</span>
+                  <span v-else-if="parseOperand(inst.operand).type === 'tx'" class="text-slate-500 font-normal">Hash256: </span>
                   <HashLink
                     v-if="parseOperand(inst.operand).type === 'account'"
                     :hash="parseOperand(inst.operand).address"
                     type="address"
                     :copyable="false"
                     :truncate="false"
-                    class="inline-flex"
+                    class="inline-flex text-slate-300 hover:text-white"
                   />
-                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-mid font-normal">
+                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-slate-300 font-normal">
                     {{ parseOperand(inst.operand).name || "Native" }}
                   </span>
                   <HashLink
@@ -113,17 +97,15 @@
                     type="tx"
                     :copyable="false"
                     :truncate="false"
-                    class="inline-flex"
+                    class="inline-flex text-slate-300 hover:text-white"
                   />
-                  <span class="text-mid font-normal">)</span>
+                  <span class="text-slate-500 font-normal">)</span>
                 </span>
-                <span v-else :class="operandClass(inst)">{{
-                  inst.operand
-                }}</span>
+                <span v-else :class="operandClass(inst)">{{ inst.operand }}</span>
               </template>
               <span
                 v-if="inst.semantic"
-                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400"
+                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-400"
               >
                 // Call:
                 <HashLink
@@ -131,13 +113,14 @@
                   :hash="inst.semantic.split('.')[0]"
                   type="contract"
                   :truncate="true"
+                  class="text-primary-400 hover:text-primary-300"
                 />
                 <span v-else>{{ inst.semantic.split('.')[0] }}</span>
                 <span>.{{ inst.semantic.split('.').slice(1).join('.') }}</span>
               </span>
               <span
                 v-if="inst.annotationLabel && inst.annotationValue"
-                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400"
+                class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary-400"
               >
                 // {{ inst.annotationLabel }}:
                 <span>{{ inst.annotationValue }}</span>
@@ -150,7 +133,7 @@
       <!-- Show more -->
       <button
         v-if="instructions.length > maxVisible && !showAllOps"
-        class="soft-divider w-full border-t py-2 text-xs font-medium text-primary-500 transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20"
+        class="w-full border-t border-white/10 py-2 text-xs font-medium text-primary-400 transition-colors hover:bg-white/5"
         @click="showAllOps = true"
       >
         Show all {{ instructions.length }} instructions
