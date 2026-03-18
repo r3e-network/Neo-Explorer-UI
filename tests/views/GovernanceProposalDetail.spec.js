@@ -160,18 +160,33 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("setGasPerBlock");
     expect(wrapper.text()).toContain("0xef4073");
     expect(wrapper.text()).toContain("1 / 3");
+    expect(wrapper.find('[data-testid="governance-hero"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("Council approval progress");
+    expect(wrapper.text()).toContain("2 more votes needed before broadcast");
+    expect(wrapper.text()).toContain("Draft Created");
+    expect(wrapper.text()).toContain("Collect Signatures");
+    expect(wrapper.text()).toContain("Broadcast Transaction");
+    expect(wrapper.find('[data-testid="council-status-panel"]').exists()).toBe(true);
     expect(wrapper.text()).toContain("Council Alpha");
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
     expect(wrapper.text()).toContain("Decoded Contract Script");
     expect(wrapper.text()).toContain("Collected Witnesses");
-    expect(wrapper.text()).toContain("Invocation Signature");
+    expect(wrapper.html().indexOf("Decoded Contract Script")).toBeLessThan(wrapper.html().indexOf("Collected Witnesses"));
+    expect(wrapper.text()).toContain("Signer Address");
+    expect(wrapper.text()).toContain("Stored Signature");
+    expect(wrapper.text()).toContain("Parsed Invocation Script");
+    expect(wrapper.findAllComponents({ name: "ScriptViewer" }).length).toBeGreaterThanOrEqual(2);
     expect(wrapper.text()).toContain("Broadcast Witness");
     expect(wrapper.text()).toContain("0c40deadbeef");
     expect(wrapper.text()).toContain("2102feedfaceac");
+    expect(wrapper.findAll('[data-testid="signature-witness-card"]').length).toBe(1);
     expect(wrapper.html()).toContain("https://example.com/alpha.png");
     expect(wrapper.html()).toContain("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
     expect(wrapper.text()).not.toContain("A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    expect(wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]').attributes("src")).toBe("https://example.com/alpha.png");
+    expect(wrapper.get('[data-testid="council-status-logo-A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"]').attributes("src")).toBe("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
+    expect(wrapper.html()).not.toContain("/img/brand/neo.png");
   });
 
   it("prevents a council member from signing the same proposal twice in the detail page", async () => {
@@ -214,5 +229,39 @@ describe("GovernanceProposalDetail", () => {
 
     expect(wrapper.text()).toContain("You already voted");
     expect(wrapper.text()).not.toContain("Vote / Sign Proposal");
+  });
+
+  it("uses the Neo logo only when a council-specific logo cannot be resolved", async () => {
+    getValidatorMetadataMock.mockResolvedValueOnce([]);
+    getCommitteeMock.mockResolvedValueOnce([]);
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setGasPerBlock",
+      description: "Adjust GAS emissions",
+      target_contract: "0xef4073",
+      status: "PENDING",
+      signers_required: 1,
+      eligible_signers: ["A05eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
+      signatures: [],
+      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.html()).toContain("/img/brand/neo.png");
   });
 });
