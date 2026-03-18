@@ -23,10 +23,10 @@
           Connect in Header
         </button>
         <button 
-          v-else-if="!isCouncilNode" 
+          v-else-if="!canCreateProposal" 
           disabled
           class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
-          title="Only active council nodes can create proposals"
+          :title="isGovernanceLabModeAvailable ? 'Connect a signer that participates in your custom lab signer set' : 'Only active council nodes can create proposals'"
         >
           Not a Council Node
         </button>
@@ -54,7 +54,7 @@
         <svg class="mx-auto h-12 w-12 text-low mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
         <p>No pending council proposals found.</p>
         <span v-if="!connectedAccount" class="mt-2 block text-sm font-medium text-mid">Connect wallet from the top bar to create</span>
-        <span v-else-if="!isCouncilNode" class="text-mid mt-2 text-sm font-medium">Only council nodes can create proposals</span>
+        <span v-else-if="!canCreateProposal" class="text-mid mt-2 text-sm font-medium">Only council nodes can create proposals</span>
         <button v-else @click="showCreateModal = true" class="text-primary-500 hover:underline mt-2 text-sm font-medium">Create the first one</button>
       </div>
       <div v-else class="space-y-4">
@@ -199,6 +199,66 @@
           <button @click="showCreateModal = false" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
         <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+           <div v-if="isGovernanceLabModeAvailable" class="space-y-3 rounded-2xl border border-line-soft bg-surface-muted/50 p-4">
+             <div class="flex flex-wrap items-center justify-between gap-3">
+               <div>
+                 <h3 class="text-sm font-bold text-high tracking-tight">Proposal Mode</h3>
+                 <p class="mt-1 text-xs text-mid">
+                   Official council mode uses the live testnet committee. Lab mode lets you mock the signer set and threshold while still using the same proposal and signature collection flow.
+                 </p>
+               </div>
+               <div class="inline-flex rounded-xl border border-line-soft bg-surface p-1">
+                 <button
+                   data-testid="governance-mode-official"
+                   type="button"
+                   class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                   :class="createForm.mode === 'official' ? 'bg-amber-500 text-white' : 'text-mid hover:text-high'"
+                   @click="setCreateMode('official')"
+                 >
+                   Official Council
+                 </button>
+                 <button
+                   data-testid="governance-mode-lab"
+                   type="button"
+                   class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                   :class="createForm.mode === 'lab' ? 'bg-amber-500 text-white' : 'text-mid hover:text-high'"
+                   @click="setCreateMode('lab')"
+                 >
+                   Lab Mode
+                 </button>
+               </div>
+             </div>
+
+             <div v-if="createForm.mode === 'lab'" class="grid grid-cols-1 gap-4 md:grid-cols-[1fr,180px]">
+               <div class="space-y-2">
+                 <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">Signer Public Keys</label>
+                 <textarea
+                   data-testid="lab-signer-pubkeys"
+                   v-model="createForm.labSignerPubkeys"
+                   rows="5"
+                   class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none font-mono"
+                   placeholder="One compressed public key per line, or comma-separated"
+                 ></textarea>
+                 <p class="text-xs text-mid">
+                   Include the connected wallet signer in this list. The tool will derive eligible signer addresses from these public keys and use your chosen threshold instead of the live council threshold.
+                 </p>
+               </div>
+               <div class="space-y-2">
+                 <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">Signature Threshold</label>
+                 <input
+                   data-testid="lab-threshold"
+                   v-model="createForm.labThreshold"
+                   type="number"
+                   min="1"
+                   class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+                 />
+                 <div class="rounded-xl border border-dashed border-line-soft bg-surface/50 px-3 py-2 text-xs text-mid">
+                   Signers detected: <span class="font-semibold text-high">{{ parsedLabSignerCount }}</span>
+                 </div>
+               </div>
+             </div>
+           </div>
+
            <div class="space-y-2">
              <label class="block text-sm font-bold text-high tracking-tight">Proposal Description</label>
              <input v-model="createForm.description" type="text" class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none" placeholder="e.g. Decrease GAS Network Fee" />
@@ -301,6 +361,7 @@ import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRe
 import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { useToast } from "vue-toastification";
+import { isPublicKeyHex } from "@/utils/neoHelpers";
 
 const toast = useToast();
 const loading = ref(true);
@@ -315,6 +376,8 @@ const validatorMetadata = ref([]);
 
 let neonJs = null;
 const councilIdentityMap = computed(() => buildCouncilIdentityMap(validatorMetadata.value));
+const isGovernanceLabModeAvailable = computed(() => toNetworkMode(getCurrentEnv()) === 'testnet');
+const canCreateProposal = computed(() => Boolean(connectedAccount.value) && (isCouncilNode.value || isGovernanceLabModeAvailable.value));
 
 const isCouncilNode = computed(() => {
   if (!connectedAccount.value || !committeeMultiSig.value || !neonJs) return false;
@@ -352,13 +415,22 @@ const NATIVE_METHODS = {
   ]
 };
 
+function createInvocation() {
+  const defaultContract = 'PolicyContract';
+  const methods = getAvailableMethods(defaultContract);
+  return {
+    selectedContract: defaultContract,
+    selectedMethod: methods.length > 0 ? methods[0].name : '',
+    params: {},
+  };
+}
+
 const createForm = ref({
   description: '',
-  invocations: [{
-    selectedContract: 'PolicyContract',
-    selectedMethod: '',
-    params: {}
-  }]
+  mode: 'official',
+  labSignerPubkeys: '',
+  labThreshold: '2',
+  invocations: [createInvocation()]
 });
 
 const isCreating = ref(false);
@@ -383,13 +455,7 @@ function handleContractChange(index) {
 }
 
 function addInvocation() {
-  const contract = 'PolicyContract';
-  const methods = getAvailableMethods(contract);
-  createForm.value.invocations.push({
-    selectedContract: contract,
-    selectedMethod: methods.length > 0 ? methods[0].name : '',
-    params: {}
-  });
+  createForm.value.invocations.push(createInvocation());
 }
 
 function removeInvocation(index) {
@@ -398,9 +464,64 @@ function removeInvocation(index) {
   }
 }
 
-// Initialize the first invocation's default method
-if (getAvailableMethods('PolicyContract').length > 0) {
-  createForm.value.invocations[0].selectedMethod = getAvailableMethods('PolicyContract')[0].name;
+function normalizeSignerPubkeys(rawValue) {
+  return [...new Set(
+    String(rawValue || '')
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+}
+
+const parsedLabSignerCount = computed(() => normalizeSignerPubkeys(createForm.value.labSignerPubkeys).length);
+
+function setCreateMode(mode) {
+  createForm.value.mode = mode;
+}
+
+function resolveSignerConfig() {
+  if (createForm.value.mode === 'lab') {
+    if (!isGovernanceLabModeAvailable.value) {
+      throw new Error("Lab mode is only available on testnet.");
+    }
+
+    const signerPubkeys = normalizeSignerPubkeys(createForm.value.labSignerPubkeys);
+    if (signerPubkeys.length === 0) {
+      throw new Error("Add at least one signer public key for lab mode.");
+    }
+
+    for (const pubkey of signerPubkeys) {
+      if (!isPublicKeyHex(pubkey)) {
+        throw new Error(`Invalid signer public key: ${pubkey}`);
+      }
+    }
+
+    const thresholdValue = Number.parseInt(String(createForm.value.labThreshold || ''), 10);
+    if (!Number.isFinite(thresholdValue) || thresholdValue < 1 || thresholdValue > signerPubkeys.length) {
+      throw new Error("Lab threshold must be between 1 and the number of signer public keys.");
+    }
+
+    const signerAddresses = signerPubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
+    if (!signerAddresses.includes(connectedAccount.value)) {
+      throw new Error("Connected wallet must be included in the lab signer public keys.");
+    }
+
+    return {
+      mode: 'lab',
+      signerPubkeys,
+      signerAddresses,
+      thresholdValue,
+      multiSigAccount: neonJs.wallet.Account.createMultiSig(thresholdValue, signerPubkeys),
+    };
+  }
+
+  return {
+    mode: 'official',
+    signerPubkeys: committeePubkeys.value,
+    signerAddresses: getCommitteeAddresses(),
+    thresholdValue: threshold.value,
+    multiSigAccount: committeeMultiSig.value,
+  };
 }
 
 async function loadCommittee() {
@@ -502,7 +623,7 @@ async function handleCreateProposal() {
     toast.error("Please connect your wallet first.");
     return;
   }
-  if (!isCouncilNode.value) {
+  if (createForm.value.mode !== 'lab' && !isCouncilNode.value) {
     toast.error("Only council nodes can create proposals.");
     return;
   }
@@ -519,6 +640,7 @@ async function handleCreateProposal() {
   try {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
+    const signerConfig = resolveSignerConfig();
     
     // Parse args for all invocations
     const intents = createForm.value.invocations.map(inv => {
@@ -541,7 +663,7 @@ async function handleCreateProposal() {
     
     // Create unsigned transaction
     const t = new neonJs.tx.Transaction({
-      signers: [{ account: committeeMultiSig.value.scriptHash, scopes: neonJs.tx.WitnessScope.Global }],
+      signers: [{ account: signerConfig.multiSigAccount.scriptHash, scopes: neonJs.tx.WitnessScope.Global }],
       validUntilBlock: currentHeight + 100000, // Long expiration for multisig gathering (~17 days)
       systemFee: "100000000", // 1 GAS
       networkFee: "500000000", // 5 GAS
@@ -561,15 +683,18 @@ async function handleCreateProposal() {
       target_contract: targets.length > 255 ? targets.substring(0, 250) + "..." : targets,
       method: methods.length > 255 ? methods.substring(0, 250) + "..." : methods,
       description: createForm.value.description,
-      signers_required: threshold.value,
-      eligible_signers: getCommitteeAddresses(),
+      signers_required: signerConfig.thresholdValue,
+      eligible_signers: signerConfig.signerAddresses,
       status: "PENDING",
       network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
         hash: txHash,
-        scriptHash: committeeMultiSig.value.scriptHash,
-        committee_pubkeys: committeePubkeys.value,
+        scriptHash: signerConfig.multiSigAccount.scriptHash,
+        committee_pubkeys: signerConfig.signerPubkeys,
+        governance_mode: signerConfig.mode,
+        lab_mode: signerConfig.mode === 'lab',
+        lab_signer_addresses: signerConfig.mode === 'lab' ? signerConfig.signerAddresses : undefined,
         invocations: createForm.value.invocations // Optional, for details later
       }
     };
@@ -579,6 +704,13 @@ async function handleCreateProposal() {
     
     toast.success("Proposal created successfully!");
     showCreateModal.value = false;
+    createForm.value = {
+      description: '',
+      mode: 'official',
+      labSignerPubkeys: '',
+      labThreshold: '2',
+      invocations: [createInvocation()]
+    };
     await loadRequests();
   } catch (e) {
     console.error(e);

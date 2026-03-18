@@ -204,4 +204,61 @@ describe("GovernanceTool network changes", () => {
     });
     wrapper.unmount();
   });
+
+  it("allows a testnet lab-mode proposal with custom signers and threshold", async () => {
+    const labPubkeys = [
+      "02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    ];
+    envState.value = "TestT5";
+    connectedAccount.value = `A${labPubkeys[0]}`;
+    walletServiceMock.isConnected = true;
+    getCommitteeMock.mockResolvedValue(["PKX", "PKY", "PKZ"]);
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    const setup = wrapper.vm.$.setupState;
+    setup.createForm.mode = "lab";
+    setup.createForm.description = "Lab test proposal";
+    setup.createForm.labThreshold = "2";
+    setup.createForm.labSignerPubkeys = labPubkeys.join("\n");
+    setup.createForm.invocations[0].params.value = "1000";
+
+    await setup.handleCreateProposal();
+    await flushPromises();
+
+    expect(createMultisigRequestMock).toHaveBeenCalledTimes(1);
+    const sortedLabPubkeys = [...labPubkeys].sort((a, b) => a.localeCompare(b));
+    const sortedLabAddresses = sortedLabPubkeys.map((pubkey) => `A${pubkey}`);
+    expect(createMultisigRequestMock.mock.calls[0][0]).toMatchObject({
+      type: "governance",
+      creator_address: `A${labPubkeys[0]}`,
+      method: "setFeePerByte",
+      description: "Lab test proposal",
+      signers_required: 2,
+      eligible_signers: sortedLabAddresses,
+      status: "PENDING",
+      network: "testnet",
+      params: expect.objectContaining({
+        lab_mode: true,
+        governance_mode: "lab",
+        committee_pubkeys: sortedLabPubkeys,
+        lab_signer_addresses: sortedLabAddresses,
+      }),
+    });
+
+    wrapper.unmount();
+  });
 });
