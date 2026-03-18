@@ -251,7 +251,7 @@ export async function disconnectWallet() {
     clearStoredWalletState();
 }
 
-export async function voteForCandidate(candidatePubkey) {
+async function submitVote(candidatePubkey = null) {
     const toast = useToast();
     if (!walletService.isConnected) {
         toast.error("Please connect your wallet first via the header.");
@@ -272,25 +272,36 @@ export async function voteForCandidate(candidatePubkey) {
 
     try {
         const neoScriptHash = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+        const voteTargetArg = candidatePubkey
+            ? { type: "PublicKey", value: candidatePubkey }
+            : { type: "Any", value: null };
 
         const result = await walletService.invoke({
             scriptHash: neoScriptHash,
             operation: "vote",
             args: [
                 { type: "Hash160", value: voterHash160 },
-                { type: "PublicKey", value: candidatePubkey }
+                voteTargetArg
             ],
             signers: [{ account: voterHash160, scopes: 1 }],
             scope: 1
         });
 
-        toast.success("Vote transaction submitted: " + result.txid);
+        toast.success(`${candidatePubkey ? "Vote" : "Unvote"} transaction submitted: ` + result.txid);
         return result.txid;
     } catch (e) {
         console.error(e);
-        toast.error("Voting failed: " + (e.message || e.description || "Unknown error"));
+        toast.error(`${candidatePubkey ? "Voting" : "Unvoting"} failed: ` + (e.message || e.description || "Unknown error"));
         throw e;
     }
+}
+
+export async function voteForCandidate(candidatePubkey) {
+    return submitVote(candidatePubkey);
+}
+
+export async function unvoteCandidate() {
+    return submitVote(null);
 }
 
 export async function invokeContract(scriptHash, operation, args, signers) {

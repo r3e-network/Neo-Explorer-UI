@@ -97,6 +97,71 @@
                 </div>
               </div>
 
+              <div>
+                <div class="text-[10px] uppercase tracking-wide font-semibold text-low mb-2">Collected Witnesses</div>
+                <div v-if="signatureWitnessRows.length" class="space-y-3">
+                  <div
+                    v-for="row in signatureWitnessRows"
+                    :key="row.signerAddress"
+                    class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="flex min-w-0 items-center gap-3">
+                        <img
+                          v-if="row.logo"
+                          :src="row.logo"
+                          alt=""
+                          class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                          @error="$event.target.src = '/img/brand/neo.png'"
+                        />
+                        <div class="min-w-0">
+                          <div class="font-semibold text-high truncate">{{ row.name }}</div>
+                          <div class="text-[11px] font-mono text-low break-all">{{ row.signerAddress }}</div>
+                        </div>
+                      </div>
+                      <span class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        Witness Ready
+                      </span>
+                    </div>
+                    <div class="mt-3 grid gap-3 md:grid-cols-2">
+                      <div>
+                        <div class="text-[10px] uppercase tracking-wide font-semibold text-low mb-1">Invocation Signature</div>
+                        <div class="rounded-xl border border-line-soft bg-surface p-3 font-mono text-[11px] break-all text-low">
+                          {{ row.signature }}
+                        </div>
+                      </div>
+                      <div v-if="row.witnessJson">
+                        <div class="text-[10px] uppercase tracking-wide font-semibold text-low mb-1">Witness Metadata</div>
+                        <div class="rounded-xl border border-line-soft bg-surface p-3 font-mono text-[11px] break-all text-low">
+                          {{ row.witnessJson }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="rounded-xl border border-dashed border-line-soft bg-surface-muted/40 p-4 text-sm text-mid">
+                  No collected witnesses yet.
+                </div>
+              </div>
+
+              <div v-if="proposal.params?.broadcast_witness" class="space-y-3">
+                <div class="text-[10px] uppercase tracking-wide font-semibold text-low">Broadcast Witness</div>
+                <div class="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <div class="text-[10px] uppercase tracking-wide font-semibold text-low mb-1">Invocation Script</div>
+                    <div class="rounded-xl border border-line-soft bg-surface-muted p-3 font-mono text-[11px] break-all text-low max-h-40 overflow-y-auto">
+                      {{ proposal.params.broadcast_witness.invocationScript || "Unavailable" }}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-[10px] uppercase tracking-wide font-semibold text-low mb-1">Verification Script</div>
+                    <div class="rounded-xl border border-line-soft bg-surface-muted p-3 font-mono text-[11px] break-all text-low max-h-40 overflow-y-auto">
+                      {{ proposal.params.broadcast_witness.verificationScript || "Unavailable" }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <ScriptViewer
                 v-if="decodedUnsignedScript"
                 :script="decodedUnsignedScript"
@@ -135,6 +200,7 @@
                       :src="signer.logo"
                       alt=""
                       class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                      @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div class="min-w-0">
                       <div class="font-semibold text-high truncate">{{ signer.name }}</div>
@@ -269,6 +335,7 @@ import { getCurrentEnv, getRpcClientUrl } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const route = useRoute();
 const toast = useToast();
@@ -319,10 +386,55 @@ const signerRows = computed(() => {
     return {
       ...resolved,
       name: resolved.name === address ? `Council Node ${index + 1}` : resolved.name,
-    signed: signed.has(address),
+      logo: resolveCouncilLogo(address, resolved.logo),
+      signed: signed.has(address),
     };
   });
 });
+
+const signatureWitnessRows = computed(() =>
+  (proposal.value?.signatures || []).map((signature, index) => {
+    const resolved = resolveCouncilIdentity(signature.signer_address, councilIdentityMap.value);
+    return {
+      signerAddress: signature.signer_address,
+      name: resolved.name === signature.signer_address ? `Council Node ${index + 1}` : resolved.name,
+      logo: resolveCouncilLogo(signature.signer_address, resolved.logo),
+      signature: signature.signature,
+      witnessJson: signature.witness ? JSON.stringify(signature.witness, null, 2) : "",
+    };
+  })
+);
+
+function findCommitteePubkeyForAddress(address) {
+  const target = String(address || "").trim();
+  if (!target || !neonJs) return "";
+
+  for (const pubkey of committeePubkeys.value || []) {
+    try {
+      if (new neonJs.wallet.Account(pubkey).address === target) {
+        return pubkey;
+      }
+    } catch {
+      // Ignore malformed committee entries.
+    }
+  }
+
+  return "";
+}
+
+function resolveCouncilLogo(address, explicitLogo = "") {
+  const normalizedLogo = String(explicitLogo || "").trim();
+  if (normalizedLogo) {
+    return resolveCandidateLogoUrl(normalizedLogo);
+  }
+
+  const pubkey = findCommitteePubkeyForAddress(address);
+  if (pubkey) {
+    return getDefaultCandidateLogoUrl(pubkey);
+  }
+
+  return "";
+}
 
 function formatDate(value) {
   if (!value) return "Unknown";

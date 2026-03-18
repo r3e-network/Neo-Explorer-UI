@@ -38,6 +38,11 @@ vi.mock("@/components/trace/ScriptViewer.vue", () => ({
   default: { name: "ScriptViewer", props: ["label"], template: "<div>{{ label }}</div>" },
 }));
 
+vi.mock("@/utils/logoOptimization", () => ({
+  getDefaultCandidateLogoUrl: (pubkey) => `https://example.com/default-${pubkey}.png`,
+  resolveCandidateLogoUrl: (value) => value,
+}));
+
 vi.mock("vue-toastification", () => ({
   useToast: () => toast,
 }));
@@ -62,7 +67,7 @@ describe("GovernanceProposalDetail", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    connectedAccount.value = "APK2";
+    connectedAccount.value = "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     window.Neon = {
       wallet: {
         Account: class {
@@ -86,10 +91,23 @@ describe("GovernanceProposalDetail", () => {
       sc: { ScriptBuilder: class {}, ContractParam: { fromJson: (value) => value } },
       u: { HexString: { fromHex: (value) => value } },
     };
-    getCommitteeMock.mockResolvedValue(["PK1", "PK2", "PK3", "PK4"]);
+    getCommitteeMock.mockResolvedValue([
+      "02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "03dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    ]);
     getValidatorMetadataMock.mockResolvedValue([
-      { address: "APK1", display_name: "Council Alpha", logo_url: "https://example.com/alpha.png" },
-      { address: "APK2", display_name: "Council Beta", logo_url: "https://example.com/beta.png" },
+      {
+        address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        display_name: "Council Alpha",
+        logo_url: "https://example.com/alpha.png",
+      },
+      {
+        address: "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        display_name: "Council Beta",
+        logo_url: "https://example.com/beta.png",
+      },
     ]);
   });
 
@@ -102,9 +120,25 @@ describe("GovernanceProposalDetail", () => {
       target_contract: "0xef4073",
       status: "PENDING",
       signers_required: 3,
-      eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
-      signatures: [{ id: 9, signer_address: "APK1", signature: "ab".repeat(64) }],
-      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "A03dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      ],
+      signatures: [{
+        id: 9,
+        signer_address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        signature: "ab".repeat(64),
+      }],
+      params: {
+        unsigned_tx: unsignedTx,
+        hash: "0xdeadbeef",
+        broadcast_witness: {
+          invocationScript: "0c40deadbeef",
+          verificationScript: "2102feedfaceac",
+        },
+      },
       created_at: "2026-03-15T00:00:00.000Z",
     });
 
@@ -130,8 +164,14 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
     expect(wrapper.text()).toContain("Decoded Contract Script");
+    expect(wrapper.text()).toContain("Collected Witnesses");
+    expect(wrapper.text()).toContain("Invocation Signature");
+    expect(wrapper.text()).toContain("Broadcast Witness");
+    expect(wrapper.text()).toContain("0c40deadbeef");
+    expect(wrapper.text()).toContain("2102feedfaceac");
     expect(wrapper.html()).toContain("https://example.com/alpha.png");
-    expect(wrapper.text()).not.toContain("APK3");
+    expect(wrapper.html()).toContain("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
+    expect(wrapper.text()).not.toContain("A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
   });
 
   it("prevents a council member from signing the same proposal twice in the detail page", async () => {
@@ -143,8 +183,17 @@ describe("GovernanceProposalDetail", () => {
       target_contract: "0xef4073",
       status: "PENDING",
       signers_required: 3,
-      eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
-      signatures: [{ id: 10, signer_address: "APK2", signature: "ab".repeat(64) }],
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "A03dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      ],
+      signatures: [{
+        id: 10,
+        signer_address: "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        signature: "ab".repeat(64),
+      }],
       params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
       created_at: "2026-03-15T00:00:00.000Z",
     });

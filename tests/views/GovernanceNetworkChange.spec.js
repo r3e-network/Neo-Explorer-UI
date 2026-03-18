@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const envState = { value: "MainNet" };
 const fetchPricesMock = vi.hoisted(() => vi.fn().mockResolvedValue({ neo: 1, gas: 1 }));
 const voteForCandidateMock = vi.hoisted(() => vi.fn());
+const unvoteCandidateMock = vi.hoisted(() => vi.fn());
 const getValidatorMetadataMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const toastInfoMock = vi.hoisted(() => vi.fn());
 const executeMock = vi.hoisted(() => vi.fn().mockResolvedValue([{ publickey: "PUBKEY1", votes: "100", active: true }]));
@@ -28,6 +29,7 @@ vi.mock("@/utils/wallet", async () => {
   return {
     connectedAccount: ref(null),
     voteForCandidate: voteForCandidateMock,
+    unvoteCandidate: unvoteCandidateMock,
   };
 });
 

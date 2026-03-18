@@ -306,4 +306,29 @@ describe("utils/wallet connectWallet", () => {
       scope: 1,
     });
   });
+
+  it("submits unvote by passing Any/null as the candidate argument", async () => {
+    const voterAddress = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
+    const voterScriptHash = new neonWallet.Account(voterAddress).scriptHash;
+
+    walletServiceMock.isConnected = true;
+    walletServiceMock.account = { address: voterAddress };
+    walletServiceMock.invoke.mockResolvedValue({ txid: "0xtestunvote" });
+
+    const wallet = await import("@/utils/wallet");
+    wallet.connectedAccount.value = voterAddress;
+
+    await wallet.unvoteCandidate();
+
+    expect(walletServiceMock.invoke).toHaveBeenCalledWith({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "vote",
+      args: [
+        { type: "Hash160", value: voterScriptHash },
+        { type: "Any", value: null },
+      ],
+      signers: [{ account: voterScriptHash, scopes: 1 }],
+      scope: 1,
+    });
+  });
 });

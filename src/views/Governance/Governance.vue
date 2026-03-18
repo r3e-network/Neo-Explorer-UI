@@ -89,9 +89,8 @@
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">Public Key / Name</th>
+                <th class="table-header-cell">Council Node</th>
                 <th class="table-header-cell-right">Votes</th>
-                <th class="table-header-cell text-center">Status</th>
                 <th class="table-header-cell-right">Liveness</th>
                 <th class="table-header-cell-right">Est. GAS / Month</th>
                 <th class="table-header-cell-right">APR</th>
@@ -158,43 +157,39 @@
               <tr v-for="(candidate) in sortedCandidates" :key="candidate.publickey" class="list-row group">
                 <td class="table-cell-secondary">{{ candidates.indexOf(candidate) + 1 }}</td>
                 <td class="table-cell">
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-3">
                     <img 
                       v-if="getLogo(candidate)"
                       :src="getLogo(candidate)" 
                       class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
-                      alt="Logo"
+                      :alt="`${getDisplayLabel(candidate)} Logo`"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
                       N3
                     </div>
                     <div class="min-w-0 flex flex-col gap-0.5">
-                      <span v-if="getKnownName(candidate)" class="inline-block font-semibold text-high text-sm">
-                        {{ getKnownName(candidate) }}
-                      </span>
                       <router-link
-                        v-if="!getKnownName(candidate)"
                         :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`"
-                        class="etherscan-link font-hash text-xs break-all"
+                        class="etherscan-link font-semibold text-sm break-all"
                         :title="candidate.publickey"
                       >
-                        {{ publicKeyToAddress(candidate.publickey) }}
+                        {{ getDisplayLabel(candidate) }}
                       </router-link>
                       <span class="text-low text-[10px] font-mono break-all">{{ candidate.publickey }}</span>
                     </div>
+                    </div>
+                    <span :class="[
+                      'shrink-0 inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-semibold',
+                      candidate.active ? 'bg-status-success-bg text-status-success' : 'bg-surface-elevated text-mid border border-line-soft'
+                    ]">
+                      {{ candidate.active ? 'Active' : 'Standby' }}
+                    </span>
                   </div>
                 </td>
                 <td class="table-cell-right font-medium text-high">
                   {{ formatVotes(candidate.votes) }}
-                </td>
-                <td class="table-cell text-center">
-                  <span :class="[
-                    'inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-semibold',
-                    candidate.active ? 'bg-status-success-bg text-status-success' : 'bg-surface-elevated text-mid border border-line-soft'
-                  ]">
-                    {{ candidate.active ? 'Active' : 'Standby' }}
-                  </span>
                 </td>
                 <td class="table-cell-right font-medium text-high text-xs">
                   <template v-if="candidates.indexOf(candidate) < 7 && livenessData[candidates.indexOf(candidate)]">
@@ -212,11 +207,11 @@
                 </td>
                 <td class="table-cell-right">
                   <button 
-                    @click="handleVote(candidate)"
+                    @click="handleVoteAction(candidate)"
                     :disabled="!account || voting"
                     class="btn-mini px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Vote
+                    {{ isCurrentVote(candidate) ? 'Unvote' : 'Vote' }}
                   </button>
                 </td>
               </tr>
@@ -234,14 +229,14 @@ import { rpc } from '@cityofzion/neon-js';
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from '@/utils/env';
 import { useNetworkChange } from '@/composables/useNetworkChange';
 import { getDoraCommitteeUrl } from '@/utils/dora';
-import { connectedAccount, voteForCandidate } from '@/utils/wallet';
+import { connectedAccount, voteForCandidate, unvoteCandidate } from '@/utils/wallet';
 import Breadcrumb from '@/components/common/Breadcrumb.vue';
 import Skeleton from '@/components/common/Skeleton.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import { useToast } from 'vue-toastification';
 import { usePriceCache } from '@/composables/usePriceCache';
 import { getKnownAddressName } from '@/constants/knownAddresses';
-import { publicKeyToAddress } from '@/utils/neoHelpers';
+import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
 import { supabaseService } from '@/services/supabaseService';
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
@@ -255,6 +250,7 @@ const loading = ref(true);
 const error = ref('');
 const account = connectedAccount;
 const voting = ref(false);
+const currentVotePublicKey = ref("");
 
 const userNeoAmount = ref(1000);
 const neoPrice = ref(0);
@@ -310,6 +306,10 @@ function getKnownName(candidate) {
   } catch {
     return null;
   }
+}
+
+function getDisplayLabel(candidate) {
+  return getKnownName(candidate) || publicKeyToAddress(candidate.publickey);
 }
 
 function getLogo(candidate) {
@@ -489,6 +489,45 @@ async function loadCandidates() {
   }
 }
 
+async function loadCurrentVoteState() {
+  if (!account.value) {
+    currentVotePublicKey.value = "";
+    return;
+  }
+
+  try {
+    const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+    const scriptHash = addressToScriptHash(account.value);
+    if (!scriptHash) {
+      currentVotePublicKey.value = "";
+      return;
+    }
+    const result = await rpcClient.execute(new rpc.Query({
+      method: "invokefunction",
+      params: [
+        "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "getAccountState",
+        [{ type: "Hash160", value: scriptHash }],
+      ],
+    }));
+
+    const item = Array.isArray(result?.stack) ? result.stack[0] : null;
+    const structValues = Array.isArray(item?.value) ? item.value : [];
+    const voteTo = structValues[2];
+    if (voteTo?.type === "ByteString" && typeof voteTo.value === "string" && voteTo.value) {
+      currentVotePublicKey.value = atob(voteTo.value)
+        .split("")
+        .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("");
+      return;
+    }
+
+    currentVotePublicKey.value = "";
+  } catch (_err) {
+    currentVotePublicKey.value = "";
+  }
+}
+
 function formatAccount(addr) {
   if (!addr) return '';
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -498,14 +537,24 @@ function formatVotes(votes) {
   return Number(votes || 0).toLocaleString();
 }
 
-async function handleVote(candidate) {
+function isCurrentVote(candidate) {
+  return String(candidate?.publickey || "").toLowerCase() === String(currentVotePublicKey.value || "").toLowerCase();
+}
+
+async function handleVoteAction(candidate) {
   if (!account.value) {
     toast.info("Please connect your wallet first.");
     return;
   }
   try {
     voting.value = true;
-    await voteForCandidate(candidate.publickey);
+    if (isCurrentVote(candidate)) {
+      await unvoteCandidate();
+      currentVotePublicKey.value = "";
+    } else {
+      await voteForCandidate(candidate.publickey);
+      currentVotePublicKey.value = String(candidate.publickey || "");
+    }
   } catch (err) {
     // Errors handled inside voteForCandidate
   } finally {
@@ -515,11 +564,13 @@ async function handleVote(candidate) {
 
 function handleNetworkChange() {
   loadCandidates();
+  loadCurrentVoteState();
 }
 
 onMounted(() => {
   loadPrices();
   loadCandidates();
+  loadCurrentVoteState();
   });
 
 useNetworkChange(handleNetworkChange);
