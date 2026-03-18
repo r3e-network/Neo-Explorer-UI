@@ -112,3 +112,7 @@ typings/
 .vercel/
 .vercel
 .serena/
+
+# Generated smart-contract build output for local validation labs
+contracts/MockPolicyLab/bin/
+contracts/MockPolicyLab/obj/
