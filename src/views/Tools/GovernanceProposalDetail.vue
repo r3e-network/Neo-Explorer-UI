@@ -87,80 +87,81 @@
               </div>
 
               <div class="grid grid-cols-2 gap-3 xl:w-[320px]">
-                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                  <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Votes</div>
-                  <div class="mt-2 text-3xl font-black text-primary-600">{{ signedCount }} / {{ requiredCount }}</div>
+                <div class="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Current Votes</div>
+                  <div class="mt-2 text-3xl font-black tracking-tight" :class="thresholdMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary-600'">{{ signedCount }} / {{ requiredCount }}</div>
                 </div>
-                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                  <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">
-                    {{ thresholdMet ? "Ready" : "Still Needed" }}
+                <div class="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
+                    {{ thresholdMet ? "Ready to Cast" : "Signatures Needed" }}
                   </div>
-                  <div class="mt-2 text-3xl font-black text-high">{{ thresholdMet ? 0 : remainingVotes }}</div>
+                  <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ thresholdMet ? 0 : remainingVotes }}</div>
                 </div>
-                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                  <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Created</div>
-                  <div class="mt-2 text-sm font-semibold text-high">{{ formatDate(proposal.created_at) }}</div>
+                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Created</div>
+                  <div class="mt-1 text-sm font-bold text-high tracking-tight">{{ formatDate(proposal.created_at) }}</div>
                 </div>
-                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                  <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Broadcast</div>
-                  <div class="mt-2 text-sm font-semibold" :class="thresholdMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
-                    {{ thresholdMet ? "Ready now" : "Awaiting quorum" }}
+                <div class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Broadcast State</div>
+                  <div class="mt-1 text-sm font-bold tracking-tight" :class="thresholdMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+                    {{ thresholdMet ? "Ready Now" : "Awaiting Quorum" }}
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="relative mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-5">
                   <div class="min-w-0">
-                    <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Council approval progress</div>
-                    <div class="mt-2 text-xl font-bold text-high">{{ progressHeadline }}</div>
-                    <p class="mt-2 max-w-2xl text-sm text-mid">{{ progressDescription }}</p>
+                    <div class="text-[10px] uppercase tracking-[0.2em] font-black text-low mb-1.5">Council Approval Timeline</div>
+                    <div class="text-xl font-black text-high tracking-tight">{{ progressHeadline }}</div>
+                    <p class="mt-1.5 max-w-2xl text-sm text-mid leading-relaxed">{{ progressDescription }}</p>
                   </div>
                   <span
-                    class="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-                    :class="thresholdMet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'"
+                    class="shrink-0 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm"
+                    :class="thresholdMet ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'"
                   >
                     {{ thresholdMet ? "Ready to broadcast" : "Signing in progress" }}
                   </span>
                 </div>
 
-                <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-line-soft">
+                <div class="h-3 overflow-hidden rounded-full bg-surface-muted border border-line-soft shadow-inner mb-6">
                   <div
-                    class="h-2.5 rounded-full transition-all duration-300"
-                    :class="thresholdMet ? 'bg-emerald-500' : 'bg-primary-500'"
+                    class="h-full rounded-full transition-all duration-500 ease-out"
+                    :class="thresholdMet ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-amber-400 to-amber-500'"
                     :style="{ width: progressWidth }"
                   ></div>
                 </div>
 
-                <div class="mt-4 grid gap-3 md:grid-cols-3">
+                <div class="grid gap-4 md:grid-cols-3">
                   <div
                     v-for="step in lifecycleSteps"
                     :key="step.title"
-                    class="rounded-2xl border px-4 py-3"
+                    class="rounded-2xl border px-5 py-4 transition-colors duration-300"
                     :class="step.stateClass"
                   >
-                    <div class="flex items-center gap-2">
-                      <span class="flex h-7 w-7 items-center justify-center rounded-full border border-current/20 text-[11px] font-black">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-current/20 bg-current/5 text-[11px] font-black shadow-inner">
                         {{ step.index }}
                       </span>
-                      <div class="text-sm font-bold">{{ step.title }}</div>
+                      <div class="text-sm font-bold tracking-tight">{{ step.title }}</div>
                     </div>
-                    <p class="mt-2 text-xs leading-5 opacity-90">{{ step.description }}</p>
+                    <p class="mt-2.5 text-xs leading-relaxed opacity-80">{{ step.description }}</p>
                   </div>
                 </div>
               </div>
 
-              <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
-                <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Packet Snapshot</div>
-                <div class="mt-4 space-y-3">
+              <div class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <div class="text-[10px] uppercase tracking-[0.2em] font-black text-low mb-4">Quick Snapshot</div>
+                <div class="space-y-3">
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-                    <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Method</div>
-                    <div class="mt-1 text-sm font-semibold text-high">{{ proposal.method }}</div>
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Target Method</div>
+                    <div class="text-sm font-bold text-high tracking-tight">{{ proposal.method }}</div>
                   </div>
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-                    <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Target Contract</div>
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Smart Contract</div>
+
                     <div class="mt-1 font-mono text-xs break-all text-low">{{ proposal.target_contract }}</div>
                   </div>
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
@@ -379,50 +380,51 @@
 
           <div class="space-y-6 lg:sticky lg:top-24 lg:self-start">
             <div data-testid="council-status-panel" class="etherscan-card overflow-hidden">
-              <div class="border-b border-line-soft px-6 py-5">
+              <div class="border-b border-line-soft bg-surface/30 px-6 py-6">
                 <div class="flex items-start justify-between gap-3">
                   <div>
-                    <h2 class="text-lg font-bold text-high">Council Vote Status</h2>
-                    <p class="mt-1 text-sm text-mid">Track which eligible council members have already stored their witness fragments.</p>
+                    <h2 class="text-lg font-black text-high tracking-tight">Council Vote Status</h2>
+                    <p class="mt-1.5 text-xs text-mid max-w-[250px] leading-relaxed">Track which eligible council members have signed the governance payload.</p>
                   </div>
-                  <span class="inline-flex items-center rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-low">
+                  <span class="inline-flex items-center rounded-xl border border-line-soft bg-surface-muted px-3 py-1.5 text-xs font-black tracking-widest text-low shadow-inner">
                     {{ signedCount }} / {{ requiredCount }}
                   </span>
                 </div>
               </div>
 
-              <div class="p-4 space-y-3">
+              <div class="p-5 space-y-3">
                 <div
                   v-for="signer in signerRows"
                   :key="signer.address"
-                  class="flex items-center justify-between gap-3 rounded-2xl border border-line-soft bg-surface-muted/40 px-4 py-3"
+                  class="flex items-center justify-between gap-3 rounded-2xl border border-line-soft bg-surface-muted/30 px-4 py-3.5 hover:bg-surface-muted/60 transition-colors duration-200"
+                  :class="{ 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30 dark:bg-emerald-950/20': signer.signed }"
                 >
-                  <div class="flex min-w-0 items-center gap-3" :title="signer.address">
+                  <div class="flex min-w-0 items-center gap-3.5" :title="signer.address">
                     <img
                       :src="signer.logo"
                       :data-testid="`council-status-logo-${signer.address}`"
                       alt=""
-                      class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                      class="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm bg-white shrink-0 dark:ring-slate-800"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <div class="font-semibold text-high truncate">{{ signer.name }}</div>
+                      <div class="flex items-center gap-2 mb-0.5">
+                        <div class="font-bold text-sm text-high truncate tracking-tight">{{ signer.name }}</div>
                         <span
                           v-if="signer.address === connectedAccount"
-                          class="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                          class="rounded-md bg-emerald-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400"
                         >
                           You
                         </span>
                       </div>
-                      <div class="mt-1 text-[11px] uppercase tracking-[0.18em] text-low">
+                      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold" :class="signer.signed ? 'text-emerald-600 dark:text-emerald-400' : 'text-low'">
                         {{ signer.signed ? "Witness stored" : "Awaiting witness" }}
                       </div>
                     </div>
                   </div>
                   <div
-                    class="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
-                    :class="signer.signed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+                    class="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm"
+                    :class="signer.signed ? 'bg-emerald-500 text-white' : 'bg-surface-elevated text-mid border border-line-soft'"
                   >
                     {{ signer.signed ? "Voted" : "Pending" }}
                   </div>
@@ -713,23 +715,32 @@ const signerRows = computed(() => {
       name: resolved.name === address ? `Council Node ${index + 1}` : resolved.name,
       logo: resolveCouncilLogo(address, resolved.logo),
       signed: signed.has(address),
+      councilIndex: index + 1
     };
   });
 });
 
-const signatureWitnessRows = computed(() =>
-  (proposal.value?.signatures || []).map((signature, index) => {
+const signatureWitnessRows = computed(() => {
+  const eligible = Array.isArray(proposal.value?.eligible_signers) ? proposal.value.eligible_signers : [];
+  
+  return (proposal.value?.signatures || []).map((signature, index) => {
     const resolved = resolveCouncilIdentity(signature.signer_address, councilIdentityMap.value);
+    
+    // Find the true council index based on the original eligible signers array to keep naming consistent
+    const eligibleIndex = eligible.findIndex(addr => addr === signature.signer_address);
+    const displayIndex = eligibleIndex >= 0 ? eligibleIndex + 1 : index + 1;
+    
     return {
       signerAddress: signature.signer_address,
-      name: resolved.name === signature.signer_address ? `Council Node ${index + 1}` : resolved.name,
+      name: resolved.name === signature.signer_address ? `Council Node ${displayIndex}` : resolved.name,
       logo: resolveCouncilLogo(signature.signer_address, resolved.logo),
       signature: signature.signature,
       invocationScriptBase64: buildSignatureInvocationScriptBase64(signature.signature),
       witnessJson: signature.witness ? JSON.stringify(signature.witness, null, 2) : "",
+      councilIndex: displayIndex
     };
-  })
-);
+  });
+});
 
 function findCommitteePubkeyForAddress(address) {
   const target = String(address || "").trim();
