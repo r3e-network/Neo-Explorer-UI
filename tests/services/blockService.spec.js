@@ -120,6 +120,40 @@ describe("blockService", () => {
         nextconsensus: "0xabc",
       });
     });
+
+    it("backfills aggregate fees from full block transactions when list fees are zero but txcount is non-zero", async () => {
+      api.safeRpcList.mockResolvedValueOnce({
+        result: [
+          {
+            hash: "0x2",
+            index: 2,
+            txcount: 2,
+            sysfee: 0,
+            netfee: 0,
+          },
+        ],
+        totalCount: 1,
+      });
+
+      api.safeRpc.mockResolvedValueOnce({
+        hash: "0x2",
+        index: 2,
+        tx: [
+          { sysfee: 100, netfee: 10 },
+          { sysfee: 200, netfee: 20 },
+        ],
+        primary: 0,
+        nextconsensus: "0xabc",
+      });
+
+      const result = await blockService.getList(1, 0, { enrichMissingFields: true });
+
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 2 }, null, expect.any(Object));
+      expect(result.result[0]).toMatchObject({
+        sysfee: 300,
+        netfee: 30,
+      });
+    });
   });
 
   describe("getByHash", () => {

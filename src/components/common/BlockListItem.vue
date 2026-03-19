@@ -131,8 +131,24 @@ const hasNamedValidatorIdentity = computed(() => {
 });
 
 const blockFee = computed(() => {
-  const sys = Number(props.block.sysfee || 0);
-  const net = Number(props.block.netfee || 0);
+  const directSys = Number(props.block.sysfee ?? props.block.systemFee);
+  const directNet = Number(props.block.netfee ?? props.block.networkFee);
+  const hasDirectSys = Number.isFinite(directSys);
+  const hasDirectNet = Number.isFinite(directNet);
+
+  let sys = hasDirectSys ? directSys : 0;
+  let net = hasDirectNet ? directNet : 0;
+
+  const shouldUseTxFallback =
+    Array.isArray(props.block.tx) &&
+    props.block.tx.length > 0 &&
+    (!hasDirectSys || !hasDirectNet || (sys === 0 && net === 0));
+
+  if (shouldUseTxFallback) {
+    sys = props.block.tx.reduce((sum, tx) => sum + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0), 0);
+    net = props.block.tx.reduce((sum, tx) => sum + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0), 0);
+  }
+
   return formatGas(sys + net);
 });
 </script>

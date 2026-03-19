@@ -220,6 +220,43 @@ function normalizeHomepageTransaction(tx = {}) {
   };
 }
 
+function computeBlockFeeTotals(block = {}) {
+  const directSysFee = Number(block.sysfee ?? block.systemFee);
+  const directNetFee = Number(block.netfee ?? block.networkFee);
+  const txList = Array.isArray(block.tx) ? block.tx : [];
+  const txCount = Number(
+    block.txcount ??
+    block.transactioncount ??
+    block.txCount ??
+    block.transactionCount ??
+    block.tx_count ??
+    block.transaction_count ??
+    txList.length
+  );
+
+  const hasDirectSysFee = Number.isFinite(directSysFee);
+  const hasDirectNetFee = Number.isFinite(directNetFee);
+  const shouldUseTxFallback =
+    txList.length > 0 &&
+    txCount > 0 &&
+    (!hasDirectSysFee || !hasDirectNetFee || (directSysFee === 0 && directNetFee === 0));
+
+  if (!shouldUseTxFallback) {
+    return {
+      sysfee: hasDirectSysFee ? directSysFee : undefined,
+      netfee: hasDirectNetFee ? directNetFee : undefined,
+    };
+  }
+
+  return txList.reduce(
+    (sum, tx) => ({
+      sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
+      netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
+    }),
+    { sysfee: 0, netfee: 0 }
+  );
+}
+
 async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {}) {
   const maxItems = Math.max(1, Number(limit) || 6);
   const normalizedSkip = Math.max(0, Number(skip) || 0);
@@ -370,7 +407,7 @@ async function loadLatestData(forceRefresh = false) {
       }
 
       try {
-        return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: false });
+        return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: true });
       } catch (err) {
         if (import.meta.env.DEV) {
           console.warn("RPC latest block list unavailable, falling back to per-height fetch:", err);
@@ -548,8 +585,15 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
     if (!block?.hash || blockDetailsByHash.has(block.hash)) return false;
     const missingConsensus = !block.nextconsensus && !block.nextConsensus && !block.speaker && !block.validator;
     const missingPrimary = block.primary === undefined;
-    const missingFees = block.sysfee === undefined && block.systemFee === undefined;
-    const missingNetFee = block.netfee === undefined && block.networkFee === undefined;
+    const txCount = Number(block.txcount ?? block.transactioncount ?? 0);
+    const currentSysFee = Number(block.sysfee ?? block.systemFee);
+    const currentNetFee = Number(block.netfee ?? block.networkFee);
+    const missingFees =
+      (block.sysfee === undefined && block.systemFee === undefined) ||
+      (Number.isFinite(currentSysFee) && currentSysFee === 0 && txCount > 0);
+    const missingNetFee =
+      (block.netfee === undefined && block.networkFee === undefined) ||
+      (Number.isFinite(currentNetFee) && currentNetFee === 0 && txCount > 0);
     return missingConsensus || missingFees || missingNetFee || missingPrimary;
   });
 
@@ -568,8 +612,7 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
             nextconsensus: full.nextconsensus ?? full.nextConsensus ?? full.speaker ?? full.validator,
             speaker: full.speaker ?? full.nextconsensus ?? full.nextConsensus ?? full.validator,
             validator: full.validator ?? full.speaker ?? full.nextconsensus ?? full.nextConsensus,
-            sysfee: full.sysfee ?? full.systemFee,
-            netfee: full.netfee ?? full.networkFee,
+            ...computeBlockFeeTotals(full),
           },
         };
       } catch {

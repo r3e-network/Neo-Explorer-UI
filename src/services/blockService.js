@@ -89,6 +89,45 @@ export const blockService = createService(
     },
   },
   {
+    _computeBlockFeeTotals(block = {}) {
+      const directSysFee = Number(block.sysfee ?? block.systemFee);
+      const directNetFee = Number(block.netfee ?? block.networkFee);
+      const txCount = Number(
+        block.txcount ??
+        block.transactioncount ??
+        block.txCount ??
+        block.transactionCount ??
+        block.tx_count ??
+        block.transaction_count ??
+        (Array.isArray(block.tx) ? block.tx.length : 0)
+      );
+
+      const hasDirectSysFee = Number.isFinite(directSysFee);
+      const hasDirectNetFee = Number.isFinite(directNetFee);
+      const shouldUseTxFallback =
+        Array.isArray(block.tx) &&
+        block.tx.length > 0 &&
+        txCount > 0 &&
+        (!hasDirectSysFee || !hasDirectNetFee || (directSysFee === 0 && directNetFee === 0));
+
+      if (!shouldUseTxFallback) {
+        return {
+          sysfee: hasDirectSysFee ? directSysFee : undefined,
+          netfee: hasDirectNetFee ? directNetFee : undefined,
+        };
+      }
+
+      const totals = block.tx.reduce(
+        (sum, tx) => ({
+          sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
+          netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
+        }),
+        { sysfee: 0, netfee: 0 }
+      );
+
+      return totals;
+    },
+
     _extractCount(res) {
       const direct = Number(res);
       if (Number.isFinite(direct)) return direct;
@@ -133,8 +172,23 @@ export const blockService = createService(
       // Backfill missing fee/consensus fields only when unavailable in list payload.
       const enriched = await Promise.all(
         res.result.map(async (b) => {
-          const missingFees = b.sysfee === undefined && b.systemFee === undefined;
-          const missingNetFee = b.netfee === undefined && b.networkFee === undefined;
+          const txCount = Number(
+            b.txcount ??
+            b.transactioncount ??
+            b.txCount ??
+            b.transactionCount ??
+            b.tx_count ??
+            b.transaction_count ??
+            (Array.isArray(b.tx) ? b.tx.length : 0)
+          );
+          const currentSysFee = Number(b.sysfee ?? b.systemFee);
+          const currentNetFee = Number(b.netfee ?? b.networkFee);
+          const missingFees =
+            (b.sysfee === undefined && b.systemFee === undefined) ||
+            (Number.isFinite(currentSysFee) && currentSysFee === 0 && txCount > 0);
+          const missingNetFee =
+            (b.netfee === undefined && b.networkFee === undefined) ||
+            (Number.isFinite(currentNetFee) && currentNetFee === 0 && txCount > 0);
           const missingConsensus = b.nextconsensus === undefined && b.nextConsensus === undefined;
           const missingPrimary = b.primary === undefined;
 
@@ -142,8 +196,9 @@ export const blockService = createService(
             try {
               const full = await this.getByHeight(b.index, requestOptions);
               if (full) {
-                b.sysfee = full.sysfee ?? full.systemFee;
-                b.netfee = full.netfee ?? full.networkFee;
+                const feeTotals = this._computeBlockFeeTotals(full);
+                b.sysfee = feeTotals.sysfee;
+                b.netfee = feeTotals.netfee;
                 b.primary = full.primary;
                 b.nextconsensus = full.nextconsensus ?? full.nextConsensus;
               }

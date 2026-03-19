@@ -190,7 +190,7 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: true, enrichMissingFields: false });
+    expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: true, enrichMissingFields: true });
     expect(getBlockList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
     expect(getTxList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
     wrapper.unmount();

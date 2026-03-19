@@ -94,4 +94,33 @@ describe("BlockListItem", () => {
     expect(wrapper.text()).toContain("COZ");
     expect(wrapper.text()).not.toContain(validatorAddress);
   });
+
+  it("falls back to summing transaction fees when aggregate block fees are zero", () => {
+    const wrapper = mount(BlockListItem, {
+      props: {
+        block: {
+          index: 102,
+          timestamp: Date.now(),
+          transactioncount: 2,
+          sysfee: 0,
+          netfee: 0,
+          tx: [
+            { sysfee: 100, netfee: 10 },
+            { sysfee: 200, netfee: 20 },
+          ],
+          size: 1400,
+          primary: 0,
+          nextconsensus: "0x1234567890abcdef1234567890abcdef12345678",
+        },
+      },
+      global: {
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+          HashLink: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("330 GAS");
+  });
 });
