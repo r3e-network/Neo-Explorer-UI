@@ -52,6 +52,6 @@ describe("logoOptimization", () => {
 
   it("builds governance fallback logo url", () => {
     const url = getDefaultCandidateLogoUrl("03abcdef");
-    expect(url).toContain("governance.neo.org/logo/03abcdef.png");
+    expect(url).toContain("data:image/svg+xml");
   });
 });
