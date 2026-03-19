@@ -1,8 +1,8 @@
 <template>
-  <div class="script-viewer dark text-slate-300">
+  <div class="script-viewer text-high">
     <!-- Header with toggle -->
     <div class="flex items-center justify-between mb-3">
-      <h4 class="text-slate-200 text-sm font-semibold">
+      <h4 class="text-sm font-semibold text-high dark:text-slate-200">
         {{ label }}
       </h4>
       <div class="flex items-center gap-2">
@@ -10,8 +10,8 @@
           class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
           :class="
             showRaw
-              ? 'bg-primary-900/40 text-primary-300'
-              : 'badge-soft text-slate-400 hover:text-slate-200'
+              ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300'
+              : 'border border-line-soft bg-surface text-mid hover:bg-surface-muted hover:text-high dark:border-white/10 dark:bg-surface-elevated dark:text-slate-400 dark:hover:text-slate-200'
           "
           @click="showRaw = !showRaw"
         >
@@ -37,30 +37,30 @@
     <!-- Raw hex view -->
     <pre
       v-if="showRaw"
-      class="bg-[#020617] text-slate-400 max-h-48 overflow-auto rounded-lg break-all whitespace-pre-wrap p-3 font-mono text-xs border border-white/5 shadow-inner"
+      class="max-h-48 overflow-auto rounded-lg break-all whitespace-pre-wrap border border-line-soft bg-surface p-3 font-mono text-xs text-high shadow-inner dark:border-white/5 dark:bg-[#020617] dark:text-slate-400"
       >{{ rawHex }}</pre
     >
 
     <!-- Decoded opcodes table -->
     <div
       v-else
-      class="overflow-x-auto rounded-lg border border-white/10 bg-[#020617] shadow-inner"
+      class="overflow-x-auto rounded-lg border border-line-soft bg-surface shadow-inner dark:border-white/10 dark:bg-[#020617]"
     >
       <table class="w-full text-xs">
         <thead>
-          <tr class="border-b border-white/10 bg-white/5">
-            <th class="text-slate-400 w-16 px-3 py-2 text-left font-medium">Offset</th>
-            <th class="text-slate-400 w-32 px-3 py-2 text-left font-medium">Opcode</th>
-            <th class="text-slate-400 px-3 py-2 text-left font-medium">Operand</th>
+          <tr class="border-b border-line-soft bg-surface-muted/70 dark:border-white/10 dark:bg-white/5">
+            <th class="w-16 px-3 py-2 text-left font-medium text-low dark:text-slate-400">Offset</th>
+            <th class="w-32 px-3 py-2 text-left font-medium text-low dark:text-slate-400">Opcode</th>
+            <th class="px-3 py-2 text-left font-medium text-low dark:text-slate-400">Operand</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-white/5">
+        <tbody class="divide-y divide-line-soft dark:divide-white/5">
           <tr
             v-for="(inst, idx) in visibleInstructions"
             :key="idx"
-            class="group hover:bg-white/[0.02] transition-colors"
+            class="group transition-colors hover:bg-surface-muted/50 dark:hover:bg-white/[0.02]"
           >
-            <td class="text-slate-500 px-3 py-1.5 font-mono">
+            <td class="px-3 py-1.5 font-mono text-low dark:text-slate-500">
               {{ formatOffset(inst.offset) }}
             </td>
             <td class="px-3 py-1.5">
@@ -71,7 +71,7 @@
                 {{ inst.opcode }}
               </span>
             </td>
-            <td class="text-slate-300 break-all px-3 py-1.5 font-mono">
+            <td class="break-all px-3 py-1.5 font-mono text-high dark:text-slate-300">
               <template v-if="inst.operand">
                 <span v-if="parseOperand(inst.operand)" :class="operandClass(inst)">
                   {{ parseOperand(inst.operand).hash }}
@@ -86,9 +86,9 @@
                     type="address"
                     :copyable="false"
                     :truncate="false"
-                    class="inline-flex text-slate-300 hover:text-white"
+                    class="inline-flex text-high hover:text-primary-700 dark:text-slate-300 dark:hover:text-white"
                   />
-                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="text-slate-300 font-normal">
+                  <span v-else-if="parseOperand(inst.operand).type === 'native'" class="font-normal text-high dark:text-slate-300">
                     {{ parseOperand(inst.operand).name || "Native" }}
                   </span>
                   <HashLink
@@ -97,7 +97,7 @@
                     type="tx"
                     :copyable="false"
                     :truncate="false"
-                    class="inline-flex text-slate-300 hover:text-white"
+                    class="inline-flex text-high hover:text-primary-700 dark:text-slate-300 dark:hover:text-white"
                   />
                   <span class="text-slate-500 font-normal">)</span>
                 </span>
@@ -133,7 +133,7 @@
       <!-- Show more -->
       <button
         v-if="instructions.length > maxVisible && !showAllOps"
-        class="w-full border-t border-white/10 py-2 text-xs font-medium text-primary-400 transition-colors hover:bg-white/5"
+        class="w-full border-t border-line-soft py-2 text-xs font-medium text-primary-600 transition-colors hover:bg-surface-muted/60 dark:border-white/10 dark:text-primary-400 dark:hover:bg-white/5"
         @click="showAllOps = true"
       >
         Show all {{ instructions.length }} instructions

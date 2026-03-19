@@ -3,6 +3,18 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = fs.readFileSync(path.resolve(process.cwd(), "src/styles/tailwind.css"), "utf8");
+const scriptViewerSource = fs.readFileSync(
+  path.resolve(process.cwd(), "src/components/trace/ScriptViewer.vue"),
+  "utf8"
+);
+const unsignedTxViewerSource = fs.readFileSync(
+  path.resolve(process.cwd(), "src/components/trace/UnsignedTransactionViewer.vue"),
+  "utf8"
+);
+const abiEncoderSource = fs.readFileSync(
+  path.resolve(process.cwd(), "src/views/Tools/AbiEncoderTool.vue"),
+  "utf8"
+);
 
 describe("tools dark theme tokens", () => {
   it("defines a dedicated dark tool-page shell treatment", () => {
@@ -20,5 +32,11 @@ describe("tools dark theme tokens", () => {
     expect(source).toContain(".dark .etherscan-card");
     expect(source).toContain(".dark .panel-muted");
     expect(source).toContain(".dark .page-header-icon");
+  });
+
+  it("keeps shared tool viewers light in light mode instead of forcing dark wrappers", () => {
+    expect(scriptViewerSource).not.toContain('class="script-viewer dark');
+    expect(unsignedTxViewerSource).not.toContain('class="unsigned-transaction-viewer dark');
+    expect(abiEncoderSource).not.toContain('bg-slate-900 rounded-xl p-4 text-xs font-mono text-slate-300');
   });
 });

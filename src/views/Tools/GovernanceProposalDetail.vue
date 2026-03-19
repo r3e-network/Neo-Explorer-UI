@@ -327,7 +327,7 @@
                       <div class="grid gap-4 xl:grid-cols-2">
                         <div class="rounded-2xl border border-line-soft bg-surface p-4">
                           <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">Stored ECDSA Signature</div>
-                          <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner dark:bg-[#020617]">
+                          <div class="rounded-xl border border-line-soft bg-surface-muted/70 p-3 font-mono text-[10px] break-all text-high shadow-inner dark:bg-[#020617] dark:text-slate-300">
                             {{ row.signature }}
                           </div>
                         </div>
@@ -335,21 +335,21 @@
                           <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">
                             {{ row.witnessJson ? "Attached Witness Meta" : "Empty Fragment" }}
                           </div>
-                          <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-[80px] overflow-y-auto dark:bg-[#020617]">
+                          <div class="max-h-[80px] overflow-y-auto rounded-xl border border-line-soft bg-surface-muted/70 p-3 font-mono text-[10px] break-all text-high shadow-inner dark:bg-[#020617] dark:text-slate-300">
                             {{ row.witnessJson || "Awaiting final multisig assembly..." }}
                           </div>
                         </div>
                       </div>
 
                       <!-- Parsed Invocation Script Window -->
-                      <div v-if="row.invocationScriptBase64" class="mt-5 rounded-2xl border border-line-soft bg-[#0f172a] shadow-lg overflow-hidden dark:bg-[#020617]">
-                        <div class="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2.5">
+                      <div v-if="row.invocationScriptBase64" class="mt-5 overflow-hidden rounded-2xl border border-line-soft bg-surface shadow-lg dark:bg-[#020617]">
+                        <div class="flex items-center justify-between border-b border-line-soft bg-surface-muted/70 px-4 py-2.5 dark:border-white/10 dark:bg-black/20">
                           <div class="flex items-center gap-2">
                             <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            <span class="text-[11px] font-bold tracking-wider text-slate-300 uppercase">Parsed Invocation OpCodes</span>
+                            <span class="text-[11px] font-bold tracking-wider text-high uppercase dark:text-slate-300">Parsed Invocation OpCodes</span>
                           </div>
                         </div>
-                        <div class="dark p-2">
+                        <div class="p-2">
                           <ScriptViewer :script="row.invocationScriptBase64" />
                         </div>
                       </div>
@@ -382,13 +382,13 @@
                   <div class="grid gap-4 md:grid-cols-2">
                     <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Assembled Invocation Script</div>
-                      <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-40 overflow-y-auto dark:bg-[#020617]">
+                      <div class="max-h-40 overflow-y-auto rounded-xl border border-line-soft bg-white/80 p-3 font-mono text-[10px] break-all text-emerald-950 shadow-inner dark:bg-[#020617] dark:text-slate-300">
                         {{ proposal.params.broadcast_witness.invocationScript || "Unavailable" }}
                       </div>
                     </div>
                     <div class="rounded-2xl border border-emerald-200/60 bg-white/60 p-4 dark:border-emerald-800/30 dark:bg-black/20">
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700/70 dark:text-emerald-400/70 mb-2">Council Verification Script</div>
-                      <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 shadow-inner max-h-40 overflow-y-auto dark:bg-[#020617]">
+                      <div class="max-h-40 overflow-y-auto rounded-xl border border-line-soft bg-white/80 p-3 font-mono text-[10px] break-all text-emerald-950 shadow-inner dark:bg-[#020617] dark:text-slate-300">
                         {{ proposal.params.broadcast_witness.verificationScript || "Unavailable" }}
                       </div>
                     </div>

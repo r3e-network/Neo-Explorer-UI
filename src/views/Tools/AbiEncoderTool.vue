@@ -151,11 +151,11 @@
                   </div>
                   <div class="p-5">
                     <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-3">Instructions (Opcodes)</p>
-                    <div class="max-h-80 overflow-y-auto bg-slate-900 rounded-xl p-4 text-xs font-mono text-slate-300 space-y-1.5 shadow-inner">
-                      <div v-for="(inst, i) in decodedResult.instructions" :key="i" class="flex gap-4 border-b border-slate-800/50 pb-1.5 mb-1.5 last:border-0 last:mb-0 last:pb-0 hover:bg-slate-800/50 rounded px-1 transition-colors">
-                        <span class="text-slate-500 w-8 shrink-0 select-none">{{ i.toString().padStart(2, '0') }}</span>
+                    <div class="max-h-80 overflow-y-auto rounded-xl border border-line-soft bg-surface p-4 text-xs font-mono text-high space-y-1.5 shadow-inner dark:border-white/10 dark:bg-slate-900 dark:text-slate-300">
+                      <div v-for="(inst, i) in decodedResult.instructions" :key="i" class="mb-1.5 flex gap-4 rounded px-1 pb-1.5 transition-colors last:mb-0 last:border-0 last:pb-0 border-b border-line-soft hover:bg-surface-muted/60 dark:border-slate-800/50 dark:hover:bg-slate-800/50">
+                        <span class="w-8 shrink-0 select-none text-low dark:text-slate-500">{{ i.toString().padStart(2, '0') }}</span>
                         <span class="text-fuchsia-400 w-24 shrink-0 font-bold">{{ inst.opcode }}</span>
-                        <span class="break-all text-slate-200">{{ inst.operand || '' }}</span>
+                        <span class="break-all text-high dark:text-slate-200">{{ inst.operand || '' }}</span>
                       </div>
                     </div>
                   </div>

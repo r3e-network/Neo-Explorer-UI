@@ -38,6 +38,34 @@ describe("UnsignedTransactionViewer", () => {
     expect(wrapper.find('[data-testid="script-viewer"]').exists()).toBe(true);
   });
 
+  it("uses high-contrast theme text for the header copy on light surfaces", async () => {
+    const UnsignedTransactionViewer = (await import("@/components/trace/UnsignedTransactionViewer.vue")).default;
+    const wrapper = mount(UnsignedTransactionViewer, {
+      props: {
+        transactionHex: unsignedTx,
+        label: "Unsigned Transaction Packet",
+        description: "The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script.",
+      },
+    });
+
+    expect(wrapper.get('[data-testid="unsigned-tx-header-label"]').classes()).toContain("text-high");
+    expect(wrapper.get('[data-testid="unsigned-tx-header-description"]').classes()).toContain("text-mid");
+  });
+
+  it("uses light-surface containers by default instead of forcing dark blocks", async () => {
+    const UnsignedTransactionViewer = (await import("@/components/trace/UnsignedTransactionViewer.vue")).default;
+    const wrapper = mount(UnsignedTransactionViewer, {
+      props: {
+        transactionHex: unsignedTx,
+      },
+    });
+
+    expect(wrapper.get('[data-testid="unsigned-tx-shell"]').classes()).toContain("bg-surface-muted/60");
+    expect(wrapper.get('[data-testid="unsigned-tx-shell"]').classes()).not.toContain("dark");
+    await wrapper.get('[data-testid="unsigned-tx-toggle"]').trigger("click");
+    expect(wrapper.get('[data-testid="unsigned-tx-raw"]').classes()).toContain("bg-surface");
+  });
+
   it("keeps the raw hex view copyable", async () => {
     const UnsignedTransactionViewer = (await import("@/components/trace/UnsignedTransactionViewer.vue")).default;
     const wrapper = mount(UnsignedTransactionViewer, {
