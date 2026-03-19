@@ -260,39 +260,12 @@
                   </div>
                 </div>
 
-                <!-- Decoded Script Panel -->
-                <div v-if="decodedUnsignedScript" class="rounded-3xl border border-line-soft bg-surface shadow-md overflow-hidden">
-                  <div class="border-b border-line-soft bg-surface-muted/40 px-5 py-4">
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <div class="h-8 w-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center dark:bg-amber-900/30 dark:text-amber-400">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                        </div>
-                        <div>
-                          <h3 class="text-base font-bold text-high tracking-tight">Decoded Execution Script</h3>
-                          <p class="text-[11px] text-mid font-medium mt-0.5">The translated contract invocation that council nodes are actively signing.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="dark bg-[#0f172a] p-2 dark:bg-[#020617]">
-                    <ScriptViewer :script="decodedUnsignedScript" />
-                  </div>
-                </div>
-
-                <!-- Raw Unsigned Tx Hex -->
-                <div class="rounded-3xl border border-line-soft bg-surface shadow-sm p-5">
-                  <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <div>
-                      <div class="text-xs font-bold text-high tracking-tight">Raw Unsigned Transaction</div>
-                      <p class="mt-1 text-[11px] text-mid">The literal hex byte array presented to wallets for the ECDSA signature.</p>
-                    </div>
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-low px-2 py-1 bg-surface-muted rounded-md">Hex Payload</span>
-                  </div>
-                  <div class="rounded-2xl border border-line-soft bg-[#0f172a] p-4 font-mono text-xs break-all text-slate-300 max-h-32 overflow-y-auto shadow-inner leading-relaxed dark:bg-[#020617]">
-                    {{ proposal.params?.unsigned_tx || "Unavailable" }}
-                  </div>
-                </div>
+                <UnsignedTransactionViewer
+                  v-if="proposal.params?.unsigned_tx"
+                  :transaction-hex="proposal.params.unsigned_tx"
+                  label="Unsigned Transaction Packet"
+                  description="The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script."
+                />
 
                 <!-- Collected Witnesses -->
                 <div class="pt-6 border-t border-line-soft">
@@ -565,19 +538,12 @@
             </button>
           </div>
           <div data-testid="governance-detail-sign-modal-body" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
-            <div>
-              <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
-              <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 max-h-40 overflow-y-auto shadow-inner dark:bg-[#020617]">
-                {{ proposal?.params?.unsigned_tx }}
-              </div>
-            </div>
-            
-            <div v-if="decodedUnsignedScript" class="dark bg-[#0f172a] p-3 rounded-xl border border-line-soft shadow-inner dark:bg-[#020617]">
-              <ScriptViewer
-                :script="decodedUnsignedScript"
-                label="Decoded Contract Script"
-              />
-            </div>
+            <UnsignedTransactionViewer
+              v-if="proposal?.params?.unsigned_tx"
+              :transaction-hex="proposal.params.unsigned_tx"
+              label="Unsigned Transaction Packet"
+              description="Review the complete unsigned transaction before submitting a wallet signature or importing an external witness."
+            />
             
             <div class="space-y-3">
               <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
@@ -669,12 +635,12 @@ import { useToast } from "vue-toastification";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
+import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { getCurrentEnv, getRpcClientUrl } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
-import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
@@ -721,9 +687,6 @@ const canCurrentSignerVote = computed(() =>
   )
 );
 const progressWidth = computed(() => `${Math.min(100, requiredCount.value ? (signedCount.value / requiredCount.value) * 100 : 0)}%`);
-const decodedUnsignedScript = computed(() =>
-  extractScriptBase64FromUnsignedTx(proposal.value?.params?.unsigned_tx || "")
-);
 const INVOCATION_TARGETS = {
   PolicyContract: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
   RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",

@@ -146,6 +146,7 @@ describe("GovernanceTool opcode display", () => {
     await detailsButton.trigger("click");
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Decoded Contract Script");
+    expect(wrapper.text()).toContain("Unsigned Transaction Packet");
+    expect(wrapper.text()).toContain("Embedded Execution Script");
   });
 });

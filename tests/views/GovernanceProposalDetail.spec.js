@@ -170,9 +170,11 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Council Alpha");
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
-    expect(wrapper.text()).toContain("Decoded Execution Script");
+    expect(wrapper.text()).toContain("Unsigned Transaction Packet");
+    expect(wrapper.text()).toContain("Transaction Envelope");
+    expect(wrapper.text()).toContain("Embedded Execution Script");
     expect(wrapper.text()).toContain("Collected Signatures");
-    expect(wrapper.html().indexOf("Decoded Execution Script")).toBeLessThan(wrapper.html().indexOf("Collected Signatures"));
+    expect(wrapper.html().indexOf("Unsigned Transaction Packet")).toBeLessThan(wrapper.html().indexOf("Collected Signatures"));
     expect(wrapper.text()).toContain("Stored ECDSA Signature");
     expect(wrapper.text()).toContain("Parsed Invocation OpCodes");
     expect(wrapper.findAllComponents({ name: "ScriptViewer" }).length).toBeGreaterThanOrEqual(2);

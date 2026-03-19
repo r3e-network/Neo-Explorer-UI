@@ -297,17 +297,11 @@
           <button @click="signModalReq = null" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
         <div data-testid="governance-sign-modal-body" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
-           <div>
-             <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
-             <div class="p-3 bg-surface-muted rounded-xl border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner">
-               {{ signModalReq.params?.unsigned_tx }}
-             </div>
-           </div>
-           
-           <ScriptViewer
-             v-if="signModalDecodedScript"
-             :script="signModalDecodedScript"
-             label="Decoded Contract Script"
+           <UnsignedTransactionViewer
+             v-if="signModalReq.params?.unsigned_tx"
+             :transaction-hex="signModalReq.params.unsigned_tx"
+             label="Unsigned Transaction Packet"
+             description="Review the complete unsigned governance transaction before signing or importing a witness."
            />
            
            <div class="space-y-3">
@@ -555,8 +549,12 @@
         </div>
         <div class="p-6 overflow-y-auto font-mono text-xs text-mid whitespace-pre-wrap bg-surface-muted shadow-inner">
           {{ JSON.stringify(detailsModalReq, null, 2) }}
-          <div v-if="detailsModalDecodedScript" class="mt-6 whitespace-normal font-sans">
-            <ScriptViewer :script="detailsModalDecodedScript" label="Decoded Contract Script" />
+          <div v-if="detailsModalReq?.params?.unsigned_tx" class="mt-6 whitespace-normal font-sans">
+            <UnsignedTransactionViewer
+              :transaction-hex="detailsModalReq.params.unsigned_tx"
+              label="Unsigned Transaction Packet"
+              description="Decoded transaction envelope and embedded execution script for this proposal."
+            />
           </div>
         </div>
       </div>
@@ -570,7 +568,7 @@
 import { ref, onMounted, computed } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import ScriptViewer from "@/components/trace/ScriptViewer.vue";
+import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService } from "@/services/walletService";
@@ -578,7 +576,6 @@ import { getRpcClientUrl, getCurrentEnv } from '@/utils/env';
 import { useNetworkChange } from '@/composables/useNetworkChange';
 import { toNetworkMode } from '@/utils/rpcEndpoints';
 import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
-import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
@@ -916,14 +913,7 @@ const externalSignerPublicKey = ref("");
 const externalInvocationScript = ref("");
 const externalVerificationScript = ref("");
 const isSubmittingExternalWitness = ref(false);
-const signModalDecodedScript = computed(() =>
-  extractScriptBase64FromUnsignedTx(signModalReq.value?.params?.unsigned_tx || "")
-);
-
 const detailsModalReq = ref(null);
-const detailsModalDecodedScript = computed(() =>
-  extractScriptBase64FromUnsignedTx(detailsModalReq.value?.params?.unsigned_tx || "")
-);
 function getCouncilIdentity(address) {
   const resolved = resolveCouncilIdentity(address, councilIdentityMap.value);
   return {
