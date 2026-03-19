@@ -52,7 +52,11 @@ vi.mock("@/utils/rpcEndpoints", () => ({
 }));
 
 vi.mock("@/utils/governanceRequests", () => ({
-  isGovernanceRequest: (request) => String(request?.type || "").toLowerCase() === "governance",
+  isGovernanceRequest: (request) =>
+    String(request?.type || "").toLowerCase() === "governance" ||
+    Array.isArray(request?.params?.invocations) ||
+    Boolean(request?.params?.governance_mode) ||
+    Array.isArray(request?.params?.target_contracts),
   matchesRequestNetwork: (request, activeNetwork) => {
     const normalizedActive = String(activeNetwork || "").toLowerCase().includes("test") ? "testnet" : "mainnet";
     const normalizedRequest = String(request?.network || "mainnet").toLowerCase().includes("test") ? "testnet" : "mainnet";
@@ -153,6 +157,8 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
     expect(wrapper.html()).toContain("Mainnet Proposal");
+    expect(wrapper.text()).toContain("Public read access");
+    expect(wrapper.text()).toContain("Anyone can review council proposals without connecting a wallet");
     expect(wrapper.html()).toContain("Council Alpha");
     expect(wrapper.html()).not.toContain("Testnet Proposal");
     expect(wrapper.html()).not.toContain("Wallet Request");
@@ -165,6 +171,59 @@ describe("GovernanceTool network changes", () => {
     expect(getMultisigRequestsMock).toHaveBeenCalledTimes(2);
     expect(wrapper.html()).not.toContain("Mainnet Proposal");
     expect(wrapper.html()).toContain("Testnet Proposal");
+    wrapper.unmount();
+  });
+
+  it("keeps atomic governance proposals visible even when the legacy table has no type column", async () => {
+    connectedAccount.value = "";
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 10,
+        description: "Atomic mainnet governance",
+        network: "mainnet",
+        target_contract: "MULTI_CALL",
+        method: "setMillisecondsPerBlock,setGasPerBlock",
+        signatures: [],
+        eligible_signers: [],
+        params: {
+          governance_mode: "official",
+          target_contracts: [
+            "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+            "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          ],
+          invocations: [
+            {
+              selectedContract: "PolicyContract",
+              selectedMethod: "setMillisecondsPerBlock",
+              targetHash: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+              params: { value: "3000" },
+            },
+            {
+              selectedContract: "NEO",
+              selectedMethod: "setGasPerBlock",
+              targetHash: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+              params: { gasPerBlock: "100000000" },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Atomic mainnet governance");
+    expect(wrapper.text()).toContain("setMillisecondsPerBlock,setGasPerBlock");
     wrapper.unmount();
   });
 

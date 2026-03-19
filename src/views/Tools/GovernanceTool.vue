@@ -46,6 +46,13 @@
       <div class="mt-1 text-xs opacity-80">Threshold: {{ threshold }} / {{ committeeSize }} nodes</div>
     </div>
 
+    <div class="mb-6 rounded-2xl border border-line-soft bg-surface-muted/50 px-4 py-3">
+      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Public read access</div>
+      <p class="mt-1 text-sm text-mid">
+        Anyone can review council proposals without connecting a wallet. A wallet is only required to create proposals, add signatures, or broadcast.
+      </p>
+    </div>
+
     <div class="etherscan-card p-6 md:p-8">
       <div v-if="loading" class="space-y-4">
         <Skeleton v-for="i in 3" :key="i" height="80px" />
