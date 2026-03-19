@@ -17,6 +17,7 @@ public class MockPolicyLab : SmartContract
     private static readonly byte[] FeePerByteKey = new byte[] { 0x02 };
     private static readonly byte[] ExecFeeFactorKey = new byte[] { 0x03 };
     private static readonly byte[] StoragePriceKey = new byte[] { 0x04 };
+    private static readonly byte[] MillisecondsPerBlockKey = new byte[] { 0x05 };
 
     public static void _deploy(object data, bool update)
     {
@@ -84,6 +85,19 @@ public class MockPolicyLab : SmartContract
     public static BigInteger GetStoragePrice()
     {
         ByteString value = Storage.Get(Storage.CurrentContext, StoragePriceKey);
+        return value == null ? 0 : (BigInteger)value;
+    }
+
+    public static void SetMillisecondsPerBlock(BigInteger value)
+    {
+        AssertOwnerWitness();
+        Storage.Put(Storage.CurrentContext, MillisecondsPerBlockKey, value);
+    }
+
+    [Safe]
+    public static BigInteger GetMillisecondsPerBlock()
+    {
+        ByteString value = Storage.Get(Storage.CurrentContext, MillisecondsPerBlockKey);
         return value == null ? 0 : (BigInteger)value;
     }
 }

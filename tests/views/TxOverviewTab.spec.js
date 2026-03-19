@@ -103,4 +103,47 @@ describe("TxOverviewTab", () => {
     expect(methodRow.exists()).toBe(true);
     expect(methodRow.text()).toContain("Oracle Callback");
   });
+
+  it("prefers tx.recipient as an address target instead of falling back to generic contract invocation", async () => {
+    const recipient = "NYhn9tVH7vEThKJxg5jD1ToUrksPLabcde";
+    const TxOverviewTab = (await import("@/views/Transaction/components/TxOverviewTab.vue")).default;
+    const wrapper = mount(TxOverviewTab, {
+      props: {
+        tx: {
+          hash: "0xtx",
+          sender: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+          recipient,
+          sysfee: 1,
+          netfee: 2,
+        },
+        txStatus: "success",
+        vmState: "HALT",
+        confirmations: 1,
+        totalFee: "3",
+        allTransfers: [],
+        showMore: false,
+      },
+      global: {
+        stubs: {
+          InfoRow: {
+            props: ["label", "value", "tooltip", "copyable", "copyValue"],
+            template: '<div :data-label="label"><slot>{{ value }}</slot></div>',
+          },
+          HashLink: {
+            name: "HashLink",
+            props: ["hash", "type", "truncated", "showNeoChat"],
+            template: '<span data-testid="hash-link" :data-hash="hash" :data-type="type"></span>',
+          },
+          StatusBadge: true,
+          GasBreakdown: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    const targetRow = wrapper.find('[data-label="To / Interacted With"]');
+    expect(targetRow.text()).not.toContain("Contract Invocation");
+    const link = targetRow.find(`[data-testid="hash-link"][data-hash="${recipient}"][data-type="address"]`);
+    expect(link.exists()).toBe(true);
+  });
 });

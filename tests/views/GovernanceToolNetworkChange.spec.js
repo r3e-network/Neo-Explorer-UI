@@ -6,6 +6,8 @@ const envState = { value: "Mainnet" };
 const getMultisigRequestsMock = vi.fn();
 const getValidatorMetadataMock = vi.fn();
 const createMultisigRequestMock = vi.fn();
+const addMultisigSignatureMock = vi.fn();
+const getMultisigRequestByIdMock = vi.fn();
 const connectedAccount = ref("");
 const getCommitteeMock = vi.fn();
 const walletServiceMock = {
@@ -18,8 +20,8 @@ vi.mock("@/services/supabaseService", () => ({
     getMultisigRequests: getMultisigRequestsMock,
     getValidatorMetadata: getValidatorMetadataMock,
     createMultisigRequest: createMultisigRequestMock,
-    addMultisigSignature: vi.fn(),
-    getMultisigRequestById: vi.fn(),
+    addMultisigSignature: addMultisigSignatureMock,
+    getMultisigRequestById: getMultisigRequestByIdMock,
     updateMultisigRequestStatus: vi.fn(),
   },
 }));
@@ -105,6 +107,11 @@ describe("GovernanceTool network changes", () => {
         },
       },
       sc: {
+        CallFlags: {
+          States: 3,
+          AllowNotify: 8,
+          All: 15,
+        },
         ContractParam: {
           fromJson: (value) => value,
           integer: (value) => value,
@@ -128,6 +135,8 @@ describe("GovernanceTool network changes", () => {
       { id: 3, type: "multisig", description: "Wallet Request", network: "mainnet", signatures: [], eligible_signers: [] },
     ]);
     createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 99 } });
+    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
+    getMultisigRequestByIdMock.mockResolvedValue(null);
   });
 
   it("reloads committee state and proposal list for the active network", async () => {
@@ -258,6 +267,221 @@ describe("GovernanceTool network changes", () => {
         lab_signer_addresses: sortedLabAddresses,
       }),
     });
+
+    wrapper.unmount();
+  });
+
+  it("accepts an external witness script and stores the parsed signature for an eligible signer", async () => {
+    connectedAccount.value = "";
+    walletServiceMock.isConnected = false;
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 7,
+        type: "governance",
+        description: "Mainnet Proposal",
+        network: "mainnet",
+        signatures: [],
+        signers_required: 3,
+        eligible_signers: [
+          "APK1",
+          "APK2",
+          "APK3",
+          "APK4",
+        ],
+        params: {
+          unsigned_tx: "001122",
+          committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
+        },
+        status: "PENDING",
+      },
+    ]);
+    getMultisigRequestByIdMock.mockResolvedValue({
+      id: 7,
+      signatures: [{ signer_address: "APK2", signature: "ab".repeat(64) }],
+      signers_required: 3,
+      params: {
+        unsigned_tx: "001122",
+        committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
+      },
+    });
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const addWitnessButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Add Witness"));
+    await addWitnessButton.trigger("click");
+    await flushPromises();
+
+    const setup = wrapper.vm.$.setupState;
+    setup.externalSignerAddress = "APK2";
+    setup.externalInvocationScript = `0c40${"ab".repeat(64)}`;
+    await setup.submitExternalWitness();
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      7,
+      "APK2",
+      "ab".repeat(64),
+      expect.objectContaining({
+        invocationScript: `0c40${"ab".repeat(64)}`,
+        witness: expect.objectContaining({
+          signer_address: "APK2",
+          signature: "ab".repeat(64),
+          source: "external_witness",
+        }),
+      })
+    );
+
+    wrapper.unmount();
+  });
+
+  it("stores public key and invocation script when a connected signer submits a proposal signature", async () => {
+    connectedAccount.value = "APK2";
+    walletServiceMock.isConnected = true;
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 8,
+        type: "governance",
+        description: "Mainnet Proposal",
+        network: "mainnet",
+        signatures: [],
+        signers_required: 3,
+        eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
+        params: {
+          unsigned_tx: "001122",
+          committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
+        },
+        status: "PENDING",
+      },
+    ]);
+    getMultisigRequestByIdMock.mockResolvedValue(null);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const signButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Sign Proposal"));
+    await signButton.trigger("click");
+    await flushPromises();
+
+    const setup = wrapper.vm.$.setupState;
+    await setup.submitSig("ab".repeat(64), "wallet_signature");
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      8,
+      "APK2",
+      "ab".repeat(64),
+      expect.objectContaining({
+        publicKey: "pk2",
+        invocationScript: `0c40${"ab".repeat(64)}`,
+        witness: expect.objectContaining({
+          signer_address: "APK2",
+          signature: "ab".repeat(64),
+          public_key: "pk2",
+          invocation_script: `0c40${"ab".repeat(64)}`,
+          source: "wallet_signature",
+        }),
+      })
+    );
+
+    wrapper.unmount();
+  });
+
+  it("guides the atomic block-time plus gas proposal and emits exact invocation call flags", async () => {
+    connectedAccount.value = "APK1";
+    walletServiceMock.isConnected = true;
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    await newProposalButton.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.html()).toContain("setMillisecondsPerBlock");
+
+    const setup = wrapper.vm.$.setupState;
+    setup.createForm.description = "Reduce block time and GAS reward";
+    setup.createForm.invocations = [
+      {
+        selectedContract: "PolicyContract",
+        selectedMethod: "setMillisecondsPerBlock",
+        params: { value: "3000" },
+      },
+      {
+        selectedContract: "NEO",
+        selectedMethod: "setGasPerBlock",
+        params: { gasPerBlock: "100000000" },
+      },
+    ];
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Block generation time in milliseconds");
+    expect(wrapper.text()).toContain("Example: 3000");
+    expect(wrapper.text()).toContain("1 GAS = 100000000");
+    expect(wrapper.findAll("input").some((input) => input.attributes("placeholder") === "e.g. 3000")).toBe(true);
+
+    await setup.handleCreateProposal();
+    await flushPromises();
+
+    expect(window.Neon.sc.createScript).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scriptHash: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+        operation: "setMillisecondsPerBlock",
+        args: ["3000"],
+        callFlags: 11,
+      }),
+      expect.objectContaining({
+        scriptHash: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        operation: "setGasPerBlock",
+        args: ["100000000"],
+        callFlags: 3,
+      })
+    );
+
+    expect(createMultisigRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "setMillisecondsPerBlock,setGasPerBlock",
+        target_contract: "MULTI_CALL",
+        params: expect.objectContaining({
+          target_contracts: [
+            "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+            "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          ],
+        }),
+      })
+    );
 
     wrapper.unmount();
   });

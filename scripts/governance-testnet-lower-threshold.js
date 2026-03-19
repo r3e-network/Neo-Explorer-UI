@@ -45,6 +45,48 @@ function isMissingColumnError(error, column) {
   return message.includes(`'${column}'`) && /schema cache|column/i.test(message);
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function buildSignatureMetadata(payload = {}) {
+  const metadata = {};
+  if (typeof payload.public_key === "string" && payload.public_key.trim()) {
+    metadata.public_key = payload.public_key.trim();
+  }
+  if (typeof payload.invocation_script === "string" && payload.invocation_script.trim()) {
+    metadata.invocation_script = payload.invocation_script.trim();
+  }
+  if (typeof payload.verification_script === "string" && payload.verification_script.trim()) {
+    metadata.verification_script = payload.verification_script.trim();
+  }
+  if (isPlainObject(payload.witness)) {
+    metadata.witness = payload.witness;
+  }
+  return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+function mergeRequestSignatureMetadata(request, signerAddress, metadata) {
+  const currentParams = isPlainObject(request?.params) ? request.params : {};
+  const signatureMetadata = isPlainObject(currentParams.signature_metadata)
+    ? currentParams.signature_metadata
+    : {};
+  const existingEntry = isPlainObject(signatureMetadata[signerAddress])
+    ? signatureMetadata[signerAddress]
+    : {};
+
+  return {
+    ...currentParams,
+    signature_metadata: {
+      ...signatureMetadata,
+      [signerAddress]: {
+        ...existingEntry,
+        ...metadata,
+      },
+    },
+  };
+}
+
 async function createRequestCompat(supabase, payload) {
   let currentPayload = { ...payload };
   for (;;) {
@@ -60,9 +102,32 @@ async function createRequestCompat(supabase, payload) {
 
 async function addSignatureCompat(supabase, payload) {
   let currentPayload = { ...payload };
+  const signatureMetadata = buildSignatureMetadata(payload);
   for (;;) {
     const { data, error } = await supabase.from("multisig_signatures").insert([currentPayload]).select();
-    if (!error) return data;
+    if (!error) {
+      if (signatureMetadata) {
+        const { data: requestData, error: requestError } = await supabase
+          .from("multisig_requests")
+          .select("id, params")
+          .eq("id", payload.request_id)
+          .single();
+        if (requestError) throw requestError;
+
+        const mergedParams = mergeRequestSignatureMetadata(
+          requestData,
+          payload.signer_address,
+          signatureMetadata
+        );
+        const { error: updateError } = await supabase
+          .from("multisig_requests")
+          .update({ params: mergedParams })
+          .eq("id", payload.request_id)
+          .select();
+        if (updateError) throw updateError;
+      }
+      return data;
+    }
     let removed = false;
     for (const column of ["public_key", "witness", "invocation_script", "verification_script"]) {
       if (isMissingColumnError(error, column) && column in currentPayload) {
@@ -176,7 +241,7 @@ async function estimateMultisigTransferFees({ rpcClient, multisigAccount, thresh
 async function buildAndBroadcastMultisigTransfer({
   rpcClient,
   multisigAccount,
-  pubkeys,
+  _pubkeys,
   signingAccounts,
   threshold,
   toScriptHash,

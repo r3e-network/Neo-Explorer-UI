@@ -42,6 +42,54 @@ const createSignatureDuplicateTableMock = ({ existingRows = [], insertResult = {
   return { select, insert, duplicateQuery };
 };
 
+const createSignatureFallbackTableMock = ({
+  firstInsertError,
+  secondInsertResult = { data: [{ id: 9 }], error: null },
+}) => {
+  const duplicateQuery = {
+    eq: vi.fn(() => duplicateQuery),
+    maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+  };
+
+  const insert = vi
+    .fn()
+    .mockImplementationOnce(() => ({
+      select: vi.fn(() => Promise.resolve({ data: null, error: firstInsertError })),
+    }))
+    .mockImplementationOnce(() => ({
+      select: vi.fn(() => Promise.resolve(secondInsertResult)),
+    }));
+
+  const select = vi.fn(() => duplicateQuery);
+  return { select, insert, duplicateQuery };
+};
+
+const createRequestMetadataTableMock = ({
+  requestRow = { id: 4, params: { existing: true } },
+  updatedRow,
+}) => {
+  const selectQuery = {
+    eq: vi.fn(() => selectQuery),
+    single: vi.fn(() => Promise.resolve({ data: requestRow, error: null })),
+  };
+
+  const updateSelect = vi.fn(() =>
+    Promise.resolve({
+      data: updatedRow ?? requestRow,
+      error: null,
+    })
+  );
+  const updateEq = vi.fn(() => ({
+    select: updateSelect,
+  }));
+  const update = vi.fn(() => ({
+    eq: updateEq,
+  }));
+
+  const select = vi.fn(() => selectQuery);
+  return { select, selectQuery, update, updateEq, updateSelect };
+};
+
 const createRequestInsertTableMock = ({ firstInsertError, secondInsertResult }) => {
   const insert = vi
     .fn()
@@ -203,6 +251,112 @@ describe("supabaseService multisig requests", () => {
     expect(result).toEqual({
       success: true,
       data: { id: 11, description: "Legacy Request" },
+    });
+  });
+
+  it("persists witness metadata into request params when legacy signature schemas reject optional witness columns", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+
+    const signatureTable = createSignatureFallbackTableMock({
+      firstInsertError: new Error('column "witness" of relation "multisig_signatures" does not exist'),
+    });
+    const requestTable = createRequestMetadataTableMock({
+      requestRow: { id: 4, params: { existing: true } },
+      updatedRow: {
+        id: 4,
+        params: {
+          existing: true,
+          signature_metadata: {
+            NSigner: {
+              public_key: "02aa",
+              invocation_script: "0c40ab",
+              verification_script: "2102aaac",
+              witness: { source: "external_witness" },
+            },
+          },
+        },
+      },
+    });
+
+    createClientMock.mockReturnValue({
+      from: vi.fn((tableName) => {
+        if (tableName === "multisig_signatures") {
+          return { select: signatureTable.select, insert: signatureTable.insert };
+        }
+        if (tableName === "multisig_requests") {
+          return { select: requestTable.select, update: requestTable.update };
+        }
+        return { select: vi.fn() };
+      }),
+    });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.addMultisigSignature(4, "NSigner", "ab".repeat(64), {
+      publicKey: "02aa",
+      invocationScript: "0c40ab",
+      verificationScript: "2102aaac",
+      witness: { source: "external_witness" },
+    });
+
+    expect(signatureTable.insert).toHaveBeenCalledTimes(2);
+    expect(requestTable.select).toHaveBeenCalledWith("id, params");
+    expect(requestTable.update).toHaveBeenCalledWith({
+      params: {
+        existing: true,
+        signature_metadata: {
+          NSigner: {
+            public_key: "02aa",
+            invocation_script: "0c40ab",
+            verification_script: "2102aaac",
+            witness: { source: "external_witness" },
+          },
+        },
+      },
+    });
+    expect(result).toEqual({
+      success: true,
+      data: [{ id: 9 }],
+    });
+  });
+
+  it("hydrates signature witness metadata from request params when joined signature rows lack optional columns", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+
+    const table = createRequestByIdTableMock({
+      singleResult: {
+        data: {
+          id: 7,
+          params: {
+            signature_metadata: {
+              NSigner: {
+                public_key: "02aa",
+                invocation_script: "0c40ab",
+                verification_script: "2102aaac",
+                witness: { source: "external_witness" },
+              },
+            },
+          },
+          signatures: [{ signer_address: "NSigner", signature: "ab".repeat(64) }],
+        },
+        error: null,
+      },
+    });
+    createClientMock.mockReturnValue({
+      from: vi.fn(() => ({ select: table.select })),
+    });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getMultisigRequestById(7);
+
+    expect(result?.signatures?.[0]).toMatchObject({
+      signer_address: "NSigner",
+      signature: "ab".repeat(64),
+      public_key: "02aa",
+      invocation_script: "0c40ab",
+      verification_script: "2102aaac",
+      witness: { source: "external_witness" },
     });
   });
 });

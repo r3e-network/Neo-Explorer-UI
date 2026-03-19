@@ -184,6 +184,86 @@ const isTransientIndexerMetadataError = (error) => {
   );
 };
 
+const isPlainObject = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const normalizeSignatureMetadataPayload = (options = {}) => {
+  const payload = {};
+
+  if (typeof options.publicKey === "string" && options.publicKey.trim()) {
+    payload.public_key = options.publicKey.trim();
+  }
+  if (typeof options.invocationScript === "string" && options.invocationScript.trim()) {
+    payload.invocation_script = options.invocationScript.trim();
+  }
+  if (typeof options.verificationScript === "string" && options.verificationScript.trim()) {
+    payload.verification_script = options.verificationScript.trim();
+  }
+  if (isPlainObject(options.witness)) {
+    payload.witness = options.witness;
+  }
+
+  return Object.keys(payload).length > 0 ? payload : null;
+};
+
+const mergeRequestSignatureMetadata = (request = {}, signerAddress, metadata) => {
+  if (!signerAddress || !metadata) return request?.params || {};
+
+  const currentParams = isPlainObject(request?.params) ? request.params : {};
+  const currentSignatureMetadata = isPlainObject(currentParams.signature_metadata)
+    ? currentParams.signature_metadata
+    : {};
+  const existingEntry = isPlainObject(currentSignatureMetadata[signerAddress])
+    ? currentSignatureMetadata[signerAddress]
+    : {};
+
+  return {
+    ...currentParams,
+    signature_metadata: {
+      ...currentSignatureMetadata,
+      [signerAddress]: {
+        ...existingEntry,
+        ...metadata,
+      },
+    },
+  };
+};
+
+const hydrateRequestSignatures = (request) => {
+  if (!isPlainObject(request)) return request;
+
+  const signatureMetadata = isPlainObject(request?.params?.signature_metadata)
+    ? request.params.signature_metadata
+    : {};
+  const signatures = Array.isArray(request.signatures) ? request.signatures : [];
+
+  if (!signatures.length || !Object.keys(signatureMetadata).length) {
+    return request;
+  }
+
+  const hydratedSignatures = signatures.map((signature) => {
+    const signerAddress = String(signature?.signer_address || "").trim();
+    const metadata = isPlainObject(signatureMetadata[signerAddress])
+      ? signatureMetadata[signerAddress]
+      : null;
+
+    if (!metadata) return signature;
+
+    return {
+      ...signature,
+      public_key: signature.public_key ?? metadata.public_key ?? null,
+      invocation_script: signature.invocation_script ?? metadata.invocation_script,
+      verification_script: signature.verification_script ?? metadata.verification_script,
+      witness: signature.witness ?? metadata.witness,
+    };
+  });
+
+  return {
+    ...request,
+    signatures: hydratedSignatures,
+  };
+};
+
 const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {
   for (const column of ["network", "network_mode"]) {
     try {
@@ -434,7 +514,7 @@ export const supabaseService = {
               .eq(column, network)
               .order('created_at', { ascending: false });
             if (error) throw error;
-            return data || [];
+            return (data || []).map((request) => hydrateRequestSignatures(request));
           } catch (error) {
             if (!isMissingSupabaseColumnError(error, column)) {
               throw error;
@@ -447,7 +527,7 @@ export const supabaseService = {
           .select('*, signatures:multisig_signatures(*)')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        return data || [];
+        return (data || []).map((request) => hydrateRequestSignatures(request));
       })();
     } catch (err) {
       return [];
@@ -468,7 +548,7 @@ export const supabaseService = {
               .eq(column, network)
               .single();
             if (error) throw error;
-            return data || null;
+            return data ? hydrateRequestSignatures(data) : null;
           } catch (error) {
             if (!isMissingSupabaseColumnError(error, column)) {
               throw error;
@@ -482,7 +562,7 @@ export const supabaseService = {
           .eq("id", requestId)
           .single();
         if (error) throw error;
-        return data || null;
+        return data ? hydrateRequestSignatures(data) : null;
       })();
     } catch (_err) {
       return null;
@@ -564,6 +644,7 @@ export const supabaseService = {
       const payloads = [extendedPayload, basePayload].filter(
         (payload, index, arr) => index === 0 || JSON.stringify(payload) !== JSON.stringify(arr[0])
       );
+      const signatureMetadata = normalizeSignatureMetadataPayload(options);
 
       let lastError = null;
       for (const payload of payloads) {
@@ -573,6 +654,22 @@ export const supabaseService = {
           .select();
 
         if (!error) {
+          if (signatureMetadata) {
+            const { data: requestData, error: requestError } = await supabase
+              .from("multisig_requests")
+              .select("id, params")
+              .eq("id", requestId)
+              .single();
+            if (requestError) throw requestError;
+
+            const mergedParams = mergeRequestSignatureMetadata(requestData, signerAddress, signatureMetadata);
+            const { error: updateError } = await supabase
+              .from("multisig_requests")
+              .update({ params: mergedParams })
+              .eq("id", requestId)
+              .select();
+            if (updateError) throw updateError;
+          }
           return { success: true, data };
         }
 

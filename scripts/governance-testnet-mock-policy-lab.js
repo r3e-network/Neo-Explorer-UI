@@ -8,6 +8,8 @@ const DEFAULT_RPC_URL = "https://api.n3index.dev/testnet";
 const DEFAULT_THRESHOLD = 2;
 const DEFAULT_SIGNER_COUNT = 3;
 const DEFAULT_FUND_AMOUNT_RAW = 3000000n; // 0.03 GAS
+const DEFAULT_MILLISECONDS_PER_BLOCK = 3000;
+const DEFAULT_GAS_PER_BLOCK = 100000000;
 const CONTRACT_MANAGEMENT_HASH = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
 const GAS_TOKEN = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
@@ -37,9 +39,56 @@ function getEnvValue(localEnv, key, fallback = "") {
   return fallback;
 }
 
+function getBooleanEnvValue(localEnv, key, fallback = false) {
+  const value = getEnvValue(localEnv, key, fallback ? "true" : "false");
+  return /^(1|true|yes|on)$/i.test(String(value || "").trim());
+}
+
 function isMissingColumnError(error, column) {
   const message = String(error?.message || "");
   return message.includes(`'${column}'`) && /schema cache|column/i.test(message);
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function buildSignatureMetadata(payload = {}) {
+  const metadata = {};
+  if (typeof payload.public_key === "string" && payload.public_key.trim()) {
+    metadata.public_key = payload.public_key.trim();
+  }
+  if (typeof payload.invocation_script === "string" && payload.invocation_script.trim()) {
+    metadata.invocation_script = payload.invocation_script.trim();
+  }
+  if (typeof payload.verification_script === "string" && payload.verification_script.trim()) {
+    metadata.verification_script = payload.verification_script.trim();
+  }
+  if (isPlainObject(payload.witness)) {
+    metadata.witness = payload.witness;
+  }
+  return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+function mergeRequestSignatureMetadata(request, signerAddress, metadata) {
+  const currentParams = isPlainObject(request?.params) ? request.params : {};
+  const signatureMetadata = isPlainObject(currentParams.signature_metadata)
+    ? currentParams.signature_metadata
+    : {};
+  const existingEntry = isPlainObject(signatureMetadata[signerAddress])
+    ? signatureMetadata[signerAddress]
+    : {};
+
+  return {
+    ...currentParams,
+    signature_metadata: {
+      ...signatureMetadata,
+      [signerAddress]: {
+        ...existingEntry,
+        ...metadata,
+      },
+    },
+  };
 }
 
 async function createRequestCompat(supabase, payload) {
@@ -57,9 +106,32 @@ async function createRequestCompat(supabase, payload) {
 
 async function addSignatureCompat(supabase, payload) {
   let currentPayload = { ...payload };
+  const signatureMetadata = buildSignatureMetadata(payload);
   for (;;) {
     const { data, error } = await supabase.from("multisig_signatures").insert([currentPayload]).select();
-    if (!error) return data;
+    if (!error) {
+      if (signatureMetadata) {
+        const { data: requestData, error: requestError } = await supabase
+          .from("multisig_requests")
+          .select("id, params")
+          .eq("id", payload.request_id)
+          .single();
+        if (requestError) throw requestError;
+
+        const mergedParams = mergeRequestSignatureMetadata(
+          requestData,
+          payload.signer_address,
+          signatureMetadata
+        );
+        const { error: updateError } = await supabase
+          .from("multisig_requests")
+          .update({ params: mergedParams })
+          .eq("id", payload.request_id)
+          .select();
+        if (updateError) throw updateError;
+      }
+      return data;
+    }
     let removed = false;
     for (const column of ["public_key", "witness", "invocation_script", "verification_script"]) {
       if (isMissingColumnError(error, column) && column in currentPayload) {
@@ -83,13 +155,13 @@ async function poll(fn, predicate, attempts = 40, intervalMs = 3000) {
   return last;
 }
 
-function compileMockPolicyContract() {
+function compileContract(projectFile, outputDir, baseName) {
   execFileSync(path.join(process.env.HOME || "", ".dotnet", "tools", "nccs"), [
-    "contracts/MockPolicyLab/MockPolicyLab.csproj",
+    projectFile,
     "-o",
-    "contracts/MockPolicyLab/bin/sc",
+    outputDir,
     "--base-name",
-    "MockPolicyLab",
+    baseName,
     "--assembly",
     "--generate-artifacts=All",
     "--optimize=All",
@@ -97,6 +169,22 @@ function compileMockPolicyContract() {
     cwd: process.cwd(),
     stdio: "inherit",
   });
+}
+
+function compileMockPolicyContract() {
+  compileContract(
+    "contracts/MockPolicyLab/MockPolicyLab.csproj",
+    "contracts/MockPolicyLab/bin/sc",
+    "MockPolicyLab"
+  );
+}
+
+function compileMockNeoTokenContract() {
+  compileContract(
+    "contracts/MockNeoTokenLab/MockNeoTokenLab.csproj",
+    "contracts/MockNeoTokenLab/bin/sc",
+    "MockNeoTokenLab"
+  );
 }
 
 function gasBalanceOf(balanceResult) {
@@ -196,12 +284,19 @@ async function estimateMultisigInvokeFees({ rpcClient, multisigAccount, threshol
   };
 }
 
-async function deployMockPolicyContract({ rpcClient, deployerAccount, ownerScriptHash, magic }) {
-  const nefPath = path.resolve(process.cwd(), "contracts/MockPolicyLab/bin/sc/MockPolicyLab.nef");
-  const manifestPath = path.resolve(process.cwd(), "contracts/MockPolicyLab/bin/sc/MockPolicyLab.manifest.json");
+async function deployCompiledContract({
+  rpcClient,
+  deployerAccount,
+  ownerScriptHash,
+  magic,
+  artifactsDir,
+  baseName,
+}) {
+  const nefPath = path.resolve(process.cwd(), artifactsDir, `${baseName}.nef`);
+  const manifestPath = path.resolve(process.cwd(), artifactsDir, `${baseName}.manifest.json`);
   const nefBuffer = fs.readFileSync(nefPath);
   const manifestObject = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  manifestObject.name = `MockPolicyLab_${Date.now()}`;
+  manifestObject.name = `${baseName}_${Date.now()}`;
   const manifestString = JSON.stringify(manifestObject);
   const nefObject = neon.sc.NEF.fromBuffer(nefBuffer);
 
@@ -267,6 +362,28 @@ async function deployMockPolicyContract({ rpcClient, deployerAccount, ownerScrip
   };
 }
 
+async function deployMockPolicyContract({ rpcClient, deployerAccount, ownerScriptHash, magic }) {
+  return deployCompiledContract({
+    rpcClient,
+    deployerAccount,
+    ownerScriptHash,
+    magic,
+    artifactsDir: "contracts/MockPolicyLab/bin/sc",
+    baseName: "MockPolicyLab",
+  });
+}
+
+async function deployMockNeoTokenContract({ rpcClient, deployerAccount, ownerScriptHash, magic }) {
+  return deployCompiledContract({
+    rpcClient,
+    deployerAccount,
+    ownerScriptHash,
+    magic,
+    artifactsDir: "contracts/MockNeoTokenLab/bin/sc",
+    baseName: "MockNeoTokenLab",
+  });
+}
+
 async function invokeGetter(rpcClient, contractHash, operation) {
   const response = await rpcClient.execute(
     new neon.rpc.Query({
@@ -290,8 +407,17 @@ async function main() {
   const threshold = Number(getEnvValue(localEnv, "MOCK_POLICY_LAB_THRESHOLD", String(DEFAULT_THRESHOLD)));
   const signerCount = Number(getEnvValue(localEnv, "MOCK_POLICY_LAB_SIGNER_COUNT", String(DEFAULT_SIGNER_COUNT)));
   const fundAmountRaw = BigInt(getEnvValue(localEnv, "MOCK_POLICY_LAB_FUND_AMOUNT_RAW", DEFAULT_FUND_AMOUNT_RAW.toString()));
+  const useGeneratedSignersOnly = getBooleanEnvValue(localEnv, "MOCK_POLICY_LAB_USE_GENERATED_SIGNERS_ONLY", false);
+  const emitSignerWifs = getBooleanEnvValue(localEnv, "MOCK_POLICY_LAB_EMIT_SIGNER_WIFS", false);
+  const millisecondsPerBlock = Number(
+    getEnvValue(localEnv, "MOCK_POLICY_LAB_MILLISECONDS_PER_BLOCK", String(DEFAULT_MILLISECONDS_PER_BLOCK))
+  );
+  const gasPerBlock = Number(
+    getEnvValue(localEnv, "MOCK_NEO_TOKEN_LAB_GAS_PER_BLOCK", String(DEFAULT_GAS_PER_BLOCK))
+  );
 
   compileMockPolicyContract();
+  compileMockNeoTokenContract();
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const rpcClient = new neon.rpc.RPCClient(rpcUrl);
@@ -300,9 +426,13 @@ async function main() {
   const magic = Number(version?.protocol?.network);
   if (!Number.isFinite(magic)) throw new Error("Failed to resolve testnet network magic.");
 
-  const extraSigners = Array.from({ length: signerCount - 1 }, () => new neon.wallet.Account());
-  const pubkeys = [council.publicKey, ...extraSigners.map((account) => account.publicKey)].sort((a, b) => a.localeCompare(b));
+  const generatedSigners = Array.from({ length: signerCount }, () => new neon.wallet.Account());
+  const governanceSignerAccounts = useGeneratedSignersOnly
+    ? generatedSigners
+    : [council, ...generatedSigners.slice(0, Math.max(0, signerCount - 1))];
+  const pubkeys = governanceSignerAccounts.map((account) => account.publicKey).sort((a, b) => a.localeCompare(b));
   const multisig = neon.wallet.Account.createMultiSig(threshold, pubkeys);
+  const requestCreator = governanceSignerAccounts[0];
 
   const deployment = await deployMockPolicyContract({
     rpcClient,
@@ -310,9 +440,19 @@ async function main() {
     ownerScriptHash: multisig.scriptHash,
     magic,
   });
+  const neoTokenDeployment = await deployMockNeoTokenContract({
+    rpcClient,
+    deployerAccount: council,
+    ownerScriptHash: multisig.scriptHash,
+    magic,
+  });
 
-  const ownerValue = await poll(
+  const policyOwnerValue = await poll(
     () => invokeGetter(rpcClient, deployment.contractHash, "getOwner"),
+    (value) => !!value
+  );
+  const neoTokenOwnerValue = await poll(
+    () => invokeGetter(rpcClient, neoTokenDeployment.contractHash, "getOwner"),
     (value) => !!value
   );
 
@@ -339,27 +479,23 @@ async function main() {
   const intents = [
     {
       selectedContract: "MockPolicyLab",
-      selectedMethod: "setFeePerByte",
-      params: { value: "1000" },
+      selectedMethod: "setMillisecondsPerBlock",
+      params: { value: String(millisecondsPerBlock) },
+      targetHash: deployment.contractHash,
       scriptHash: deployment.contractHash,
-      operation: "setFeePerByte",
-      args: [neon.sc.ContractParam.integer(1000)],
+      operation: "setMillisecondsPerBlock",
+      args: [neon.sc.ContractParam.integer(millisecondsPerBlock)],
+      callFlags: neon.sc.CallFlags.States | neon.sc.CallFlags.AllowNotify,
     },
     {
-      selectedContract: "MockPolicyLab",
-      selectedMethod: "setExecFeeFactor",
-      params: { value: "30" },
-      scriptHash: deployment.contractHash,
-      operation: "setExecFeeFactor",
-      args: [neon.sc.ContractParam.integer(30)],
-    },
-    {
-      selectedContract: "MockPolicyLab",
-      selectedMethod: "setStoragePrice",
-      params: { value: "100000" },
-      scriptHash: deployment.contractHash,
-      operation: "setStoragePrice",
-      args: [neon.sc.ContractParam.integer(100000)],
+      selectedContract: "MockNeoTokenLab",
+      selectedMethod: "setGasPerBlock",
+      params: { gasPerBlock: String(gasPerBlock) },
+      targetHash: neoTokenDeployment.contractHash,
+      scriptHash: neoTokenDeployment.contractHash,
+      operation: "setGasPerBlock",
+      args: [neon.sc.ContractParam.integer(gasPerBlock)],
+      callFlags: neon.sc.CallFlags.States,
     },
   ];
 
@@ -368,6 +504,7 @@ async function main() {
       scriptHash: intent.scriptHash,
       operation: intent.operation,
       args: intent.args,
+      callFlags: intent.callFlags,
     }))
   );
 
@@ -387,15 +524,15 @@ async function main() {
   });
   const unsignedTxHex = finalTx.serialize(false);
   const signPayload = neon.u.num2hexstring(magic, 4, true) + neon.u.reverseHex(finalTx.hash());
-  const signingAccounts = [council, ...extraSigners.slice(0, threshold - 1)];
+  const signingAccounts = governanceSignerAccounts.slice(0, threshold);
   const signatures = signingAccounts.map((account) => neon.wallet.sign(signPayload, account.WIF));
 
   const request = await createRequestCompat(supabase, {
     type: "governance",
-    creator_address: council.address,
-    target_contract: deployment.contractHash,
+    creator_address: requestCreator.address,
+    target_contract: "MULTI_CALL",
     method: intents.map((intent) => intent.selectedMethod).join(","),
-    description: `Codex mock policy governance validation ${new Date().toISOString()}`,
+    description: `Codex dual-contract governance validation ${new Date().toISOString()}`,
     signers_required: threshold,
     eligible_signers: pubkeys.map((pubkey) => new neon.wallet.Account(pubkey).address),
     status: "PENDING",
@@ -407,12 +544,15 @@ async function main() {
       committee_pubkeys: pubkeys,
       governance_mode: "lab",
       lab_mode: true,
-      invocations: intents.map(({ selectedContract, selectedMethod, params }) => ({
+      target_contracts: [deployment.contractHash, neoTokenDeployment.contractHash],
+      invocations: intents.map(({ selectedContract, selectedMethod, params, targetHash }) => ({
         selectedContract,
         selectedMethod,
         params,
+        targetHash,
       })),
       mock_policy_contract: deployment.contractHash,
+      mock_neo_token_contract: neoTokenDeployment.contractHash,
     },
   });
 
@@ -421,12 +561,31 @@ async function main() {
       request_id: request.id,
       signer_address: signingAccounts[i].address,
       signature: signatures[i],
+      public_key: signingAccounts[i].publicKey,
+      invocation_script: `0c40${signatures[i]}`,
       witness: {
         signer_address: signingAccounts[i].address,
         signature: signatures[i],
+        public_key: signingAccounts[i].publicKey,
+        invocation_script: `0c40${signatures[i]}`,
       },
     });
   }
+
+  const storedRequestSnapshot = await supabase
+    .from("multisig_requests")
+    .select("id, params")
+    .eq("id", request.id)
+    .single();
+  const storedSignatureRowsSnapshot = await supabase
+    .from("multisig_signatures")
+    .select("*")
+    .eq("request_id", request.id);
+
+  const signatureMetadata = storedRequestSnapshot.data?.params?.signature_metadata || {};
+  const storedSignatureRows = Array.isArray(storedSignatureRowsSnapshot.data)
+    ? storedSignatureRowsSnapshot.data
+    : [];
 
   finalTx.addWitness(neon.tx.Witness.buildMultiSig(signPayload, signatures, multisig));
   const broadcastTxid = await rpcClient.sendRawTransaction(finalTx);
@@ -441,17 +600,13 @@ async function main() {
     (res) => !!res && Array.isArray(res.executions) && res.executions.length > 0
   );
 
-  const feePerByte = await poll(
-    () => invokeGetter(rpcClient, deployment.contractHash, "getFeePerByte"),
-    (value) => String(value || "") === "1000"
+  const storedMillisecondsPerBlock = await poll(
+    () => invokeGetter(rpcClient, deployment.contractHash, "getMillisecondsPerBlock"),
+    (value) => String(value || "") === String(millisecondsPerBlock)
   );
-  const execFeeFactor = await poll(
-    () => invokeGetter(rpcClient, deployment.contractHash, "getExecFeeFactor"),
-    (value) => String(value || "") === "30"
-  );
-  const storagePrice = await poll(
-    () => invokeGetter(rpcClient, deployment.contractHash, "getStoragePrice"),
-    (value) => String(value || "") === "100000"
+  const storedGasPerBlock = await poll(
+    () => invokeGetter(rpcClient, neoTokenDeployment.contractHash, "getGasPerBlock"),
+    (value) => String(value || "") === String(gasPerBlock)
   );
 
   const cleanupSignatures = await supabase.from("multisig_signatures").delete().eq("request_id", request.id);
@@ -462,24 +617,42 @@ async function main() {
     committeeMemberPubKey: council.publicKey,
     signerCount,
     threshold,
-    generatedSignerAddresses: extraSigners.map((account) => account.address),
+    useGeneratedSignersOnly,
+    governanceSignerAddresses: governanceSignerAccounts.map((account) => account.address),
+    governanceSignerAccounts: governanceSignerAccounts.map((account) => ({
+      address: account.address,
+      publicKey: account.publicKey,
+    })),
+    generatedSignerAddresses: generatedSigners.map((account) => account.address),
+    generatedSignerWifs: emitSignerWifs ? generatedSigners.map((account) => account.WIF) : undefined,
     multisigAddress: multisig.address,
     deployedMockPolicyContract: deployment.contractHash,
     deployedMockPolicyName: deployment.contractName,
     computedMockPolicyContract: deployment.computedContractHash,
     chainReportedMockPolicyContract: deployment.chainReportedHash,
+    deployedMockNeoTokenContract: neoTokenDeployment.contractHash,
+    deployedMockNeoTokenName: neoTokenDeployment.contractName,
+    computedMockNeoTokenContract: neoTokenDeployment.computedContractHash,
+    chainReportedMockNeoTokenContract: neoTokenDeployment.chainReportedHash,
     deploymentTxid: deployment.deploymentTxid,
-    ownerValue,
+    neoTokenDeploymentTxid: neoTokenDeployment.deploymentTxid,
+    policyOwnerValue,
+    neoTokenOwnerValue,
     fundingTxid,
     fundedMultisigGasRaw: gasBalanceOf(fundedMultisigBalances).toString(),
     requestId: request.id,
     storedSignatureCount: signatures.length,
+    storedSignatureMetadataCount: Object.keys(signatureMetadata).length,
+    storedSignatureMetadataSigners: Object.keys(signatureMetadata),
+    storedSignatureRowCount: storedSignatureRows.length,
+    storedSignatureRowPublicKeyCount: storedSignatureRows.filter((row) => row?.public_key).length,
+    storedSignatureRowWitnessCount: storedSignatureRows.filter((row) => row?.witness).length,
+    storedSignatureRowInvocationCount: storedSignatureRows.filter((row) => row?.invocation_script).length,
     broadcastTxid,
     broadcastVmState: appLog?.executions?.[0]?.vmstate || null,
     broadcastException: appLog?.executions?.[0]?.exception || null,
-    feePerByte,
-    execFeeFactor,
-    storagePrice,
+    millisecondsPerBlock: storedMillisecondsPerBlock,
+    gasPerBlock: storedGasPerBlock,
     councilGasBeforeRaw: gasBalanceOf(beforeCouncilBalances).toString(),
     cleanup: {
       signaturesDeleted: !cleanupSignatures.error,

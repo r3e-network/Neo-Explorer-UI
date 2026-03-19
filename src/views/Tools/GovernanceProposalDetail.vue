@@ -63,9 +63,7 @@
                   <div class="min-w-0">
                     <h1 class="page-title mb-2">{{ proposal.description || "Council Proposal" }}</h1>
                     <p class="page-subtitle max-w-3xl">
-                      Council method <span class="font-semibold text-high">{{ proposal.method }}</span> is queued against
-                      <span class="font-mono text-low">{{ proposal.target_contract }}</span>.
-                      Review the packet, track collected witnesses, and broadcast once quorum is met.
+                      {{ proposalSubtitle }}
                     </p>
                   </div>
                 </div>
@@ -73,11 +71,11 @@
                 <div class="mt-4 flex flex-wrap gap-2">
                   <span class="inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:border-amber-900/40 dark:bg-slate-950/50">
                     Method
-                    <span class="font-mono text-low">{{ proposal.method }}</span>
+                    <span class="font-mono text-low">{{ proposalMethodSummary }}</span>
                   </span>
                   <span class="inline-flex items-center gap-2 rounded-full border border-line-soft bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:bg-slate-950/50">
                     Target
-                    <span class="font-mono text-low">{{ formatCompactHash(proposal.target_contract, 12, 8) }}</span>
+                    <span class="font-mono text-low">{{ proposalTargetSummary }}</span>
                   </span>
                   <span class="inline-flex items-center gap-2 rounded-full border border-line-soft bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:bg-slate-950/50">
                     Tx Hash
@@ -157,12 +155,11 @@
                 <div class="space-y-3">
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
                     <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Target Method</div>
-                    <div class="text-sm font-bold text-high tracking-tight">{{ proposal.method }}</div>
+                    <div class="text-sm font-bold text-high tracking-tight">{{ proposalMethodSummary }}</div>
                   </div>
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
                     <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Smart Contract</div>
-
-                    <div class="mt-1 font-mono text-xs break-all text-low">{{ proposal.target_contract }}</div>
+                    <div class="mt-1 font-mono text-xs break-all text-low">{{ proposalTargetSummary }}</div>
                   </div>
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
                     <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Tx Hash</div>
@@ -200,7 +197,7 @@
                       </div>
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Target Method</div>
                     </div>
-                    <div class="text-lg font-black text-high tracking-tight">{{ proposal.method }}</div>
+                    <div class="text-lg font-black text-high tracking-tight">{{ proposalMethodSummary }}</div>
                   </div>
                   <div class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/80 to-surface p-5 shadow-sm">
                     <div class="flex items-center gap-2 mb-3">
@@ -209,7 +206,57 @@
                       </div>
                       <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Smart Contract</div>
                     </div>
-                    <div class="font-mono text-sm font-semibold text-high break-all">{{ proposal.target_contract }}</div>
+                    <div class="font-mono text-sm font-semibold text-high break-all">{{ proposalTargetSummary }}</div>
+                  </div>
+                </div>
+
+                <div
+                  v-if="proposalInvocations.length > 1"
+                  class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface-muted/70 to-surface p-5 shadow-sm"
+                >
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-5">
+                    <div>
+                      <h3 class="text-lg font-black tracking-tight text-high">Atomic Invocation Plan</h3>
+                      <p class="mt-1 text-sm text-mid">This governance packet chains multiple native-contract calls into one threshold-signed transaction.</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full border border-line-soft bg-surface px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-low">
+                      {{ proposalInvocations.length }} Calls
+                    </span>
+                  </div>
+
+                  <div class="grid gap-4 xl:grid-cols-2">
+                    <div
+                      v-for="invocation in proposalInvocations"
+                      :key="`${invocation.index}-${invocation.selectedMethod}-${invocation.selectedContract}`"
+                      class="rounded-2xl border border-line-soft bg-surface p-4 shadow-sm"
+                    >
+                      <div class="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Invocation {{ invocation.index }}</div>
+                          <div class="mt-1 text-base font-black text-high tracking-tight">{{ invocation.selectedMethod }}</div>
+                        </div>
+                        <span class="rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-low">
+                          {{ invocation.selectedContract || "Custom" }}
+                        </span>
+                      </div>
+
+                      <div class="rounded-xl border border-line-soft bg-surface-muted/50 p-3">
+                        <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">Target Hash</div>
+                        <div class="mt-1 font-mono text-xs break-all text-high">{{ invocation.targetHash || "Unavailable" }}</div>
+                      </div>
+
+                      <div class="mt-3 space-y-2">
+                        <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">Parameters</div>
+                        <div
+                          v-for="(paramValue, paramName) in invocation.params"
+                          :key="`${invocation.index}-${paramName}`"
+                          class="flex items-start justify-between gap-3 rounded-xl border border-line-soft bg-surface-muted/50 px-3 py-2"
+                        >
+                          <span class="text-xs font-semibold text-mid">{{ paramName }}</span>
+                          <span class="font-mono text-xs text-high break-all text-right">{{ paramValue }}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -460,18 +507,25 @@
               <div v-else-if="hasSigned" class="mt-5 text-sm text-emerald-600 font-semibold">
                 You already voted.
               </div>
-              <div v-else-if="!canCurrentSignerVote" class="mt-5 text-sm text-mid">
-                Only eligible council nodes can vote on this proposal.
-              </div>
               <div v-else class="mt-5 space-y-3">
+                <div v-if="!canCurrentSignerVote" class="text-sm text-mid">
+                  Only eligible council nodes can sign directly with a connected wallet, but you can still collect and submit an external witness from another council signer.
+                </div>
                 <button
+                  v-if="canCurrentSignerVote && !hasSigned"
                   @click="openSignModal"
                   class="w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 hover:-translate-y-0.5 hover:bg-primary-700 transition-all"
                 >
                   Vote / Sign Proposal
                 </button>
+                <button
+                  @click="openSignModal"
+                  class="w-full rounded-xl border border-line-soft bg-surface px-4 py-3 text-sm font-semibold text-high hover:bg-surface-muted transition-all"
+                >
+                  Add External Witness
+                </button>
                 <p class="text-xs text-mid">
-                  The collected signature is stored in Supabase and will be used to assemble the final multisig witness.
+                  The collected signature or imported witness is stored in Supabase and will be used to assemble the final multisig witness.
                 </p>
               </div>
 
@@ -550,6 +604,47 @@
                 Submit manual signature
               </button>
             </div>
+
+            <div class="relative py-2">
+              <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
+              <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">OR</span></div>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block text-sm font-bold text-high">Option 3: External Witness Script</label>
+              <input
+                v-model="externalSignerAddress"
+                type="text"
+                class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+                placeholder="Signer address (optional if public key is provided)"
+              />
+              <input
+                v-model="externalSignerPublicKey"
+                type="text"
+                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+                placeholder="Signer public key (optional)"
+              />
+              <input
+                v-model="externalInvocationScript"
+                type="text"
+                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+                placeholder="Invocation script hex from external signer"
+              />
+              <input
+                v-model="externalVerificationScript"
+                type="text"
+                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+                placeholder="Verification script hex (optional)"
+              />
+              <button
+                @click="submitExternalWitness"
+                :disabled="!externalInvocationScript.trim() || isSubmittingExternalWitness"
+                class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ isSubmittingExternalWitness ? "Submitting Witness..." : "Submit External Witness" }}
+              </button>
+              <p class="text-[11px] text-mid text-center">Use this when a council member signs outside the tool and sends their witness script to you directly.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -573,6 +668,10 @@ import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
+import {
+  buildExternalWitnessPayload,
+  buildSignatureInvocationScriptBase64,
+} from "@/utils/multisigWitness";
 
 const route = useRoute();
 const toast = useToast();
@@ -583,6 +682,11 @@ const validatorMetadata = ref([]);
 const showSignModal = ref(false);
 const manualSignature = ref("");
 const isSigning = ref(false);
+const externalSignerAddress = ref("");
+const externalSignerPublicKey = ref("");
+const externalInvocationScript = ref("");
+const externalVerificationScript = ref("");
+const isSubmittingExternalWitness = ref(false);
 const loading = ref(true);
 let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
@@ -610,6 +714,63 @@ const progressWidth = computed(() => `${Math.min(100, requiredCount.value ? (sig
 const decodedUnsignedScript = computed(() =>
   extractScriptBase64FromUnsignedTx(proposal.value?.params?.unsigned_tx || "")
 );
+const INVOCATION_TARGETS = {
+  PolicyContract: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+  RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+  OracleContract: "fe924b7cfe89ddd271abaf7210a80a7e11178758",
+  NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+};
+const proposalInvocations = computed(() => {
+  const invocations = Array.isArray(proposal.value?.params?.invocations)
+    ? proposal.value.params.invocations
+    : [];
+
+  if (invocations.length > 0) {
+    return invocations.map((invocation, index) => ({
+      index: index + 1,
+      selectedContract: invocation?.selectedContract || "",
+      selectedMethod: invocation?.selectedMethod || "",
+      params: invocation?.params || {},
+      targetHash:
+        INVOCATION_TARGETS[invocation?.selectedContract] ||
+        invocation?.targetHash ||
+        proposal.value?.target_contract ||
+        "",
+    }));
+  }
+
+  return [
+    {
+      index: 1,
+      selectedContract: "",
+      selectedMethod: String(proposal.value?.method || "").trim(),
+      params: {},
+      targetHash: String(proposal.value?.target_contract || "").trim(),
+    },
+  ].filter((invocation) => invocation.selectedMethod || invocation.targetHash);
+});
+const proposalMethodSummary = computed(() => {
+  const methods = proposalInvocations.value
+    .map((invocation) => String(invocation.selectedMethod || "").trim())
+    .filter(Boolean);
+  return methods.join(", ") || String(proposal.value?.method || "Unavailable");
+});
+const proposalTargetSummary = computed(() => {
+  if (proposalInvocations.value.length > 1) {
+    return `${proposalInvocations.value.length} chained invocations`;
+  }
+  return (
+    proposalInvocations.value[0]?.targetHash ||
+    String(proposal.value?.target_contract || "").trim() ||
+    "Unavailable"
+  );
+});
+const proposalSubtitle = computed(() => {
+  if (proposalInvocations.value.length > 1) {
+    return `${proposalInvocations.value.length} chained council invocations are bundled into one governance packet. Review each contract call, verify the unsigned transaction, and broadcast once quorum is met.`;
+  }
+  return `Council method ${proposalMethodSummary.value} is queued against ${proposalTargetSummary.value}. Review the packet, track collected witnesses, and broadcast once quorum is met.`;
+});
 const councilIdentityMap = computed(() => buildCouncilIdentityMap(validatorMetadata.value));
 const statusClasses = computed(() =>
   proposal.value?.status === "EXECUTED"
@@ -736,7 +897,9 @@ const signatureWitnessRows = computed(() => {
       name: resolved.name === signature.signer_address ? `Council Node ${displayIndex}` : resolved.name,
       logo: resolveCouncilLogo(signature.signer_address, resolved.logo),
       signature: signature.signature,
-      invocationScriptBase64: buildSignatureInvocationScriptBase64(signature.signature),
+      invocationScriptBase64: signature.invocation_script
+        ? hexToBase64(signature.invocation_script.replace(/^0x/i, ""))
+        : buildSignatureInvocationScriptBase64(signature.signature),
       witnessJson: signature.witness ? JSON.stringify(signature.witness, null, 2) : "",
       councilIndex: displayIndex
     };
@@ -790,39 +953,6 @@ function formatCompactHash(value, prefix = 12, suffix = 8) {
   return `${normalized.slice(0, prefix)}...${normalized.slice(-suffix)}`;
 }
 
-function normalizeHex(value) {
-  return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
-}
-
-function encodePushDataHex(dataHex) {
-  const normalized = normalizeHex(dataHex);
-  if (!normalized || normalized.length % 2 !== 0 || /[^a-f0-9]/i.test(normalized)) {
-    return "";
-  }
-
-  const byteLength = normalized.length / 2;
-  if (byteLength <= 0xff) {
-    return `0c${byteLength.toString(16).padStart(2, "0")}${normalized}`;
-  }
-
-  if (byteLength <= 0xffff) {
-    const lenHex = byteLength.toString(16).padStart(4, "0");
-    return `0d${lenHex.slice(2)}${lenHex.slice(0, 2)}${normalized}`;
-  }
-
-  if (byteLength <= 0xffffffff) {
-    const lenHex = byteLength.toString(16).padStart(8, "0");
-    return `0e${lenHex.slice(6)}${lenHex.slice(4, 6)}${lenHex.slice(2, 4)}${lenHex.slice(0, 2)}${normalized}`;
-  }
-
-  return "";
-}
-
-function buildSignatureInvocationScriptBase64(signatureHex) {
-  const invocationScriptHex = encodePushDataHex(signatureHex);
-  return invocationScriptHex ? hexToBase64(invocationScriptHex) : "";
-}
-
 async function loadCommittee() {
   if (!neonJs) return;
   try {
@@ -848,11 +978,41 @@ async function loadValidatorMetadata() {
 function openSignModal() {
   showSignModal.value = true;
   manualSignature.value = "";
+  externalSignerAddress.value = "";
+  externalSignerPublicKey.value = "";
+  externalInvocationScript.value = "";
+  externalVerificationScript.value = "";
 }
 
 function closeSignModal() {
   showSignModal.value = false;
   manualSignature.value = "";
+  externalSignerAddress.value = "";
+  externalSignerPublicKey.value = "";
+  externalInvocationScript.value = "";
+  externalVerificationScript.value = "";
+}
+
+function findRequestSignerPublicKey(signerAddress) {
+  const target = String(signerAddress || "").trim();
+  const pubkeys =
+    proposal.value?.params?.committee_pubkeys ||
+    proposal.value?.params?.committee ||
+    committeePubkeys.value ||
+    [];
+  if (!target || !Array.isArray(pubkeys) || !neonJs) return "";
+
+  for (const pubkey of pubkeys) {
+    try {
+      if (new neonJs.wallet.Account(pubkey).address === target) {
+        return pubkey;
+      }
+    } catch {
+      // Ignore malformed signer pubkeys.
+    }
+  }
+
+  return "";
 }
 
 async function maybeBroadcastIfReady() {
@@ -862,16 +1022,25 @@ async function maybeBroadcastIfReady() {
   }
 }
 
-async function submitSignature(signatureHex) {
+async function submitSignature(signatureHex, source = "manual_signature") {
+  const signerPublicKey = findRequestSignerPublicKey(connectedAccount.value);
+  const payload = buildExternalWitnessPayload({
+    signerAddress: connectedAccount.value,
+    signerPublicKey,
+    signatureHex,
+    eligibleSigners: proposal.value?.eligible_signers || [],
+    source,
+  });
+
   const result = await supabaseService.addMultisigSignature(
     proposal.value.id,
-    connectedAccount.value,
-    signatureHex,
+    payload.signerAddress,
+    payload.signature,
     {
-      witness: {
-        signer_address: connectedAccount.value,
-        signature: signatureHex,
-      },
+      publicKey: payload.publicKey,
+      witness: payload.witness,
+      invocationScript: payload.invocationScript,
+      verificationScript: payload.verificationScript,
     }
   );
 
@@ -889,7 +1058,7 @@ async function autoSignTx() {
   isSigning.value = true;
   try {
     const signature = await walletService.signRawTransaction(proposal.value.params.unsigned_tx);
-    await submitSignature(signature);
+    await submitSignature(signature, "wallet_signature");
   } catch (error) {
     toast.error(`Signing failed: ${error.message}`);
   } finally {
@@ -899,9 +1068,47 @@ async function autoSignTx() {
 
 async function submitManualSignature() {
   try {
-    await submitSignature(manualSignature.value.trim());
+    await submitSignature(manualSignature.value.trim(), "manual_signature");
   } catch (error) {
     toast.error(`Failed to submit signature: ${error.message}`);
+  }
+}
+
+async function submitExternalWitness() {
+  if (!proposal.value) return;
+  isSubmittingExternalWitness.value = true;
+  try {
+    const payload = buildExternalWitnessPayload({
+      signerAddress: externalSignerAddress.value,
+      signerPublicKey: externalSignerPublicKey.value,
+      invocationScript: externalInvocationScript.value,
+      verificationScript: externalVerificationScript.value,
+      eligibleSigners: proposal.value?.eligible_signers || [],
+    });
+
+    const result = await supabaseService.addMultisigSignature(
+      proposal.value.id,
+      payload.signerAddress,
+      payload.signature,
+      {
+        publicKey: payload.publicKey,
+        witness: payload.witness,
+        invocationScript: payload.invocationScript,
+        verificationScript: payload.verificationScript,
+      }
+    );
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    toast.success("External witness recorded.");
+    closeSignModal();
+    await maybeBroadcastIfReady();
+  } catch (error) {
+    toast.error(`Failed to submit witness: ${error.message}`);
+  } finally {
+    isSubmittingExternalWitness.value = false;
   }
 }
 

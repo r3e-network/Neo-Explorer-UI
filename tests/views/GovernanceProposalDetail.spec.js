@@ -161,7 +161,7 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("0xef4073");
     expect(wrapper.text()).toContain("1 / 3");
     expect(wrapper.find('[data-testid="governance-hero"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Council approval progress");
+    expect(wrapper.text()).toContain("Council Approval Timeline");
     expect(wrapper.text()).toContain("2 more votes needed before broadcast");
     expect(wrapper.text()).toContain("Draft Created");
     expect(wrapper.text()).toContain("Collect Signatures");
@@ -170,12 +170,11 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Council Alpha");
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
-    expect(wrapper.text()).toContain("Decoded Contract Script");
-    expect(wrapper.text()).toContain("Collected Witnesses");
-    expect(wrapper.html().indexOf("Decoded Contract Script")).toBeLessThan(wrapper.html().indexOf("Collected Witnesses"));
-    expect(wrapper.text()).toContain("Signer Address");
-    expect(wrapper.text()).toContain("Stored Signature");
-    expect(wrapper.text()).toContain("Parsed Invocation Script");
+    expect(wrapper.text()).toContain("Decoded Execution Script");
+    expect(wrapper.text()).toContain("Collected Signatures");
+    expect(wrapper.html().indexOf("Decoded Execution Script")).toBeLessThan(wrapper.html().indexOf("Collected Signatures"));
+    expect(wrapper.text()).toContain("Stored ECDSA Signature");
+    expect(wrapper.text()).toContain("Parsed Invocation OpCodes");
     expect(wrapper.findAllComponents({ name: "ScriptViewer" }).length).toBeGreaterThanOrEqual(2);
     expect(wrapper.text()).toContain("Broadcast Witness");
     expect(wrapper.text()).toContain("0c40deadbeef");
@@ -263,5 +262,126 @@ describe("GovernanceProposalDetail", () => {
     await flushPromises();
 
     expect(wrapper.html()).toContain("/img/brand/neo.png");
+  });
+
+  it("accepts an external witness script for an eligible signer", async () => {
+    connectedAccount.value = "";
+    addMultisigSignatureMock.mockResolvedValueOnce({ success: true, data: [{ id: 1 }] });
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setGasPerBlock",
+      description: "Adjust GAS emissions",
+      target_contract: "0xef4073",
+      status: "PENDING",
+      signers_required: 3,
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      signatures: [],
+      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      signatures: [{
+        signer_address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        signature: "ab".repeat(64),
+      }],
+      signers_required: 3,
+      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      status: "PENDING",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    const setup = wrapper.vm.$.setupState;
+    setup.openSignModal();
+    setup.externalSignerAddress = "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    setup.externalInvocationScript = `0c40${"ab".repeat(64)}`;
+    await setup.submitExternalWitness();
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      1,
+      "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ab".repeat(64),
+      expect.objectContaining({
+        invocationScript: `0c40${"ab".repeat(64)}`,
+        witness: expect.objectContaining({
+          signer_address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          signature: "ab".repeat(64),
+          source: "external_witness",
+        }),
+      })
+    );
+  });
+
+  it("renders each invocation from params.invocations for atomic governance packets", async () => {
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setMillisecondsPerBlock,setGasPerBlock",
+      description: "Reduce block time and GAS reward",
+      target_contract: "MULTI_CALL",
+      status: "PENDING",
+      signers_required: 11,
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      signatures: [],
+      params: {
+        unsigned_tx: unsignedTx,
+        hash: "0xdeadbeef",
+        invocations: [
+          {
+            selectedContract: "PolicyContract",
+            selectedMethod: "setMillisecondsPerBlock",
+            params: { value: "3000" },
+          },
+          {
+            selectedContract: "NEO",
+            selectedMethod: "setGasPerBlock",
+            params: { gasPerBlock: "100000000" },
+          },
+        ],
+      },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Atomic Invocation Plan");
+    expect(wrapper.text()).toContain("PolicyContract");
+    expect(wrapper.text()).toContain("setMillisecondsPerBlock");
+    expect(wrapper.text()).toContain("3000");
+    expect(wrapper.text()).toContain("NEO");
+    expect(wrapper.text()).toContain("setGasPerBlock");
+    expect(wrapper.text()).toContain("100000000");
   });
 });

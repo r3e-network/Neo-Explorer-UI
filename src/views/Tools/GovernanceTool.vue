@@ -93,11 +93,21 @@
                  <div v-if="(req.signatures?.length || 0) >= req.signers_required">
                     <button @click="handleBroadcast(req)" class="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors">Broadcast Tx</button>
                  </div>
-                 <div v-else-if="isCouncilNode && !hasSigned(req)">
-                    <button @click="openSignModal(req)" class="px-4 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors">Sign Proposal</button>
-                 </div>
-                 <div v-else-if="hasSigned(req)">
-                    <span class="text-xs font-semibold text-emerald-500 flex items-center justify-end gap-1">
+                 <div v-else class="space-y-2">
+                    <button
+                      v-if="isCouncilNode && !hasSigned(req)"
+                      @click="openSignModal(req)"
+                      class="px-4 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Sign Proposal
+                    </button>
+                    <button
+                      @click="openSignModal(req)"
+                      class="px-4 py-1.5 bg-surface-muted text-high border border-line-soft text-xs font-bold rounded-lg hover:bg-surface transition-colors"
+                    >
+                      Add Witness
+                    </button>
+                    <span v-if="hasSigned(req)" class="text-xs font-semibold text-emerald-500 flex items-center justify-end gap-1">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                       Signed
                     </span>
@@ -181,6 +191,47 @@
              <button @click="submitManualSignature" :disabled="!manualSignature || manualSignature.length < 128" class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed">
                Submit Manual Signature
              </button>
+           </div>
+
+           <div class="relative py-2">
+             <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
+             <div class="relative flex justify-center"><span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">OR</span></div>
+           </div>
+
+           <div class="space-y-3">
+             <label class="block text-sm font-bold text-high">Option 3: External Witness Script</label>
+             <input
+               v-model="externalSignerAddress"
+               type="text"
+               class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+               placeholder="Signer address (optional if public key is provided)"
+             />
+             <input
+               v-model="externalSignerPublicKey"
+               type="text"
+               class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+               placeholder="Signer public key (optional)"
+             />
+             <input
+               v-model="externalInvocationScript"
+               type="text"
+               class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+               placeholder="Invocation script hex from external signer"
+             />
+             <input
+               v-model="externalVerificationScript"
+               type="text"
+               class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+               placeholder="Verification script hex (optional)"
+             />
+             <button
+               @click="submitExternalWitness"
+               :disabled="!externalInvocationScript.trim() || isSubmittingExternalWitness"
+               class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               {{ isSubmittingExternalWitness ? "Submitting Witness..." : "Submit External Witness" }}
+             </button>
+             <p class="text-[11px] text-mid text-center">Use this when a council member signed elsewhere and sent you the witness script directly.</p>
            </div>
         </div>
       </div>
@@ -292,10 +343,39 @@
                  </div>
                </div>
 
+               <div
+                 v-if="getMethodDefinition(inv.selectedContract, inv.selectedMethod)?.description || formatMethodCallFlags(getMethodDefinition(inv.selectedContract, inv.selectedMethod))"
+                 class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-2"
+               >
+                 <p
+                   v-if="getMethodDefinition(inv.selectedContract, inv.selectedMethod)?.description"
+                   class="text-sm text-high leading-relaxed"
+                 >
+                   {{ getMethodDefinition(inv.selectedContract, inv.selectedMethod).description }}
+                 </p>
+                 <p
+                   v-if="formatMethodCallFlags(getMethodDefinition(inv.selectedContract, inv.selectedMethod))"
+                   class="text-[11px] font-medium uppercase tracking-[0.18em] text-low"
+                 >
+                   Call Flags: {{ formatMethodCallFlags(getMethodDefinition(inv.selectedContract, inv.selectedMethod)) }}
+                 </p>
+               </div>
+
                <div v-if="getMethodParams(inv.selectedContract, inv.selectedMethod).length > 0" class="space-y-3 pt-2">
                  <div v-for="(param, pIdx) in getMethodParams(inv.selectedContract, inv.selectedMethod)" :key="pIdx" class="space-y-1.5">
-                   <label class="block text-xs font-bold text-high tracking-tight">{{ param.name }} <span class="font-normal text-mid ml-1">({{ param.type }})</span></label>
-                   <input v-model="inv.params[param.name]" type="text" class="form-input w-full bg-surface text-sm py-2 px-3 rounded-lg border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all outline-none" :placeholder="`Enter ${param.type} value`" />
+                   <label class="block text-xs font-bold text-high tracking-tight">{{ param.label || param.name }} <span class="font-normal text-mid ml-1">({{ param.type }})</span></label>
+                   <p v-if="param.description" class="text-xs text-mid leading-relaxed">{{ param.description }}</p>
+                   <p v-if="param.example || param.hint" class="text-[11px] text-low leading-relaxed">
+                     <span v-if="param.example">Example: <span class="font-mono text-high">{{ param.example }}</span></span>
+                     <span v-if="param.example && param.hint"> · </span>
+                     <span v-if="param.hint">{{ param.hint }}</span>
+                   </p>
+                   <input
+                     v-model="inv.params[param.name]"
+                     type="text"
+                     class="form-input w-full bg-surface text-sm py-2 px-3 rounded-lg border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all outline-none"
+                     :placeholder="param.placeholder || `Enter ${param.type} value`"
+                   />
                  </div>
                </div>
                
@@ -360,6 +440,7 @@ import { toNetworkMode } from '@/utils/rpcEndpoints';
 import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
 import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
+import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
 import { useToast } from "vue-toastification";
 import { isPublicKeyHex } from "@/utils/neoHelpers";
 
@@ -397,11 +478,42 @@ const NATIVE_CONTRACTS = {
 
 const NATIVE_METHODS = {
   PolicyContract: [
-    { name: "setFeePerByte", params: [{ name: "value", type: "Integer" }] },
-    { name: "setExecFeeFactor", params: [{ name: "value", type: "Integer" }] },
-    { name: "setStoragePrice", params: [{ name: "value", type: "Integer" }] },
-    { name: "blockAccount", params: [{ name: "account", type: "Hash160" }] },
-    { name: "unblockAccount", params: [{ name: "account", type: "Hash160" }] }
+    {
+      name: "setFeePerByte",
+      params: [{ name: "value", type: "Integer" }],
+    },
+    {
+      name: "setExecFeeFactor",
+      params: [{ name: "value", type: "Integer" }],
+    },
+    {
+      name: "setStoragePrice",
+      params: [{ name: "value", type: "Integer" }],
+    },
+    {
+      name: "setMillisecondsPerBlock",
+      description: "Block generation time in milliseconds.",
+      callFlags: ["States", "AllowNotify"],
+      params: [
+        {
+          name: "value",
+          type: "Integer",
+          label: "Milliseconds Per Block",
+          description: "Block generation time in milliseconds.",
+          example: "3000",
+          hint: "Use 3000 for a 3 second block interval.",
+          placeholder: "e.g. 3000",
+        },
+      ],
+    },
+    {
+      name: "blockAccount",
+      params: [{ name: "account", type: "Hash160" }],
+    },
+    {
+      name: "unblockAccount",
+      params: [{ name: "account", type: "Hash160" }],
+    }
   ],
   RoleManagement: [
     { name: "designateAsRole", params: [{ name: "role", type: "Integer" }, { name: "nodes", type: "Array" }] }
@@ -410,7 +522,22 @@ const NATIVE_METHODS = {
     { name: "setPrice", params: [{ name: "price", type: "Integer" }] }
   ],
   NEO: [
-    { name: "setGasPerBlock", params: [{ name: "gasPerBlock", type: "Integer" }] },
+    {
+      name: "setGasPerBlock",
+      description: "GAS generated per block, expressed in GAS fractions.",
+      callFlags: ["States"],
+      params: [
+        {
+          name: "gasPerBlock",
+          type: "Integer",
+          label: "GAS Per Block",
+          description: "GAS generated per block, expressed in GAS fractions.",
+          example: "100000000",
+          hint: "1 GAS = 100000000.",
+          placeholder: "e.g. 100000000",
+        },
+      ],
+    },
     { name: "setRegisterPrice", params: [{ name: "registerPrice", type: "Integer" }] }
   ]
 };
@@ -439,10 +566,27 @@ function getAvailableMethods(contract) {
   return NATIVE_METHODS[contract] || [];
 }
 
-function getMethodParams(contract, methodName) {
+function getMethodDefinition(contract, methodName) {
   const methods = getAvailableMethods(contract);
-  const method = methods.find(m => m.name === methodName);
+  return methods.find((method) => method.name === methodName) || null;
+}
+
+function getMethodParams(contract, methodName) {
+  const method = getMethodDefinition(contract, methodName);
   return method ? method.params : [];
+}
+
+function resolveMethodCallFlags(method) {
+  if (!method?.callFlags?.length || !neonJs?.sc?.CallFlags) return undefined;
+  return method.callFlags.reduce((value, flagName) => {
+    const flagValue = neonJs.sc.CallFlags?.[flagName];
+    return Number.isFinite(flagValue) ? value | flagValue : value;
+  }, 0);
+}
+
+function formatMethodCallFlags(method) {
+  if (!method?.callFlags?.length) return "";
+  return method.callFlags.join(" | ");
 }
 
 function handleContractChange(index) {
@@ -572,6 +716,11 @@ function getCommitteeAddresses(pubkeys = committeePubkeys.value) {
 const signModalReq = ref(null);
 const manualSignature = ref("");
 const isSigning = ref(false);
+const externalSignerAddress = ref("");
+const externalSignerPublicKey = ref("");
+const externalInvocationScript = ref("");
+const externalVerificationScript = ref("");
+const isSubmittingExternalWitness = ref(false);
 const signModalDecodedScript = computed(() =>
   extractScriptBase64FromUnsignedTx(signModalReq.value?.params?.unsigned_tx || "")
 );
@@ -594,6 +743,28 @@ function viewDetails(req) {
 function openSignModal(req) {
   signModalReq.value = req;
   manualSignature.value = "";
+  externalSignerAddress.value = "";
+  externalSignerPublicKey.value = "";
+  externalInvocationScript.value = "";
+  externalVerificationScript.value = "";
+}
+
+function findRequestSignerPublicKey(requestLike, signerAddress) {
+  const target = String(signerAddress || "").trim();
+  const pubkeys = requestLike?.params?.committee_pubkeys || requestLike?.params?.committee || [];
+  if (!target || !Array.isArray(pubkeys) || !neonJs) return "";
+
+  for (const pubkey of pubkeys) {
+    try {
+      if (new neonJs.wallet.Account(pubkey).address === target) {
+        return pubkey;
+      }
+    } catch {
+      // Ignore malformed signer pubkeys.
+    }
+  }
+
+  return "";
 }
 
 function normalizeArg(val, type) {
@@ -647,16 +818,22 @@ async function handleCreateProposal() {
       const targetContract = NATIVE_CONTRACTS[inv.selectedContract];
       const method = inv.selectedMethod;
       
-      const methods = getAvailableMethods(inv.selectedContract);
-      const mDef = methods.find(m => m.name === method);
+      const mDef = getMethodDefinition(inv.selectedContract, method);
       
       const args = mDef.params.map(p => {
         const val = inv.params[p.name];
         if (val === undefined || val === '') throw new Error(`Missing param: ${p.name} in method ${method}`);
         return normalizeArg(val, p.type);
       });
+
+      const callFlags = resolveMethodCallFlags(mDef);
       
-      return { scriptHash: targetContract, operation: method, args };
+      return {
+        scriptHash: targetContract,
+        operation: method,
+        args,
+        ...(callFlags !== undefined ? { callFlags } : {}),
+      };
     });
     
     const script = neonJs.sc.createScript(...intents);
@@ -674,13 +851,16 @@ async function handleCreateProposal() {
     const txHash = t.hash();
     
     // Format descriptive targets for the UI representation
-    const targets = createForm.value.invocations.map(inv => NATIVE_CONTRACTS[inv.selectedContract]).join(',');
+    const targetContracts = createForm.value.invocations.map(inv => NATIVE_CONTRACTS[inv.selectedContract]);
     const methods = createForm.value.invocations.map(inv => inv.selectedMethod).join(',');
+    const targetSummary = targetContracts.length > 1
+      ? "MULTI_CALL"
+      : (targetContracts[0] || "");
 
     const payload = {
       type: "governance",
       creator_address: connectedAccount.value,
-      target_contract: targets.length > 255 ? targets.substring(0, 250) + "..." : targets,
+      target_contract: targetSummary,
       method: methods.length > 255 ? methods.substring(0, 250) + "..." : methods,
       description: createForm.value.description,
       signers_required: signerConfig.thresholdValue,
@@ -695,7 +875,11 @@ async function handleCreateProposal() {
         governance_mode: signerConfig.mode,
         lab_mode: signerConfig.mode === 'lab',
         lab_signer_addresses: signerConfig.mode === 'lab' ? signerConfig.signerAddresses : undefined,
-        invocations: createForm.value.invocations // Optional, for details later
+        target_contracts: targetContracts,
+        invocations: createForm.value.invocations.map((inv) => ({
+          ...inv,
+          targetHash: NATIVE_CONTRACTS[inv.selectedContract],
+        })),
       }
     };
     
@@ -726,7 +910,7 @@ async function autoSignTx() {
   try {
     const unsignedTxHex = signModalReq.value.params.unsigned_tx;
     const signature = await walletService.signRawTransaction(unsignedTxHex);
-    await submitSig(signature);
+    await submitSig(signature, "wallet_signature");
   } catch (e) {
     console.error(e);
     toast.error("Signing failed: " + e.message);
@@ -737,24 +921,33 @@ async function autoSignTx() {
 
 async function submitManualSignature() {
   if (!manualSignature.value) return;
-  await submitSig(manualSignature.value.trim());
+  await submitSig(manualSignature.value.trim(), "manual_signature");
 }
 
-async function submitSig(signatureHex) {
+async function submitSig(signatureHex, source = "manual_signature") {
   if (!signatureHex || signatureHex.length < 128) {
     throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
   }
   try {
     const requestId = signModalReq.value.id;
+    const signerPublicKey = findRequestSignerPublicKey(signModalReq.value, connectedAccount.value);
+    const payload = buildExternalWitnessPayload({
+      signerAddress: connectedAccount.value,
+      signerPublicKey,
+      signatureHex,
+      eligibleSigners: signModalReq.value?.eligible_signers || [],
+      source,
+    });
+
     const res = await supabaseService.addMultisigSignature(
       requestId,
-      connectedAccount.value,
-      signatureHex,
+      payload.signerAddress,
+      payload.signature,
       {
-        witness: {
-          signer_address: connectedAccount.value,
-          signature: signatureHex,
-        },
+        publicKey: payload.publicKey,
+        witness: payload.witness,
+        invocationScript: payload.invocationScript,
+        verificationScript: payload.verificationScript,
       }
     );
     if (!res.success) throw new Error(res.error);
@@ -769,6 +962,48 @@ async function submitSig(signatureHex) {
     }
   } catch (e) {
     throw new Error("Failed to submit signature: " + e.message);
+  }
+}
+
+async function submitExternalWitness() {
+  if (!signModalReq.value) return;
+  isSubmittingExternalWitness.value = true;
+  try {
+    const requestId = signModalReq.value.id;
+    const payload = buildExternalWitnessPayload({
+      signerAddress: externalSignerAddress.value,
+      signerPublicKey: externalSignerPublicKey.value,
+      invocationScript: externalInvocationScript.value,
+      verificationScript: externalVerificationScript.value,
+      eligibleSigners: signModalReq.value?.eligible_signers || [],
+    });
+
+    const res = await supabaseService.addMultisigSignature(
+      requestId,
+      payload.signerAddress,
+      payload.signature,
+      {
+        publicKey: payload.publicKey,
+        witness: payload.witness,
+        invocationScript: payload.invocationScript,
+        verificationScript: payload.verificationScript,
+      }
+    );
+    if (!res.success) throw new Error(res.error);
+
+    toast.success("External witness added successfully!");
+    signModalReq.value = null;
+    await loadRequests();
+
+    const updatedRequest = await supabaseService.getMultisigRequestById(requestId, getCurrentEnv());
+    if (updatedRequest && (updatedRequest.signatures?.length || 0) >= updatedRequest.signers_required) {
+      await handleBroadcast(updatedRequest);
+    }
+  } catch (e) {
+    console.error(e);
+    toast.error("Failed to submit witness: " + e.message);
+  } finally {
+    isSubmittingExternalWitness.value = false;
   }
 }
 

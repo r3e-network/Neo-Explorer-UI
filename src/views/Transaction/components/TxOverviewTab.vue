@@ -73,7 +73,13 @@
       </InfoRow>
 
       <InfoRow label="To / Interacted With" tooltip="The receiving address or the primary contract invoked">
-        <HashLink v-if="toAddress" :hash="toAddress" type="contract" :truncated="false" />
+        <HashLink
+          v-if="recipientTarget"
+          :hash="recipientTarget.hash"
+          :type="recipientTarget.type"
+          :truncated="false"
+          :show-neo-chat="recipientTarget.type === 'address'"
+        />
         <span v-else class="text-mid">Contract Invocation</span>
       </InfoRow>
 
@@ -178,6 +184,7 @@ import StatusBadge from "@/components/common/StatusBadge.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { formatGas, formatAge, formatTime } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { GAS_DECIMALS } from "@/constants";
 import { supabaseService } from "@/services/supabaseService";
 
@@ -223,7 +230,67 @@ function formatTransferAmount(t) {
   return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
 }
 
-const toAddress = computed(() => props.tx?.contractHash || props.tx?.to || "");
+const invocation = computed(() => {
+  if (!props.tx?.script) return null;
+  return extractContractInvocation(props.tx.script);
+});
+
+const recipientTarget = computed(() => {
+  const tx = props.tx || {};
+  const explicitTarget =
+    tx.to ||
+    tx.toAddress ||
+    tx.toaddress ||
+    tx.recipient ||
+    tx.receiver ||
+    tx.contractHash ||
+    tx.contracthash ||
+    tx.contract_hash ||
+    "";
+
+  const normalizedTarget = String(explicitTarget || "").trim();
+  if (normalizedTarget) {
+    return {
+      hash: normalizedTarget,
+      type: normalizedTarget.startsWith("N") ? "address" : "contract",
+    };
+  }
+
+  if (invocation.value?.contractHash) {
+    return {
+      hash: invocation.value.contractHash,
+      type: "contract",
+    };
+  }
+
+  if (tx.notifications?.length > 0) {
+    const notificationContract =
+      tx.notifications[0]?.contract ||
+      tx.notifications[0]?.contractHash ||
+      tx.notifications[0]?.contracthash ||
+      "";
+    if (notificationContract) {
+      return { hash: notificationContract, type: "contract" };
+    }
+  }
+
+  if (props.allTransfers?.length > 0) {
+    const transferTarget =
+      props.allTransfers[0]?.to ||
+      props.allTransfers[0]?.toAddress ||
+      props.allTransfers[0]?.receiver ||
+      "";
+    const normalizedTransferTarget = String(transferTarget || "").trim();
+    if (normalizedTransferTarget) {
+      return {
+        hash: normalizedTransferTarget,
+        type: normalizedTransferTarget.startsWith("N") ? "address" : "contract",
+      };
+    }
+  }
+
+  return null;
+});
 
 function hasOracleResponseAttribute(tx) {
   return Boolean(
