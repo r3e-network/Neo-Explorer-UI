@@ -9,6 +9,7 @@ const FLAMINGO_APE_LOGO = "https://flamingo.finance/img/tokens/circle/APE.svg";
 const BNEO_HASH = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
 const NEOBURGER_LOGO = "https://app.neoburger.io/favicon.ico";
 const NEOX_BRIDGE_HASH = "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2";
+const NEOX_CONTRACT_HASH = "0x5a0a0f188f2582ad60c1970267df30ec5428100d";
 const NEOX_LOGO = "https://x.neo.org/favicon.ico";
 const FLAMINGO_STAKING_HASH = "0xd1a9f78e1940f6322fef4df2340a963a9ec46f63";
 const FLAMINGO_LOGO = "https://flamingo.finance/favicon.ico";
@@ -39,6 +40,14 @@ describe("getTokenIcon Flamingo fallback", () => {
       logo: NEOX_LOGO,
     });
     expect(getTokenIcon(NEOX_BRIDGE_HASH, "NEP17")).toBe(NEOX_LOGO);
+  });
+
+  it("keeps the requested Neo X system contract name while using NeoX branding", () => {
+    expect(KNOWN_CONTRACTS[NEOX_CONTRACT_HASH]).toMatchObject({
+      name: "OracleProxy",
+      logo: NEOX_LOGO,
+    });
+    expect(getTokenIcon(NEOX_CONTRACT_HASH, "NEP17")).toBe(NEOX_LOGO);
   });
 
   it("treats known Flamingo logos as available token icons", () => {

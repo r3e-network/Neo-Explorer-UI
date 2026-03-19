@@ -46,6 +46,7 @@ const STATIC_KNOWN_CONTRACTS = {
   "0xf21df748881273ff3725cf9e1d8cd3b3a62854b4": { name: "NeoBurger", logo: "https://app.neoburger.io/favicon.ico" },
 
   // NeoX Bridge Contracts
+  "0x5a0a0f188f2582ad60c1970267df30ec5428100d": { name: "OracleProxy", logo: "https://x.neo.org/favicon.ico" },
   "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2": { name: "NeoXBridge", logo: "https://x.neo.org/favicon.ico" },
   "0x148b3e0ca4f77476252862645e58f06b2562c414": { name: "NeoXBridgeManagement", logo: "https://x.neo.org/favicon.ico" },
 };
