@@ -116,3 +116,5 @@ typings/
 # Generated smart-contract build output for local validation labs
 contracts/MockPolicyLab/bin/
 contracts/MockPolicyLab/obj/
+contracts/MockNeoTokenLab/bin/
+contracts/MockNeoTokenLab/obj/
