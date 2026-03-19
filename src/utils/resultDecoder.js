@@ -8,6 +8,21 @@ import {
   scriptHashHexToAddress,
 } from "./neoHelpers";
 
+function isReadableUtf8Text(bytes = new Uint8Array(), text = "") {
+  if (!text) return false;
+
+  for (const byte of bytes) {
+    if (byte < 0x20 && byte !== 0x09 && byte !== 0x0a && byte !== 0x0d) {
+      return false;
+    }
+    if (byte === 0x7f) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * Decode a single NeoVM stack item into human-readable form.
  * @param {Object} item - { type, value } from RPC response stack
@@ -35,7 +50,7 @@ export function decodeStackItem(item) {
       return { type: "PublicKey", value: "0x" + hex, raw: value };
     }
     const text = bytesToUtf8(bytes);
-    if (text && /^[\x20-\x7E]*$/.test(text)) {
+    if (isReadableUtf8Text(bytes, text)) {
       return { type: "String", value: text, raw: value, hex };
     }
     return { type: "Hex", value: hex || "(empty)", raw: value };
