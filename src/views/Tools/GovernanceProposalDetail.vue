@@ -543,8 +543,16 @@
         </div>
       </div>
 
-      <div v-if="showSignModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity">
-        <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col">
+      <div
+        v-if="showSignModal"
+        data-testid="governance-detail-sign-modal-overlay"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+        @click.self="closeSignModal"
+      >
+        <div
+          data-testid="governance-detail-sign-modal-panel"
+          class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
+        >
           <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
             <div class="flex items-center gap-3">
               <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
@@ -556,7 +564,7 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
-          <div class="p-6 space-y-6">
+          <div data-testid="governance-detail-sign-modal-body" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
             <div>
               <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
               <div class="rounded-xl border border-line-soft bg-[#0f172a] p-3 font-mono text-[10px] break-all text-slate-300 max-h-40 overflow-y-auto shadow-inner dark:bg-[#020617]">

@@ -379,6 +379,54 @@ describe("GovernanceProposalDetail", () => {
     );
   });
 
+  it("keeps the proposal sign modal scrollable and closable", async () => {
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setGasPerBlock",
+      description: "Adjust GAS emissions",
+      target_contract: "0xef4073",
+      status: "PENDING",
+      signers_required: 3,
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      signatures: [],
+      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    const setup = wrapper.vm.$.setupState;
+    setup.openSignModal();
+    await flushPromises();
+
+    const overlay = wrapper.get('[data-testid="governance-detail-sign-modal-overlay"]');
+    const panel = wrapper.get('[data-testid="governance-detail-sign-modal-panel"]');
+    const body = wrapper.get('[data-testid="governance-detail-sign-modal-body"]');
+
+    expect(panel.classes()).toContain("max-h-[90vh]");
+    expect(body.classes()).toContain("overflow-y-auto");
+
+    await overlay.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="governance-detail-sign-modal-overlay"]').exists()).toBe(false);
+  });
+
   it("renders each invocation from params.invocations for atomic governance packets", async () => {
     getMultisigRequestByIdMock.mockResolvedValueOnce({
       id: 1,

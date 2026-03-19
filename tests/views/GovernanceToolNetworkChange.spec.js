@@ -474,6 +474,56 @@ describe("GovernanceTool network changes", () => {
     wrapper.unmount();
   });
 
+  it("keeps the add-witness modal scrollable and closable", async () => {
+    connectedAccount.value = "";
+    walletServiceMock.isConnected = false;
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 12,
+        type: "governance",
+        description: "Modal Proposal",
+        network: "mainnet",
+        signatures: [],
+        signers_required: 3,
+        eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
+        params: {
+          unsigned_tx: "001122",
+          committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
+        },
+        status: "PENDING",
+      },
+    ]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    const addWitnessButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Add Witness"));
+    await addWitnessButton.trigger("click");
+    await flushPromises();
+
+    const overlay = wrapper.get('[data-testid="governance-sign-modal-overlay"]');
+    const panel = wrapper.get('[data-testid="governance-sign-modal-panel"]');
+    const body = wrapper.get('[data-testid="governance-sign-modal-body"]');
+
+    expect(panel.classes()).toContain("max-h-[90vh]");
+    expect(body.classes()).toContain("overflow-y-auto");
+
+    await overlay.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it("falls back from a broken signer logo to the committee pubkey logo in the governance list", async () => {
     connectedAccount.value = "";
     getValidatorMetadataMock.mockResolvedValue([
