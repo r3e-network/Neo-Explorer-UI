@@ -922,7 +922,13 @@ function findCommitteePubkeyForAddress(address) {
   const target = String(address || "").trim();
   if (!target || !neonJs) return "";
 
-  for (const pubkey of committeePubkeys.value || []) {
+  const sourcePubkeys = [
+    ...(Array.isArray(proposal.value?.params?.committee_pubkeys) ? proposal.value.params.committee_pubkeys : []),
+    ...(Array.isArray(proposal.value?.params?.committee) ? proposal.value.params.committee : []),
+    ...(Array.isArray(committeePubkeys.value) ? committeePubkeys.value : []),
+  ];
+
+  for (const pubkey of [...new Set(sourcePubkeys.filter(Boolean))]) {
     try {
       if (new neonJs.wallet.Account(pubkey).address === target) {
         return pubkey;

@@ -314,6 +314,55 @@ describe("GovernanceProposalDetail", () => {
     expect(logo.attributes("src")).toBe("https://example.com/default-02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png");
   });
 
+  it("uses proposal committee pubkeys for logo fallback even when live committee loading is unavailable", async () => {
+    getValidatorMetadataMock.mockResolvedValueOnce([]);
+    getCommitteeMock.mockResolvedValueOnce([]);
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setGasPerBlock",
+      description: "Adjust GAS emissions",
+      target_contract: "0xef4073",
+      status: "PENDING",
+      signers_required: 2,
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      signatures: [],
+      params: {
+        unsigned_tx: unsignedTx,
+        hash: "0xdeadbeef",
+        committee_pubkeys: [
+          "02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        ],
+      },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="council-status-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]').attributes("src")).toBe(
+      "https://example.com/default-02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
+    );
+    expect(wrapper.get('[data-testid="council-status-logo-A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]').attributes("src")).toBe(
+      "https://example.com/default-03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png"
+    );
+  });
+
   it("accepts an external witness script for an eligible signer", async () => {
     connectedAccount.value = "";
     addMultisigSignatureMock.mockResolvedValueOnce({ success: true, data: [{ id: 1 }] });
