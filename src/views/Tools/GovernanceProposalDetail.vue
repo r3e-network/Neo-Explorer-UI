@@ -321,10 +321,11 @@
                         <div class="flex min-w-0 items-center gap-4">
                           <img
                             :src="row.logo"
+                            :data-logo-fallback-index="0"
                             :data-testid="`signature-witness-logo-${row.signerAddress}`"
                             alt=""
                             class="h-14 w-14 rounded-full object-cover ring-2 ring-white shadow-md bg-white shrink-0 dark:ring-slate-800"
-                            @error="$event.target.src = '/img/brand/neo.png'"
+                            @error="handleCouncilLogoError($event, row.logoSources)"
                           />
                           <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2 mb-1.5">
@@ -449,10 +450,11 @@
                   <div class="flex min-w-0 items-center gap-3.5" :title="signer.address">
                     <img
                       :src="signer.logo"
+                      :data-logo-fallback-index="0"
                       :data-testid="`council-status-logo-${signer.address}`"
                       alt=""
                       class="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm bg-white shrink-0 dark:ring-slate-800"
-                      @error="$event.target.src = '/img/brand/neo.png'"
+                      @error="handleCouncilLogoError($event, signer.logoSources)"
                     />
                     <div class="min-w-0">
                       <div class="flex items-center gap-2 mb-0.5">
@@ -876,6 +878,7 @@ const signerRows = computed(() => {
       ...resolved,
       name: resolved.name === address ? `Council Node ${index + 1}` : resolved.name,
       logo: resolveCouncilLogo(address, resolved.logo),
+      logoSources: buildCouncilLogoSources(address, resolved.logo),
       signed: signed.has(address),
       councilIndex: index + 1
     };
@@ -896,6 +899,7 @@ const signatureWitnessRows = computed(() => {
       signerAddress: signature.signer_address,
       name: resolved.name === signature.signer_address ? `Council Node ${displayIndex}` : resolved.name,
       logo: resolveCouncilLogo(signature.signer_address, resolved.logo),
+      logoSources: buildCouncilLogoSources(signature.signer_address, resolved.logo),
       signature: signature.signature,
       invocationScriptBase64: signature.invocation_script
         ? hexToBase64(signature.invocation_script.replace(/^0x/i, ""))
@@ -924,17 +928,35 @@ function findCommitteePubkeyForAddress(address) {
 }
 
 function resolveCouncilLogo(address, explicitLogo = "") {
+  return buildCouncilLogoSources(address, explicitLogo)[0] || NEO_LOGO_FALLBACK;
+}
+
+function buildCouncilLogoSources(address, explicitLogo = "") {
+  const candidates = [];
   const normalizedLogo = String(explicitLogo || "").trim();
   if (normalizedLogo) {
-    return resolveCandidateLogoUrl(normalizedLogo);
+    candidates.push(resolveCandidateLogoUrl(normalizedLogo));
   }
 
   const pubkey = findCommitteePubkeyForAddress(address);
   if (pubkey) {
-    return getDefaultCandidateLogoUrl(pubkey);
+    candidates.push(getDefaultCandidateLogoUrl(pubkey));
   }
 
-  return NEO_LOGO_FALLBACK;
+  candidates.push(NEO_LOGO_FALLBACK);
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function handleCouncilLogoError(event, sources = []) {
+  const element = event?.target;
+  if (!element) return;
+
+  const currentIndex = Number.parseInt(element.dataset.logoFallbackIndex || "0", 10);
+  const nextIndex = Number.isFinite(currentIndex) ? currentIndex + 1 : 1;
+  const nextSource = sources[nextIndex] || NEO_LOGO_FALLBACK;
+
+  element.dataset.logoFallbackIndex = String(nextIndex);
+  element.src = nextSource;
 }
 
 function formatDate(value) {

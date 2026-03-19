@@ -64,6 +64,11 @@ vi.mock("@/utils/governanceRequests", () => ({
   },
 }));
 
+vi.mock("@/utils/logoOptimization", () => ({
+  getDefaultCandidateLogoUrl: (pubkey) => `https://example.com/default-${pubkey}.png`,
+  resolveCandidateLogoUrl: (value) => value,
+}));
+
 describe("GovernanceTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -157,7 +162,9 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
     expect(wrapper.html()).toContain("Mainnet Proposal");
-    expect(wrapper.text()).toContain("Public read access");
+    expect(wrapper.text()).toContain("Public Oversight");
+    expect(wrapper.text()).toContain("Committee Snapshot");
+    expect(wrapper.text()).toContain("Proposal Queue");
     expect(wrapper.text()).toContain("Anyone can review council proposals without connecting a wallet");
     expect(wrapper.html()).toContain("Council Alpha");
     expect(wrapper.html()).not.toContain("Testnet Proposal");
@@ -223,7 +230,8 @@ describe("GovernanceTool network changes", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("Atomic mainnet governance");
-    expect(wrapper.text()).toContain("setMillisecondsPerBlock,setGasPerBlock");
+    expect(wrapper.text()).toContain("PolicyContract.setMillisecondsPerBlock");
+    expect(wrapper.text()).toContain("NEO.setGasPerBlock");
     wrapper.unmount();
   });
 
@@ -463,6 +471,44 @@ describe("GovernanceTool network changes", () => {
       })
     );
 
+    wrapper.unmount();
+  });
+
+  it("falls back from a broken signer logo to the committee pubkey logo in the governance list", async () => {
+    connectedAccount.value = "";
+    getValidatorMetadataMock.mockResolvedValue([
+      { address: "APK1", display_name: "Council Alpha", logo_url: "https://example.com/broken-alpha.png" },
+    ]);
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 11,
+        type: "governance",
+        description: "Mainnet Proposal",
+        network: "mainnet",
+        signatures: [{ id: 1, signer_address: "APK1" }],
+        eligible_signers: [],
+      },
+    ]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const logo = wrapper.get("img.h-5.w-5");
+    expect(logo.attributes("src")).toBe("https://example.com/broken-alpha.png");
+
+    await logo.trigger("error");
+
+    expect(logo.attributes("src")).toBe("https://example.com/default-PK1.png");
     wrapper.unmount();
   });
 

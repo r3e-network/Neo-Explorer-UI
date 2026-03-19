@@ -3,131 +3,253 @@
     <section class="page-container py-6 md:py-8">
     <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Council Governance' }]" />
 
-    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="flex items-start gap-3">
-        <div class="page-header-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-        </div>
-        <div>
-          <h1 class="page-title">Council Governance</h1>
-          <p class="page-subtitle">Create official committee proposals, adjust network variables, and gather validator signatures</p>
+    <div class="mb-6 overflow-hidden rounded-[32px] border border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-xl shadow-amber-900/5 dark:border-amber-900/40 dark:from-amber-950/20 dark:via-slate-950 dark:to-slate-950">
+      <div class="relative p-6 md:p-8">
+        <div class="pointer-events-none absolute -right-20 -top-12 h-56 w-56 rounded-full bg-amber-300/25 blur-3xl dark:bg-amber-500/10"></div>
+        <div class="pointer-events-none absolute bottom-0 left-0 h-44 w-44 rounded-full bg-orange-300/10 blur-3xl dark:bg-orange-500/10"></div>
+
+        <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+          <div>
+            <div class="mb-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full border border-amber-200/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:border-amber-900/40 dark:bg-slate-950/50 dark:text-amber-400">
+                Public Oversight
+              </span>
+              <span class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-low dark:bg-slate-950/50">
+                {{ activeNetworkLabel }}
+              </span>
+              <span
+                v-if="committeeMultiSig"
+                class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-low dark:bg-slate-950/50"
+              >
+                {{ threshold }} of {{ committeeSize }} quorum
+              </span>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
+                <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+              </div>
+              <div class="min-w-0">
+                <h1 class="page-title">Council Governance</h1>
+                <p class="page-subtitle max-w-3xl">
+                  The public command surface for Neo council decisions. Review official proposal packets, monitor quorum pressure, and step into the signing workflow only when you need to act.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 grid gap-4 md:grid-cols-3">
+              <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Proposal Queue</div>
+                <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ pendingRequestCount }}</div>
+                <p class="mt-1 text-sm text-mid">{{ requestQueueHeadline }}</p>
+              </div>
+              <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Signature Pressure</div>
+                <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ collectedSignatureCount }}</div>
+                <p class="mt-1 text-sm text-mid">Council witness fragments currently stored across the active queue.</p>
+              </div>
+              <div class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Ready To Broadcast</div>
+                <div class="mt-2 text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">{{ readyToBroadcastCount }}</div>
+                <p class="mt-1 text-sm text-mid">Packets that already crossed quorum and can be submitted on-chain.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">Committee Snapshot</div>
+              <div v-if="committeeMultiSig" class="space-y-3">
+                <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Multi-Sig</div>
+                  <div class="mt-2 font-mono text-xs break-all text-high">{{ committeeMultiSig.address }}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Threshold</div>
+                    <div class="mt-1 text-xl font-black text-high">{{ threshold }}</div>
+                  </div>
+                  <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Size</div>
+                    <div class="mt-1 text-xl font-black text-high">{{ committeeSize }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="rounded-2xl border border-dashed border-line-soft bg-surface-muted/50 p-4 text-sm text-mid">
+                Committee state is still loading.
+              </div>
+            </div>
+
+            <div class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70">
+              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">Action Gate</div>
+              <p class="text-sm text-mid leading-relaxed">
+                Anyone can review council proposals without connecting a wallet. A wallet is only required to create proposals, add signatures, or broadcast.
+              </p>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <button
+                  v-if="!connectedAccount"
+                  disabled
+                  class="inline-flex items-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-low cursor-not-allowed"
+                >
+                  Connect in Header
+                </button>
+                <button
+                  v-else-if="!canCreateProposal"
+                  disabled
+                  class="inline-flex items-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-low cursor-not-allowed"
+                  :title="isGovernanceLabModeAvailable ? 'Connect a signer that participates in your custom lab signer set' : 'Only active council nodes can create proposals'"
+                >
+                  Not a Council Node
+                </button>
+                <button
+                  v-else
+                  @click="showCreateModal = true"
+                  class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-colors"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                  New Proposal
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div class="flex items-center gap-3">
-        <button 
-          v-if="!connectedAccount"
-          disabled
-          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
-        >
-          Connect in Header
-        </button>
-        <button 
-          v-else-if="!canCreateProposal" 
-          disabled
-          class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
-          :title="isGovernanceLabModeAvailable ? 'Connect a signer that participates in your custom lab signer set' : 'Only active council nodes can create proposals'"
-        >
-          Not a Council Node
-        </button>
-        <button 
-          v-else
-          @click="showCreateModal = true" 
-          class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          New Proposal
-        </button>
+    </div>
+
+    <div class="etherscan-card overflow-hidden">
+      <div class="border-b border-line-soft bg-surface/30 px-6 py-6 md:px-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 class="text-xl font-black text-high tracking-tight">Proposal Queue</h2>
+            <p class="mt-1.5 text-sm text-mid max-w-2xl leading-relaxed">
+              Live council packets awaiting signatures or final broadcast. Each card tracks quorum progress, signer activity, and the exact transaction packet under review.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low">
+              {{ pendingRequestCount }} active
+            </span>
+            <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
+              {{ readyToBroadcastCount }} ready
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div v-if="committeeMultiSig" class="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-400 font-medium">
-      <div>Committee Multi-Sig Address: <span class="font-hash ml-2">{{ committeeMultiSig.address }}</span></div>
-      <div class="mt-1 text-xs opacity-80">Threshold: {{ threshold }} / {{ committeeSize }} nodes</div>
-    </div>
-
-    <div class="mb-6 rounded-2xl border border-line-soft bg-surface-muted/50 px-4 py-3">
-      <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Public read access</div>
-      <p class="mt-1 text-sm text-mid">
-        Anyone can review council proposals without connecting a wallet. A wallet is only required to create proposals, add signatures, or broadcast.
-      </p>
-    </div>
-
-    <div class="etherscan-card p-6 md:p-8">
+      <div class="p-6 md:p-8">
       <div v-if="loading" class="space-y-4">
         <Skeleton v-for="i in 3" :key="i" height="80px" />
       </div>
-      <div v-else-if="requests.length === 0" class="text-center py-12 text-mid">
-        <svg class="mx-auto h-12 w-12 text-low mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-        <p>No pending council proposals found.</p>
+      <div v-else-if="requests.length === 0" class="rounded-3xl border-2 border-dashed border-line-soft bg-surface-muted/30 py-16 px-6 text-center text-mid">
+        <svg class="mx-auto h-14 w-14 text-low mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        <p class="text-lg font-bold text-high">No pending council proposals found.</p>
+        <p class="mt-2 text-sm text-mid max-w-md mx-auto">The queue is clear right now. When a new governance packet is created, it will appear here with quorum tracking and signer status.</p>
         <span v-if="!connectedAccount" class="mt-2 block text-sm font-medium text-mid">Connect wallet from the top bar to create</span>
         <span v-else-if="!canCreateProposal" class="text-mid mt-2 text-sm font-medium">Only council nodes can create proposals</span>
         <button v-else @click="showCreateModal = true" class="text-primary-500 hover:underline mt-2 text-sm font-medium">Create the first one</button>
       </div>
       <div v-else class="space-y-4">
-        <div v-for="req in requests" :key="req.id" class="border border-line-soft rounded-xl p-4 hover:border-primary-400 transition-colors">
-          <div class="flex flex-wrap gap-4 items-start justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-high">{{ req.method }}</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wide font-semibold"
-                      :class="req.status === 'PENDING' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'">
+        <div
+          v-for="req in requests"
+          :key="req.id"
+          class="rounded-3xl border border-line-soft bg-gradient-to-br from-surface to-surface-muted/50 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-900/5"
+        >
+          <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_240px]">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50">
+                  Proposal #{{ req.id }}
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+                  :class="req.status === 'PENDING' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'"
+                >
                   {{ req.status }}
                 </span>
+                <span class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50">
+                  {{ getRequestInvocationCount(req) }} call<span v-if="getRequestInvocationCount(req) > 1">s</span>
+                </span>
               </div>
-              <p class="text-sm text-mid mb-2">{{ req.description || "No description provided." }}</p>
-              <div class="text-xs text-low font-hash flex flex-wrap items-center gap-3">
-                <span title="Target Contract">Target: {{ req.target_contract }}</span>
-                <span>•</span>
-                <span title="Transaction Hash">Tx: {{ req.params?.hash ? req.params.hash.slice(0, 8) + '...' : 'N/A' }}</span>
-                <span>•</span>
-                <span>Created: {{ new Date(req.created_at).toLocaleDateString() }}</span>
+
+              <h3 class="text-lg font-black tracking-tight text-high">{{ req.description || req.method || "Council Proposal" }}</h3>
+              <p class="mt-1.5 text-sm text-mid leading-relaxed">
+                {{ getRequestMethodSummary(req) }}
+              </p>
+
+              <div class="mt-4 grid gap-3 md:grid-cols-3">
+                <div class="rounded-2xl border border-line-soft bg-surface p-4">
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Target Surface</div>
+                  <div class="mt-1 font-mono text-xs break-all text-high">{{ getRequestTargetSummary(req) }}</div>
+                </div>
+                <div class="rounded-2xl border border-line-soft bg-surface p-4">
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Created</div>
+                  <div class="mt-1 text-sm font-bold text-high">{{ formatRequestCreatedAt(req.created_at) }}</div>
+                </div>
+                <div class="rounded-2xl border border-line-soft bg-surface p-4">
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Transaction Hash</div>
+                  <div class="mt-1 font-mono text-xs break-all text-high">{{ req.params?.hash || "Unavailable" }}</div>
+                </div>
               </div>
-              <div class="mt-2 flex gap-2">
-                 <RouterLink :to="{ name: 'governance-proposal-detail', params: { id: req.id } }" class="text-xs text-primary-500 hover:underline">Open Proposal Page</RouterLink>
-                 <button @click="viewDetails(req)" class="text-xs text-primary-500 hover:underline">View JSON / Details</button>
+
+              <div class="mt-4">
+                <div class="mb-2 flex items-center justify-between gap-3 text-xs">
+                  <span class="font-semibold text-high">Signature Progress</span>
+                  <span class="text-mid">{{ getRequestSignatureCount(req) }} / {{ req.signers_required }} approvals captured</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full border border-line-soft bg-surface-muted shadow-inner">
+                  <div
+                    class="h-full rounded-full transition-all duration-500 ease-out"
+                    :class="getRequestProgressPercent(req) >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-amber-400 to-amber-500'"
+                    :style="{ width: `${getRequestProgressPercent(req)}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-3 text-xs">
+                <RouterLink :to="{ name: 'governance-proposal-detail', params: { id: req.id } }" class="font-semibold text-primary-500 hover:underline">Open Proposal Page</RouterLink>
+                <button @click="viewDetails(req)" class="font-semibold text-primary-500 hover:underline">View JSON / Details</button>
               </div>
             </div>
-            
-            <div class="text-right">
-              <div class="text-sm font-semibold text-high mb-1">Signatures</div>
-              <div class="flex items-center gap-2 justify-end mb-2">
-                <div class="text-2xl font-bold text-primary-600">{{ req.signatures?.length || 0 }}</div>
-                <div class="text-sm text-mid">/ {{ req.signers_required }}</div>
-              </div>
-              
-              <div v-if="req.status === 'PENDING'">
-                 <div v-if="(req.signatures?.length || 0) >= req.signers_required">
-                    <button @click="handleBroadcast(req)" class="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors">Broadcast Tx</button>
-                 </div>
-                 <div v-else class="space-y-2">
+
+            <div class="rounded-3xl border border-line-soft bg-white/80 p-5 shadow-sm dark:bg-slate-950/60">
+              <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Action Panel</div>
+              <div class="mt-3 text-3xl font-black tracking-tight text-high">{{ getRequestSignatureCount(req) }}</div>
+              <div class="text-sm text-mid">of {{ req.signers_required }} required signatures</div>
+
+              <div class="mt-4 space-y-2">
+                <div v-if="req.status === 'PENDING'">
+                  <div v-if="getRequestSignatureCount(req) >= req.signers_required" class="space-y-2">
+                    <button @click="handleBroadcast(req)" class="w-full px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors">Broadcast Tx</button>
+                  </div>
+                  <div v-else class="space-y-2">
                     <button
                       v-if="isCouncilNode && !hasSigned(req)"
                       @click="openSignModal(req)"
-                      class="px-4 py-1.5 bg-primary-600 text-white text-xs font-bold rounded-lg hover:bg-primary-700 transition-colors"
+                      class="w-full px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors"
                     >
                       Sign Proposal
                     </button>
                     <button
                       @click="openSignModal(req)"
-                      class="px-4 py-1.5 bg-surface-muted text-high border border-line-soft text-xs font-bold rounded-lg hover:bg-surface transition-colors"
+                      class="w-full px-4 py-2.5 bg-surface-muted text-high border border-line-soft text-sm font-bold rounded-xl hover:bg-surface transition-colors"
                     >
                       Add Witness
                     </button>
-                    <span v-if="hasSigned(req)" class="text-xs font-semibold text-emerald-500 flex items-center justify-end gap-1">
+                    <span v-if="hasSigned(req)" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                       Signed
                     </span>
-                 </div>
-              </div>
-              <div v-if="req.status === 'EXECUTED' && req.tx_hash">
-                 <a :href="'/tx/' + req.tx_hash" class="text-xs text-primary-500 hover:underline">View Tx</a>
+                  </div>
+                </div>
+                <div v-if="req.status === 'EXECUTED' && req.tx_hash">
+                  <a :href="'/tx/' + req.tx_hash" class="text-xs font-semibold text-primary-500 hover:underline">View Tx</a>
+                </div>
               </div>
             </div>
           </div>
           
           <div v-if="req.signatures?.length > 0" class="mt-4 pt-3 border-t border-line-soft">
-            <div class="text-xs font-semibold text-mid mb-2">Approved By:</div>
+            <div class="text-xs font-semibold text-mid mb-2">Approved By</div>
             <div class="flex flex-wrap gap-2">
                <span
                  v-for="sig in req.signatures"
@@ -138,8 +260,10 @@
                  <img
                    v-if="getCouncilIdentity(sig.signer_address).logo"
                    :src="getCouncilIdentity(sig.signer_address).logo"
+                   :data-logo-fallback-index="0"
                    alt=""
                    class="h-5 w-5 rounded-full object-cover ring-1 ring-line-soft bg-white shrink-0"
+                   @error="handleCouncilLogoError($event, getCouncilIdentity(sig.signer_address).logoSources)"
                  />
                  <span class="font-medium text-high">
                    {{ sig.signer_address === connectedAccount ? `You · ${getCouncilIdentity(sig.signer_address).name}` : getCouncilIdentity(sig.signer_address).name }}
@@ -148,6 +272,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
     
@@ -447,6 +572,7 @@ import { toNetworkMode } from '@/utils/rpcEndpoints';
 import { isGovernanceRequest, matchesRequestNetwork } from '@/utils/governanceRequests';
 import { extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
 import { useToast } from "vue-toastification";
 import { isPublicKeyHex } from "@/utils/neoHelpers";
@@ -466,6 +592,19 @@ let neonJs = null;
 const councilIdentityMap = computed(() => buildCouncilIdentityMap(validatorMetadata.value));
 const isGovernanceLabModeAvailable = computed(() => toNetworkMode(getCurrentEnv()) === 'testnet');
 const canCreateProposal = computed(() => Boolean(connectedAccount.value) && (isCouncilNode.value || isGovernanceLabModeAvailable.value));
+const activeNetworkLabel = computed(() => toNetworkMode(getCurrentEnv()) === "testnet" ? "Testnet" : "Mainnet");
+const pendingRequestCount = computed(() => requests.value.filter((request) => request.status === "PENDING").length);
+const readyToBroadcastCount = computed(() =>
+  requests.value.filter((request) => request.status === "PENDING" && getRequestSignatureCount(request) >= Number(request.signers_required || 0)).length
+);
+const collectedSignatureCount = computed(() =>
+  requests.value.reduce((sum, request) => sum + getRequestSignatureCount(request), 0)
+);
+const requestQueueHeadline = computed(() => {
+  if (pendingRequestCount.value === 0) return "No active proposals under review";
+  if (pendingRequestCount.value === 1) return "1 active proposal under review";
+  return `${pendingRequestCount.value} active proposals under review`;
+});
 
 const isCouncilNode = computed(() => {
   if (!connectedAccount.value || !committeeMultiSig.value || !neonJs) return false;
@@ -715,6 +854,47 @@ function hasSigned(req) {
   return req.signatures.some(s => s.signer_address === connectedAccount.value);
 }
 
+function getRequestSignatureCount(req) {
+  return Array.isArray(req?.signatures) ? req.signatures.length : 0;
+}
+
+function getRequestInvocationCount(req) {
+  if (Array.isArray(req?.params?.invocations) && req.params.invocations.length > 0) {
+    return req.params.invocations.length;
+  }
+
+  const methods = String(req?.method || "").split(",").map((item) => item.trim()).filter(Boolean);
+  return methods.length || 1;
+}
+
+function getRequestMethodSummary(req) {
+  if (Array.isArray(req?.params?.invocations) && req.params.invocations.length > 1) {
+    return req.params.invocations.map((invocation) => `${invocation.selectedContract}.${invocation.selectedMethod}`).join(" • ");
+  }
+
+  return String(req?.method || "No method metadata available.");
+}
+
+function getRequestTargetSummary(req) {
+  if (Array.isArray(req?.params?.target_contracts) && req.params.target_contracts.length > 1) {
+    return `${req.params.target_contracts.length} contract targets`;
+  }
+
+  return req?.target_contract || "Unavailable";
+}
+
+function getRequestProgressPercent(req) {
+  const required = Number(req?.signers_required || 0);
+  if (!Number.isFinite(required) || required <= 0) return 0;
+  return Math.min(100, (getRequestSignatureCount(req) / required) * 100);
+}
+
+function formatRequestCreatedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown date";
+  return date.toLocaleDateString();
+}
+
 function getCommitteeAddresses(pubkeys = committeePubkeys.value) {
   if (!neonJs) return [];
   return pubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
@@ -741,8 +921,60 @@ function getCouncilIdentity(address) {
   return {
     ...resolved,
     name: resolved.name === address ? "Council Signer" : resolved.name,
+    logo: resolveCouncilLogo(address, resolved.logo),
+    logoSources: buildCouncilLogoSources(address, resolved.logo),
   };
 }
+
+function findCommitteePubkeyForAddress(address) {
+  const target = String(address || "").trim();
+  if (!target || !Array.isArray(committeePubkeys.value) || !neonJs) return "";
+
+  for (const pubkey of committeePubkeys.value) {
+    try {
+      if (new neonJs.wallet.Account(pubkey).address === target) {
+        return pubkey;
+      }
+    } catch {
+      // Ignore malformed committee pubkeys.
+    }
+  }
+
+  return "";
+}
+
+function buildCouncilLogoSources(address, explicitLogo = "") {
+  const candidates = [];
+  const normalizedLogo = String(explicitLogo || "").trim();
+  if (normalizedLogo) {
+    candidates.push(resolveCandidateLogoUrl(normalizedLogo));
+  }
+
+  const pubkey = findCommitteePubkeyForAddress(address);
+  if (pubkey) {
+    candidates.push(getDefaultCandidateLogoUrl(pubkey));
+  }
+
+  candidates.push("/img/brand/neo.png");
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function resolveCouncilLogo(address, explicitLogo = "") {
+  return buildCouncilLogoSources(address, explicitLogo)[0] || "/img/brand/neo.png";
+}
+
+function handleCouncilLogoError(event, sources = []) {
+  const element = event?.target;
+  if (!element) return;
+
+  const currentIndex = Number.parseInt(element.dataset.logoFallbackIndex || "0", 10);
+  const nextIndex = Number.isFinite(currentIndex) ? currentIndex + 1 : 1;
+  const nextSource = sources[nextIndex] || "/img/brand/neo.png";
+
+  element.dataset.logoFallbackIndex = String(nextIndex);
+  element.src = nextSource;
+}
+
 function viewDetails(req) {
   detailsModalReq.value = req;
 }
