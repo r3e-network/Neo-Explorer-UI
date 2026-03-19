@@ -20,4 +20,23 @@ describe("api/lib/rpcEndpoints defaults", () => {
       "https://api3.n3index.dev/testnet",
     ]);
   });
+
+  it("falls through api1 then api2 then api3 when earlier endpoints fail", async () => {
+    const visited = [];
+    const result = await rpcEndpoints.callWithRpcEndpointFallback("mainnet", async (endpoint) => {
+      visited.push(endpoint);
+      if (endpoint !== "https://api3.n3index.dev/mainnet") {
+        throw new Error(`down:${endpoint}`);
+      }
+      return "ok";
+    });
+
+    expect(result).toBe("ok");
+    expect(visited).toEqual([
+      "https://api.n3index.dev/mainnet",
+      "https://api1.n3index.dev/mainnet",
+      "https://api2.n3index.dev/mainnet",
+      "https://api3.n3index.dev/mainnet",
+    ]);
+  });
 });

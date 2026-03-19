@@ -34,4 +34,28 @@ describe("rpcEndpoints configured base URL", () => {
       "https://api3.n3index.dev/mainnet",
     ]);
   });
+
+  it("calls runtime fallback endpoints in primary -> api1 -> api2 -> api3 order", async () => {
+    const env = await import("../../src/utils/env.js");
+    env.setCurrentEnv(env.NET_ENV.Mainnet);
+
+    const { callWithRpcEndpointFallback } = await import("../../src/utils/rpcEndpoints.js");
+    const visited = [];
+
+    const result = await callWithRpcEndpointFallback(env.NET_ENV.Mainnet, async (endpoint) => {
+      visited.push(endpoint);
+      if (endpoint !== "https://api3.n3index.dev/mainnet") {
+        throw new Error(`down:${endpoint}`);
+      }
+      return "ok";
+    });
+
+    expect(result).toBe("ok");
+    expect(visited).toEqual([
+      "https://api.n3index.dev/mainnet",
+      "https://api1.n3index.dev/mainnet",
+      "https://api2.n3index.dev/mainnet",
+      "https://api3.n3index.dev/mainnet",
+    ]);
+  });
 });
