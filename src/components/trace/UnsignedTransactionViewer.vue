@@ -34,8 +34,7 @@
     <div
       v-else-if="decodedTx"
       data-testid="unsigned-tx-shell"
-      class="space-y-4 rounded-xl border border-white/10 bg-[#020617] p-4 shadow-inner"
-      :class="'border-line-soft bg-surface-muted/60 dark:border-white/10 dark:bg-[#020617]'"
+      class="space-y-4 rounded-xl border p-4 shadow-inner border-line-soft bg-surface-muted/60 dark:border-white/10 dark:bg-[#020617]"
     >
       <div class="grid gap-4 xl:grid-cols-[1.25fr,1fr]">
         <section class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">

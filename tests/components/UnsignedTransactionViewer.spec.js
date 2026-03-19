@@ -61,6 +61,7 @@ describe("UnsignedTransactionViewer", () => {
     });
 
     expect(wrapper.get('[data-testid="unsigned-tx-shell"]').classes()).toContain("bg-surface-muted/60");
+    expect(wrapper.get('[data-testid="unsigned-tx-shell"]').classes()).not.toContain("bg-[#020617]");
     expect(wrapper.get('[data-testid="unsigned-tx-shell"]').classes()).not.toContain("dark");
     await wrapper.get('[data-testid="unsigned-tx-toggle"]').trigger("click");
     expect(wrapper.get('[data-testid="unsigned-tx-raw"]').classes()).toContain("bg-surface");
