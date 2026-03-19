@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { toNetworkMode } from "@/utils/rpcEndpoints";
-import { optimizeLogoUrl } from "@/utils/logoOptimization";
-import { addressToScriptHash } from "@/utils/neoHelpers";
+import { optimizeLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
+import { decodeStackItem } from "@/utils/resultDecoder";
+import { rpc } from "@/services/api";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -19,6 +21,10 @@ const validatorMetadataCache = new Map();
 const INDEXER_METADATA_PREFIX = "/indexer";
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;
+const GOVERNANCE_CANDIDATE_INFO_CONTRACTS = Object.freeze({
+  mainnet: "0xb776afb6ad0c11565e70f8ee1dd898da43e51be1",
+  testnet: "0x6177bfcef0f51b5dd21b183ff89e301b9c66d71c",
+});
 
 const normalizeContractHash = (hash) => {
   const normalized = String(hash || "").trim().toLowerCase();
@@ -40,6 +46,8 @@ const normalizeNnsDomain = (value) => {
   return raw;
 };
 
+const normalizeCandidateLabel = (value) => String(value || "").trim();
+
 const expandAddressLookupKeys = (address) => {
   const normalized = normalizeAddressKey(address);
   if (!normalized) return [];
@@ -47,6 +55,122 @@ const expandAddressLookupKeys = (address) => {
   const scriptHash = normalizeContractHash(addressToScriptHash(normalized));
   if (scriptHash) keys.add(scriptHash);
   return [...keys];
+};
+
+const getGovernanceCandidateContractHash = (networkMode) =>
+  GOVERNANCE_CANDIDATE_INFO_CONTRACTS[getNetworkMode(networkMode)] || "";
+
+const decodeGovernanceCandidateInfoRow = (entry = {}) => {
+  const fields = Array.isArray(entry?.value) ? entry.value : [];
+  if (fields.length < 10) return null;
+
+  const addressValue = normalizeAddressKey(decodeStackItem(fields[0])?.value || "");
+  if (!addressValue) return null;
+
+  const displayName = normalizeCandidateLabel(decodeStackItem(fields[1])?.value || "");
+  const iconValue = normalizeCandidateLabel(decodeStackItem(fields[9])?.value || "");
+  const resolvedLogo = resolveCandidateLogoUrl(iconValue);
+
+  return {
+    address: addressValue,
+    scripthash: normalizeContractHash(addressToScriptHash(addressValue)),
+    display_name: displayName,
+    name: displayName,
+    logo_url: resolvedLogo,
+    logo: resolvedLogo,
+    logoUrl: resolvedLogo,
+    location: normalizeCandidateLabel(decodeStackItem(fields[2])?.value || ""),
+    website: normalizeCandidateLabel(decodeStackItem(fields[3])?.value || ""),
+    email: normalizeCandidateLabel(decodeStackItem(fields[4])?.value || ""),
+    github: normalizeCandidateLabel(decodeStackItem(fields[5])?.value || ""),
+    telegram: normalizeCandidateLabel(decodeStackItem(fields[6])?.value || ""),
+    twitter: normalizeCandidateLabel(decodeStackItem(fields[7])?.value || ""),
+    description: normalizeCandidateLabel(decodeStackItem(fields[8])?.value || ""),
+  };
+};
+
+const buildGovernanceCandidateMap = (rows = []) => {
+  const map = new Map();
+
+  for (const item of Array.isArray(rows) ? rows : []) {
+    const address = normalizeAddressKey(item?.address || item?.scripthash);
+    for (const key of expandAddressLookupKeys(address)) {
+      map.set(key, item);
+    }
+  }
+
+  return map;
+};
+
+const mergeValidatorMetadataWithGovernanceCandidates = (rows = [], governanceRows = []) => {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  const governanceMap = buildGovernanceCandidateMap(governanceRows);
+  const matchedGovernanceKeys = new Set();
+
+  const mergedRows = normalizedRows.map((item) => {
+    const lookupKeys = new Set([
+      ...expandAddressLookupKeys(item?.address || item?.scripthash),
+      ...expandAddressLookupKeys(publicKeyToAddress(item?.pubkey || item?.public_key || item?.publicKey || "")),
+    ]);
+
+    let governanceMatch = null;
+    for (const key of lookupKeys) {
+      governanceMatch = governanceMap.get(key) || null;
+      if (governanceMatch) {
+        matchedGovernanceKeys.add(normalizeAddressKey(governanceMatch.address || governanceMatch.scripthash));
+        break;
+      }
+    }
+
+    if (!governanceMatch) return item;
+
+    const governanceLogo = String(
+      governanceMatch.logo_url || governanceMatch.logoUrl || governanceMatch.logo || ""
+    ).trim();
+    const governanceName = normalizeCandidateLabel(
+      governanceMatch.display_name || governanceMatch.name || ""
+    );
+
+    return {
+      ...item,
+      ...(governanceName && !normalizeCandidateLabel(item.display_name || item.name)
+        ? {
+            name: governanceName,
+            display_name: governanceName,
+          }
+        : {}),
+      ...(governanceLogo
+        ? {
+            logo: governanceLogo,
+            logo_url: governanceLogo,
+            logoUrl: governanceLogo,
+          }
+        : {}),
+      ...(!item.location && governanceMatch.location ? { location: governanceMatch.location } : {}),
+      ...(!item.description && governanceMatch.description ? { description: governanceMatch.description } : {}),
+    };
+  });
+
+  const unmatchedGovernanceRows = governanceRows.filter((item) => {
+    const key = normalizeAddressKey(item?.address || item?.scripthash);
+    return key && !matchedGovernanceKeys.has(key);
+  });
+
+  return [...mergedRows, ...unmatchedGovernanceRows];
+};
+
+const fetchGovernanceCandidateMetadata = async (networkMode) => {
+  const contractHash = getGovernanceCandidateContractHash(networkMode);
+  if (!contractHash) return [];
+
+  try {
+    const result = await rpc("invokefunction", [contractHash, "getAllInfo", []]);
+    const rows = Array.isArray(result?.stack?.[0]?.value) ? result.stack[0].value : [];
+    return rows.map((item) => decodeGovernanceCandidateInfoRow(item)).filter(Boolean);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Governance candidate metadata fetch failed:", err);
+    return [];
+  }
 };
 
 const getNetworkMode = (networkMode) => toNetworkMode(networkMode);
@@ -471,7 +595,10 @@ export const supabaseService = {
     }
 
     try {
-      const payload = await fetchJsonWithTimeout(buildIndexerMetadataUrl(network, "validators"));
+      const [payload, governanceRows] = await Promise.all([
+        fetchJsonWithTimeout(buildIndexerMetadataUrl(network, "validators")),
+        fetchGovernanceCandidateMetadata(network),
+      ]);
       const rows = Array.isArray(payload?.data) ? payload.data : [];
       const normalized = rows
         .map((item) => {
@@ -492,12 +619,14 @@ export const supabaseService = {
         })
         .filter(Boolean);
 
-      validatorMetadataCache.set(network, { timestamp: Date.now(), data: normalized });
-      return normalized;
+      const merged = mergeValidatorMetadataWithGovernanceCandidates(normalized, governanceRows);
+      validatorMetadataCache.set(network, { timestamp: Date.now(), data: merged });
+      return merged;
     } catch (err) {
       if (import.meta.env.DEV) console.warn("Indexer validator metadata fetch failed:", err);
-      validatorMetadataCache.set(network, { timestamp: Date.now(), data: [] });
-      return [];
+      const governanceRows = await fetchGovernanceCandidateMetadata(network);
+      validatorMetadataCache.set(network, { timestamp: Date.now(), data: governanceRows });
+      return governanceRows;
     }
   },
 

@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import * as neon from '@cityofzion/neon-js';
 
-describe('Governance Tool MultiSig and Signature Collection End-to-End', () => {
+const RUN_LIVE_GOVERNANCE_E2E = String(process.env.RUN_LIVE_GOVERNANCE_E2E || "").trim() === "1";
+const describeLive = RUN_LIVE_GOVERNANCE_E2E ? describe : describe.skip;
+
+describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () => {
   const TESTNET_RPC = "https://testnet1.neo.coz.io:443";
   const TESTNET_WIF = "Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U";
   

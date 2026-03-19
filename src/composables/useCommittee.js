@@ -7,7 +7,7 @@ import { getKnownAddressName } from "@/constants/knownAddresses";
 import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { wallet } from "@cityofzion/neon-js";
 import { supabaseService } from "@/services/supabaseService";
-import { resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
@@ -463,13 +463,7 @@ export function useCommittee() {
     }
 
     const publickey = getValidatorPublicKey(validator) || meta?.pubkey;
-    const env = getCurrentEnv().toLowerCase();
-    const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-    if (!isTestnet && publickey) {
-      return `https://governance.neo.org/logo/${publickey}.png`;
-    }
-
-    return null;
+    return publickey ? getDefaultCandidateLogoUrl(publickey) || null : null;
   };
 
   const isCouncilMember = (address) => {

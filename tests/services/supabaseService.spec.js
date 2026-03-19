@@ -1,10 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { scriptHashToAddress } from "@/utils/neoHelpers";
+import {
+  addressToScriptHash,
+  bytesToBase64,
+  hexToBytes,
+  reverseHex,
+  scriptHashToAddress,
+  strip0x,
+} from "@/utils/neoHelpers";
 
 const createClientMock = vi.hoisted(() => vi.fn(() => null));
+const rpcMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
+}));
+
+vi.mock("@/services/api", () => ({
+  rpc: rpcMock,
 }));
 
 const createSupabaseTableMock = ({ eqResult, unfilteredResult, eqImpl }) => {
@@ -21,6 +33,39 @@ const createSupabaseTableMock = ({ eqResult, unfilteredResult, eqImpl }) => {
 describe("supabaseService metadata", () => {
   let consoleWarnSpy;
   let consoleErrorSpy;
+  const encodeByteString = (value) => bytesToBase64(new TextEncoder().encode(String(value || "")));
+  const encodeHash160ByteString = (address) => {
+    const scriptHash = addressToScriptHash(address);
+    return bytesToBase64(hexToBytes(reverseHex(strip0x(scriptHash))));
+  };
+  const buildCandidateInfoResult = ({
+    address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w",
+    name = "COZ",
+    icon = "https://example.com/coz.png",
+  } = {}) => ({
+    stack: [
+      {
+        type: "Array",
+        value: [
+          {
+            type: "Array",
+            value: [
+              { type: "ByteString", value: encodeHash160ByteString(address) },
+              { type: "ByteString", value: encodeByteString(name) },
+              { type: "ByteString", value: encodeByteString("United States") },
+              { type: "ByteString", value: encodeByteString("https://example.com") },
+              { type: "ByteString", value: encodeByteString("node@example.com") },
+              { type: "ByteString", value: encodeByteString("https://github.com/example") },
+              { type: "ByteString", value: encodeByteString("https://t.me/example") },
+              { type: "ByteString", value: encodeByteString("https://x.com/example") },
+              { type: "ByteString", value: encodeByteString("Example council node") },
+              { type: "ByteString", value: encodeByteString(icon) },
+            ],
+          },
+        ],
+      },
+    ],
+  });
 
   beforeEach(() => {
     vi.resetModules();
@@ -28,6 +73,8 @@ describe("supabaseService metadata", () => {
     vi.unstubAllEnvs();
     createClientMock.mockReset();
     createClientMock.mockReturnValue(null);
+    rpcMock.mockReset();
+    rpcMock.mockResolvedValue({ stack: [{ type: "Array", value: [] }] });
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -252,5 +299,74 @@ describe("supabaseService metadata", () => {
     const result = await supabaseService.getAddressTag("0x03013f49c42a14546c8bbe58f9d434c3517fccab", "mainnet");
 
     expect(result?.nns_domain).toBe("pricefeed.morpheus.neo");
+  });
+
+  it("merges real governance candidate icons into validator metadata rows matched by address", async () => {
+    const address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              public_key: "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b",
+              address,
+              display_name: "",
+              logo_url: "",
+            },
+          ],
+        }),
+      })
+    );
+    rpcMock.mockResolvedValueOnce(
+      buildCandidateInfoResult({
+        address,
+        name: "COZ Council",
+        icon: "https://cdn.example.com/council/coz.png",
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getValidatorMetadata("mainnet");
+
+    expect(rpcMock).toHaveBeenCalledWith("invokefunction", [
+      "0xb776afb6ad0c11565e70f8ee1dd898da43e51be1",
+      "getAllInfo",
+      [],
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].display_name).toBe("COZ Council");
+    expect(result[0].logo_url).toBe("https://cdn.example.com/council/coz.png");
+  });
+
+  it("returns governance candidate rows even when the indexer validator metadata list is empty", async () => {
+    const address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      })
+    );
+    rpcMock.mockResolvedValueOnce(
+      buildCandidateInfoResult({
+        address,
+        name: "COZ Council",
+        icon: "CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getValidatorMetadata("mainnet");
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        address,
+        display_name: "COZ Council",
+        logo_url:
+          "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+      }),
+    ]);
   });
 });

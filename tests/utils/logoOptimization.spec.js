@@ -50,8 +50,8 @@ describe("logoOptimization", () => {
     expect(url).toBeTypeOf("string");
   });
 
-  it("builds governance fallback logo url", () => {
+  it("does not generate synthetic council fallback badges", () => {
     const url = getDefaultCandidateLogoUrl("03abcdef");
-    expect(url).toContain("data:image/svg+xml");
+    expect(url).toBe("");
   });
 });

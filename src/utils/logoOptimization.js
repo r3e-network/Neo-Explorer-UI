@@ -1,4 +1,4 @@
-import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
+import { getKnownAddressLogo } from "@/constants/knownAddresses";
 import { publicKeyToAddress } from "@/utils/neoHelpers";
 
 const LOGO_PROXY_PATH = "/api/logo";
@@ -93,60 +93,5 @@ export function getDefaultCandidateLogoUrl(publicKey) {
   if (!normalized) return "";
 
   const derivedAddress = publicKeyToAddress(normalized);
-  const knownLogo = getKnownAddressLogo(derivedAddress);
-  if (knownLogo) {
-    return knownLogo;
-  }
-
-  const label = getKnownAddressName(derivedAddress) || normalized;
-  const initials = getCandidateBadgeInitials(label);
-  const palette = getCandidateBadgePalette(normalized);
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
-      <rect width="96" height="96" rx="48" fill="${palette.background}"/>
-      <rect x="4" y="4" width="88" height="88" rx="44" stroke="${palette.ring}" stroke-width="2"/>
-      <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="30" font-weight="800" fill="${palette.foreground}" letter-spacing="1.5">
-        ${initials}
-      </text>
-    </svg>
-  `.trim();
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-function getCandidateBadgeInitials(label = "") {
-  const words = String(label || "")
-    .replace(/\([^)]*\)/g, " ")
-    .split(/[^A-Za-z0-9]+/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .filter((part) => !["the", "and", "of"].includes(part.toLowerCase()));
-
-  if (words.length >= 2) {
-    return `${words[0][0]}${words[1][0]}`.toUpperCase();
-  }
-
-  if (words.length === 1) {
-    return words[0].slice(0, 2).toUpperCase();
-  }
-
-  return String(label || "N3").replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "N3";
-}
-
-function getCandidateBadgePalette(seed = "") {
-  const palettes = [
-    { background: "#173B35", foreground: "#E9FFF7", ring: "#34D399" },
-    { background: "#1C344F", foreground: "#EEF6FF", ring: "#60A5FA" },
-    { background: "#4A2B1F", foreground: "#FFF3E8", ring: "#F59E0B" },
-    { background: "#3A244D", foreground: "#F7EEFF", ring: "#C084FC" },
-    { background: "#1D3A4A", foreground: "#E6FBFF", ring: "#22D3EE" },
-  ];
-
-  const normalized = String(seed || "");
-  let index = 0;
-  for (let i = 0; i < normalized.length; i += 1) {
-    index = (index + normalized.charCodeAt(i)) % palettes.length;
-  }
-  return palettes[index];
+  return getKnownAddressLogo(derivedAddress) || "";
 }
