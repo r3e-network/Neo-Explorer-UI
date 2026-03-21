@@ -111,6 +111,40 @@ describe("SponsoredTool wallet provider handling", () => {
           Breadcrumb: true,
           RouterLink: true,
         },
+        mocks: {
+          $t: (key, params) => {
+            const messages = {
+              "nav.home": "Home",
+              "tools.title": "Tools",
+              "tools.sponsored.title": "Sponsored Transactions",
+              "tools.sponsored.subtitle":
+                "Claim GAS or vote without paying network fees. Only available if your GAS balance is insufficient.",
+              "tools.sponsored.howItWorksTitle": "How it works",
+              "tools.sponsored.howItWorksDescription": "This tool allows you to perform essential network actions.",
+              "tools.sponsored.walletNotConnected": "Wallet Not Connected",
+              "tools.sponsored.walletNotConnectedDescription":
+                "Please connect your wallet from the header to use sponsored transactions.",
+              "tools.sponsored.gasBalance": "Your GAS Balance",
+              "tools.sponsored.eligibilityStatus": "Eligibility Status",
+              "tools.sponsored.eligible": "Eligible",
+              "tools.sponsored.notEligible": "Not Eligible",
+              "tools.sponsored.eligibilityThreshold": `Requires < ${params?.threshold ?? ""} GAS`,
+              "tools.sponsored.selectOperation": "Select Operation",
+              "tools.sponsored.claimGas": "Claim GAS",
+              "tools.sponsored.claimGasDescription": "Transfers 0 NEO to yourself to mint accumulated GAS rewards.",
+              "tools.sponsored.voteCandidate": "Vote for Candidate",
+              "tools.sponsored.voteDescription": "Cast your NEO voting weight for a consensus node candidate.",
+              "tools.sponsored.selectCandidate": "Select Candidate",
+              "tools.sponsored.selectCandidatePlaceholder": "-- Select a consensus node candidate --",
+              "tools.sponsored.loadingCandidates": "Loading candidates...",
+              "tools.sponsored.executeButton": "Execute Sponsored Transaction",
+              "tools.sponsored.processing": "Processing...",
+              "tools.sponsored.txSuccess": "Transaction Broadcasted Successfully!",
+              "tools.sponsored.viewTx": "View Tx",
+            };
+            return messages[key] || key;
+          },
+        },
       },
     });
 

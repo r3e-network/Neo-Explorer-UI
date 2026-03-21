@@ -3,9 +3,9 @@
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tools', to: '/tools' },
-          { label: 'Sponsored Transactions' },
+          { label: $t('nav.home'), to: '/homepage' },
+          { label: $t('tools.title'), to: '/tools' },
+          { label: $t('tools.sponsored.title') },
         ]"
       />
 
@@ -22,9 +22,9 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Sponsored Transactions</h1>
+            <h1 class="page-title">{{ $t("tools.sponsored.title") }}</h1>
             <p class="page-subtitle">
-              Claim GAS or vote without paying network fees. Only available if your GAS balance is insufficient.
+              {{ $t("tools.sponsored.subtitle") }}
             </p>
           </div>
         </div>
@@ -45,11 +45,9 @@
                 ></path>
               </svg>
               <div class="text-sm">
-                <p class="font-bold mb-1">How it works</p>
+                <p class="font-bold mb-1">{{ $t("tools.sponsored.howItWorksTitle") }}</p>
                 <p>
-                  This tool allows you to perform essential network actions (like claiming your GAS or voting for a
-                  consensus node) even if you don't have enough GAS to pay the transaction fee. A designated sponsor
-                  wallet will sign the transaction first and cover your fees automatically.
+                  {{ $t("tools.sponsored.howItWorksDescription") }}
                 </p>
               </div>
             </div>
@@ -67,20 +65,20 @@
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               ></path>
             </svg>
-            <p class="text-high font-medium mb-1">Wallet Not Connected</p>
-            <p class="text-sm text-mid">Please connect your wallet from the header to use sponsored transactions.</p>
+            <p class="text-high font-medium mb-1">{{ $t("tools.sponsored.walletNotConnected") }}</p>
+            <p class="text-sm text-mid">{{ $t("tools.sponsored.walletNotConnectedDescription") }}</p>
           </div>
 
           <template v-else>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="p-4 rounded-xl border border-line-soft bg-surface">
-                <p class="text-sm text-mid mb-1">Your GAS Balance</p>
+                <p class="text-sm text-mid mb-1">{{ $t("tools.sponsored.gasBalance") }}</p>
                 <p class="text-xl font-bold text-high">
                   {{ gasBalance }} <span class="text-sm font-normal text-low">GAS</span>
                 </p>
               </div>
               <div class="p-4 rounded-xl border border-line-soft bg-surface flex flex-col justify-center">
-                <p class="text-sm text-mid mb-1">Eligibility Status</p>
+                <p class="text-sm text-mid mb-1">{{ $t("tools.sponsored.eligibilityStatus") }}</p>
                 <div class="flex items-center gap-2">
                   <span
                     v-if="isEligible"
@@ -93,7 +91,7 @@
                         clip-rule="evenodd"
                       />
                     </svg>
-                    Eligible
+                    {{ $t("tools.sponsored.eligible") }}
                   </span>
                   <span
                     v-else
@@ -106,15 +104,17 @@
                         clip-rule="evenodd"
                       />
                     </svg>
-                    Not Eligible
+                    {{ $t("tools.sponsored.notEligible") }}
                   </span>
-                  <span class="text-xs text-mid">(Requires &lt; {{ eligibilityThreshold }} GAS)</span>
+                  <span class="text-xs text-mid"
+                    >({{ $t("tools.sponsored.eligibilityThreshold", { threshold: eligibilityThreshold }) }})</span
+                  >
                 </div>
               </div>
             </div>
 
             <div class="space-y-4 pt-4 border-t border-line-soft">
-              <label class="block text-sm font-semibold text-high">Select Operation</label>
+              <label class="block text-sm font-semibold text-high">{{ $t("tools.sponsored.selectOperation") }}</label>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   @click="operation = 'claim'"
@@ -134,9 +134,9 @@
                         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       ></path>
                     </svg>
-                    Claim GAS
+                    {{ $t("tools.sponsored.claimGas") }}
                   </p>
-                  <p class="text-xs text-mid">Transfers 0 NEO to yourself to mint accumulated GAS rewards.</p>
+                  <p class="text-xs text-mid">{{ $t("tools.sponsored.claimGasDescription") }}</p>
                 </button>
 
                 <button
@@ -157,20 +157,20 @@
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                       ></path>
                     </svg>
-                    Vote for Candidate
+                    {{ $t("tools.sponsored.voteCandidate") }}
                   </p>
-                  <p class="text-xs text-mid">Cast your NEO voting weight for a consensus node candidate.</p>
+                  <p class="text-xs text-mid">{{ $t("tools.sponsored.voteDescription") }}</p>
                 </button>
               </div>
             </div>
 
             <div v-if="operation === 'vote'" class="space-y-2 pt-2 animate-fade-in">
-              <label class="block text-sm font-semibold text-high">Select Candidate</label>
+              <label class="block text-sm font-semibold text-high">{{ $t("tools.sponsored.selectCandidate") }}</label>
               <select
                 v-model="candidatePubKey"
                 class="form-input w-full bg-surface text-high text-sm appearance-none cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
               >
-                <option value="" disabled selected>-- Select a consensus node candidate --</option>
+                <option value="" disabled selected>{{ $t("tools.sponsored.selectCandidatePlaceholder") }}</option>
                 <option v-for="c in candidateList" :key="c.pubkey" :value="c.pubkey">
                   {{ c.name || c.pubkey.slice(0, 12) + "..." }} ({{ formatVotes(c.votes) }} votes)
                 </option>
@@ -184,7 +184,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Loading candidates...
+                {{ $t("tools.sponsored.loadingCandidates") }}
               </div>
             </div>
 
@@ -202,7 +202,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {{ isProcessing ? "Processing..." : "Execute Sponsored Transaction" }}
+                {{ isProcessing ? $t("tools.sponsored.processing") : $t("tools.sponsored.executeButton") }}
               </button>
             </div>
 
@@ -211,14 +211,14 @@
               class="p-4 rounded-xl border border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10 text-green-800 dark:text-green-400 flex items-center justify-between mt-4"
             >
               <div>
-                <p class="text-sm font-bold mb-1">Transaction Broadcasted Successfully!</p>
+                <p class="text-sm font-bold mb-1">{{ $t("tools.sponsored.txSuccess") }}</p>
                 <p class="text-xs break-all font-mono opacity-80">{{ txHash }}</p>
               </div>
               <router-link
                 :to="`/transaction-info/${txHash}`"
                 class="text-sm font-semibold hover:underline flex items-center gap-1.5 whitespace-nowrap bg-green-200/50 dark:bg-green-800/50 px-3 py-1.5 rounded-lg transition-colors hover:bg-green-300/50 dark:hover:bg-green-700/50"
               >
-                View Tx
+                {{ $t("tools.sponsored.viewTx") }}
               </router-link>
             </div>
           </template>
