@@ -1,10 +1,9 @@
 <template>
   <div class="error-state py-12 px-4 text-center">
     <div
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-      style="background: var(--status-error-bg); border: 1px solid var(--status-error)"
+      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-status-error-bg border border-status-error"
     >
-      <svg class="w-8 h-8" style="color: var(--status-error)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-8 h-8 text-status-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -17,13 +16,7 @@
       {{ title }}
     </p>
     <p class="mb-4 text-sm text-mid">{{ message }}</p>
-    <button
-      v-if="showRetry"
-      type="button"
-      @click="$emit('retry')"
-      aria-label="Retry"
-      class="btn-primary mt-2"
-    >
+    <button v-if="showRetry" type="button" @click="$emit('retry')" aria-label="Retry" class="btn-primary mt-2">
       Try Again
     </button>
   </div>

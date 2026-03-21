@@ -58,8 +58,7 @@
       <span
         v-if="copied"
         :id="successTooltipId"
-        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs shadow"
-        style="background: var(--surface-elevated); color: var(--text-high)"
+        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs shadow bg-surface-elevated text-high"
         role="tooltip"
       >
         Copied!
@@ -67,8 +66,7 @@
       <span
         v-else-if="copyFailed"
         :id="failTooltipId"
-        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs text-white shadow"
-        style="background: var(--status-error)"
+        class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs text-white shadow bg-status-error"
         role="tooltip"
       >
         Failed!
@@ -155,7 +153,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .tooltip-enter-active,
 .tooltip-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 .tooltip-enter-from,
 .tooltip-leave-to {

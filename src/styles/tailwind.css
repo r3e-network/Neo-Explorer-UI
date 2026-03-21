@@ -15,7 +15,7 @@
     --text-high: #0d223d;
     --text-mid: #38455d;
     --text-low: #8797aa;
-    --link: #00E599;
+    --link: #00e599;
     --link-hover: #00b377;
     --ring-focus: rgba(0, 229, 153, 0.4);
     --status-success: #0f9f72;
@@ -40,10 +40,10 @@
     --text-high: #edf4ff;
     --text-mid: #a7bbd3;
     --text-low: #70829a;
-    --link: #00E599;
+    --link: #00e599;
     --link-hover: #3af0b2;
     --ring-focus: rgba(0, 229, 153, 0.5);
-    --status-success: #00E599;
+    --status-success: #00e599;
     --status-success-bg: rgba(0, 229, 153, 0.15);
     --status-error: #ff4d4d;
     --status-error-bg: rgba(255, 77, 77, 0.15);
@@ -76,17 +76,23 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: radial-gradient(circle at 8% 0%, rgba(20, 152, 221, 0.14), transparent 30%),
+    background-image:
+      radial-gradient(circle at 8% 0%, rgba(20, 152, 221, 0.14), transparent 30%),
       radial-gradient(circle at 90% 8%, rgba(0, 229, 153, 0.08), transparent 26%),
       linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-    background-size: auto, auto, 28px 28px, 28px 28px;
+    background-size:
+      auto,
+      auto,
+      28px 28px,
+      28px 28px;
     opacity: 0.4;
     z-index: 0;
   }
 
   .dark body::before {
-    background-image: radial-gradient(circle at 10% 0%, rgba(82, 220, 170, 0.1), transparent 24%),
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(82, 220, 170, 0.1), transparent 24%),
       radial-gradient(circle at 88% 6%, rgba(96, 165, 250, 0.1), transparent 24%),
       linear-gradient(rgba(120, 146, 177, 0.04) 1px, transparent 1px),
       linear-gradient(90deg, rgba(120, 146, 177, 0.04) 1px, transparent 1px);
@@ -180,9 +186,11 @@
   }
 
   .dark .etherscan-card {
-    background: linear-gradient(180deg,
+    background: linear-gradient(
+      180deg,
       color-mix(in srgb, var(--surface-elevated) 96%, rgba(255, 255, 255, 0.02)) 0%,
-      color-mix(in srgb, var(--surface-elevated) 90%, rgba(9, 14, 24, 0.98)) 100%);
+      color-mix(in srgb, var(--surface-elevated) 90%, rgba(9, 14, 24, 0.98)) 100%
+    );
     border-color: color-mix(in srgb, var(--line-soft) 86%, rgba(255, 255, 255, 0.02));
     box-shadow:
       0 18px 50px rgba(0, 0, 0, 0.34),
@@ -283,7 +291,9 @@
 
   .form-input:focus {
     border-color: var(--link);
-    box-shadow: 0 0 0 3px var(--ring-focus), 0 0 15px rgba(0, 229, 153, 0.2);
+    box-shadow:
+      0 0 0 3px var(--ring-focus),
+      0 0 15px rgba(0, 229, 153, 0.2);
     transform: translateY(-1px);
   }
 
@@ -314,15 +324,19 @@
   .detail-hero {
     @apply mb-6 rounded-2xl border p-4 md:p-5;
     border-color: color-mix(in srgb, var(--link) 16%, var(--line-soft));
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--link) 8%, #ffffff 92%) 0%,
-        color-mix(in srgb, var(--surface-elevated) 88%, transparent) 100%);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--link) 8%, #ffffff 92%) 0%,
+      color-mix(in srgb, var(--surface-elevated) 88%, transparent) 100%
+    );
   }
 
   .dark .detail-hero {
-    background: linear-gradient(135deg,
-        color-mix(in srgb, var(--link) 16%, rgba(15, 35, 61, 0.95) 84%) 0%,
-        color-mix(in srgb, var(--surface-elevated) 94%, transparent) 100%);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--link) 16%, rgba(15, 35, 61, 0.95) 84%) 0%,
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent) 100%
+    );
   }
 
   .detail-metadata {
@@ -432,9 +446,11 @@
   }
 
   .dark .panel-muted {
-    background: linear-gradient(180deg,
+    background: linear-gradient(
+      180deg,
       color-mix(in srgb, var(--surface-glass) 96%, rgba(255, 255, 255, 0.015)) 0%,
-      color-mix(in srgb, var(--surface-elevated) 92%, rgba(8, 13, 23, 0.98)) 100%);
+      color-mix(in srgb, var(--surface-elevated) 92%, rgba(8, 13, 23, 0.98)) 100%
+    );
     border-color: color-mix(in srgb, var(--line-soft) 80%, rgba(255, 255, 255, 0.02));
     box-shadow: inset 0 1px 0 rgba(173, 193, 221, 0.04);
   }
@@ -533,5 +549,53 @@
 
   .list-row:focus-within {
     background: color-mix(in srgb, var(--surface-hover) 88%, transparent);
+  }
+
+  .bg-surface-elevated {
+    background: var(--surface-elevated);
+  }
+
+  .bg-surface-glass {
+    background: var(--surface-glass);
+  }
+
+  .bg-surface-hover {
+    background: var(--surface-hover);
+  }
+
+  .bg-status-success-bg {
+    background: var(--status-success-bg);
+  }
+
+  .text-status-success {
+    color: var(--status-success);
+  }
+
+  .bg-status-error-bg {
+    background: var(--status-error-bg);
+  }
+
+  .text-status-error {
+    color: var(--status-error);
+  }
+
+  .border-status-error {
+    border-color: var(--status-error);
+  }
+
+  .bg-status-warning-bg {
+    background: var(--status-warning-bg);
+  }
+
+  .text-status-warning {
+    color: var(--status-warning);
+  }
+
+  .bg-line-soft {
+    background: var(--line-soft);
+  }
+
+  .border-line-soft {
+    border-color: var(--line-soft);
   }
 }

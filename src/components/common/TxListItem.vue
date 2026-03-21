@@ -120,8 +120,7 @@
         <div class="flex items-center justify-end gap-1.5">
           <span
             v-if="isComplex"
-            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-            style="background: var(--status-warning-bg); color: var(--status-warning)"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-status-warning-bg text-status-warning"
           >
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

@@ -1,19 +1,8 @@
 <template>
   <div class="tx-flow-diagram">
     <div v-if="loading" class="flex items-center justify-center py-8">
-      <svg
-        class="h-8 w-8 animate-spin text-primary-500"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-        ></circle>
+      <svg class="h-8 w-8 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path
           class="opacity-75"
           fill="currentColor"
@@ -22,30 +11,13 @@
       </svg>
     </div>
 
-    <div
-      v-else-if="transfers.length === 0"
-      class="text-mid py-8 text-center text-sm"
-    >
-      No token transfers found
-    </div>
+    <div v-else-if="transfers.length === 0" class="text-mid py-8 text-center text-sm">No token transfers found</div>
 
     <div v-else class="space-y-3">
-      <div
-        v-for="(transfer, index) in transfers"
-        :key="index"
-        class="flex items-center gap-3"
-      >
+      <div v-for="(transfer, index) in transfers" :key="index" class="flex items-center gap-3">
         <div class="flex flex-col items-center">
-          <div
-            class="flex h-10 w-10 items-center justify-center rounded-full"
-            :class="getDirectionClass(transfer)"
-          >
-            <svg
-              class="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+          <div class="flex h-10 w-10 items-center justify-center rounded-full" :class="getDirectionClass(transfer)">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -54,31 +26,15 @@
               />
             </svg>
           </div>
-          <div
-            v-if="index < transfers.length - 1"
-            class="h-4 w-0.5"
-            style="background: var(--line-soft)"
-          ></div>
+          <div v-if="index < transfers.length - 1" class="h-4 w-0.5 bg-line-soft"></div>
         </div>
 
-        <div
-          class="panel-muted flex-1 p-3"
-        >
+        <div class="panel-muted flex-1 p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <HashLink :hash="transfer.from" type="address" :truncated="true" />
-              <svg
-                class="text-low h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
+              <svg class="text-low h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
               <HashLink :hash="transfer.to" type="address" :truncated="true" />
             </div>
@@ -92,9 +48,7 @@
 
           <div v-if="transfer.tokenId" class="text-mid mt-2 text-xs">
             Token ID:
-            <span class="font-mono">{{
-              truncateTokenId(transfer.tokenId)
-            }}</span>
+            <span class="font-mono">{{ truncateTokenId(transfer.tokenId) }}</span>
           </div>
         </div>
       </div>

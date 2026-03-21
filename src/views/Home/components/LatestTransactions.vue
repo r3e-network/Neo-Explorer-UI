@@ -19,7 +19,13 @@
       <EmptyState message="No transactions found" />
     </div>
     <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
-      <TxListItem v-for="tx in transactions" :key="tx.hash" :tx="tx" :transfer-summary="transferSummaryByHash[tx.hash]" class="w-full" style="background: var(--surface-elevated)" />
+      <TxListItem
+        v-for="tx in transactions"
+        :key="tx.hash"
+        :tx="tx"
+        :transfer-summary="transferSummaryByHash[tx.hash]"
+        class="w-full bg-surface-elevated"
+      />
     </TransitionGroup>
   </article>
 </template>

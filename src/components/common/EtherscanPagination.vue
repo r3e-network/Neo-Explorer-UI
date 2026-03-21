@@ -35,8 +35,7 @@
         v-if="showPageSize"
         :value="pageSize"
         aria-label="Results per page"
-        class="ml-2 rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 soft-divider"
-        style="background: var(--surface-elevated); color: var(--text-mid)"
+        class="ml-2 rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 soft-divider bg-surface-elevated text-mid"
         @change="onPageSizeChange"
       >
         <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} / page</option>

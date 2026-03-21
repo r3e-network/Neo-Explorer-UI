@@ -141,7 +141,7 @@
       </div>
 
       <!-- Secondary stats row -->
-      <div class="mt-4 border-t pt-4" style="border-color: var(--line-soft)">
+      <div class="mt-4 border-t pt-4 soft-divider">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="mini-stat">
             <span class="mini-label">Market Cap</span>
@@ -198,7 +198,7 @@ const targetTime = ref(15);
 const lastFetchRequestedForTimestamp = ref(null);
 let countdownTimer = null;
 
-import { getCurrentEnv, NET_ENV } from '@/utils/env';
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
 function updateCountdown() {
   const network = getCurrentEnv();
@@ -211,7 +211,7 @@ function updateCountdown() {
   }
   // Convert timestamp to ms if needed
   const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
-  
+
   const delayOffset = network === NET_ENV.TestT5 ? 2 : 10;
   const ageSecs = Math.max(0, Math.floor((Date.now() - tsMs) / 1000) - delayOffset);
   nextBlockCountdown.value = Math.max(0, targetTime.value - ageSecs);

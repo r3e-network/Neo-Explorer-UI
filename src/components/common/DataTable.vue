@@ -32,14 +32,11 @@ defineProps({
 
 <template>
   <div class="surface-panel overflow-x-auto">
-    <table
-      role="table"
-      class="min-w-full divide-y"
-      style="border-color: var(--line-soft)"
-      :aria-busy="loading ? 'true' : 'false'"
-    >
+    <table role="table" class="min-w-full divide-y soft-divider" :aria-busy="loading ? 'true' : 'false'">
       <caption v-if="caption" class="sr-only">
-        {{ caption }}
+        {{
+          caption
+        }}
       </caption>
       <thead class="table-head">
         <tr role="row">
@@ -48,7 +45,11 @@ defineProps({
             :key="col.key"
             scope="col"
             :class="[
-              col.align === 'right' ? 'table-header-cell-right' : col.align === 'center' ? 'table-header-cell text-center' : 'table-header-cell',
+              col.align === 'right'
+                ? 'table-header-cell-right'
+                : col.align === 'center'
+                  ? 'table-header-cell text-center'
+                  : 'table-header-cell',
             ]"
           >
             {{ col.label }}
@@ -84,7 +85,11 @@ defineProps({
               v-for="col in columns"
               :key="col.key"
               :class="[
-                col.align === 'right' ? 'table-cell-right' : col.align === 'center' ? 'table-cell text-center' : 'table-cell',
+                col.align === 'right'
+                  ? 'table-cell-right'
+                  : col.align === 'center'
+                    ? 'table-cell text-center'
+                    : 'table-cell',
               ]"
             >
               <slot :name="'cell-' + col.key" :row="row" :value="row[col.key]">

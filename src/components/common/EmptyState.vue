@@ -2,8 +2,7 @@
   <div class="py-12 px-4 text-center">
     <div
       v-once
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-card text-mid"
-      style="background: var(--surface-glass); border: 1px solid var(--line-soft)"
+      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-card text-mid bg-surface-glass border border-line-soft"
     >
       <!-- Block icon -->
       <svg v-if="icon === 'block'" aria-hidden="true" class="h-8 w-8 text-low" fill="currentColor" viewBox="0 0 24 24">
@@ -72,11 +71,7 @@
 
     <p class="font-semibold text-mid">{{ message }}</p>
 
-    <router-link
-      v-if="actionLabel && actionTo"
-      :to="actionTo"
-      class="btn-primary mt-4 gap-1.5"
-    >
+    <router-link v-if="actionLabel && actionTo" :to="actionTo" class="btn-primary mt-4 gap-1.5">
       {{ actionLabel }}
     </router-link>
   </div>

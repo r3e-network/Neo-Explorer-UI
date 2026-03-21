@@ -1,8 +1,5 @@
 <template>
-  <footer
-    class="app-footer soft-divider mt-12 border-t backdrop-blur-sm"
-    style="background: var(--surface-glass)"
-  >
+  <footer class="app-footer soft-divider mt-12 border-t backdrop-blur-sm bg-surface-glass">
     <div class="mx-auto max-w-[1400px] px-4 py-10">
       <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         <!-- Brand Column -->
@@ -65,9 +62,7 @@
 
         <!-- Blockchain Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
-            Blockchain
-          </h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Blockchain</h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/blocks/1" class="footer-link">Blocks</router-link></li>
             <li><router-link to="/transactions/1" class="footer-link">Transactions</router-link></li>
@@ -79,9 +74,7 @@
 
         <!-- Resources Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
-            Resources
-          </h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Resources</h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/echarts" class="footer-link">Charts &amp; Stats</router-link></li>
             <li><router-link to="/gas-tracker" class="footer-link">Gas Tracker</router-link></li>
@@ -92,9 +85,7 @@
 
         <!-- Developers Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
-            Developers
-          </h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Developers</h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/api-docs" class="footer-link">API Docs</router-link></li>
             <li><router-link to="/verify-contract/" class="footer-link">Verify Contract</router-link></li>

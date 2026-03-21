@@ -19,7 +19,7 @@
       <EmptyState message="No blocks found" />
     </div>
     <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
-      <BlockListItem v-for="block in blocks" :key="block.hash" :block="block" class="w-full" style="background: var(--surface-elevated)" />
+      <BlockListItem v-for="block in blocks" :key="block.hash" :block="block" class="w-full bg-surface-elevated" />
     </TransitionGroup>
   </article>
 </template>

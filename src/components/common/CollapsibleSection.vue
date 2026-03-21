@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-lg border" style="border-color: var(--line-soft)">
+  <div class="rounded-lg border soft-divider">
     <button
       class="flex w-full items-center justify-between p-4 text-left"
       aria-label="Toggle section"

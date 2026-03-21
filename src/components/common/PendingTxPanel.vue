@@ -7,10 +7,7 @@
           <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
         </span>
         <h3 class="text-sm font-semibold text-high">{{ t("pendingTx.title") }}</h3>
-        <span
-          class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-          style="background: var(--status-success-bg); color: var(--status-success)"
-        >
+        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-status-success-bg text-status-success">
           {{ pendingTxs.length }}
         </span>
       </div>
@@ -60,8 +57,7 @@
       <button
         @click="refresh"
         :disabled="loading"
-        class="list-row soft-divider flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-mid disabled:opacity-50"
-        style="background: var(--surface-hover)"
+        class="bg-surface-hover list-row soft-divider flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium text-mid disabled:opacity-50"
       >
         <svg class="h-4 w-4" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -147,7 +143,7 @@ watch(
     } else {
       stopPolling();
     }
-  }
+  },
 );
 
 onUnmounted(() => {

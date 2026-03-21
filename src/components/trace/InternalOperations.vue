@@ -45,17 +45,26 @@
     </div>
 
     <!-- Empty state -->
-        <!-- Fallback if only internal calls exist but no discrete parsed 'operations' -->
+    <!-- Fallback if only internal calls exist but no discrete parsed 'operations' -->
     <div v-if="!loading && operations.length === 0 && internalContractCalls.length > 0" class="space-y-2 mt-4">
       <h3 class="text-sm font-semibold text-high mb-3 px-4">Raw Internal Contract Calls</h3>
-      <div v-for="(call, ci) in internalContractCalls" :key="'raw-call-' + ci" class="panel-muted flex items-start gap-3 px-4 py-3 mx-4">
-        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300">
+      <div
+        v-for="(call, ci) in internalContractCalls"
+        :key="'raw-call-' + ci"
+        class="panel-muted flex items-start gap-3 px-4 py-3 mx-4"
+      >
+        <span
+          class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300"
+        >
           {{ ci + 1 }}
         </span>
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
             <HashLink :hash="call.contract || call.contractHash || call.callee" type="contract" />
-            <span v-if="call.method || call.operation" class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+            <span
+              v-if="call.method || call.operation"
+              class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+            >
               {{ call.method || call.operation }}
             </span>
           </div>
@@ -76,11 +85,7 @@
     <!-- Timeline -->
     <div v-else-if="!loading" class="relative">
       <!-- Vertical connecting line -->
-      <div
-        v-if="visibleOps.length > 1"
-        class="absolute bottom-3 left-3 top-3 w-0.5"
-        style="background: var(--line-soft)"
-      ></div>
+      <div v-if="visibleOps.length > 1" class="absolute bottom-3 left-3 top-3 w-0.5 bg-line-soft"></div>
 
       <div class="space-y-0">
         <div
@@ -110,9 +115,7 @@
                 {{ opTypeLabel(op.operationType) }}
               </span>
               <HashLink :hash="op.contract" type="contract" />
-              <span v-if="op.contractName" class="text-mid text-xs">
-                ({{ op.contractName }})
-              </span>
+              <span v-if="op.contractName" class="text-mid text-xs"> ({{ op.contractName }}) </span>
               <span
                 class="rounded bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
               >
@@ -133,9 +136,7 @@
               <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              <span class="text-high font-semibold">
-                {{ formatAmount(op) }} {{ op.tokenSymbol || "" }}
-              </span>
+              <span class="text-high font-semibold"> {{ formatAmount(op) }} {{ op.tokenSymbol || "" }} </span>
               <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -163,9 +164,7 @@
                 :key="param.index"
                 class="flex items-center gap-2 text-xs font-mono py-0.5"
               >
-                <span class="text-low w-20 truncate flex-shrink-0">
-                  {{ param.name || `arg${param.index}` }}:
-                </span>
+                <span class="text-low w-20 truncate flex-shrink-0"> {{ param.name || `arg${param.index}` }}: </span>
                 <HashLink
                   v-if="param.type === 'Hash160' && param.decoded.decodedValue"
                   :hash="param.decoded.decodedValue"
@@ -219,31 +218,34 @@ watch(
   () => props.enrichedTrace,
   async (trace) => {
     if (!trace?.executions) return;
-    
+
     const fetchPromises = [];
-    
+
     for (const exec of trace.executions) {
       if (!exec.operations) continue;
       for (const op of exec.operations) {
         if (!op.contract || NATIVE_CONTRACTS[op.contract.toLowerCase()]) continue;
-        
+
         const hash = op.contract.toLowerCase();
         if (tokenDecimalsMap.value[hash] === undefined) {
-           tokenDecimalsMap.value[hash] = 0; // default while fetching
-           fetchPromises.push(
-             tokenService.getByHash(hash).then(t => {
-               if (t && typeof t.decimals !== 'undefined') {
-                 tokenDecimalsMap.value[hash] = Number(t.decimals);
-               }
-             }).catch(_e => {})
-           );
+          tokenDecimalsMap.value[hash] = 0; // default while fetching
+          fetchPromises.push(
+            tokenService
+              .getByHash(hash)
+              .then((t) => {
+                if (t && typeof t.decimals !== "undefined") {
+                  tokenDecimalsMap.value[hash] = Number(t.decimals);
+                }
+              })
+              .catch((_e) => {}),
+          );
         }
       }
     }
-    
+
     await Promise.all(fetchPromises);
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 const showAll = ref(false);
@@ -311,21 +313,25 @@ function opTypeLabel(opType) {
 function formatAmount(op) {
   let dec = op.tokenDecimals;
   if (dec === undefined || dec === null) {
-     const hash = op.contract?.toLowerCase();
-     if (hash && NATIVE_CONTRACTS[hash]) {
-       dec = NATIVE_CONTRACTS[hash].decimals;
-     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
-       dec = tokenDecimalsMap.value[hash];
-     } else {
-       dec = 0;
-     }
+    const hash = op.contract?.toLowerCase();
+    if (hash && NATIVE_CONTRACTS[hash]) {
+      dec = NATIVE_CONTRACTS[hash].decimals;
+    } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+      dec = tokenDecimalsMap.value[hash];
+    } else {
+      dec = 0;
+    }
   }
-  
+
   let amount = op.amount;
   if (!amount && op.decodedParams && op.decodedParams.length >= 3) {
-      amount = op.decodedParams[2].decoded?.rawValue || op.decodedParams[2].decoded?.decodedValue || op.decodedParams[2].decoded?.displayValue || "0";
+    amount =
+      op.decodedParams[2].decoded?.rawValue ||
+      op.decodedParams[2].decoded?.decodedValue ||
+      op.decodedParams[2].decoded?.displayValue ||
+      "0";
   }
-  
+
   return formatTokenAmount(amount, dec, 8);
 }
 </script>

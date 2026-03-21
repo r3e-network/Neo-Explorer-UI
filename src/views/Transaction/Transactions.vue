@@ -25,8 +25,7 @@
       <!-- Stats Bar -->
       <div
         v-if="totalCount > 0"
-        class="soft-divider mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5"
-        style="background: var(--status-warning-bg)"
+        class="soft-divider mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 bg-status-warning-bg"
       >
         <svg class="h-4 w-4 flex-shrink-0 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -96,10 +95,7 @@
         />
 
         <!-- Pagination -->
-        <div
-          v-if="!loading && transactions.length > 0"
-          class="soft-divider border-t px-4 py-3"
-        >
+        <div v-if="!loading && transactions.length > 0" class="soft-divider border-t px-4 py-3">
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
         </div>
       </div>
@@ -180,7 +176,7 @@ const { loadingMore, loadMore } = useLoadMore(
         if (import.meta.env.DEV) console.warn("VM state enrichment failed:", err);
       });
     },
-  }
+  },
 );
 
 async function hydrateVmState(txList = []) {
@@ -208,7 +204,7 @@ async function hydrateVmState(txList = []) {
         } finally {
           vmStatePendingHashes.delete(hash);
         }
-      })
+      }),
     );
   }
 }
