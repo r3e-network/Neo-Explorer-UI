@@ -130,11 +130,7 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
-              <tr
-                v-for="block in blocks"
-                :key="block.hash"
-                class="list-row group"
-              >
+              <tr v-for="block in blocks" :key="block.hash" class="list-row group">
                 <!-- Block Height -->
                 <td class="table-cell">
                   <router-link :to="`/block-info/${block.hash}`" class="etherscan-link font-medium">
@@ -163,9 +159,9 @@
                       <img
                         v-if="getActiveValidatorLogo(block)"
                         :src="getActiveValidatorLogo(block)"
-                        alt="Validator logo"
+                        :alt="(getPrimaryNodeName(resolvePrimaryIndex(block)) || 'Validator') + ' logo'"
                         class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
-                        onerror="this.src='/img/brand/neo.png'"
+                        onerror="this.src = '/img/brand/neo.png'"
                       />
                       <router-link
                         v-if="resolvePrimaryIndex(block) !== undefined && getActiveValidatorAddress(block)"
@@ -174,7 +170,10 @@
                       >
                         {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
                       </router-link>
-                      <span v-else-if="resolvePrimaryIndex(block) !== undefined" class="text-sm font-semibold text-high">
+                      <span
+                        v-else-if="resolvePrimaryIndex(block) !== undefined"
+                        class="text-sm font-semibold text-high"
+                      >
                         {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
                       </span>
                     </div>
@@ -199,10 +198,7 @@
         </div>
 
         <!-- Pagination -->
-        <div
-          v-if="!loading && blocks.length > 0"
-          class="soft-divider border-t px-4 py-3"
-        >
+        <div v-if="!loading && blocks.length > 0" class="soft-divider border-t px-4 py-3">
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
         </div>
       </div>
@@ -263,14 +259,20 @@ const latestHeight = ref(0);
 // --- Pagination via composable (route-synced, cache-aware) ---
 const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, { ...opts, enrichMissingFields: true });
 
-const { items: blocks, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
-  blockFetchFn,
-  {
-    routeSync: { basePath: "/blocks" },
-    cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
-    errorMessage: t("errors.loadBlocks"),
-  }
-);
+const {
+  items: blocks,
+  loading,
+  error,
+  totalCount,
+  currentPage,
+  pageSize,
+  totalPages,
+  loadPage,
+} = usePagination(blockFetchFn, {
+  routeSync: { basePath: "/blocks" },
+  cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
+  errorMessage: t("errors.loadBlocks"),
+});
 
 const { loadingMore, loadMore } = useLoadMore(blockFetchFn, {
   items: blocks,

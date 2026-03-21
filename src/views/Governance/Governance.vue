@@ -7,7 +7,12 @@
         <div class="flex items-center gap-3">
           <div class="page-header-icon bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-300">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
+              />
             </svg>
           </div>
           <div>
@@ -15,12 +20,18 @@
             <p class="page-subtitle">Participate in Neo N3 consensus by voting for a candidate node</p>
           </div>
         </div>
-        
+
         <div class="flex items-center gap-3">
-          <span v-if="account" class="text-sm font-medium text-high px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft">
+          <span
+            v-if="account"
+            class="text-sm font-medium text-high px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
+          >
             {{ formatAccount(account) }}
           </span>
-          <span v-else class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft">
+          <span
+            v-else
+            class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
+          >
             Connect wallet from header to vote
           </span>
         </div>
@@ -30,9 +41,7 @@
       <div class="etherscan-card mb-6 overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 gap-4">
           <div class="flex items-center gap-4">
-            <label for="neo-amount" class="text-sm font-semibold text-high whitespace-nowrap">
-              My NEO to Vote:
-            </label>
+            <label for="neo-amount" class="text-sm font-semibold text-high whitespace-nowrap"> My NEO to Vote: </label>
             <div class="relative max-wxs">
               <input
                 id="neo-amount"
@@ -48,10 +57,14 @@
             </span>
           </div>
           <div v-if="neoPrice && gasPrice" class="flex items-center gap-4 text-xs font-semibold text-mid">
-            <span class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5"
+            >
               NEO: <span class="text-high">${{ neoPrice.toFixed(2) }}</span>
             </span>
-            <span class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-lg border border-line-soft bg-surface-elevated px-2.5 py-1.5"
+            >
               GAS: <span class="text-high">${{ gasPrice.toFixed(2) }}</span>
             </span>
           </div>
@@ -66,7 +79,7 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs text-mid font-medium uppercase tracking-wide">Sort by:</span>
-            <select 
+            <select
               v-model="sortBy"
               class="bg-surface-elevated border border-line-soft rounded-lg px-3 py-1.5 text-sm text-high focus:outline-none focus:border-primary-500 transition-colors"
             >
@@ -105,15 +118,17 @@
                 </td>
                 <td class="table-cell">
                   <div class="flex items-center gap-3">
-                    <img 
-                      src="https://app.neoburger.io/favicon.ico" 
-                      class="h-6 w-6 rounded-full bg-white ring-1 ring-line-soft object-cover flex-shrink-0" 
+                    <img
+                      src="https://app.neoburger.io/favicon.ico"
+                      class="h-6 w-6 rounded-full bg-white ring-1 ring-line-soft object-cover flex-shrink-0"
                       alt="NeoBurger Logo"
                     />
                     <div class="min-w-0 flex flex-col gap-0.5">
                       <span class="inline-flex items-center gap-1.5 font-bold text-high text-sm">
                         NeoBurger
-                        <span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        <span
+                          class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        >
                           Recommended
                         </span>
                       </span>
@@ -125,7 +140,9 @@
                   <span class="text-mid text-xs">Pooled</span>
                 </td>
                 <td class="table-cell text-center">
-                  <span class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  <span
+                    class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                  >
                     Optimized
                   </span>
                 </td>
@@ -133,58 +150,70 @@
                   <span class="text-mid text-xs">--</span>
                 </td>
                 <td class="table-cell-right font-medium text-status-success">
-                  ~ {{ (neoBurgerMonthlyGas).toFixed(4) }} GAS
+                  ~ {{ neoBurgerMonthlyGas.toFixed(4) }} GAS
                 </td>
                 <td class="table-cell-right font-bold text-amber-600 dark:text-amber-400">
-                  ~ {{ (neoBurgerApr).toFixed(2) }}%
+                  ~ {{ neoBurgerApr.toFixed(2) }}%
                 </td>
                 <td class="table-cell-right">
-                  <a 
-                    href="https://app.neoburger.io/" 
-                    target="_blank" 
+                  <a
+                    href="https://app.neoburger.io/"
+                    target="_blank"
                     rel="noopener noreferrer"
                     class="btn-primary px-3 py-1.5 text-xs inline-flex items-center gap-1"
                   >
                     Go to NeoBurger
                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
                     </svg>
                   </a>
                 </td>
               </tr>
 
               <!-- Standard Candidates -->
-              <tr v-for="(candidate) in sortedCandidates" :key="candidate.publickey" class="list-row group">
+              <tr v-for="candidate in sortedCandidates" :key="candidate.publickey" class="list-row group">
                 <td class="table-cell-secondary">{{ candidates.indexOf(candidate) + 1 }}</td>
                 <td class="table-cell">
                   <div class="flex items-center justify-between gap-3">
                     <div class="flex min-w-0 items-center gap-3">
-                    <img 
-                      v-if="getLogo(candidate)"
-                      :src="getLogo(candidate)" 
-                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
-                      :alt="`${getDisplayLabel(candidate)} Logo`"
-                      @error="$event.target.src = '/img/brand/neo.png'"
-                    />
-                    <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
-                      N3
-                    </div>
-                    <div class="min-w-0 flex flex-col gap-0.5">
-                      <router-link
-                        :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`"
-                        class="etherscan-link font-semibold text-sm break-all"
-                        :title="candidate.publickey"
+                      <img
+                        v-if="getLogo(candidate)"
+                        :src="getLogo(candidate)"
+                        class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0"
+                        :alt="`${getDisplayLabel(candidate)} Logo`"
+                        @error="$event.target.src = '/img/brand/neo.png'"
+                      />
+                      <div
+                        v-else
+                        class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid"
                       >
-                        {{ getDisplayLabel(candidate) }}
-                      </router-link>
-                      <span class="text-low text-[10px] font-mono break-all">{{ candidate.publickey }}</span>
+                        N3
+                      </div>
+                      <div class="min-w-0 flex flex-col gap-0.5">
+                        <router-link
+                          :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`"
+                          class="etherscan-link font-semibold text-sm break-all"
+                          :title="candidate.publickey"
+                        >
+                          {{ getDisplayLabel(candidate) }}
+                        </router-link>
+                        <span class="text-low text-[10px] font-mono break-all">{{ candidate.publickey }}</span>
+                      </div>
                     </div>
-                    </div>
-                    <span :class="[
-                      'shrink-0 inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-semibold',
-                      candidate.active ? 'bg-status-success-bg text-status-success' : 'bg-surface-elevated text-mid border border-line-soft'
-                    ]">
-                      {{ candidate.active ? 'Active' : 'Standby' }}
+                    <span
+                      :class="[
+                        'shrink-0 inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-semibold',
+                        candidate.active
+                          ? 'bg-status-success-bg text-status-success'
+                          : 'bg-surface-elevated text-mid border border-line-soft',
+                      ]"
+                    >
+                      {{ candidate.active ? "Active" : "Standby" }}
                     </span>
                   </div>
                 </td>
@@ -193,7 +222,13 @@
                 </td>
                 <td class="table-cell-right font-medium text-high text-xs">
                   <template v-if="candidates.indexOf(candidate) < 7 && livenessData[candidates.indexOf(candidate)]">
-                    <span :class="livenessData[candidates.indexOf(candidate)].ratio >= 99 ? 'text-status-success' : 'text-status-warning'">
+                    <span
+                      :class="
+                        livenessData[candidates.indexOf(candidate)].ratio >= 99
+                          ? 'text-status-success'
+                          : 'text-status-warning'
+                      "
+                    >
                       {{ livenessData[candidates.indexOf(candidate)].ratio }}%
                     </span>
                   </template>
@@ -206,12 +241,12 @@
                   {{ calculateAPR(candidate.votes, candidates.indexOf(candidate)).toFixed(2) }}%
                 </td>
                 <td class="table-cell-right">
-                  <button 
+                  <button
                     @click="handleVoteAction(candidate)"
                     :disabled="!account || voting"
                     class="btn-mini px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {{ isCurrentVote(candidate) ? 'Unvote' : 'Vote' }}
+                    {{ isCurrentVote(candidate) ? "Unvote" : "Vote" }}
                   </button>
                 </td>
               </tr>
@@ -224,30 +259,31 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { rpc } from '@cityofzion/neon-js';
-import { getRpcClientUrl, getCurrentEnv, NET_ENV } from '@/utils/env';
-import { useNetworkChange } from '@/composables/useNetworkChange';
-import { getDoraCommitteeUrl } from '@/utils/dora';
-import { connectedAccount, voteForCandidate, unvoteCandidate } from '@/utils/wallet';
-import Breadcrumb from '@/components/common/Breadcrumb.vue';
-import Skeleton from '@/components/common/Skeleton.vue';
-import ErrorState from '@/components/common/ErrorState.vue';
-import { useToast } from 'vue-toastification';
-import { usePriceCache } from '@/composables/usePriceCache';
-import { getKnownAddressName } from '@/constants/knownAddresses';
-import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
-import { supabaseService } from '@/services/supabaseService';
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { rpc } from "@cityofzion/neon-js";
+import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { getDoraCommitteeUrl } from "@/utils/dora";
+import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wallet";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+import { useToast } from "vue-toastification";
+import { usePriceCache } from "@/composables/usePriceCache";
+import { getKnownAddressName } from "@/constants/knownAddresses";
+import { publicKeyToAddress, addressToScriptHash } from "@/utils/neoHelpers";
+import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { NEO_HASH } from "@/constants";
 
 const toast = useToast();
 const { fetchPrices } = usePriceCache();
 
 const candidates = ref([]);
 const livenessData = ref({});
-const sortBy = ref('votes');
+const sortBy = ref("votes");
 const loading = ref(true);
-const error = ref('');
+const error = ref("");
 const account = connectedAccount;
 const voting = ref(false);
 const currentVotePublicKey = ref("");
@@ -288,7 +324,7 @@ const neoBurgerMonthlyGas = computed(() => {
 
 const sortedCandidates = computed(() => {
   const list = [...candidates.value];
-  if (sortBy.value === 'apr') {
+  if (sortBy.value === "apr") {
     return list.sort((a, b) => {
       // original index is needed for calculateAPR to know if it's consensus node
       const aIndex = candidates.value.indexOf(a);
@@ -317,13 +353,13 @@ function getLogo(candidate) {
   if (candidate.logo) {
     return resolveCandidateLogoUrl(candidate.logo);
   }
-  
+
   const env = getCurrentEnv();
   // Mainnet fallback to governance.neo.org
   if (env === NET_ENV.Mainnet) {
     return getDefaultCandidateLogoUrl(candidate.publickey);
   }
-  
+
   // Testnet or others: no logo by default
   return null;
 }
@@ -331,9 +367,9 @@ function getLogo(candidate) {
 function calculateMonthlyGas(candidateVotesStr, index) {
   const amount = Number(userNeoAmount.value) || 0;
   if (amount <= 0 || totalNetworkVotes.value <= 0) return 0;
-  
+
   const candidateVotes = Number(candidateVotesStr) || 0;
-  
+
   // Total GAS minted per block is 5
   // - 10% (0.5 GAS) goes to all NEO holders evenly (regardless of voting)
   // - 10% (0.5 GAS) goes to the 21 Neo Council members directly
@@ -343,10 +379,10 @@ function calculateMonthlyGas(candidateVotesStr, index) {
 
   const isConsensusNode = index < 7;
   const isCouncilNode = index >= 7 && index < 21;
-  
+
   // Base generation: 10% of 5 GAS per block is divided across all 100M NEO
   const baseRewardPerBlock = amount * (0.5 / TOTAL_NEO_SUPPLY);
-  
+
   // Voter generation
   let voterRewardPerBlock = 0;
   if (candidateVotes > 0) {
@@ -360,20 +396,20 @@ function calculateMonthlyGas(candidateVotesStr, index) {
       voterRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
     }
   }
-  
+
   const totalRewardPerBlock = baseRewardPerBlock + voterRewardPerBlock;
   return totalRewardPerBlock * BLOCKS_PER_MONTH;
 }
 
 function calculateAPR(candidateVotesStr, index) {
   if (neoPrice.value <= 0 || gasPrice.value <= 0 || userNeoAmount.value <= 0) return 0;
-  
+
   const monthlyGas = calculateMonthlyGas(candidateVotesStr, index);
   const annualGas = monthlyGas * 12;
-  
+
   const annualUsdYield = annualGas * gasPrice.value;
   const initialUsdInvestment = userNeoAmount.value * neoPrice.value;
-  
+
   return (annualUsdYield / initialUsdInvestment) * 100;
 }
 
@@ -389,10 +425,10 @@ async function loadPrices() {
 
 async function loadCandidates() {
   loading.value = true;
-  error.value = '';
+  error.value = "";
   try {
     const rpcClient = new rpc.RPCClient(getRpcClientUrl());
-    
+
     // Determine the environment string for Dora API
     const env = getCurrentEnv().toLowerCase();
     const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
@@ -403,9 +439,9 @@ async function loadCandidates() {
 
     let rawCandidates = [];
     if (rpcRes && rpcRes.length > 0) {
-       rawCandidates = rpcRes;
+      rawCandidates = rpcRes;
     } else {
-       throw new Error("Failed to fetch candidates from RPC node.");
+      throw new Error("Failed to fetch candidates from RPC node.");
     }
 
     let indexerRows = [];
@@ -418,15 +454,15 @@ async function loadCandidates() {
     let doraRows = [];
     if (!isTestnet) {
       try {
-        doraRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then(r => r.ok ? r.json() : []);
+        doraRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then((r) => (r.ok ? r.json() : []));
       } catch (fallbackErr) {
         if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
       }
     }
-    
+
     // Create a map of pubkey -> cached validator metadata
     const metadataMap = {};
-    
+
     // 1. Populate with Dora defaults first
     for (const item of Array.isArray(doraRows) ? doraRows : []) {
       const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
@@ -455,32 +491,33 @@ async function loadCandidates() {
     }
 
     // Merge RPC candidate list with cached metadata, sorting by votes descending
-    candidates.value = rawCandidates.map(c => {
-      const key = String(c.publickey || "").toLowerCase();
-      return {
-        ...c,
-        name: metadataMap[key]?.name || null,
-        logo: metadataMap[key]?.logo || null,
-        location: metadataMap[key]?.location || null
-      };
-    }).sort((a, b) => Number(b.votes) - Number(a.votes));
-    
+    candidates.value = rawCandidates
+      .map((c) => {
+        const key = String(c.publickey || "").toLowerCase();
+        return {
+          ...c,
+          name: metadataMap[key]?.name || null,
+          logo: metadataMap[key]?.logo || null,
+          location: metadataMap[key]?.location || null,
+        };
+      })
+      .sort((a, b) => Number(b.votes) - Number(a.votes));
+
     // Fetch liveness data passively in the background
     fetch(`/api/liveness?network=${doraEnv}`)
-      .then(r => r.json())
-      .then(data => {
-         if (data && data.success && Array.isArray(data.liveness)) {
-            const map = {};
-            data.liveness.forEach(l => {
-               map[l.nodeIndex] = l;
-            });
-            livenessData.value = map;
-         }
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.liveness)) {
+          const map = {};
+          data.liveness.forEach((l) => {
+            map[l.nodeIndex] = l;
+          });
+          livenessData.value = map;
+        }
       })
-      .catch(e => {
-         if (import.meta.env.DEV) console.warn("Failed to fetch liveness data", e);
+      .catch((e) => {
+        if (import.meta.env.DEV) console.warn("Failed to fetch liveness data", e);
       });
-    
   } catch (err) {
     console.error("Failed to load candidates", err);
     error.value = err.message || "Failed to fetch candidates from RPC node.";
@@ -502,14 +539,12 @@ async function loadCurrentVoteState() {
       currentVotePublicKey.value = "";
       return;
     }
-    const result = await rpcClient.execute(new rpc.Query({
-      method: "invokefunction",
-      params: [
-        "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-        "getAccountState",
-        [{ type: "Hash160", value: scriptHash }],
-      ],
-    }));
+    const result = await rpcClient.execute(
+      new rpc.Query({
+        method: "invokefunction",
+        params: [NEO_HASH, "getAccountState", [{ type: "Hash160", value: scriptHash }]],
+      }),
+    );
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;
     const structValues = Array.isArray(item?.value) ? item.value : [];
@@ -529,7 +564,7 @@ async function loadCurrentVoteState() {
 }
 
 function formatAccount(addr) {
-  if (!addr) return '';
+  if (!addr) return "";
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
@@ -571,10 +606,9 @@ onMounted(() => {
   loadPrices();
   loadCandidates();
   loadCurrentVoteState();
-  });
+});
 
 useNetworkChange(handleNetworkChange);
 
-onBeforeUnmount(() => {
-});
+onBeforeUnmount(() => {});
 </script>

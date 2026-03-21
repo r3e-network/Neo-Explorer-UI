@@ -6,6 +6,6 @@ const source = fs.readFileSync(path.resolve(process.cwd(), "src/views/Tools/Mult
 
 describe("MultiSigTool request filtering", () => {
   it("excludes governance requests with the shared governance matcher instead of type-only checks", () => {
-    expect(source).toMatch(/filter\(\(request\)\s*=>\s*!isGovernanceRequest\(request,/);
+    expect(source).toMatch(/filter\(\s*\(request\)\s*=>\s*!isGovernanceRequest\(request,/);
   });
 });

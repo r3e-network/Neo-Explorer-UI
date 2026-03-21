@@ -6,9 +6,9 @@ import { wallet } from "@cityofzion/neon-js";
 let _web3auth = null;
 let _chainConfigKey = null;
 
-// Replace with a default client ID or read from env.
-// For demonstration, a placeholder is used. In production, provide VITE_WEB3AUTH_CLIENT_ID
-const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "BAFNBNPk7tUWbM9L6TBy7ixKCSQ3QwmQ7mCj0r3ai3KBA9ITqb3d7ifD0BV5YDs3NQCLPFU83MptKVc4T_xBMpo";
+// Web3Auth client ID must be provided via VITE_WEB3AUTH_CLIENT_ID environment variable.
+// Obtain one at https://dashboard.web3auth.io — never commit real client IDs to source.
+const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "";
 
 import { getCurrentEnv } from "@/utils/env";
 import { getPrimaryRpcEndpoint } from "@/utils/rpcEndpoints";
@@ -28,11 +28,12 @@ const getChainConfig = () => {
   };
 };
 
-const getChainConfigKey = (chainConfig = getChainConfig()) => JSON.stringify({
-  chainId: chainConfig.chainId,
-  rpcTarget: chainConfig.rpcTarget,
-  displayName: chainConfig.displayName,
-});
+const getChainConfigKey = (chainConfig = getChainConfig()) =>
+  JSON.stringify({
+    chainId: chainConfig.chainId,
+    rpcTarget: chainConfig.rpcTarget,
+    displayName: chainConfig.displayName,
+  });
 
 export const web3authService = {
   /**
@@ -61,7 +62,7 @@ export const web3authService = {
       });
 
       const lang = localStorage.getItem("lang") || "en";
-      const w3aLang = lang.startsWith('zh') ? 'zh' : lang; // Web3Auth supports 'en', 'de', 'ja', 'ko', 'zh', 'es', 'fr', 'pt', 'nl'
+      const w3aLang = lang.startsWith("zh") ? "zh" : lang; // Web3Auth supports 'en', 'de', 'ja', 'ko', 'zh', 'es', 'fr', 'pt', 'nl'
 
       const isDarkMode = document.documentElement.classList.contains("dark");
 
@@ -73,9 +74,9 @@ export const web3authService = {
           defaultLanguage: w3aLang,
           mode: isDarkMode ? "dark" : "light",
           theme: {
-            primary: "#00E599" // Neo green
-          }
-        }
+            primary: "#00E599", // Neo green
+          },
+        },
       });
 
       await _web3auth.initModal();
@@ -123,5 +124,5 @@ export const web3authService = {
     if (_web3auth && _web3auth.connected) {
       await _web3auth.logout();
     }
-  }
+  },
 };

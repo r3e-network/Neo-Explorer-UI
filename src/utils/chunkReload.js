@@ -16,7 +16,7 @@ export function triggerChunkReload(
   {
     storage = typeof window !== "undefined" ? window.sessionStorage : null,
     location = typeof window !== "undefined" ? window.location : null,
-  } = {}
+  } = {},
 ) {
   if (!storage || !location) return false;
 
@@ -27,9 +27,7 @@ export function triggerChunkReload(
   }
 
   const target =
-    typeof targetPath === "string" && targetPath.trim()
-      ? targetPath
-      : storage.getItem(CHUNK_RELOAD_TARGET_KEY);
+    typeof targetPath === "string" && targetPath.trim() ? targetPath : storage.getItem(CHUNK_RELOAD_TARGET_KEY);
 
   storage.setItem(CHUNK_RELOAD_KEY, "1");
   if (target) {

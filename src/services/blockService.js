@@ -94,12 +94,12 @@ export const blockService = createService(
       const directNetFee = Number(block.netfee ?? block.networkFee);
       const txCount = Number(
         block.txcount ??
-        block.transactioncount ??
-        block.txCount ??
-        block.transactionCount ??
-        block.tx_count ??
-        block.transaction_count ??
-        (Array.isArray(block.tx) ? block.tx.length : 0)
+          block.transactioncount ??
+          block.txCount ??
+          block.transactionCount ??
+          block.tx_count ??
+          block.transaction_count ??
+          (Array.isArray(block.tx) ? block.tx.length : 0),
       );
 
       const hasDirectSysFee = Number.isFinite(directSysFee);
@@ -122,7 +122,7 @@ export const blockService = createService(
           sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
           netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
         }),
-        { sysfee: 0, netfee: 0 }
+        { sysfee: 0, netfee: 0 },
       );
 
       return totals;
@@ -148,7 +148,7 @@ export const blockService = createService(
           return this._extractCount(res);
         },
         CACHE_TTL.stats,
-        cacheOpts
+        cacheOpts,
       );
     },
 
@@ -164,7 +164,7 @@ export const blockService = createService(
         key,
         () => safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list", cacheOpts),
         CACHE_TTL.chart,
-        cacheOpts
+        cacheOpts,
       );
 
       if (!res || !res.result) return res;
@@ -174,12 +174,12 @@ export const blockService = createService(
         res.result.map(async (b) => {
           const txCount = Number(
             b.txcount ??
-            b.transactioncount ??
-            b.txCount ??
-            b.transactionCount ??
-            b.tx_count ??
-            b.transaction_count ??
-            (Array.isArray(b.tx) ? b.tx.length : 0)
+              b.transactioncount ??
+              b.txCount ??
+              b.transactionCount ??
+              b.tx_count ??
+              b.transaction_count ??
+              (Array.isArray(b.tx) ? b.tx.length : 0),
           );
           const currentSysFee = Number(b.sysfee ?? b.systemFee);
           const currentNetFee = Number(b.netfee ?? b.networkFee);
@@ -203,16 +203,16 @@ export const blockService = createService(
                 b.nextconsensus = full.nextconsensus ?? full.nextConsensus;
               }
             } catch (e) {
-              // Ignore individual block fetch errors
+              if (import.meta.env.DEV) console.warn("[blockService] individual block enrichment failed:", e);
             }
           }
           return b;
-        })
+        }),
       );
 
       return { ...res, result: enriched };
     },
-  }
+  },
 );
 
 export default blockService;

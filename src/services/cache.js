@@ -34,7 +34,7 @@ if (typeof window !== "undefined" && window.sessionStorage) {
       });
     }
   } catch (e) {
-    console.warn("Restoring cache from session storage failed", e);
+    if (import.meta.env.DEV) console.warn("Restoring cache from session storage failed", e);
   }
 }
 
@@ -259,7 +259,7 @@ export const cachedRequest = async (
   key,
   fetchFn,
   ttl = DEFAULT_TTL.block,
-  { forceRefresh = false, staleWhileRevalidate = false, softTtl, onBackgroundRefreshError } = {}
+  { forceRefresh = false, staleWhileRevalidate = false, softTtl, onBackgroundRefreshError } = {},
 ) => {
   if (!forceRefresh) {
     const item = getValidCacheItem(key, { touch: true });

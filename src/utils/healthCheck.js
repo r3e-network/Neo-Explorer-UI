@@ -13,15 +13,12 @@ const EXPECTED_NETWORK_MAGIC = {
 const HEALTHCHECK_TIMEOUT_MS = Math.max(500, Number(import.meta.env.VITE_RPC_HEALTHCHECK_TIMEOUT_MS || 4000));
 const HEALTHCHECK_RECHECK_INTERVAL_MS = Math.max(
   10_000,
-  Number(import.meta.env.VITE_RPC_HEALTHCHECK_RECHECK_MS || 60_000)
+  Number(import.meta.env.VITE_RPC_HEALTHCHECK_RECHECK_MS || 60_000),
 );
-const PRIMARY_LATENCY_BIAS_MS = Math.max(
-  0,
-  Number(import.meta.env.VITE_RPC_PRIMARY_LATENCY_BIAS_MS || 400)
-);
+const PRIMARY_LATENCY_BIAS_MS = Math.max(0, Number(import.meta.env.VITE_RPC_PRIMARY_LATENCY_BIAS_MS || 400));
 const ENDPOINT_SWITCH_HYSTERESIS_MS = Math.max(
   0,
-  Number(import.meta.env.VITE_RPC_ENDPOINT_SWITCH_HYSTERESIS_MS || 1000)
+  Number(import.meta.env.VITE_RPC_ENDPOINT_SWITCH_HYSTERESIS_MS || 1000),
 );
 
 const NETWORKS = [
@@ -39,7 +36,7 @@ const readNetworkMagic = async (url) => {
         method: "getversion",
         params: [],
       },
-      { timeout: HEALTHCHECK_TIMEOUT_MS }
+      { timeout: HEALTHCHECK_TIMEOUT_MS },
     );
 
     const version = res.data?.result || {};
@@ -74,7 +71,7 @@ const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
         method: "GetBlockCount",
         params: {},
       },
-      { timeout: HEALTHCHECK_TIMEOUT_MS }
+      { timeout: HEALTHCHECK_TIMEOUT_MS },
     );
 
     const result = res.data?.result;
@@ -104,7 +101,7 @@ const checkNetworkEndpoints = async (network) => {
   if (!network) return;
   const state = checkedState[network.env];
   const now = Date.now();
-  if (state?.done && now-state.lastCheckedAt < HEALTHCHECK_RECHECK_INTERVAL_MS) return;
+  if (state?.done && now - state.lastCheckedAt < HEALTHCHECK_RECHECK_INTERVAL_MS) return;
   if (state) {
     state.done = true;
     state.lastCheckedAt = now;
@@ -118,8 +115,7 @@ const checkNetworkEndpoints = async (network) => {
     ]);
     const primaryHealthy = primaryHeight.height >= 0;
     const fallbackHealthy = fallbackHeight.height >= 0;
-    const primaryFasterEnough =
-      primaryHeight.latencyMs <= fallbackHeight.latencyMs + PRIMARY_LATENCY_BIAS_MS;
+    const primaryFasterEnough = primaryHeight.latencyMs <= fallbackHeight.latencyMs + PRIMARY_LATENCY_BIAS_MS;
     const current = getActiveBasePath(network.env);
     const primaryPath = `${network.prefix}/primary`;
     const fallbackPath = `${network.prefix}/fallback`;
@@ -154,7 +150,7 @@ const checkNetworkEndpoints = async (network) => {
     if (primaryHealthy && (!fallbackHealthy || primaryFasterEnough)) {
       commitSelection(
         primaryPath,
-        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
+        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`,
       );
       return;
     }
@@ -162,24 +158,21 @@ const checkNetworkEndpoints = async (network) => {
     if (fallbackHealthy) {
       commitSelection(
         fallbackPath,
-        `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`
+        `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`,
       );
       return;
     }
 
     // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
-    console.warn(
-      `[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`
-    );
+    if (import.meta.env.DEV) {
+      console.warn(`[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`);
+    }
   } catch (e) {
-    console.warn(`[HealthCheck] Failed for ${network.env}`, e);
+    if (import.meta.env.DEV) console.warn(`[HealthCheck] Failed for ${network.env}`, e);
   }
 };
 
-export const checkAndSetEndpoints = async (
-  preferredEnv = getCurrentEnv(),
-  { preloadOtherNetworks = false } = {}
-) => {
+export const checkAndSetEndpoints = async (preferredEnv = getCurrentEnv(), { preloadOtherNetworks = false } = {}) => {
   const preferredNetwork = NETWORKS.find((network) => network.env === preferredEnv) || NETWORKS[0];
   const deferredNetworks = NETWORKS.filter((network) => network.env !== preferredNetwork.env);
 
@@ -196,7 +189,7 @@ export const checkAndSetEndpoints = async (
 // Expose a synchronous getter so that the API client uses the resolved URL immediately once it's set.
 export const awaitEndpointsSet = async (env) => {
   if (!checkedState[env]?.done) {
-    const network = NETWORKS.find(n => n.env === env) || NETWORKS[0];
+    const network = NETWORKS.find((n) => n.env === env) || NETWORKS[0];
     await checkNetworkEndpoints(network);
   }
 };

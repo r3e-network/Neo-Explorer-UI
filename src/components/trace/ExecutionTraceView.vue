@@ -31,7 +31,7 @@
 
       <div
         v-for="(exec, ei) in callTree"
-        :key="exec.trigger + '-' + exec.vmState + '-' + ei"
+        :key="exec.trigger + '-' + exec.vmState + '-' + exec.gasConsumed"
         class="trace-execution panel-muted overflow-hidden rounded-xl"
       >
         <!-- Collapsible execution header -->
@@ -65,9 +65,7 @@
               Trigger: <span class="font-medium">{{ exec.trigger }}</span>
             </span>
           </div>
-          <span class="text-low text-sm font-mono">
-            {{ formatGas(exec.gasConsumed) }} GAS
-          </span>
+          <span class="text-low text-sm font-mono"> {{ formatGas(exec.gasConsumed) }} GAS </span>
         </button>
 
         <!-- FAULT banner -->
@@ -126,9 +124,7 @@
                 <thead class="table-head sticky top-0 z-10">
                   <tr>
                     <th class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">#</th>
-                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">
-                      OpCode
-                    </th>
+                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">OpCode</th>
                     <th class="text-mid px-3 py-2 text-left text-xs font-medium">Operand</th>
                     <th class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">Gas</th>
                   </tr>
@@ -291,7 +287,7 @@ function applyPreloadedData(data) {
 const execStepsMap = computed(() => (enrichedTrace.value?.executions ?? callTree.value).map((e) => e?.steps ?? []));
 
 const execContractCallsMap = computed(() =>
-  (enrichedTrace.value?.executions ?? callTree.value).map((e) => e?.contractCalls ?? [])
+  (enrichedTrace.value?.executions ?? callTree.value).map((e) => e?.contractCalls ?? []),
 );
 
 const totalGas = computed(() => {
@@ -371,7 +367,7 @@ watch(
       loadTrace();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
@@ -380,6 +376,6 @@ watch(
     if (props.preloaded && newData) {
       applyPreloadedData(newData);
     }
-  }
+  },
 );
 </script>

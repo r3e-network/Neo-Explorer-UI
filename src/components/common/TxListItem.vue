@@ -80,14 +80,34 @@
               />
             </div>
             <div v-else-if="transferText && transferText !== '—'" class="flex items-center gap-1.5 min-w-0">
-              <img v-if="transferLogo" :src="transferLogo" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
+              <img
+                v-if="transferLogo"
+                :src="transferLogo"
+                class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+              />
               <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">
                 {{ transferText }}
-                <svg v-if="supabaseMeta?.is_verified" class="h-3 w-3 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg
+                  v-if="supabaseMeta?.is_verified"
+                  class="h-3 w-3 text-success flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
               </span>
             </div>
             <div v-else-if="methodName" class="flex items-center gap-1.5 min-w-0">
-              <img v-if="methodBadge" :src="methodBadge.src" :alt="methodBadge.alt" class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
+              <img
+                v-if="methodBadge"
+                :src="methodBadge.src"
+                :alt="methodBadge.alt"
+                class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+              />
               <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
             </div>
             <span v-else class="text-sm text-low">Contract Call</span>
@@ -129,7 +149,7 @@ import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
-import { NATIVE_CONTRACTS } from "@/constants";
+import { NATIVE_CONTRACTS, NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
@@ -168,12 +188,7 @@ const getSummaryRecipient = (summary, sender = "") => {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
-    summary.recipient ||
-    summary.to ||
-    summary.toAddress ||
-    summary.toaddress ||
-    summary.receiver ||
-    null;
+    summary.recipient || summary.to || summary.toAddress || summary.toaddress || summary.receiver || null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
 
@@ -184,9 +199,7 @@ const getSummaryRecipient = (summary, sender = "") => {
   }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
-  const isSingleTarget =
-    summary.singleTarget === true ||
-    (Number.isFinite(targetCount) && targetCount === 1);
+  const isSingleTarget = summary.singleTarget === true || (Number.isFinite(targetCount) && targetCount === 1);
   const isKnownAddressRecipient = Boolean(getKnownAddressName(recipient));
 
   if (!isSingleTarget && !isKnownAddressRecipient) return null;
@@ -199,19 +212,23 @@ const getSummaryRecipient = (summary, sender = "") => {
 };
 
 const supabaseMeta = ref({});
-watch(() => props.transferSummary, async (newSummary) => {
-  const contract = getSummaryContractHash(newSummary);
-  if (contract) {
-    const meta = await supabaseService.getContractMetadata(contract);
-    if (meta) {
-      supabaseMeta.value = meta;
+watch(
+  () => props.transferSummary,
+  async (newSummary) => {
+    const contract = getSummaryContractHash(newSummary);
+    if (contract) {
+      const meta = await supabaseService.getContractMetadata(contract);
+      if (meta) {
+        supabaseMeta.value = meta;
+      }
     }
-  }
-}, { immediate: true });
+  },
+  { immediate: true },
+);
 
 const transferText = computed(() => {
   if (!props.transferSummary) return "";
-  if (typeof props.transferSummary === 'string') return props.transferSummary;
+  if (typeof props.transferSummary === "string") return props.transferSummary;
   return props.transferSummary.text || "—";
 });
 
@@ -231,20 +248,19 @@ const isSingleTransferFlow = computed(() => {
   if (!summary || typeof summary !== "object") return false;
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
-  const isSingleTarget =
-    summary.singleTarget === true ||
-    (Number.isFinite(targetCount) && targetCount === 1);
+  const isSingleTarget = summary.singleTarget === true || (Number.isFinite(targetCount) && targetCount === 1);
 
   if (!isSingleTarget) return false;
   return Boolean(transferText.value && transferText.value !== "—");
 });
 
-
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const normalizeVmState = (value) => {
-  const normalized = String(value || "").trim().toUpperCase();
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase();
   if (!normalized) return "";
   if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
     return "FAULT";
@@ -266,16 +282,16 @@ const vmState = computed(() => {
     props.tx?.txState ??
     props.tx?.state ??
     props.tx?.status;
-    
+
   const normalized = normalizeVmState(rawState);
-  
+
   if (!normalized) {
     if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") {
       return "PENDING";
     }
     return "";
   }
-  
+
   return normalized;
 });
 
@@ -292,14 +308,14 @@ const statusStyle = computed(() => {
     isSuccess.value === true
       ? "var(--status-success)"
       : isSuccess.value === false
-      ? "var(--status-error)"
-      : "var(--text-mid)";
+        ? "var(--status-error)"
+        : "var(--text-mid)";
   const bg =
     isSuccess.value === true
       ? "var(--status-success-bg)"
       : isSuccess.value === false
-      ? "var(--status-error-bg)"
-      : "var(--surface-muted)";
+        ? "var(--status-error-bg)"
+        : "var(--surface-muted)";
   return { background: bg, color: c };
 });
 
@@ -375,7 +391,8 @@ const recipient = computed(() => {
   }
 
   if (tx.notifications?.length > 0) {
-    const notifyContract = tx.notifications[0]?.contract || tx.notifications[0]?.contractHash || tx.notifications[0]?.contracthash;
+    const notifyContract =
+      tx.notifications[0]?.contract || tx.notifications[0]?.contractHash || tx.notifications[0]?.contracthash;
     if (notifyContract) {
       return { hash: canonicalizeContractHash(notifyContract), type: "contract" };
     }
@@ -406,7 +423,10 @@ const recipient = computed(() => {
 
 const methodName = computed(() => {
   const tx = props.tx;
-  if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
+  if (
+    tx.attributes &&
+    tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
+  ) {
     return "Oracle Callback";
   }
   if (invocation.value?.method) {
@@ -424,9 +444,7 @@ const methodName = computed(() => {
     ];
     if (
       govMethods.includes(method) &&
-      (contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" ||
-        contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" ||
-        contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+      (contractHash === POLICY_HASH || contractHash === ORACLE_HASH || contractHash === NEO_HASH)
     ) {
       return `Governance: ${method}`;
     }

@@ -31,11 +31,7 @@
           type="button"
           class="tab-btn focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
           :aria-pressed="selectedDays === option"
-          :class="
-            selectedDays === option
-              ? 'tab-btn-active'
-              : 'tab-btn-inactive'
-          "
+          :class="selectedDays === option ? 'tab-btn-active' : 'tab-btn-inactive'"
           @click="changeDays(option)"
         >
           {{ option }}d
@@ -69,9 +65,7 @@
       <!-- Daily Transactions Chart -->
       <div class="etherscan-card mb-6 p-5">
         <h2 class="text-high mb-1 text-base font-semibold">Daily Transactions</h2>
-        <p class="text-low mb-4 text-xs">
-          Number of transactions confirmed on the Neo N3 network per day
-        </p>
+        <p class="text-low mb-4 text-xs">Number of transactions confirmed on the Neo N3 network per day</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 5" :key="i" height="44px" />
         </div>
@@ -86,9 +80,7 @@
       <!-- Active Addresses Chart -->
       <div class="etherscan-card mb-6 p-5">
         <h2 class="text-high mb-1 text-base font-semibold">Address Growth</h2>
-        <p class="text-low mb-4 text-xs">
-          Daily new address growth over time
-        </p>
+        <p class="text-low mb-4 text-xs">Daily new address growth over time</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -103,9 +95,7 @@
       <!-- Transaction Volume (Bar Chart) -->
       <div class="etherscan-card p-5">
         <h2 class="text-high mb-1 text-base font-semibold">Transaction Volume</h2>
-        <p class="text-low mb-4 text-xs">
-          Daily transaction volume represented as a bar chart
-        </p>
+        <p class="text-low mb-4 text-xs">Daily transaction volume represented as a bar chart</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -120,9 +110,7 @@
       <!-- Contract Deployment Chart -->
       <div class="etherscan-card p-5 mt-6">
         <h2 class="text-high mb-1 text-base font-semibold">Contract Deployments</h2>
-        <p class="text-low mb-4 text-xs">
-          Daily new smart contract deployments
-        </p>
+        <p class="text-low mb-4 text-xs">Daily new smart contract deployments</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -137,9 +125,7 @@
       <!-- Token Transfer Volume Chart -->
       <div class="etherscan-card p-5 mt-6">
         <h2 class="text-high mb-1 text-base font-semibold">Token Transfer Volume</h2>
-        <p class="text-low mb-4 text-xs">
-          Estimated daily token transfer volume
-        </p>
+        <p class="text-low mb-4 text-xs">Estimated daily token transfer volume</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -154,9 +140,7 @@
       <!-- GAS Price History Chart -->
       <div class="etherscan-card p-5 mt-6">
         <h2 class="text-high mb-1 text-base font-semibold">GAS Price History</h2>
-        <p class="text-low mb-4 text-xs">
-          Daily historical GAS price trend
-        </p>
+        <p class="text-low mb-4 text-xs">Daily historical GAS price trend</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -174,7 +158,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
-import Chart from "chart.js";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -265,7 +248,7 @@ function normalizeChartData(raw, days) {
     return {
       date,
       transactions: Number(
-        entry?.transactions ?? entry?.DailyTransactions ?? entry?.dailyTransactions ?? entry?.txs ?? 0
+        entry?.transactions ?? entry?.DailyTransactions ?? entry?.dailyTransactions ?? entry?.txs ?? 0,
       ),
       addresses: Number(entry?.addresses ?? entry?.activeAddresses ?? entry?.ActiveAddresses ?? 0),
     };
@@ -278,8 +261,9 @@ function normalizeChartData(raw, days) {
 }
 
 // --- Chart factory ---
-function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, data }) {
+async function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, data }) {
   if (!canvasRef.value) return null;
+  const Chart = (await import("chart.js")).default;
   const ctx = canvasRef.value.getContext("2d");
   const colors = getChartColors();
 
@@ -324,12 +308,20 @@ function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, dat
   });
 }
 
-
 // --- Chart lifecycle ---
 function destroyCharts() {
-  if (contractChartInstance) { contractChartInstance.destroy(); contractChartInstance = null; }
-  if (tokenVolumeChartInstance) { tokenVolumeChartInstance.destroy(); tokenVolumeChartInstance = null; }
-  if (gasPriceChartInstance) { gasPriceChartInstance.destroy(); gasPriceChartInstance = null; }
+  if (contractChartInstance) {
+    contractChartInstance.destroy();
+    contractChartInstance = null;
+  }
+  if (tokenVolumeChartInstance) {
+    tokenVolumeChartInstance.destroy();
+    tokenVolumeChartInstance = null;
+  }
+  if (gasPriceChartInstance) {
+    gasPriceChartInstance.destroy();
+    gasPriceChartInstance = null;
+  }
   if (txChartInstance) {
     txChartInstance.destroy();
     txChartInstance = null;
@@ -346,7 +338,9 @@ function destroyCharts() {
 
 async function renderCharts() {
   const txValues = chartData.value.map((d) => d.transactions);
-  const addrGrowthValues = addressGrowthData.value.map((d) => Number(d.value ?? d.NewAddresses ?? d.count ?? d.total ?? 0));
+  const addrGrowthValues = addressGrowthData.value.map((d) =>
+    Number(d.value ?? d.NewAddresses ?? d.count ?? d.total ?? 0),
+  );
   const contractValues = contractData.value.map((d) => Number(d.value ?? d.count ?? d.total ?? 0));
   const tokenVolValues = tokenVolumeData.value.map((d) => Number(d.value ?? d.count ?? d.total ?? 0));
   const gasPriceValues = gasPriceData.value.map((d) => Number(d.value ?? d.price ?? d.total ?? 0));
@@ -354,7 +348,7 @@ async function renderCharts() {
   destroyCharts();
   await nextTick();
 
-  txChartInstance = createChart(txChart, {
+  txChartInstance = await createChart(txChart, {
     type: "line",
     label: "Daily Transactions",
     color: "#165DFF",
@@ -363,7 +357,7 @@ async function renderCharts() {
     data: txValues,
   });
 
-  addressChartInstance = createChart(addressChart, {
+  addressChartInstance = await createChart(addressChart, {
     type: "line",
     label: "Address Growth",
     color: "#00B42A",
@@ -372,7 +366,7 @@ async function renderCharts() {
     data: addrGrowthValues,
   });
 
-  volumeChartInstance = createChart(volumeChart, {
+  volumeChartInstance = await createChart(volumeChart, {
     type: "bar",
     label: "Transaction Volume",
     color: "#FF7D00",
@@ -381,7 +375,7 @@ async function renderCharts() {
     data: txValues,
   });
 
-  contractChartInstance = createChart(contractChart, {
+  contractChartInstance = await createChart(contractChart, {
     type: "line",
     label: "Contract Deployments",
     color: "#722ED1",
@@ -390,7 +384,7 @@ async function renderCharts() {
     data: contractValues,
   });
 
-  tokenVolumeChartInstance = createChart(tokenVolumeChart, {
+  tokenVolumeChartInstance = await createChart(tokenVolumeChart, {
     type: "line",
     label: "Token Transfer Volume",
     color: "#F5319D",
@@ -399,7 +393,7 @@ async function renderCharts() {
     data: tokenVolValues,
   });
 
-  gasPriceChartInstance = createChart(gasPriceChart, {
+  gasPriceChartInstance = await createChart(gasPriceChart, {
     type: "line",
     label: "GAS Price",
     color: "#F7BA1E",
@@ -419,22 +413,21 @@ async function loadData() {
       statsService.getDailyAddressGrowth(selectedDays.value),
       statsService.getDailyContracts(selectedDays.value),
       statsService.getTokenTransferVolume(selectedDays.value),
-      statsService.getGasPriceHistory(selectedDays.value)
+      statsService.getGasPriceHistory(selectedDays.value),
     ]);
-    
+
     chartData.value = normalizeChartData(rawActivity, selectedDays.value);
-    
+
     // Fallback/normalize mock data lengths
-    
+
     const fillMockData = (raw) => {
       const arr = Array.isArray(raw) ? raw : [];
       if (arr.length === 0) return Array.from({ length: selectedDays.value }, () => ({ value: 0 }));
       if (arr.length < selectedDays.value) {
-         return [...Array.from({ length: selectedDays.value - arr.length }, () => ({ value: 0 })), ...arr];
+        return [...Array.from({ length: selectedDays.value - arr.length }, () => ({ value: 0 })), ...arr];
       }
       return arr.slice(-selectedDays.value);
     };
-
 
     // Extract the mock object arrays into flat arrays
     addressGrowthData.value = fillMockData(rawGrowth);

@@ -55,17 +55,9 @@
             </tr>
           </thead>
           <tbody class="divide-y soft-divider">
-            <tr
-              v-for="tx in transactions"
-              :key="tx.hash"
-              class="list-row group"
-            >
+            <tr v-for="tx in transactions" :key="tx.hash" class="list-row group">
               <td class="table-cell">
-                <router-link
-                  :to="`/transaction-info/${tx.hash}`"
-                  :title="tx.hash"
-                  class="font-hash etherscan-link"
-                >
+                <router-link :to="`/transaction-info/${tx.hash}`" :title="tx.hash" class="font-hash etherscan-link">
                   {{ truncateHash(tx.hash, 10, 6) }}
                 </router-link>
               </td>
@@ -76,7 +68,11 @@
               </td>
               <td class="table-cell">
                 <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
-                  {{ (tx.blockIndex ?? tx.blockindex) != null ? formatNumber(tx.blockIndex ?? tx.blockindex) : truncateHash(tx.blockhash, 8, 6) }}
+                  {{
+                    (tx.blockIndex ?? tx.blockindex) != null
+                      ? formatNumber(tx.blockIndex ?? tx.blockindex)
+                      : truncateHash(tx.blockhash, 8, 6)
+                  }}
                 </router-link>
                 <span v-else class="text-low">-</span>
               </td>
@@ -96,7 +92,10 @@
                 </span>
               </td>
               <td class="table-cell">
-                <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate">
+                <div
+                  v-if="getRecipient(tx)"
+                  class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-none truncate"
+                >
                   <HashLink :hash="getRecipient(tx).hash" :type="getRecipient(tx).type" :truncated="false" />
                 </div>
                 <span v-else class="text-xs text-low">-</span>
@@ -137,6 +136,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -157,22 +157,37 @@ function getDirection(from, to) {
 }
 
 function getTxMethod(tx) {
-  if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
+  if (
+    tx.attributes &&
+    tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
+  ) {
     return "Oracle Callback";
   }
   if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.method) {
-        const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
-        if (govMethods.includes(inv.method) && (inv.contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || inv.contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || inv.contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
-            return `Governance: ${inv.method}`;
-        }
-        const cName = getContractDisplayName(inv.contractHash);
-        if (cName && !cName.startsWith("0x")) {
-           return `${cName}: ${inv.method}`;
-        }
-        return inv.method;
-     }
+    const inv = extractContractInvocation(tx.script);
+    if (inv && inv.method) {
+      const govMethods = [
+        "designateAsRole",
+        "setFeePerByte",
+        "setExecFeeFactor",
+        "setStoragePrice",
+        "setGasPerBlock",
+        "setRegisterPrice",
+        "update",
+        "destroy",
+      ];
+      if (
+        govMethods.includes(inv.method) &&
+        (inv.contractHash === POLICY_HASH || inv.contractHash === ORACLE_HASH || inv.contractHash === NEO_HASH)
+      ) {
+        return `Governance: ${inv.method}`;
+      }
+      const cName = getContractDisplayName(inv.contractHash);
+      if (cName && !cName.startsWith("0x")) {
+        return `${cName}: ${inv.method}`;
+      }
+      return inv.method;
+    }
   }
   if (tx.method) return tx.method;
   if (tx.notifications?.length > 0) {
@@ -192,11 +207,11 @@ function getRecipient(tx) {
     return { hash: tx.to, type: isAddress ? "address" : "contract" };
   }
   if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.contractHash) return { hash: inv.contractHash, type: 'contract' };
+    const inv = extractContractInvocation(tx.script);
+    if (inv && inv.contractHash) return { hash: inv.contractHash, type: "contract" };
   }
   if (tx.notifications?.length > 0) {
-    return { hash: tx.notifications[0].contract, type: 'contract' };
+    return { hash: tx.notifications[0].contract, type: "contract" };
   }
   const summary = props.transferSummaryByHash[tx.hash];
   if (summary && typeof summary === "object" && summary.contract) {
@@ -216,12 +231,7 @@ function getSummaryRecipient(summary, sender = "") {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
-    summary.recipient ||
-    summary.to ||
-    summary.toAddress ||
-    summary.toaddress ||
-    summary.receiver ||
-    null;
+    summary.recipient || summary.to || summary.toAddress || summary.toaddress || summary.receiver || null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
 
@@ -232,9 +242,7 @@ function getSummaryRecipient(summary, sender = "") {
   }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
-  const isSingleTarget =
-    summary.singleTarget === true ||
-    (Number.isFinite(targetCount) && targetCount === 1);
+  const isSingleTarget = summary.singleTarget === true || (Number.isFinite(targetCount) && targetCount === 1);
   const isKnownAddressRecipient = Boolean(getKnownAddressName(recipient));
 
   if (!isSingleTarget && !isKnownAddressRecipient) return null;

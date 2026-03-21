@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-4">
-    <div v-if="!manifest" class="panel-muted text-mid px-4 py-8 text-center text-sm">
-      Loading contract manifest...
-    </div>
+    <div v-if="!manifest" class="panel-muted text-mid px-4 py-8 text-center text-sm">Loading contract manifest...</div>
     <div v-else-if="!readMethods.length" class="panel-muted text-mid px-4 py-8 text-center text-sm">
       No read-only (Safe) methods found in this contract.
     </div>
@@ -39,15 +37,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <div
-          v-if="readMethodState[mIdx]?.open"
-          class="border-t px-4 pb-4 soft-divider"
-        >
+        <div v-if="readMethodState[mIdx]?.open" class="border-t px-4 pb-4 soft-divider">
           <!-- Parameters -->
           <div v-if="method.parameters && method.parameters.length" class="mt-3 space-y-2">
             <ParamInput
               v-for="(param, pIdx) in method.parameters"
-              :key="'rp-' + pIdx"
+              :key="'rp-' + param.name"
               :type="param.type"
               :name="param.name"
               :model-value="readMethodState[mIdx].params[pIdx] || ''"
@@ -100,16 +95,14 @@
               </button>
             </div>
             <!-- Raw view -->
-            <pre
-              v-if="showRaw[mIdx]"
-              class="text-high max-h-48 overflow-auto font-mono text-xs"
-              >{{ formatRaw(readMethodState[mIdx].result) }}</pre
-            >
+            <pre v-if="showRaw[mIdx]" class="text-high max-h-48 overflow-auto font-mono text-xs">{{
+              formatRaw(readMethodState[mIdx].result)
+            }}</pre>
             <!-- Decoded view -->
             <div v-else class="space-y-1">
               <div
                 v-for="(item, sIdx) in getDecoded(readMethodState[mIdx].result).stack"
-                :key="sIdx"
+                :key="'stack-' + sIdx + '-' + (item.type || '')"
                 class="flex items-start gap-2"
               >
                 <span
@@ -121,10 +114,7 @@
                   {{ formatDecodedValue(item) }}
                 </span>
               </div>
-              <p
-                v-if="getDecoded(readMethodState[mIdx].result).stack.length === 0"
-                class="text-mid text-xs"
-              >
+              <p v-if="getDecoded(readMethodState[mIdx].result).stack.length === 0" class="text-mid text-xs">
                 (empty result)
               </p>
             </div>
@@ -166,13 +156,13 @@ function formatDecodedValue(item) {
     return JSON.stringify(
       item.value.map((i) => i.value),
       null,
-      2
+      2,
     );
   if (item.type === "Map")
     return JSON.stringify(
       item.value.map((e) => [e.key.value, e.value.value]),
       null,
-      2
+      2,
     );
   return String(item.value ?? "null");
 }

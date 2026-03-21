@@ -6,7 +6,6 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
-import Chart from "chart.js";
 
 const props = defineProps({
   type: {
@@ -126,8 +125,9 @@ function getChartOptions(isDark) {
   };
 }
 
-function initChart() {
+async function initChart() {
   if (!chartCanvas.value) return;
+  const Chart = (await import("chart.js")).default;
   const ctx = chartCanvas.value.getContext("2d");
   const isDark = document.documentElement.classList.contains("dark");
 
@@ -149,7 +149,7 @@ watch(
   () => props.type,
   () => {
     updateChart();
-  }
+  },
 );
 
 watch(
@@ -157,7 +157,7 @@ watch(
   () => {
     updateChart();
   },
-  { deep: true }
+  { deep: true },
 );
 
 onMounted(() => {

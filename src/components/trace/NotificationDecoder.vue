@@ -14,11 +14,7 @@
       <button
         v-if="notification.state"
         class="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
-        :class="
-          showRawState
-            ? 'soft-divider text-high'
-            : 'badge-soft hover:text-high'
-        "
+        :class="showRawState ? 'soft-divider text-high' : 'badge-soft hover:text-high'"
         @click="showRawState = !showRawState"
       >
         {{ showRawState ? "Decoded" : "Raw" }}
@@ -42,10 +38,7 @@
       >
         Mint
       </span>
-      <span
-        v-else
-        class="badge-soft font-mono"
-      >
+      <span v-else class="badge-soft font-mono">
         {{ fromAddress }}
       </span>
       <svg class="text-low h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,10 +51,7 @@
       >
         Burn
       </span>
-      <span
-        v-else
-        class="badge-soft font-mono"
-      >
+      <span v-else class="badge-soft font-mono">
         {{ toAddress }}
       </span>
       <span class="text-high font-semibold">
@@ -73,18 +63,12 @@
     <div v-else-if="isApproval" class="approval-summary flex items-center gap-2 text-sm flex-wrap">
       <span class="text-mid">Owner</span>
       <HashLink v-if="isAddress(approvalOwner)" :hash="approvalOwner" type="address" />
-      <span
-        v-else
-        class="badge-soft font-mono"
-      >
+      <span v-else class="badge-soft font-mono">
         {{ approvalOwner }}
       </span>
       <span class="text-mid">approved</span>
       <HashLink v-if="isAddress(approvalSpender)" :hash="approvalSpender" type="address" />
-      <span
-        v-else
-        class="badge-soft font-mono"
-      >
+      <span v-else class="badge-soft font-mono">
         {{ approvalSpender }}
       </span>
       <span class="text-high font-semibold">
@@ -96,7 +80,11 @@
     <div v-else-if="notification.state" class="mt-1">
       <div class="text-mid mb-1 text-xs">Event State:</div>
       <div class="space-y-1">
-        <div v-for="(param, i) in stateParams" :key="i" class="flex items-center gap-2 text-xs font-mono">
+        <div
+          v-for="(param, i) in stateParams"
+          :key="'param-' + i + '-' + (param.type || '')"
+          class="flex items-center gap-2 text-xs font-mono"
+        >
           <span class="text-low w-4 flex-shrink-0 text-right">{{ i }}</span>
           <span class="type-badge px-1 py-0.5 rounded text-xs" :class="paramTypeBadge(param.type)">
             {{ param.type }}
@@ -152,10 +140,12 @@ watch(
         if (token && typeof token.decimals !== "undefined") {
           dynamicDecimals.value = Number(token.decimals);
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const isTransfer = computed(() => {

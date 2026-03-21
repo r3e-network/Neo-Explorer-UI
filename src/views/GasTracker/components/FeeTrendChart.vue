@@ -8,15 +8,12 @@
     <div v-else-if="blocks.length" class="h-[280px]">
       <canvas ref="feeTrendCanvas"></canvas>
     </div>
-    <div v-else class="text-low py-8 text-center text-sm">
-      No block data available for chart
-    </div>
+    <div v-else class="text-low py-8 text-center text-sm">No block data available for chart</div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onBeforeUnmount, nextTick } from "vue";
-import Chart from "chart.js";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { GAS_DIVISOR } from "@/constants";
 import { getChartColors, baseTooltipConfig } from "@/utils/chartHelpers";
@@ -46,10 +43,11 @@ function destroyChart() {
   }
 }
 
-function createFeeTrendChart() {
+async function createFeeTrendChart() {
   if (!feeTrendCanvas.value || !props.blocks.length) return;
   destroyChart();
 
+  const Chart = (await import("chart.js")).default;
   const ctx = feeTrendCanvas.value.getContext("2d");
   const colors = getChartColors();
 
@@ -125,7 +123,7 @@ watch(
     } else {
       destroyChart();
     }
-  }
+  },
 );
 
 onBeforeUnmount(() => {

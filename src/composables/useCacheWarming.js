@@ -20,11 +20,7 @@ export function useCacheWarming() {
     if (isWarmedUp.value) return;
 
     try {
-      await Promise.allSettled([
-        blockService.getList(1, 0),
-        blockService.getCount(),
-        statsService.getDashboardStats(),
-      ]);
+      await Promise.allSettled([blockService.getList(1, 0), blockService.getCount(), statsService.getDashboardStats()]);
 
       isWarmedUp.value = true;
 
@@ -75,67 +71,5 @@ export function useCacheWarming() {
     prefetch,
     prefetchNextPage,
     isWarmedUp: isWarmedUp,
-  };
-}
-
-export function usePrefetchOnHover() {
-  const prefetchedUrls = new Set();
-
-  const prefetchOnHover = (el, fetchFn) => {
-    if (!el || !(el instanceof HTMLElement)) return;
-    const url = el.getAttribute("href") || el.dataset.prefetchUrl || "";
-    if (prefetchedUrls.has(url)) return;
-
-    const handler = () => {
-      prefetchedUrls.add(url);
-      el.removeEventListener("mouseenter", handler);
-      fetchFn();
-    };
-
-    el.addEventListener("mouseenter", handler, { once: true });
-  };
-
-  const cleanup = () => {
-    prefetchedUrls.clear();
-  };
-
-  return { prefetchOnHover, cleanup };
-}
-
-export function useInfiniteScroll(fetchFn, options = {}) {
-  const { threshold = 200, debounceMs = 100 } = options;
-  const isLoadingMore = ref(false);
-  let debounceTimer = null;
-
-  if (getCurrentInstance()) {
-    onBeforeUnmount(() => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-        debounceTimer = null;
-      }
-    });
-  }
-
-  const handleScroll = (container, currentPage, hasMore) => {
-    if (isLoadingMore.value || !hasMore) return;
-
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      const scrollTop = container.scrollTop || window.scrollY;
-      const scrollHeight = container.scrollHeight || document.documentElement.scrollHeight;
-      const clientHeight = container.clientHeight || window.innerHeight;
-
-      if (scrollHeight - scrollTop - clientHeight < threshold) {
-        isLoadingMore.value = true;
-        fetchFn(currentPage + 1).finally(() => {
-          isLoadingMore.value = false;
-        });
-      }
-    }, debounceMs);
-  };
-
-  return {
-    handleScroll,
-    isLoadingMore,
   };
 }

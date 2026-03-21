@@ -1,4 +1,4 @@
-import { NATIVE_CONTRACTS } from "@/constants";
+import { NATIVE_CONTRACTS, NEO_HASH, GAS_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "./neoHelpers";
 
@@ -56,7 +56,7 @@ export function pickBestCandidateVotes(...sources) {
   for (const source of sources) {
     for (const candidate of readCandidates(source)) {
       if (candidate === undefined || candidate === null) continue;
-      
+
       let parsed = null;
       if (typeof candidate === "string" && candidate.includes(".")) {
         // If it's a decimal string (like from some APIs), parse it directly. Votes are whole numbers in NEO.
@@ -64,13 +64,13 @@ export function pickBestCandidateVotes(...sources) {
       } else {
         parsed = toBigInt(candidate);
       }
-      
+
       // Some APIs might return votes scaled by 10^8 (like GAS/NEO), but NEO votes shouldn't be scaled by 10^8
       // If we see an absurdly large number like > 10,000,000,000, we might need to downscale it if it was accidentally scaled as NEO
       // Actually, wait, BinanceStaking1 has 8,000,000 votes. But its page shows 10,000,000. That might be accurate or cached differently.
-      // Wait, 1 NEO = 1 Vote. So the votes value shouldn't be scaled down. 
+      // Wait, 1 NEO = 1 Vote. So the votes value shouldn't be scaled down.
       // But if pickBestCandidateVotes takes the highest number, and one API mistakenly returns the *balance* in 10^8 instead of the vote count...
-      
+
       if (parsed !== null && parsed > best) {
         best = parsed;
       }
@@ -81,8 +81,8 @@ export function pickBestCandidateVotes(...sources) {
   // we check if it's absurdly large (e.g. > 100,000,000 * 10^8, which is impossible since total supply is 100M)
   // Actually, if the value is > 100,000,000 (total NEO supply), it must be a raw balance with 8 decimals!
   if (best > 100000000n) {
-     // Downscale it by 10^8 because it's a raw token balance accidentally being passed as votes
-     best = best / 100000000n;
+    // Downscale it by 10^8 because it's a raw token balance accidentally being passed as votes
+    best = best / 100000000n;
   }
 
   return best.toString();
@@ -126,22 +126,22 @@ export function normalizeAccountSummary(account = {}, assets = []) {
   let gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance;
 
   if (neoBalance === undefined) {
-    const neoToken = normalizedAssets.find(a => a.asset === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5");
+    const neoToken = normalizedAssets.find((a) => a.asset === NEO_HASH);
     neoBalance = neoToken ? String(neoToken.balance) : "0";
   }
   if (gasBalance === undefined) {
-    const gasToken = normalizedAssets.find(a => a.asset === "0xd2a4cff31913016155e38e474a2c06d08be276cf");
+    const gasToken = normalizedAssets.find((a) => a.asset === GAS_HASH);
     gasBalance = gasToken ? String(gasToken.balance) : "0";
   }
 
   const txCount = toNumber(
     account.txCount ?? account.txcount ?? account.transactioncount ?? account.transactionCount,
-    0
+    0,
   );
 
   const tokenCount = toNumber(
     account.tokenCount ?? account.tokencount ?? normalizedAssets.length,
-    normalizedAssets.length
+    normalizedAssets.length,
   );
 
   return {
@@ -204,7 +204,7 @@ export function normalizeNep17Transfers(transfers = []) {
         if (decimals === undefined && known.decimals !== undefined) decimals = known.decimals;
       }
     }
-    
+
     return {
       txHash: t?.txid || t?.hash || t?.txHash || "",
       timestamp: t?.timestamp ?? t?.blocktime ?? t?.time ?? 0,
@@ -213,7 +213,7 @@ export function normalizeNep17Transfers(transfers = []) {
       amount: t?.value ?? t?.amount ?? t?.transferamount ?? "0",
       tokenName: tokenName || "Unknown",
       tokenHash: hash,
-      decimals: toNumber(decimals, hash === "0xd2a4cff31913016155e38e474a2c06d08be276cf" ? 8 : 0),
+      decimals: toNumber(decimals, hash === GAS_HASH ? 8 : 0),
     };
   });
 }

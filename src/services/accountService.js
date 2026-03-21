@@ -2,6 +2,7 @@ import { CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { safeRpc } from "./api";
 import { addressToScriptHash } from "../utils/neoHelpers";
+import { NEO_HASH, GAS_HASH } from "@/constants";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -52,10 +53,10 @@ export const accountService = createService(
       rpcMethod: "GetNep17TransferByAddress",
       errorLabel: "get NEP17 transfers by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ 
-        Address: addressToScriptHash(address) || address, 
-        Limit: limit, 
-        Skip: skip 
+      buildParams: ([address, limit = 20, skip = 0]) => ({
+        Address: addressToScriptHash(address) || address,
+        Limit: limit,
+        Skip: skip,
       }),
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
@@ -65,10 +66,10 @@ export const accountService = createService(
       rpcMethod: "GetNep11TransferByAddress",
       errorLabel: "get NEP11 transfers by address",
       ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({ 
-        Address: addressToScriptHash(address) || address, 
-        Limit: limit, 
-        Skip: skip 
+      buildParams: ([address, limit = 20, skip = 0]) => ({
+        Address: addressToScriptHash(address) || address,
+        Limit: limit,
+        Skip: skip,
       }),
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
@@ -84,7 +85,9 @@ export const accountService = createService(
     },
 
     _normalizeAssetHash(value) {
-      const raw = String(value || "").trim().toLowerCase();
+      const raw = String(value || "")
+        .trim()
+        .toLowerCase();
       if (!raw) return "";
       return raw.startsWith("0x") ? raw : `0x${raw}`;
     },
@@ -103,9 +106,7 @@ export const accountService = createService(
     },
 
     _buildTokenInfoMap(nep17BalancesPayload) {
-      const balances = Array.isArray(nep17BalancesPayload?.balance)
-        ? nep17BalancesPayload.balance
-        : [];
+      const balances = Array.isArray(nep17BalancesPayload?.balance) ? nep17BalancesPayload.balance : [];
       const infoMap = new Map();
 
       balances.forEach((item) => {
@@ -272,10 +273,8 @@ export const accountService = createService(
         return primary;
       }
 
-      const neoHash = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-      const gasHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-      const neoBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === neoHash)?.amount || "0";
-      const gasBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === gasHash)?.amount || "0";
+      const neoBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === NEO_HASH)?.amount || "0";
+      const gasBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === GAS_HASH)?.amount || "0";
 
       const txHashes = new Set([
         ...this._extractTxHashesFromTransfers(nep17Transfers),
@@ -368,7 +367,7 @@ export const accountService = createService(
     getTokenHoldings(address, options = {}) {
       return this.getAssets(address, options);
     },
-  }
+  },
 );
 
 export default accountService;

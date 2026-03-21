@@ -67,7 +67,7 @@ export const transactionService = createService(
       buildParams: ([address, limit = 20, skip = 0]) => ({
         Address: addressToScriptHash(address) || address,
         Limit: limit,
-        Skip: skip
+        Skip: skip,
       }),
       buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
     },
@@ -83,7 +83,9 @@ export const transactionService = createService(
     },
 
     _normalizeVmState(value) {
-      const normalized = String(value || "").trim().toUpperCase();
+      const normalized = String(value || "")
+        .trim()
+        .toUpperCase();
       if (!normalized) return "";
       if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
         return "FAULT";
@@ -100,8 +102,8 @@ export const transactionService = createService(
 
       try {
         // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
-        const { rpc: neonRpc } = await import('@cityofzion/neon-js');
-        const { getCurrentEnv } = await import('@/utils/env');
+        const { rpc: neonRpc } = await import("@cityofzion/neon-js");
+        const { getCurrentEnv } = await import("@/utils/env");
         const network = toNetworkMode(getCurrentEnv());
         const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
           const client = new neonRpc.RPCClient(endpoint);
@@ -116,7 +118,9 @@ export const transactionService = createService(
                 return client.getBlockHeader(nativeTx.blockhash, true);
               });
               blockIndex = blockHeader.index;
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+              if (import.meta.env.DEV) console.warn("[transactionService] block header fetch failed:", e);
+            }
           }
           return {
             ...tx,
@@ -129,18 +133,18 @@ export const transactionService = createService(
           };
         }
       } catch (err) {
-        // Ignore native RPC failure
+        if (import.meta.env.DEV) console.warn("[transactionService] native RPC fallback failed:", err);
       }
 
       try {
         // Fallback 2: Mempool
-        const { getCurrentEnv } = await import('@/utils/env');
-        const { supabaseService } = await import('./supabaseService');
-        const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-        const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
+        const { getCurrentEnv } = await import("@/utils/env");
+        const { supabaseService } = await import("./supabaseService");
+        const env = getCurrentEnv()?.toLowerCase() || "mainnet";
+        const network = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
 
         const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
-        const found = dbTxs.find(t => t.hash === hash);
+        const found = dbTxs.find((t) => t.hash === hash);
 
         if (found) {
           return {
@@ -151,12 +155,12 @@ export const transactionService = createService(
             netfee: found.netfee,
             sysfee: found.sysfee,
             validuntilblock: found.valid_until_block,
-            status: 'pending',
-            timestamp: found.timestamp
+            status: "pending",
+            timestamp: found.timestamp,
           };
         }
       } catch (err) {
-        // Not in mempool or DB query failed
+        if (import.meta.env.DEV) console.warn("[transactionService] mempool lookup failed:", err);
       }
 
       return tx;
@@ -166,14 +170,14 @@ export const transactionService = createService(
       if (!tx) return "";
       return this._normalizeVmState(
         tx.vmstate ??
-        tx.Vmstate ??
-        tx.VMState ??
-        tx.execution_state ??
-        tx.executionState ??
-        tx.tx_state ??
-        tx.txState ??
-        tx.state ??
-        tx.status
+          tx.Vmstate ??
+          tx.VMState ??
+          tx.execution_state ??
+          tx.executionState ??
+          tx.tx_state ??
+          tx.txState ??
+          tx.state ??
+          tx.status,
       );
     },
 
@@ -217,7 +221,7 @@ export const transactionService = createService(
 
       const candidates = this._buildAddressTransferFallbackCandidates(
         nep17Response?.result || [],
-        nep11Response?.result || []
+        nep11Response?.result || [],
       );
       if (!candidates.length) return null;
 
@@ -231,13 +235,13 @@ export const transactionService = createService(
             // Ignore per-tx hydration errors and keep fallback row.
           }
           return { hash, blocktime: timestamp, timestamp };
-        })
+        }),
       );
 
       const totalCount = Math.max(
         candidates.length,
         Number(nep17Response?.totalCount || 0),
-        Number(nep11Response?.totalCount || 0)
+        Number(nep11Response?.totalCount || 0),
       );
 
       return { result: hydratedPage.filter(Boolean), totalCount };
@@ -249,22 +253,22 @@ export const transactionService = createService(
      * @returns {Promise<Array>} Pending transaction list.
      */
     async getPendingTransactions(limit = 20) {
-      const { getCurrentEnv } = await import('@/utils/env');
-      const { supabaseService } = await import('./supabaseService');
+      const { getCurrentEnv } = await import("@/utils/env");
+      const { supabaseService } = await import("./supabaseService");
 
-      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-      const network = env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
+      const env = getCurrentEnv()?.toLowerCase() || "mainnet";
+      const network = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
       const supabasePending = await supabaseService.getMempoolTransactions(network, limit);
 
       if (supabasePending && supabasePending.length > 0) {
-        return supabasePending.map(tx => ({
+        return supabasePending.map((tx) => ({
           hash: tx.hash,
           sender: tx.sender,
           netfee: tx.netfee,
           sysfee: tx.sysfee,
           timestamp: tx.timestamp,
-          status: 'pending',
-          size: tx.size
+          status: "pending",
+          size: tx.size,
         }));
       }
 
@@ -288,7 +292,7 @@ export const transactionService = createService(
           return this._extractCount(res);
         },
         CACHE_TTL.stats,
-        cacheOpts
+        cacheOpts,
       );
     },
 
@@ -299,10 +303,9 @@ export const transactionService = createService(
       const key = getCacheKey("tx_list", { limit, skip });
       const res = await cachedRequest(
         key,
-        () =>
-          safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts),
+        () => safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts),
         CACHE_TTL.chart,
-        cacheOpts
+        cacheOpts,
       );
 
       if (!res || !res.result) return res;
@@ -314,10 +317,12 @@ export const transactionService = createService(
               const full = await this.getByHash(tx.hash, requestOptions);
               const vmState = this._extractVmState(full);
               if (vmState) tx.vmstate = vmState;
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+              if (import.meta.env.DEV) console.warn("[transactionService] vmstate enrichment failed:", e);
+            }
           }
           return tx;
-        })
+        }),
       );
       return { ...res, result: enriched };
     },
@@ -334,7 +339,7 @@ export const transactionService = createService(
             address,
             limit,
             skip,
-            requestOptions
+            requestOptions,
           );
           if (transferFallback?.result?.length) {
             response = transferFallback;
@@ -351,15 +356,16 @@ export const transactionService = createService(
               const full = await this.getByHash(tx.hash, requestOptions);
               const vmState = this._extractVmState(full);
               if (vmState) tx.vmstate = vmState;
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+              if (import.meta.env.DEV) console.warn("[transactionService] vmstate enrichment failed:", e);
+            }
           }
           return tx;
-        })
+        }),
       );
       return { ...response, result: enriched };
-    }
-  }
-
+    },
+  },
 );
 
 export default transactionService;

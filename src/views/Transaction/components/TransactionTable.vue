@@ -29,17 +29,10 @@
               >
                 Tx
               </span>
-              <router-link
-                :to="`/transaction-info/${tx.hash}`"
-                :title="tx.hash"
-                class="etherscan-link font-hash"
-              >
+              <router-link :to="`/transaction-info/${tx.hash}`" :title="tx.hash" class="etherscan-link font-hash">
                 {{ truncateHash(tx.hash) }}
               </router-link>
-              <span
-                class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
-                :class="getVmStateBadgeClass(tx)"
-              >
+              <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold" :class="getVmStateBadgeClass(tx)">
                 {{ getVmStateLabel(tx) }}
               </span>
             </div>
@@ -47,21 +40,20 @@
 
           <!-- Method -->
           <td class="table-cell">
-            <span
-              class="badge-soft inline-flex items-center gap-1.5 max-w-[150px] truncate"
-              :title="getMethodName(tx)"
-            >
-              <img v-if="getMethodBadge(tx)" :src="getMethodBadge(tx).src" :alt="getMethodBadge(tx).alt" class="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft" />
+            <span class="badge-soft inline-flex items-center gap-1.5 max-w-[150px] truncate" :title="getMethodName(tx)">
+              <img
+                v-if="getMethodBadge(tx)"
+                :src="getMethodBadge(tx).src"
+                :alt="getMethodBadge(tx).alt"
+                class="w-3.5 h-3.5 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+              />
               <span class="truncate">{{ getMethodName(tx) }}</span>
             </span>
           </td>
 
           <!-- Block -->
           <td class="table-cell">
-            <router-link
-              :to="`/block-info/${tx.blockhash || tx.blockhash}`"
-              class="etherscan-link"
-            >
+            <router-link :to="`/block-info/${tx.blockhash || tx.blockhash}`" class="etherscan-link">
               {{ tx.blockIndex ?? tx.blockindex }}
             </router-link>
           </td>
@@ -83,13 +75,11 @@
 
           <!-- To -->
           <td class="table-cell hidden lg:table-cell">
-            <div v-if="getRecipient(tx)" class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-[240px] truncate">
-              <svg
-                class="h-4 w-4 flex-shrink-0 text-low"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <div
+              v-if="getRecipient(tx)"
+              class="flex items-center gap-2 max-w-[150px] xl:max-w-[200px] 2xl:max-w-[240px] truncate"
+            >
+              <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
               <HashLink
@@ -106,10 +96,28 @@
           <td class="table-cell hidden text-right lg:table-cell">
             <div class="flex flex-col items-end leading-tight">
               <div class="flex items-center gap-1.5 max-w-[180px]">
-                <img v-if="getSummaryLogo(tx)" :src="getSummaryLogo(tx)" class="w-4 h-4 rounded-full ring-1 ring-line-soft bg-white object-cover" />
+                <img
+                  v-if="getSummaryLogo(tx)"
+                  :src="getSummaryLogo(tx)"
+                  class="w-4 h-4 rounded-full ring-1 ring-line-soft bg-white object-cover"
+                />
                 <span class="truncate font-medium text-high flex items-center gap-1" :title="getValueSummary(tx)">
                   {{ getValueSummary(tx) }}
-                  <svg v-if="transferSummaryByHash[tx.hash]?.contract && supabaseMeta[transferSummaryByHash[tx.hash].contract.toLowerCase()]?.is_verified" class="h-3.5 w-3.5 text-success flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <svg
+                    v-if="
+                      transferSummaryByHash[tx.hash]?.contract &&
+                      supabaseMeta[transferSummaryByHash[tx.hash].contract.toLowerCase()]?.is_verified
+                    "
+                    class="h-3.5 w-3.5 text-success flex-shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
                 </span>
               </div>
               <span class="mt-0.5 text-xs text-mid">{{ formatTxGas(tx) }} GAS</span>
@@ -130,7 +138,7 @@
 import { truncateHash, formatAge, formatUnixTime, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "@/components/common/HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
-import { NATIVE_CONTRACTS } from "@/constants";
+import { NATIVE_CONTRACTS, NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
@@ -148,30 +156,32 @@ const props = defineProps({
 defineEmits(["toggle-time"]);
 
 const supabaseMeta = ref({});
-watch(() => props.transferSummaryByHash, async (newSummaryMap) => {
-  if (newSummaryMap) {
-    const hashes = Object.values(newSummaryMap)
-      .filter(s => s && typeof s === 'object' && s.contract)
-      .map(s => s.contract);
-    
-    if (hashes.length) {
-       const meta = await supabaseService.getContractMetadataBatch(hashes);
-       supabaseMeta.value = meta;
+watch(
+  () => props.transferSummaryByHash,
+  async (newSummaryMap) => {
+    if (newSummaryMap) {
+      const hashes = Object.values(newSummaryMap)
+        .filter((s) => s && typeof s === "object" && s.contract)
+        .map((s) => s.contract);
+
+      if (hashes.length) {
+        const meta = await supabaseService.getContractMetadataBatch(hashes);
+        supabaseMeta.value = meta;
+      }
     }
-  }
-}, { immediate: true, deep: true });
+  },
+  { immediate: true, deep: true },
+);
 
 function getSummaryLogo(tx) {
   const summary = props.transferSummaryByHash[tx.hash];
-  if (!summary || typeof summary === 'string' || !summary.contract) return null;
-  
+  if (!summary || typeof summary === "string" || !summary.contract) return null;
+
   if (supabaseMeta.value[summary.contract.toLowerCase()]?.logo_url) {
-     return supabaseMeta.value[summary.contract.toLowerCase()].logo_url;
+    return supabaseMeta.value[summary.contract.toLowerCase()].logo_url;
   }
   return getTokenIcon(summary.contract, summary.type);
 }
-
-
 
 function toPrefixedHash(value) {
   const raw = String(value || "").trim();
@@ -208,26 +218,41 @@ function getMethodBadge(tx) {
 }
 
 function getMethodName(tx) {
-  if (tx.attributes && tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)) {
+  if (
+    tx.attributes &&
+    tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
+  ) {
     return "Oracle Callback";
   }
   if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.method) {
-        const contractHash = canonicalizeContractHash(inv.contractHash);
-        const govMethods = ["designateAsRole", "setFeePerByte", "setExecFeeFactor", "setStoragePrice", "setGasPerBlock", "setRegisterPrice", "update", "destroy"];
-        if (govMethods.includes(inv.method) && (contractHash === "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b" || contractHash === "0xfe924b7cfe89ddd271abaf7210a80a7e11178758" || contractHash === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")) {
-            return `Governance: ${inv.method}`;
-        }
-        const known = getKnownContractName(contractHash);
-        if (known) return `${known}: ${inv.method}`;
-        const cName = getContractDisplayName(contractHash);
-        // If it's a truncated hash, maybe we just show method.
-        if (cName && !cName.startsWith("0x")) {
-           return `${cName}: ${inv.method}`;
-        }
-        return inv.method;
-     }
+    const inv = extractContractInvocation(tx.script);
+    if (inv && inv.method) {
+      const contractHash = canonicalizeContractHash(inv.contractHash);
+      const govMethods = [
+        "designateAsRole",
+        "setFeePerByte",
+        "setExecFeeFactor",
+        "setStoragePrice",
+        "setGasPerBlock",
+        "setRegisterPrice",
+        "update",
+        "destroy",
+      ];
+      if (
+        govMethods.includes(inv.method) &&
+        (contractHash === POLICY_HASH || contractHash === ORACLE_HASH || contractHash === NEO_HASH)
+      ) {
+        return `Governance: ${inv.method}`;
+      }
+      const known = getKnownContractName(contractHash);
+      if (known) return `${known}: ${inv.method}`;
+      const cName = getContractDisplayName(contractHash);
+      // If it's a truncated hash, maybe we just show method.
+      if (cName && !cName.startsWith("0x")) {
+        return `${cName}: ${inv.method}`;
+      }
+      return inv.method;
+    }
   }
   if (tx.method) return tx.method;
   if (tx.notifications?.length > 0) {
@@ -246,12 +271,7 @@ function getSummaryRecipient(summary, sender = "") {
   if (!summary || typeof summary !== "object") return null;
 
   const candidate =
-    summary.recipient ||
-    summary.to ||
-    summary.toAddress ||
-    summary.toaddress ||
-    summary.receiver ||
-    null;
+    summary.recipient || summary.to || summary.toAddress || summary.toaddress || summary.receiver || null;
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
 
@@ -262,9 +282,7 @@ function getSummaryRecipient(summary, sender = "") {
   }
 
   const targetCount = Number(summary.targetCount ?? summary.totalCount ?? 0);
-  const isSingleTarget =
-    summary.singleTarget === true ||
-    (Number.isFinite(targetCount) && targetCount === 1);
+  const isSingleTarget = summary.singleTarget === true || (Number.isFinite(targetCount) && targetCount === 1);
   const isKnownAddressRecipient = Boolean(getKnownAddressName(recipient));
 
   if (!isSingleTarget && !isKnownAddressRecipient) return null;
@@ -288,29 +306,29 @@ function getRecipient(tx) {
     if (String(to).startsWith("N")) return { hash: to, type: "address" };
     return { hash: canonicalizeContractHash(to), type: "contract" };
   }
-  
+
   if (tx.script) {
-     const inv = extractContractInvocation(tx.script);
-     if (inv && inv.contractHash) return { hash: canonicalizeContractHash(inv.contractHash), type: 'contract' };
+    const inv = extractContractInvocation(tx.script);
+    if (inv && inv.contractHash) return { hash: canonicalizeContractHash(inv.contractHash), type: "contract" };
   }
   if (tx.notifications?.length > 0) {
-    return { hash: canonicalizeContractHash(tx.notifications[0].contract), type: 'contract' };
+    return { hash: canonicalizeContractHash(tx.notifications[0].contract), type: "contract" };
   }
-  
+
   // Last resort, see if it has a transfers array and take the first one's TO
   if (tx.transfers && tx.transfers.length > 0 && tx.transfers[0].to) {
-     const tTo = tx.transfers[0].to;
-     if (String(tTo).startsWith("N")) return { hash: tTo, type: "address" };
-     return { hash: canonicalizeContractHash(tTo), type: "contract" };
+    const tTo = tx.transfers[0].to;
+    if (String(tTo).startsWith("N")) return { hash: tTo, type: "address" };
+    return { hash: canonicalizeContractHash(tTo), type: "contract" };
   }
-  
+
   return null;
 }
 
 function getValueSummary(tx) {
   const summary = props.transferSummaryByHash[tx.hash];
   if (summary) {
-    if (typeof summary === 'string') return summary;
+    if (typeof summary === "string") return summary;
     return summary.text || "\u2014";
   }
 
@@ -337,7 +355,9 @@ function formatTxFeeBreakdown(tx) {
 }
 
 function normalizeVmState(value) {
-  const normalized = String(value || "").trim().toUpperCase();
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase();
   if (!normalized) return "";
   if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
     return "FAULT";
@@ -351,14 +371,14 @@ function normalizeVmState(value) {
 function getVmState(tx) {
   return normalizeVmState(
     tx?.vmstate ??
-    tx?.Vmstate ??
-    tx?.VMState ??
-    tx?.execution_state ??
-    tx?.executionState ??
-    tx?.tx_state ??
-    tx?.txState ??
-    tx?.state ??
-    tx?.status
+      tx?.Vmstate ??
+      tx?.VMState ??
+      tx?.execution_state ??
+      tx?.executionState ??
+      tx?.tx_state ??
+      tx?.txState ??
+      tx?.state ??
+      tx?.status,
   );
 }
 

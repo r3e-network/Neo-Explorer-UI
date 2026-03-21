@@ -42,7 +42,7 @@ watch(
   () => props.containerHeight,
   (v) => {
     containerHeight.value = v;
-  }
+  },
 );
 
 const totalHeight = computed(() => props.items.length * props.itemHeight);
@@ -70,7 +70,7 @@ const visibleItems = computed(() => {
       data: props.items[i],
       key: props.items[i]?.hash || props.items[i]?.index || i,
       top: i * props.itemHeight,
-      style: { position: "absolute", top: i * props.itemHeight + "px", left: 0, right: 0, height: h },
+      style: { transform: `translateY(${i * props.itemHeight}px)`, width: "100%", height: h, willChange: "transform" },
     });
   }
   return items;

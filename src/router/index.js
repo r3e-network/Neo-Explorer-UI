@@ -1,10 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import {
-  CHUNK_RELOAD_KEY,
-  CHUNK_RELOAD_TARGET_KEY,
-  isChunkLoadError,
-  triggerChunkReload,
-} from "@/utils/chunkReload";
+import { CHUNK_RELOAD_KEY, CHUNK_RELOAD_TARGET_KEY, isChunkLoadError, triggerChunkReload } from "@/utils/chunkReload";
 
 let pendingRoutePath = "/homepage";
 
@@ -104,7 +99,7 @@ const routes = [
         meta: { title: "Neo Explorer" },
         component: HomePage,
       },
-            {
+      {
         path: "/nns",
         name: "nns",
         meta: { title: "Neo Name Service" },
@@ -122,99 +117,99 @@ const routes = [
         meta: { title: "Tools" },
         component: ToolsIndex,
       },
-            {
+      {
         path: "/tools/multisig",
         name: "multisig",
         meta: { title: "Multi-Sig Tool" },
         component: MultiSigTool,
       },
-            {
+      {
         path: "/tools/governance",
-        name: "governance-tool",
+        name: "governanceTool",
         meta: { title: "Council Governance" },
         component: GovernanceTool,
       },
       {
         path: "/tools/governance/:id",
-        name: "governance-proposal-detail",
+        name: "governanceProposalDetail",
         meta: { title: "Council Proposal Detail" },
         component: GovernanceProposalDetail,
       },
-            {
+      {
         path: "/tools/b64",
-        name: "format-converter",
+        name: "formatConverter",
         meta: { title: "Format Converter" },
         component: FormatConverterTool,
       },
       {
         path: "/tools/neofs",
-        name: "neofs-gateway",
+        name: "neofsGateway",
         meta: { title: "NeoFS Gateway" },
         component: NeoFSTool,
       },
       {
         path: "/tools/candidate-profile",
-        name: "candidate-profile-manager",
+        name: "candidateProfileManager",
         meta: { title: "Candidate Profile Manager" },
         component: CandidateProfileTool,
       },
       {
         path: "/tools/broadcast",
-        name: "broadcast-message",
+        name: "broadcastMessage",
         meta: { title: "On-Chain Message" },
         component: BroadcastMessageTool,
       },
       {
         path: "/tools/sponsored",
-        name: "sponsored-transactions",
+        name: "sponsoredTransactions",
         meta: { title: "Sponsored Transactions" },
         component: SponsoredTool,
       },
       {
         path: "/tools/deployer",
-        name: "contract-deployer",
+        name: "contractDeployer",
         meta: { title: "Contract Deployer" },
         component: ContractDeployerTool,
       },
       {
         path: "/tools/factory",
-        name: "contract-factory",
+        name: "contractFactory",
         meta: { title: "Contract Factory" },
         component: ContractFactoryTool,
       },
       {
         path: "/tools/abi",
-        name: "abi-encoder",
+        name: "abiEncoder",
         meta: { title: "ABI Encoder" },
         component: AbiEncoderTool,
       },
       {
         path: "/tools/storage",
-        name: "storage-inspector",
+        name: "storageInspector",
         meta: { title: "Storage Inspector" },
         component: StorageInspectorTool,
       },
       {
         path: "/tools/gas",
-        name: "gas-estimator",
+        name: "gasEstimator",
         meta: { title: "Gas Estimator" },
         component: GasEstimatorTool,
       },
       {
         path: "/tools/mempool",
-        name: "mempool-tool",
+        name: "mempoolTool",
         meta: { title: "Mempool Search" },
         component: MempoolTool,
       },
       {
         path: "/tools/alerts",
-        name: "network-alerts",
+        name: "networkAlerts",
         meta: { title: "Network Alerts" },
         component: NetworkAlertsTool,
       },
       {
         path: "/tools/abstract-account",
-        name: "abstract-account-deployer",
+        name: "abstractAccountDeployer",
         meta: { title: "Abstract Account" },
         component: AbstractAccountTool,
       },

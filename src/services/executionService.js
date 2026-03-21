@@ -43,7 +43,9 @@ export const executionService = createService(
       let indexed = null;
       try {
         indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
-      } catch (_err) { /* ignore */ }
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[executionService] indexed trace fetch failed:", err);
+      }
 
       const indexedNotifications = this._countNotifications(indexed);
 
@@ -54,15 +56,16 @@ export const executionService = createService(
       let legacy = null;
       try {
         legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
-      } catch (_err) {
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[executionService] legacy trace fetch failed:", err);
         legacy = null;
       }
 
       // If Fura proxy failed, hit the native Node RPC directly
       if (!indexed && !legacy) {
         try {
-          const { rpc: neonRpc } = await import('@cityofzion/neon-js');
-          const { getCurrentEnv } = await import('@/utils/env');
+          const { rpc: neonRpc } = await import("@cityofzion/neon-js");
+          const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
             const client = new neonRpc.RPCClient(endpoint);
@@ -71,8 +74,8 @@ export const executionService = createService(
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);
           }
-        } catch (_nativeErr) {
-          // ignore native error
+        } catch (nativeErr) {
+          if (import.meta.env.DEV) console.warn("[executionService] native RPC applog fetch failed:", nativeErr);
         }
       }
 
@@ -98,7 +101,7 @@ export const executionService = createService(
 
         const notifications = exec.notifications ?? [];
         if (notifications.length === 0) continue;
-        
+
         // Count unique contracts involved in notifications
         const uniqueContracts = new Set();
         for (const n of notifications) {
@@ -106,10 +109,10 @@ export const executionService = createService(
             uniqueContracts.add(n.contract);
           }
         }
-        
+
         if (uniqueContracts.size > 1) return true;
-        
-        // If it involves only 1 contract, but has many notifications, 
+
+        // If it involves only 1 contract, but has many notifications,
         // we might still consider it complex, but for now we only flag
         // if there are multiple contracts or non-standard transfers.
         // Let's check if there are non-transfer events
@@ -242,11 +245,11 @@ export const executionService = createService(
 
       const detailedExecs = detailedTrace?.executions ?? (detailedTrace?.steps ? [detailedTrace] : []);
       const enrichedExecutions = executions.map((exec, i) =>
-        this._enrichExecution(exec, manifestMap, detailedExecs[i])
+        this._enrichExecution(exec, manifestMap, detailedExecs[i]),
       );
 
       const transfers = enrichedExecutions.flatMap((e) =>
-        (e.operations ?? []).filter((op) => op.operationType === "transfer")
+        (e.operations ?? []).filter((op) => op.operationType === "transfer"),
       );
 
       return {
@@ -320,8 +323,8 @@ export const executionService = createService(
           contractService.getManifest(h).catch((err) => {
             failures.push({ hash: h, error: err?.message ?? String(err) });
             return null;
-          })
-        )
+          }),
+        ),
       );
       hashes.forEach((h, i) => manifests.set(h, results[i]));
 
@@ -399,7 +402,7 @@ export const executionService = createService(
       }
       return Array.from(map.values());
     },
-  }
+  },
 );
 
 export default executionService;
