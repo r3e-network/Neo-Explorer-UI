@@ -3,9 +3,17 @@
     <div class="flex items-start gap-3">
       <!-- Icon logic: Show resolved identity logo first, else standard or special icon -->
       <div v-if="headerLogo" class="h-10 w-10 flex-shrink-0">
-        <img :src="headerLogo" class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white" :alt="primaryIdentityName || 'Address Logo'" @error="$event.target.src = '/img/brand/neo.png'" />
+        <img
+          :src="headerLogo"
+          class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
+          :alt="primaryIdentityName || 'Address Logo'"
+          @error="$event.target.src = '/img/brand/neo.png'"
+        />
       </div>
-      <div v-else-if="isNeoFoundation" class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+      <div
+        v-else-if="isNeoFoundation"
+        class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
+      >
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
         </svg>
@@ -20,8 +28,16 @@
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
-          <span v-if="publicTag" class="inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
-            <img v-if="publicTagLogo" :src="publicTagLogo" class="h-3.5 w-3.5 rounded-full object-cover bg-white" alt="Address tag logo" />
+          <span
+            v-if="publicTag"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
+          >
+            <img
+              v-if="publicTagLogo"
+              :src="publicTagLogo"
+              class="h-3.5 w-3.5 rounded-full object-cover bg-white"
+              alt="Address tag logo"
+            />
             {{ publicTag }}
           </span>
           <h1 class="page-title">
@@ -36,16 +52,24 @@
           <span
             v-if="candidateData"
             class="rounded-lg px-2.5 py-1 text-xs font-semibold"
-            :class="candidateData.isCommittee ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'"
+            :class="
+              candidateData.isCommittee
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+            "
           >
-            {{ candidateData.isCommittee ? 'Consensus Node' : 'Standby Candidate' }}
+            {{ candidateData.isCommittee ? "Consensus Node" : "Standby Candidate" }}
           </span>
         </div>
         <div class="detail-metadata mt-1">
           <span v-if="candidateData?.metaName" class="detail-chip font-bold text-cyan-600 dark:text-cyan-400">
             {{ candidateData.metaName }}
           </span>
-          <span v-else-if="knownName" class="detail-chip font-bold" :class="isNeoFoundation ? 'text-blue-600 dark:text-blue-400' : 'text-primary-600 dark:text-primary-400'">
+          <span
+            v-else-if="knownName"
+            class="detail-chip font-bold"
+            :class="isNeoFoundation ? 'text-blue-600 dark:text-blue-400' : 'text-primary-600 dark:text-primary-400'"
+          >
             {{ knownName }}
           </span>
           <span v-else-if="contractIdentityName" class="detail-chip font-bold text-violet-600 dark:text-violet-300">
@@ -132,7 +156,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import QrcodeVue from 'qrcode.vue';
+import QrcodeVue from "qrcode.vue";
 import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
@@ -145,7 +169,6 @@ import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddre
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
 
 const props = defineProps({
-
   address: { type: String, default: "" },
   isContract: { type: Boolean, default: false },
   showQr: { type: Boolean, default: false },
@@ -164,20 +187,18 @@ const publicTagLogo = ref("");
 const contractMeta = ref(null);
 
 const normalizeContractHash = (value) => {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!raw) return "";
   return raw.startsWith("0x") ? raw : `0x${raw}`;
 };
 
-watch(() => props.address, async (newAddr) => {
+const fetchPublicTag = async (addr, isContract) => {
   publicTag.value = null;
   publicTagLogo.value = "";
 
-  if (!newAddr) return;
-
-  const lookupTarget = props.isContract
-    ? normalizeContractHash(addressToScriptHash(newAddr)) || newAddr
-    : newAddr;
+  const lookupTarget = isContract ? normalizeContractHash(addressToScriptHash(addr)) || addr : addr;
 
   try {
     const tagData = await supabaseService.getAddressTag(lookupTarget);
@@ -189,29 +210,42 @@ watch(() => props.address, async (newAddr) => {
     publicTag.value = null;
     publicTagLogo.value = "";
   }
-}, { immediate: true });
+};
 
-watch(
-  () => [props.address, props.isContract],
-  async ([newAddr, isContract]) => {
-    contractMeta.value = null;
+const fetchContractMeta = async (addr, isContract) => {
+  contractMeta.value = null;
 
-    if (!newAddr || !isContract) return;
+  if (!isContract) return;
 
-    const contractHash = normalizeContractHash(addressToScriptHash(newAddr));
-    if (!contractHash) return;
+  const contractHash = normalizeContractHash(addressToScriptHash(addr));
+  if (!contractHash) return;
 
-    try {
-      const metadata = await supabaseService.getContractMetadata(contractHash);
-      if (metadata) {
-        contractMeta.value = metadata;
-      }
-    } catch (_err) {
-      contractMeta.value = null;
+  try {
+    const metadata = await supabaseService.getContractMetadata(contractHash);
+    if (metadata) {
+      contractMeta.value = metadata;
     }
-  },
-  { immediate: true }
-);
+  } catch (_err) {
+    contractMeta.value = null;
+  }
+};
+
+const fetchNnsName = async (addr, isContract) => {
+  nnsName.value = "";
+
+  const lookupTarget = isContract ? normalizeContractHash(addressToScriptHash(addr)) : addr;
+
+  if (!lookupTarget || knownName.value) return;
+
+  try {
+    const res = await nnsService.resolveAddressToNNS(lookupTarget);
+    if (res && res.nns) {
+      nnsName.value = res.nns;
+    }
+  } catch (_err) {
+    nnsName.value = "";
+  }
+};
 
 const knownName = computed(() => {
   return getKnownAddressName(props.address) || null;
@@ -265,19 +299,16 @@ const headerLogo = computed(() => {
 const candidateVotesDisplay = computed(() => pickBestCandidateVotes(props.candidateData));
 
 watch(
-  () => props.address,
-  async (newAddr) => {
-    nnsName.value = "";
-    const lookupTarget = props.isContract
-      ? normalizeContractHash(addressToScriptHash(newAddr))
-      : newAddr;
-    if (lookupTarget && !knownName.value) {
-      const res = await nnsService.resolveAddressToNNS(lookupTarget);
-      if (res && res.nns) {
-        nnsName.value = res.nns;
-      }
-    }
+  [() => props.address, () => props.isContract],
+  async ([newAddr, isContract]) => {
+    if (!newAddr) return;
+
+    await Promise.allSettled([
+      fetchPublicTag(newAddr, isContract),
+      fetchContractMeta(newAddr, isContract),
+      fetchNnsName(newAddr, isContract),
+    ]);
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>

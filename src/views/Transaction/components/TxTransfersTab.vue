@@ -8,7 +8,11 @@
       </div>
     </div>
     <!-- Empty -->
-    <EmptyState v-else-if="allTransfers.length === 0" message="No token transfers found for this transaction." icon="tx" />
+    <EmptyState
+      v-else-if="allTransfers.length === 0"
+      message="No token transfers found for this transaction."
+      icon="tx"
+    />
     <!-- Content -->
     <div v-else class="surface-panel overflow-x-auto">
       <table class="w-full min-w-[780px] text-sm" aria-label="Transaction token transfers">
@@ -73,7 +77,12 @@
               <span
                 class="badge-soft inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-high"
               >
-                <img v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url" :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url" class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover" alt="" />
+                <img
+                  v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url"
+                  :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url"
+                  class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover"
+                  alt=""
+                />
                 <img v-else :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
                 {{ t.tokenname || t.symbol || "Unknown" }}
               </span>
@@ -92,7 +101,10 @@
           :page-size="pageSize"
           :total-count="allTransfers.length"
           @go-to-page="currentPage = $event"
-          @change-page-size="pageSize = $event; currentPage = 1"
+          @change-page-size="
+            pageSize = $event;
+            currentPage = 1;
+          "
         />
       </div>
     </div>
@@ -118,15 +130,19 @@ const props = defineProps({
 });
 
 const supabaseMeta = ref({});
-watch(() => Array.isArray(props.transfers) ? props.transfers : [], async (newTransfers) => {
-  if (newTransfers && newTransfers.length) {
-    const hashes = newTransfers.map(t => t.contract || t.contractHash).filter(Boolean);
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
-    supabaseMeta.value = meta;
-  } else {
-    supabaseMeta.value = {};
-  }
-}, { immediate: true });
+watch(
+  () => (Array.isArray(props.transfers) ? props.transfers : []),
+  async (newTransfers) => {
+    if (newTransfers && newTransfers.length) {
+      const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
+      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      supabaseMeta.value = meta;
+    } else {
+      supabaseMeta.value = {};
+    }
+  },
+  { immediate: true },
+);
 
 const tokenDecimalsMap = ref({});
 
@@ -139,61 +155,66 @@ const paginatedTransfers = computed(() => {
   return props.allTransfers.slice(start, end);
 });
 
-watch(() => props.allTransfers, () => {
-  currentPage.value = 1;
-});
-
+watch(
+  () => props.allTransfers,
+  () => {
+    currentPage.value = 1;
+  },
+);
 
 watch(
   () => props.allTransfers,
   async (xfers) => {
     if (!xfers) return;
     const fetchPromises = [];
-    
+
     for (const t of xfers) {
       if (t.decimals !== undefined && t.decimals !== null) continue;
-      
+
       const hash = (t.contract || t.contractHash)?.toLowerCase();
       if (!hash || NATIVE_CONTRACTS[hash]) continue;
-      
+
       if (tokenDecimalsMap.value[hash] === undefined) {
-         tokenDecimalsMap.value[hash] = 0;
-         fetchPromises.push(
-           tokenService.getByHash(hash).then(token => {
-             if (token && typeof token.decimals !== 'undefined') {
-               tokenDecimalsMap.value[hash] = Number(token.decimals);
-             }
-           }).catch(_e => {})
-         );
+        tokenDecimalsMap.value[hash] = 0;
+        fetchPromises.push(
+          tokenService
+            .getByHash(hash)
+            .then((token) => {
+              if (token && typeof token.decimals !== "undefined") {
+                tokenDecimalsMap.value[hash] = Number(token.decimals);
+              }
+            })
+            .catch((_e) => {}),
+        );
       }
     }
-    
+
     await Promise.all(fetchPromises);
   },
-  { immediate: true, deep: true }
+  { immediate: true },
 );
 
 function getTokenLogo(t) {
   const hash = (t.contract || t.contractHash || "").toLowerCase();
   const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
-  return getTokenIcon(hash, isNep11 ? 'NEP11' : 'NEP17');
+  return getTokenIcon(hash, isNep11 ? "NEP11" : "NEP17");
 }
 
 function formatTransferAmount(t) {
   const raw = t.value || t.amount || 0;
   let dec = t.decimals;
-  
+
   if (dec === undefined || dec === null) {
-     const hash = (t.contract || t.contractHash)?.toLowerCase();
-     if (hash && NATIVE_CONTRACTS[hash]) {
-       dec = NATIVE_CONTRACTS[hash].decimals;
-     } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
-       dec = tokenDecimalsMap.value[hash];
-     } else {
-       dec = 0;
-     }
+    const hash = (t.contract || t.contractHash)?.toLowerCase();
+    if (hash && NATIVE_CONTRACTS[hash]) {
+      dec = NATIVE_CONTRACTS[hash].decimals;
+    } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+      dec = tokenDecimalsMap.value[hash];
+    } else {
+      dec = 0;
+    }
   }
-  
+
   return formatTokenAmount(raw, dec, 8);
 }
 </script>

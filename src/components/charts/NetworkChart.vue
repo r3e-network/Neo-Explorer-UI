@@ -157,7 +157,6 @@ watch(
   () => {
     updateChart();
   },
-  { deep: true },
 );
 
 onMounted(() => {
