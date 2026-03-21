@@ -3,9 +3,9 @@
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tools', to: '/tools' },
-          { label: 'Multi-Signature Wallet' },
+          { label: $t('nav.home'), to: '/homepage' },
+          { label: $t('tools.title'), to: '/tools' },
+          { label: $t('tools.multisig.breadcrumb') },
         ]"
       />
 
@@ -22,8 +22,8 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Multi-Signature Wallet</h1>
-            <p class="page-subtitle">Coordinate signatures and safely execute transactions</p>
+            <h1 class="page-title">{{ $t("tools.multisig.title") }}</h1>
+            <p class="page-subtitle">{{ $t("tools.multisig.subtitle") }}</p>
           </div>
         </div>
       </div>
@@ -51,22 +51,20 @@
                   ></path>
                 </svg>
               </div>
-              <h4 class="font-bold text-high">How It Works</h4>
+              <h4 class="font-bold text-high">{{ $t("tools.multisig.howItWorksTitle") }}</h4>
             </div>
             <ol class="space-y-3 text-sm text-mid list-decimal list-inside ml-1">
               <li>
-                <strong>Create a configuration:</strong> Define a list of signer public keys and the required threshold.
+                <strong>{{ $t("tools.multisig.stepCreate") }}</strong> {{ $t("tools.multisig.stepCreateDesc") }}
               </li>
               <li>
-                <strong>Draft Transaction:</strong> Set the target contract, method, and arguments to build the payload.
+                <strong>{{ $t("tools.multisig.stepDraft") }}</strong> {{ $t("tools.multisig.stepDraftDesc") }}
               </li>
               <li>
-                <strong>Collect Signatures:</strong> The request is stored in Supabase. Eligible signers connect their
-                wallets and sign.
+                <strong>{{ $t("tools.multisig.stepCollect") }}</strong> {{ $t("tools.multisig.stepCollectDesc") }}
               </li>
               <li>
-                <strong>Execute:</strong> Once the threshold is met, the transaction can be safely broadcast to the Neo
-                network.
+                <strong>{{ $t("tools.multisig.stepExecute") }}</strong> {{ $t("tools.multisig.stepExecuteDesc") }}
               </li>
             </ol>
           </div>
@@ -82,13 +80,13 @@
                   d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
                 ></path>
               </svg>
-              Saved Signer Groups
+              {{ $t("tools.multisig.savedSignerGroups") }}
             </h4>
             <div
               v-if="savedConfigs.length === 0"
               class="text-sm text-mid py-4 text-center border border-dashed border-line-soft rounded-lg bg-surface-muted"
             >
-              No saved groups yet.
+              {{ $t("tools.multisig.noSavedGroups") }}
             </div>
             <div v-else class="space-y-3 max-h-64 overflow-y-auto pr-1">
               <div
@@ -138,7 +136,7 @@
                 "
                 @click="activeTab = 'requests'"
               >
-                Active Requests
+                {{ $t("tools.multisig.tabActiveRequests") }}
               </button>
               <button
                 class="pb-3 text-sm font-bold border-b-2 transition-colors"
@@ -149,7 +147,7 @@
                 "
                 @click="activeTab = 'create'"
               >
-                New Request
+                {{ $t("tools.multisig.tabNewRequest") }}
               </button>
             </div>
 
@@ -158,10 +156,14 @@
               <div v-if="activeTab === 'create'" class="space-y-6 max-w-2xl">
                 <!-- Group Settings -->
                 <div class="space-y-4">
-                  <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">1. Signer Group</h3>
+                  <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">
+                    {{ $t("tools.multisig.signerGroup") }}
+                  </h3>
 
                   <div>
-                    <label class="block text-sm font-medium text-high mb-1">Signer Public Keys (comma separated)</label>
+                    <label class="block text-sm font-medium text-high mb-1">{{
+                      $t("tools.multisig.signerPubkeys")
+                    }}</label>
                     <textarea
                       v-model="createForm.pubkeys"
                       class="form-input w-full font-mono text-xs h-20 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
@@ -171,7 +173,9 @@
 
                   <div class="flex items-center gap-4">
                     <div class="flex-1">
-                      <label class="block text-sm font-medium text-high mb-1">Required Signatures (Threshold)</label>
+                      <label class="block text-sm font-medium text-high mb-1">{{
+                        $t("tools.multisig.requiredSignatures")
+                      }}</label>
                       <input
                         v-model="createForm.threshold"
                         type="number"
@@ -193,7 +197,7 @@
                             d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
                           ></path>
                         </svg>
-                        Save Group
+                        {{ $t("tools.multisig.saveGroup") }}
                       </button>
                     </div>
                   </div>
@@ -206,7 +210,7 @@
                     >
                       <div>
                         <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-1">
-                          Derived Multisig Address
+                          {{ $t("tools.multisig.derivedAddress") }}
                         </p>
                         <p class="text-sm text-blue-900 dark:text-blue-300 font-mono font-bold">
                           {{ derivedMultisigAddress }}
@@ -219,10 +223,14 @@
 
                 <!-- Transaction Details -->
                 <div class="space-y-4 pt-4">
-                  <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">2. Transaction Details</h3>
+                  <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">
+                    {{ $t("tools.multisig.txDetails") }}
+                  </h3>
 
                   <div>
-                    <label class="block text-sm font-medium text-high mb-1">Request Description</label>
+                    <label class="block text-sm font-medium text-high mb-1">{{
+                      $t("tools.multisig.requestDescription")
+                    }}</label>
                     <input
                       v-model="createForm.description"
                       type="text"
@@ -232,7 +240,9 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-high mb-1">Target Contract Hash</label>
+                    <label class="block text-sm font-medium text-high mb-1">{{
+                      $t("tools.multisig.targetContractHash")
+                    }}</label>
                     <input
                       v-model="createForm.targetContract"
                       type="text"
@@ -250,7 +260,7 @@
 
                   <div class="flex gap-4">
                     <div class="flex-1">
-                      <label class="block text-sm font-medium text-high mb-1">Method</label>
+                      <label class="block text-sm font-medium text-high mb-1">{{ $t("tools.multisig.method") }}</label>
                       <input
                         v-model="createForm.method"
                         type="text"
@@ -261,7 +271,9 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-high mb-1">Arguments (JSON Array)</label>
+                    <label class="block text-sm font-medium text-high mb-1">{{
+                      $t("tools.multisig.argsJsonArray")
+                    }}</label>
                     <textarea
                       v-model="createForm.argsStr"
                       class="form-input w-full font-mono text-xs h-24 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
@@ -287,7 +299,7 @@
                     <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    {{ isCreating ? "Creating Request..." : "Publish Request" }}
+                    {{ isCreating ? $t("tools.multisig.creatingRequest") : $t("tools.multisig.publishRequest") }}
                   </button>
                 </div>
               </div>
@@ -313,18 +325,20 @@
                       ></path>
                     </svg>
                   </div>
-                  <p class="text-high text-lg font-bold mb-2">No Active Requests</p>
+                  <p class="text-high text-lg font-bold mb-2">{{ $t("tools.multisig.noActiveRequests") }}</p>
                   <p class="text-sm text-mid max-w-sm mx-auto mb-4">
-                    There are no pending multi-sig transactions in the global registry.
+                    {{ $t("tools.multisig.noActiveRequestsDesc") }}
                   </p>
                   <button
                     v-if="connectedAccount"
                     @click="activeTab = 'create'"
                     class="text-blue-600 font-semibold hover:underline"
                   >
-                    Create a new request
+                    {{ $t("tools.multisig.createNewRequest") }}
                   </button>
-                  <span v-else class="text-sm font-medium text-mid">Connect your wallet to create one.</span>
+                  <span v-else class="text-sm font-medium text-mid">{{
+                    $t("tools.multisig.connectWalletToCreate")
+                  }}</span>
                 </div>
 
                 <div v-else class="space-y-4">
@@ -349,7 +363,7 @@
                           </span>
                         </div>
                         <p class="text-sm text-mid mb-3 line-clamp-2">
-                          {{ req.description || "No description provided." }}
+                          {{ req.description || $t("tools.multisig.noDescription") }}
                         </p>
 
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-low font-mono">
@@ -385,14 +399,16 @@
                                 d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
                               ></path>
                             </svg>
-                            View Payload
+                            {{ $t("tools.multisig.viewPayload") }}
                           </button>
                         </div>
                       </div>
 
                       <div class="flex flex-col items-end gap-3 shrink-0 sm:w-40">
                         <div class="w-full bg-surface-muted rounded-xl p-3 border border-line-soft text-center">
-                          <p class="text-[10px] uppercase font-bold text-mid tracking-wider mb-1">Signatures</p>
+                          <p class="text-[10px] uppercase font-bold text-mid tracking-wider mb-1">
+                            {{ $t("tools.multisig.signatures") }}
+                          </p>
                           <div class="flex items-baseline justify-center gap-1">
                             <span
                               class="text-2xl font-black"
@@ -414,7 +430,7 @@
                               @click="handleBroadcast(req)"
                               class="w-full py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
                             >
-                              Broadcast Tx
+                              {{ $t("tools.multisig.broadcastTx") }}
                             </button>
                             <button
                               v-else-if="
@@ -423,7 +439,7 @@
                               @click="openSignModal(req)"
                               class="w-full py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                             >
-                              Sign Payload
+                              {{ $t("tools.multisig.signPayload") }}
                             </button>
                             <div
                               v-else-if="hasSigned(req)"
@@ -437,16 +453,18 @@
                                   d="M5 13l4 4L19 7"
                                 ></path>
                               </svg>
-                              You Signed
+                              {{ $t("tools.multisig.youSigned") }}
                             </div>
-                            <div v-else class="w-full text-center text-xs text-mid py-2">Waiting for signers...</div>
+                            <div v-else class="w-full text-center text-xs text-mid py-2">
+                              {{ $t("tools.multisig.waitingForSigners") }}
+                            </div>
                           </template>
                           <template v-if="req.status === 'EXECUTED'">
                             <a
                               :href="'/transaction-info/' + req.tx_hash"
                               class="w-full py-2 bg-surface-muted text-high border border-line-soft text-sm font-bold rounded-lg flex items-center justify-center hover:bg-line-soft transition-colors"
                             >
-                              View Tx
+                              {{ $t("tools.multisig.viewTx") }}
                             </a>
                           </template>
                         </div>
@@ -523,7 +541,7 @@
                   ></path>
                 </svg>
               </div>
-              <h2 class="text-xl font-bold text-high tracking-tight">Sign Transaction</h2>
+              <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.multisig.signTransaction") }}</h2>
             </div>
             <button
               @click="signModalReq = null"
@@ -537,7 +555,9 @@
           </div>
           <div class="p-6 space-y-6">
             <div>
-              <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">Unsigned Payload Hex</p>
+              <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">
+                {{ $t("tools.multisig.unsignedPayloadHex") }}
+              </p>
               <div
                 class="p-3 bg-surface-muted rounded-xl border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner"
               >
@@ -546,7 +566,7 @@
             </div>
 
             <div class="space-y-3">
-              <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
+              <label class="block text-sm font-bold text-high">{{ $t("tools.multisig.optionWallet") }}</label>
               <button
                 @click="autoSignTx"
                 :disabled="isSigning"
@@ -568,9 +588,9 @@
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   ></path>
                 </svg>
-                {{ isSigning ? "Awaiting Wallet..." : "Sign with Connected Wallet" }}
+                {{ isSigning ? $t("tools.multisig.awaitingWallet") : $t("tools.multisig.signWithWallet") }}
               </button>
-              <p class="text-[11px] text-mid text-center">Requires a wallet capable of signing raw bytes.</p>
+              <p class="text-[11px] text-mid text-center">{{ $t("tools.multisig.walletSignNote") }}</p>
             </div>
 
             <div class="relative py-2">
@@ -578,25 +598,25 @@
               <div class="relative flex justify-center">
                 <span
                   class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full"
-                  >OR</span
+                  >{{ $t("tools.multisig.or") }}</span
                 >
               </div>
             </div>
 
             <div class="space-y-3">
-              <label class="block text-sm font-bold text-high">Option 2: Manual Entry</label>
+              <label class="block text-sm font-bold text-high">{{ $t("tools.multisig.optionManual") }}</label>
               <input
                 v-model="manualSignature"
                 type="text"
                 class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                placeholder="Paste 64-byte signature hex here..."
+                :placeholder="$t('tools.multisig.manualSigPlaceholder')"
               />
               <button
                 @click="submitManualSignature"
                 :disabled="!manualSignature || manualSignature.length < 128"
                 class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Manual Signature
+                {{ $t("tools.multisig.submitManualSig") }}
               </button>
             </div>
           </div>
@@ -623,7 +643,7 @@
                   ></path>
                 </svg>
               </div>
-              <h2 class="text-xl font-bold text-high tracking-tight">Request Details JSON</h2>
+              <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.multisig.requestDetailsJson") }}</h2>
             </div>
             <button
               @click="detailsModalReq = null"
@@ -646,6 +666,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
@@ -659,6 +680,7 @@ import { isGovernanceRequest, matchesRequestNetwork } from "@/utils/governanceRe
 import { NATIVE_CONTRACTS } from "@/constants";
 import { useToast } from "vue-toastification";
 
+useI18n();
 const toast = useToast();
 const loading = ref(true);
 const requests = ref([]);

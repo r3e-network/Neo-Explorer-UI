@@ -2,6 +2,12 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}));
+
 const envState = { value: "Mainnet" };
 const getMultisigRequestsMock = vi.fn();
 const connectedAccount = ref("");
@@ -32,14 +38,27 @@ vi.mock("@/utils/env", () => ({
 }));
 
 vi.mock("@/utils/rpcEndpoints", () => ({
-  toNetworkMode: (value) => String(value || "").toLowerCase().includes("test") ? "testnet" : "mainnet",
+  toNetworkMode: (value) =>
+    String(value || "")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet",
 }));
 
 vi.mock("@/utils/governanceRequests", () => ({
   isGovernanceRequest: (request) => String(request?.type || "").toLowerCase() === "governance",
   matchesRequestNetwork: (request, activeNetwork) => {
-    const normalizedActive = String(activeNetwork || "").toLowerCase().includes("test") ? "testnet" : "mainnet";
-    const normalizedRequest = String(request?.network || "mainnet").toLowerCase().includes("test") ? "testnet" : "mainnet";
+    const normalizedActive = String(activeNetwork || "")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet";
+    const normalizedRequest = String(request?.network || "mainnet")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet";
     return normalizedRequest === normalizedActive;
   },
 }));
@@ -66,9 +85,30 @@ describe("MultiSigTool network changes", () => {
       u: { HexString: { fromHex: (value) => value } },
     };
     getMultisigRequestsMock.mockResolvedValue([
-      { id: 1, type: "multisig", description: "Mainnet Request", network: "mainnet", signatures: [], eligible_signers: [] },
-      { id: 2, type: "multisig", description: "Testnet Request", network: "testnet", signatures: [], eligible_signers: [] },
-      { id: 3, type: "governance", description: "Governance Request", network: "mainnet", signatures: [], eligible_signers: [] },
+      {
+        id: 1,
+        type: "multisig",
+        description: "Mainnet Request",
+        network: "mainnet",
+        signatures: [],
+        eligible_signers: [],
+      },
+      {
+        id: 2,
+        type: "multisig",
+        description: "Testnet Request",
+        network: "testnet",
+        signatures: [],
+        eligible_signers: [],
+      },
+      {
+        id: 3,
+        type: "governance",
+        description: "Governance Request",
+        network: "mainnet",
+        signatures: [],
+        eligible_signers: [],
+      },
     ]);
   });
 
@@ -81,6 +121,9 @@ describe("MultiSigTool network changes", () => {
           Skeleton: true,
           CopyButton: true,
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (key) => key,
         },
       },
     });
