@@ -48,7 +48,12 @@ vi.mock("@/utils/env", () => ({
 }));
 
 vi.mock("@/utils/rpcEndpoints", () => ({
-  toNetworkMode: (value) => String(value || "").toLowerCase().includes("test") ? "testnet" : "mainnet",
+  toNetworkMode: (value) =>
+    String(value || "")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet",
 }));
 
 vi.mock("@/utils/governanceRequests", () => ({
@@ -58,8 +63,16 @@ vi.mock("@/utils/governanceRequests", () => ({
     Boolean(request?.params?.governance_mode) ||
     Array.isArray(request?.params?.target_contracts),
   matchesRequestNetwork: (request, activeNetwork) => {
-    const normalizedActive = String(activeNetwork || "").toLowerCase().includes("test") ? "testnet" : "mainnet";
-    const normalizedRequest = String(request?.network || "mainnet").toLowerCase().includes("test") ? "testnet" : "mainnet";
+    const normalizedActive = String(activeNetwork || "")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet";
+    const normalizedRequest = String(request?.network || "mainnet")
+      .toLowerCase()
+      .includes("test")
+      ? "testnet"
+      : "mainnet";
     return normalizedRequest === normalizedActive;
   },
 }));
@@ -139,9 +152,30 @@ describe("GovernanceTool network changes", () => {
       { address: "APK2", display_name: "Council Beta", logo_url: "https://example.com/beta.png" },
     ]);
     getMultisigRequestsMock.mockResolvedValue([
-      { id: 1, type: "governance", description: "Mainnet Proposal", network: "mainnet", signatures: [{ signer_address: "APK1" }], eligible_signers: [] },
-      { id: 2, type: "governance", description: "Testnet Proposal", network: "testnet", signatures: [], eligible_signers: [] },
-      { id: 3, type: "multisig", description: "Wallet Request", network: "mainnet", signatures: [], eligible_signers: [] },
+      {
+        id: 1,
+        type: "governance",
+        description: "Mainnet Proposal",
+        network: "mainnet",
+        signatures: [{ signer_address: "APK1" }],
+        eligible_signers: [],
+      },
+      {
+        id: 2,
+        type: "governance",
+        description: "Testnet Proposal",
+        network: "testnet",
+        signatures: [],
+        eligible_signers: [],
+      },
+      {
+        id: 3,
+        type: "multisig",
+        description: "Wallet Request",
+        network: "mainnet",
+        signatures: [],
+        eligible_signers: [],
+      },
     ]);
     createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 99 } });
     addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
@@ -194,10 +228,7 @@ describe("GovernanceTool network changes", () => {
         eligible_signers: [],
         params: {
           governance_mode: "official",
-          target_contracts: [
-            "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-            "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-          ],
+          target_contracts: ["cc5e4edd9f5f8dba8bb65734541df7a1c081c67b", "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
           invocations: [
             {
               selectedContract: "PolicyContract",
@@ -305,14 +336,44 @@ describe("GovernanceTool network changes", () => {
     });
 
     await flushPromises();
-    const setup = wrapper.vm.$.setupState;
-    setup.createForm.mode = "lab";
-    setup.createForm.description = "Lab test proposal";
-    setup.createForm.labThreshold = "2";
-    setup.createForm.labSignerPubkeys = labPubkeys.join("\n");
-    setup.createForm.invocations[0].params.value = "1000";
 
-    await setup.handleCreateProposal();
+    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    await newProposalButton.trigger("click");
+    await flushPromises();
+
+    // Find the GovernanceCreateModal child component by walking the vnode tree
+    let labCreateState;
+    function findCreateFormState(instance) {
+      if (instance.setupState?.createForm) return instance.setupState;
+      if (instance.subTree?.component?.setupState?.createForm) return instance.subTree.component.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findCreateFormState(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findCreateFormState(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+    labCreateState = findCreateFormState(wrapper.vm.$);
+    labCreateState.createForm.mode = "lab";
+    labCreateState.createForm.description = "Lab test proposal";
+    labCreateState.createForm.labThreshold = "2";
+    labCreateState.createForm.labSignerPubkeys = labPubkeys.join("\n");
+    labCreateState.createForm.invocations[0].params.value = "1000";
+
+    await labCreateState.handleCreateProposal();
     await flushPromises();
 
     expect(createMultisigRequestMock).toHaveBeenCalledTimes(1);
@@ -349,12 +410,7 @@ describe("GovernanceTool network changes", () => {
         network: "mainnet",
         signatures: [],
         signers_required: 3,
-        eligible_signers: [
-          "APK1",
-          "APK2",
-          "APK3",
-          "APK4",
-        ],
+        eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
         params: {
           unsigned_tx: "001122",
           committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
@@ -406,7 +462,7 @@ describe("GovernanceTool network changes", () => {
           signature: "ab".repeat(64),
           source: "external_witness",
         }),
-      })
+      }),
     );
 
     wrapper.unmount();
@@ -468,7 +524,7 @@ describe("GovernanceTool network changes", () => {
           invocation_script: `0c40${"ab".repeat(64)}`,
           source: "wallet_signature",
         }),
-      })
+      }),
     );
 
     wrapper.unmount();
@@ -586,9 +642,40 @@ describe("GovernanceTool network changes", () => {
 
     expect(wrapper.html()).toContain("setMillisecondsPerBlock");
 
-    const setup = wrapper.vm.$.setupState;
-    setup.createForm.description = "Reduce block time and GAS reward";
-    setup.createForm.invocations = [
+    // The create modal content is now inside GovernanceCreateModal child component.
+    // Access its internal state through the component's exposed setup state.
+    // With script setup, we need to find the component via its rendered DOM.
+    const createModalWrapper = wrapper.findComponent({ ref: undefined });
+    // Walk the internal vnode tree to find the GovernanceCreateModal component instance
+    let createState;
+    const rootInstance = wrapper.vm.$;
+    function findCreateFormInTree(instance) {
+      if (instance.setupState?.createForm) return instance.setupState;
+      if (instance.subTree?.component?.setupState?.createForm) return instance.subTree.component.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      // Also check dynamicChildren
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+    createState = findCreateFormInTree(rootInstance);
+    createState.createForm.description = "Reduce block time and GAS reward";
+    createState.createForm.invocations = [
       {
         selectedContract: "PolicyContract",
         selectedMethod: "setMillisecondsPerBlock",
@@ -607,7 +694,7 @@ describe("GovernanceTool network changes", () => {
     expect(wrapper.text()).toContain("1 GAS = 100000000");
     expect(wrapper.findAll("input").some((input) => input.attributes("placeholder") === "e.g. 3000")).toBe(true);
 
-    await setup.handleCreateProposal();
+    await createState.handleCreateProposal();
     await flushPromises();
 
     expect(window.Neon.sc.createScript).toHaveBeenCalledWith(
@@ -622,7 +709,7 @@ describe("GovernanceTool network changes", () => {
         operation: "setGasPerBlock",
         args: ["100000000"],
         callFlags: 3,
-      })
+      }),
     );
 
     expect(createMultisigRequestMock).toHaveBeenCalledWith(
@@ -630,12 +717,9 @@ describe("GovernanceTool network changes", () => {
         method: "setMillisecondsPerBlock,setGasPerBlock",
         target_contract: "MULTI_CALL",
         params: expect.objectContaining({
-          target_contracts: [
-            "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-            "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-          ],
+          target_contracts: ["cc5e4edd9f5f8dba8bb65734541df7a1c081c67b", "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
         }),
-      })
+      }),
     );
 
     wrapper.unmount();
