@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       nodePolyfills({
-        include: ["buffer", "crypto", "stream", "util", "events", "process"],
+        include: ["buffer", "stream", "util", "events", "process"],
         globals: {
           Buffer: true,
           global: true,
