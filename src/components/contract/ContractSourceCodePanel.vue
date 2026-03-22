@@ -10,9 +10,7 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="badge-soft rounded-full px-3 py-1">
-          Files: {{ totalCount }}
-        </span>
+        <span class="badge-soft rounded-full px-3 py-1"> Files: {{ totalCount }} </span>
         <button
           class="btn-outline px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh source code"
@@ -59,9 +57,11 @@
         <div
           class="overflow-auto"
           style="background: color-mix(in srgb, var(--surface-hover) 78%, transparent)"
-          :style="{ height: viewerHeight(item.code) }"
+          :style="viewerHeightStyle(item.code)"
         >
-          <pre class="text-high min-h-full p-4 text-xs leading-5"><code class="font-mono whitespace-pre">{{ item.code || "" }}</code></pre>
+          <pre
+            class="text-high min-h-full p-4 text-xs leading-5"
+          ><code class="font-mono whitespace-pre">{{ item.code || "" }}</code></pre>
         </div>
       </article>
     </div>
@@ -146,9 +146,9 @@ async function loadSourceCode() {
   }
 }
 
-function viewerHeight(code) {
+function viewerHeightStyle(code) {
   const lineCount = String(code || "").split("\n").length;
-  return `${Math.min(640, Math.max(220, lineCount * 18))}px`;
+  return { height: `${Math.min(640, Math.max(220, lineCount * 18))}px` };
 }
 
 watch(() => props.contractHash, fetchIfReady);

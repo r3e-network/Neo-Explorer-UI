@@ -13,9 +13,7 @@
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-mid text-sm">
-          A total of {{ formatNumber(totalCount) }} holders found
-        </p>
+        <p class="text-mid text-sm">A total of {{ formatNumber(totalCount) }} holders found</p>
       </div>
 
       <!-- Table -->
@@ -30,11 +28,7 @@
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">
-            <tr
-              v-for="(item, index) in holders"
-              :key="item.address"
-              class="list-row group"
-            >
+            <tr v-for="(item, index) in holders" :key="item.address" class="list-row group">
               <!-- Rank -->
               <td class="text-low px-4 py-3 text-sm">
                 <span v-if="rankIndex(index) <= 3" class="font-medium">
@@ -49,7 +43,12 @@
               <td class="px-4 py-3">
                 <div class="max-w-[220px] truncate">
                   <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> Null Address </span>
-                  <HashLink v-else :hash="showAddress ? scriptHashToAddress(item.address) : item.address" type="address" :truncated="true" />
+                  <HashLink
+                    v-else
+                    :hash="showAddress ? scriptHashToAddress(item.address) : item.address"
+                    type="address"
+                    :truncated="true"
+                  />
                 </div>
               </td>
               <!-- Balance -->
@@ -60,10 +59,7 @@
               <td class="px-4 py-3 text-right">
                 <div class="flex items-center justify-end gap-2">
                   <div class="progress-track hidden h-1.5 w-16 overflow-hidden rounded-full sm:block">
-                    <div
-                      class="h-full rounded-full bg-primary-500"
-                      :style="{ width: Math.min(item.percentage * 100, 100) + '%' }"
-                    ></div>
+                    <div class="h-full rounded-full bg-primary-500" :style="holderBarStyle(item)"></div>
                   </div>
                   <span class="text-high text-sm">
                     {{ toPercentage(item.percentage) }}
@@ -81,10 +77,7 @@
     </template>
 
     <!-- Pagination -->
-    <div
-      v-if="!loading && totalCount > resultsPerPage"
-      class="soft-divider border-t px-4 py-3"
-    >
+    <div v-if="!loading && totalCount > resultsPerPage" class="soft-divider border-t px-4 py-3">
       <EtherscanPagination
         :page="currentPage"
         :total-pages="totalPages"
@@ -134,6 +127,10 @@ function rankIndex(index) {
   return index + (currentPage.value - 1) * resultsPerPage.value + 1;
 }
 
+function holderBarStyle(item) {
+  return { width: Math.min(item.percentage * 100, 100) + "%" };
+}
+
 function toPercentage(num) {
   return Number(num * 100).toFixed(2) + "%";
 }
@@ -141,6 +138,6 @@ function toPercentage(num) {
 watch(
   () => props.contractHash,
   () => loadPage(1),
-  { immediate: true }
+  { immediate: true },
 );
 </script>

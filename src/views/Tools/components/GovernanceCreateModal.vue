@@ -13,7 +13,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
           </div>
-          <h2 class="text-xl font-bold text-high tracking-tight">Create Council Proposal</h2>
+          <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.governance.createCouncilProposal") }}</h2>
         </div>
         <button
           @click="$emit('close')"
@@ -32,10 +32,9 @@
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 class="text-sm font-bold text-high tracking-tight">Proposal Mode</h3>
+              <h3 class="text-sm font-bold text-high tracking-tight">{{ $t("tools.governance.proposalMode") }}</h3>
               <p class="mt-1 text-xs text-mid">
-                Official council mode uses the live testnet committee. Lab mode lets you mock the signer set and
-                threshold while still using the same proposal and signature collection flow.
+                {{ $t("tools.governance.proposalModeDesc") }}
               </p>
             </div>
             <div class="inline-flex rounded-xl border border-line-soft bg-surface p-1">
@@ -46,7 +45,7 @@
                 :class="createForm.mode === 'official' ? 'bg-amber-500 text-white' : 'text-mid hover:text-high'"
                 @click="setCreateMode('official')"
               >
-                Official Council
+                {{ $t("tools.governance.officialCouncil") }}
               </button>
               <button
                 data-testid="governance-mode-lab"
@@ -55,16 +54,16 @@
                 :class="createForm.mode === 'lab' ? 'bg-amber-500 text-white' : 'text-mid hover:text-high'"
                 @click="setCreateMode('lab')"
               >
-                Lab Mode
+                {{ $t("tools.governance.labMode") }}
               </button>
             </div>
           </div>
 
           <div v-if="createForm.mode === 'lab'" class="grid grid-cols-1 gap-4 md:grid-cols-[1fr,180px]">
             <div class="space-y-2">
-              <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80"
-                >Signer Public Keys</label
-              >
+              <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
+                $t("tools.governance.signerPublicKeys")
+              }}</label>
               <textarea
                 data-testid="lab-signer-pubkeys"
                 v-model="createForm.labSignerPubkeys"
@@ -73,14 +72,13 @@
                 placeholder="One compressed public key per line, or comma-separated"
               ></textarea>
               <p class="text-xs text-mid">
-                Include the connected wallet signer in this list. The tool will derive eligible signer addresses from
-                these public keys and use your chosen threshold instead of the live council threshold.
+                {{ $t("tools.governance.signerPubkeysDesc") }}
               </p>
             </div>
             <div class="space-y-2">
-              <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80"
-                >Signature Threshold</label
-              >
+              <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
+                $t("tools.governance.signatureThreshold")
+              }}</label>
               <input
                 data-testid="lab-threshold"
                 v-model="createForm.labThreshold"
@@ -89,14 +87,17 @@
                 class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
               />
               <div class="rounded-xl border border-dashed border-line-soft bg-surface/50 px-3 py-2 text-xs text-mid">
-                Signers detected: <span class="font-semibold text-high">{{ parsedLabSignerCount }}</span>
+                {{ $t("tools.governance.signersDetected") }}
+                <span class="font-semibold text-high">{{ parsedLabSignerCount }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-bold text-high tracking-tight">Proposal Description</label>
+          <label class="block text-sm font-bold text-high tracking-tight">{{
+            $t("tools.governance.proposalDescription")
+          }}</label>
           <input
             v-model="createForm.description"
             type="text"
@@ -117,7 +118,7 @@
                   class="flex items-center justify-center w-6 h-6 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 text-xs"
                   >{{ idx + 1 }}</span
                 >
-                Invocation
+                {{ $t("tools.governance.invocation") }}
               </h3>
               <button
                 v-if="createForm.invocations.length > 1"
@@ -127,15 +128,15 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
-                Remove
+                {{ $t("tools.governance.remove") }}
               </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div class="space-y-2">
-                <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80"
-                  >Target Contract</label
-                >
+                <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
+                  $t("tools.governance.targetContract")
+                }}</label>
                 <select
                   v-model="inv.selectedContract"
                   @change="handleContractChange(idx)"
@@ -145,9 +146,9 @@
                 </select>
               </div>
               <div class="space-y-2">
-                <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80"
-                  >Method to Invoke</label
-                >
+                <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
+                  $t("tools.governance.methodToInvoke")
+                }}</label>
                 <select
                   v-model="inv.selectedMethod"
                   @change="inv.params = {}"
@@ -177,7 +178,7 @@
                 v-if="formatMethodCallFlags(getMethodDefinition(inv.selectedContract, inv.selectedMethod))"
                 class="text-[11px] font-medium uppercase tracking-[0.18em] text-low"
               >
-                Call Flags:
+                {{ $t("tools.governance.callFlags") }}
                 {{ formatMethodCallFlags(getMethodDefinition(inv.selectedContract, inv.selectedMethod)) }}
               </p>
             </div>
@@ -213,7 +214,7 @@
               v-else
               class="p-4 text-center border border-dashed border-line-soft rounded-xl bg-surface/50 text-mid text-xs"
             >
-              No parameters required for this method.
+              {{ $t("tools.governance.noParamsRequired") }}
             </div>
           </div>
 
@@ -234,7 +235,7 @@
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               ></path>
             </svg>
-            Add Another Invocation
+            {{ $t("tools.governance.addAnotherInvocation") }}
           </button>
         </div>
       </div>
@@ -243,7 +244,7 @@
           @click="$emit('close')"
           class="px-6 py-2.5 text-sm font-bold text-mid hover:text-high hover:bg-surface-muted rounded-xl transition-all"
         >
-          Cancel
+          {{ $t("tools.governance.cancel") }}
         </button>
         <button
           @click="handleCreateProposal"
@@ -266,7 +267,7 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             ></path>
           </svg>
-          {{ isCreating ? "Creating..." : "Create Proposal" }}
+          {{ isCreating ? $t("tools.governance.creating") : $t("tools.governance.createProposal") }}
         </button>
       </div>
     </div>
@@ -542,7 +543,7 @@ async function handleCreateProposal() {
 
   isCreating.value = true;
   try {
-    const neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    const neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     const signerConfig = resolveSignerConfig(neonJs);

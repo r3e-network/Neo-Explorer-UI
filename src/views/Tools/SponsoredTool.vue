@@ -234,11 +234,10 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
-import { rpc, wallet } from "@cityofzion/neon-js";
+import { RpcClient, Account } from "@r3e/neo-js-sdk";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { getDoraCommitteeUrl } from "@/utils/dora";
-import { cachedRequest } from "@/services/cache";
+import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 
@@ -268,7 +267,7 @@ async function fetchBalance() {
 
   try {
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
+      const rpcClient = new RpcClient(endpoint);
       return rpcClient.getNep17Balances(connectedAccount.value);
     });
     const gasAsset = result.balance.find((b) => b.assethash === GAS_HASH);
@@ -301,13 +300,7 @@ async function loadCandidates() {
       candidatePubKey.value = "";
       return;
     }
-    const doraUrl = getDoraCommitteeUrl(NET_ENV.Mainnet);
-
-    const candidates = await cachedRequest(
-      `dora_committee_${networkMode}`,
-      () => fetch(doraUrl).then((r) => (r.ok ? r.json() : [])),
-      300000,
-    );
+    const candidates = await fetchDoraCommittee(NET_ENV.Mainnet);
 
     if (Array.isArray(candidates)) {
       candidateList.value = candidates.sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
@@ -357,8 +350,8 @@ async function executeSponsoredTx() {
 
     if (!sponsorInfoRes.ok) throw new Error("Could not fetch sponsor info. Backend might not be configured.");
     const sponsorInfo = await sponsorInfoRes.json();
-    const sponsorScriptHash = new wallet.Account(sponsorInfo.sponsorAddress).scriptHash;
-    const userScriptHash = new wallet.Account(connectedAccount.value).scriptHash;
+    const sponsorScriptHash = new Account(sponsorInfo.sponsorAddress).scriptHash;
+    const userScriptHash = new Account(connectedAccount.value).scriptHash;
 
     // 2. Ask the connected wallet to build and sign the transaction (but do NOT broadcast)
     toast.info("Please sign the transaction in your connected wallet...");

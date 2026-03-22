@@ -1,7 +1,6 @@
 import { Web3Auth } from "@web3auth/modal";
 import { CHAIN_NAMESPACES } from "@web3auth/base";
 import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
-import { wallet } from "@cityofzion/neon-js";
 
 let _web3auth = null;
 let _chainConfigKey = null;
@@ -113,7 +112,8 @@ export const web3authService = {
     const privateKeyHex = await provider.request({ method: "private_key" });
 
     // neon-js uses this raw 32-byte hex to generate valid secp256r1 N3 public keys and base58 addresses
-    const account = new wallet.Account(privateKeyHex);
+    const { Account } = await import("@r3e/neo-js-sdk");
+    const account = Account.fromPrivateKey(privateKeyHex);
     return account;
   },
 

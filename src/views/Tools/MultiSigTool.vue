@@ -251,10 +251,10 @@
                       list="fast-contracts"
                     />
                     <datalist id="fast-contracts">
-                      <option value="0xf0151f528127558851b39c2cd8aa47da7418ab28">Flamingo (FLM)</option>
-                      <option value="0x48c40d4666f93408be1bef038b6722404d9a4c2a">NeoBurger (bNEO)</option>
-                      <option value="0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5">NEO Token</option>
-                      <option value="0xd2a4cff31913016155e38e474a2c06d08be276cf">GAS Token</option>
+                      <option :value="FLM_HASH">Flamingo (FLM)</option>
+                      <option :value="BNEO_HASH">NeoBurger (bNEO)</option>
+                      <option :value="NEO_HASH">NEO Token</option>
+                      <option :value="GAS_HASH">GAS Token</option>
                     </datalist>
                   </div>
 
@@ -479,9 +479,7 @@
                           :class="
                             (req.signatures?.length || 0) >= req.signers_required ? 'bg-emerald-500' : 'bg-blue-500'
                           "
-                          :style="{
-                            width: Math.min(100, ((req.signatures?.length || 0) / req.signers_required) * 100) + '%',
-                          }"
+                          :style="requestProgressStyle(req)"
                         ></div>
                       </div>
                       <div class="flex flex-wrap gap-1.5">
@@ -677,7 +675,7 @@ import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { isGovernanceRequest, matchesRequestNetwork } from "@/utils/governanceRequests";
-import { NATIVE_CONTRACTS } from "@/constants";
+import { NATIVE_CONTRACTS, NEO_HASH, GAS_HASH, FLM_HASH, BNEO_HASH } from "@/constants";
 import { useToast } from "vue-toastification";
 
 useI18n();
@@ -733,6 +731,10 @@ async function loadRequests() {
   } catch (e) {
     console.error("Error loading requests", e);
   }
+}
+
+function requestProgressStyle(req) {
+  return { width: Math.min(100, ((req.signatures?.length || 0) / req.signers_required) * 100) + "%" };
 }
 
 function hasSigned(req) {
@@ -986,7 +988,7 @@ function handleNetworkChange() {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
     loadSavedConfigs();
     await loadRequests();
   } catch (e) {

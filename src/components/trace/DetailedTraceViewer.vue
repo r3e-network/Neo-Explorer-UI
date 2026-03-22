@@ -184,8 +184,7 @@
             v-if="notification.state"
             class="text-mid mt-2 font-mono text-xs"
           >
-            {{ JSON.stringify(notification.state).substring(0, 200)
-            }}{{ JSON.stringify(notification.state).length > 200 ? "..." : "" }}
+            {{ formatNotificationState(notification.state) }}
           </div>
         </div>
         <div
@@ -237,6 +236,12 @@ const showOpcodes = ref(true);
 
 function toggleView() {
   showOpcodes.value = !showOpcodes.value;
+}
+
+function formatNotificationState(state) {
+  const serialized = JSON.stringify(state);
+  if (!serialized) return "";
+  return serialized.length > 200 ? `${serialized.substring(0, 200)}...` : serialized;
 }
 
 function formatGas(gas) {

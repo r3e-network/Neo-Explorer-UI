@@ -4,9 +4,8 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import { walletConnectService } from "./walletConnectService";
-import { web3authService } from "./web3authService";
-import { rpc, tx, sc, u, wallet } from "@cityofzion/neon-js";
+import { ScriptBuilder, reverseHex, hash160, str2hexstring, num2hexstring, hexToBytes } from "@r3e/neo-js-sdk";
+import { PROVIDERS } from "@/constants/walletProviders";
 
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
@@ -19,18 +18,6 @@ import {
 } from "@/utils/walletNormalization";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
-/** Supported wallet providers */
-const PROVIDERS = {
-  NEOLINE: "NeoLine",
-  O3: "O3",
-  ONEGATE: "OneGate",
-  WALLETCONNECT: "WalletConnect",
-  NEON: "Neon Wallet",
-  TESTNET_WIF: "Testnet WIF (Local Dev)",
-  WEB3AUTH: "Google / Email (Web3Auth)",
-  EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
-};
-
 /** Internal state */
 let _connectedProvider = null;
 let _account = null;
@@ -40,6 +27,24 @@ const AA_ALLOWED_META_METHODS = new Set(
   Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : [],
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
+
+const loadSdk = () => import("@r3e/neo-js-sdk");
+let walletConnectServicePromise = null;
+let web3authServicePromise = null;
+
+async function loadWalletConnectService() {
+  if (!walletConnectServicePromise) {
+    walletConnectServicePromise = import("./walletConnectService").then((module) => module.walletConnectService);
+  }
+  return walletConnectServicePromise;
+}
+
+async function loadWeb3authService() {
+  if (!web3authServicePromise) {
+    web3authServicePromise = import("./web3authService").then((module) => module.web3authService);
+  }
+  return web3authServicePromise;
+}
 
 function isDirectWifProviderEnabled() {
   return Boolean(import.meta.env.DEV);
@@ -650,11 +655,14 @@ export const walletService = {
       }
 
       const wif = String(options?.wif || "").trim();
-      if (!wallet.isWIF(wif)) {
+      const { Account: SdkAccount } = await loadSdk();
+      let account;
+      try {
+        account = SdkAccount.fromWIF(wif);
+      } catch {
         throw new Error("Invalid WIF.");
       }
 
-      const account = new wallet.Account(wif);
       _connectedProvider = PROVIDERS.TESTNET_WIF;
       _directWifAccount = account;
       _account = {
@@ -670,6 +678,7 @@ export const walletService = {
       if (!projectId) {
         throw new Error("WalletConnect is not configured. Set VITE_WC_PROJECT_ID to enable this wallet.");
       }
+      const walletConnectService = await loadWalletConnectService();
       await walletConnectService.init(projectId);
       const { uri, approval } = await walletConnectService.connect();
       return {
@@ -686,6 +695,7 @@ export const walletService = {
     }
 
     if (providerName === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
       const account = await web3authService.connect();
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
@@ -717,13 +727,12 @@ export const walletService = {
       }
 
       const aaHash = getAbstractAccountHash();
-      const verifyScript = sc.createScript({
-        scriptHash: aaHash,
-        operation: "verify",
-        args: [sc.ContractParam.byteArray(u.HexString.fromHex(uncompressedPubKey, false))],
-      });
-      const scriptHash = u.reverseHex(u.hash160(verifyScript));
-      const neoAddress = wallet.getAddressFromScriptHash(scriptHash);
+      const sb = new ScriptBuilder();
+      sb.emitContractCall(aaHash, "verify", undefined, [hexToBytes(uncompressedPubKey)]);
+      const verifyScript = sb.toBytes();
+      const scriptHash = reverseHex(hash160(verifyScript));
+      const { scriptHashToAddress } = await import("@/utils/neoHelpers");
+      const neoAddress = scriptHashToAddress(scriptHash);
 
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
@@ -749,6 +758,7 @@ export const walletService = {
     }
 
     if (providerName === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
       await web3authService.init();
       const account = await web3authService.getAccount();
       if (!account?.address) return null;
@@ -763,6 +773,7 @@ export const walletService = {
     const projectId = getWalletConnectProjectId();
     if (!projectId) return null;
 
+    const walletConnectService = await loadWalletConnectService();
     await walletConnectService.init(projectId);
     const account = await walletConnectService.restoreSession();
     if (!account?.address) return null;
@@ -778,10 +789,14 @@ export const walletService = {
   /** Disconnect wallet */
   disconnect() {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
-      walletConnectService.disconnect();
+      void loadWalletConnectService().then((walletConnectService) => {
+        walletConnectService.disconnect();
+      });
     }
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
-      web3authService.disconnect();
+      void loadWeb3authService().then((web3authService) => {
+        web3authService.disconnect();
+      });
     }
     _connectedProvider = null;
     _account = null;
@@ -830,27 +845,29 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       // the unsigned tx hex needs to be hashed before signing
-      const { tx } = await import("@cityofzion/neon-js");
-      const transaction = tx.Transaction.deserialize(unsignedTxHex);
+      const { Tx } = await loadSdk();
+      const transaction = Tx.deserialize(unsignedTxHex);
       const hash = transaction.hash();
       return account.sign(hash);
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
-      const transaction = tx.Transaction.deserialize(unsignedTxHex);
+      const { Tx, RpcClient } = await loadSdk();
+      const transaction = Tx.deserialize(unsignedTxHex);
       const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const rpcClient = new rpc.RPCClient(endpoint);
-        return rpcClient.execute(new rpc.Query({ method: "getversion" }));
+        const rpcClient = new RpcClient(endpoint);
+        return rpcClient.getVersion();
       });
       const magic = Number(versionRes?.protocol?.network);
       if (!Number.isFinite(magic)) {
         throw new Error("Failed to resolve network magic from RPC getversion.");
       }
-      const payloadToSign = u.num2hexstring(magic, 4, true) + u.reverseHex(transaction.hash());
-      return wallet.sign(payloadToSign, _directWifAccount.WIF);
+      const payloadToSign = num2hexstring(magic, 4, true) + reverseHex(transaction.hash());
+      return _directWifAccount.sign(payloadToSign);
     }
 
     throw new Error("Provider does not support raw transaction signing in browser.");
@@ -875,24 +892,26 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
+      const walletConnectService = await loadWalletConnectService();
       return normalizeSignMessageResult(await walletConnectService.signMessage(message));
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
-      const messageHex = u.str2hexstring(message);
+      const messageHex = str2hexstring(message);
       return normalizeSignMessageResult({
-        publicKey: _directWifAccount.publicKey,
-        data: wallet.sign(messageHex, _directWifAccount.WIF),
+        publicKey: _directWifAccount.publicKey.toHex(),
+        data: _directWifAccount.sign(messageHex),
         salt: "",
         message,
       });
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       // Emulate NeoLine's returned structure
-      const messageHex = u.str2hexstring(message);
+      const messageHex = str2hexstring(message);
       const signature = account.sign(messageHex);
       return normalizeSignMessageResult({
         publicKey: account.publicKey,
@@ -997,6 +1016,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
+      const walletConnectService = await loadWalletConnectService();
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
     }
 
@@ -1016,42 +1036,47 @@ export const walletService = {
         throw new Error(`Invalid signer account for "${operation}".`);
       }
 
-      const sb = new sc.ScriptBuilder();
-      const mappedArgs = normalizedArgs.map((arg) => sc.ContractParam.fromJson(arg));
-      sb.emitAppCall(scriptHash, operation, mappedArgs);
-      const script = sb.build();
+      const sb = new ScriptBuilder();
+      sb.emitContractCall(
+        scriptHash,
+        operation,
+        undefined,
+        normalizedArgs.map((arg) => arg.value),
+      );
+      const script = sb.toHex();
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const rpcClient = new rpc.RPCClient(endpoint);
+        const { RpcClient, Tx } = await loadSdk();
+        const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
-        const versionRes = await rpcClient.execute(new rpc.Query({ method: "getversion" }));
+        const versionRes = await rpcClient.getVersion();
         const magic = Number(versionRes?.protocol?.network);
         if (!Number.isFinite(magic)) {
           throw new Error("Failed to resolve network magic from RPC getversion.");
         }
-        const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+        const invokeRes = await rpcClient.invokeScript({ script, signers: normalizedSigners });
         if (invokeRes.state === "FAULT") {
           throw new Error("Simulation Faulted: " + invokeRes.exception);
         }
 
-        let txn = new tx.Transaction({
+        let txn = new Tx({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
-          script,
-          systemFee: invokeRes.gasconsumed || 1000000,
+          script: hexToBytes(script),
+          systemFee: BigInt(invokeRes.gasconsumed || 1000000),
         });
 
-        txn.sign(_directWifAccount, magic);
+        txn.sign(_directWifAccount.privateKey, magic);
         const networkFee = await rpcClient.calculateNetworkFee(txn);
 
-        txn = new tx.Transaction({
+        txn = new Tx({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
-          script,
-          systemFee: invokeRes.gasconsumed || 1000000,
-          networkFee,
+          script: hexToBytes(script),
+          systemFee: BigInt(invokeRes.gasconsumed || 1000000),
+          networkFee: BigInt(networkFee),
         });
-        txn.sign(_directWifAccount, magic);
+        txn.sign(_directWifAccount.privateKey, magic);
 
         if (broadcastOverride) {
           return { signedTx: txn.serialize(true) };
@@ -1062,6 +1087,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       const normalizedArgs = normalizeInvokeArgsForRpc(args);
       const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
@@ -1076,44 +1102,49 @@ export const walletService = {
         throw new Error(`Invalid signer account for "${operation}".`);
       }
 
-      const sb = new sc.ScriptBuilder();
-      const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
-      sb.emitAppCall(scriptHash, operation, mappedArgs);
-      const script = sb.build();
+      const sb = new ScriptBuilder();
+      sb.emitContractCall(
+        scriptHash,
+        operation,
+        undefined,
+        normalizedArgs.map((a) => a.value),
+      );
+      const script = sb.toHex();
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const rpcClient = new rpc.RPCClient(endpoint);
+        const { RpcClient, Tx } = await loadSdk();
+        const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
-        const versionRes = await rpcClient.execute(new rpc.Query({ method: "getversion" }));
+        const versionRes = await rpcClient.getVersion();
         const magic = Number(versionRes?.protocol?.network);
         if (!Number.isFinite(magic)) {
           throw new Error("Failed to resolve network magic from RPC getversion.");
         }
-        const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+        const invokeRes = await rpcClient.invokeScript({ script, signers: normalizedSigners });
 
         if (invokeRes.state === "FAULT") {
           throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
         }
 
-        let txn = new tx.Transaction({
+        let txn = new Tx({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
-          script: script,
-          systemFee: invokeRes.gasconsumed || 1000000,
+          script: hexToBytes(script),
+          systemFee: BigInt(invokeRes.gasconsumed || 1000000),
         });
-        txn.sign(account, magic);
+        txn.sign(account.privateKey, magic);
 
         const networkFee = await rpcClient.calculateNetworkFee(txn);
 
         // Resign with final explicit fees
-        txn = new tx.Transaction({
+        txn = new Tx({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
-          script: script,
-          systemFee: invokeRes.gasconsumed || 1000000,
-          networkFee: networkFee,
+          script: hexToBytes(script),
+          systemFee: BigInt(invokeRes.gasconsumed || 1000000),
+          networkFee: BigInt(networkFee),
         });
-        txn.sign(account, magic);
+        txn.sign(account.privateKey, magic);
 
         if (broadcastOverride) {
           return { signedTx: txn.serialize(true) };
@@ -1153,12 +1184,10 @@ export const walletService = {
         throw new Error("Missing public key identity. Please reconnect your EVM wallet.");
       }
 
-      const verifyScript = sc.createScript({
-        scriptHash: aaHash,
-        operation: "verify",
-        args: [sc.ContractParam.byteArray(u.HexString.fromHex(accountId, false))],
-      });
-      const accountAddress = normalizeHash160(u.reverseHex(u.hash160(verifyScript)));
+      const verifyScript = new ScriptBuilder()
+        .emitContractCall(aaHash, "verify", undefined, [hexToBytes(accountId)])
+        .toBytes();
+      const accountAddress = normalizeHash160(reverseHex(hash160(verifyScript)));
       if (!isHash160Hex(accountAddress)) {
         throw new Error("Unable to derive abstract account address.");
       }
@@ -1233,7 +1262,6 @@ export const walletService = {
 
   async simulateInvoke({ scriptHash, operation, args = [], scope = 1, signers = null }) {
     if (!_account) throw new Error("Wallet not connected");
-
     const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
     const normalizedArgs = normalizeInvokeArgsForRpc(args);
     const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
@@ -1248,22 +1276,28 @@ export const walletService = {
       throw new Error(`Invalid signer account for "${operation}".`);
     }
 
-    const sb = new sc.ScriptBuilder();
-    const mappedArgs = normalizedArgs.map((a) => sc.ContractParam.fromJson(a));
-    sb.emitAppCall(scriptHash, operation, mappedArgs);
-    const script = sb.build();
+    const sb = new ScriptBuilder();
+    sb.emitContractCall(
+      scriptHash,
+      operation,
+      undefined,
+      normalizedArgs.map((a) => a.value),
+    );
+    const script = sb.toHex();
 
     return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
-      return rpcClient.invokeScript(u.HexString.fromHex(script), normalizedSigners);
+      const { RpcClient } = await loadSdk();
+      const rpcClient = new RpcClient(endpoint);
+      return rpcClient.invokeScript({ script, signers: normalizedSigners });
     });
   },
 
   async broadcastSignedTx(signedTx) {
     if (!signedTx) throw new Error("Signed transaction is empty.");
+    const { RpcClient } = await loadSdk();
     return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
-      return rpcClient.sendRawTransaction(signedTx);
+      const rpcClient = new RpcClient(endpoint);
+      return rpcClient.sendRawTransaction({ tx: signedTx });
     });
   },
 };

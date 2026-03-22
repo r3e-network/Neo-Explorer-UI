@@ -102,11 +102,11 @@ export const transactionService = createService(
 
       try {
         // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
-        const { rpc: neonRpc } = await import("@cityofzion/neon-js");
+        const { RpcClient } = await import("@r3e/neo-js-sdk");
         const { getCurrentEnv } = await import("@/utils/env");
         const network = toNetworkMode(getCurrentEnv());
         const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
-          const client = new neonRpc.RPCClient(endpoint);
+          const client = new RpcClient(endpoint);
           return client.getRawTransaction(hash, true);
         });
         if (nativeTx && nativeTx.hash) {
@@ -114,7 +114,7 @@ export const transactionService = createService(
           if (nativeTx.blockhash) {
             try {
               const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
-                const client = new neonRpc.RPCClient(endpoint);
+                const client = new RpcClient(endpoint);
                 return client.getBlockHeader(nativeTx.blockhash, true);
               });
               blockIndex = blockHeader.index;

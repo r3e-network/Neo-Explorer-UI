@@ -24,6 +24,14 @@ export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 export const GAS_DECIMALS = 8;
 export const GAS_DIVISOR = 1e8;
 
+// Well-known token contract hashes (for quick-select datalists in tools)
+export const FLM_HASH = "0xf0151f528127558851b39c2cd8aa47da7418ab28";
+export const BNEO_HASH = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
+
+// Matrix domain contract fallback hashes (overridable via env)
+export const MATRIX_HASH_TESTNET = "0x89908093c5ccc463e2c5744d6bacb06108b60a75";
+export const MATRIX_HASH_MAINNET = "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd";
+
 // Network fee burn rate
 export const BURN_RATE = 0.00003;
 

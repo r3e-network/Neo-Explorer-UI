@@ -8,8 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .js,.jsx,.vue src tests",
-    "lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/",
+    "lint-fix": "eslint --fix --ext .js,.jsx,.vue src tests",
     "validate:rpc": "node scripts/validate-rpc-consistency.mjs",
+    "validate:rpc:ci": "FAIL_ON_FRONTEND_DOC_GAPS=1 FAIL_ON_BACKEND_UNDOCUMENTED=0 node scripts/validate-rpc-consistency.mjs",
     "validate:governance:lab": "node scripts/governance-testnet-lower-threshold.js",
     "validate:governance:mock-policy": "node scripts/governance-testnet-mock-policy-lab.js",
     "validate:rpc:strict": "FAIL_ON_FRONTEND_DOC_GAPS=1 FAIL_ON_BACKEND_UNDOCUMENTED=1 node scripts/validate-rpc-consistency.mjs",
@@ -19,10 +20,11 @@
     "sync:abstract-account-artifacts": "node scripts/sync-abstract-account-artifacts.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "audit:high": "npm audit --audit-level=high"
   },
   "dependencies": {
-    "@cityofzion/neon-js": "^5.8.0",
+    "@r3e/neo-js-sdk": "file:../neo-js-sdk",
     "@highlightjs/vue-plugin": "^2.1.0",
     "@supabase/supabase-js": "^2.97.0",
     "@vercel/edge-config": "^1.4.3",
@@ -50,6 +52,7 @@
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.5.27",
     "@vue/test-utils": "^2.0.0-rc.18",
+    "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-plugin-vue": "^9.33.0",
@@ -62,6 +65,6 @@
     "vitest": "^4.0.18"
   },
   "engines": {
-    "node": "18.x || 20.x"
+    "node": ">=20"
   }
 }

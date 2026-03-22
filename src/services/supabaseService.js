@@ -18,6 +18,81 @@ const contractMetadataCache = new Map();
 const addressTagCache = new Map();
 const validatorMetadataCache = new Map();
 
+// In-flight request dedupe + micro-batching (prevents N+1 fetches from leaf components)
+const contractMetadataPending = new Map(); // cacheKey -> Promise<metadata|null>
+const addressTagPending = new Map(); // cacheKey -> Promise<metadata|null>
+const contractMetadataBatchState = new Map(); // network -> { scheduled: boolean, requests: Map<string, Array<{resolve, reject}>> }
+const addressTagBatchState = new Map(); // network -> { scheduled: boolean, requests: Map<string, Array<{resolve, reject}>> }
+
+const scheduleMicrotask = (handler) => {
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(handler);
+    return;
+  }
+  Promise.resolve().then(handler);
+};
+
+const getOrCreateBatchState = (stateMap, network) => {
+  const key = String(network || "").trim().toLowerCase();
+  if (!key) return null;
+  if (!stateMap.has(key)) {
+    stateMap.set(key, { scheduled: false, requests: new Map() });
+  }
+  return stateMap.get(key);
+};
+
+const flushContractMetadataBatch = async (network) => {
+  const state = contractMetadataBatchState.get(network);
+  if (!state) return;
+
+  const requests = state.requests;
+  state.requests = new Map();
+  state.scheduled = false;
+
+  const hashes = [...requests.keys()];
+  if (!hashes.length) return;
+
+  try {
+    await supabaseService.getContractMetadataBatch(hashes, network);
+  } catch (_err) {
+    // getContractMetadataBatch is expected to swallow errors; keep this as a last-resort guard.
+  }
+
+  hashes.forEach((hash) => {
+    const cacheKey = `${network}:${hash}`;
+    const resolvers = requests.get(hash) || [];
+    const cached = contractMetadataCache.get(cacheKey);
+    resolvers.forEach(({ resolve }) => resolve(cached ?? null));
+    contractMetadataPending.delete(cacheKey);
+  });
+};
+
+const flushAddressTagBatch = async (network) => {
+  const state = addressTagBatchState.get(network);
+  if (!state) return;
+
+  const requests = state.requests;
+  state.requests = new Map();
+  state.scheduled = false;
+
+  const addresses = [...requests.keys()];
+  if (!addresses.length) return;
+
+  try {
+    await supabaseService.getAddressTagsBatch(addresses, network);
+  } catch (_err) {
+    // getAddressTagsBatch is expected to swallow errors; keep this as a last-resort guard.
+  }
+
+  addresses.forEach((addr) => {
+    const cacheKey = `${network}:${addr}`;
+    const resolvers = requests.get(addr) || [];
+    const cached = getAddressTagCacheEntry(network, addr);
+    resolvers.forEach(({ resolve }) => resolve(cached ?? null));
+    addressTagPending.delete(cacheKey);
+  });
+};
+
 const INDEXER_METADATA_PREFIX = "/indexer";
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;
@@ -418,8 +493,27 @@ export const supabaseService = {
       return contractMetadataCache.get(cacheKey);
     }
 
-    const result = await this.getContractMetadataBatch([normalizedHash], network);
-    return result[normalizedHash] || null;
+    if (contractMetadataPending.has(cacheKey)) {
+      return contractMetadataPending.get(cacheKey);
+    }
+
+    const state = getOrCreateBatchState(contractMetadataBatchState, network);
+    if (!state) return null;
+
+    const promise = new Promise((resolve, reject) => {
+      const existing = state.requests.get(normalizedHash) || [];
+      existing.push({ resolve, reject });
+      state.requests.set(normalizedHash, existing);
+    });
+
+    contractMetadataPending.set(cacheKey, promise);
+
+    if (!state.scheduled) {
+      state.scheduled = true;
+      scheduleMicrotask(() => flushContractMetadataBatch(network));
+    }
+
+    return promise;
   },
 
   async getContractMetadataBatch(hashes, networkMode) {
@@ -500,8 +594,28 @@ export const supabaseService = {
       return cached;
     }
 
-    const result = await this.getAddressTagsBatch([normalizedAddr], network);
-    return result[normalizedAddr] || result[normalizedAddr.toLowerCase()] || null;
+    const cacheKey = `${network}:${normalizedAddr}`;
+    if (addressTagPending.has(cacheKey)) {
+      return addressTagPending.get(cacheKey);
+    }
+
+    const state = getOrCreateBatchState(addressTagBatchState, network);
+    if (!state) return null;
+
+    const promise = new Promise((resolve, reject) => {
+      const existing = state.requests.get(normalizedAddr) || [];
+      existing.push({ resolve, reject });
+      state.requests.set(normalizedAddr, existing);
+    });
+
+    addressTagPending.set(cacheKey, promise);
+
+    if (!state.scheduled) {
+      state.scheduled = true;
+      scheduleMicrotask(() => flushAddressTagBatch(network));
+    }
+
+    return promise;
   },
   
   async getAddressTagsBatch(addresses, networkMode) {

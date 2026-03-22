@@ -46,21 +46,22 @@
         class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
         :title="hash"
       >
-        <img v-if="knownLogo" :src="knownLogo" class="w-3.5 h-3.5 rounded-full object-cover bg-white" :alt="knownName" />
+        <img
+          v-if="knownLogo"
+          :src="knownLogo"
+          class="w-3.5 h-3.5 rounded-full object-cover bg-white"
+          :alt="knownName"
+          loading="lazy"
+        />
         {{ knownName }}
       </router-link>
 
-      <router-link
-        v-else
-        :to="linkPath"
-        class="etherscan-link font-hash truncate text-sm"
-        :title="hash"
-      >
+      <router-link v-else :to="linkPath" class="etherscan-link font-hash truncate text-sm" :title="hash">
         {{ displayHash }}
       </router-link>
     </template>
     <CopyButton v-if="copyable" :text="copyText" size="sm" class="flex-shrink-0" />
-    
+
     <router-link
       v-if="type === 'address' && showNeoChat"
       :to="{ path: '/chat', query: { with: normalizedAddressHash || hash } }"
@@ -101,9 +102,7 @@ const props = defineProps({
   addressAliasAsPrimary: { type: Boolean, default: true },
 });
 
-const shouldTruncate = computed(() =>
-  props.truncate === null ? props.truncated : props.truncate
-);
+const shouldTruncate = computed(() => (props.truncate === null ? props.truncated : props.truncate));
 
 const nnsName = ref("");
 const addressMetadata = ref(null);
@@ -120,7 +119,9 @@ const normalizeExpirationMs = (raw) => {
 };
 
 const normalizeDomainAlias = (value) => {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!raw) return "";
   const half = raw.length / 2;
   if (Number.isInteger(half) && raw.slice(0, half) === raw.slice(half)) {
@@ -144,10 +145,7 @@ const getActiveDomainFromAddressMetadata = (metadata) => {
   }
 
   const expirationMs = normalizeExpirationMs(
-    metadata.nns_expiration_ms ??
-      metadata.nnsExpirationMS ??
-      metadata.nns_expiration ??
-      metadata.nnsExpiration
+    metadata.nns_expiration_ms ?? metadata.nnsExpirationMS ?? metadata.nns_expiration ?? metadata.nnsExpiration,
   );
 
   return expirationMs > Date.now() ? domain : "";
@@ -159,7 +157,9 @@ const normalizedAddressHash = computed(() => {
 });
 
 const normalizeHash160 = (value) => {
-  const raw = String(value || "").trim().toLowerCase();
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!raw) return "";
   if (raw.startsWith("0x")) return raw;
   if (/^[0-9a-f]{40}$/.test(raw)) return `0x${raw}`;
@@ -177,7 +177,9 @@ const reverseHash160 = (value) => {
 
 const addressScriptHash = computed(() => {
   if (props.type !== "address") return "";
-  return normalizeHash160(addressToScriptHash(normalizedAddressHash.value || props.hash) || normalizedAddressHash.value || props.hash);
+  return normalizeHash160(
+    addressToScriptHash(normalizedAddressHash.value || props.hash) || normalizedAddressHash.value || props.hash,
+  );
 });
 
 const findCandidateMetadata = async (lookupHash) => {
@@ -194,7 +196,9 @@ const findCandidateMetadata = async (lookupHash) => {
       validators.find((item) => {
         const candidateIdentifier = String(item.address || item.scripthash || "").trim();
         const candidateScriptHash = normalizeHash160(item.scripthash || item.address);
-        return candidateIdentifier === normalizedAddress || (targetScriptHash && candidateScriptHash === targetScriptHash);
+        return (
+          candidateIdentifier === normalizedAddress || (targetScriptHash && candidateScriptHash === targetScriptHash)
+        );
       }) || null
     );
   } catch (_err) {
@@ -236,14 +240,14 @@ const knownLogo = computed(() => {
     if (fetchedContractLogo.value) return fetchedContractLogo.value;
     const known = KNOWN_CONTRACTS[hash];
     if (known && known.logo) return optimizeLogoUrl(known.logo, { kind: "contract" });
-    
+
     // Auto-detect Flamingo contracts by name if we dynamically fetched it
     if (fetchedContractName.value) {
       const lowerName = fetchedContractName.value.toLowerCase();
-      if (lowerName.includes('flamingo')) {
+      if (lowerName.includes("flamingo")) {
         return optimizeLogoUrl("https://flamingo.finance/favicon.ico", { kind: "contract" });
       }
-      if (lowerName.includes('burger')) {
+      if (lowerName.includes("burger")) {
         return optimizeLogoUrl("https://app.neoburger.io/favicon.ico", { kind: "contract" });
       }
     }
@@ -253,7 +257,7 @@ const knownLogo = computed(() => {
 });
 
 const addressDomainAlias = computed(() =>
-  props.type === "address" ? getActiveDomainFromAddressMetadata(addressMetadata.value) : ""
+  props.type === "address" ? getActiveDomainFromAddressMetadata(addressMetadata.value) : "",
 );
 
 const addressMetadataAlias = computed(() => {
@@ -264,8 +268,12 @@ const addressMetadataAlias = computed(() => {
   const alias = String(meta.display_name || meta.label || "").trim();
   if (!alias) return "";
 
-  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
-  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "")
+    .trim()
+    .toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "")
+    .trim()
+    .toLowerCase();
   const normalizedAlias = alias.toLowerCase();
   if (normalizedAlias === normalizedAddress) return "";
   if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
@@ -278,8 +286,12 @@ const addressCandidateAlias = computed(() => {
   const alias = String(candidateMetadata.value?.display_name || candidateMetadata.value?.name || "").trim();
   if (!alias) return "";
 
-  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
-  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "")
+    .trim()
+    .toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "")
+    .trim()
+    .toLowerCase();
   const normalizedAlias = alias.toLowerCase();
   if (normalizedAlias === normalizedAddress) return "";
   if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
@@ -301,8 +313,12 @@ const addressContractAlias = computed(() => {
   const alias = String(addressContractMetadata.value?.display_name || addressContractMetadata.value?.name || "").trim();
   if (!alias) return "";
 
-  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "").trim().toLowerCase();
-  const normalizedScriptHash = String(addressScriptHash.value || "").trim().toLowerCase();
+  const normalizedAddress = String(normalizedAddressHash.value || props.hash || "")
+    .trim()
+    .toLowerCase();
+  const normalizedScriptHash = String(addressScriptHash.value || "")
+    .trim()
+    .toLowerCase();
   const normalizedAlias = alias.toLowerCase();
   if (normalizedAlias === normalizedAddress) return "";
   if (normalizedScriptHash && normalizedAlias === normalizedScriptHash) return "";
@@ -351,7 +367,7 @@ const addressLogo = computed(() => {
   }
 
   const candidateLogo = String(
-    candidateMetadata.value?.logo_url || candidateMetadata.value?.logoUrl || candidateMetadata.value?.logo || ""
+    candidateMetadata.value?.logo_url || candidateMetadata.value?.logoUrl || candidateMetadata.value?.logo || "",
   ).trim();
   if (candidateLogo) {
     return resolveCandidateLogoUrl(candidateLogo);
@@ -362,10 +378,7 @@ const addressLogo = computed(() => {
     return contractLogo;
   }
 
-  if (
-    addressDomainAlias.value.endsWith(".neo") ||
-    addressDomainAlias.value.endsWith(".matrix")
-  ) {
+  if (addressDomainAlias.value.endsWith(".neo") || addressDomainAlias.value.endsWith(".matrix")) {
     return optimizeLogoUrl(DOMAIN_LOGO_URL, { kind: "user" });
   }
 
@@ -379,21 +392,27 @@ const copyText = computed(() => {
   return props.hash || "";
 });
 
+let activeLookupId = 0;
+
 watch(
   () => [props.hash, props.type, props.resolveNns],
   async ([newHash, type, resolveNns]) => {
+    const lookupId = (activeLookupId += 1);
+    const isStale = () => lookupId !== activeLookupId;
+
     nnsName.value = "";
     addressMetadata.value = null;
     candidateMetadata.value = null;
     addressContractMetadata.value = null;
     fetchedContractName.value = "";
     fetchedContractLogo.value = "";
-    
+
     const lookupHash = type === "address" ? normalizedAddressHash.value : newHash;
 
     if (type === "address" && lookupHash) {
       try {
         const metadata = await supabaseService.getAddressTag(lookupHash);
+        if (isStale()) return;
         if (metadata) {
           addressMetadata.value = metadata;
         }
@@ -404,10 +423,12 @@ watch(
       if (addressScriptHash.value) {
         try {
           let contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value);
+          if (isStale()) return;
           if (!contractMetadata) {
             const reversedHash = reverseHash160(addressScriptHash.value);
             if (reversedHash && reversedHash !== addressScriptHash.value) {
               contractMetadata = await supabaseService.getContractMetadata(reversedHash);
+              if (isStale()) return;
             }
           }
           if (contractMetadata) {
@@ -420,23 +441,30 @@ watch(
 
       const hasKnownAddressLogo = Boolean(getKnownAddressLogo(lookupHash));
       const hasAddressMetadataLogo = Boolean(
-        String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim()
+        String(addressMetadata.value?.logo_url || addressMetadata.value?.logo || "").trim(),
       );
 
       if (!hasKnownAddressLogo && !hasAddressMetadataLogo) {
-        candidateMetadata.value = await findCandidateMetadata(lookupHash);
+        try {
+          const candidate = await findCandidateMetadata(lookupHash);
+          if (isStale()) return;
+          candidateMetadata.value = candidate;
+        } catch (_err) {
+          // Ignore candidate metadata lookup failure.
+        }
       }
 
       const hasResolvedAlias = Boolean(
         getActiveDomainFromAddressMetadata(addressMetadata.value) ||
-          String(addressMetadata.value?.display_name || addressMetadata.value?.label || "").trim() ||
-          knownName.value ||
-          addressCandidateAlias.value ||
-          addressContractAlias.value
+        String(addressMetadata.value?.display_name || addressMetadata.value?.label || "").trim() ||
+        knownName.value ||
+        addressCandidateAlias.value ||
+        addressContractAlias.value,
       );
 
       if (resolveNns && !hasResolvedAlias) {
         const res = await nnsService.resolveAddressToNNS(lookupHash);
+        if (isStale()) return;
         if (res && res.nns) {
           nnsName.value = res.nns;
         }
@@ -444,9 +472,10 @@ watch(
     }
 
     if ((type === "contract" || type === "token") && newHash && !knownName.value) {
-      const hash = newHash.startsWith('0x') ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
+      const hash = newHash.startsWith("0x") ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
       try {
         const metadata = await supabaseService.getAddressTag(hash);
+        if (isStale()) return;
         if (metadata) {
           const activeDomain = getActiveDomainFromAddressMetadata(metadata);
           if (activeDomain) {
@@ -459,6 +488,7 @@ watch(
 
       if (resolveNns && !nnsName.value) {
         const res = await nnsService.resolveAddressToNNS(hash);
+        if (isStale()) return;
         if (res && res.nns) {
           nnsName.value = res.nns;
         }
@@ -466,6 +496,7 @@ watch(
 
       try {
         const cachedMeta = await supabaseService.getContractMetadata(hash);
+        if (isStale()) return;
         if (cachedMeta?.name || cachedMeta?.display_name) {
           fetchedContractName.value = cachedMeta.display_name || cachedMeta.name;
         }
@@ -476,10 +507,11 @@ watch(
           return;
         }
 
-        const cleanHash = hash.replace(/^0x/i, '');
-        const reversed = '0x' + (cleanHash.match(/.{2}/g) || []).reverse().join('');
+        const cleanHash = hash.replace(/^0x/i, "");
+        const reversed = "0x" + (cleanHash.match(/.{2}/g) || []).reverse().join("");
         if (reversed !== hash) {
           const reversedMeta = await supabaseService.getContractMetadata(reversed);
+          if (isStale()) return;
           if (reversedMeta?.name || reversedMeta?.display_name) {
             fetchedContractName.value = reversedMeta.display_name || reversedMeta.name;
           }
@@ -492,16 +524,20 @@ watch(
         }
 
         let contract = await contractService.getByHashWithFallback(hash);
+        if (isStale()) return;
         if (!contract || !contract.name) {
           contract = await contractService.getByHashWithFallback(reversed);
+          if (isStale()) return;
         }
         if (contract && contract.name) {
           fetchedContractName.value = contract.name;
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        /* ignore */
+      }
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const displayHash = computed(() => {

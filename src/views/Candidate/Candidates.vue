@@ -53,32 +53,43 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
-              <tr
-                v-for="(candidate, index) in candidatesWithMeta"
-                :key="candidate.candidate"
-                class="list-row group"
-              >
+              <tr v-for="(candidate, index) in candidatesWithMeta" :key="candidate.candidate" class="list-row group">
                 <td class="table-cell-secondary w-16">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
                   <div class="flex items-center gap-3">
-                    <img 
+                    <img
                       v-if="getLogo(candidate)"
-                      :src="getLogo(candidate)" 
-                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0" 
+                      :src="getLogo(candidate)"
+                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0"
                       alt="Logo"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
-                    <div v-else class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid">
+                    <div
+                      v-else
+                      class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-mid"
+                    >
                       N3
                     </div>
                     <div class="min-w-0 flex flex-col gap-0.5">
-                      <span v-if="candidate.metaName || getKnownName(candidate.candidate)" class="inline-block font-semibold text-high text-sm">
+                      <span
+                        v-if="candidate.metaName || getKnownName(candidate.candidate)"
+                        class="inline-block font-semibold text-high text-sm"
+                      >
                         {{ candidate.metaName || getKnownName(candidate.candidate) }}
                       </span>
-                      <HashLink v-if="!(candidate.metaName || getKnownName(candidate.candidate))" :hash="candidate.candidate" type="address" :truncated="true" />
-                      <span v-if="candidate.publickey || candidate.metaPubkey" class="text-low text-[10px] font-mono break-all">{{ candidate.publickey || candidate.metaPubkey }}</span>
+                      <HashLink
+                        v-if="!(candidate.metaName || getKnownName(candidate.candidate))"
+                        :hash="candidate.candidate"
+                        type="address"
+                        :truncated="true"
+                      />
+                      <span
+                        v-if="candidate.publickey || candidate.metaPubkey"
+                        class="text-low text-[10px] font-mono break-all"
+                        >{{ candidate.publickey || candidate.metaPubkey }}</span
+                      >
                     </div>
                   </div>
                 </td>
@@ -86,17 +97,17 @@
                   {{ formatVotes(candidate.votes) }}
                 </td>
                 <td class="table-cell text-center">
-                  <StatusBadge :status="candidate.isCommittee ? 'success' : 'pending'" :text="candidate.isCommittee ? 'Consensus' : 'Standby'" />
+                  <StatusBadge
+                    :status="candidate.isCommittee ? 'success' : 'pending'"
+                    :text="candidate.isCommittee ? 'Consensus' : 'Standby'"
+                  />
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div
-          v-if="!loading && candidates.length > 0"
-          class="soft-divider border-t px-4 py-3"
-        >
+        <div v-if="!loading && candidates.length > 0" class="soft-divider border-t px-4 py-3">
           <EtherscanPagination
             :page="currentPage"
             :total-pages="totalPages"
@@ -112,10 +123,10 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { candidateService } from "@/services";
-import { getCacheKey, cachedRequest } from "@/services/cache";
+import { getCacheKey } from "@/services/cache";
 import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -124,11 +135,11 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import { getCurrentEnv, NET_ENV } from '@/utils/env';
-import { useNetworkChange } from '@/composables/useNetworkChange';
-import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from '@/utils/dora';
-import { getKnownAddressName } from '@/constants/knownAddresses';
-import { publicKeyToAddress, addressToScriptHash } from '@/utils/neoHelpers';
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
+import { getKnownAddressName } from "@/constants/knownAddresses";
+import { publicKeyToAddress, addressToScriptHash } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
@@ -194,15 +205,10 @@ async function loadDoraMetadata() {
   let doraRows = [];
   const env = getCurrentEnv().toLowerCase();
   const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
-  
+
   if (!isTestnet) {
-    const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
     try {
-      doraRows = await cachedRequest(
-        getDoraCommitteeCacheKey(NET_ENV.Mainnet),
-        () => fetch(url).then(r => r.ok ? r.json() : []),
-        300000 // 5 minutes cache
-      );
+      doraRows = await fetchDoraCommittee(NET_ENV.Mainnet);
     } catch (err) {
       if (import.meta.env.DEV) console.error("Failed to load Dora metadata fallback", err);
     }
@@ -217,7 +223,7 @@ async function loadDoraMetadata() {
 
   const metaMap = applyMetadataRows(doraRows);
   const indexerMap = applyMetadataRows(indexerMetadata);
-  
+
   // Merge indexer metadata over Dora metadata
   for (const key in indexerMap) {
     if (indexerMap[key]) {
@@ -230,15 +236,19 @@ async function loadDoraMetadata() {
       };
     }
   }
-  
+
   doraMetadata.value = metaMap;
 }
 
-watch(candidates, () => {
-  if (candidates.value.length > 0 && Object.keys(doraMetadata.value).length === 0) {
-    loadDoraMetadata();
-  }
-}, { immediate: true });
+watch(
+  candidates,
+  () => {
+    if (candidates.value.length > 0 && Object.keys(doraMetadata.value).length === 0) {
+      loadDoraMetadata();
+    }
+  },
+  { immediate: true },
+);
 
 function handleNetworkChange() {
   doraMetadata.value = {};
@@ -248,7 +258,7 @@ function handleNetworkChange() {
 useNetworkChange(handleNetworkChange);
 
 const candidatesWithMeta = computed(() => {
-  return candidates.value.map(c => {
+  return candidates.value.map((c) => {
     // c.candidate is the script hash.
     const meta = doraMetadata.value[c.candidate] || doraMetadata.value[c.publickey] || {};
     return {
@@ -269,7 +279,7 @@ function getLogo(candidate) {
   if (metaLogo) {
     return resolveCandidateLogoUrl(metaLogo);
   }
-  
+
   const env = getCurrentEnv();
   const pubkey = candidate.publickey || candidate.metaPubkey;
   if (env === NET_ENV.Mainnet && pubkey) {

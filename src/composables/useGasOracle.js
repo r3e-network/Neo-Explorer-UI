@@ -10,6 +10,27 @@ import { getCacheKey, cachedRequest, CACHE_TTL } from "@/services/cache";
 
 const GAS_DECIMALS = 8;
 
+/* ── Fee-suggestion tuning knobs ── */
+const MEMPOOL_THRESHOLD_LOW = 10;
+const MEMPOOL_THRESHOLD_HIGH = 50;
+
+const FEE_MULTIPLIER_SLOW = 0.8;
+const FEE_MULTIPLIER_AVERAGE_MID = 1.5;
+const FEE_MULTIPLIER_FAST_MID = 2;
+const FEE_MULTIPLIER_SLOW_HIGH = 1.2;
+const FEE_MULTIPLIER_AVERAGE_HIGH = 2;
+const FEE_MULTIPLIER_FAST_HIGH = 3;
+
+const FEE_FLOOR_SLOW_LOW = 0.0001;
+const FEE_FLOOR_AVG_LOW = 0.0005;
+const FEE_FLOOR_FAST_LOW = 0.001;
+const FEE_FLOOR_SLOW_MID = 0.0005;
+const FEE_FLOOR_AVG_MID = 0.001;
+const FEE_FLOOR_FAST_MID = 0.005;
+const FEE_FLOOR_SLOW_HIGH = 0.001;
+const FEE_FLOOR_AVG_HIGH = 0.005;
+const FEE_FLOOR_FAST_HIGH = 0.01;
+
 /**
  * Module-level shared state (singleton).
  *
@@ -38,18 +59,18 @@ function calculateSuggestions() {
   const baseFee = state.networkFee + state.systemFee;
   const pending = state.pendingCount;
 
-  if (pending < 10) {
-    state.suggestions.slow = Math.max(0.0001, baseFee * 0.8);
-    state.suggestions.average = Math.max(0.0005, baseFee);
-    state.suggestions.fast = Math.max(0.001, baseFee * 1.5);
-  } else if (pending < 50) {
-    state.suggestions.slow = Math.max(0.0005, baseFee);
-    state.suggestions.average = Math.max(0.001, baseFee * 1.5);
-    state.suggestions.fast = Math.max(0.005, baseFee * 2);
+  if (pending < MEMPOOL_THRESHOLD_LOW) {
+    state.suggestions.slow = Math.max(FEE_FLOOR_SLOW_LOW, baseFee * FEE_MULTIPLIER_SLOW);
+    state.suggestions.average = Math.max(FEE_FLOOR_AVG_LOW, baseFee);
+    state.suggestions.fast = Math.max(FEE_FLOOR_FAST_LOW, baseFee * FEE_MULTIPLIER_AVERAGE_MID);
+  } else if (pending < MEMPOOL_THRESHOLD_HIGH) {
+    state.suggestions.slow = Math.max(FEE_FLOOR_SLOW_MID, baseFee);
+    state.suggestions.average = Math.max(FEE_FLOOR_AVG_MID, baseFee * FEE_MULTIPLIER_AVERAGE_MID);
+    state.suggestions.fast = Math.max(FEE_FLOOR_FAST_MID, baseFee * FEE_MULTIPLIER_FAST_MID);
   } else {
-    state.suggestions.slow = Math.max(0.001, baseFee * 1.2);
-    state.suggestions.average = Math.max(0.005, baseFee * 2);
-    state.suggestions.fast = Math.max(0.01, baseFee * 3);
+    state.suggestions.slow = Math.max(FEE_FLOOR_SLOW_HIGH, baseFee * FEE_MULTIPLIER_SLOW_HIGH);
+    state.suggestions.average = Math.max(FEE_FLOOR_AVG_HIGH, baseFee * FEE_MULTIPLIER_AVERAGE_HIGH);
+    state.suggestions.fast = Math.max(FEE_FLOOR_FAST_HIGH, baseFee * FEE_MULTIPLIER_FAST_HIGH);
   }
 }
 
@@ -156,7 +177,7 @@ export async function getGasPrice() {
       return getFormattedSuggestions();
     },
     CACHE_TTL.price,
-    { staleWhileRevalidate: true, softTtl: 30000 }
+    { staleWhileRevalidate: true, softTtl: 30000 },
   );
 }
 

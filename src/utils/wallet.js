@@ -2,9 +2,17 @@ import { ref } from "vue";
 
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
-import { walletService } from "@/services/walletService";
+import { PROVIDERS } from "@/constants/walletProviders";
 import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 import { NEO_HASH } from "@/constants";
+
+let walletServicePromise = null;
+async function loadWalletService() {
+  if (!walletServicePromise) {
+    walletServicePromise = import("@/services/walletService").then((module) => module.walletService);
+  }
+  return walletServicePromise;
+}
 
 function getStoredWalletAddress() {
   if (typeof window === "undefined") return "";
@@ -38,7 +46,7 @@ function getStoredWalletProvider() {
 }
 
 function isNeoLineSessionActive() {
-  return getStoredWalletProvider() === walletService.PROVIDERS.NEOLINE;
+  return getStoredWalletProvider() === PROVIDERS.NEOLINE;
 }
 
 let _neoLineListenersSetup = false;
@@ -74,6 +82,7 @@ export async function initWallet() {
 
   // Passive restore only. Do not call interactive wallet APIs during app boot.
   connectedAccount.value = "";
+  const walletService = await loadWalletService();
 
   if (provider === "NeoLine") {
     const hasNeoLine = await waitForNeoLineN3(1000);
@@ -85,10 +94,10 @@ export async function initWallet() {
     try {
       setupNeoLineEventListeners();
       connectedAccount.value = storedAddress;
-      setStoredWalletAddress(walletService.PROVIDERS.NEOLINE, storedAddress);
-      walletService.hydrateSession(walletService.PROVIDERS.NEOLINE, {
+      setStoredWalletAddress(PROVIDERS.NEOLINE, storedAddress);
+      walletService.hydrateSession(PROVIDERS.NEOLINE, {
         address: storedAddress,
-        label: walletService.PROVIDERS.NEOLINE,
+        label: PROVIDERS.NEOLINE,
       });
     } catch (e) {
       clearStoredWalletState();
@@ -101,15 +110,15 @@ export async function initWallet() {
 
     try {
       connectedAccount.value = storedAddress;
-      setStoredWalletAddress(walletService.PROVIDERS.O3, storedAddress);
-      walletService.hydrateSession(walletService.PROVIDERS.O3, {
+      setStoredWalletAddress(PROVIDERS.O3, storedAddress);
+      walletService.hydrateSession(PROVIDERS.O3, {
         address: storedAddress,
-        label: walletService.PROVIDERS.O3,
+        label: PROVIDERS.O3,
       });
     } catch (e) {
       clearStoredWalletState();
     }
-  } else if (provider === walletService.PROVIDERS.ONEGATE) {
+  } else if (provider === PROVIDERS.ONEGATE) {
     if (!window.OneGate && !window.neo) {
       clearStoredWalletState();
       return;
@@ -117,20 +126,20 @@ export async function initWallet() {
 
     try {
       connectedAccount.value = storedAddress;
-      setStoredWalletAddress(walletService.PROVIDERS.ONEGATE, storedAddress);
-      walletService.hydrateSession(walletService.PROVIDERS.ONEGATE, {
+      setStoredWalletAddress(PROVIDERS.ONEGATE, storedAddress);
+      walletService.hydrateSession(PROVIDERS.ONEGATE, {
         address: storedAddress,
-        label: walletService.PROVIDERS.ONEGATE,
+        label: PROVIDERS.ONEGATE,
       });
     } catch (e) {
       clearStoredWalletState();
     }
-  } else if (provider === walletService.PROVIDERS.WALLETCONNECT) {
+  } else if (provider === PROVIDERS.WALLETCONNECT) {
     clearStoredWalletState();
-  } else if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+  } else if (provider === PROVIDERS.TESTNET_WIF) {
     try {
       const wif = sessionStorage.getItem("devTestWif") || "";
-      const account = await walletService.restoreSession(walletService.PROVIDERS.TESTNET_WIF, { wif });
+      const account = await walletService.restoreSession(PROVIDERS.TESTNET_WIF, { wif });
       if (account && account.address) {
         connectedAccount.value = account.address;
         sessionStorage.setItem("connectedWallet", account.address);
@@ -140,9 +149,9 @@ export async function initWallet() {
     } catch (e) {
       clearStoredWalletState();
     }
-  } else if (provider === walletService.PROVIDERS.NEON) {
+  } else if (provider === PROVIDERS.NEON) {
     try {
-      const account = await walletService.restoreSession(walletService.PROVIDERS.NEON);
+      const account = await walletService.restoreSession(PROVIDERS.NEON);
       if (account && account.address) {
         connectedAccount.value = account.address;
         localStorage.setItem("connectedWallet", account.address);
@@ -152,12 +161,12 @@ export async function initWallet() {
     } catch (e) {
       clearStoredWalletState();
     }
-  } else if (provider === walletService.PROVIDERS.WEB3AUTH) {
+  } else if (provider === PROVIDERS.WEB3AUTH) {
     try {
-      const account = await walletService.restoreSession(walletService.PROVIDERS.WEB3AUTH);
+      const account = await walletService.restoreSession(PROVIDERS.WEB3AUTH);
       if (account && account.address) {
         connectedAccount.value = account.address;
-        setStoredWalletAddress(walletService.PROVIDERS.WEB3AUTH, account.address);
+        setStoredWalletAddress(PROVIDERS.WEB3AUTH, account.address);
       } else {
         clearStoredWalletState();
       }
@@ -235,7 +244,7 @@ export async function connectWallet() {
       }
 
       connectedAccount.value = account.address;
-      localStorage.setItem("walletProvider", walletService.PROVIDERS.NEOLINE);
+      localStorage.setItem("walletProvider", PROVIDERS.NEOLINE);
       toast.success("Wallet connected: " + account.address.slice(0, 5) + "..." + account.address.slice(-4));
       return account.address;
     } catch (e) {
@@ -255,6 +264,7 @@ export async function disconnectWallet() {
 
 async function submitVote(candidatePubkey = null) {
   const toast = useToast();
+  const walletService = await loadWalletService();
   if (!walletService.isConnected) {
     toast.error("Please connect your wallet first via the header.");
     return;
@@ -305,6 +315,7 @@ export async function unvoteCandidate() {
 }
 
 export async function invokeContract(scriptHash, operation, args, signers) {
+  const walletService = await loadWalletService();
   if (!walletService.isConnected) {
     throw new Error("Wallet not connected");
   }

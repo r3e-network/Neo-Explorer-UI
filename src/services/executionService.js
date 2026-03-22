@@ -64,12 +64,12 @@ export const executionService = createService(
       // If Fura proxy failed, hit the native Node RPC directly
       if (!indexed && !legacy) {
         try {
-          const { rpc: neonRpc } = await import("@cityofzion/neon-js");
+          const { RpcClient } = await import("@r3e/neo-js-sdk");
           const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-            const client = new neonRpc.RPCClient(endpoint);
-            return client.getApplicationLog(txHash);
+            const client = new RpcClient(endpoint);
+            return client.getApplicationLog({ txid: txHash });
           });
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);

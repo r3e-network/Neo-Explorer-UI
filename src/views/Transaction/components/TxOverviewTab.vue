@@ -28,8 +28,15 @@
         <span v-else class="text-mid">UNKNOWN</span>
       </InfoRow>
 
-      <InfoRow v-if="vmState === 'FAULT'" label="Failure Reason" tooltip="NeoVM exception returned for failed execution">
-        <code v-if="failureReason" class="block max-w-full whitespace-pre-wrap break-all rounded bg-status-error-bg/60 px-2 py-1 text-xs text-status-error">
+      <InfoRow
+        v-if="vmState === 'FAULT'"
+        label="Failure Reason"
+        tooltip="NeoVM exception returned for failed execution"
+      >
+        <code
+          v-if="failureReason"
+          class="block max-w-full whitespace-pre-wrap break-all rounded bg-status-error-bg/60 px-2 py-1 text-xs text-status-error"
+        >
           {{ failureReason }}
         </code>
         <span v-else class="text-mid">No exception detail returned by node</span>
@@ -49,7 +56,14 @@
         </template>
         <template v-else-if="tx.status === 'pending' && tx.timestamp">
           <span class="text-amber-500 font-medium flex items-center gap-1.5">
-            <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
             Pending in Mempool for {{ formatAge(tx.timestamp) }}
           </span>
         </template>
@@ -57,9 +71,7 @@
       </InfoRow>
 
       <InfoRow label="Confirmations" tooltip="Number of blocks confirmed since this transaction">
-        <span
-          class="badge-soft rounded px-2 py-0.5 text-xs font-medium text-high"
-        >
+        <span class="badge-soft rounded px-2 py-0.5 text-xs font-medium text-high">
           {{ confirmations.toLocaleString() }} blocks
         </span>
       </InfoRow>
@@ -83,9 +95,17 @@
         <span v-else class="text-mid">Contract Invocation</span>
       </InfoRow>
 
-      <InfoRow v-if="allTransfers && allTransfers.length" label="Tokens Transferred" tooltip="Tokens sent during this transaction">
+      <InfoRow
+        v-if="allTransfers && allTransfers.length"
+        label="Tokens Transferred"
+        tooltip="Tokens sent during this transaction"
+      >
         <div class="space-y-3 mt-1">
-          <div v-for="(t, tIdx) in allTransfers" :key="'overview-xfer-' + tIdx" class="flex items-center flex-wrap gap-2 text-sm bg-surface-elevated px-3 py-2 rounded-lg border border-line-soft">
+          <div
+            v-for="(t, tIdx) in allTransfers"
+            :key="'overview-xfer-' + tIdx"
+            class="flex items-center flex-wrap gap-2 text-sm bg-surface-elevated px-3 py-2 rounded-lg border border-line-soft"
+          >
             <span class="text-low font-medium">From</span>
             <HashLink v-if="t.from" :hash="scriptHashToAddress(t.from)" type="address" class="max-w-[100px] truncate" />
             <span v-else class="text-mid italic text-xs">Mint</span>
@@ -95,11 +115,25 @@
             <span class="text-high font-semibold font-mono pl-2">For</span>
             <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
             <span class="badge-soft inline-flex items-center gap-1.5 px-2 py-1">
-              <img v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url" :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url" class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover" alt="" />
-                <img v-else :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
+              <img
+                v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url"
+                :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url"
+                class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover"
+                alt=""
+                loading="lazy"
+              />
+              <img
+                v-else
+                :src="getTokenLogo(t)"
+                alt="logo"
+                class="w-4 h-4 rounded-full object-cover bg-white/5"
+                loading="lazy"
+              />
               {{ t.tokenname || t.symbol || "Token" }}
             </span>
-            <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low">#{{ t.tokenId.length > 8 ? t.tokenId.slice(0,8)+'…' : t.tokenId }}</span>
+            <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low"
+              >#{{ t.tokenId.length > 8 ? t.tokenId.slice(0, 8) + "…" : t.tokenId }}</span
+            >
           </div>
         </div>
       </InfoRow>
@@ -119,8 +153,15 @@
       <InfoRow label="Signers" tooltip="Accounts that authorized this transaction and their authorization scope">
         <div v-if="tx.signers && tx.signers.length" class="space-y-2">
           <div v-for="(signer, idx) in tx.signers" :key="idx" class="flex items-center gap-2 flex-wrap">
-            <HashLink :hash="scriptHashToAddress(signer.account)" type="address" :truncated="false" :show-neo-chat="true" />
-            <span class="badge-soft text-[10px] uppercase font-semibold tracking-wide text-mid">{{ signer.scopes }}</span>
+            <HashLink
+              :hash="scriptHashToAddress(signer.account)"
+              type="address"
+              :truncated="false"
+              :show-neo-chat="true"
+            />
+            <span class="badge-soft text-[10px] uppercase font-semibold tracking-wide text-mid">{{
+              signer.scopes
+            }}</span>
           </div>
         </div>
         <span v-else class="text-mid">-</span>
@@ -128,10 +169,7 @@
     </div>
 
     <!-- Gas Breakdown (complex transactions) -->
-    <div
-      v-if="isComplexTx && enrichedTrace"
-      class="panel-muted mt-4 p-4"
-    >
+    <div v-if="isComplexTx && enrichedTrace" class="panel-muted mt-4 p-4">
       <GasBreakdown :executions="enrichedTrace?.executions ?? []" :total-gas="totalGas" :loading="enrichedLoading" />
     </div>
 
@@ -161,7 +199,11 @@
           <div class="soft-divider divide-y">
             <InfoRow label="Size" :value="`${tx.size || 0} bytes`" />
             <InfoRow label="Valid Until Block">
-              <router-link v-if="tx.validUntilBlock || tx.validuntilblock" :to="`/block-info/${tx.validUntilBlock || tx.validuntilblock}`" class="etherscan-link">
+              <router-link
+                v-if="tx.validUntilBlock || tx.validuntilblock"
+                :to="`/block-info/${tx.validUntilBlock || tx.validuntilblock}`"
+                class="etherscan-link"
+              >
                 #{{ tx.validUntilBlock || tx.validuntilblock }}
               </router-link>
               <span v-else class="text-mid">-</span>
@@ -205,22 +247,26 @@ const props = defineProps({
 });
 
 const supabaseMeta = ref({});
-watch(() => Array.isArray(props.transfers) ? props.transfers : [], async (newTransfers) => {
-  if (newTransfers && newTransfers.length) {
-    const hashes = newTransfers.map(t => t.contract || t.contractHash).filter(Boolean);
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
-    supabaseMeta.value = meta;
-  } else {
-    supabaseMeta.value = {};
-  }
-}, { immediate: true });
+watch(
+  () => (Array.isArray(props.transfers) ? props.transfers : []),
+  async (newTransfers) => {
+    if (newTransfers && newTransfers.length) {
+      const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
+      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      supabaseMeta.value = meta;
+    } else {
+      supabaseMeta.value = {};
+    }
+  },
+  { immediate: true },
+);
 
 defineEmits(["update:showMore"]);
 
 function getTokenLogo(t) {
   const hash = (t.contract || t.contractHash || "").toLowerCase();
   const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
-  return getTokenIcon(hash, isNep11 ? 'NEP11' : 'NEP17');
+  return getTokenIcon(hash, isNep11 ? "NEP11" : "NEP17");
 }
 
 function formatTransferAmount(t) {
@@ -265,10 +311,7 @@ const recipientTarget = computed(() => {
 
   if (tx.notifications?.length > 0) {
     const notificationContract =
-      tx.notifications[0]?.contract ||
-      tx.notifications[0]?.contractHash ||
-      tx.notifications[0]?.contracthash ||
-      "";
+      tx.notifications[0]?.contract || tx.notifications[0]?.contractHash || tx.notifications[0]?.contracthash || "";
     if (notificationContract) {
       return { hash: notificationContract, type: "contract" };
     }
@@ -276,10 +319,7 @@ const recipientTarget = computed(() => {
 
   if (props.allTransfers?.length > 0) {
     const transferTarget =
-      props.allTransfers[0]?.to ||
-      props.allTransfers[0]?.toAddress ||
-      props.allTransfers[0]?.receiver ||
-      "";
+      props.allTransfers[0]?.to || props.allTransfers[0]?.toAddress || props.allTransfers[0]?.receiver || "";
     const normalizedTransferTarget = String(transferTarget || "").trim();
     if (normalizedTransferTarget) {
       return {
@@ -295,7 +335,7 @@ const recipientTarget = computed(() => {
 function hasOracleResponseAttribute(tx) {
   return Boolean(
     tx?.attributes &&
-      tx.attributes.some((a) => a?.type === "OracleResponse" || a?.usage === "OracleResponse" || a?.type === 0x11)
+    tx.attributes.some((a) => a?.type === "OracleResponse" || a?.usage === "OracleResponse" || a?.type === 0x11),
   );
 }
 

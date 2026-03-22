@@ -253,7 +253,8 @@ const isSingleTransferFlow = computed(() => {
   return Boolean(transferText.value && transferText.value !== "—");
 });
 
-const now = useNow({ interval: 1000 });
+// Age labels don't need per-second precision; avoid one timer per row.
+const now = useNow({ interval: 10_000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const normalizeVmState = (value) => {

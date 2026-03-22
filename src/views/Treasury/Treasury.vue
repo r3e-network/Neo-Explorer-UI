@@ -131,7 +131,7 @@
                 <div
                   class="h-1.5 rounded-full transition-all duration-500 ease-out"
                   :class="group.color"
-                  :style="{ width: `${(group.neo / totalNeo) * 100}%` }"
+                  :style="groupWidthStyle(group)"
                 ></div>
               </div>
             </div>
@@ -240,7 +240,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
-import { rpc } from "@cityofzion/neon-js";
+import { RpcClient } from "@r3e/neo-js-sdk";
 import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
@@ -273,6 +273,10 @@ const groups = computed(() => {
   return [da, erik, ops].sort((a, b) => b.neo - a.neo);
 });
 
+function groupWidthStyle(group) {
+  return { width: `${(group.neo / totalNeo.value) * 100}%` };
+}
+
 function getGroupColor(name) {
   if (name.includes("Da Hongfei")) return "bg-blue-500";
   if (name.includes("Erik Zhang")) return "bg-purple-500";
@@ -292,14 +296,14 @@ async function loadPrices() {
 async function fetchTreasuryDataFromRpc() {
   const treasuryAddresses = getTreasuryKnownAddresses();
 
-  const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+  const rpcClient = new RpcClient(getRpcClientUrl());
   const BATCH_SIZE = 5;
   const results = [];
 
   for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
     const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
     const responses = await Promise.allSettled(
-      batch.map((item) => rpcClient.execute(new rpc.Query({ method: "getnep17balances", params: [item.address] }))),
+      batch.map((item) => rpcClient.getNep17Balances(item.address)),
     );
 
     batch.forEach((item, index) => {

@@ -42,9 +42,7 @@
         </div>
 
         <!-- Search + Info bar -->
-        <div
-          class="soft-divider flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-        >
+        <div class="soft-divider flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-mid text-sm">
             {{ activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT Collection List" }}
             <span v-if="totalCount > 0" class="text-low">({{ formatNumber(totalCount) }} total)</span>
@@ -102,26 +100,48 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
-              <tr
-                v-for="(token, index) in tokens"
-                :key="token.hash"
-                class="list-row group"
-              >
+              <tr v-for="(token, index) in tokens" :key="token.hash" class="list-row group">
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
                   <router-link :to="`/nep17-token-info/${token.hash}`" class="flex items-center gap-3">
-                    <img v-if="supabaseMeta[token.hash]?.logo_url" :src="supabaseMeta[token.hash].logo_url" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                    <img v-else-if="hasTokenIcon(token.hash)" :src="getTokenIcon(token.hash, 'NEP17')" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                    <div v-else
+                    <img
+                      v-if="supabaseMeta[token.hash]?.logo_url"
+                      :src="supabaseMeta[token.hash].logo_url"
+                      class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                      alt=""
+                      loading="lazy"
+                    />
+                    <img
+                      v-else-if="hasTokenIcon(token.hash)"
+                      :src="getTokenIcon(token.hash, 'NEP17')"
+                      class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                      alt=""
+                      loading="lazy"
+                    />
+                    <div
+                      v-else
                       class="soft-divider text-high flex h-8 w-8 items-center justify-center rounded-full border bg-slate-50 text-sm font-semibold dark:bg-slate-800/70"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1">
+                    <span
+                      class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1"
+                    >
                       {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Token" }}
-                      <svg v-if="supabaseMeta[token.hash]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                      <svg
+                        v-if="supabaseMeta[token.hash]?.is_verified"
+                        class="h-3.5 w-3.5 text-success"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
                     </span>
                   </router-link>
                 </td>
@@ -159,26 +179,48 @@
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
-              <tr
-                v-for="(token, index) in tokens"
-                :key="token.hash"
-                class="list-row group"
-              >
+              <tr v-for="(token, index) in tokens" :key="token.hash" class="list-row group">
                 <td class="table-cell-secondary">
                   {{ (currentPage - 1) * pageSize + index + 1 }}
                 </td>
                 <td class="table-cell">
                   <router-link :to="`/nft-token-info/${token.hash}`" class="flex items-center gap-3">
-                    <img v-if="supabaseMeta[token.hash]?.logo_url" :src="supabaseMeta[token.hash].logo_url" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                    <img v-else-if="hasTokenIcon(token.hash)" :src="getTokenIcon(token.hash, 'NEP11')" class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                    <div v-else
+                    <img
+                      v-if="supabaseMeta[token.hash]?.logo_url"
+                      :src="supabaseMeta[token.hash].logo_url"
+                      class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                      alt=""
+                      loading="lazy"
+                    />
+                    <img
+                      v-else-if="hasTokenIcon(token.hash)"
+                      :src="getTokenIcon(token.hash, 'NEP11')"
+                      class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                      alt=""
+                      loading="lazy"
+                    />
+                    <div
+                      v-else
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
                     >
                       {{ token.symbol?.charAt(0) || "?" }}
                     </div>
-                    <span class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1">
+                    <span
+                      class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1"
+                    >
                       {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Collection" }}
-                      <svg v-if="supabaseMeta[token.hash]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                      <svg
+                        v-if="supabaseMeta[token.hash]?.is_verified"
+                        class="h-3.5 w-3.5 text-success"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
                     </span>
                   </router-link>
                 </td>
@@ -200,10 +242,7 @@
         </div>
 
         <!-- Pagination -->
-        <div
-          v-if="!loading && tokens.length > 0"
-          class="soft-divider border-t px-4 py-3"
-        >
+        <div v-if="!loading && tokens.length > 0" class="soft-divider border-t px-4 py-3">
           <EtherscanPagination
             :page="currentPage"
             :total-pages="totalPages"
@@ -248,7 +287,16 @@ const activeTab = ref("nep17");
 const searchQuery = ref("");
 const VALID_TABS = ["nep17", "nep11"];
 
-const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalPages, loadPage } = usePagination(
+const {
+  items: tokens,
+  loading,
+  error,
+  totalCount,
+  currentPage,
+  pageSize,
+  totalPages,
+  loadPage,
+} = usePagination(
   (limit, skip) => {
     const query = searchQuery.value.trim();
     if (query) {
@@ -256,8 +304,8 @@ const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalP
         ? tokenService.searchNep11ByName(query, limit, skip)
         : tokenService.searchNep17ByName(query, limit, skip);
     }
-    return activeTab.value === "nep11" 
-      ? tokenService.getNep11List(limit, skip) 
+    return activeTab.value === "nep11"
+      ? tokenService.getNep11List(limit, skip)
       : tokenService.getNep17List(limit, skip);
   },
   {
@@ -266,13 +314,15 @@ const { items: tokens, loading, error, totalCount, currentPage, pageSize, totalP
       const tab = activeTab.value;
       if (query) {
         return getCacheKey(tab === "nep11" ? "token_nep11_search" : "token_nep17_search", {
-          name: query, limit, skip,
+          name: query,
+          limit,
+          skip,
         });
       }
       return getCacheKey(tab === "nep11" ? "token_nep11_list" : "token_nep17_list", { limit, skip });
     },
     errorMessage: t("errors.loadTokens"),
-  }
+  },
 );
 
 // --- Search debounce (auto-cleanup via useDebounceFn) ---
@@ -282,15 +332,19 @@ const { debouncedFn: handleSearchDebounced, cancel: cancelSearch } = useDebounce
 
 const supabaseMeta = ref({});
 
-watch(() => tokens.value, async (newTokens) => {
-  if (newTokens && newTokens.length) {
-    const hashes = newTokens.map(t => t.hash).filter(Boolean);
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
-    supabaseMeta.value = meta;
-  } else {
-    supabaseMeta.value = {};
-  }
-}, { immediate: true });
+watch(
+  () => tokens.value,
+  async (newTokens) => {
+    if (newTokens && newTokens.length) {
+      const hashes = newTokens.map((t) => t.hash).filter(Boolean);
+      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      supabaseMeta.value = meta;
+    } else {
+      supabaseMeta.value = {};
+    }
+  },
+  { immediate: true },
+);
 
 // --- Methods ---
 function formatSupply(token) {
@@ -332,7 +386,7 @@ watch(
       const validTab = VALID_TABS.includes(tab) ? tab : "nep17";
       if (validTab !== activeTab.value) activeTab.value = validTab;
     }
-  }
+  },
 );
 
 watch(
@@ -342,6 +396,6 @@ watch(
     currentPage.value = parsed;
     loadPage(parsed);
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>

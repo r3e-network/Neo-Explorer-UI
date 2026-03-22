@@ -31,6 +31,7 @@ const props = defineProps({
 
 const feeTrendCanvas = ref(null);
 let feeTrendChart = null;
+let chartConstructorPromise = null;
 
 function totalFee(block) {
   return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
@@ -43,17 +44,27 @@ function destroyChart() {
   }
 }
 
+async function getChartConstructor() {
+  if (!chartConstructorPromise) {
+    chartConstructorPromise = import("chart.js").then((mod) => mod.default);
+  }
+  return chartConstructorPromise;
+}
+
+function buildChartSeries() {
+  const sorted = [...props.blocks].reverse();
+  return {
+    labels: sorted.map((b) => `#${Number(b.index).toLocaleString()}`),
+    values: sorted.map((b) => totalFee(b) / GAS_DIVISOR),
+  };
+}
+
 async function createFeeTrendChart() {
   if (!feeTrendCanvas.value || !props.blocks.length) return;
-  destroyChart();
-
-  const Chart = (await import("chart.js")).default;
+  const Chart = await getChartConstructor();
   const ctx = feeTrendCanvas.value.getContext("2d");
   const colors = getChartColors();
-
-  const sorted = [...props.blocks].reverse();
-  const labels = sorted.map((b) => `#${Number(b.index).toLocaleString()}`);
-  const values = sorted.map((b) => totalFee(b) / GAS_DIVISOR);
+  const { labels, values } = buildChartSeries();
 
   feeTrendChart = new Chart(ctx, {
     type: "line",
@@ -110,9 +121,21 @@ async function createFeeTrendChart() {
 }
 
 async function renderChart() {
-  destroyChart();
   await nextTick();
-  createFeeTrendChart();
+  if (!props.blocks.length) {
+    destroyChart();
+    return;
+  }
+
+  const { labels, values } = buildChartSeries();
+  if (feeTrendChart) {
+    feeTrendChart.data.labels = labels;
+    feeTrendChart.data.datasets[0].data = values;
+    feeTrendChart.update();
+    return;
+  }
+
+  await createFeeTrendChart();
 }
 
 watch(

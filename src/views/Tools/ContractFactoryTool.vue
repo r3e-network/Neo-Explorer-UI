@@ -212,7 +212,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
-import { wallet } from "@cityofzion/neon-js";
+import { Account } from "@r3e/neo-js-sdk";
 import { GAS_HASH } from "@/constants";
 
 const toast = useToast();
@@ -357,7 +357,7 @@ async function deployFactoryContract() {
     // For this demonstration, we simulate the factory deployment signature payload.
     // Let's do a self-transfer with a remark containing the template instructions to simulate deployment on-chain.
 
-    const userScriptHash = new wallet.Account(connectedAccount.value).scriptHash;
+    const userScriptHash = new Account(connectedAccount.value).scriptHash;
 
     const result = await walletService.invoke({
       scriptHash: GAS_HASH, // GAS

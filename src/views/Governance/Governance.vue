@@ -260,10 +260,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { rpc } from "@cityofzion/neon-js";
+import { RpcClient } from "@r3e/neo-js-sdk";
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { getDoraCommitteeUrl } from "@/utils/dora";
+import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
 import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wallet";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -427,7 +427,7 @@ async function loadCandidates() {
   loading.value = true;
   error.value = "";
   try {
-    const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+    const rpcClient = new RpcClient(getRpcClientUrl());
 
     // Determine the environment string for Dora API
     const env = getCurrentEnv().toLowerCase();
@@ -435,7 +435,7 @@ async function loadCandidates() {
 
     const isTestnet = doraEnv !== "mainnet";
 
-    const rpcRes = await rpcClient.execute(new rpc.Query({ method: "getcandidates", params: [] }));
+    const rpcRes = await rpcClient.getCandidates();
 
     let rawCandidates = [];
     if (rpcRes && rpcRes.length > 0) {
@@ -454,7 +454,7 @@ async function loadCandidates() {
     let doraRows = [];
     if (!isTestnet) {
       try {
-        doraRows = await fetch(getDoraCommitteeUrl(NET_ENV.Mainnet)).then((r) => (r.ok ? r.json() : []));
+        doraRows = await fetchDoraCommittee(NET_ENV.Mainnet);
       } catch (fallbackErr) {
         if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
       }
@@ -504,20 +504,9 @@ async function loadCandidates() {
       .sort((a, b) => Number(b.votes) - Number(a.votes));
 
     // Fetch liveness data passively in the background
-    fetch(`/api/liveness?network=${doraEnv}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.success && Array.isArray(data.liveness)) {
-          const map = {};
-          data.liveness.forEach((l) => {
-            map[l.nodeIndex] = l;
-          });
-          livenessData.value = map;
-        }
-      })
-      .catch((e) => {
-        if (import.meta.env.DEV) console.warn("Failed to fetch liveness data", e);
-      });
+    fetchDoraLiveness(doraEnv).then((map) => {
+      livenessData.value = map;
+    });
   } catch (err) {
     console.error("Failed to load candidates", err);
     error.value = err.message || "Failed to fetch candidates from RPC node.";
@@ -533,17 +522,16 @@ async function loadCurrentVoteState() {
   }
 
   try {
-    const rpcClient = new rpc.RPCClient(getRpcClientUrl());
+    const rpcClient = new RpcClient(getRpcClientUrl());
     const scriptHash = addressToScriptHash(account.value);
     if (!scriptHash) {
       currentVotePublicKey.value = "";
       return;
     }
-    const result = await rpcClient.execute(
-      new rpc.Query({
-        method: "invokefunction",
-        params: [NEO_HASH, "getAccountState", [{ type: "Hash160", value: scriptHash }]],
-      }),
+    const result = await rpcClient.invokeFunction(
+      NEO_HASH,
+      "getAccountState",
+      [{ type: "Hash160", value: scriptHash }]
     );
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;

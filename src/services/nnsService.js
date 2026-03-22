@@ -1,15 +1,16 @@
 import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, NET_ENV } from "../utils/env";
-import { rpc as neonRpc, sc, wallet, u } from "@cityofzion/neon-js";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { NNS_HASH } from "@/constants";
+import { addressToScriptHash, reverseHex, scriptHashToAddress } from "@/utils/neoHelpers";
 
 const NNS_CONTRACT_HASH = NNS_HASH; // Mainnet
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
+const loadSdk = () => import("@r3e/neo-js-sdk");
 
 const getMatrixContractHash = (env = getCurrentEnv()) =>
   env === NET_ENV.TestT5
@@ -47,13 +48,13 @@ const normalizeHashLookupValue = (value) => {
 };
 
 const extractResolvedTarget = (value) => {
-  const hash = normalizeHash160WithPrefix(value);
-  if (hash) return hash;
-
   const text = String(value || "").trim();
   if (text.length === 34 && text.startsWith("N")) {
     return text;
   }
+
+  const hash = normalizeHash160WithPrefix(value);
+  if (hash) return hash;
   return null;
 };
 
@@ -98,7 +99,7 @@ const decodeHash160Address = (value) => {
     const hex = Array.from(raw)
       .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
       .join("");
-    return wallet.getAddressFromScriptHash(u.reverseHex(hex));
+    return scriptHashToAddress(reverseHex(hex));
   } catch {
     return null;
   }
@@ -122,7 +123,8 @@ const decodePropertiesMap = (stackItem) => {
 
 const invokeContract = async (env, contractHash, operation, args = []) => {
   return callWithRpcEndpointFallback(env, async (endpoint) => {
-    const rpcClient = new neonRpc.RPCClient(endpoint);
+    const { RpcClient } = await loadSdk();
+    const rpcClient = new RpcClient(endpoint);
     return rpcClient.invokeFunction(contractHash, operation, args);
   });
 };
@@ -220,7 +222,7 @@ export const nnsService = {
     const contractHash = getMatrixContractHash(env);
 
     const availability = await invokeContract(env, contractHash, "isAvailable", [
-      sc.ContractParam.string(normalizedDomain),
+      { type: "String", value: normalizedDomain },
     ]);
     const available = decodeBooleanStackItem(availability?.stack?.[0]);
     if (available) {
@@ -235,8 +237,8 @@ export const nnsService = {
 
     const tokenId = btoa(normalizedDomain);
     const [ownerRes, propertiesRes, resolvedAddress] = await Promise.all([
-      invokeContract(env, contractHash, "ownerOf", [sc.ContractParam.byteArray(tokenId)]).catch(() => null),
-      invokeContract(env, contractHash, "properties", [sc.ContractParam.byteArray(tokenId)]).catch(() => null),
+      invokeContract(env, contractHash, "ownerOf", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
+      invokeContract(env, contractHash, "properties", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
       this.resolveMatrixDomain(normalizedDomain),
     ]);
 
@@ -325,7 +327,7 @@ export const nnsService = {
         }
 
         try {
-          const scriptHash = normalizedHash || normalizeHashLookupValue(wallet.getScriptHashFromAddress(target));
+          const scriptHash = normalizedHash || normalizeHashLookupValue(addressToScriptHash(target));
           if (!scriptHash) return null;
           const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
 
@@ -414,11 +416,12 @@ export const nnsService = {
       key,
       async () => {
         try {
+          const { RpcClient } = await loadSdk();
           const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
-            const rpcClient = new neonRpc.RPCClient(endpoint);
+            const rpcClient = new RpcClient(endpoint);
             return rpcClient.invokeFunction(NNS_CONTRACT_HASH, "resolve", [
-              sc.ContractParam.string(domain),
-              sc.ContractParam.integer(16),
+              { type: "String", value: domain },
+              { type: "Integer", value: 16 },
             ]);
           });
 
@@ -458,8 +461,8 @@ export const nnsService = {
       async () => {
         try {
           const res = await invokeContract(env, MATRIX_CONTRACT_HASH, "resolve", [
-            sc.ContractParam.string(domain),
-            sc.ContractParam.integer(16),
+            { type: "String", value: domain },
+            { type: "Integer", value: 16 },
           ]);
 
           if (res.state === "HALT" && res.stack && res.stack.length > 0) {

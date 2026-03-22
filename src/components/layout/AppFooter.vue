@@ -51,10 +51,7 @@
             </a>
           </div>
           <div
-            class="soft-divider text-mid mt-4 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs"
-            :style="{
-              background: 'var(--surface-elevated)',
-            }"
+            class="soft-divider text-mid mt-4 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs bg-[var(--surface-elevated)]"
           >
             Powered by <strong class="text-neo-green">Neo N3</strong>
           </div>

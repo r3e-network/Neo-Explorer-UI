@@ -415,7 +415,8 @@ async function handleSearch() {
   }
 }
 
-import { sc, wallet } from "@cityofzion/neon-js";
+import { ContractParam } from "@r3e/neo-js-sdk";
+import { addressToScriptHash } from "@/utils/neoHelpers";
 import { invokeContract } from "@/utils/wallet";
 
 async function registerDomain() {
@@ -427,9 +428,9 @@ async function registerDomain() {
   actionLoading.value = true;
   try {
     const domain = searchResult.value.domain;
-    const scriptHash = wallet.getScriptHashFromAddress(account.value);
+    const scriptHash = addressToScriptHash(account.value);
 
-    const params = [sc.ContractParam.string(domain), sc.ContractParam.hash160(scriptHash)];
+    const params = [ContractParam.string(domain), ContractParam.hash160(scriptHash)];
 
     const txid = await invokeContract(NNS_CONTRACT_HASH, "register", params, [
       { account: scriptHash, scopes: "CalledByEntry" },
@@ -454,17 +455,17 @@ async function transferDomain() {
   actionLoading.value = true;
   try {
     const domain = searchResult.value.domain;
-    const fromScriptHash = wallet.getScriptHashFromAddress(account.value);
-    const toScriptHash = wallet.getScriptHashFromAddress(transferRecipient.value);
+    const fromScriptHash = addressToScriptHash(account.value);
+    const toScriptHash = addressToScriptHash(transferRecipient.value);
 
     const tokenIdHex = Array.from(domain)
       .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
       .join("");
 
     const params = [
-      sc.ContractParam.hash160(toScriptHash),
-      sc.ContractParam.byteArray(tokenIdHex),
-      sc.ContractParam.any(),
+      ContractParam.hash160(toScriptHash),
+      ContractParam.byteArray(tokenIdHex),
+      ContractParam.any(),
     ];
 
     const txid = await invokeContract(NNS_CONTRACT_HASH, "transfer", params, [

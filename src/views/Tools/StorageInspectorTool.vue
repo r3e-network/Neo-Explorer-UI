@@ -97,7 +97,7 @@
 import { ref, computed } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { rpc, u } from "@cityofzion/neon-js";
+import { RpcClient, base642hex, hexstring2str, reverseHex, BigInteger, str2hexstring } from "@r3e/neo-js-sdk";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
@@ -115,7 +115,7 @@ const isValidInput = computed(() => contractHash.value.trim() && storageKey.valu
 const hexResult = computed(() => {
   if (!rawBase64Result.value) return "";
   try {
-    return u.base642hex(rawBase64Result.value);
+    return base642hex(rawBase64Result.value);
   } catch (e) {
     return "";
   }
@@ -124,7 +124,7 @@ const hexResult = computed(() => {
 const stringResult = computed(() => {
   if (!hexResult.value) return "";
   try {
-    return u.hexstring2str(hexResult.value);
+    return hexstring2str(hexResult.value);
   } catch (e) {
     return "";
   }
@@ -134,8 +134,8 @@ const intResult = computed(() => {
   if (!hexResult.value) return "0";
   try {
     // Neo integers are little-endian in storage
-    const reversedHex = u.reverseHex(hexResult.value);
-    return u.BigInteger.fromTwos(reversedHex).toString();
+    const reversedHex = reverseHex(hexResult.value);
+    return BigInteger.fromTwos(reversedHex).toString();
   } catch (e) {
     return "Invalid Integer";
   }
@@ -151,9 +151,9 @@ async function fetchStorage() {
   try {
     let keyHex = "";
     if (keyFormat.value === "string") {
-      keyHex = u.str2hexstring(storageKey.value);
+      keyHex = str2hexstring(storageKey.value);
     } else if (keyFormat.value === "base64") {
-      keyHex = u.base642hex(storageKey.value);
+      keyHex = base642hex(storageKey.value);
     } else {
       keyHex = storageKey.value.replace(/^0x/, '');
     }
@@ -161,7 +161,7 @@ async function fetchStorage() {
     const hash = contractHash.value.startsWith('0x') ? contractHash.value : '0x' + contractHash.value;
 
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
+      const rpcClient = new RpcClient(endpoint);
       return rpcClient.getStorage(hash, keyHex);
     });
     rawBase64Result.value = result || "";

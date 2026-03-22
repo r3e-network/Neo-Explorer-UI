@@ -3,6 +3,16 @@ import { tokenService } from "@/services";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
+const CONTRACT_HASH_ALIASES = [
+  "contract",
+  "contractHash",
+  "contracthash",
+  "contract_hash",
+  "asset",
+  "assetHash",
+  "assethash",
+];
+
 /**
  * Composable for lazily loading and caching transfer value summaries
  * for transaction list rows (NEP-17 / NEP-11 lookups by tx hash).
@@ -13,16 +23,10 @@ export function useTransferSummary() {
 
   function extractContractHash(item) {
     if (!item || typeof item !== "object") return null;
-    return (
-      item.contract ||
-      item.contractHash ||
-      item.contracthash ||
-      item.contract_hash ||
-      item.asset ||
-      item.assetHash ||
-      item.assethash ||
-      null
-    );
+    for (const key of CONTRACT_HASH_ALIASES) {
+      if (item[key]) return item[key];
+    }
+    return null;
   }
 
   function setSummary(hash, summary) {
@@ -54,24 +58,13 @@ export function useTransferSummary() {
 
   function extractRecipientAddress(item) {
     if (!item || typeof item !== "object") return "";
-    const candidate =
-      item.to ||
-      item.toAddress ||
-      item.toaddress ||
-      item.receiver ||
-      item.recipient ||
-      "";
+    const candidate = item.to || item.toAddress || item.toaddress || item.receiver || item.recipient || "";
     return String(candidate || "").trim();
   }
 
   function extractSenderAddress(item) {
     if (!item || typeof item !== "object") return "";
-    const candidate =
-      item.from ||
-      item.fromAddress ||
-      item.fromaddress ||
-      item.sender ||
-      "";
+    const candidate = item.from || item.fromAddress || item.fromaddress || item.sender || "";
     return String(candidate || "").trim();
   }
 
@@ -93,9 +86,7 @@ export function useTransferSummary() {
     }
 
     const senderSet = new Set(
-      rows
-        .map((item) => normalizeComparableAddress(extractSenderAddress(item)))
-        .filter(Boolean)
+      rows.map((item) => normalizeComparableAddress(extractSenderAddress(item))).filter(Boolean),
     );
 
     const eligibleTransfers = rows.filter((item) => {
@@ -108,15 +99,11 @@ export function useTransferSummary() {
     const recipient = extractRecipientAddress(preferred);
     const uniqueRecipients = [
       ...new Set(
-        eligibleTransfers
-          .map((item) => normalizeComparableAddress(extractRecipientAddress(item)))
-          .filter(Boolean)
+        eligibleTransfers.map((item) => normalizeComparableAddress(extractRecipientAddress(item))).filter(Boolean),
       ),
     ];
-    const targetCount =
-      uniqueRecipients.length || normalizeTotalCount(totalCount, rows.length || 1);
-    const transferCount =
-      eligibleTransfers.length || normalizeTotalCount(totalCount, rows.length || 1);
+    const targetCount = uniqueRecipients.length || normalizeTotalCount(totalCount, rows.length || 1);
+    const transferCount = eligibleTransfers.length || normalizeTotalCount(totalCount, rows.length || 1);
 
     return { preferred, recipient, targetCount, transferCount };
   }
@@ -160,8 +147,8 @@ export function useTransferSummary() {
               type: "NEP17",
             },
             nep17Selection.targetCount,
-            nep17Selection.recipient
-          )
+            nep17Selection.recipient,
+          ),
         );
         return;
       }
@@ -185,8 +172,8 @@ export function useTransferSummary() {
               type: "NEP11",
             },
             nep11Selection.targetCount,
-            nep11Selection.recipient
-          )
+            nep11Selection.recipient,
+          ),
         );
         return;
       }

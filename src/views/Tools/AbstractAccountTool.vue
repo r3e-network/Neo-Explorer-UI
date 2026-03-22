@@ -351,7 +351,7 @@ function handleNetworkChange() {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || await import('@cityofzion/neon-js');
+    neonJs = window.Neon || await import('@r3e/neo-js-sdk');
     if (!uuid.value && !isEvmWallet.value) {
       generateUUID();
     } else if (isEvmWallet.value && walletService.account?.pubKey) {

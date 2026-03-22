@@ -1,7 +1,11 @@
 <template>
   <div>
     <Breadcrumb
-      :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Council Governance' }]"
+      :items="[
+        { label: $t('nav.home'), to: '/homepage' },
+        { label: $t('tools.title'), to: '/tools' },
+        { label: $t('tools.governance.breadcrumb') },
+      ]"
     />
 
     <div
@@ -21,7 +25,7 @@
               <span
                 class="inline-flex items-center rounded-full border border-amber-200/80 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:border-amber-900/40 dark:bg-slate-950/50 dark:text-amber-400"
               >
-                Public Oversight
+                {{ $t("tools.governance.publicOversight") }}
               </span>
               <span
                 class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-low dark:bg-slate-950/50"
@@ -32,7 +36,7 @@
                 v-if="committeeMultiSig"
                 class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-low dark:bg-slate-950/50"
               >
-                {{ threshold }} of {{ committeeSize }} quorum
+                {{ $t("tools.governance.quorum", { threshold, size: committeeSize }) }}
               </span>
             </div>
 
@@ -50,10 +54,9 @@
                 </svg>
               </div>
               <div class="min-w-0">
-                <h1 class="page-title">Council Governance</h1>
+                <h1 class="page-title">{{ $t("tools.governance.title") }}</h1>
                 <p class="page-subtitle max-w-3xl">
-                  The public command surface for Neo council decisions. Review official proposal packets, monitor quorum
-                  pressure, and step into the signing workflow only when you need to act.
+                  {{ $t("tools.governance.headerSubtitle") }}
                 </p>
               </div>
             </div>
@@ -62,25 +65,31 @@
               <div
                 class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
               >
-                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Proposal Queue</div>
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">
+                  {{ $t("tools.governance.proposalQueue") }}
+                </div>
                 <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ pendingRequestCount }}</div>
                 <p class="mt-1 text-sm text-mid">{{ requestQueueHeadline }}</p>
               </div>
               <div
                 class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
               >
-                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Signature Pressure</div>
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">
+                  {{ $t("tools.governance.signaturePressure") }}
+                </div>
                 <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ collectedSignatureCount }}</div>
-                <p class="mt-1 text-sm text-mid">Council witness fragments currently stored across the active queue.</p>
+                <p class="mt-1 text-sm text-mid">{{ $t("tools.governance.signaturePressureDesc") }}</p>
               </div>
               <div
                 class="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
               >
-                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Ready To Broadcast</div>
+                <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">
+                  {{ $t("tools.governance.readyToBroadcast") }}
+                </div>
                 <div class="mt-2 text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
                   {{ readyToBroadcastCount }}
                 </div>
-                <p class="mt-1 text-sm text-mid">Packets that already crossed quorum and can be submitted on-chain.</p>
+                <p class="mt-1 text-sm text-mid">{{ $t("tools.governance.readyToBroadcastDesc") }}</p>
               </div>
             </div>
           </div>
@@ -89,19 +98,27 @@
             <div
               class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
             >
-              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">Committee Snapshot</div>
+              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">
+                {{ $t("tools.governance.committeeSnapshot") }}
+              </div>
               <div v-if="committeeMultiSig" class="space-y-3">
                 <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Multi-Sig</div>
+                  <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
+                    {{ $t("tools.governance.committeeMultiSig") }}
+                  </div>
                   <div class="mt-2 font-mono text-xs break-all text-high">{{ committeeMultiSig.address }}</div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Threshold</div>
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
+                      {{ $t("tools.governance.threshold") }}
+                    </div>
                     <div class="mt-1 text-xl font-black text-high">{{ threshold }}</div>
                   </div>
                   <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Size</div>
+                    <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
+                      {{ $t("tools.governance.committeeSize") }}
+                    </div>
                     <div class="mt-1 text-xl font-black text-high">{{ committeeSize }}</div>
                   </div>
                 </div>
@@ -110,17 +127,18 @@
                 v-else
                 class="rounded-2xl border border-dashed border-line-soft bg-surface-muted/50 p-4 text-sm text-mid"
               >
-                Committee state is still loading.
+                {{ $t("tools.governance.committeeLoading") }}
               </div>
             </div>
 
             <div
               class="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
             >
-              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">Action Gate</div>
+              <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-3">
+                {{ $t("tools.governance.actionGate") }}
+              </div>
               <p class="text-sm text-mid leading-relaxed">
-                Anyone can review council proposals without connecting a wallet. A wallet is only required to create
-                proposals, add signatures, or broadcast.
+                {{ $t("tools.governance.actionGateDesc") }}
               </p>
               <div class="mt-4 flex flex-wrap gap-3">
                 <button
@@ -128,7 +146,7 @@
                   disabled
                   class="inline-flex items-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-low cursor-not-allowed"
                 >
-                  Connect in Header
+                  {{ $t("tools.governance.connectInHeader") }}
                 </button>
                 <button
                   v-else-if="!canCreateProposal"
@@ -136,11 +154,11 @@
                   class="inline-flex items-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-low cursor-not-allowed"
                   :title="
                     isGovernanceLabModeAvailable
-                      ? 'Connect a signer that participates in your custom lab signer set'
-                      : 'Only active council nodes can create proposals'
+                      ? $t('tools.governance.labSignerTitle')
+                      : $t('tools.governance.notCouncilNodeTitle')
                   "
                 >
-                  Not a Council Node
+                  {{ $t("tools.governance.notCouncilNode") }}
                 </button>
                 <button
                   v-else
@@ -150,7 +168,7 @@
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                   </svg>
-                  New Proposal
+                  {{ $t("tools.governance.newProposal") }}
                 </button>
               </div>
             </div>

@@ -260,7 +260,7 @@ import {
 } from "@/utils/env";
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
-import { walletService } from "@/services/walletService";
+import { PROVIDERS } from "@/constants/walletProviders";
 import { useToast } from "vue-toastification";
 import { useChatSession } from "@/composables/useChatSession";
 
@@ -280,6 +280,7 @@ const {
 const NETWORKS = NETWORK_OPTIONS;
 
 let searchServiceModulePromise = null;
+let walletServiceModulePromise = null;
 
 const mobileMenuOpen = ref(false);
 const networkDropdownOpen = ref(false);
@@ -309,6 +310,13 @@ const mobilePanelWalletLabel = computed(() =>
     : "Connect Wallet"
 );
 
+async function loadWalletService() {
+  if (!walletServiceModulePromise) {
+    walletServiceModulePromise = import("@/services/walletService").then((module) => module.walletService);
+  }
+  return walletServiceModulePromise;
+}
+
 function openDropdown(name) {
   if (dropdownTimeout) clearTimeout(dropdownTimeout);
   activeDropdown.value = name;
@@ -336,50 +344,50 @@ function isProviderAvailable(provider) {
 }
 
 function getProviderUnavailableReason(provider) {
-  if (provider === walletService.PROVIDERS.WALLETCONNECT) {
+  if (provider === PROVIDERS.WALLETCONNECT) {
     return "Open WalletConnect website to learn how to pair a supported wallet";
   }
-  if (provider === walletService.PROVIDERS.NEON) {
+  if (provider === PROVIDERS.NEON) {
     return "Open Neon Wallet download page";
   }
-  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+  if (provider === PROVIDERS.TESTNET_WIF) {
     return "Switch the explorer to testnet to use local WIF testing";
   }
-  if (provider === walletService.PROVIDERS.ONEGATE) {
+  if (provider === PROVIDERS.ONEGATE) {
     return "Open OneGate install page";
   }
-  if (provider === walletService.PROVIDERS.O3) {
+  if (provider === PROVIDERS.O3) {
     return "Open O3 download page";
   }
-  if (provider === walletService.PROVIDERS.NEOLINE) {
+  if (provider === PROVIDERS.NEOLINE) {
     return "Open NeoLine install page";
   }
-  if (provider === walletService.PROVIDERS.EVM_WALLET) {
+  if (provider === PROVIDERS.EVM_WALLET) {
     return "Open MetaMask install page";
   }
   return "Wallet is currently unavailable";
 }
 
 function getProviderInstallUrl(provider) {
-  if (provider === walletService.PROVIDERS.NEOLINE) {
+  if (provider === PROVIDERS.NEOLINE) {
     return "https://neoline.io/en/";
   }
-  if (provider === walletService.PROVIDERS.O3) {
+  if (provider === PROVIDERS.O3) {
     return "https://www.o3.network/";
   }
-  if (provider === walletService.PROVIDERS.ONEGATE) {
+  if (provider === PROVIDERS.ONEGATE) {
     return "https://onegate.space/";
   }
-  if (provider === walletService.PROVIDERS.WALLETCONNECT) {
+  if (provider === PROVIDERS.WALLETCONNECT) {
     return "https://walletconnect.network/";
   }
-  if (provider === walletService.PROVIDERS.NEON) {
+  if (provider === PROVIDERS.NEON) {
     return "https://neon.coz.io/";
   }
-  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+  if (provider === PROVIDERS.TESTNET_WIF) {
     return "";
   }
-  if (provider === walletService.PROVIDERS.EVM_WALLET) {
+  if (provider === PROVIDERS.EVM_WALLET) {
     return "https://metamask.io/download/";
   }
   return "";
@@ -391,7 +399,7 @@ function resetDevWifForm() {
 }
 
 async function handleConnect(provider) {
-  if (provider === walletService.PROVIDERS.TESTNET_WIF) {
+  if (provider === PROVIDERS.TESTNET_WIF) {
     if (!isProviderAvailable(provider)) {
       toast.info(getProviderUnavailableReason(provider));
       return;
@@ -411,6 +419,7 @@ async function handleConnect(provider) {
   showWalletModal.value = false;
   walletLoading.value = true;
   try {
+     const walletService = await loadWalletService();
      const result = await walletService.connect(provider);
      if (result?.uri && result?.approval) {
         wcUri.value = result.uri;
@@ -459,14 +468,15 @@ async function handleConnect(provider) {
 async function handleDevWifConnect() {
   walletLoading.value = true;
   try {
-    const result = await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, {
+    const walletService = await loadWalletService();
+    const result = await walletService.connect(PROVIDERS.TESTNET_WIF, {
       wif: devWifInput.value.trim(),
     });
     if (result?.address) {
       connectedAccount.value = result.address;
       if (result.persistSession === "session") {
         sessionStorage.setItem("connectedWallet", result.address);
-        sessionStorage.setItem("walletProvider", walletService.PROVIDERS.TESTNET_WIF);
+        sessionStorage.setItem("walletProvider", PROVIDERS.TESTNET_WIF);
         sessionStorage.setItem("devTestWif", devWifInput.value.trim());
       }
       resetDevWifForm();
@@ -488,11 +498,13 @@ async function toggleWallet() {
   try {
     if (connectedAccount.value) {
       await disconnectWallet();
+      const walletService = await loadWalletService();
       walletService.disconnect();
       localStorage.removeItem("walletProvider");
       clearChatSession();
       return;
     }
+    const walletService = await loadWalletService();
     availableProviders.value = walletService.getAvailableProviders();
     supportedProviders.value = typeof walletService.getSupportedProviders === "function"
       ? walletService.getSupportedProviders()

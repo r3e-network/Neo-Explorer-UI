@@ -8,10 +8,7 @@
     </div>
 
     <!-- Empty -->
-    <div
-      v-else-if="!contractGasData || contractGasData.length === 0"
-      class="text-mid py-6 text-center text-sm"
-    >
+    <div v-else-if="!contractGasData || contractGasData.length === 0" class="text-mid py-6 text-center text-sm">
       No gas data available
     </div>
 
@@ -34,7 +31,7 @@
           :key="idx"
           class="h-full transition-all duration-300"
           :class="barColorClass(idx)"
-          :style="{ width: item.percentage + '%' }"
+          :style="barWidthStyle(item)"
           :title="`${item.name}: ${item.percentage.toFixed(1)}%`"
         />
       </div>
@@ -137,6 +134,10 @@ const contractGasData = computed(() => {
 
   return entries;
 });
+
+function barWidthStyle(item) {
+  return { width: item.percentage + "%" };
+}
 
 function barColorClass(idx) {
   return barColors[SEGMENT_COLORS[idx % SEGMENT_COLORS.length]];

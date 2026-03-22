@@ -3,22 +3,21 @@
     <div class="border-b border-line-soft bg-surface/30 px-6 py-6 md:px-8">
       <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 class="text-xl font-black text-high tracking-tight">Proposal Queue</h2>
+          <h2 class="text-xl font-black text-high tracking-tight">{{ $t("tools.governance.proposalQueueTitle") }}</h2>
           <p class="mt-1.5 text-sm text-mid max-w-2xl leading-relaxed">
-            Live council packets awaiting signatures or final broadcast. Each card tracks quorum progress, signer
-            activity, and the exact transaction packet under review.
+            {{ $t("tools.governance.proposalQueueDesc") }}
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
           <span
             class="inline-flex items-center rounded-full border border-line-soft bg-surface-muted px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low"
           >
-            {{ pendingRequestCount }} active
+            {{ pendingRequestCount }} {{ $t("tools.governance.active") }}
           </span>
           <span
             class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400"
           >
-            {{ readyToBroadcastCount }} ready
+            {{ readyToBroadcastCount }} {{ $t("tools.governance.ready") }}
           </span>
         </div>
       </div>
@@ -40,23 +39,22 @@
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
           ></path>
         </svg>
-        <p class="text-lg font-bold text-high">No pending council proposals found.</p>
+        <p class="text-lg font-bold text-high">{{ $t("tools.governance.noPendingProposals") }}</p>
         <p class="mt-2 text-sm text-mid max-w-md mx-auto">
-          The queue is clear right now. When a new governance packet is created, it will appear here with quorum
-          tracking and signer status.
+          {{ $t("tools.governance.noPendingProposalsDesc") }}
         </p>
-        <span v-if="!connectedAccount" class="mt-2 block text-sm font-medium text-mid"
-          >Connect wallet from the top bar to create</span
-        >
-        <span v-else-if="!canCreateProposal" class="text-mid mt-2 text-sm font-medium"
-          >Only council nodes can create proposals</span
-        >
+        <span v-if="!connectedAccount" class="mt-2 block text-sm font-medium text-mid">{{
+          $t("tools.governance.connectWalletToCreate")
+        }}</span>
+        <span v-else-if="!canCreateProposal" class="text-mid mt-2 text-sm font-medium">{{
+          $t("tools.governance.onlyCouncilCanCreate")
+        }}</span>
         <button
           v-else
           @click="emit('create-proposal')"
           class="text-primary-500 hover:underline mt-2 text-sm font-medium"
         >
-          Create the first one
+          {{ $t("tools.governance.createFirstOne") }}
         </button>
       </div>
       <div v-else class="space-y-4">
@@ -71,7 +69,7 @@
                 <span
                   class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50"
                 >
-                  Proposal #{{ req.id }}
+                  {{ $t("tools.governance.proposalId", { id: req.id }) }}
                 </span>
                 <span
                   class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
@@ -86,12 +84,16 @@
                 <span
                   class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50"
                 >
-                  {{ getRequestInvocationCount(req) }} call<span v-if="getRequestInvocationCount(req) > 1">s</span>
+                  {{
+                    $tc("tools.governance.callCount", getRequestInvocationCount(req), {
+                      count: getRequestInvocationCount(req),
+                    })
+                  }}
                 </span>
               </div>
 
               <h3 class="text-lg font-black tracking-tight text-high">
-                {{ req.description || req.method || "Council Proposal" }}
+                {{ req.description || req.method || $t("tools.governance.councilProposal") }}
               </h3>
               <p class="mt-1.5 text-sm text-mid leading-relaxed">
                 {{ getRequestMethodSummary(req) }}
@@ -99,27 +101,36 @@
 
               <div class="mt-4 grid gap-3 md:grid-cols-3">
                 <div class="rounded-2xl border border-line-soft bg-surface p-4">
-                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Target Surface</div>
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">
+                    {{ $t("tools.governance.targetSurface") }}
+                  </div>
                   <div class="mt-1 font-mono text-xs break-all text-high">{{ getRequestTargetSummary(req) }}</div>
                 </div>
                 <div class="rounded-2xl border border-line-soft bg-surface p-4">
-                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Created</div>
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">
+                    {{ $t("tools.governance.created") }}
+                  </div>
                   <div class="mt-1 text-sm font-bold text-high">{{ formatRequestCreatedAt(req.created_at) }}</div>
                 </div>
                 <div class="rounded-2xl border border-line-soft bg-surface p-4">
-                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">Transaction Hash</div>
+                  <div class="text-[10px] font-black uppercase tracking-[0.15em] text-low">
+                    {{ $t("tools.governance.transactionHash") }}
+                  </div>
                   <div class="mt-1 font-mono text-xs break-all text-high">
-                    {{ req.params?.hash || "Unavailable" }}
+                    {{ req.params?.hash || $t("tools.governance.unavailable") }}
                   </div>
                 </div>
               </div>
 
               <div class="mt-4">
                 <div class="mb-2 flex items-center justify-between gap-3 text-xs">
-                  <span class="font-semibold text-high">Signature Progress</span>
-                  <span class="text-mid"
-                    >{{ getRequestSignatureCount(req) }} / {{ req.signers_required }} approvals captured</span
-                  >
+                  <span class="font-semibold text-high">{{ $t("tools.governance.signatureProgress") }}</span>
+                  <span class="text-mid">{{
+                    $t("tools.governance.approvalsCaptured", {
+                      count: getRequestSignatureCount(req),
+                      required: req.signers_required,
+                    })
+                  }}</span>
                 </div>
                 <div class="h-2 overflow-hidden rounded-full border border-line-soft bg-surface-muted shadow-inner">
                   <div
@@ -129,7 +140,7 @@
                         ? 'bg-gradient-to-r from-emerald-400 to-emerald-500'
                         : 'bg-gradient-to-r from-amber-400 to-amber-500'
                     "
-                    :style="{ width: `${getRequestProgressPercent(req)}%` }"
+                    :style="requestProgressBarStyle(req)"
                   ></div>
                 </div>
               </div>
@@ -138,20 +149,24 @@
                 <RouterLink
                   :to="{ name: 'governance-proposal-detail', params: { id: req.id } }"
                   class="font-semibold text-primary-500 hover:underline"
-                  >Open Proposal Page</RouterLink
+                  >{{ $t("tools.governance.openProposalPage") }}</RouterLink
                 >
                 <button @click="emit('view-details', req)" class="font-semibold text-primary-500 hover:underline">
-                  View JSON / Details
+                  {{ $t("tools.governance.viewJsonDetails") }}
                 </button>
               </div>
             </div>
 
             <div class="rounded-3xl border border-line-soft bg-white/80 p-5 shadow-sm dark:bg-slate-950/60">
-              <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">Action Panel</div>
+              <div class="text-[10px] font-black uppercase tracking-[0.18em] text-low">
+                {{ $t("tools.governance.actionPanel") }}
+              </div>
               <div class="mt-3 text-3xl font-black tracking-tight text-high">
                 {{ getRequestSignatureCount(req) }}
               </div>
-              <div class="text-sm text-mid">of {{ req.signers_required }} required signatures</div>
+              <div class="text-sm text-mid">
+                {{ $t("tools.governance.ofRequiredSignatures", { required: req.signers_required }) }}
+              </div>
 
               <div class="mt-4 space-y-2">
                 <div v-if="req.status === 'PENDING'">
@@ -160,7 +175,7 @@
                       @click="emit('broadcast', req)"
                       class="w-full px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
                     >
-                      Broadcast Tx
+                      {{ $t("tools.governance.broadcastTx") }}
                     </button>
                   </div>
                   <div v-else class="space-y-2">
@@ -169,13 +184,13 @@
                       @click="emit('sign', req)"
                       class="w-full px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors"
                     >
-                      Sign Proposal
+                      {{ $t("tools.governance.signProposal") }}
                     </button>
                     <button
                       @click="emit('add-witness', req)"
                       class="w-full px-4 py-2.5 bg-surface-muted text-high border border-line-soft text-sm font-bold rounded-xl hover:bg-surface transition-colors"
                     >
-                      Add Witness
+                      {{ $t("tools.governance.addWitness") }}
                     </button>
                     <span
                       v-if="hasSigned(req)"
@@ -184,21 +199,21 @@
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                       </svg>
-                      Signed
+                      {{ $t("tools.governance.signed") }}
                     </span>
                   </div>
                 </div>
                 <div v-if="req.status === 'EXECUTED' && req.tx_hash">
-                  <a :href="'/tx/' + req.tx_hash" class="text-xs font-semibold text-primary-500 hover:underline"
-                    >View Tx</a
-                  >
+                  <a :href="'/tx/' + req.tx_hash" class="text-xs font-semibold text-primary-500 hover:underline">{{
+                    $t("tools.governance.viewTx")
+                  }}</a>
                 </div>
               </div>
             </div>
           </div>
 
           <div v-if="req.signatures?.length > 0" class="mt-4 pt-3 border-t border-line-soft">
-            <div class="text-xs font-semibold text-mid mb-2">Approved By</div>
+            <div class="text-xs font-semibold text-mid mb-2">{{ $t("tools.governance.approvedBy") }}</div>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="sig in req.signatures"
@@ -232,9 +247,12 @@
 
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+
+const { t } = useI18n();
 
 const props = defineProps({
   requests: { type: Array, default: () => [] },
@@ -286,15 +304,15 @@ function getRequestMethodSummary(req) {
       .join(" • ");
   }
 
-  return String(req?.method || "No method metadata available.");
+  return String(req?.method || t("tools.governance.noMethodMetadata"));
 }
 
 function getRequestTargetSummary(req) {
   if (Array.isArray(req?.params?.target_contracts) && req.params.target_contracts.length > 1) {
-    return `${req.params.target_contracts.length} contract targets`;
+    return t("tools.governance.contractTargets", { count: req.params.target_contracts.length });
   }
 
-  return req?.target_contract || "Unavailable";
+  return req?.target_contract || t("tools.governance.unavailable");
 }
 
 function getRequestProgressPercent(req) {
@@ -303,9 +321,13 @@ function getRequestProgressPercent(req) {
   return Math.min(100, (getRequestSignatureCount(req) / required) * 100);
 }
 
+function requestProgressBarStyle(req) {
+  return { width: `${getRequestProgressPercent(req)}%` };
+}
+
 function formatRequestCreatedAt(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
+  if (Number.isNaN(date.getTime())) return t("tools.governance.unknownDate");
   return date.toLocaleDateString();
 }
 
@@ -353,7 +375,7 @@ function getCouncilIdentity(address) {
   const resolved = resolveCouncilIdentity(address, props.councilIdentityMap);
   return {
     ...resolved,
-    name: resolved.name === address ? "Council Signer" : resolved.name,
+    name: resolved.name === address ? t("tools.governance.councilSigner") : resolved.name,
     logo: resolveCouncilLogo(address, resolved.logo),
     logoSources: buildCouncilLogoSources(address, resolved.logo),
   };

@@ -1,12 +1,12 @@
 <template>
   <div
     v-if="request"
-    data-testid="governance-sign-modal-overlay"
+    :data-testid="testId('overlay')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
   >
     <div
-      data-testid="governance-sign-modal-panel"
+      :data-testid="testId('panel')"
       class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
     >
       <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
@@ -21,7 +21,7 @@
               ></path>
             </svg>
           </div>
-          <h2 class="text-xl font-bold text-high tracking-tight">Sign Proposal</h2>
+          <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.governance.signProposalTitle") }}</h2>
         </div>
         <button
           @click="$emit('close')"
@@ -33,7 +33,7 @@
           </svg>
         </button>
       </div>
-      <div data-testid="governance-sign-modal-body" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
+      <div :data-testid="testId('body')" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
         <UnsignedTransactionViewer
           v-if="request.params?.unsigned_tx"
           :transaction-hex="request.params.unsigned_tx"
@@ -42,7 +42,7 @@
         />
 
         <div class="space-y-3">
-          <label class="block text-sm font-bold text-high">Option 1: Wallet Signature</label>
+          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionWallet") }}</label>
           <button
             @click="autoSignTx"
             :disabled="isSigning"
@@ -64,9 +64,9 @@
                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               ></path>
             </svg>
-            {{ isSigning ? "Awaiting Wallet..." : "Sign with Connected Wallet" }}
+            {{ isSigning ? $t("tools.governance.awaitingWallet") : $t("tools.governance.signWithWallet") }}
           </button>
-          <p class="text-[11px] text-mid text-center">Requires a wallet capable of signing raw bytes.</p>
+          <p class="text-[11px] text-mid text-center">{{ $t("tools.governance.walletSignNote") }}</p>
         </div>
 
         <div class="relative py-2">
@@ -74,25 +74,25 @@
           <div class="relative flex justify-center">
             <span
               class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full"
-              >OR</span
+              >{{ $t("tools.governance.or") }}</span
             >
           </div>
         </div>
 
         <div class="space-y-3">
-          <label class="block text-sm font-bold text-high">Option 2: Manual Entry</label>
+          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionManual") }}</label>
           <input
             v-model="manualSignature"
             type="text"
             class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Paste 64-byte signature hex here..."
+            :placeholder="$t('tools.governance.manualSigPlaceholder')"
           />
           <button
             @click="submitManualSignature"
             :disabled="!manualSignature || manualSignature.length < 128"
             class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Manual Signature
+            {{ $t("tools.governance.submitManualSig") }}
           </button>
         </div>
 
@@ -101,46 +101,50 @@
           <div class="relative flex justify-center">
             <span
               class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full"
-              >OR</span
+              >{{ $t("tools.governance.or") }}</span
             >
           </div>
         </div>
 
         <div class="space-y-3">
-          <label class="block text-sm font-bold text-high">Option 3: External Witness Script</label>
+          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionExternalWitness") }}</label>
           <input
             v-model="externalSignerAddress"
             type="text"
             class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Signer address (optional if public key is provided)"
+            :placeholder="$t('tools.governance.signerAddressPlaceholder')"
           />
           <input
             v-model="externalSignerPublicKey"
             type="text"
             class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Signer public key (optional)"
+            :placeholder="$t('tools.governance.signerPubkeyPlaceholder')"
           />
           <input
             v-model="externalInvocationScript"
             type="text"
             class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Invocation script hex from external signer"
+            :placeholder="$t('tools.governance.invocationScriptPlaceholder')"
           />
           <input
             v-model="externalVerificationScript"
             type="text"
             class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Verification script hex (optional)"
+            :placeholder="$t('tools.governance.verificationScriptPlaceholder')"
           />
           <button
             @click="submitExternalWitness"
             :disabled="!externalInvocationScript.trim() || isSubmittingExternalWitness"
             class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ isSubmittingExternalWitness ? "Submitting Witness..." : "Submit External Witness" }}
+            {{
+              isSubmittingExternalWitness
+                ? $t("tools.governance.submittingWitness")
+                : $t("tools.governance.submitExternalWitness")
+            }}
           </button>
           <p class="text-[11px] text-mid text-center">
-            Use this when a council member signed elsewhere and sent you the witness script directly.
+            {{ $t("tools.governance.externalWitnessNote") }}
           </p>
         </div>
       </div>
@@ -159,6 +163,7 @@ import { useToast } from "vue-toastification";
 
 const props = defineProps({
   request: { type: Object, default: null },
+  testIdPrefix: { type: String, default: "governance-sign-modal" },
 });
 
 const emit = defineEmits(["close", "signed"]);
@@ -174,6 +179,10 @@ const externalSignerPublicKey = ref("");
 const externalInvocationScript = ref("");
 const externalVerificationScript = ref("");
 const isSubmittingExternalWitness = ref(false);
+
+function testId(suffix) {
+  return `${props.testIdPrefix}-${suffix}`;
+}
 
 watch(
   () => props.request,
@@ -191,7 +200,7 @@ watch(
 
 async function ensureNeonJs() {
   if (!neonJs) {
-    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
   }
 }
 

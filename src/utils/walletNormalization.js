@@ -1,4 +1,4 @@
-import { wallet as neonWallet } from "@cityofzion/neon-js";
+import { addressToScriptHash } from "./neoHelpers";
 
 const HASH160_HEX = /^[0-9a-fA-F]{40}$/;
 const HASH160_HEX_PREFIXED = /^0x[0-9a-fA-F]{40}$/;
@@ -24,7 +24,9 @@ export function normalizeHash160(value) {
   }
 
   try {
-    return new neonWallet.Account(input).scriptHash.toLowerCase();
+    const scriptHash = addressToScriptHash(input);
+    if (!scriptHash) return value;
+    return scriptHash.replace(/^0x/i, "").toLowerCase();
   } catch {
     return value;
   }

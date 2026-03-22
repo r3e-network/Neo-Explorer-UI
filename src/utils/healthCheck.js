@@ -164,11 +164,11 @@ const checkNetworkEndpoints = async (network) => {
     }
 
     // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && import.meta.env.MODE !== "test") {
       console.warn(`[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`);
     }
   } catch (e) {
-    if (import.meta.env.DEV) console.warn(`[HealthCheck] Failed for ${network.env}`, e);
+    if (import.meta.env.DEV && import.meta.env.MODE !== "test") console.warn(`[HealthCheck] Failed for ${network.env}`, e);
   }
 };
 

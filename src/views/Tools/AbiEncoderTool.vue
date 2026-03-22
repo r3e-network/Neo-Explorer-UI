@@ -174,7 +174,7 @@
 import { ref } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { sc, u, wallet } from "@cityofzion/neon-js";
+import { ScriptBuilder, ContractParam, hex2base64, Account } from "@r3e/neo-js-sdk";
 import { disassembleScript, extractContractInvocation } from "@/utils/scriptDisassembler";
 
 const toast = useToast();
@@ -213,7 +213,7 @@ function encodeScript() {
         let val = p.value;
         if (p.type === 'Hash160') {
            if (val.startsWith('N')) {
-              val = new wallet.Account(val).scriptHash;
+              val = new Account(val).scriptHash;
            } else if (val.startsWith('0x')) {
               val = val.replace(/^0x/, '');
            }
@@ -224,17 +224,17 @@ function encodeScript() {
         } else if (p.type === 'Boolean') {
            val = val === 'true' || val === '1';
         }
-        return sc.ContractParam.fromJson({ type: p.type, value: val });
+        return ContractParam.fromJson({ type: p.type, value: val });
       } catch (err) {
         throw new Error(`Invalid format for Parameter ${index + 1} (${p.type})`);
       }
     });
     
-    const sb = new sc.ScriptBuilder();
+    const sb = new ScriptBuilder();
     sb.emitAppCall(hash, method, args);
     
     const hex = sb.build();
-    const base64 = u.hex2base64(hex);
+    const base64 = hex2base64(hex);
     
     encodedResult.value = { hex, base64 };
     toast.success("Script successfully encoded!");
@@ -251,7 +251,7 @@ function decodeScript() {
     
     if (decodeFormat.value === "hex") {
       const cleanHex = input.replace(/^0x/, '');
-      base64Script = u.hex2base64(cleanHex);
+      base64Script = hex2base64(cleanHex);
     } else {
       base64Script = input;
     }

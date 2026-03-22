@@ -1,8 +1,10 @@
-import { tx } from "@cityofzion/neon-js";
+import { Tx, WitnessScope } from "@r3e/neo-js-sdk";
 import { bytesToBase64, hexToBytes, scriptHashToAddress } from "@/utils/neoHelpers";
 
 function normalizeHex(value = "") {
-  return String(value || "").trim().replace(/^0x/i, "");
+  return String(value || "")
+    .trim()
+    .replace(/^0x/i, "");
 }
 
 function sumFixed8Values(left = "0", right = "0") {
@@ -19,12 +21,12 @@ function getScopeLabels(scopeValue) {
     return ["None"];
   }
 
-  if (numeric === tx.WitnessScope.Global) {
+  if (numeric === WitnessScope.Global) {
     return ["Global"];
   }
 
-  return Object.entries(tx.WitnessScope)
-    .filter(([, value]) => Number.isInteger(value) && value > 0 && value !== tx.WitnessScope.Global)
+  return Object.entries(WitnessScope)
+    .filter(([, value]) => Number.isInteger(value) && value > 0 && value !== WitnessScope.Global)
     .filter(([, value]) => (numeric & value) === value)
     .map(([label]) => label);
 }
@@ -54,7 +56,7 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
   if (!normalized) return null;
 
   try {
-    const transaction = tx.Transaction.deserialize(normalized);
+    const transaction = Tx.deserialize(normalized);
     const rawHex = normalizeHex(transaction.serialize(false));
     const scriptHex = normalizeHex(transaction?.script?.toString?.() || "");
     const signers = Array.isArray(transaction.signers)

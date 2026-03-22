@@ -254,6 +254,8 @@ const expandedExecs = reactive({});
 const enrichedTrace = ref(null);
 const enrichedLoading = ref(false);
 
+let activeTraceRequestId = 0;
+
 function toggleExec(index) {
   expandedExecs[index] = !expandedExecs[index];
 }
@@ -305,11 +307,15 @@ const execExceptions = computed(() => {
 });
 
 async function loadTrace() {
+  const requestId = (activeTraceRequestId += 1);
+  const txHash = props.txHash;
+
   loading.value = true;
   error.value = null;
 
   try {
-    const data = await executionService.getExecutionTrace(props.txHash);
+    const data = await executionService.getExecutionTrace(txHash);
+    if (requestId !== activeTraceRequestId) return;
     appLog.value = data;
 
     if (!data) {
@@ -326,18 +332,22 @@ async function loadTrace() {
     });
 
     // Load enriched trace for summary and gas breakdown
-    loadEnrichedTrace();
+    void loadEnrichedTrace({ requestId, txHash });
   } catch (err) {
+    if (requestId !== activeTraceRequestId) return;
     error.value = err?.message ?? "Failed to fetch execution trace";
   } finally {
-    loading.value = false;
+    if (requestId === activeTraceRequestId) {
+      loading.value = false;
+    }
   }
 }
 
-async function loadEnrichedTrace() {
+async function loadEnrichedTrace({ requestId = activeTraceRequestId, txHash = props.txHash } = {}) {
   enrichedLoading.value = true;
   try {
-    const data = await executionService.getEnrichedTrace(props.txHash);
+    const data = await executionService.getEnrichedTrace(txHash);
+    if (requestId !== activeTraceRequestId) return;
     enrichedTrace.value = data;
     // Rebuild callTree from enriched data to include steps/contractCalls
     if (data?.executions && isComplex.value) {
@@ -354,7 +364,9 @@ async function loadEnrichedTrace() {
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
   } finally {
-    enrichedLoading.value = false;
+    if (requestId === activeTraceRequestId) {
+      enrichedLoading.value = false;
+    }
   }
 }
 
@@ -362,6 +374,9 @@ watch(
   toRef(props, "txHash"),
   () => {
     if (props.preloaded && props.enrichedData) {
+      activeTraceRequestId += 1;
+      loading.value = false;
+      error.value = null;
       applyPreloadedData(props.enrichedData);
     } else {
       loadTrace();
@@ -374,6 +389,7 @@ watch(
   () => props.enrichedData,
   (newData) => {
     if (props.preloaded && newData) {
+      activeTraceRequestId += 1;
       applyPreloadedData(newData);
     }
   },

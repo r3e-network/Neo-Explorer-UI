@@ -125,7 +125,7 @@
 import { ref } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { rpc, tx, u, wallet } from "@cityofzion/neon-js";
+import { RpcClient, Tx, base642hex, hex2base64, Account } from "@r3e/neo-js-sdk";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
@@ -162,10 +162,10 @@ async function estimateGas() {
     if (scriptFormat.value === "hex") {
       hexScript = input.replace(/^0x/, '');
     } else {
-      hexScript = u.base642hex(input);
+      hexScript = base642hex(input);
     }
     
-    const base64Script = u.hex2base64(hexScript);
+    const base64Script = hex2base64(hexScript);
     
     // Normalize Signers
     const invokeSigners = [];
@@ -173,18 +173,18 @@ async function estimateGas() {
     
     if (signers.value.length === 0) {
        // Dummy fallback to calculate payload sizes
-       const dummyAcc = new wallet.Account();
+       const dummyAcc = new Account();
        accounts.push(dummyAcc);
        invokeSigners.push({
            account: dummyAcc.scriptHash,
-           scopes: tx.WitnessScope.CalledByEntry
+           scopes: Tx.WitnessScope.CalledByEntry
        });
     } else {
        for (const s of signers.value) {
            let val = s.trim();
            if (!val) continue;
            if (val.startsWith('N')) {
-               val = new wallet.Account(val).scriptHash;
+               val = new Account(val).scriptHash;
            } else if (val.startsWith('0x')) {
                val = val.replace(/^0x/, '');
            }
@@ -192,17 +192,17 @@ async function estimateGas() {
            // we need dummy accounts with these scriptHashes to build the dummy tx? 
            // Neon-js requires actual private keys to attach a valid witness signature for exact byte sizing.
            // We will just use new empty Accounts since a signature is exactly 64 bytes regardless of the key used.
-           accounts.push(new wallet.Account()); 
+           accounts.push(new Account()); 
        }
     }
     
     toast.info("Simulating execution...");
     const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
+      const rpcClient = new RpcClient(endpoint);
       const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
 
       // Build a dummy transaction for precise network-fee sizing.
-      const txn = new tx.Transaction({
+      const txn = new Tx.Transaction({
         signers: invokeSigners,
         validUntilBlock: await rpcClient.getBlockCount() + 1000,
         script: hexScript,

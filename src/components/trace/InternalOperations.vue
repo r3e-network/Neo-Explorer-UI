@@ -214,38 +214,47 @@ const props = defineProps({
 
 const tokenDecimalsMap = ref({});
 
-watch(
-  () => props.enrichedTrace,
-  async (trace) => {
-    if (!trace?.executions) return;
+const contractHashesWithOperations = computed(() => {
+  const trace = props.enrichedTrace;
+  if (!trace?.executions) return [];
 
+  const hashes = new Set();
+  trace.executions.forEach((exec) => {
+    const ops = Array.isArray(exec?.operations) ? exec.operations : [];
+    ops.forEach((op) => {
+      const hash = String(op?.contract || "").trim().toLowerCase();
+      if (!hash) return;
+      if (NATIVE_CONTRACTS[hash]) return;
+      hashes.add(hash);
+    });
+  });
+
+  return [...hashes].sort();
+});
+
+watch(
+  contractHashesWithOperations,
+  async (hashes) => {
     const fetchPromises = [];
 
-    for (const exec of trace.executions) {
-      if (!exec.operations) continue;
-      for (const op of exec.operations) {
-        if (!op.contract || NATIVE_CONTRACTS[op.contract.toLowerCase()]) continue;
-
-        const hash = op.contract.toLowerCase();
-        if (tokenDecimalsMap.value[hash] === undefined) {
-          tokenDecimalsMap.value[hash] = 0; // default while fetching
-          fetchPromises.push(
-            tokenService
-              .getByHash(hash)
-              .then((t) => {
-                if (t && typeof t.decimals !== "undefined") {
-                  tokenDecimalsMap.value[hash] = Number(t.decimals);
-                }
-              })
-              .catch((_e) => {}),
-          );
-        }
-      }
-    }
+    hashes.forEach((hash) => {
+      if (tokenDecimalsMap.value[hash] !== undefined) return;
+      tokenDecimalsMap.value[hash] = 0; // default while fetching
+      fetchPromises.push(
+        tokenService
+          .getByHash(hash)
+          .then((t) => {
+            if (t && typeof t.decimals !== "undefined") {
+              tokenDecimalsMap.value[hash] = Number(t.decimals);
+            }
+          })
+          .catch(() => {}),
+      );
+    });
 
     await Promise.all(fetchPromises);
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
 const showAll = ref(false);

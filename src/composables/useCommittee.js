@@ -1,11 +1,9 @@
 import { ref, getCurrentInstance, onBeforeUnmount, onMounted } from "vue";
 import { rpc } from "@/services/api";
-import { cachedRequest } from "@/services/cache";
 import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
-import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from "@/utils/dora";
+import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
-import { addressToScriptHash, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
-import { wallet } from "@cityofzion/neon-js";
+import { addressToScriptHash, publicKeyToAddress, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
@@ -18,7 +16,10 @@ let committeeNetworkListener = null;
 let committeeNetworkListenerConsumers = 0;
 let latestLoadCommittee = null;
 
-const normalizeMetaKey = (value) => String(value || "").trim().toLowerCase();
+const normalizeMetaKey = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
 const NEOFS_LOGO_GATEWAY = "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc";
@@ -146,11 +147,8 @@ const deriveValidatorAddress = (validator) => {
 
   const publickey = getValidatorPublicKey(validator);
   if (!publickey) return null;
-  try {
-    return new wallet.Account(publickey).address;
-  } catch {
-    return null;
-  }
+  const derived = publicKeyToAddress(publickey);
+  return derived && derived !== publickey ? derived : null;
 };
 
 const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
@@ -237,7 +235,7 @@ const processCommitteeMetadata = (data) => {
         ...item,
         pubkey: item.pubkey || item.public_key || item.publicKey,
         scripthash: item.scripthash || item.address || "",
-      }))
+      })),
     );
   }
 
@@ -267,12 +265,7 @@ const loadCommitteeMetadata = async () => {
   let doraData = [];
   if (!isTestnet) {
     try {
-      const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
-      doraData = await cachedRequest(
-        getDoraCommitteeCacheKey(NET_ENV.Mainnet),
-        () => fetch(url).then(r => r.ok ? r.json() : []),
-        300000 // 5 mins
-      );
+      doraData = await fetchDoraCommittee(NET_ENV.Mainnet);
     } catch (e) {
       if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
     }
@@ -292,12 +285,13 @@ const loadCommitteeMetadata = async () => {
   }
 
   doraMetadata.value = mergedMap;
-  
-  return { 
-    loaded: doraResult.loaded || indexerResult.loaded, 
-    topConsensusValidators: indexerResult.topConsensusValidators.length > 0 
-      ? indexerResult.topConsensusValidators 
-      : doraResult.topConsensusValidators
+
+  return {
+    loaded: doraResult.loaded || indexerResult.loaded,
+    topConsensusValidators:
+      indexerResult.topConsensusValidators.length > 0
+        ? indexerResult.topConsensusValidators
+        : doraResult.topConsensusValidators,
   };
 };
 
@@ -340,10 +334,7 @@ export function useCommittee() {
     }
 
     const doraResult = await doraPromise;
-    if (
-      !validatorsLoaded &&
-      doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT
-    ) {
+    if (!validatorsLoaded && doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
       // Only use metadata-derived ordering as fallback when RPC validator set is unavailable.
       // block.primary index must map to the RPC validator ordering for correct validator/logo display.
       validators.value = doraResult.topConsensusValidators;
@@ -471,12 +462,8 @@ export function useCommittee() {
     for (const v of validators.value) {
       const publickey = getValidatorPublicKey(v);
       if (!publickey) continue;
-      try {
-        const acc = new wallet.Account(publickey);
-        if (acc.address === address) return true;
-      } catch (_e) {
-        /* ignore */
-      }
+      const derived = publicKeyToAddress(publickey);
+      if (derived && derived === address) return true;
     }
     return false;
   };

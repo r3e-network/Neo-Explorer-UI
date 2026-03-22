@@ -82,8 +82,15 @@
                   :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url"
                   class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover"
                   alt=""
+                  loading="lazy"
                 />
-                <img v-else :src="getTokenLogo(t)" alt="logo" class="w-4 h-4 rounded-full object-cover bg-white/5" />
+                <img
+                  v-else
+                  :src="getTokenLogo(t)"
+                  alt="logo"
+                  class="w-4 h-4 rounded-full object-cover bg-white/5"
+                  loading="lazy"
+                />
                 {{ t.tokenname || t.symbol || "Unknown" }}
               </span>
             </td>

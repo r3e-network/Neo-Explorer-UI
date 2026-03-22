@@ -44,29 +44,48 @@ function onIntersect(entries) {
   }
 }
 
-onMounted(() => {
-  if (sentinelRef.value && "IntersectionObserver" in window) {
-    observer = new IntersectionObserver(onIntersect, {
-      rootMargin: `${props.threshold}px`,
-      threshold: 0,
-    });
-    observer.observe(sentinelRef.value);
+function disconnectObserver() {
+  if (observer) {
+    observer.disconnect();
+    observer = null;
   }
+}
+
+function ensureObserver() {
+  if (typeof window === "undefined") return;
+  if (!("IntersectionObserver" in window)) return;
+  if (!sentinelRef.value) {
+    disconnectObserver();
+    return;
+  }
+  if (!props.hasMore) {
+    disconnectObserver();
+    return;
+  }
+
+  disconnectObserver();
+
+  observer = new IntersectionObserver(onIntersect, {
+    rootMargin: `${props.threshold}px`,
+    threshold: 0,
+  });
+  observer.observe(sentinelRef.value);
+}
+
+onMounted(() => {
+  ensureObserver();
 });
 
 onUnmounted(() => {
-  if (observer) {
-    observer.disconnect();
-  }
+  disconnectObserver();
 });
 
 watch(
-  () => props.hasMore,
-  (newVal) => {
-    if (!newVal && observer) {
-      observer.disconnect();
-    }
-  }
+  [() => props.hasMore, () => props.threshold, sentinelRef],
+  () => {
+    ensureObserver();
+  },
+  { immediate: true },
 );
 </script>
 

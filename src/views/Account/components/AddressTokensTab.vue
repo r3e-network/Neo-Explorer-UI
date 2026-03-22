@@ -22,20 +22,29 @@
             <th class="table-header-cell">Token</th>
             <th class="table-header-cell">Standard</th>
             <th class="table-header-cell-right">Balance</th>
-                        <th class="table-header-cell">Contract</th>
+            <th class="table-header-cell">Contract</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
-          <tr
-            v-for="asset in sortedAssets"
-            :key="assetKey(asset)"
-            class="list-row group"
-          >
+          <tr v-for="asset in sortedAssets" :key="assetKey(asset)" class="list-row group">
             <td class="table-cell">
               <div class="flex items-center gap-2">
-                <img v-if="supabaseMeta[assetHash(asset)]?.logo_url" :src="supabaseMeta[assetHash(asset)].logo_url" class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                <img v-else-if="hasTokenIcon(assetHash(asset))" :src="getTokenIcon(assetHash(asset), assetStandard(asset))" class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white" alt="" />
-                <span v-else
+                <img
+                  v-if="supabaseMeta[assetHash(asset)]?.logo_url"
+                  :src="supabaseMeta[assetHash(asset)].logo_url"
+                  class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                  alt=""
+                  loading="lazy"
+                />
+                <img
+                  v-else-if="hasTokenIcon(assetHash(asset))"
+                  :src="getTokenIcon(assetHash(asset), assetStandard(asset))"
+                  class="h-6 w-6 rounded-full object-cover ring-1 ring-line-soft bg-white"
+                  alt=""
+                  loading="lazy"
+                />
+                <span
+                  v-else
                   class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white"
                   :class="tokenColor(assetDisplayName(asset))"
                 >
@@ -43,7 +52,18 @@
                 </span>
                 <span class="text-high text-sm font-medium flex items-center gap-1">
                   {{ assetDisplayName(asset) }}
-                  <svg v-if="supabaseMeta[assetHash(asset)]?.is_verified" class="h-3.5 w-3.5 text-success" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <svg
+                    v-if="supabaseMeta[assetHash(asset)]?.is_verified"
+                    class="h-3.5 w-3.5 text-success"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
                 </span>
               </div>
             </td>
@@ -53,7 +73,7 @@
             <td class="table-cell-right">
               {{ assetBalance(asset) }}
             </td>
-                        <td class="table-cell">
+            <td class="table-cell">
               <router-link
                 v-if="assetHash(asset)"
                 :to="assetTokenRoute(asset)"
@@ -89,22 +109,21 @@ const props = defineProps({
 
 const supabaseMeta = ref({});
 
-watch(() => props.assets, async (newAssets) => {
-  if (newAssets && newAssets.length) {
-    const hashes = newAssets.map(a => assetHash(a)).filter(Boolean);
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
-    supabaseMeta.value = meta;
-  } else {
-    supabaseMeta.value = {};
-  }
-}, { immediate: true });
+watch(
+  () => props.assets,
+  async (newAssets) => {
+    if (newAssets && newAssets.length) {
+      const hashes = newAssets.map((a) => assetHash(a)).filter(Boolean);
+      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      supabaseMeta.value = meta;
+    } else {
+      supabaseMeta.value = {};
+    }
+  },
+  { immediate: true },
+);
 
 defineEmits(["retry"]);
-
-
-
-
-
 
 function assetHash(asset) {
   return asset?.hash || asset?.asset || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
@@ -125,7 +144,9 @@ function assetDisplayName(asset) {
 }
 
 function normalizeAssetHash(hash) {
-  const normalized = String(hash || "").trim().toLowerCase();
+  const normalized = String(hash || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) return "";
   return normalized.startsWith("0x") ? normalized : `0x${normalized}`;
 }
@@ -166,16 +187,22 @@ function assetTokenRoute(asset) {
 
 const sortedAssets = computed(() =>
   [...props.assets].sort((a, b) => {
-    const decA = assetDecimals(a) ?? 0;
-    const decB = assetDecimals(b) ?? 0;
-    const valA = Number(a?.balance ?? a?.amount ?? 0) / Math.pow(10, decA);
-    const valB = Number(b?.balance ?? b?.amount ?? 0) / Math.pow(10, decB);
+    const valA = assetNumericBalance(a);
+    const valB = assetNumericBalance(b);
     return valB - valA;
-  })
+  }),
 );
 
 function assetKey(asset) {
-  return `${assetHash(asset)}-${assetDisplayName(asset)}-${assetBalance(asset)}`;
+  return assetHash(asset) || assetDisplayName(asset);
+}
+
+function assetNumericBalance(asset) {
+  const raw = String(asset?.balance ?? asset?.amount ?? 0).trim();
+  const decimals = assetDecimals(asset) ?? 0;
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return 0;
+  return numeric / Math.pow(10, decimals);
 }
 
 function tokenInitial(name) {

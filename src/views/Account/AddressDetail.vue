@@ -22,9 +22,7 @@
         class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
         No activity was found for this address on N3 Testnet.
-        <button class="ml-1 font-semibold underline" @click="switchToMainnet">
-          Switch to N3 Mainnet
-        </button>
+        <button class="ml-1 font-semibold underline" @click="switchToMainnet">Switch to N3 Mainnet</button>
       </div>
 
       <div class="etherscan-card overflow-hidden">
@@ -145,10 +143,9 @@ import AddressTokensTab from "./components/AddressTokensTab.vue";
 import AddressNftsTab from "./components/AddressNftsTab.vue";
 import AddressVotersTab from "./components/AddressVotersTab.vue";
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
-import { getCurrentEnv, NET_ENV, setCurrentEnv } from '@/utils/env';
-import { useNetworkChange } from '@/composables/useNetworkChange';
-import { getDoraCommitteeCacheKey, getDoraCommitteeUrl } from '@/utils/dora';
-import { cachedRequest } from '@/services/cache';
+import { getCurrentEnv, NET_ENV, setCurrentEnv } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
@@ -197,7 +194,7 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: t("errors.loadTransactions") }
+  { defaultPageSize: 10, errorMessage: t("errors.loadTransactions") },
 );
 const isContract = ref(false);
 const showQr = ref(false);
@@ -225,7 +222,7 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: t("errors.loadTokens") }
+  { defaultPageSize: 10, errorMessage: t("errors.loadTokens") },
 );
 
 // NEP-11 NFT Transfers via composable
@@ -250,7 +247,7 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: t("errors.loadNftDetails") }
+  { defaultPageSize: 10, errorMessage: t("errors.loadNftDetails") },
 );
 
 // Voters via composable
@@ -269,17 +266,17 @@ const {
   async (pageSize, skip) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
-    
+
     const scriptHash = addressToScriptHash(addr);
     if (!scriptHash) return { result: [], totalCount: 0 };
 
     const response = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
-    
+
     // Map script hashes back to base58 addresses
-    const mappedResult = (response?.result || []).map(v => {
+    const mappedResult = (response?.result || []).map((v) => {
       let voterAddress = v.voter;
       try {
-        if (voterAddress.startsWith('0x')) {
+        if (voterAddress.startsWith("0x")) {
           voterAddress = scriptHashToAddress(voterAddress);
         }
       } catch (e) {
@@ -293,7 +290,7 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: "Failed to load voters" }
+  { defaultPageSize: 10, errorMessage: "Failed to load voters" },
 );
 
 // --- Computed ---
@@ -302,8 +299,8 @@ const rawAddress = computed(() => route.params.accountAddress || "");
 const address = computed(() => {
   const val = rawAddress.value;
   if (val.startsWith("0x") && val.length === 42) {
-     const converted = scriptHashToAddress(val);
-     return converted || val;
+    const converted = scriptHashToAddress(val);
+    return converted || val;
   }
   return val;
 });
@@ -356,7 +353,7 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 
     const list = Array.isArray(listResponse?.result) ? listResponse.result : [];
     const matched = list.find(
-      (item) => String(item?.candidate || "").toLowerCase() === String(scriptHash || "").toLowerCase()
+      (item) => String(item?.candidate || "").toLowerCase() === String(scriptHash || "").toLowerCase(),
     );
     resolvedVotes = pickBestCandidateVotes(resolvedVotes, matched);
   } catch {
@@ -424,23 +421,23 @@ async function loadSummary(addr) {
       if (scriptHash) {
         const candidate = await candidateService.getByAddress(scriptHash);
         if (currentRequestId !== addressRequestId) return;
-        
+
         if (candidate && candidate.candidate) {
           isCandidate.value = true;
-          candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || '' };
+          candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || "" };
 
           const votes = await resolveCandidateVotes(scriptHash, candidateData.value, currentRequestId);
           if (currentRequestId === addressRequestId && candidateData.value) {
             candidateData.value.votes = votes;
             candidateData.value.votesOfCandidate = votes;
           }
-          
+
           const env = getCurrentEnv().toLowerCase();
           const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
           if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
-             candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
+            candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
           }
-          
+
           if (!isTestnet) {
             let metadataRows = [];
             try {
@@ -450,13 +447,8 @@ async function loadSummary(addr) {
             }
 
             if (!Array.isArray(metadataRows) || metadataRows.length === 0) {
-              const url = getDoraCommitteeUrl(NET_ENV.Mainnet);
               try {
-                metadataRows = await cachedRequest(
-                  getDoraCommitteeCacheKey(NET_ENV.Mainnet),
-                  () => fetch(url).then(r => r.ok ? r.json() : []),
-                  300000 // 5 mins
-                );
+                metadataRows = await fetchDoraCommittee(NET_ENV.Mainnet);
               } catch {
                 metadataRows = [];
               }
@@ -520,7 +512,7 @@ async function loadAssets(addr) {
   try {
     const response = await accountService.getAssets(addr);
     if (currentRequestId !== addressRequestId) return;
-    
+
     let rawAssets = [];
     if (Array.isArray(response)) {
       rawAssets = response;
@@ -538,7 +530,7 @@ async function loadAssets(addr) {
       // Fast path for known contracts
       const native = NATIVE_CONTRACTS[hash];
       const known = KNOWN_CONTRACTS[hash];
-      
+
       let tokenname = asset.tokenname || asset.name;
       let symbol = asset.symbol;
       let decimals = asset.decimals;
@@ -561,10 +553,10 @@ async function loadAssets(addr) {
         try {
           const info = await tokenService.getByHash(hash);
           if (info) {
-             tokenname = tokenname || info.tokenname || info.name || info.symbol;
-             symbol = symbol || info.symbol || info.name;
-             decimals = decimals !== undefined ? decimals : info.decimals;
-             standard = standard || info.type || info.standard;
+            tokenname = tokenname || info.tokenname || info.name || info.symbol;
+            symbol = symbol || info.symbol || info.name;
+            decimals = decimals !== undefined ? decimals : info.decimals;
+            standard = standard || info.type || info.standard;
           }
         } catch (e) {
           // Ignore metadata fetch error
@@ -577,7 +569,7 @@ async function loadAssets(addr) {
         symbol: symbol || "Unknown",
         decimals,
         standard: standard || "NEP17",
-        type: standard || "NEP17"
+        type: standard || "NEP17",
       };
     });
 
@@ -613,10 +605,10 @@ async function initializeData(addr) {
   txPage.value = 1;
   isCandidate.value = false;
   candidateData.value = null;
-  if (activeTab.value === 'voters') {
-    activeTab.value = 'transactions';
+  if (activeTab.value === "voters") {
+    activeTab.value = "transactions";
   }
-  
+
   // Load assets first so loadSummary can use them to extract NEO/GAS balances
   await loadAssets(addr);
   const results = await Promise.allSettled([loadSummary(addr), loadTxPage(1)]);
@@ -646,7 +638,7 @@ watch(
     if (!addr) return;
     await initializeData(addr);
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(activeTab, (tab) => {

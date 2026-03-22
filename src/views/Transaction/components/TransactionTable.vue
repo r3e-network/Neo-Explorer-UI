@@ -53,7 +53,7 @@
 
           <!-- Block -->
           <td class="table-cell">
-            <router-link :to="`/block-info/${tx.blockhash || tx.blockhash}`" class="etherscan-link">
+            <router-link :to="`/block-info/${tx.blockhash || tx.blockHash || tx.block_hash}`" class="etherscan-link">
               {{ tx.blockIndex ?? tx.blockindex }}
             </router-link>
           </td>
@@ -145,7 +145,7 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -156,21 +156,32 @@ const props = defineProps({
 defineEmits(["toggle-time"]);
 
 const supabaseMeta = ref({});
-watch(
-  () => props.transferSummaryByHash,
-  async (newSummaryMap) => {
-    if (newSummaryMap) {
-      const hashes = Object.values(newSummaryMap)
-        .filter((s) => s && typeof s === "object" && s.contract)
-        .map((s) => s.contract);
 
-      if (hashes.length) {
-        const meta = await supabaseService.getContractMetadataBatch(hashes);
-        supabaseMeta.value = meta;
-      }
+const summaryContractHashes = computed(() => {
+  const map = props.transferSummaryByHash;
+  const hashes = new Set();
+  if (!map || typeof map !== "object") return [];
+
+  Object.values(map).forEach((summary) => {
+    if (!summary || typeof summary !== "object") return;
+    if (!summary.contract) return;
+    hashes.add(String(summary.contract).trim());
+  });
+
+  return [...hashes].filter(Boolean).sort();
+});
+
+watch(
+  summaryContractHashes,
+  async (hashes) => {
+    if (!hashes.length) {
+      supabaseMeta.value = {};
+      return;
     }
+    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    supabaseMeta.value = meta;
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
 function getSummaryLogo(tx) {

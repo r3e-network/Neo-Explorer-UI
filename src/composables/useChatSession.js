@@ -1,7 +1,14 @@
 import { ref } from "vue";
 import { chatService } from "@/services/chatService";
-import { walletService } from "@/services/walletService";
 import { connectedAccount } from "@/utils/wallet";
+
+let walletServicePromise = null;
+async function loadWalletService() {
+  if (!walletServicePromise) {
+    walletServicePromise = import("@/services/walletService").then((module) => module.walletService);
+  }
+  return walletServicePromise;
+}
 
 const chatSession = ref(null);
 const unreadCount = ref(0);
@@ -44,6 +51,7 @@ async function restoreChatSession() {
 
 async function ensureInteractiveChatSession() {
   if (!connectedAccount.value) throw new Error("Wallet not connected");
+  const walletService = await loadWalletService();
 
   const existing = await restoreChatSession();
   if (existing?.address === connectedAccount.value) {

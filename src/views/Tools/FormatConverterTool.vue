@@ -151,7 +151,7 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { u } from "@cityofzion/neon-js";
+import { str2hexstring, hexstring2str, hex2base64, base642hex } from "@r3e/neo-js-sdk";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -163,19 +163,19 @@ const outputValue = ref("");
 const error = ref("");
 
 function stringToHex(str) {
-  return u.str2hexstring(str);
+  return str2hexstring(str);
 }
 
 function hexToString(hex) {
-  return u.hexstring2str(hex.replace(/^0x/, ""));
+  return hexstring2str(hex.replace(/^0x/, ""));
 }
 
 function hexToBase64(hexstring) {
-  return u.hex2base64(hexstring.replace(/^0x/, ""));
+  return hex2base64(hexstring.replace(/^0x/, ""));
 }
 
 function base64ToHex(str) {
-  return u.base642hex(str);
+  return base642hex(str);
 }
 
 function convertData() {
