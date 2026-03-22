@@ -445,10 +445,34 @@ describe("GovernanceTool network changes", () => {
     await addWitnessButton.trigger("click");
     await flushPromises();
 
-    const setup = wrapper.vm.$.setupState;
-    setup.externalSignerAddress = "APK2";
-    setup.externalInvocationScript = `0c40${"ab".repeat(64)}`;
-    await setup.submitExternalWitness();
+    // Find the GovernanceSignModal child component's setup state
+    let signModalState;
+    function findSignModalState(instance) {
+      if (instance.setupState?.submitExternalWitness) return instance.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findSignModalState(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findSignModalState(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+    signModalState = findSignModalState(wrapper.vm.$);
+    signModalState.externalSignerAddress = "APK2";
+    signModalState.externalInvocationScript = `0c40${"ab".repeat(64)}`;
+    await signModalState.submitExternalWitness();
     await flushPromises();
 
     expect(addMultisigSignatureMock).toHaveBeenCalledWith(
@@ -506,8 +530,32 @@ describe("GovernanceTool network changes", () => {
     await signButton.trigger("click");
     await flushPromises();
 
-    const setup = wrapper.vm.$.setupState;
-    await setup.submitSig("ab".repeat(64), "wallet_signature");
+    // Find the GovernanceSignModal child component's setup state
+    let signModalState2;
+    function findSignModalState2(instance) {
+      if (instance.setupState?.submitSig) return instance.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findSignModalState2(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findSignModalState2(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+    signModalState2 = findSignModalState2(wrapper.vm.$);
+    await signModalState2.submitSig("ab".repeat(64), "wallet_signature");
     await flushPromises();
 
     expect(addMultisigSignatureMock).toHaveBeenCalledWith(
