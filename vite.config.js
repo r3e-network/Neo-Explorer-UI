@@ -177,9 +177,7 @@ export default defineConfig(({ mode }) => {
               if (id.includes("react-qrcode-logo") || id.includes("qrcode-generator")) {
                 return "web3auth";
               }
-              if (id.includes("ethereum-cryptography") || id.includes("crypto-js")) {
-                return "crypto";
-              }
+              // ethereum-cryptography stays in vendor to avoid circular dependency with crypto polyfills
               if (id.includes("chart.js")) {
                 return "chartjs";
               }
