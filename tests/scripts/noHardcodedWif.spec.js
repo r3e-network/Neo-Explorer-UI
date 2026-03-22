@@ -6,6 +6,7 @@ const files = [
   "scripts/root-tools/deploy-test-ecdsa.js",
   "contracts/NameService/deploy_mainnet.js",
   "contracts/NameService/deploy_testnet.js",
+  "tests/views/GovernanceMultiSigEndToEnd.spec.js",
 ];
 
 const WIF_PATTERN = /["']([KL5][1-9A-HJ-NP-Za-km-z]{50,51})["']/;

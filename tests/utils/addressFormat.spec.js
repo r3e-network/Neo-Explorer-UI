@@ -60,8 +60,6 @@ describe("isValidTxHash", () => {
   });
 
   it("accepts mixed-case hex", () => {
-    const hash = "0xAaBbCcDd" + "1234567890abcdef".repeat(3) + "12345678";
-    // Ensure exactly 64 hex chars after 0x
     const valid = "0x" + "aAbBcCdD".repeat(8);
     expect(isValidTxHash(valid)).toBe(true);
   });

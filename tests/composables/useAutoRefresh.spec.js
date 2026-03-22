@@ -1,4 +1,3 @@
-import { ref, onBeforeUnmount } from "vue";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 vi.mock("@/utils/env", () => ({

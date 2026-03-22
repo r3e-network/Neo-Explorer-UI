@@ -125,7 +125,7 @@ const invokeContract = async (env, contractHash, operation, args = []) => {
   return callWithRpcEndpointFallback(env, async (endpoint) => {
     const { RpcClient } = await loadSdk();
     const rpcClient = new RpcClient(endpoint);
-    return rpcClient.invokeFunction(contractHash, operation, args);
+    return rpcClient.invokeFunction({ contractHash, method: operation, args });
   });
 };
 
@@ -419,10 +419,14 @@ export const nnsService = {
           const { RpcClient } = await loadSdk();
           const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
             const rpcClient = new RpcClient(endpoint);
-            return rpcClient.invokeFunction(NNS_CONTRACT_HASH, "resolve", [
-              { type: "String", value: domain },
-              { type: "Integer", value: 16 },
-            ]);
+            return rpcClient.invokeFunction({
+              contractHash: NNS_CONTRACT_HASH,
+              method: "resolve",
+              args: [
+                { type: "String", value: domain },
+                { type: "Integer", value: 16 },
+              ],
+            });
           });
 
           if (res.state === "HALT" && res.stack && res.stack.length > 0) {

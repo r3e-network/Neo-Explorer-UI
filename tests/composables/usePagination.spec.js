@@ -9,10 +9,6 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({ replace: vi.fn() }),
 }));
 
-function flushPromises() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 describe("usePagination", () => {
   describe("initial state", () => {
     it("does not register lifecycle hooks when used outside setup", () => {

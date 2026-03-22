@@ -2,6 +2,12 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}));
+
 const getMultisigRequestsMock = vi.fn();
 const getValidatorMetadataMock = vi.fn();
 const getCommitteeMock = vi.fn();
@@ -132,6 +138,10 @@ describe("GovernanceTool opcode display", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -142,7 +152,9 @@ describe("GovernanceTool opcode display", () => {
 
     await flushPromises();
 
-    const detailsButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("View JSON / Details"));
+    const detailsButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.viewJsonDetails"));
     await detailsButton.trigger("click");
     await flushPromises();
 

@@ -1,5 +1,4 @@
 import { useAsync } from "@/composables/useAsync";
-import { nextTick } from "vue";
 
 function flushPromises() {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -174,7 +173,7 @@ describe("useAsync", () => {
         const id = ++callCount;
         return new Promise((resolve) => setTimeout(() => resolve(`result-${id}`), id * 10));
       });
-      const { data, execute } = useAsync(asyncFn);
+      const { execute } = useAsync(asyncFn);
 
       // Fire multiple calls without awaiting
       execute();

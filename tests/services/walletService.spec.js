@@ -69,6 +69,10 @@ class MockRpcClient {
   async execute(query) {
     return executeMock(query);
   }
+
+  async getVersion() {
+    return { protocol: { network: 860833102 } };
+  }
 }
 
 class MockTransaction {
@@ -94,9 +98,19 @@ class MockTransaction {
 }
 
 class MockScriptBuilder {
-  emitAppCall() {}
+  emitAppCall() {
+    return this;
+  }
+
+  emitContractCall() {
+    return this;
+  }
 
   build() {
+    return "51";
+  }
+
+  toHex() {
     return "51";
   }
 }
@@ -123,36 +137,41 @@ class MockWalletAccount {
     this.address = `N${value.slice(0, 33)}`;
     this.scriptHash = value.replace(/^0x/i, "").toLowerCase();
   }
+
+  sign(data) {
+    return directWifHexSignMock(data);
+  }
 }
 
-vi.mock("@cityofzion/neon-js", () => ({
-  rpc: { RPCClient: MockRpcClient, Query: class { constructor(config) { this.config = config; } } },
-  tx: { Transaction: MockTransaction },
-  wallet: {
-    Account: MockWalletAccount,
-    getAddressFromScriptHash: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
-    isWIF: (value) => value === DIRECT_WIF,
-    sign: directWifHexSignMock,
+vi.mock("@r3e/neo-js-sdk", () => ({
+  RpcClient: MockRpcClient,
+  Tx: MockTransaction,
+  Account: class MockAccount extends MockWalletAccount {
+    static fromWIF(wif) {
+      return new MockAccount(wif);
+    }
   },
-  sc: {
-    ScriptBuilder: MockScriptBuilder,
-    ContractParam: {
-      fromJson: (arg) => arg,
-      byteArray: (value) => value,
-    },
-    createScript: () => "51",
+  ScriptBuilder: MockScriptBuilder,
+  reverseHex: (value) => value,
+  hash160: (value) => value,
+  str2hexstring: (value) => value,
+  num2hexstring: (value) => value.toString(16),
+  hexToBytes: (hex) => {
+    const bytes = Buffer.from(hex, "hex");
+    bytes.toBase64 = () => Buffer.from(hex, "hex").toString("base64");
+    return bytes;
   },
-  u: {
-    str2hexstring: (value) => value,
-    HexString: {
-      fromHex: (hex) => ({
-        toBase64: () => Buffer.from(hex, "hex").toString("base64"),
-      }),
-    },
-    num2hexstring: () => "01020304",
-    reverseHex: (value) => String(value || "").replace(/^0x/i, ""),
-    hash160: () => "0x1234567890abcdef1234567890abcdef12345678",
+  bytesToHex: (bytes) => Buffer.from(bytes).toString("hex"),
+  bytesToBase64: (bytes) => Buffer.from(bytes).toString("base64"),
+  base64ToBytes: (b64) => Buffer.from(b64, "base64"),
+  scriptHashToAddress: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
+  addressToScriptHash: (value) => {
+    if (value === "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu") return "0x13ef519c362973f9a34648a9eac5b71250b2a80a";
+    if (value === "NTestWifAccount111111111111111111111") return "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+    return `0x${value.slice(1)}`;
   },
+  deserialize: () => new MockTransaction(),
+  WitnessScope: { Global: 128, CalledByEntry: 1 },
 }));
 
 vi.mock("../../src/services/walletConnectService.js", () => ({
@@ -265,7 +284,7 @@ describe("walletService", () => {
         walletService.PROVIDERS.WALLETCONNECT,
         walletService.PROVIDERS.NEON,
         walletService.PROVIDERS.WEB3AUTH,
-      ])
+      ]),
     );
   });
 
@@ -552,9 +571,9 @@ describe("walletService", () => {
       await walletService.connect(walletService.PROVIDERS.NEOLINE);
 
       const invokePromise = walletService.invoke({
-          scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
-          operation: "register",
-          args: [{ type: "String", value: "loopproof.matrix" }],
+        scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+        operation: "register",
+        args: [{ type: "String", value: "loopproof.matrix" }],
       });
       const invokeErrorPromise = invokePromise.catch((error) => error);
 
@@ -610,7 +629,7 @@ describe("walletService", () => {
               address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
               label: "testnet",
             },
-          })
+          }),
         );
       }, 20);
 
@@ -661,7 +680,7 @@ describe("walletService", () => {
               address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
               label: "testnet",
             },
-          })
+          }),
         );
       }, 20000);
 
@@ -736,8 +755,10 @@ describe("walletService", () => {
 
   it("waits for a NeoLine connected event instead of immediately retrying account authorization", async () => {
     window.NEOLine = {};
-    neoLineGetAccountMock
-      .mockRejectedValueOnce({ type: "CONNECTION_DENIED", description: "The dAPI provider refused to process this request" });
+    neoLineGetAccountMock.mockRejectedValueOnce({
+      type: "CONNECTION_DENIED",
+      description: "The dAPI provider refused to process this request",
+    });
     window.NEOLineN3 = {
       Init: function Init() {
         return {
@@ -763,7 +784,7 @@ describe("walletService", () => {
           address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
           label: "NeoLine",
         },
-      })
+      }),
     );
 
     const account = await connectPromise;
@@ -774,8 +795,7 @@ describe("walletService", () => {
 
   it("accepts NeoLine connected events when getAccount hangs after approval", async () => {
     window.NEOLine = {};
-    neoLineGetAccountMock
-      .mockImplementationOnce(() => new Promise(() => {}));
+    neoLineGetAccountMock.mockImplementationOnce(() => new Promise(() => {}));
     window.NEOLineN3 = {
       Init: function Init() {
         return {
@@ -799,7 +819,7 @@ describe("walletService", () => {
             address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
             label: "NeoLine",
           },
-        })
+        }),
       );
     }, 20);
 
@@ -834,5 +854,4 @@ describe("walletService", () => {
     const usedMagic = signTxMock.mock.calls.at(-1)?.[1];
     expect(usedMagic).toBe(123456789);
   });
-
 });

@@ -1,6 +1,11 @@
-import { mount, flushPromises } from "@vue/test-utils";
+import { config, mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+
+config.global.mocks = {
+  ...(config.global.mocks || {}),
+  $t: (key) => key,
+};
 
 const connectedAccount = ref("");
 const getMultisigRequestByIdMock = vi.fn();
@@ -60,6 +65,30 @@ vi.mock("@/utils/env", () => ({
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => "Mainnet",
 }));
+
+function findNestedSignModalState(instance) {
+  const children = instance.subTree?.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      if (child?.component?.setupState?.submitExternalWitness) return child.component.setupState;
+      if (child?.component) {
+        const result = findNestedSignModalState(child.component);
+        if (result) return result;
+      }
+    }
+  }
+  const dynamicChildren = instance.subTree?.dynamicChildren;
+  if (Array.isArray(dynamicChildren)) {
+    for (const child of dynamicChildren) {
+      if (child?.component?.setupState?.submitExternalWitness) return child.component.setupState;
+      if (child?.component) {
+        const result = findNestedSignModalState(child.component);
+        if (result) return result;
+      }
+    }
+  }
+  return null;
+}
 
 describe("GovernanceProposalDetail", () => {
   const unsignedTx =
@@ -410,9 +439,12 @@ describe("GovernanceProposalDetail", () => {
     await flushPromises();
     const setup = wrapper.vm.$.setupState;
     setup.openSignModal();
-    setup.externalSignerAddress = "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    setup.externalInvocationScript = `0c40${"ab".repeat(64)}`;
-    await setup.submitExternalWitness();
+    await flushPromises();
+
+    const signModalState = findNestedSignModalState(wrapper.vm.$);
+    signModalState.externalSignerAddress = "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    signModalState.externalInvocationScript = `0c40${"ab".repeat(64)}`;
+    await signModalState.submitExternalWitness();
     await flushPromises();
 
     expect(addMultisigSignatureMock).toHaveBeenCalledWith(

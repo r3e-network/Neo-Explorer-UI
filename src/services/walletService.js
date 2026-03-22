@@ -1345,7 +1345,12 @@ function normalizeArgValueForDapi(type, value) {
     });
   }
 
-  if (!value || typeof value !== "object") return value;
+  if (!value || typeof value !== "object") {
+    if (type === "Hash160" && typeof value === "string") {
+      return normalizeHash160(value);
+    }
+    return value;
+  }
 
   if (
     type === "Hash160" ||
@@ -1355,7 +1360,11 @@ function normalizeArgValueForDapi(type, value) {
     type === "ByteArray"
   ) {
     if (typeof value.toString === "function" && value.toString !== Object.prototype.toString) {
-      return value.toString();
+      const stringValue = value.toString();
+      if (type === "Hash160") {
+        return normalizeHash160(stringValue);
+      }
+      return stringValue;
     }
   }
 

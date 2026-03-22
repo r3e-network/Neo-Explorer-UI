@@ -2,6 +2,12 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}));
+
 const envState = { value: "Mainnet" };
 const getMultisigRequestsMock = vi.fn();
 const getValidatorMetadataMock = vi.fn();
@@ -186,6 +192,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -196,10 +206,10 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
     expect(wrapper.html()).toContain("Mainnet Proposal");
-    expect(wrapper.text()).toContain("Public Oversight");
-    expect(wrapper.text()).toContain("Committee Snapshot");
-    expect(wrapper.text()).toContain("Proposal Queue");
-    expect(wrapper.text()).toContain("Anyone can review council proposals without connecting a wallet");
+    expect(wrapper.text()).toContain("tools.governance.publicOversight");
+    expect(wrapper.text()).toContain("tools.governance.committeeSnapshot");
+    expect(wrapper.text()).toContain("tools.governance.proposalQueue");
+    expect(wrapper.text()).toContain("tools.governance.headerSubtitle");
     expect(wrapper.html()).toContain("Council Alpha");
     expect(wrapper.html()).not.toContain("Testnet Proposal");
     expect(wrapper.html()).not.toContain("Wallet Request");
@@ -250,6 +260,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -274,6 +288,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -284,17 +302,21 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
 
-    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    const newProposalButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
     await newProposalButton.trigger("click");
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Proposal Description");
+    expect(wrapper.text()).toContain("tools.governance.proposalDescription");
 
     const textInputs = wrapper.findAll("input");
     await textInputs[0].setValue("Adjust GAS emissions");
     await textInputs[1].setValue("100000000");
 
-    const createButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Create Proposal"));
+    const createButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.createProposal"));
     await createButton.trigger("click");
     await flushPromises();
 
@@ -327,6 +349,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -337,7 +363,9 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
 
-    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    const newProposalButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
     await newProposalButton.trigger("click");
     await flushPromises();
 
@@ -431,6 +459,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -441,7 +473,9 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
 
-    const addWitnessButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Add Witness"));
+    const addWitnessButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.addWitness"));
     await addWitnessButton.trigger("click");
     await flushPromises();
 
@@ -516,6 +550,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -526,7 +564,9 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
 
-    const signButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Sign Proposal"));
+    const signButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.signProposal"));
     await signButton.trigger("click");
     await flushPromises();
 
@@ -601,6 +641,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -610,7 +654,9 @@ describe("GovernanceTool network changes", () => {
     });
 
     await flushPromises();
-    const addWitnessButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Add Witness"));
+    const addWitnessButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.addWitness"));
     await addWitnessButton.trigger("click");
     await flushPromises();
 
@@ -647,6 +693,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -674,6 +724,10 @@ describe("GovernanceTool network changes", () => {
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
     const wrapper = mount(GovernanceTool, {
       global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
         stubs: {
           Breadcrumb: true,
           Skeleton: true,
@@ -684,7 +738,9 @@ describe("GovernanceTool network changes", () => {
 
     await flushPromises();
 
-    const newProposalButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("New Proposal"));
+    const newProposalButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
     await newProposalButton.trigger("click");
     await flushPromises();
 
@@ -693,7 +749,6 @@ describe("GovernanceTool network changes", () => {
     // The create modal content is now inside GovernanceCreateModal child component.
     // Access its internal state through the component's exposed setup state.
     // With script setup, we need to find the component via its rendered DOM.
-    const createModalWrapper = wrapper.findComponent({ ref: undefined });
     // Walk the internal vnode tree to find the GovernanceCreateModal component instance
     let createState;
     const rootInstance = wrapper.vm.$;

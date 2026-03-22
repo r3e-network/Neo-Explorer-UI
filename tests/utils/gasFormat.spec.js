@@ -7,9 +7,6 @@ import {
   formatTokenAmount,
 } from "@/utils/gasFormat";
 
-// GAS_DIVISOR = 1e8
-const GAS_DIVISOR = 1e8;
-
 describe("formatGas", () => {
   it("converts raw GAS integer to decimal string", () => {
     expect(formatGas(100000000)).toBe("1.00000000");

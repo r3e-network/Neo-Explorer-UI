@@ -1,5 +1,5 @@
-import { Tx, WitnessScope } from "@r3e/neo-js-sdk";
-import { bytesToBase64, hexToBytes, scriptHashToAddress } from "@/utils/neoHelpers";
+import { Tx, WitnessScope, deserialize } from "@r3e/neo-js-sdk";
+import { bytesToBase64, hexToBytes, scriptHashToAddress, bytesToHex, sha256 } from "@/utils/neoHelpers";
 
 function normalizeHex(value = "") {
   return String(value || "")
@@ -56,9 +56,10 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
   if (!normalized) return null;
 
   try {
-    const transaction = Tx.deserialize(normalized);
-    const rawHex = normalizeHex(transaction.serialize(false));
-    const scriptHex = normalizeHex(transaction?.script?.toString?.() || "");
+    const transaction = deserialize(normalized, Tx);
+    const rawHex = bytesToHex(transaction.toBytes());
+    const txHash = sha256(sha256(hexToBytes(rawHex)));
+    const scriptHex = normalizeHex(bytesToHex(transaction.script));
     const signers = Array.isArray(transaction.signers)
       ? transaction.signers.map((signer, index) => {
           const accountScriptHash = normalizeHex(signer?.account?.toString?.() || "");
@@ -80,7 +81,7 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
 
     return {
       rawHex,
-      hash: transaction.hash?.() || "",
+      hash: txHash,
       version: Number(transaction.version ?? 0),
       nonce: Number(transaction.nonce ?? 0),
       validUntilBlock: Number(transaction.validUntilBlock ?? 0),

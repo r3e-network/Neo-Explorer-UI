@@ -6,7 +6,7 @@ const describeLive = RUN_LIVE_GOVERNANCE_E2E ? describe : describe.skip;
 
 describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () => {
   const TESTNET_RPC = "https://testnet1.neo.coz.io:443";
-  const TESTNET_WIF = "Kx2BeyUv1dBr99QtjrRsE7xxQqcHHZJmEWXvV8ivyShgWq7BbA4U";
+  const TESTNET_WIF = String(process.env.TESTNET_WIF || "").trim();
   
   let account;
   let rpcClient;
@@ -17,6 +17,9 @@ describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () 
   let mySignature;
   
   beforeAll(async () => {
+    if (!TESTNET_WIF) {
+      throw new Error("Missing TESTNET_WIF env var. Refusing to run live governance E2E without an explicit key.");
+    }
     account = new neon.wallet.Account(TESTNET_WIF);
     rpcClient = new neon.rpc.RPCClient(TESTNET_RPC);
     
@@ -93,8 +96,6 @@ describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () 
     
     // To properly build a multisig witness, signatures MUST be ordered identically
     // to how the public keys were sorted in the verification script.
-    const myIndex = committeePubkeys.indexOf(account.publicKey);
-    
     // Add fake signatures to meet the threshold
     for(let i = 0; i < threshold; i++) {
         invocationBuilder.emitPush(mySignature); 

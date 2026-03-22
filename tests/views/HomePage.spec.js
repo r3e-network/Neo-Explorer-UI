@@ -123,14 +123,11 @@ const HomeStatsStub = defineComponent({
     '<div data-testid="home-stats" :data-block-count="String(blockCount)"><button data-testid="home-stats-fetch" @click="$emit(\'fetch-latest\')">refresh</button></div>',
 });
 
-let consoleWarnSpy;
-let consoleErrorSpy;
-
 describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
     vi.clearAllMocks();
     enrichTransactionsMock.mockClear();
     loadCommitteeMock.mockClear();
@@ -171,6 +168,10 @@ describe("HomePage initial loading", () => {
     search.mockResolvedValue(null);
     fetchPrices.mockImplementation(() => new Promise(() => { }));
     startAutoRefresh.mockImplementation(() => { });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("shows latest blocks and transactions without waiting for price API", async () => {

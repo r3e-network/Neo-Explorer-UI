@@ -55,6 +55,8 @@ describe("healthCheck endpoint selection", () => {
   });
 
   it("prefers fallback when both are healthy but fallback is much faster", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(0));
     post.mockImplementation((url) => {
       if (url.includes("/api/mainnet/primary")) {
         return new Promise((resolve) =>
@@ -70,7 +72,13 @@ describe("healthCheck endpoint selection", () => {
     });
 
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    await checkAndSetEndpoints("Mainnet");
+    try {
+      const pending = checkAndSetEndpoints("Mainnet");
+      await vi.runAllTimersAsync();
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
   });
@@ -138,6 +146,8 @@ describe("healthCheck endpoint selection", () => {
   });
 
   it("keeps the current mainnet endpoint when it remains healthy and the alternative is only slightly faster", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(0));
     getActiveBasePath.mockImplementation((env) =>
       env === "Mainnet" ? "/api/mainnet/primary" : "/api/testnet/primary"
     );
@@ -157,12 +167,20 @@ describe("healthCheck endpoint selection", () => {
     });
 
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    await checkAndSetEndpoints("Mainnet");
+    try {
+      const pending = checkAndSetEndpoints("Mainnet");
+      await vi.runAllTimersAsync();
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(setActiveBasePath).not.toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
   });
 
   it("does not log an endpoint switch when the selected endpoint is unchanged", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(0));
     getActiveBasePath.mockImplementation((env) =>
       env === "Mainnet" ? "/api/mainnet/fallback" : "/api/testnet/primary"
     );
@@ -182,7 +200,13 @@ describe("healthCheck endpoint selection", () => {
     });
 
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    await checkAndSetEndpoints("Mainnet");
+    try {
+      const pending = checkAndSetEndpoints("Mainnet");
+      await vi.runAllTimersAsync();
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
 
     expect(setActiveBasePath).not.toHaveBeenCalled();
     expect(consoleInfoSpy).not.toHaveBeenCalled();
