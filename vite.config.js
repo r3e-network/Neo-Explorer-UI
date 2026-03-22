@@ -33,12 +33,13 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       nodePolyfills({
-        include: ["buffer", "stream", "util", "events", "process"],
+        include: ["buffer", "crypto", "stream", "util", "events", "process"],
         globals: {
           Buffer: true,
           global: true,
           process: true,
         },
+        protocolImports: true,
       }),
       compression({
         algorithm: "gzip",
