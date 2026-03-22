@@ -1,0 +1,173 @@
+export const NET_ENV = {
+  Mainnet: "Mainnet",
+  TestT5: "TestT5",
+};
+
+export const NETWORK_STORAGE_KEY = "neo_explorer_network";
+export const NETWORK_CHANGE_EVENT = "neo-explorer-network-change";
+
+const ENV_ALIASES = {
+  [NET_ENV.Mainnet]: NET_ENV.Mainnet,
+  [NET_ENV.TestT5]: NET_ENV.TestT5,
+  Testnet: NET_ENV.TestT5,
+  MainNet: NET_ENV.Mainnet,
+  mainnet: NET_ENV.Mainnet,
+  testnet: NET_ENV.TestT5,
+  testt5: NET_ENV.TestT5,
+};
+
+const DEFAULT_ENV = NET_ENV.Mainnet;
+
+const normalizeEnv = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return DEFAULT_ENV;
+  return ENV_ALIASES[raw] || ENV_ALIASES[raw.toLowerCase()] || DEFAULT_ENV;
+};
+
+const canUseLocalStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+export const NETWORK_OPTIONS = [
+  { id: NET_ENV.Mainnet, name: "N3 Mainnet" },
+  { id: NET_ENV.TestT5, name: "N3 Testnet" },
+];
+
+export const NETWORK_REFRESH_INTERVALS = {
+  [NET_ENV.Mainnet]: 15 * 1000,
+  [NET_ENV.TestT5]: 3 * 1000,
+};
+
+export const getNetworkLabel = (env) => {
+  const selected = NETWORK_OPTIONS.find((network) => network.id === normalizeEnv(env));
+  return selected?.name || "N3 Mainnet";
+};
+
+export const getStoredEnv = () => {
+  if (!canUseLocalStorage()) return null;
+
+  try {
+    const value = window.localStorage.getItem(NETWORK_STORAGE_KEY);
+    return value ? normalizeEnv(value) : null;
+  } catch (_err) {
+    return null;
+  }
+};
+
+export const getCurrentEnv = () => getStoredEnv() || DEFAULT_ENV;
+
+export const getNetworkRefreshIntervalMs = (env = getCurrentEnv()) => {
+  const normalizedEnv = normalizeEnv(env);
+  return NETWORK_REFRESH_INTERVALS[normalizedEnv] || NETWORK_REFRESH_INTERVALS[DEFAULT_ENV];
+};
+
+export const setCurrentEnv = (env) => {
+  const normalizedEnv = normalizeEnv(env);
+  const previousEnv = getCurrentEnv();
+
+  if (canUseLocalStorage()) {
+    try {
+      window.localStorage.setItem(NETWORK_STORAGE_KEY, normalizedEnv);
+    } catch (_err) {
+      // Ignore storage write errors (private mode, quota, etc.)
+    }
+  }
+
+  if (typeof window !== "undefined" && normalizedEnv !== previousEnv) {
+    window.dispatchEvent(
+      new CustomEvent(NETWORK_CHANGE_EVENT, {
+        detail: { env: normalizedEnv },
+      })
+    );
+  }
+
+  return normalizedEnv;
+};
+
+// AI Analysis API Configuration
+export const AI_API = {
+  BASE_URL: "https://op-ai-analyze-production.up.railway.app/api/parse",
+  METHOD: "gettxdetail",
+};
+
+// RPC Node URLs (neofura endpoints used by Neon RPC client)
+export const RPC_URLS = {
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
+};
+
+export const RPC_API_BASE_PATHS = {
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
+};
+
+// Store active endpoint paths dynamically
+const activeBasePaths = {
+  [NET_ENV.Mainnet]: "/api/mainnet",
+  [NET_ENV.TestT5]: "/api/testnet",
+};
+
+const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+
+const normalizeBaseUrl = (value) => {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\/+$/, "");
+};
+
+const configuredRpcBaseUrl = normalizeBaseUrl(import.meta.env.VITE_RPC_BASE_URL || "");
+
+const parseConfiguredNetworkBase = (value) => {
+  const normalized = normalizeBaseUrl(value);
+  const matched = normalized.match(NETWORK_BASE_PATTERN);
+  if (!matched) return null;
+
+  return {
+    normalized,
+    basePrefix: normalized.slice(0, matched.index),
+    endpoint: (matched[2] || "").toLowerCase() || null,
+  };
+};
+
+export const getConfiguredRpcBaseUrl = (env = getCurrentEnv()) => {
+  if (!configuredRpcBaseUrl) return "";
+
+  const parsed = parseConfiguredNetworkBase(configuredRpcBaseUrl);
+  if (!parsed) return configuredRpcBaseUrl;
+
+  const network = normalizeEnv(env) === NET_ENV.TestT5 ? "testnet" : "mainnet";
+  const targetPrefix = `${parsed.basePrefix}/api/${network}`;
+  return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
+};
+
+export const setActiveBasePath = (env, path) => {
+  if (activeBasePaths[env]) {
+    activeBasePaths[env] = path;
+  }
+};
+
+export const getActiveBasePath = (env) => {
+  const normalized = normalizeEnv(env);
+  return activeBasePaths[normalized] || RPC_API_BASE_PATHS[normalized] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+};
+
+// Get RPC URL based on selected environment
+export const getRpcUrl = (env = getCurrentEnv()) =>
+  getConfiguredRpcBaseUrl(env) || activeBasePaths[normalizeEnv(env)] || RPC_URLS[NET_ENV.Mainnet];
+
+// Get API base path (proxied in dev + Vercel rewrites)
+export const getRpcApiBasePath = (env = getCurrentEnv()) =>
+  getConfiguredRpcBaseUrl(env) || activeBasePaths[normalizeEnv(env)] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
+
+const ABSOLUTE_HTTP_URL_PATTERN = /^https?:\/\//i;
+
+export const toAbsoluteUrl = (value) => {
+  if (typeof value !== "string") return "";
+
+  const normalized = value.trim();
+  if (!normalized) return "";
+  if (ABSOLUTE_HTTP_URL_PATTERN.test(normalized)) return normalized;
+  if (typeof window === "undefined" || !window.location?.origin) return normalized;
+
+  return new URL(normalized, window.location.origin).toString();
+};
+
+// RPC clients from neon-js require absolute http(s) endpoints.
+export const getRpcClientUrl = () => toAbsoluteUrl(getRpcApiBasePath());

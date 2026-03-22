@@ -1,0 +1,118 @@
+import { mount } from "@vue/test-utils";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("vue-router", () => ({
+  useRoute: () => ({ params: {} }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+}));
+vi.mock("@/utils/explorerFormat", () => ({
+  getTypeIcon: () => "Tx",
+  getTypeIconClass: () => "bg-green-100",
+  getTypeBadgeClass: () => "bg-green-100",
+  isValidTxHash: (h) => /^(0x)?[a-f0-9]{64}$/i.test(h),
+  isValidNeoAddress: (a) => /^N[a-zA-Z0-9]{33}$/.test(a)
+}));
+vi.mock("@/constants", () => ({ SEARCH_DEBOUNCE_MS: 350 }));
+
+import SearchBox from "@/components/common/SearchBox.vue";
+
+const factory = (props = {}) =>
+  mount(SearchBox, {
+    props: { ...props },
+    global: { stubs: { "router-link": { template: "<a><slot /></a>", props: ["to"] } } },
+  });
+
+describe("SearchBox", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("renders input with placeholder", () => {
+    const wrapper = factory({ placeholder: "Search here" });
+    expect(wrapper.find("input").attributes("placeholder")).toContain("Search here");
+  });
+
+  it("emits search on Enter with trimmed query", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+    await input.setValue("  0xabc  ");
+    await input.trigger("keyup.enter");
+    expect(wrapper.emitted("search")[0]).toEqual(["0xabc"]);
+  });
+
+  it("does not emit search when input is empty", async () => {
+    const wrapper = factory();
+    await wrapper.find("input").trigger("keyup.enter");
+    expect(wrapper.emitted("search")).toBeUndefined();
+  });
+
+  it("disables search button when query is empty", () => {
+    const wrapper = factory();
+    const btn = wrapper.find("button[aria-label='Submit search']");
+    expect(btn.attributes("disabled")).toBeDefined();
+  });
+
+  it("shows dropdown on focus", async () => {
+    const wrapper = factory();
+    await wrapper.find("input").trigger("focus");
+    expect(wrapper.find("#search-dropdown").exists()).toBe(true);
+  });
+
+  it("raises search container z-index when dropdown is visible", async () => {
+    const wrapper = factory();
+    await wrapper.find("input").trigger("focus");
+    expect(wrapper.find(".search-box").classes()).toContain("z-[140]");
+  });
+
+  it("uses theme text tokens for input readability", () => {
+    const wrapper = factory();
+    const classAttr = wrapper.find("input").attributes("class");
+    expect(classAttr).toContain("text-high");
+    expect(classAttr).toContain("placeholder:text-mid");
+  });
+
+  it("applies dedicated class to keep submit button vertically aligned", () => {
+    const wrapper = factory();
+    expect(wrapper.find("button[aria-label='Submit search']").classes()).toContain("search-submit-btn");
+  });
+
+  it("selects highlighted suggestion with Enter", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("123");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    await input.trigger("keydown.down");
+    await input.trigger("keyup.enter");
+
+    const searchEvents = wrapper.emitted("search");
+    expect(searchEvents).toBeTruthy();
+    expect(searchEvents[0]).toEqual(["123"]);
+  });
+
+  it("does not classify short invalid N-prefixed input as address suggestion", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("N1234567890");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    expect(wrapper.html()).not.toContain("Address/NNS");
+  });
+
+  it("shows address suggestion for valid Neo address", async () => {
+    const wrapper = factory();
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+
+    expect(wrapper.html()).toContain("Address/NNS");
+  });
+});

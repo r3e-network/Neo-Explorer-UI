@@ -1,0 +1,435 @@
+
+> neo-explorer@1.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/home/neo/git/Neo-Explorer-UI[39m
+
+ [31m❯[39m tests/utils/env.spec.js [2m([22m[2m5 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 18[2mms[22m[39m
+[31m     [31m×[31m uses 8 seconds for mainnet[39m[32m 11[2mms[22m[39m
+     [32m✓[39m uses 3 seconds for testnet[32m 2[2mms[22m[39m
+[31m     [31m×[31m falls back to mainnet interval for unknown env[39m[32m 1[2mms[22m[39m
+     [32m✓[39m returns an absolute mainnet URL by default[32m 1[2mms[22m[39m
+     [32m✓[39m returns an absolute testnet URL when switched to testnet[32m 1[2mms[22m[39m
+ [31m❯[39m tests/services/web3authService.spec.js [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 236[2mms[22m[39m
+[31m     [31m×[31m initializes without custom uiConfig theme to avoid whitelabel-only options[39m[32m 234[2mms[22m[39m
+ [32m✓[39m tests/views/HomeStats.spec.js [2m([22m[2m2 tests[22m[2m)[22m[32m 243[2mms[22m[39m
+ [32m✓[39m tests/views/ContractDeployerTool.spec.js [2m([22m[2m2 tests[22m[2m)[22m[33m 647[2mms[22m[39m
+     [33m[2m✓[22m[39m uses Global witness scope when deploying uploaded contract [33m 594[2mms[22m[39m
+[90mstderr[2m | tests/components/CopyButton.spec.js[2m > [22m[2mCopyButton[2m > [22m[2mhandles clipboard failure gracefully
+[22m[39mCopy failed: Error: fail
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mtests/components/CopyButton.spec.js:46:63
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+ [32m✓[39m tests/components/CopyButton.spec.js [2m([22m[2m7 tests[22m[2m)[22m[32m 98[2mms[22m[39m
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mshows latest blocks and transactions without waiting for price API
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+ [31m❯[39m tests/components/TxListItem.spec.js [2m([22m[2m6 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 90[2mms[22m[39m
+     [32m✓[39m resolves known contract names from reversed script-hash form[32m 33[2mms[22m[39m
+     [32m✓[39m uses transfer summary contract as recipient fallback when tx lacks recipient/method[32m 7[2mms[22m[39m
+     [32m✓[39m uses receiver field as recipient fallback when tx.to is missing[32m 8[2mms[22m[39m
+[31m     [31m×[31m shows Unknown when vmstate is missing[39m[32m 10[2mms[22m[39m
+     [32m✓[39m accepts Vmstate field casing from backend payloads[32m 5[2mms[22m[39m
+[31m     [31m×[31m shows Unknown for non-final status aliases[39m[32m 12[2mms[22m[39m
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mdoes not block latest blocks rendering on slow transactions response
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mprefers NeoTube endpoints on supported networks
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mfalls back to RPC dashboard stats when NeoTube returns zero block/tx counts
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mfalls back to RPC dashboard stats when NeoTube returns zero block/tx counts
+[22m[39mNeoTube stats contained empty counters, falling back to RPC stats: { blocks: [33m0[39m, txs: [33m0[39m }
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mpasses transfer summaries to LatestTransactions and enriches latest tx rows
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mkeeps block height aligned to latest block list even when stats endpoint lags
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mupdates block height immediately when latest blocks refresh returns a newer height
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at loadData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:142:11[90m)[39m
+    at [90m/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:410:3
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3038:40
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at hook.__weh.hook.__weh [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:3018:19[90m)[39m
+    at flushPostFlushCbs [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:382:28[90m)[39m
+    at render [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:6672:7[90m)[39m
+    at mount [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4157:13[90m)[39m
+
+[90mstderr[2m | tests/views/HomePage.spec.js[2m > [22m[2mHomePage initial loading[2m > [22m[2mupdates block height immediately when latest blocks refresh returns a newer height
+[22m[39mFailed to load latest blocks/transactions: TypeError: __vite_ssr_import_6__.transactionService.getPendingTransactions is not a function
+    at loadLatestData [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:255:26[90m)[39m
+    at handleFetchLatest [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Home/HomePage.vue:117:5[90m)[39m
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at emit [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:4358:5[90m)[39m
+    at onClick (eval at compileToFunction [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvue[24m/dist/vue.cjs.js:71:18), <anonymous>:19:29[90m)[39m
+    at callWithErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:200:19[90m)[39m
+    at Object.callWithAsyncErrorHandling [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-core[24m/dist/runtime-core.cjs.js:207:17[90m)[39m
+    at HTMLButtonElement.invoker [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vue/runtime-dom[24m/dist/runtime-dom.cjs.js:665:17[90m)[39m
+    at HTMLButtonElement.callTheUserObjectsOperation [90m(/home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mjsdom[24m/lib/jsdom/living/generated/EventListener.js:26:30[90m)[39m
+
+ [31m❯[39m tests/views/HomePage.spec.js [2m([22m[2m7 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 1555[2mms[22m[39m
+[31m     [31m×[31m shows latest blocks and transactions without waiting for price API[39m[33m 1468[2mms[22m[39m
+[31m     [31m×[31m does not block latest blocks rendering on slow transactions response[39m[32m 35[2mms[22m[39m
+     [32m✓[39m prefers NeoTube endpoints on supported networks[32m 12[2mms[22m[39m
+     [32m✓[39m falls back to RPC dashboard stats when NeoTube returns zero block/tx counts[32m 6[2mms[22m[39m
+[31m     [31m×[31m passes transfer summaries to LatestTransactions and enriches latest tx rows[39m[32m 8[2mms[22m[39m
+     [32m✓[39m keeps block height aligned to latest block list even when stats endpoint lags[32m 15[2mms[22m[39m
+     [32m✓[39m updates block height immediately when latest blocks refresh returns a newer height[32m 10[2mms[22m[39m
+ [32m✓[39m tests/views/CandidateProfileTool.spec.js [2m([22m[2m2 tests[22m[2m)[22m[32m 139[2mms[22m[39m
+ [32m✓[39m tests/services/transactionService.spec.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1216[2mms[22m[39m
+       [33m[2m✓[22m[39m does not default missing enriched vmstate to HALT [33m 820[2mms[22m[39m
+       [33m[2m✓[22m[39m calls safeRpc with hash [33m 371[2mms[22m[39m
+[90mstdout[2m | tests/utils/healthCheck.spec.js[2m > [22m[2mhealthCheck endpoint selection[2m > [22m[2mprefers lower-latency endpoint when heights are effectively equal
+[22m[39m[HealthCheck] Mainnet using fallback (latency). Primary: 500 (441ms), Fallback: 500 (34ms)
+
+ [32m✓[39m tests/utils/healthCheck.spec.js [2m([22m[2m4 tests[22m[2m)[22m[33m 465[2mms[22m[39m
+     [33m[2m✓[22m[39m prefers lower-latency endpoint when heights are effectively equal [33m 445[2mms[22m[39m
+[90mstderr[2m | tests/views/AbstractAccountTool.spec.js[2m > [22m[2mAbstractAccountTool[2m > [22m[2mstops before wallet invoke when node preflight simulation faults
+[22m[39mError: Node preflight failed: unhandled exception: Unauthorized
+    at deployContract [90m(/home/neo/git/Neo-Explorer-UI/[39msrc/views/Tools/AbstractAccountTool.vue:334:15[90m)[39m
+
+ [32m✓[39m tests/views/AbstractAccountTool.spec.js [2m([22m[2m10 tests[22m[2m)[22m[32m 244[2mms[22m[39m
+ [32m✓[39m tests/views/SponsoredTool.spec.js [2m([22m[2m1 test[22m[2m)[22m[32m 130[2mms[22m[39m
+ [32m✓[39m tests/utils/wallet.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 125[2mms[22m[39m
+ [32m✓[39m tests/services/apiInterceptor.spec.js [2m([22m[2m1 test[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/views/TransactionTable.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 96[2mms[22m[39m
+ [32m✓[39m tests/components/AddressHeader.spec.js [2m([22m[2m1 test[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m tests/components/SearchBox.spec.js [2m([22m[2m11 tests[22m[2m)[22m[32m 144[2mms[22m[39m
+ [32m✓[39m tests/views/AddressTokensTab.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m tests/components/HashLink.spec.js [2m([22m[2m12 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m tests/composables/useAsync.spec.js [2m([22m[2m19 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32m✓[39m tests/composables/useTransactionTracker.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m tests/components/TabsNav.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m tests/components/EtherscanPagination.spec.js [2m([22m[2m7 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32m✓[39m tests/composables/useCommittee.spec.js [2m([22m[2m8 tests[22m[2m)[22m[32m 131[2mms[22m[39m
+ [32m✓[39m tests/views/ContractHeader.spec.js [2m([22m[2m2 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+ [32m✓[39m tests/components/BlockListItem.spec.js [2m([22m[2m1 test[22m[2m)[22m[32m 27[2mms[22m[39m
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns default value on error
+[22m[39m[RPC] GetBlockCount failed on /api/mainnet/primary, retrying fallback endpoint
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns default value on error
+[22m[39mRPC Error [GetBlockCount]: Error: Network error
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mtests/services/api.spec.js:117:34
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns default value on error
+[22m[39mSafeRPC Error [GetBlockCount]: Network error
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns null as default when not specified
+[22m[39m[RPC] GetBlockCount failed on /api/mainnet/primary, retrying fallback endpoint
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns null as default when not specified
+[22m[39mRPC Error [GetBlockCount]: Error: Network error
+    at [90m/home/neo/git/Neo-Explorer-UI/[39mtests/services/api.spec.js:124:34
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1209:10[90m)[39m
+    at [90mfile:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+    at Traces.$ [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27[90m)[39m
+    at trace [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21[90m)[39m
+    at runTest [90m(file:///home/neo/git/Neo-Explorer-UI/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1653:12[90m)[39m
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mreturns null as default when not specified
+[22m[39mSafeRPC Error [GetBlockCount]: Network error
+
+[90mstderr[2m | tests/services/api.spec.js[2m > [22m[2msafeRpc[2m > [22m[2mfails over when the primary endpoint reports the wrong network magic
+[22m[39m[RPC] GetBlockCount failed on /api/mainnet/primary, retrying fallback endpoint
+
+ [32m✓[39m tests/services/api.spec.js [2m([22m[2m18 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32m✓[39m tests/services/cache.spec.js [2m([22m[2m34 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+ [32m✓[39m tests/composables/usePagination.spec.js [2m([22m[2m21 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m tests/services/walletService.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m tests/utils/numberFormat.spec.js [2m([22m[2m31 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/composables/useDataLoader.spec.js [2m([22m[2m19 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2minitial state[2m > [22m[2misActive is false
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2mstart()[2m > [22m[2msets isActive to true and calls callback on interval
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2mstop()[2m > [22m[2mclears interval and sets isActive to false
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2moptions[2m > [22m[2mimmediate option starts automatically
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2moptions[2m > [22m[2mcustom intervalMs is used
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2moptions[2m > [22m[2muses getNetworkRefreshIntervalMs when no custom interval
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+[90mstderr[2m | tests/composables/useAutoRefresh.spec.js[2m > [22m[2museAutoRefresh[2m > [22m[2moptions[2m > [22m[2mrestarts timer and refreshes immediately on network switch
+[22m[39m[Vue warn]: onDeactivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+[Vue warn]: onActivated is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.
+
+ [32m✓[39m tests/services/searchService.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+ [32m✓[39m tests/composables/useAutoRefresh.spec.js [2m([22m[2m7 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m tests/utils/timeFormat.spec.js [2m([22m[2m13 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/utils/gasFormat.spec.js [2m([22m[2m22 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m tests/services/neotubeService.spec.js [2m([22m[2m10 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m tests/scripts/validateRpcConsistency.spec.js [2m([22m[2m9 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/utils/explorerFormat.spec.js [2m([22m[2m6 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m tests/utils/vmFormat.spec.js [2m([22m[2m25 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m tests/services/accountService.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/services/nnsService.spec.js [2m([22m[2m1 test[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/composables/useLoadMore.spec.js [2m([22m[2m10 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32m✓[39m tests/utils/detailRouting.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/utils/searchLookup.spec.js [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/utils/walletNormalization.spec.js [2m([22m[2m6 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m tests/services/blockService.spec.js [2m([22m[2m9 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/services/tokenService.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m tests/services/executionService.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/utils/neoHelpers.spec.js [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/utils/contractInvocation.spec.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/utils/addressFormat.spec.js [2m([22m[2m17 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/utils/scriptDisassembler.spec.js [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/utils/addressDetail.spec.js [2m([22m[2m8 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m tests/utils/getTokenIcon.spec.js [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m tests/utils/searchRouting.spec.js [2m([22m[2m12 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m tests/constants/rpcApiDocs.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/utils/contractVerification.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m tests/config/endpoints.spec.js [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/utils/txVmState.spec.js [2m([22m[2m5 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m tests/store/util.spec.js [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 8 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/components/TxListItem.spec.js[2m > [22mTxListItem[2m > [22mshows Unknown when vmstate is missing
+[31m[1mAssertionError[22m: expected 'Tx 0x222222...222222just nowFromNMBAo…' to contain 'Unknown'[39m
+
+Expected: [32m"Unknown"[39m
+Received: [31m"Tx 0x222222...222222just nowFromNMBAoPYQ...X4WwwcToContract CallHALT0 GAS"[39m
+
+[36m [2m❯[22m tests/components/TxListItem.spec.js:[2m123:28[22m[39m
+    [90m121| [39m    })[33m;[39m
+    [90m122| [39m
+    [90m123| [39m    [34mexpect[39m(wrapper[33m.[39m[34mtext[39m())[33m.[39m[34mtoContain[39m([32m"Unknown"[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m124| [39m    [34mexpect[39m(wrapper[33m.[39m[34mtext[39m())[33m.[39mnot[33m.[39m[34mtoContain[39m([32m"HALT"[39m)[33m;[39m
+    [90m125| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/components/TxListItem.spec.js[2m > [22mTxListItem[2m > [22mshows Unknown for non-final status aliases
+[31m[1mAssertionError[22m: expected 'Tx 0x444444...444444just nowFromNMBAo…' to contain 'Unknown'[39m
+
+Expected: [32m"Unknown"[39m
+Received: [31m"Tx 0x444444...444444just nowFromNMBAoPYQ...X4WwwcToContract CallPENDING0 GAS"[39m
+
+[36m [2m❯[22m tests/components/TxListItem.spec.js:[2m177:28[22m[39m
+    [90m175| [39m    })[33m;[39m
+    [90m176| [39m
+    [90m177| [39m    [34mexpect[39m(wrapper[33m.[39m[34mtext[39m())[33m.[39m[34mtoContain[39m([32m"Unknown"[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m178| [39m    [34mexpect[39m(wrapper[33m.[39m[34mtext[39m())[33m.[39mnot[33m.[39m[34mtoContain[39m([32m"FAULT"[39m)[33m;[39m
+    [90m179| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/services/web3authService.spec.js[2m > [22mweb3authService[2m > [22minitializes without custom uiConfig theme to avoid whitelabel-only options
+[31m[1mAssertionError[22m: expected { defaultLanguage: 'en', …(2) } to be undefined[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+{
+  "defaultLanguage": "en",
+  "mode": "light",
+  "theme": {
+    "primary": "#00E599",
+  },
+}
+
+[36m [2m❯[22m tests/services/web3authService.spec.js:[2m59:41[22m[39m
+    [90m 57| [39m    [34mexpect[39m(web3AuthCtorMock)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+    [90m 58| [39m    [35mconst[39m constructorOptions [33m=[39m web3AuthCtorMock[33m.[39mmock[33m.[39mcalls[[34m0[39m][[34m0[39m][33m;[39m
+    [90m 59| [39m    [34mexpect[39m(constructorOptions[33m.[39muiConfig)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m   | [39m                                        [31m^[39m
+    [90m 60| [39m  })[33m;[39m
+    [90m 61| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/utils/env.spec.js[2m > [22menv refresh intervals[2m > [22muses 8 seconds for mainnet
+[31m[1mAssertionError[22m: expected 15000 to be 8000 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 8000[39m
+[31m+ 15000[39m
+
+[36m [2m❯[22m tests/utils/env.spec.js:[2m11:58[22m[39m
+    [90m  9| [39m[34mdescribe[39m([32m"env refresh intervals"[39m[33m,[39m () [33m=>[39m {
+    [90m 10| [39m  [34mit[39m([32m"uses 8 seconds for mainnet"[39m[33m,[39m () [33m=>[39m {
+    [90m 11| [39m    [34mexpect[39m([34mgetNetworkRefreshIntervalMs[39m([33mNET_ENV[39m[33m.[39m[33mMainnet[39m))[33m.[39m[34mtoBe[39m([34m8000[39m)[33m;[39m
+    [90m   | [39m                                                         [31m^[39m
+    [90m 12| [39m  })[33m;[39m
+    [90m 13| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/utils/env.spec.js[2m > [22menv refresh intervals[2m > [22mfalls back to mainnet interval for unknown env
+[31m[1mAssertionError[22m: expected 15000 to be 8000 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 8000[39m
+[31m+ 15000[39m
+
+[36m [2m❯[22m tests/utils/env.spec.js:[2m22:59[22m[39m
+    [90m 20| [39m
+    [90m 21| [39m  [34mit[39m([32m"falls back to mainnet interval for unknown env"[39m[33m,[39m () [33m=>[39m {
+    [90m 22| [39m    [34mexpect[39m([34mgetNetworkRefreshIntervalMs[39m([32m"UnknownNetwork"[39m))[33m.[39m[34mtoBe[39m([34m8000[39m)[33m;[39m
+    [90m   | [39m                                                          [31m^[39m
+    [90m 23| [39m  })[33m;[39m
+    [90m 24| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/views/HomePage.spec.js[2m > [22mHomePage initial loading[2m > [22mshows latest blocks and transactions without waiting for price API
+[31m[1mAssertionError[22m: expected 'true' to be 'false' // Object.is equality[39m
+
+Expected: [32m"[7mfals[27me"[39m
+Received: [31m"[7mtru[27me"[39m
+
+[36m [2m❯[22m tests/views/HomePage.spec.js:[2m144:82[22m[39m
+    [90m142| [39m
+    [90m143| [39m    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("da…
+    [90m144| [39m    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-…
+    [90m   | [39m                                                                                 [31m^[39m
+    [90m145| [39m    expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: fa…
+    [90m146| [39m    expect(getBlockList.mock.invocationCallOrder[0]).toBeLessThan(getD…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/views/HomePage.spec.js[2m > [22mHomePage initial loading[2m > [22mdoes not block latest blocks rendering on slow transactions response
+[31m[1mAssertionError[22m: expected 'true' to be 'false' // Object.is equality[39m
+
+Expected: [32m"[7mfals[27me"[39m
+Received: [31m"[7mtru[27me"[39m
+
+[36m [2m❯[22m tests/views/HomePage.spec.js:[2m187:82[22m[39m
+    [90m185| [39m    [35mawait[39m [34mflushPromises[39m()[33m;[39m
+    [90m186| [39m
+    [90m187| [39m    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-…
+    [90m   | [39m                                                                                 [31m^[39m
+    [90m188| [39m    wrapper[33m.[39m[34munmount[39m()[33m;[39m
+    [90m189| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/views/HomePage.spec.js[2m > [22mHomePage initial loading[2m > [22mpasses transfer summaries to LatestTransactions and enriches latest tx rows
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called at least once[39m
+[36m [2m❯[22m tests/views/HomePage.spec.js:[2m256:36[22m[39m
+    [90m254| [39m
+    [90m255| [39m    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-…
+    [90m256| [39m    [34mexpect[39m(enrichTransactionsMock)[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m   | [39m                                   [31m^[39m
+    [90m257| [39m    expect(enrichTransactionsMock.mock.calls[0][0]).toEqual([{ hash: "…
+    [90m258| [39m    wrapper[33m.[39m[34munmount[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m57 passed[39m[22m[90m (61)[39m
+[2m      Tests [22m [1m[31m8 failed[39m[22m[2m | [22m[1m[32m476 passed[39m[22m[90m (484)[39m
+[2m   Start at [22m 09:59:38
+[2m   Duration [22m 11.51s[2m (transform 4.09s, setup 0ms, import 8.76s, tests 6.87s, environment 48.02s)[22m
+

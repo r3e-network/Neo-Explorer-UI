@@ -1,0 +1,134 @@
+<template>
+  <div class="etherscan-card overflow-hidden">
+    <!-- Loading -->
+    <div v-if="loading" class="space-y-2 p-4">
+      <Skeleton v-for="i in 5" :key="i" height="40px" />
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="p-6">
+      <ErrorState title="Unable to load contract calls" :message="error" @retry="() => loadPage(currentPage)" />
+    </div>
+
+    <template v-else>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+          <thead class="table-head">
+            <tr>
+              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell">
+                Sender
+                <button class="btn-mini ml-1" aria-label="Toggle sender address format" @click="toggleAddressFormat">
+                  {{ showAddress ? "Hash" : "Addr" }}
+                </button>
+              </th>
+              <th class="table-header-cell">Method</th>
+              <th class="table-header-cell">Call Flags</th>
+            </tr>
+          </thead>
+          <tbody class="soft-divider divide-y">
+            <tr
+              v-for="item in items"
+              :key="item.txid + item.method"
+              class="list-row group"
+            >
+              <td class="table-cell">
+                <div class="max-w-[200px] truncate">
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> Null Transaction </span>
+                  <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
+                    {{ item.txid }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="table-cell">
+                <div class="max-w-[200px] truncate">
+                  <span v-if="!item.originSender" class="text-low text-sm">Null Address</span>
+                  <HashLink
+                    v-else-if="showAddress"
+                    :hash="item.originSender"
+                    type="address"
+                    :copyable="false"
+                  />
+                  <router-link
+                    v-else
+                    :to="`/account-profile/${item.originSender}`"
+                    class="font-hash text-sm etherscan-link"
+                  >
+                    {{ item.originSender }}
+                  </router-link>
+                </div>
+              </td>
+              <td class="table-cell">
+                <span class="badge-soft font-mono">
+                  {{ item.method }}
+                </span>
+              </td>
+              <td class="table-cell">
+                {{ item.callFlags }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="items.length === 0" class="p-4">
+        <EmptyState message="No contract calls found" />
+      </div>
+    </template>
+
+    <div v-if="!loading && totalCount > pageSize" class="card-header soft-divider border-t border-b-0">
+      <EtherscanPagination
+        :page="currentPage"
+        :total-pages="totalPages"
+        :page-size="pageSize"
+        :total="totalCount"
+        :show-page-size="false"
+        @update:page="goToPage"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch } from "vue";
+import { contractService } from "@/services";
+import { usePagination } from "@/composables/usePagination";
+import { NULL_TX_HASH } from "@/constants";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+import HashLink from "@/components/common/HashLink.vue";
+
+const props = defineProps({
+  contractHash: { type: String, required: true },
+});
+
+const showAddress = ref(true);
+
+const {
+  items,
+  loading,
+  error,
+  totalCount,
+  currentPage,
+  pageSize,
+  totalPages,
+  loadPage,
+  goToPage,
+} = usePagination((limit, skip) => contractService.getScCalls(props.contractHash, limit, skip));
+
+function isNullTx(txid) {
+  return txid === NULL_TX_HASH;
+}
+
+function toggleAddressFormat() {
+  showAddress.value = !showAddress.value;
+}
+
+watch(
+  () => props.contractHash,
+  () => loadPage(1),
+  { immediate: true }
+);
+</script>

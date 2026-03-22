@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+
+import { GAS_HASH, NEO_HASH } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
+
+const FLAMINGO_APE_HASH = "0x63f1a9c6bef178f54a6332b874407068d9a99e50";
+const FLAMINGO_APE_LOGO = "https://flamingo.finance/img/tokens/circle/APE.svg";
+const BNEO_HASH = "0x48c40d4666f93408be1bef038b6722404d9a4c2a";
+const NEOBURGER_LOGO = "https://app.neoburger.io/favicon.ico";
+const NEOX_BRIDGE_HASH = "0xbb19cfc864b73159277e1fd39694b3fd5fc613d2";
+const NEOX_CONTRACT_HASH = "0x5a0a0f188f2582ad60c1970267df30ec5428100d";
+const NEOX_LOGO = "https://x.neo.org/favicon.ico";
+const FLAMINGO_STAKING_HASH = "0xd1a9f78e1940f6322fef4df2340a963a9ec46f63";
+const FLAMINGO_LOGO = "https://flamingo.finance/favicon.ico";
+const NEO_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png";
+const GAS_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png";
+
+describe("getTokenIcon Flamingo fallback", () => {
+  it("exposes Flamingo token metadata in known contracts", () => {
+    expect(KNOWN_CONTRACTS[FLAMINGO_APE_HASH]).toMatchObject({
+      name: "APE",
+      symbol: "APE",
+      decimals: 8,
+      logo: FLAMINGO_APE_LOGO,
+    });
+  });
+
+  it("returns Flamingo logo when local token icon is missing", () => {
+    expect(getTokenIcon(FLAMINGO_APE_HASH, "NEP17")).toBe(FLAMINGO_APE_LOGO);
+  });
+
+  it("keeps explicit NeoBurger override for bNEO contract hash", () => {
+    expect(KNOWN_CONTRACTS[BNEO_HASH]?.logo).toBe(NEOBURGER_LOGO);
+  });
+
+  it("maps NeoXBridge contract hash to NeoX logo", () => {
+    expect(KNOWN_CONTRACTS[NEOX_BRIDGE_HASH]).toMatchObject({
+      name: "NeoXBridge",
+      logo: NEOX_LOGO,
+    });
+    expect(getTokenIcon(NEOX_BRIDGE_HASH, "NEP17")).toBe(NEOX_LOGO);
+  });
+
+  it("keeps the requested Neo X system contract name while using NeoX branding", () => {
+    expect(KNOWN_CONTRACTS[NEOX_CONTRACT_HASH]).toMatchObject({
+      name: "OracleProxy",
+      logo: NEOX_LOGO,
+    });
+    expect(getTokenIcon(NEOX_CONTRACT_HASH, "NEP17")).toBe(NEOX_LOGO);
+  });
+
+  it("treats known Flamingo logos as available token icons", () => {
+    expect(hasTokenIcon(FLAMINGO_APE_HASH)).toBe(true);
+  });
+
+  it("maps Flamingo staking contract hash to Flamingo branding", () => {
+    expect(KNOWN_CONTRACTS[FLAMINGO_STAKING_HASH]).toMatchObject({
+      name: "FlamingoStaking",
+      logo: FLAMINGO_LOGO,
+    });
+    expect(getTokenIcon(FLAMINGO_STAKING_HASH, "NEP17")).toBe(FLAMINGO_LOGO);
+  });
+
+  it("uses the NeoToken logo for the native NEO contract", () => {
+    expect(getTokenIcon(NEO_HASH, "NEP17")).toBe(NEO_TOKEN_LOGO);
+  });
+
+  it("uses the GasToken logo for the native GAS contract", () => {
+    expect(getTokenIcon(GAS_HASH, "NEP17")).toBe(GAS_TOKEN_LOGO);
+  });
+
+  it("keeps default icon fallback for unknown token hash", () => {
+    const unknownHash = "0x1111111111111111111111111111111111111111";
+    expect(getTokenIcon(unknownHash, "NEP17")).toBe(getTokenIcon("", "NEP17"));
+  });
+});

@@ -1,0 +1,164 @@
+<template>
+  <div class="nft-info">
+    <div class="mx-auto max-w-[1400px] px-4 py-6">
+      <!-- Breadcrumb -->
+      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'NFT Detail' }]" />
+
+      <!-- Page Header -->
+      <div class="detail-hero">
+        <div class="flex items-start gap-3">
+          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h1 class="page-title">{{ nftName || "NFT Detail" }}</h1>
+            <p class="page-subtitle">Non-Fungible Token</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="etherscan-card p-6">
+        <div class="space-y-4">
+          <Skeleton v-for="index in 6" :key="index" height="44px" />
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="p-6">
+        <ErrorState title="NFT not found" :message="error" @retry="loadNFT" />
+      </div>
+
+      <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-1">
+          <div class="etherscan-card p-4">
+            <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+              <img
+                v-if="image"
+                v-lazy-image="image"
+                :alt="nftName || 'NFT image'"
+                class="h-full w-full object-cover"
+                @error="handleImageError"
+              />
+              <div v-else class="flex h-full items-center justify-center text-low">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6 lg:col-span-2">
+          <div class="etherscan-card overflow-hidden">
+            <div class="card-header">
+              <h2 class="text-base font-semibold text-high">Details</h2>
+            </div>
+            <div class="soft-divider divide-y">
+              <InfoRow label="Token ID">
+                <span class="break-all font-hash text-sm">{{ tokenId }}</span>
+              </InfoRow>
+              <InfoRow label="Contract">
+                <router-link :to="`/contract-info/${contractHash}`" class="break-all font-hash text-sm etherscan-link">
+                  {{ contractHash }}
+                </router-link>
+              </InfoRow>
+              <InfoRow label="Owner">
+                <HashLink :hash="address" type="address" :truncated="false" :copyable="false" />
+              </InfoRow>
+              <InfoRow v-if="description" label="Description">
+                <p>{{ description }}</p>
+              </InfoRow>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { tokenService } from "@/services";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveImageUrl } from "@/utils/neoHelpers";
+import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import InfoRow from "@/components/common/InfoRow.vue";
+import HashLink from "@/components/common/HashLink.vue";
+
+const route = useRoute();
+const { t } = useI18n();
+
+// data() -> refs
+const loading = ref(true);
+const error = ref(null);
+const nftName = ref("");
+const image = ref("");
+const description = ref("");
+
+let fetchGeneration = 0;
+
+// computed
+const tokenId = computed(() => route.params.tokenId);
+const contractHash = computed(() => route.params.contractHash);
+const address = computed(() => route.params.address);
+
+// methods -> functions
+function handleImageError() {
+  image.value = "";
+}
+
+async function loadNFT() {
+  const myGeneration = ++fetchGeneration;
+
+  loading.value = true;
+  error.value = null;
+  try {
+    const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value]);
+    if (myGeneration !== fetchGeneration) return;
+    const data = result?.result?.[0];
+    if (data) {
+      nftName.value = data.name || "Unknown NFT";
+      image.value = resolveImageUrl(data.image);
+      description.value = data.description || "";
+    }
+  } catch (err) {
+    if (myGeneration !== fetchGeneration) return;
+    if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
+    error.value = t("errors.loadNftDetails");
+  } finally {
+    if (myGeneration === fetchGeneration) loading.value = false;
+  }
+}
+
+// watch with immediate replaces the watch + created pattern
+function handleNetworkChange() {
+  if (contractHash.value && tokenId.value) {
+    loadNFT();
+  }
+}
+
+useNetworkChange(handleNetworkChange);
+
+watch(
+  () => [contractHash.value, tokenId.value],
+  () => loadNFT(),
+  { immediate: true }
+);
+</script>

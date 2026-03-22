@@ -1,0 +1,227 @@
+<template>
+  <div>
+    <!-- Loading -->
+    <div v-if="transfersLoading" class="py-8 text-center">
+      <div class="space-y-3">
+        <Skeleton class="mx-auto" width="75%" height="16px" />
+        <Skeleton class="mx-auto" width="50%" height="16px" />
+      </div>
+    </div>
+    <!-- Empty -->
+    <EmptyState
+      v-else-if="allTransfers.length === 0"
+      message="No token transfers found for this transaction."
+      icon="tx"
+    />
+    <!-- Content -->
+    <div v-else class="surface-panel overflow-x-auto">
+      <table class="w-full min-w-[780px] text-sm" aria-label="Transaction token transfers">
+        <caption class="sr-only">
+          NEP transfer list for this transaction
+        </caption>
+        <thead class="table-head">
+          <tr class="soft-divider border-b">
+            <th class="table-header-cell">#</th>
+            <th class="table-header-cell">Type</th>
+            <th class="table-header-cell">From</th>
+            <th class="table-header-cell">To</th>
+            <th class="table-header-cell-right">Amount</th>
+            <th class="table-header-cell">Token ID</th>
+            <th class="table-header-cell">Token</th>
+            <th class="table-header-cell">Contract</th>
+          </tr>
+        </thead>
+        <tbody class="soft-divider divide-y">
+          <tr v-for="(t, tIdx) in paginatedTransfers" :key="'xfer-' + tIdx" class="list-row group">
+            <td class="table-cell-secondary text-xs">{{ (currentPage - 1) * pageSize + tIdx + 1 }}</td>
+            <td class="table-cell">
+              <span
+                class="badge-soft rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                :class="
+                  t._standard === 'NEP-11'
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                "
+              >
+                {{ t._standard }}
+              </span>
+            </td>
+            <td class="table-cell">
+              <div v-if="t.from" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
+                <HashLink :hash="scriptHashToAddress(t.from)" type="address" :truncated="false" />
+              </div>
+              <span v-else class="text-mid text-xs italic">Mint</span>
+            </td>
+            <td class="table-cell">
+              <div v-if="t.to" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
+                <HashLink :hash="scriptHashToAddress(t.to)" type="address" :truncated="false" />
+              </div>
+              <span v-else class="text-mid text-xs italic">Burn</span>
+            </td>
+            <td class="table-cell-right font-mono text-xs">
+              {{ formatTransferAmount(t) }}
+            </td>
+            <td class="table-cell">
+              <div v-if="t._standard === 'NEP-11' && t.tokenId" class="max-w-[120px] truncate">
+                <router-link
+                  :to="`/nft-info/${t.contract || t.contractHash}/${t.to || t.from}/${t.tokenId}`"
+                  class="font-hash etherscan-link"
+                  :title="t.tokenId"
+                >
+                  #{{ t.tokenId }}
+                </router-link>
+              </div>
+              <span v-else class="text-low">-</span>
+            </td>
+            <td class="table-cell">
+              <span
+                class="badge-soft inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-high"
+              >
+                <img
+                  v-if="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()]?.logo_url"
+                  :src="supabaseMeta[(t.contract || t.contractHash)?.toLowerCase()].logo_url"
+                  class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover"
+                  alt=""
+                  loading="lazy"
+                />
+                <img
+                  v-else
+                  :src="getTokenLogo(t)"
+                  alt="logo"
+                  class="w-4 h-4 rounded-full object-cover bg-white/5"
+                  loading="lazy"
+                />
+                {{ t.tokenname || t.symbol || "Unknown" }}
+              </span>
+            </td>
+            <td class="table-cell">
+              <HashLink v-if="t.contract || t.contractHash" :hash="t.contract || t.contractHash" type="contract" />
+              <span v-else class="text-low">-</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-if="allTransfers.length > pageSize" class="p-4 border-t soft-divider bg-slate-50/50 dark:bg-slate-800/20">
+        <EtherscanPagination
+          :current-page="currentPage"
+          :total-pages="Math.ceil(allTransfers.length / pageSize)"
+          :page-size="pageSize"
+          :total-count="allTransfers.length"
+          @go-to-page="currentPage = $event"
+          @change-page-size="
+            pageSize = $event;
+            currentPage = 1;
+          "
+        />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import HashLink from "@/components/common/HashLink.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
+import { tokenService } from "@/services/tokenService";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { supabaseService } from "@/services/supabaseService";
+import { formatTokenAmount } from "@/utils/explorerFormat";
+import { getTokenIcon } from "@/utils/getTokenIcon";
+import { ref, computed, watch } from "vue";
+import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+
+const props = defineProps({
+  allTransfers: { type: Array, default: () => [] },
+  transfersLoading: { type: Boolean, default: false },
+});
+
+const supabaseMeta = ref({});
+watch(
+  () => (Array.isArray(props.transfers) ? props.transfers : []),
+  async (newTransfers) => {
+    if (newTransfers && newTransfers.length) {
+      const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
+      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      supabaseMeta.value = meta;
+    } else {
+      supabaseMeta.value = {};
+    }
+  },
+  { immediate: true },
+);
+
+const tokenDecimalsMap = ref({});
+
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const paginatedTransfers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return props.allTransfers.slice(start, end);
+});
+
+watch(
+  () => props.allTransfers,
+  () => {
+    currentPage.value = 1;
+  },
+);
+
+watch(
+  () => props.allTransfers,
+  async (xfers) => {
+    if (!xfers) return;
+    const fetchPromises = [];
+
+    for (const t of xfers) {
+      if (t.decimals !== undefined && t.decimals !== null) continue;
+
+      const hash = (t.contract || t.contractHash)?.toLowerCase();
+      if (!hash || NATIVE_CONTRACTS[hash]) continue;
+
+      if (tokenDecimalsMap.value[hash] === undefined) {
+        tokenDecimalsMap.value[hash] = 0;
+        fetchPromises.push(
+          tokenService
+            .getByHash(hash)
+            .then((token) => {
+              if (token && typeof token.decimals !== "undefined") {
+                tokenDecimalsMap.value[hash] = Number(token.decimals);
+              }
+            })
+            .catch((_e) => {}),
+        );
+      }
+    }
+
+    await Promise.all(fetchPromises);
+  },
+  { immediate: true },
+);
+
+function getTokenLogo(t) {
+  const hash = (t.contract || t.contractHash || "").toLowerCase();
+  const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
+  return getTokenIcon(hash, isNep11 ? "NEP11" : "NEP17");
+}
+
+function formatTransferAmount(t) {
+  const raw = t.value || t.amount || 0;
+  let dec = t.decimals;
+
+  if (dec === undefined || dec === null) {
+    const hash = (t.contract || t.contractHash)?.toLowerCase();
+    if (hash && NATIVE_CONTRACTS[hash]) {
+      dec = NATIVE_CONTRACTS[hash].decimals;
+    } else if (hash && tokenDecimalsMap.value[hash] !== undefined) {
+      dec = tokenDecimalsMap.value[hash];
+    } else {
+      dec = 0;
+    }
+  }
+
+  return formatTokenAmount(raw, dec, 8);
+}
+</script>

@@ -1,0 +1,99 @@
+<template>
+  <div class="etherscan-card">
+    <div class="card-header">
+      <h2 class="text-high text-base font-bold">Overview</h2>
+    </div>
+    <div class="divide-y soft-divider px-4">
+      <InfoRow
+        label="Contract Hash"
+        tooltip="The unique identifier for this smart contract"
+        :value="contract.hash || '-'"
+        :copyable="!!contract.hash"
+        :copy-value="contract.hash"
+      />
+      <InfoRow label="Name" :value="displayName" />
+      <InfoRow v-if="developerName" label="Developer" :value="developerName" />
+      <InfoRow v-if="developerEmail" label="Developer Email">
+        <a :href="`mailto:${developerEmail}`" class="etherscan-link">{{ developerEmail }}</a>
+      </InfoRow>
+      <InfoRow v-if="contractDescription" label="Description">
+        <span class="whitespace-pre-wrap break-words">{{ contractDescription }}</span>
+      </InfoRow>
+      <InfoRow v-if="sourceCodeUrl" label="Source Code">
+        <a :href="sourceCodeUrl" target="_blank" rel="noopener noreferrer" class="etherscan-link break-all">
+          {{ sourceCodeUrl }}
+        </a>
+      </InfoRow>
+      <InfoRow label="Creator" tooltip="The address that deployed this contract">
+        <HashLink v-if="contract.sender" :hash="contract.sender" type="address" :truncated="false" :copyable="false" />
+        <span v-else class="text-mid">-</span>
+      </InfoRow>
+      <InfoRow label="Invocations" :value="formatNumber(contract.totalsccall || 0)" />
+      <InfoRow
+        label="Update Counter"
+        tooltip="Number of times this contract has been updated"
+        :value="String(contract.updatecounter ?? 0)"
+      />
+      <InfoRow label="Verified">
+        <span
+          v-if="isVerified"
+          class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-success dark:border-emerald-800 dark:bg-emerald-900/25"
+        >
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Verified
+        </span>
+        <span
+          v-else
+          class="badge-soft inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold"
+        >
+          Not Verified
+        </span>
+      </InfoRow>
+      <InfoRow v-if="supportedStandards.length" label="Supported Standards">
+        <div class="flex flex-wrap gap-1.5">
+          <span
+            v-for="std in supportedStandards"
+            :key="'ov-' + std"
+            class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
+            :class="nepBadgeClass(std)"
+          >
+            {{ std }}
+          </span>
+        </div>
+      </InfoRow>
+      <InfoRow label="Methods Count" tooltip="Number of methods in the contract ABI" :value="String(methodsCount)" />
+      <InfoRow label="Events Count" tooltip="Number of events in the contract ABI" :value="String(eventsCount)" />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from "vue";
+import { formatNumber } from "@/utils/explorerFormat";
+import { nepBadgeClass } from "@/utils/nepBadges";
+import InfoRow from "@/components/common/InfoRow.vue";
+import HashLink from "@/components/common/HashLink.vue";
+
+const props = defineProps({
+  contract: { type: Object, required: true },
+  metadata: { type: Object, default: null },
+  manifest: { type: Object, default: null },
+  isVerified: { type: Boolean, default: false },
+  supportedStandards: { type: Array, default: () => [] },
+  methodsCount: { type: Number, default: 0 },
+  eventsCount: { type: Number, default: 0 },
+});
+
+const manifestExtra = computed(() => props.manifest?.extra || {});
+const displayName = computed(() => props.metadata?.name || props.manifest?.name || props.contract.name || '-');
+const developerName = computed(() => manifestExtra.value?.Author || manifestExtra.value?.author || '');
+const developerEmail = computed(() => manifestExtra.value?.Email || manifestExtra.value?.email || '');
+const contractDescription = computed(() => manifestExtra.value?.Description || manifestExtra.value?.description || '');
+const sourceCodeUrl = computed(() => manifestExtra.value?.Sourcecode || manifestExtra.value?.sourcecode || '');
+</script>

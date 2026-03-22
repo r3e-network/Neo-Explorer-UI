@@ -1,0 +1,655 @@
+<template>
+  <div class="address-detail-page">
+    <div class="page-container py-6">
+      <!-- Breadcrumb -->
+      <Breadcrumb
+        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
+      />
+
+      <AddressHeader
+        :address="address"
+        :is-contract="isContract"
+        v-model:show-qr="showQr"
+        :neo-balance="neoBalance"
+        :gas-balance="gasBalance"
+        :tx-count="txTotalCount"
+        :token-count="tokenCount"
+        :candidate-data="candidateData"
+      />
+
+      <div
+        v-if="showMainnetHint"
+        class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      >
+        No activity was found for this address on N3 Testnet.
+        <button class="ml-1 font-semibold underline" @click="switchToMainnet">Switch to N3 Mainnet</button>
+      </div>
+
+      <div class="etherscan-card overflow-hidden">
+        <div class="p-3 pb-0">
+          <TabsNav :tabs="tabs" v-model="activeTab" />
+        </div>
+
+        <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
+          <AddressTransactionsTab
+            v-if="activeTab === 'transactions'"
+            :address="address"
+            :transactions="transactions"
+            :loading="transactionsLoading"
+            :error="transactionsError"
+            :page="txPage"
+            :total-pages="txTotalPages"
+            :page-size="txPageSize"
+            :total-count="txTotalCount"
+            :transfer-summary-by-hash="transferSummaryByHash"
+            @go-to-page="goToTxPage"
+            @change-page-size="changeTxPageSize"
+            @export-csv="exportCsv"
+          />
+
+          <AddressTokenTransfersTab
+            v-else-if="activeTab === 'tokenTransfers'"
+            :address="address"
+            :transfers="nep17Transfers"
+            :loading="nep17Loading"
+            :error="nep17Error"
+            :page="nep17Page"
+            :total-pages="nep17TotalPages"
+            :page-size="nep17PageSize"
+            :total-count="nep17TotalCount"
+            @go-to-page="goToNep17Page"
+            @change-page-size="changeNep17PageSize"
+            @retry="loadNep17Page(1)"
+          />
+
+          <AddressNftTransfersTab
+            v-else-if="activeTab === 'nftTransfers'"
+            :address="address"
+            :transfers="nep11Transfers"
+            :loading="nep11Loading"
+            :error="nep11Error"
+            :page="nep11Page"
+            :total-pages="nep11TotalPages"
+            :page-size="nep11PageSize"
+            :total-count="nep11TotalCount"
+            @go-to-page="goToNep11Page"
+            @change-page-size="changeNep11PageSize"
+            @retry="loadNep11Page(1)"
+          />
+
+          <AddressTokensTab
+            v-else-if="activeTab === 'tokens'"
+            :assets="fungibleAssets"
+            :loading="assetsLoading"
+            :error="assetsError"
+            @retry="loadAssets(address)"
+          />
+
+          <AddressNftsTab
+            v-else-if="activeTab === 'nfts'"
+            :assets="nftAssets"
+            :loading="assetsLoading"
+            :error="assetsError"
+            @retry="loadAssets(address)"
+          />
+
+          <AddressVotersTab
+            v-else-if="activeTab === 'voters'"
+            :address="address"
+            :voters="voters"
+            :loading="votersLoading"
+            :error="votersError"
+            :page="votersPage"
+            :total-pages="votersTotalPages"
+            :page-size="votersPageSize"
+            :total-count="votersTotalCount"
+            @go-to-page="goToVotersPage"
+            @change-page-size="changeVotersPageSize"
+            @retry="loadVotersPage(1)"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { accountService, transactionService, contractService, candidateService, tokenService } from "@/services";
+import { NATIVE_CONTRACTS } from "@/constants";
+import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
+import {
+  getAddressDetailTabs,
+  normalizeAccountSummary,
+  pickBestCandidateVotes,
+  sumCandidateVoterBalances,
+  splitAddressAssets,
+  normalizeAddressTransactions,
+  normalizeNep17Transfers,
+  normalizeNep11Transfers,
+  downloadTransactionsCsv,
+} from "@/utils/addressDetail";
+import { usePagination } from "@/composables/usePagination";
+import { useTransferSummary } from "@/composables/useTransferSummary";
+import TabsNav from "@/components/common/TabsNav.vue";
+import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import AddressHeader from "./components/AddressHeader.vue";
+import AddressTransactionsTab from "./components/AddressTransactionsTab.vue";
+import AddressTokenTransfersTab from "./components/AddressTokenTransfersTab.vue";
+import AddressNftTransfersTab from "./components/AddressNftTransfersTab.vue";
+import AddressTokensTab from "./components/AddressTokensTab.vue";
+import AddressNftsTab from "./components/AddressNftsTab.vue";
+import AddressVotersTab from "./components/AddressVotersTab.vue";
+import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
+import { getCurrentEnv, NET_ENV, setCurrentEnv } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
+import { supabaseService } from "@/services/supabaseService";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+
+const route = useRoute();
+const { t } = useI18n();
+let addressRequestId = 0;
+const MAX_CANDIDATE_LIST_LOOKUP = 1000;
+const MAX_VOTER_FALLBACK_PAGES = 10;
+const MAX_VOTER_FALLBACK_ENTRIES = 2000;
+const abortController = ref(null);
+const neoBalance = ref("0");
+const gasBalance = ref("0");
+const txCount = ref(0);
+const tokenCount = ref(0);
+const activeTab = ref("transactions");
+const isCandidate = ref(false);
+const candidateData = ref(null);
+const tabs = computed(() => getAddressDetailTabs(isCandidate.value));
+const assets = ref([]);
+const fungibleAssets = ref([]);
+const nftAssets = ref([]);
+const assetsLoading = ref(false);
+const assetsError = ref("");
+const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
+// Transactions pagination via composable
+const {
+  items: transactions,
+  loading: transactionsLoading,
+  error: transactionsError,
+  currentPage: txPage,
+  pageSize: txPageSize,
+  totalCount: txTotalCount,
+  totalPages: txTotalPages,
+  loadPage: loadTxPage,
+  goToPage: goToTxPage,
+  changePageSize: changeTxPageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+    const response = await transactionService.getByAddress(addr, pageSize, skip);
+    const result = normalizeAddressTransactions(response?.result || []);
+    enrichTransactions(result);
+    return {
+      result,
+      totalCount: Number(response?.totalCount || 0),
+    };
+  },
+  { defaultPageSize: 10, errorMessage: t("errors.loadTransactions") },
+);
+const isContract = ref(false);
+const showQr = ref(false);
+const networkHintDismissed = ref(false);
+
+// NEP-17 Token Transfers via composable
+const {
+  items: nep17Transfers,
+  loading: nep17Loading,
+  error: nep17Error,
+  currentPage: nep17Page,
+  pageSize: nep17PageSize,
+  totalCount: nep17TotalCount,
+  totalPages: nep17TotalPages,
+  loadPage: loadNep17Page,
+  goToPage: goToNep17Page,
+  changePageSize: changeNep17PageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+    const response = await accountService.getNep17Transfers(addr, pageSize, skip);
+    return {
+      result: normalizeNep17Transfers(response?.result || []),
+      totalCount: Number(response?.totalCount || 0),
+    };
+  },
+  { defaultPageSize: 10, errorMessage: t("errors.loadTokens") },
+);
+
+// NEP-11 NFT Transfers via composable
+const {
+  items: nep11Transfers,
+  loading: nep11Loading,
+  error: nep11Error,
+  currentPage: nep11Page,
+  pageSize: nep11PageSize,
+  totalCount: nep11TotalCount,
+  totalPages: nep11TotalPages,
+  loadPage: loadNep11Page,
+  goToPage: goToNep11Page,
+  changePageSize: changeNep11PageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+    const response = await accountService.getNep11Transfers(addr, pageSize, skip);
+    return {
+      result: normalizeNep11Transfers(response?.result || []),
+      totalCount: Number(response?.totalCount || 0),
+    };
+  },
+  { defaultPageSize: 10, errorMessage: t("errors.loadNftDetails") },
+);
+
+// Voters via composable
+const {
+  items: voters,
+  loading: votersLoading,
+  error: votersError,
+  currentPage: votersPage,
+  pageSize: votersPageSize,
+  totalCount: votersTotalCount,
+  totalPages: votersTotalPages,
+  loadPage: loadVotersPage,
+  goToPage: goToVotersPage,
+  changePageSize: changeVotersPageSize,
+} = usePagination(
+  async (pageSize, skip) => {
+    const addr = address.value;
+    if (!addr) return { result: [], totalCount: 0 };
+
+    const scriptHash = addressToScriptHash(addr);
+    if (!scriptHash) return { result: [], totalCount: 0 };
+
+    const response = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+
+    // Map script hashes back to base58 addresses
+    const mappedResult = (response?.result || []).map((v) => {
+      let voterAddress = v.voter;
+      try {
+        if (voterAddress.startsWith("0x")) {
+          voterAddress = scriptHashToAddress(voterAddress);
+        }
+      } catch (e) {
+        // keep original if fails
+      }
+      return { ...v, voterAddress };
+    });
+
+    return {
+      result: mappedResult,
+      totalCount: Number(response?.totalCount || 0),
+    };
+  },
+  { defaultPageSize: 10, errorMessage: "Failed to load voters" },
+);
+
+// --- Computed ---
+const rawAddress = computed(() => route.params.accountAddress || "");
+
+const address = computed(() => {
+  const val = rawAddress.value;
+  if (val.startsWith("0x") && val.length === 42) {
+    const converted = scriptHashToAddress(val);
+    return converted || val;
+  }
+  return val;
+});
+
+const truncateAddr = computed(() => {
+  const value = address.value || "";
+  if (!value) return "";
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
+});
+
+const showMainnetHint = computed(() => {
+  if (networkHintDismissed.value) return false;
+  if (getCurrentEnv() !== NET_ENV.TestT5) return false;
+  if (isCandidate.value) return false;
+  if (assetsLoading.value || transactionsLoading.value) return false;
+
+  const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
+  return !hasBalance && txTotalCount.value === 0 && tokenCount.value === 0 && assets.value.length === 0;
+});
+
+async function switchToMainnet() {
+  const addr = address.value;
+  if (!addr) return;
+  networkHintDismissed.value = true;
+  setCurrentEnv(NET_ENV.Mainnet);
+  await initializeData(addr);
+}
+
+async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
+  let resolvedVotes = pickBestCandidateVotes(candidate);
+
+  try {
+    const votesResponse = await candidateService.getVotesByAddress(scriptHash);
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+    resolvedVotes = pickBestCandidateVotes(resolvedVotes, votesResponse);
+  } catch {
+    // Ignore and fallback to other sources.
+  }
+
+  if (resolvedVotes !== "0") return resolvedVotes;
+
+  try {
+    const countRaw = await candidateService.getCount();
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+    const count = Number(countRaw || 0);
+    const limit = Number.isFinite(count) && count > 0 ? Math.min(count, MAX_CANDIDATE_LIST_LOOKUP) : 500;
+    const listResponse = await candidateService.getList(limit, 0);
+    if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+    const list = Array.isArray(listResponse?.result) ? listResponse.result : [];
+    const matched = list.find(
+      (item) => String(item?.candidate || "").toLowerCase() === String(scriptHash || "").toLowerCase(),
+    );
+    resolvedVotes = pickBestCandidateVotes(resolvedVotes, matched);
+  } catch {
+    // Ignore list fallback failures.
+  }
+
+  if (resolvedVotes !== "0") return resolvedVotes;
+
+  try {
+    const pageSize = 200;
+    let skip = 0;
+    let accumulatedVotes = 0n;
+    let totalCount = null;
+
+    for (let page = 0; page < MAX_VOTER_FALLBACK_PAGES; page += 1) {
+      const votersResponse = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+      if (currentRequestId !== addressRequestId) return resolvedVotes;
+
+      const votersList = Array.isArray(votersResponse?.result) ? votersResponse.result : [];
+      if (!votersList.length) break;
+
+      accumulatedVotes += BigInt(sumCandidateVoterBalances(votersList));
+      skip += votersList.length;
+      if (skip >= MAX_VOTER_FALLBACK_ENTRIES) break;
+
+      const parsedTotal = Number(votersResponse?.totalCount || 0);
+      totalCount = Number.isFinite(parsedTotal) && parsedTotal > 0 ? parsedTotal : totalCount;
+      if (votersList.length < pageSize || (Number.isFinite(totalCount) && totalCount > 0 && skip >= totalCount)) {
+        break;
+      }
+    }
+
+    if (accumulatedVotes > 0n) {
+      resolvedVotes = accumulatedVotes.toString();
+    }
+  } catch {
+    // Ignore voter-sum fallback failures.
+  }
+
+  return resolvedVotes;
+}
+
+// --- Data loading methods ---
+async function loadSummary(addr) {
+  const currentRequestId = addressRequestId;
+  try {
+    const account = (await accountService.getByAddress(addr)) || {};
+    if (currentRequestId !== addressRequestId) return;
+    const summary = normalizeAccountSummary(account, assets.value);
+    neoBalance.value = summary.neoBalance;
+    gasBalance.value = summary.gasBalance;
+    txCount.value = summary.txCount;
+    tokenCount.value = summary.tokenCount;
+
+    try {
+      const contract = await contractService.getByHashWithFallback(addr);
+      if (currentRequestId !== addressRequestId) return;
+      isContract.value = !!(contract && contract.hash);
+    } catch {
+      isContract.value = false;
+    }
+
+    try {
+      const scriptHash = addressToScriptHash(addr);
+      if (scriptHash) {
+        const candidate = await candidateService.getByAddress(scriptHash);
+        if (currentRequestId !== addressRequestId) return;
+
+        if (candidate && candidate.candidate) {
+          isCandidate.value = true;
+          candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || "" };
+
+          const votes = await resolveCandidateVotes(scriptHash, candidateData.value, currentRequestId);
+          if (currentRequestId === addressRequestId && candidateData.value) {
+            candidateData.value.votes = votes;
+            candidateData.value.votesOfCandidate = votes;
+          }
+
+          const env = getCurrentEnv().toLowerCase();
+          const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+          if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
+            candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
+          }
+
+          if (!isTestnet) {
+            let metadataRows = [];
+            try {
+              metadataRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+            } catch {
+              metadataRows = [];
+            }
+
+            if (!Array.isArray(metadataRows) || metadataRows.length === 0) {
+              try {
+                metadataRows = await fetchDoraCommittee(NET_ENV.Mainnet);
+              } catch {
+                metadataRows = [];
+              }
+            }
+
+            if (currentRequestId !== addressRequestId) return;
+
+            if (Array.isArray(metadataRows)) {
+              const targetScriptHash = (addressToScriptHash(addr) || "").toLowerCase();
+              let meta = metadataRows.find((item) => {
+                const scriptHash = String(item.scripthash || item.address || "").toLowerCase();
+                return scriptHash && targetScriptHash && scriptHash === targetScriptHash;
+              });
+
+              if (!meta && candidateData.value.publickey) {
+                meta = metadataRows.find((item) => {
+                  const pubkey = item.pubkey || item.public_key || item.publicKey;
+                  return pubkey && pubkey === candidateData.value.publickey;
+                });
+              }
+
+              const foundPubKey = meta?.pubkey || meta?.public_key || meta?.publicKey || null;
+              if (foundPubKey && !candidateData.value.publickey) {
+                candidateData.value.publickey = foundPubKey;
+              }
+
+              if (meta) {
+                candidateData.value.metaName = meta.name || meta.display_name;
+                candidateData.value.metaLocation = meta.location;
+                const logo = meta.logoUrl || meta.logo_url || meta.logo;
+                if (logo) {
+                  candidateData.value.metaLogo = resolveCandidateLogoUrl(logo);
+                } else if (env === NET_ENV.Mainnet.toLowerCase() && candidateData.value.publickey) {
+                  candidateData.value.metaLogo = getDefaultCandidateLogoUrl(candidateData.value.publickey);
+                }
+              }
+            }
+          }
+        } else {
+          isCandidate.value = false;
+          candidateData.value = null;
+        }
+      }
+    } catch {
+      isCandidate.value = false;
+      candidateData.value = null;
+    }
+  } catch {
+    if (currentRequestId !== addressRequestId) return;
+    neoBalance.value = "0";
+    gasBalance.value = "0";
+    txCount.value = 0;
+  }
+}
+
+async function loadAssets(addr) {
+  const currentRequestId = addressRequestId;
+  assetsLoading.value = true;
+  assetsError.value = "";
+
+  try {
+    const response = await accountService.getAssets(addr);
+    if (currentRequestId !== addressRequestId) return;
+
+    let rawAssets = [];
+    if (Array.isArray(response)) {
+      rawAssets = response;
+    } else if (response && Array.isArray(response.result)) {
+      rawAssets = response.result;
+    }
+
+    // Enhance assets with token metadata (since GetAssetsHeldByAddress only returns balance + hash)
+    const enhancedPromises = rawAssets.map(async (asset) => {
+      let hash = asset?.hash || asset?.asset || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
+      hash = hash.toLowerCase();
+      if (!hash) return asset;
+      if (!hash.startsWith("0x")) hash = "0x" + hash;
+
+      // Fast path for known contracts
+      const native = NATIVE_CONTRACTS[hash];
+      const known = KNOWN_CONTRACTS[hash];
+
+      let tokenname = asset.tokenname || asset.name;
+      let symbol = asset.symbol;
+      let decimals = asset.decimals;
+      let standard = asset.standard || asset.type;
+
+      if (native) {
+        tokenname = tokenname || native.name;
+        symbol = symbol || native.symbol;
+        decimals = decimals !== undefined ? decimals : native.decimals;
+        standard = standard || "NEP17";
+      } else if (known) {
+        tokenname = tokenname || known.name;
+        symbol = symbol || known.symbol;
+        decimals = decimals !== undefined ? decimals : known.decimals;
+        standard = standard || "NEP17"; // Assuming KNOWN_CONTRACTS are usually NEP17 in this context
+      }
+
+      // If still missing essential info, fetch from API
+      if (!tokenname || standard === undefined || decimals === undefined) {
+        try {
+          const info = await tokenService.getByHash(hash);
+          if (info) {
+            tokenname = tokenname || info.tokenname || info.name || info.symbol;
+            symbol = symbol || info.symbol || info.name;
+            decimals = decimals !== undefined ? decimals : info.decimals;
+            standard = standard || info.type || info.standard;
+          }
+        } catch (e) {
+          // Ignore metadata fetch error
+        }
+      }
+
+      return {
+        ...asset,
+        tokenname: tokenname || "Unknown",
+        symbol: symbol || "Unknown",
+        decimals,
+        standard: standard || "NEP17",
+        type: standard || "NEP17",
+      };
+    });
+
+    const enhancedAssets = await Promise.all(enhancedPromises);
+    if (currentRequestId !== addressRequestId) return;
+
+    assets.value = enhancedAssets;
+
+    const split = splitAddressAssets(assets.value);
+    fungibleAssets.value = split.fungibleAssets;
+    nftAssets.value = split.nftAssets;
+    tokenCount.value = assets.value.length;
+  } catch {
+    if (currentRequestId !== addressRequestId) return;
+    assetsError.value = "Failed to load token holdings";
+  } finally {
+    if (currentRequestId === addressRequestId) {
+      assetsLoading.value = false;
+    }
+  }
+}
+
+function exportCsv() {
+  downloadTransactionsCsv(transactions.value, `txns-${address.value}.csv`);
+}
+
+// --- Initialization ---
+async function initializeData(addr) {
+  ++addressRequestId;
+  abortController.value?.abort();
+  abortController.value = new AbortController();
+  networkHintDismissed.value = false;
+  txPage.value = 1;
+  isCandidate.value = false;
+  candidateData.value = null;
+  if (activeTab.value === "voters") {
+    activeTab.value = "transactions";
+  }
+
+  // Load assets first so loadSummary can use them to extract NEO/GAS balances
+  await loadAssets(addr);
+  const results = await Promise.allSettled([loadSummary(addr), loadTxPage(1)]);
+  if (import.meta.env.DEV) {
+    results.forEach((r, i) => {
+      if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);
+    });
+  }
+}
+
+function handleNetworkChange() {
+  if (address.value) {
+    void initializeData(address.value);
+  }
+}
+
+useNetworkChange(handleNetworkChange);
+
+onBeforeUnmount(() => {
+  abortController.value?.abort();
+});
+
+// --- Watchers ---
+watch(
+  address,
+  async (addr) => {
+    if (!addr) return;
+    await initializeData(addr);
+  },
+  { immediate: true },
+);
+
+watch(activeTab, (tab) => {
+  if (tab === "tokenTransfers" && !nep17Transfers.value.length && !nep17Loading.value) {
+    loadNep17Page(1);
+  }
+  if (tab === "nftTransfers" && !nep11Transfers.value.length && !nep11Loading.value) {
+    loadNep11Page(1);
+  }
+  if (tab === "voters" && !voters.value.length && !votersLoading.value && isCandidate.value) {
+    loadVotersPage(1);
+  }
+});
+</script>

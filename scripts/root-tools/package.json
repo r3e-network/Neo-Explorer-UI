@@ -1,0 +1,10 @@
+{
+  "name": "root-tools",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "@cityofzion/neon-js": "^5.8.0",
+    "ethers": "^6.16.0"
+  }
+}
