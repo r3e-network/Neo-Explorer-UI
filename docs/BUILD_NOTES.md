@@ -70,6 +70,22 @@ At the moment, these notices are informational and do not block successful build
 
 There are no remaining app-side chunk graph warnings in the current build baseline.
 
+## Current Security Audit Baseline
+
+`npm audit fix` has already removed the previous high-severity transitive issues from the lockfile.
+
+The remaining audit output is currently limited to low-severity `elliptic` advisories pulled in through:
+- `@cityofzion/neon-js`
+- `@web3auth/*`
+- `vite-plugin-node-polyfills`
+
+At the time of verification in this repo:
+- `npm audit --audit-level=high` exits successfully
+- `@cityofzion/neon-js` latest is `5.8.1`, and the installed major line still depends on `elliptic`
+- removing the remaining `elliptic` chain would require breaking dependency changes or larger wallet-stack replacement work
+
+Because of that, CI now enforces the `high` audit gate and treats the residual low-severity wallet-stack advisories as tracked dependency debt rather than silently ignoring security checks.
+
 ## Chunk Warning Threshold
 
 `vite.config.js` sets:

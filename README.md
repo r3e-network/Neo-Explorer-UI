@@ -138,7 +138,7 @@ The v1 server-side verification flow expects a verifiable Neo public key from th
 
 ### Prerequisites
 
-- Node.js 18+ or 20+
+- Node.js 20+ (Node 24 LTS recommended)
 - npm (lockfile included)
 
 ### Local Development

@@ -11,10 +11,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Calculate and Update Liveness
         env:
           VERCEL_API_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
           EDGE_CONFIG_ID: ${{ secrets.EDGE_CONFIG_ID }}
         run: node scripts/update-liveness.mjs
-

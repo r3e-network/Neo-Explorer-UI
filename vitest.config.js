@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     include: ["tests/**/*.spec.js"],
+    coverage: {
+      provider: "v8",
+    },
   },
   resolve: {
     alias: {

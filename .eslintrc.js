@@ -35,9 +35,6 @@ module.exports = {
         beforeAll: "readonly",
         afterAll: "readonly",
       },
-      rules: {
-        "no-unused-vars": "off",
-      },
     },
   ],
 };

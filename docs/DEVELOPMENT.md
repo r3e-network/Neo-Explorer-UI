@@ -4,7 +4,7 @@ This guide covers local setup, quality gates, and frontend/backend consistency c
 
 ## Prerequisites
 
-- Node.js 18.x or 20.x
+- Node.js 20+ (Node 24 LTS recommended)
 - npm 9+
 - Optional for cross-repo validation: local backend checkout at `../neo3fura`
 
@@ -63,6 +63,9 @@ npm run lint
 
 # Unit tests
 npm test
+
+# Security audit (high+)
+npm run audit:high
 
 # Build
 npm run build
