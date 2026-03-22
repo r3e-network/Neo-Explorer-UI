@@ -33,23 +33,23 @@
     <!-- Latest Blocks + Latest Transactions -->
     <section class="page-shell">
       <div class="page-container py-1">
-      <div class="grid gap-4 lg:grid-cols-2">
-        <LatestBlocks :blocks="latestBlocks" :loading="blocksLoading" :error="blocksError" @retry="loadLatestData" />
-        <LatestTransactions
-          :transactions="latestTxs"
-          :transfer-summary-by-hash="transferSummaryByHash"
-          :loading="txsLoading"
-          :error="txsError"
-          @retry="loadLatestData"
-        />
-      </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <LatestBlocks :blocks="latestBlocks" :loading="blocksLoading" :error="blocksError" @retry="loadLatestData" />
+          <LatestTransactions
+            :transactions="latestTxs"
+            :transfer-summary-by-hash="transferSummaryByHash"
+            :loading="txsLoading"
+            :error="txsError"
+            @retry="loadLatestData"
+          />
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <script setup>
-defineOptions({ name: 'HomePage' });
+defineOptions({ name: "HomePage" });
 
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
@@ -141,12 +141,20 @@ function hasSameOrderedTransactions(currentList = [], nextList = []) {
     const current = currentList[index] || {};
     const next = nextList[index] || {};
 
-    const currentVmState = String(current.vmstate || current.vm_state || "").trim().toUpperCase();
-    const nextVmState = String(next.vmstate || next.vm_state || "").trim().toUpperCase();
+    const currentVmState = String(current.vmstate || current.vm_state || "")
+      .trim()
+      .toUpperCase();
+    const nextVmState = String(next.vmstate || next.vm_state || "")
+      .trim()
+      .toUpperCase();
     if (currentVmState !== nextVmState) return false;
 
-    const currentStatus = String(current.status || "").trim().toLowerCase();
-    const nextStatus = String(next.status || "").trim().toLowerCase();
+    const currentStatus = String(current.status || "")
+      .trim()
+      .toLowerCase();
+    const nextStatus = String(next.status || "")
+      .trim()
+      .toLowerCase();
     if (currentStatus !== nextStatus) return false;
 
     const currentTime = Number(current.blocktime ?? current.timestamp ?? current.time ?? 0);
@@ -180,13 +188,13 @@ function normalizeBlockSummary(block = {}) {
   const index = Number(block.index ?? block.blockindex ?? block.block_index ?? block.height ?? 0);
   const txCount = Number(
     block.txcount ??
-    block.transactioncount ??
-    block.txCount ??
-    block.transactionCount ??
-    block.tx_count ??
-    block.transaction_count ??
-    block.txs ??
-    (Array.isArray(block.tx) ? block.tx.length : 0)
+      block.transactioncount ??
+      block.txCount ??
+      block.transactionCount ??
+      block.tx_count ??
+      block.transaction_count ??
+      block.txs ??
+      (Array.isArray(block.tx) ? block.tx.length : 0),
   );
   const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? block.time_ms ?? 0);
 
@@ -199,6 +207,7 @@ function normalizeBlockSummary(block = {}) {
     transactioncount: Number.isFinite(txCount) ? txCount : 0,
     netfee: block.netfee ?? block.networkFee,
     sysfee: block.sysfee ?? block.systemFee,
+    tx: block.tx || [],
     nextconsensus: block.nextconsensus ?? block.nextConsensus ?? block.speaker ?? block.validator,
     speaker: block.speaker ?? block.nextconsensus ?? block.nextConsensus ?? block.validator,
     validator: block.validator ?? block.speaker ?? block.nextconsensus ?? block.nextConsensus,
@@ -226,12 +235,12 @@ function computeBlockFeeTotals(block = {}) {
   const txList = Array.isArray(block.tx) ? block.tx : [];
   const txCount = Number(
     block.txcount ??
-    block.transactioncount ??
-    block.txCount ??
-    block.transactionCount ??
-    block.tx_count ??
-    block.transaction_count ??
-    txList.length
+      block.transactioncount ??
+      block.txCount ??
+      block.transactionCount ??
+      block.tx_count ??
+      block.transaction_count ??
+      txList.length,
   );
 
   const hasDirectSysFee = Number.isFinite(directSysFee);
@@ -253,7 +262,7 @@ function computeBlockFeeTotals(block = {}) {
       sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
       netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
     }),
-    { sysfee: 0, netfee: 0 }
+    { sysfee: 0, netfee: 0 },
   );
 }
 
@@ -275,7 +284,7 @@ async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {
     heights.map(async (height) => {
       const block = await blockService.getByHeight(height, { ...requestOptions, throwOnError: false });
       return block ? normalizeBlockSummary(block) : null;
-    })
+    }),
   );
 
   const result = blockResults.filter(Boolean);
@@ -305,8 +314,8 @@ async function fetchLatestTransactionsByRecentBlocks(limit = 6, skip = 0, reques
         blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
           ...requestOptions,
           throwOnError: false,
-        })
-      )
+        }),
+      ),
     );
 
     for (const listRes of batchResults) {
@@ -420,9 +429,7 @@ async function loadLatestData(forceRefresh = false) {
     const fetchLatestTransactions = async () => {
       try {
         const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
-        const rows = Array.isArray(indexerRes?.data)
-          ? indexerRes.data.map(normalizeHomepageTransaction)
-          : [];
+        const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {
           return {
             result: rows,
@@ -569,12 +576,12 @@ function updateTps() {
 
   const newest = latestBlocks.value[0];
   const oldest = latestBlocks.value[latestBlocks.value.length - 1];
-  
+
   let newestTime = newest.timestamp || 0;
   let oldestTime = oldest.timestamp || 0;
   if (newestTime > 1e10) newestTime /= 1000;
   if (oldestTime > 1e10) oldestTime /= 1000;
-  
+
   const timeDiff = Math.max(1, newestTime - oldestTime);
   const totalTxs = latestBlocks.value.reduce((sum, b) => sum + (b.txcount || b.transactioncount || 0), 0);
   tps.value = totalTxs / timeDiff;
@@ -618,7 +625,7 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
       } catch {
         return null;
       }
-    })
+    }),
   );
 
   const validEntries = hydratedEntries.filter((entry) => entry && entry.hash);
@@ -689,13 +696,13 @@ onMounted(() => {
 useNetworkChange(handleNetworkChange);
 
 // Clean up network change listener (auto-refresh cleanup is handled by composable)
-onBeforeUnmount(() => {
-});
+onBeforeUnmount(() => {});
 </script>
 
 <style scoped>
 .hero-section {
-  background-image: radial-gradient(circle at 15% 20%, rgba(74, 180, 238, 0.26), transparent 36%),
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(74, 180, 238, 0.26), transparent 36%),
     radial-gradient(circle at 78% 8%, rgba(0, 229, 153, 0.16), transparent 28%),
     linear-gradient(180deg, #0f1f3d 0%, #162a4b 100%);
 }
@@ -704,7 +711,8 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 26px 26px;
   opacity: 0.28;
