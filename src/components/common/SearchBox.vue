@@ -229,13 +229,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import {
-  getTypeIcon,
-  getTypeIconClass,
-  getTypeBadgeClass,
-  isValidNeoAddress,
-  isValidTxHash,
-} from "@/utils/explorerFormat";
+import { isValidNeoAddress, isValidTxHash } from "@/utils/addressFormat";
+import { getTypeIcon, getTypeIconClass, getTypeBadgeClass } from "@/utils/searchPresentation";
 import { SEARCH_DEBOUNCE_MS } from "@/constants";
 
 const HISTORY_KEY = "neo_explorer_search_history";

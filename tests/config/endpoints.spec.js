@@ -15,6 +15,10 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
@@ -67,8 +71,12 @@ describe("endpoint defaults", () => {
 
     expect(routeDest("/api/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/api/mainnet/fallback")).toBe("https://api1.n3index.dev/mainnet");
+    expect(routeDest("/api/mainnet/fallback2")).toBe("https://api2.n3index.dev/mainnet");
+    expect(routeDest("/api/mainnet/fallback3")).toBe("https://api3.n3index.dev/mainnet");
     expect(routeDest("/api/testnet/primary")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/api/testnet/fallback")).toBe("https://api1.n3index.dev/testnet");
+    expect(routeDest("/api/testnet/fallback2")).toBe("https://api2.n3index.dev/testnet");
+    expect(routeDest("/api/testnet/fallback3")).toBe("https://api3.n3index.dev/testnet");
     expect(routeDest("/api/mainnet")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/api/testnet")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");

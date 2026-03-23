@@ -28,6 +28,12 @@ const FALLBACK_WS_ENDPOINTS = Object.freeze({
   testnet: ['wss://testmagnet.ngd.network/ws'],
 });
 
+const preferredRpcEndpointByNetwork = new Map();
+
+function resetPreferredRpcEndpointsForTests() {
+  preferredRpcEndpointByNetwork.clear();
+}
+
 function normalizeNetwork(value) {
   const raw = String(value || '').trim().toLowerCase();
   if (!raw) return DEFAULT_NETWORK;
@@ -39,7 +45,12 @@ function getRpcEndpointCandidates(network) {
   const mode = normalizeNetwork(network);
   const primary = PRIMARY_RPC_ENDPOINTS[mode] || PRIMARY_RPC_ENDPOINTS.mainnet;
   const fallback = FALLBACK_RPC_ENDPOINTS[mode] || FALLBACK_RPC_ENDPOINTS.mainnet;
-  return [primary, ...fallback];
+  const candidates = [primary, ...fallback];
+  const preferred = preferredRpcEndpointByNetwork.get(mode);
+  if (!preferred) return candidates;
+
+  const remaining = candidates.filter((candidate) => candidate !== preferred);
+  return candidates.includes(preferred) ? [preferred, ...remaining] : candidates;
 }
 
 function getPrimaryRpcEndpoint(network) {
@@ -58,12 +69,15 @@ function getPrimaryWsEndpoint(network) {
 }
 
 async function callWithRpcEndpointFallback(network, handler) {
-  const candidates = getRpcEndpointCandidates(network);
+  const mode = normalizeNetwork(network);
+  const candidates = getRpcEndpointCandidates(mode);
   let lastError = null;
 
   for (const endpoint of candidates) {
     try {
-      return await handler(endpoint);
+      const result = await handler(endpoint);
+      preferredRpcEndpointByNetwork.set(mode, endpoint);
+      return result;
     } catch (error) {
       lastError = error;
     }
@@ -79,4 +93,5 @@ module.exports = {
   getWsEndpointCandidates,
   getPrimaryWsEndpoint,
   callWithRpcEndpointFallback,
+  __resetPreferredRpcEndpointsForTests: resetPreferredRpcEndpointsForTests,
 };

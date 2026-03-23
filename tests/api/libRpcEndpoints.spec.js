@@ -1,10 +1,14 @@
 import { createRequire } from "node:module";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 const rpcEndpoints = require("../../api/lib/rpcEndpoints.js");
 
 describe("api/lib/rpcEndpoints defaults", () => {
+  beforeEach(() => {
+    rpcEndpoints.__resetPreferredRpcEndpointsForTests();
+  });
+
   it("uses api.n3index.dev primary with api1/api2/api3 backups", () => {
     expect(rpcEndpoints.getRpcEndpointCandidates("mainnet")).toEqual([
       "https://api.n3index.dev/mainnet",
@@ -38,5 +42,32 @@ describe("api/lib/rpcEndpoints defaults", () => {
       "https://api2.n3index.dev/mainnet",
       "https://api3.n3index.dev/mainnet",
     ]);
+  });
+
+  it("reuses the last successful endpoint first on subsequent calls", async () => {
+    const firstVisited = [];
+    const firstResult = await rpcEndpoints.callWithRpcEndpointFallback("mainnet", async (endpoint) => {
+      firstVisited.push(endpoint);
+      if (endpoint !== "https://api2.n3index.dev/mainnet") {
+        throw new Error(`down:${endpoint}`);
+      }
+      return "ok-first";
+    });
+
+    expect(firstResult).toBe("ok-first");
+    expect(firstVisited).toEqual([
+      "https://api.n3index.dev/mainnet",
+      "https://api1.n3index.dev/mainnet",
+      "https://api2.n3index.dev/mainnet",
+    ]);
+
+    const secondVisited = [];
+    const secondResult = await rpcEndpoints.callWithRpcEndpointFallback("mainnet", async (endpoint) => {
+      secondVisited.push(endpoint);
+      return "ok-second";
+    });
+
+    expect(secondResult).toBe("ok-second");
+    expect(secondVisited).toEqual(["https://api2.n3index.dev/mainnet"]);
   });
 });

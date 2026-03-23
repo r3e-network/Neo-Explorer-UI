@@ -23,12 +23,28 @@
       "destination": "https://api1.n3index.dev/mainnet"
     },
     {
+      "source": "/api/mainnet/fallback2",
+      "destination": "https://api2.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/mainnet/fallback3",
+      "destination": "https://api3.n3index.dev/mainnet"
+    },
+    {
       "source": "/api/testnet/primary",
       "destination": "https://api.n3index.dev/testnet"
     },
     {
       "source": "/api/testnet/fallback",
       "destination": "https://api1.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/testnet/fallback2",
+      "destination": "https://api2.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/testnet/fallback3",
+      "destination": "https://api3.n3index.dev/testnet"
     },
     {
       "source": "/api/mainnet",

@@ -259,6 +259,7 @@ import {
   setCurrentEnv,
 } from "@/utils/env";
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
+import { loadWalletService } from "@/utils/lazyServices";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { useToast } from "vue-toastification";
@@ -280,7 +281,6 @@ const {
 const NETWORKS = NETWORK_OPTIONS;
 
 let searchServiceModulePromise = null;
-let walletServiceModulePromise = null;
 
 const mobileMenuOpen = ref(false);
 const networkDropdownOpen = ref(false);
@@ -309,13 +309,6 @@ const mobilePanelWalletLabel = computed(() =>
     ? `Disconnect ${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`
     : "Connect Wallet"
 );
-
-async function loadWalletService() {
-  if (!walletServiceModulePromise) {
-    walletServiceModulePromise = import("@/services/walletService").then((module) => module.walletService);
-  }
-  return walletServiceModulePromise;
-}
 
 function openDropdown(name) {
   if (dropdownTimeout) clearTimeout(dropdownTimeout);

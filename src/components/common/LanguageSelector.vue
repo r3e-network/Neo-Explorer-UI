@@ -33,6 +33,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
+import { setLanguage } from "@/lang/i18n";
 
 const { locale } = useI18n({ useScope: "global" });
 
@@ -52,9 +53,9 @@ const currentLabel = computed(() => {
   return ln ? ln.label : "EN";
 });
 
-function selectLang(val) {
+async function selectLang(val) {
+  await setLanguage(val);
   locale.value = val;
-  localStorage.setItem("lang", val);
   dropdownOpen.value = false;
 }
 

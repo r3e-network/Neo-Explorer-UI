@@ -8,9 +8,163 @@ const DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_MAINNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";
 const DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";
+const DEFAULT_MAINNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";
+const DEFAULT_TESTNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";
+const DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
+const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
+
+export function shouldIgnoreRollupWarning(warning) {
+  const message = String(warning?.message || "");
+  const id = String(warning?.id || "");
+
+  return (
+    (id.includes("/node_modules/ox/") && message.includes("contains an annotation that Rollup cannot interpret")) ||
+    message.includes("Circular chunk: vendor -> node-runtime -> vendor")
+  );
+}
+
+export function getManualChunkName(id) {
+  if (id.includes("vite/preload-helper")) {
+    return "preload-helper";
+  }
+
+  if (!id.includes("node_modules")) {
+    return undefined;
+  }
+
+  if (id.includes("@r3e/neo-js-sdk")) {
+    return "neo-sdk";
+  }
+  if (id.includes("@cityofzion/neon-js")) {
+    return "neon-js";
+  }
+  if (id.includes("@walletconnect")) {
+    return "walletconnect";
+  }
+  if (
+    id.includes("engine.io-client") ||
+    id.includes("engine.io-parser") ||
+    id.includes("socket.io-client") ||
+    id.includes("socket.io-parser") ||
+    id.includes("@msgpack/msgpack") ||
+    id.includes("multiformats") ||
+    id.includes("uint8arrays") ||
+    id.includes("bowser")
+  ) {
+    return "walletconnect";
+  }
+  if (id.includes("@web3auth") || id.includes("@toruslabs")) {
+    return "web3auth";
+  }
+  if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")) {
+    return "web3auth";
+  }
+  if (id.includes("ethers")) {
+    return "ethers";
+  }
+  if (id.includes("@supabase")) {
+    return "supabase";
+  }
+  if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {
+    return "syntax";
+  }
+  if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
+    return "vue-core";
+  }
+  if (id.includes("axios")) {
+    return "axios";
+  }
+  if (id.includes("qrcode.vue")) {
+    return "qrcode";
+  }
+  if (id.includes("react-qrcode-logo") || id.includes("qrcode-generator")) {
+    return "web3auth";
+  }
+  if (
+    id.includes("@cityofzion/neon-core") ||
+    id.includes("/crypto-js/") ||
+    id.includes("/elliptic/") ||
+    id.includes("/browserify-aes/") ||
+    id.includes("/asn1.js/") ||
+    id.includes("/hash.js/") ||
+    id.includes("/sha.js/") ||
+    id.includes("/public-encrypt/") ||
+    id.includes("/pbkdf2/") ||
+    id.includes("/des.js/") ||
+    id.includes("/browserify-sign/") ||
+    id.includes("/diffie-hellman/") ||
+    id.includes("/parse-asn1/") ||
+    id.includes("/create-hash/") ||
+    id.includes("/create-hmac/") ||
+    id.includes("/browserify-cipher/") ||
+    id.includes("/browserify-des/") ||
+    id.includes("/browserify-rsa/") ||
+    id.includes("/crypto-browserify/") ||
+    id.includes("/bn.js/") ||
+    id.includes("/hmac-drbg/") ||
+    id.includes("/brorand/") ||
+    id.includes("/base64url/") ||
+    id.includes("/blakejs/") ||
+    id.includes("/ripemd160/") ||
+    id.includes("/miller-rabin/") ||
+    id.includes("/create-ecdh/")
+  ) {
+    return "legacy-crypto";
+  }
+  if (id.includes("/ox/") || id.includes("@ethereumjs/util")) {
+    return "ox";
+  }
+  if (id.includes("/pino") || id.includes("/safe-stable-stringify")) {
+    return "pino";
+  }
+  if (
+    id.includes("/buffer/") ||
+    id.includes("/readable-stream/") ||
+    id.includes("/string_decoder/") ||
+    id.includes("/safe-buffer/") ||
+    id.includes("/process/") ||
+    id.includes("/events/") ||
+    id.includes("/util/") ||
+    id.includes("/inherits/") ||
+    id.includes("/stream-browserify/") ||
+    id.includes("/base64-js/") ||
+    id.includes("/ieee754/") ||
+    id.includes("/core-util-is/") ||
+    id.includes("/process-nextick-args/") ||
+    id.includes("/util-deprecate/") ||
+    id.includes("/isarray/") ||
+    id.includes("/is-arguments/") ||
+    id.includes("/is-generator-function/") ||
+    id.includes("/is-typed-array/") ||
+    id.includes("/which-typed-array/") ||
+    id.includes("/call-bind") ||
+    id.includes("/get-intrinsic/") ||
+    id.includes("/get-proto/") ||
+    id.includes("/dunder-proto/") ||
+    id.includes("/has-symbols/") ||
+    id.includes("/has-tostringtag/")
+  ) {
+    return "node-runtime";
+  }
+  if (id.includes("http-proxy-agent") || id.includes("https-proxy-agent") || id.includes("proxy-from-env")) {
+    return "proxy-agents";
+  }
+  // ethereum-cryptography stays in vendor to avoid circular dependency with crypto polyfills
+  if (id.includes("chart.js")) {
+    return "chartjs";
+  }
+  if (id.includes("core-js") || id.includes("vite-plugin-node-polyfills")) {
+    return "polyfills";
+  }
+  if (id.includes("timeago.js")) {
+    return "timeago";
+  }
+
+  return "vendor";
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -24,6 +178,14 @@ export default defineConfig(({ mode }) => {
     env.VITE_TESTNET_RPC_FALLBACK_PROXY_TARGET ||
     env.VITE_TESTNET_RPC_PROXY_TARGET ||
     DEFAULT_TESTNET_RPC_FALLBACK_PROXY_TARGET;
+  const mainnetRpcFallback2Target =
+    env.VITE_MAINNET_RPC_FALLBACK2_PROXY_TARGET || DEFAULT_MAINNET_RPC_FALLBACK2_PROXY_TARGET;
+  const testnetRpcFallback2Target =
+    env.VITE_TESTNET_RPC_FALLBACK2_PROXY_TARGET || DEFAULT_TESTNET_RPC_FALLBACK2_PROXY_TARGET;
+  const mainnetRpcFallback3Target =
+    env.VITE_MAINNET_RPC_FALLBACK3_PROXY_TARGET || DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET;
+  const testnetRpcFallback3Target =
+    env.VITE_TESTNET_RPC_FALLBACK3_PROXY_TARGET || DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET;
 
   const mainnetBpiPrimaryTarget = env.VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET;
   const testnetBpiPrimaryTarget = env.VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET;
@@ -53,6 +215,7 @@ export default defineConfig(({ mode }) => {
       extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".vue"],
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "@web3auth/auth": path.resolve(__dirname, "./node_modules/@web3auth/auth/dist/auth.esm.js"),
         "vue-i18n": "vue-i18n/dist/vue-i18n.esm-bundler.js",
       },
     },
@@ -91,6 +254,26 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => "/testnet",
         },
+        "/api/mainnet/fallback2": {
+          target: mainnetRpcFallback2Target,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/api/mainnet/fallback3": {
+          target: mainnetRpcFallback3Target,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/api/testnet/fallback2": {
+          target: testnetRpcFallback2Target,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
+        "/api/testnet/fallback3": {
+          target: testnetRpcFallback3Target,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
         "/api/mainnet": {
           target: mainnetRpcPrimaryTarget,
           changeOrigin: true,
@@ -122,73 +305,19 @@ export default defineConfig(({ mode }) => {
       exclude: ["@r3e/neo-js-sdk/dist/wallet/nep6.js"],
     },
     build: {
+      modulePreload: false,
       chunkSizeWarningLimit: 1100,
       rollupOptions: {
+        onwarn(warning, warn) {
+          if (shouldIgnoreRollupWarning(warning)) {
+            return;
+          }
+          warn(warning);
+        },
         external: ["node:fs", "fs", "vm"],
         output: {
           manualChunks(id) {
-            if (id.includes("node_modules")) {
-              if (id.includes("@r3e/neo-js-sdk")) {
-                return "neo-sdk";
-              }
-              if (id.includes("@cityofzion/neon-js")) {
-                return "neon-js";
-              }
-              if (id.includes("@walletconnect")) {
-                return "walletconnect";
-              }
-              if (
-                id.includes("engine.io-client") ||
-                id.includes("engine.io-parser") ||
-                id.includes("socket.io-client") ||
-                id.includes("socket.io-parser") ||
-                id.includes("@msgpack/msgpack") ||
-                id.includes("multiformats") ||
-                id.includes("uint8arrays") ||
-                id.includes("/ox/") ||
-                id.includes("bowser")
-              ) {
-                return "walletconnect";
-              }
-              if (id.includes("@web3auth") || id.includes("@toruslabs")) {
-                return "web3auth";
-              }
-              if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")) {
-                return "web3auth";
-              }
-              if (id.includes("ethers")) {
-                return "ethers";
-              }
-              if (id.includes("@supabase")) {
-                return "supabase";
-              }
-              if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {
-                return "syntax";
-              }
-              if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
-                return "vue-core";
-              }
-              if (id.includes("axios")) {
-                return "axios";
-              }
-              if (id.includes("qrcode.vue")) {
-                return "qrcode";
-              }
-              if (id.includes("react-qrcode-logo") || id.includes("qrcode-generator")) {
-                return "web3auth";
-              }
-              // ethereum-cryptography stays in vendor to avoid circular dependency with crypto polyfills
-              if (id.includes("chart.js")) {
-                return "chartjs";
-              }
-              if (id.includes("core-js") || id.includes("vite-plugin-node-polyfills")) {
-                return "polyfills";
-              }
-              if (id.includes("timeago.js")) {
-                return "timeago";
-              }
-              return "vendor";
-            }
+            return getManualChunkName(id);
           },
         },
       },

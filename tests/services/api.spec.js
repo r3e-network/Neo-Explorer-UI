@@ -36,8 +36,11 @@ vi.mock("../../src/utils/env.js", () => ({
     TestT5: "TestT5",
   },
   getRpcApiBasePath: vi.fn(() => envState.currentBasePath),
+  getActiveBasePath: vi.fn(() => envState.currentBasePath),
   getCurrentEnv: vi.fn(() => "Mainnet"),
+  getConfiguredRpcBaseUrl: vi.fn(() => ""),
   setActiveBasePath: setActiveBasePathMock,
+  toAbsoluteUrl: vi.fn((value) => value),
 }));
 
 vi.mock("../../src/utils/healthCheck.js", () => ({
@@ -229,11 +232,11 @@ describe("safeRpc", () => {
         return Promise.reject(timeoutError);
       }
 
-      if (method === "getversion" && baseURL === "https://api2.n3index.dev/mainnet") {
+      if (method === "getversion" && baseURL === "/api/mainnet/fallback2") {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback2") {
         return Promise.resolve({ data: { result: { index: 456 } } });
       }
 
@@ -246,7 +249,43 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "https://api2.n3index.dev/mainnet" })
+      expect.objectContaining({ baseURL: "/api/mainnet/fallback2" })
+    );
+  });
+
+  it("retries the rest of the pool when the globally selected fallback route fails", async () => {
+    envState.currentBasePath = "/api/mainnet/fallback2";
+
+    const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
+      code: "ECONNABORTED",
+    });
+
+    axios.post.mockImplementation((_url, payload, config) => {
+      const method = payload?.method;
+      const baseURL = config?.baseURL;
+
+      if (method === "getversion" && (baseURL === "/api/mainnet/fallback2" || baseURL === "/api/mainnet/primary")) {
+        return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback2") {
+        return Promise.reject(timeoutError);
+      }
+
+      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+        return Promise.resolve({ data: { result: { index: 654 } } });
+      }
+
+      throw new Error(`Unexpected RPC call: ${method} @ ${baseURL}`);
+    });
+
+    const result = await safeRpc("GetBlockCount", {});
+
+    expect(result).toEqual({ index: 654 });
+    expect(axios.post).toHaveBeenCalledWith(
+      "",
+      expect.objectContaining({ method: "GetBlockCount" }),
+      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
     );
   });
 

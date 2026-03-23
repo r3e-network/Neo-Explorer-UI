@@ -2,40 +2,49 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const envState = vi.hoisted(() => ({ value: "Mainnet" }));
 const web3AuthCtorMock = vi.hoisted(() => vi.fn());
-const initModalMock = vi.hoisted(() => vi.fn(async () => {}));
+const initMock = vi.hoisted(() => vi.fn(async () => {}));
+const loginMock = vi.hoisted(() => vi.fn(async () => ({ privKey: "a".repeat(64) })));
 const logoutMock = vi.hoisted(() => vi.fn(async () => {}));
 const getPrimaryRpcEndpointMock = vi.hoisted(() => vi.fn((env) =>
   String(env || "").toLowerCase().includes("test") ? "https://rpc.testnet.example" : "https://rpc.mainnet.example"
 ));
 
-vi.mock("@web3auth/modal", () => ({
-  Web3Auth: class {
+vi.mock("@web3auth/auth", () => ({
+  Auth: class {
     constructor(options) {
       web3AuthCtorMock(options);
-      this.connected = false;
-      this.provider = null;
+      this.privKey = "";
+      this.sessionId = "";
     }
 
-    async initModal() {
-      return initModalMock();
+    async init() {
+      return initMock();
+    }
+
+    async login(params) {
+      loginMock(params);
+      this.privKey = "a".repeat(64);
+      this.sessionId = "session-id";
+      return { privKey: this.privKey };
     }
 
     async logout() {
+      this.privKey = "";
+      this.sessionId = "";
       return logoutMock();
     }
+  },
+  LOGIN_PROVIDER: {
+    GOOGLE: "google",
+    EMAIL_PASSWORDLESS: "email_passwordless",
+  },
+  UX_MODE: {
+    POPUP: "popup",
   },
 }));
 
 vi.mock("@web3auth/base", () => ({
   CHAIN_NAMESPACES: { OTHER: "OTHER" },
-}));
-
-vi.mock("@web3auth/base-provider", () => ({
-  CommonPrivateKeyProvider: class {
-    constructor(config) {
-      this.config = config;
-    }
-  },
 }));
 
 vi.mock("@cityofzion/neon-js", () => ({
@@ -45,6 +54,14 @@ vi.mock("@cityofzion/neon-js", () => ({
         this.address = "NWeb3AuthTestAddress";
       }
     },
+  },
+}));
+
+vi.mock("@r3e/neo-js-sdk", () => ({
+  Account: class {
+    constructor() {
+      this.address = "NWeb3AuthTestAddress";
+    }
   },
 }));
 
@@ -72,7 +89,8 @@ describe("web3authService", () => {
 
     expect(web3AuthCtorMock).toHaveBeenCalledTimes(1);
     const constructorOptions = web3AuthCtorMock.mock.calls[0][0];
-    expect(constructorOptions.uiConfig).toBeDefined();
+    expect(constructorOptions.whiteLabel).toBeDefined();
+    expect(constructorOptions.uxMode).toBe("popup");
   });
 
   it("uses the current app origin as the block explorer URL", async () => {
@@ -81,7 +99,7 @@ describe("web3authService", () => {
     await web3authService.init();
 
     const constructorOptions = web3AuthCtorMock.mock.calls[0][0];
-    expect(constructorOptions.privateKeyProvider.config.config.chainConfig.blockExplorerUrl).toBe(window.location.origin);
+    expect(constructorOptions.redirectUrl).toBe(`${window.location.protocol}//${window.location.host}${window.location.pathname}`);
   });
 
   it("reinitializes when the explorer network changes so chain config matches the new network", async () => {
@@ -89,13 +107,20 @@ describe("web3authService", () => {
 
     await web3authService.init();
     expect(web3AuthCtorMock).toHaveBeenCalledTimes(1);
-    expect(web3AuthCtorMock.mock.calls[0][0].privateKeyProvider.config.config.chainConfig.chainId).toBe("0x334E");
+    expect(web3AuthCtorMock.mock.calls[0][0].sessionNamespace).toBe("Mainnet");
 
     envState.value = "TestT5";
     await web3authService.init();
 
     expect(web3AuthCtorMock).toHaveBeenCalledTimes(2);
-    expect(web3AuthCtorMock.mock.calls[1][0].privateKeyProvider.config.config.chainConfig.chainId).toBe("0x3354");
-    expect(web3AuthCtorMock.mock.calls[1][0].privateKeyProvider.config.config.chainConfig.rpcTarget).toBe("https://rpc.testnet.example");
+    expect(web3AuthCtorMock.mock.calls[1][0].sessionNamespace).toBe("TestT5");
+  });
+
+  it("connects with the auth adapter using google by default", async () => {
+    const { web3authService } = await import("../../src/services/web3authService.js");
+
+    await web3authService.connect();
+
+    expect(loginMock).toHaveBeenCalledWith({ loginProvider: "google" });
   });
 });

@@ -5,14 +5,7 @@ import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 import { NEO_HASH } from "@/constants";
-
-let walletServicePromise = null;
-async function loadWalletService() {
-  if (!walletServicePromise) {
-    walletServicePromise = import("@/services/walletService").then((module) => module.walletService);
-  }
-  return walletServicePromise;
-}
+import { loadWalletService } from "@/utils/lazyServices";
 
 function getStoredWalletAddress() {
   if (typeof window === "undefined") return "";

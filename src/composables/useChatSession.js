@@ -1,14 +1,7 @@
 import { ref } from "vue";
 import { chatService } from "@/services/chatService";
 import { connectedAccount } from "@/utils/wallet";
-
-let walletServicePromise = null;
-async function loadWalletService() {
-  if (!walletServicePromise) {
-    walletServicePromise = import("@/services/walletService").then((module) => module.walletService);
-  }
-  return walletServicePromise;
-}
+import { loadWalletService } from "@/utils/lazyServices";
 
 const chatSession = ref(null);
 const unreadCount = ref(0);

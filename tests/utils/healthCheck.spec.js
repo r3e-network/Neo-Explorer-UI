@@ -4,6 +4,8 @@ const post = vi.fn();
 const setActiveBasePath = vi.fn();
 const getCurrentEnv = vi.fn(() => "Mainnet");
 const getActiveBasePath = vi.fn((env) => (env === "TestT5" ? "/api/testnet/primary" : "/api/mainnet/primary"));
+const getConfiguredRpcBaseUrl = vi.fn(() => "");
+const toAbsoluteUrl = vi.fn((value) => value);
 
 vi.mock("axios", () => ({
   default: {
@@ -19,6 +21,8 @@ vi.mock("../../src/utils/env", () => ({
   getCurrentEnv,
   getActiveBasePath,
   setActiveBasePath,
+  getConfiguredRpcBaseUrl,
+  toAbsoluteUrl,
 }));
 
 let consoleInfoSpy;
@@ -42,7 +46,7 @@ describe("healthCheck endpoint selection", () => {
       if (url.includes("/api/mainnet/primary")) {
         throw new Error("primary down");
       }
-      if (url.includes("/api/mainnet/fallback")) {
+      if (url === "/api/mainnet/fallback") {
         return { data: { result: { index: 100 } } };
       }
       throw new Error("ignore deferred network calls");
@@ -63,7 +67,7 @@ describe("healthCheck endpoint selection", () => {
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 1600)
         );
       }
-      if (url.includes("/api/mainnet/fallback")) {
+      if (url === "/api/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 15)
         );
@@ -92,10 +96,10 @@ describe("healthCheck endpoint selection", () => {
       if (url.includes("/api/mainnet/primary") && method === "GetBlockCount") {
         return { data: { result: { index: 500 } } };
       }
-      if (url.includes("/api/mainnet/fallback") && method === "getversion") {
+      if (url === "/api/mainnet/fallback" && method === "getversion") {
         return { data: { result: { protocol: { network: 860833102 } } } };
       }
-      if (url.includes("/api/mainnet/fallback") && method === "GetBlockCount") {
+      if (url === "/api/mainnet/fallback" && method === "GetBlockCount") {
         return { data: { result: { index: 490 } } };
       }
       throw new Error(`unexpected call: ${url} ${method}`);
@@ -158,7 +162,7 @@ describe("healthCheck endpoint selection", () => {
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 220)
         );
       }
-      if (url.includes("/api/mainnet/fallback")) {
+      if (url === "/api/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 40)
         );
@@ -191,7 +195,7 @@ describe("healthCheck endpoint selection", () => {
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 260)
         );
       }
-      if (url.includes("/api/mainnet/fallback")) {
+      if (url === "/api/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 25)
         );
@@ -210,5 +214,32 @@ describe("healthCheck endpoint selection", () => {
 
     expect(setActiveBasePath).not.toHaveBeenCalled();
     expect(consoleInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it("promotes a deeper backup endpoint when it is the freshest healthy candidate", async () => {
+    post.mockImplementation(async (url, payload) => {
+      const method = payload?.method;
+      if (method === "getversion") {
+        return { data: { result: { protocol: { network: 860833102 } } } };
+      }
+      if (method === "GetBlockCount" && url === "/api/mainnet/primary") {
+        return { data: { result: { index: 100 } } };
+      }
+      if (method === "GetBlockCount" && url === "/api/mainnet/fallback") {
+        return { data: { result: { index: 101 } } };
+      }
+      if (method === "GetBlockCount" && url === "/api/mainnet/fallback2") {
+        return { data: { result: { index: 105 } } };
+      }
+      if (method === "GetBlockCount" && url === "/api/mainnet/fallback3") {
+        return { data: { result: { index: 104 } } };
+      }
+      throw new Error(`unexpected call: ${url} ${method}`);
+    });
+
+    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
+    await checkAndSetEndpoints("Mainnet");
+
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback2");
   });
 });

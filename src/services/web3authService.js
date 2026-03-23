@@ -1,6 +1,4 @@
-import { Web3Auth } from "@web3auth/modal";
-import { CHAIN_NAMESPACES } from "@web3auth/base";
-import { CommonPrivateKeyProvider } from "@web3auth/base-provider";
+import { Auth, LOGIN_PROVIDER, UX_MODE } from "@web3auth/auth";
 
 let _web3auth = null;
 let _chainConfigKey = null;
@@ -12,35 +10,20 @@ const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "";
 import { getCurrentEnv } from "@/utils/env";
 import { getPrimaryRpcEndpoint } from "@/utils/rpcEndpoints";
 
-const getChainConfig = () => {
-  const isTestnet = getCurrentEnv().toLowerCase().includes("test") || getCurrentEnv().toLowerCase().includes("t5");
-
-  return {
-    chainNamespace: CHAIN_NAMESPACES.OTHER,
-    chainId: isTestnet ? "0x3354" : "0x334E", // Hex representation for Testnet (13140) / Mainnet (13134)
-    rpcTarget: getPrimaryRpcEndpoint(getCurrentEnv()),
-    displayName: isTestnet ? "Neo N3 Testnet" : "Neo N3 Mainnet",
-    blockExplorerUrl: typeof window !== "undefined" ? window.location.origin : "https://neo3scan.com",
-    ticker: "GAS",
-    tickerName: "Neo GAS",
-    logo: "https://neo3scan.com/img/brand/neo.png",
-  };
-};
-
-const getChainConfigKey = (chainConfig = getChainConfig()) =>
+const getChainConfigKey = () =>
   JSON.stringify({
-    chainId: chainConfig.chainId,
-    rpcTarget: chainConfig.rpcTarget,
-    displayName: chainConfig.displayName,
+    env: getCurrentEnv(),
+    rpcTarget: getPrimaryRpcEndpoint(getCurrentEnv()),
+    lang: typeof localStorage !== "undefined" ? localStorage.getItem("lang") || "en" : "en",
+    dark: typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false,
   });
 
 export const web3authService = {
   /**
-   * Initializes the Web3Auth instance and its Modal UI
+   * Initializes the Web3Auth auth SDK.
    */
   async init() {
-    const chainConfig = getChainConfig();
-    const chainConfigKey = getChainConfigKey(chainConfig);
+    const chainConfigKey = getChainConfigKey();
 
     if (_web3auth && _chainConfigKey === chainConfigKey) return;
 
@@ -56,29 +39,24 @@ export const web3authService = {
     _chainConfigKey = null;
 
     try {
-      const privateKeyProvider = new CommonPrivateKeyProvider({
-        config: { chainConfig },
-      });
-
       const lang = localStorage.getItem("lang") || "en";
-      const w3aLang = lang.startsWith("zh") ? "zh" : lang; // Web3Auth supports 'en', 'de', 'ja', 'ko', 'zh', 'es', 'fr', 'pt', 'nl'
+      const w3aLang = lang.startsWith("zh") ? "zh" : lang;
 
       const isDarkMode = document.documentElement.classList.contains("dark");
 
-      _web3auth = new Web3Auth({
+      _web3auth = new Auth({
         clientId,
-        web3AuthNetwork: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet",
-        privateKeyProvider: privateKeyProvider,
-        uiConfig: {
+        network: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet",
+        uxMode: UX_MODE.POPUP,
+        redirectUrl: typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}${window.location.pathname}` : undefined,
+        sessionNamespace: getCurrentEnv(),
+        whiteLabel: {
+          name: "Neo Explorer",
           defaultLanguage: w3aLang,
-          mode: isDarkMode ? "dark" : "light",
-          theme: {
-            primary: "#00E599", // Neo green
-          },
+          dark: isDarkMode,
         },
       });
-
-      await _web3auth.initModal();
+      await _web3auth.init();
       _chainConfigKey = chainConfigKey;
     } catch (e) {
       console.error("Web3Auth init failed:", e);
@@ -87,33 +65,26 @@ export const web3authService = {
   },
 
   /**
-   * Connects via Web3Auth Modal and returns the Neo N3 Wallet Account
+   * Connects via Web3Auth auth adapter and returns the Neo N3 Wallet Account
    */
-  async connect() {
+  async connect(loginProvider = LOGIN_PROVIDER.GOOGLE) {
     await this.init();
 
-    let provider = _web3auth.provider;
-    if (!_web3auth.connected) {
-      provider = await _web3auth.connect();
+    if (!_web3auth.privKey) {
+      await _web3auth.login({ loginProvider });
     }
-
-    if (!provider) throw new Error("Web3Auth provider not available");
-
-    return await this.getAccount(provider);
+    return await this.getAccount();
   },
 
   /**
    * Extracts the private key and constructs a native neon-js Account
    */
-  async getAccount(provider = _web3auth?.provider) {
-    if (!provider) return null;
+  async getAccount() {
+    const privateKeyHex = String(_web3auth?.privKey || "").trim();
+    if (!privateKeyHex) return null;
 
-    // Web3Auth securely reconstructs the user's private key (entropy)
-    const privateKeyHex = await provider.request({ method: "private_key" });
-
-    // neon-js uses this raw 32-byte hex to generate valid secp256r1 N3 public keys and base58 addresses
     const { Account } = await import("@r3e/neo-js-sdk");
-    const account = Account.fromPrivateKey(privateKeyHex);
+    const account = new Account(privateKeyHex);
     return account;
   },
 
@@ -121,7 +92,7 @@ export const web3authService = {
    * Cleans up the session
    */
   async disconnect() {
-    if (_web3auth && _web3auth.connected) {
+    if (_web3auth?.sessionId) {
       await _web3auth.logout();
     }
   },

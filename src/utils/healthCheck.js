@@ -1,5 +1,6 @@
 import axios from "axios";
 import { NET_ENV, getActiveBasePath, getCurrentEnv, setActiveBasePath } from "./env";
+import { getRpcEndpointCandidates } from "./rpcEndpoints";
 
 const checkedState = {
   [NET_ENV.Mainnet]: { done: false, lastCheckedAt: 0 },
@@ -15,7 +16,6 @@ const HEALTHCHECK_RECHECK_INTERVAL_MS = Math.max(
   10_000,
   Number(import.meta.env.VITE_RPC_HEALTHCHECK_RECHECK_MS || 60_000),
 );
-const PRIMARY_LATENCY_BIAS_MS = Math.max(0, Number(import.meta.env.VITE_RPC_PRIMARY_LATENCY_BIAS_MS || 400));
 const ENDPOINT_SWITCH_HYSTERESIS_MS = Math.max(
   0,
   Number(import.meta.env.VITE_RPC_ENDPOINT_SWITCH_HYSTERESIS_MS || 1000),
@@ -25,6 +25,42 @@ const NETWORKS = [
   { env: NET_ENV.Mainnet, prefix: "/api/mainnet" },
   { env: NET_ENV.TestT5, prefix: "/api/testnet" },
 ];
+
+const uniqueCandidates = (candidates) => {
+  const seen = new Set();
+  const out = [];
+  for (const candidate of candidates) {
+    const normalized = String(candidate || "").trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+};
+
+const usesDefaultGlobalCandidates = (candidates) =>
+  candidates.some((candidate) => candidate.includes("api.n3index.dev")) ||
+  candidates.some((candidate) => candidate.includes("api1.n3index.dev"));
+
+const getProbeCandidates = (network) => {
+  const rpcCandidates = uniqueCandidates(getRpcEndpointCandidates(network.env));
+  if (!usesDefaultGlobalCandidates(rpcCandidates)) {
+    return rpcCandidates;
+  }
+
+  const directBackups = rpcCandidates.filter(
+    (candidate) =>
+      candidate.startsWith("http") &&
+      !candidate.includes("api.n3index.dev") &&
+      !candidate.includes("api1.n3index.dev"),
+  );
+
+  return uniqueCandidates([
+    `${network.prefix}/primary`,
+    `${network.prefix}/fallback`,
+    ...directBackups,
+  ]);
+};
 
 const readNetworkMagic = async (url) => {
   try {
@@ -109,29 +145,16 @@ const checkNetworkEndpoints = async (network) => {
 
   try {
     const expectedNetworkMagic = EXPECTED_NETWORK_MAGIC[network.env] ?? null;
-    const [primaryHeight, fallbackHeight] = await Promise.all([
-      checkEndpointHeight(`${network.prefix}/primary`, expectedNetworkMagic),
-      checkEndpointHeight(`${network.prefix}/fallback`, expectedNetworkMagic),
-    ]);
-    const primaryHealthy = primaryHeight.height >= 0;
-    const fallbackHealthy = fallbackHeight.height >= 0;
-    const primaryFasterEnough = primaryHeight.latencyMs <= fallbackHeight.latencyMs + PRIMARY_LATENCY_BIAS_MS;
+    const candidates = getProbeCandidates(network);
+    const probeResults = await Promise.all(
+      candidates.map(async (candidate) => ({
+        basePath: candidate,
+        ...(await checkEndpointHeight(candidate, expectedNetworkMagic)),
+      })),
+    );
+    const healthyCandidates = probeResults.filter((candidate) => candidate.height >= 0);
     const current = getActiveBasePath(network.env);
-    const primaryPath = `${network.prefix}/primary`;
-    const fallbackPath = `${network.prefix}/fallback`;
-    const currentIsPrimary = current === primaryPath;
-    const currentIsFallback = current === fallbackPath;
-    const shouldSwitchToFallback =
-      primaryHealthy &&
-      fallbackHealthy &&
-      currentIsPrimary &&
-      fallbackHeight.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS < primaryHeight.latencyMs;
-    const shouldSwitchToPrimary =
-      primaryHealthy &&
-      fallbackHealthy &&
-      currentIsFallback &&
-      primaryFasterEnough &&
-      primaryHeight.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS < fallbackHeight.latencyMs;
+    const currentCandidate = healthyCandidates.find((candidate) => candidate.basePath === current);
 
     const commitSelection = (path, message) => {
       if (current === path) return;
@@ -139,26 +162,24 @@ const checkNetworkEndpoints = async (network) => {
       console.info(message);
     };
 
-    if (currentIsPrimary && primaryHealthy && (!fallbackHealthy || !shouldSwitchToFallback)) {
-      return;
-    }
-
-    if (currentIsFallback && fallbackHealthy && (!primaryHealthy || !shouldSwitchToPrimary)) {
-      return;
-    }
-
-    if (primaryHealthy && (!fallbackHealthy || primaryFasterEnough)) {
-      commitSelection(
-        primaryPath,
-        `[HealthCheck] ${network.env} using primary. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`,
+    if (healthyCandidates.length > 0) {
+      const maxHeight = healthyCandidates.reduce((highest, candidate) => Math.max(highest, candidate.height), -1);
+      const freshestCandidates = healthyCandidates.filter((candidate) => candidate.height === maxHeight);
+      const fastestFreshCandidate = freshestCandidates.reduce((best, candidate) =>
+        candidate.latencyMs < best.latencyMs ? candidate : best
       );
-      return;
-    }
 
-    if (fallbackHealthy) {
+      if (
+        currentCandidate &&
+        currentCandidate.height === maxHeight &&
+        currentCandidate.latencyMs <= fastestFreshCandidate.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS
+      ) {
+        return;
+      }
+
       commitSelection(
-        fallbackPath,
-        `[HealthCheck] ${network.env} using fallback. Primary: ${primaryHeight.height} (${primaryHeight.latencyMs}ms), Fallback: ${fallbackHeight.height} (${fallbackHeight.latencyMs}ms)`,
+        fastestFreshCandidate.basePath,
+        `[HealthCheck] ${network.env} using ${fastestFreshCandidate.basePath}. Height=${fastestFreshCandidate.height}, latency=${fastestFreshCandidate.latencyMs}ms`,
       );
       return;
     }

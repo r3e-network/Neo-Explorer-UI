@@ -247,7 +247,7 @@
 import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { RpcClient, Tx, Wallet } from "@r3e/neo-js-sdk";
+import { rpc, tx, wallet } from "@r3e/neo-js-sdk";
 import { base642hex, hex2base64 } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
@@ -296,18 +296,18 @@ async function estimateGas() {
 
     if (signers.value.length === 0) {
       // Dummy fallback to calculate payload sizes
-      const dummyAcc = new Account();
+      const dummyAcc = new wallet.Account();
       accounts.push(dummyAcc);
       invokeSigners.push({
         account: dummyAcc.scriptHash,
-        scopes: Tx.WitnessScope.CalledByEntry,
+        scopes: tx.WitnessScope.CalledByEntry,
       });
     } else {
       for (const s of signers.value) {
         let val = s.trim();
         if (!val) continue;
         if (val.startsWith("N")) {
-          val = new Account(val).scriptHash;
+          val = new wallet.Account(val).scriptHash;
         } else if (val.startsWith("0x")) {
           val = val.replace(/^0x/, "");
         }
@@ -315,17 +315,17 @@ async function estimateGas() {
         // we need dummy accounts with these scriptHashes to build the dummy tx?
         // Neon-js requires actual private keys to attach a valid witness signature for exact byte sizing.
         // We will just use new empty Accounts since a signature is exactly 64 bytes regardless of the key used.
-        accounts.push(new Account());
+        accounts.push(new wallet.Account());
       }
     }
 
     toast.info("Simulating execution...");
     const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new RpcClient(endpoint);
+      const rpcClient = new rpc.RPCClient(endpoint);
       const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
 
       // Build a dummy transaction for precise network-fee sizing.
-      const txn = new Tx.Transaction({
+      const txn = new tx.Transaction({
         signers: invokeSigners,
         validUntilBlock: (await rpcClient.getBlockCount()) + 1000,
         script: hexScript,

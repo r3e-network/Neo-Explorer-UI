@@ -19,6 +19,7 @@ const sendRawTransactionMock = vi.fn(async () => "0xtesttxid");
 const executeMock = vi.fn(async () => ({ protocol: { network: 860833102 } }));
 const getVersionMock = vi.fn(async () => ({ protocol: { network: 860833102 } }));
 const signTxMock = vi.fn();
+const compatTxDeserializeMock = vi.fn();
 const neoLineInvokeMock = vi.fn(async () => ({ txid: "0xneoline" }));
 const neoLineSignTransactionMock = vi.fn(async () => ({ signature: "neoline-signature" }));
 const neoLineSwitchNetworkMock = vi.fn(async () => ({ defaultNetwork: "N3TestNet" }));
@@ -91,6 +92,13 @@ class MockTransaction {
 
   serialize() {
     return "serialized-transaction";
+  }
+}
+
+class MockCompatTransaction extends MockTransaction {
+  static deserialize(...args) {
+    compatTxDeserializeMock(...args);
+    return MockTransaction.deserialize(...args);
   }
 }
 
@@ -171,6 +179,11 @@ vi.mock("@r3e/neo-js-sdk", () => ({
   },
   deserialize: () => new MockTransaction(),
   WitnessScope: { Global: 128, CalledByEntry: 1 },
+  rpc: { RPCClient: MockRpcClient },
+  tx: {
+    Transaction: MockCompatTransaction,
+    WitnessScope: { Global: 128, CalledByEntry: 1 },
+  },
 }));
 
 vi.mock("../../src/services/walletConnectService.js", () => ({
@@ -196,8 +209,14 @@ vi.mock("../../src/services/web3authService.js", () => ({
 }));
 
 vi.mock("../../src/utils/env.js", () => ({
+  NET_ENV: {
+    Mainnet: "Mainnet",
+    TestT5: "TestT5",
+  },
+  getActiveBasePath: (env) => (env === "TestT5" ? "/api/testnet/primary" : "/api/mainnet/primary"),
   getCurrentEnv: () => envState.value,
   getConfiguredRpcBaseUrl: () => "",
+  setActiveBasePath: vi.fn(),
   toAbsoluteUrl: (value) => value,
 }));
 
@@ -208,6 +227,7 @@ describe("walletService", () => {
     vi.resetModules();
     vi.stubEnv("VITE_WC_PROJECT_ID", "test-project-id");
     envState.value = "Mainnet";
+    compatTxDeserializeMock.mockReset();
     executeMock.mockResolvedValue({ protocol: { network: 860833102 } });
     getVersionMock.mockResolvedValue({ protocol: { network: 860833102 } });
     delete window.NEOLine;
@@ -430,6 +450,7 @@ describe("walletService", () => {
 
     const signature = await walletService.signRawTransaction("001122");
 
+    expect(compatTxDeserializeMock).toHaveBeenCalledWith("001122");
     expect(directWifHexSignMock).toHaveBeenCalledTimes(1);
     expect(signature).toBe("f".repeat(128));
   });

@@ -29,6 +29,11 @@ const AA_ALLOWED_META_METHODS = new Set(
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
 
 const loadSdk = () => import("@r3e/neo-js-sdk");
+
+function getCompatTransactionClass(sdk) {
+  return sdk?.tx?.Transaction || sdk?.Tx;
+}
+
 let walletConnectServicePromise = null;
 let web3authServicePromise = null;
 
@@ -848,16 +853,19 @@ export const walletService = {
       const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       // the unsigned tx hex needs to be hashed before signing
-      const { Tx } = await loadSdk();
-      const transaction = Tx.deserialize(unsignedTxHex);
+      const sdk = await loadSdk();
+      const CompatTransaction = getCompatTransactionClass(sdk);
+      const transaction = CompatTransaction.deserialize(unsignedTxHex);
       const hash = transaction.hash();
       return account.sign(hash);
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
-      const { Tx, RpcClient } = await loadSdk();
-      const transaction = Tx.deserialize(unsignedTxHex);
+      const sdk = await loadSdk();
+      const CompatTransaction = getCompatTransactionClass(sdk);
+      const { RpcClient } = sdk;
+      const transaction = CompatTransaction.deserialize(unsignedTxHex);
       const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
         const rpcClient = new RpcClient(endpoint);
         return rpcClient.getVersion();
@@ -1046,7 +1054,9 @@ export const walletService = {
       const script = sb.toHex();
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const { RpcClient, Tx } = await loadSdk();
+        const sdk = await loadSdk();
+        const { RpcClient } = sdk;
+        const CompatTransaction = getCompatTransactionClass(sdk);
         const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
         const versionRes = await rpcClient.getVersion();
@@ -1059,7 +1069,7 @@ export const walletService = {
           throw new Error("Simulation Faulted: " + invokeRes.exception);
         }
 
-        let txn = new Tx({
+        let txn = new CompatTransaction({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: hexToBytes(script),
@@ -1067,9 +1077,9 @@ export const walletService = {
         });
 
         txn.sign(_directWifAccount.privateKey, magic);
-        const networkFee = await rpcClient.calculateNetworkFee(txn);
+        const networkFee = await rpcClient.calculateNetworkFee({ tx: txn.serialize(true) });
 
-        txn = new Tx({
+        txn = new CompatTransaction({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: hexToBytes(script),
@@ -1082,7 +1092,7 @@ export const walletService = {
           return { signedTx: txn.serialize(true) };
         }
 
-        return { txid: await rpcClient.sendRawTransaction(txn) };
+        return { txid: await rpcClient.sendRawTransaction({ tx: txn.serialize(true) }) };
       });
     }
 
@@ -1112,7 +1122,9 @@ export const walletService = {
       const script = sb.toHex();
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const { RpcClient, Tx } = await loadSdk();
+        const sdk = await loadSdk();
+        const { RpcClient } = sdk;
+        const CompatTransaction = getCompatTransactionClass(sdk);
         const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
         const versionRes = await rpcClient.getVersion();
@@ -1126,7 +1138,7 @@ export const walletService = {
           throw new Error("Web3Auth Simulation Faulted: " + invokeRes.exception);
         }
 
-        let txn = new Tx({
+        let txn = new CompatTransaction({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: hexToBytes(script),
@@ -1134,10 +1146,10 @@ export const walletService = {
         });
         txn.sign(account.privateKey, magic);
 
-        const networkFee = await rpcClient.calculateNetworkFee(txn);
+        const networkFee = await rpcClient.calculateNetworkFee({ tx: txn.serialize(true) });
 
         // Resign with final explicit fees
-        txn = new Tx({
+        txn = new CompatTransaction({
           signers: normalizedSigners,
           validUntilBlock: currentHeight + 1000,
           script: hexToBytes(script),
@@ -1150,7 +1162,7 @@ export const walletService = {
           return { signedTx: txn.serialize(true) };
         }
 
-        const txid = await rpcClient.sendRawTransaction(txn);
+        const txid = await rpcClient.sendRawTransaction({ tx: txn.serialize(true) });
         return { txid };
       });
     }

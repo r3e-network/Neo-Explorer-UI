@@ -1,22 +1,22 @@
-import { getConfiguredRpcBaseUrl, getCurrentEnv, toAbsoluteUrl } from "./env";
+import { getActiveBasePath, getConfiguredRpcBaseUrl, getCurrentEnv, NET_ENV, toAbsoluteUrl } from "./env";
 
 const DEFAULT_NETWORK = "mainnet";
 
 const PRIMARY_RPC_ENDPOINTS = Object.freeze({
-  mainnet: "https://api.n3index.dev/mainnet",
-  testnet: "https://api.n3index.dev/testnet",
+  mainnet: "/api/mainnet/primary",
+  testnet: "/api/testnet/primary",
 });
 
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   mainnet: [
-    "https://api1.n3index.dev/mainnet",
-    "https://api2.n3index.dev/mainnet",
-    "https://api3.n3index.dev/mainnet",
+    "/api/mainnet/fallback",
+    "/api/mainnet/fallback2",
+    "/api/mainnet/fallback3",
   ],
   testnet: [
-    "https://api1.n3index.dev/testnet",
-    "https://api2.n3index.dev/testnet",
-    "https://api3.n3index.dev/testnet",
+    "/api/testnet/fallback",
+    "/api/testnet/fallback2",
+    "/api/testnet/fallback3",
   ],
 });
 
@@ -31,10 +31,53 @@ const FALLBACK_WS_ENDPOINTS = Object.freeze({
 });
 
 const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const LOCAL_PRIMARY_PATHS = Object.freeze({
+  mainnet: ["/api/mainnet", "/api/mainnet/primary"],
+  testnet: ["/api/testnet", "/api/testnet/primary"],
+});
+const LOCAL_FALLBACK_PATHS = Object.freeze({
+  mainnet: ["/api/mainnet/fallback", "/api/mainnet/fallback2", "/api/mainnet/fallback3"],
+  testnet: ["/api/testnet/fallback", "/api/testnet/fallback2", "/api/testnet/fallback3"],
+});
 
 const normalizeBaseUrl = (value) => {
   if (typeof value !== "string") return "";
   return value.trim().replace(/\/+$/, "");
+};
+
+const reorderCandidates = (candidates, preferred) => {
+  const normalizedPreferred = normalizeBaseUrl(preferred);
+  if (!normalizedPreferred) return candidates;
+
+  const remaining = [];
+  let preferredCandidate = "";
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeBaseUrl(candidate);
+    if (!preferredCandidate && normalizedCandidate === normalizedPreferred) {
+      preferredCandidate = candidate;
+      continue;
+    }
+    remaining.push(candidate);
+  }
+
+  return preferredCandidate ? [preferredCandidate, ...remaining] : candidates;
+};
+
+const toNetworkKey = (value = getCurrentEnv()) => (toNetworkMode(value) === "testnet" ? "testnet" : "mainnet");
+
+const derivePreferredCandidate = (value = getCurrentEnv()) => {
+  const network = toNetworkKey(value);
+  const env = network === "testnet" ? NET_ENV.TestT5 : NET_ENV.Mainnet;
+  const activeBasePath = normalizeBaseUrl(getActiveBasePath(env));
+  if (!activeBasePath) return "";
+
+  if (LOCAL_PRIMARY_PATHS[network]?.includes(activeBasePath)) {
+    return PRIMARY_RPC_ENDPOINTS[network];
+  }
+  if (LOCAL_FALLBACK_PATHS[network]?.includes(activeBasePath)) {
+    return activeBasePath;
+  }
+  return activeBasePath;
 };
 
 const parseConfiguredNetworkBase = (value) => {
@@ -61,10 +104,12 @@ const getConfiguredRpcEndpointCandidates = (value = getCurrentEnv()) => {
 
   const primary = toAbsoluteUrl(`${parsed.prefix}/primary`);
   const fallback = toAbsoluteUrl(`${parsed.prefix}/fallback`);
+  const fallback2 = toAbsoluteUrl(`${parsed.prefix}/fallback2`);
+  const fallback3 = toAbsoluteUrl(`${parsed.prefix}/fallback3`);
 
-  if (parsed.endpoint === "primary") return [primary, fallback];
-  if (parsed.endpoint === "fallback") return [fallback, primary];
-  return [primary, fallback];
+  if (parsed.endpoint === "primary") return [primary, fallback, fallback2, fallback3];
+  if (parsed.endpoint === "fallback") return [fallback, primary, fallback2, fallback3];
+  return [primary, fallback, fallback2, fallback3];
 };
 
 export const toNetworkMode = (value = getCurrentEnv()) => {
@@ -78,12 +123,14 @@ export const toNetworkMode = (value = getCurrentEnv()) => {
 
 export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
   const configured = getConfiguredRpcEndpointCandidates(value);
-  if (configured?.length) return configured;
+  if (configured?.length) {
+    return reorderCandidates(configured, normalizeBaseUrl(getActiveBasePath(value)));
+  }
 
-  const network = toNetworkMode(value);
+  const network = toNetworkKey(value);
   const primary = PRIMARY_RPC_ENDPOINTS[network] || PRIMARY_RPC_ENDPOINTS.mainnet;
   const fallback = FALLBACK_RPC_ENDPOINTS[network] || FALLBACK_RPC_ENDPOINTS.mainnet;
-  return [primary, ...fallback];
+  return reorderCandidates([primary, ...fallback], derivePreferredCandidate(value));
 };
 
 export const getPrimaryRpcEndpoint = (value = getCurrentEnv()) =>

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
+import { getRpcEndpointCandidates } from "../utils/rpcEndpoints";
 
 const LEGACY_RPC_BASE_URL = "/api";
 const parseTimeout = (value, fallbackMs) => {
@@ -30,14 +31,14 @@ const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
   /ByContractHash(?:TokenId)?$/i,
   /ByCandidateAddress$/i,
 ];
-const ABSOLUTE_RPC_FALLBACK_ENDPOINTS = Object.freeze({
+const NETWORK_FALLBACK_PATHS = Object.freeze({
   mainnet: [
-    "https://api2.n3index.dev/mainnet",
-    "https://api3.n3index.dev/mainnet",
+    "/api/mainnet/fallback2",
+    "/api/mainnet/fallback3",
   ],
   testnet: [
-    "https://api2.n3index.dev/testnet",
-    "https://api3.n3index.dev/testnet",
+    "/api/testnet/fallback2",
+    "/api/testnet/fallback3",
   ],
 });
 const endpointNetworkCache = new Map();
@@ -98,9 +99,18 @@ const resolveRpcBaseUrl = () => {
 
 const buildRetryBaseUrls = (baseUrl) => {
   const parsed = parseNetworkBase(baseUrl);
-  if (!parsed || useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
+  if (!parsed) {
+    const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+    if (useFixedConfiguredBaseUrl) return [normalizedBaseUrl];
 
-  const extraFallbacks = ABSOLUTE_RPC_FALLBACK_ENDPOINTS[parsed.network] || [];
+    const env = getEnvForBaseUrl(baseUrl) || getCurrentEnv();
+    const candidates = [...new Set(getRpcEndpointCandidates(env).filter(Boolean))];
+    if (!normalizedBaseUrl) return candidates;
+    return [normalizedBaseUrl, ...candidates.filter((candidate) => normalizeBaseUrl(candidate) !== normalizedBaseUrl)];
+  }
+  if (useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
+
+  const extraFallbacks = NETWORK_FALLBACK_PATHS[parsed.network] || [];
 
   const primary = `${parsed.prefix}/primary`;
   const fallback = `${parsed.prefix}/fallback`;

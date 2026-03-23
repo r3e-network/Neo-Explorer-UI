@@ -5,12 +5,14 @@ vi.mock("vue-router", () => ({
   useRoute: () => ({ params: {} }),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
-vi.mock("@/utils/explorerFormat", () => ({
+vi.mock("@/utils/addressFormat", () => ({
+  isValidTxHash: (h) => /^(0x)?[a-f0-9]{64}$/i.test(h),
+  isValidNeoAddress: (a) => /^N[a-zA-Z0-9]{33}$/.test(a)
+}));
+vi.mock("@/utils/searchPresentation", () => ({
   getTypeIcon: () => "Tx",
   getTypeIconClass: () => "bg-green-100",
   getTypeBadgeClass: () => "bg-green-100",
-  isValidTxHash: (h) => /^(0x)?[a-f0-9]{64}$/i.test(h),
-  isValidNeoAddress: (a) => /^N[a-zA-Z0-9]{33}$/.test(a)
 }));
 vi.mock("@/constants", () => ({ SEARCH_DEBOUNCE_MS: 350 }));
 

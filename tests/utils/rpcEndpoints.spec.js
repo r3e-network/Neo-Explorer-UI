@@ -18,6 +18,8 @@ describe("rpcEndpoints configured base URL", () => {
     expect(getRpcEndpointCandidates()).toEqual([
       "https://rpc-proxy.example.com/api/testnet/primary",
       "https://rpc-proxy.example.com/api/testnet/fallback",
+      "https://rpc-proxy.example.com/api/testnet/fallback2",
+      "https://rpc-proxy.example.com/api/testnet/fallback3",
     ]);
   });
 
@@ -28,10 +30,10 @@ describe("rpcEndpoints configured base URL", () => {
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
     expect(getRpcEndpointCandidates()).toEqual([
-      "https://api.n3index.dev/mainnet",
-      "https://api1.n3index.dev/mainnet",
-      "https://api2.n3index.dev/mainnet",
-      "https://api3.n3index.dev/mainnet",
+      "/api/mainnet/primary",
+      "/api/mainnet/fallback",
+      "/api/mainnet/fallback2",
+      "/api/mainnet/fallback3",
     ]);
   });
 
@@ -44,7 +46,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     const result = await callWithRpcEndpointFallback(env.NET_ENV.Mainnet, async (endpoint) => {
       visited.push(endpoint);
-      if (endpoint !== "https://api3.n3index.dev/mainnet") {
+      if (endpoint !== "/api/mainnet/fallback3") {
         throw new Error(`down:${endpoint}`);
       }
       return "ok";
@@ -52,10 +54,25 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(result).toBe("ok");
     expect(visited).toEqual([
-      "https://api.n3index.dev/mainnet",
-      "https://api1.n3index.dev/mainnet",
-      "https://api2.n3index.dev/mainnet",
-      "https://api3.n3index.dev/mainnet",
+      "/api/mainnet/primary",
+      "/api/mainnet/fallback",
+      "/api/mainnet/fallback2",
+      "/api/mainnet/fallback3",
+    ]);
+  });
+
+  it("reorders candidates to reuse the globally selected active endpoint first", async () => {
+    const env = await import("../../src/utils/env.js");
+    env.setCurrentEnv(env.NET_ENV.Mainnet);
+    env.setActiveBasePath(env.NET_ENV.Mainnet, "/api/mainnet/fallback2");
+
+    const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
+
+    expect(getRpcEndpointCandidates()).toEqual([
+      "/api/mainnet/fallback2",
+      "/api/mainnet/primary",
+      "/api/mainnet/fallback",
+      "/api/mainnet/fallback3",
     ]);
   });
 });
