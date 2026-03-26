@@ -258,20 +258,19 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { tokenService } from "@/services";
 import { supabaseService } from "@/services/supabaseService";
-import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
-import { SEARCH_DEBOUNCE_MS } from "@/constants";
+import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import {
   truncateHash,
   formatNumber,
   formatSupply as formatSupplyRaw,
   formatMarketCap as formatMarketCapRaw,
 } from "@/utils/explorerFormat";
-import { usePagination } from "@/composables/usePagination";
+import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 import { useDebounceFn } from "@/composables/useVueUtils";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -286,44 +285,49 @@ const { t } = useI18n();
 const activeTab = ref("nep17");
 const searchQuery = ref("");
 const VALID_TABS = ["nep17", "nep11"];
+const tokens = ref([]);
+const loading = ref(true);
+const error = ref(null);
+const totalCount = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(DEFAULT_PAGE_SIZE);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / pageSize.value)));
+let currentRequestId = 0;
 
-const {
-  items: tokens,
-  loading,
-  error,
-  totalCount,
-  currentPage,
-  pageSize,
-  totalPages,
-  loadPage,
-} = usePagination(
-  (limit, skip) => {
-    const query = searchQuery.value.trim();
-    if (query) {
-      return activeTab.value === "nep11"
-        ? tokenService.searchNep11ByName(query, limit, skip)
-        : tokenService.searchNep17ByName(query, limit, skip);
+async function loadPage(page = currentPage.value) {
+  const myRequestId = ++currentRequestId;
+  const offset = (page - 1) * pageSize.value;
+  const query = searchQuery.value.trim();
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const response = await tokenService.getTokenListWithFallback(
+      activeTab.value === "nep11" ? "NEP11" : "NEP17",
+      pageSize.value,
+      offset,
+      { search: query },
+    );
+
+    if (myRequestId !== currentRequestId) return;
+    tokens.value = response?.result || [];
+    totalCount.value = response?.totalCount || 0;
+    currentPage.value = page;
+  } catch (err) {
+    if (myRequestId !== currentRequestId) return;
+    const message = String(err?.message || "").toLowerCase();
+    error.value =
+      message.includes("not found") || message.includes("unknown rpc error")
+        ? t("errors.loadTokensUnavailable")
+        : t("errors.loadTokens");
+    tokens.value = [];
+    totalCount.value = 0;
+  } finally {
+    if (myRequestId === currentRequestId) {
+      loading.value = false;
     }
-    return activeTab.value === "nep11"
-      ? tokenService.getNep11List(limit, skip)
-      : tokenService.getNep17List(limit, skip);
-  },
-  {
-    cacheKeyFn: (limit, skip) => {
-      const query = searchQuery.value.trim();
-      const tab = activeTab.value;
-      if (query) {
-        return getCacheKey(tab === "nep11" ? "token_nep11_search" : "token_nep17_search", {
-          name: query,
-          limit,
-          skip,
-        });
-      }
-      return getCacheKey(tab === "nep11" ? "token_nep11_list" : "token_nep17_list", { limit, skip });
-    },
-    errorMessage: t("errors.loadTokens"),
-  },
-);
+  }
+}
 
 // --- Search debounce (auto-cleanup via useDebounceFn) ---
 const { debouncedFn: handleSearchDebounced, cancel: cancelSearch } = useDebounceFn(() => {
@@ -348,6 +352,7 @@ watch(
 
 // --- Methods ---
 function formatSupply(token) {
+  if (token?.totalsupply === null || token?.totalsupply === undefined) return "-";
   return formatSupplyRaw(token.totalsupply, token.decimals || 0);
 }
 
@@ -387,6 +392,7 @@ watch(
       if (validTab !== activeTab.value) activeTab.value = validTab;
     }
   },
+  { immediate: true },
 );
 
 watch(

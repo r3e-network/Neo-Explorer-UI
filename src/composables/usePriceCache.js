@@ -37,10 +37,7 @@ async function fetchPrices(force = false) {
   loading.value = true;
   pendingPromise = (async () => {
     try {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true",
-        { signal: AbortSignal.timeout(5000) }
-      );
+      const response = await fetch("/api/prices", { signal: AbortSignal.timeout(5000) });
       const data = await response.json();
 
       prices.value = {

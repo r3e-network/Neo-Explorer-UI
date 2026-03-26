@@ -93,7 +93,12 @@ const flushAddressTagBatch = async (network) => {
   });
 };
 
-const INDEXER_METADATA_PREFIX = "/indexer";
+const INDEXER_METADATA_BASE_URL = String(
+  import.meta.env.VITE_INDEXER_METADATA_BASE_URL || "https://api1.n3index.dev"
+)
+  .trim()
+  .replace(/\/+$/, "");
+const INDEXER_METADATA_PROXY_BASE_PATH = "/indexer";
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;
 const GOVERNANCE_CANDIDATE_INFO_CONTRACTS = Object.freeze({
@@ -251,12 +256,11 @@ const fetchGovernanceCandidateMetadata = async (networkMode) => {
 const getNetworkMode = (networkMode) => toNetworkMode(networkMode);
 
 const buildIndexerMetadataUrl = (network, resource, query = "") => {
-  const path = `${INDEXER_METADATA_PREFIX}/${network}/metadata/${resource}${query}`;
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return new URL(path, window.location.origin).toString();
-  }
-  // Fallback for node testing environments
-  return `http://localhost${path}`;
+  return `${INDEXER_METADATA_BASE_URL}/${network}/metadata/${resource}${query}`;
+};
+
+const buildIndexerMetadataProxyUrl = (network, resource, query = "") => {
+  return `${INDEXER_METADATA_PROXY_BASE_PATH}/${network}/metadata/${resource}${query}`;
 };
 
 const fetchJsonWithTimeout = async (url, timeoutMs = METADATA_FETCH_TIMEOUT_MS) => {
@@ -283,6 +287,22 @@ const fetchJsonWithTimeout = async (url, timeoutMs = METADATA_FETCH_TIMEOUT_MS) 
   } finally {
     if (timer) clearTimeout(timer);
   }
+};
+
+const fetchJsonWithTimeoutWithFallback = async (urls, timeoutMs = METADATA_FETCH_TIMEOUT_MS) => {
+  let lastError = null;
+  for (const url of urls.filter(Boolean)) {
+    try {
+      return await fetchJsonWithTimeout(url, timeoutMs);
+    } catch (err) {
+      lastError = err;
+      // try next source
+    }
+  }
+  if (lastError && isTransientIndexerMetadataError(lastError)) {
+    throw lastError;
+  }
+  throw lastError || new Error("metadata fetch failed");
 };
 
 const normalizeContractMetadata = (item = {}) => {
@@ -367,7 +387,7 @@ const isMissingSupabaseColumnError = (error, column) => {
   );
 };
 
-const isTransientIndexerMetadataError = (error) => {
+function isTransientIndexerMetadataError(error) {
   const details = [error?.name, error?.message, error?.details, error?.hint, error?.code]
     .filter(Boolean)
     .join(" ")
@@ -381,7 +401,7 @@ const isTransientIndexerMetadataError = (error) => {
         details.includes("err_network_changed") ||
         details.includes("err_canceled"))
   );
-};
+}
 
 const isPlainObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -532,9 +552,10 @@ export const supabaseService = {
           Math.max(toFetch.length, 1),
           1000
         )}`;
-        const payload = await fetchJsonWithTimeout(
-          buildIndexerMetadataUrl(network, "contracts", query)
-        );
+        const payload = await fetchJsonWithTimeoutWithFallback([
+          buildIndexerMetadataProxyUrl(network, "contracts", query),
+          buildIndexerMetadataUrl(network, "contracts", query),
+        ]);
         const rows = Array.isArray(payload?.data) ? payload.data : [];
 
         toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
@@ -644,9 +665,10 @@ export const supabaseService = {
           Math.max(toFetch.length, 1),
           1000
         )}`;
-        const payload = await fetchJsonWithTimeout(
-          buildIndexerMetadataUrl(network, "addresses", query)
-        );
+        const payload = await fetchJsonWithTimeoutWithFallback([
+          buildIndexerMetadataProxyUrl(network, "addresses", query),
+          buildIndexerMetadataUrl(network, "addresses", query),
+        ]);
         const rows = Array.isArray(payload?.data) ? payload.data : [];
 
         toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
@@ -710,7 +732,10 @@ export const supabaseService = {
 
     try {
       const [payload, governanceRows] = await Promise.all([
-        fetchJsonWithTimeout(buildIndexerMetadataUrl(network, "validators")),
+        fetchJsonWithTimeoutWithFallback([
+          buildIndexerMetadataProxyUrl(network, "validators"),
+          buildIndexerMetadataUrl(network, "validators"),
+        ]),
         fetchGovernanceCandidateMetadata(network),
       ]);
       const rows = Array.isArray(payload?.data) ? payload.data : [];

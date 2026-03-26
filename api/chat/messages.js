@@ -1,4 +1,5 @@
 const { json, normalizeAddress, readJsonBody, readSessionFromRequest } = require("../lib/chatAuth");
+const { withApiTelemetry } = require("../lib/telemetry");
 const {
   findRoomByParticipants,
   getRoomById,
@@ -16,7 +17,7 @@ function sanitizeMessageBody(value) {
   return body;
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   try {
     const session = readSessionFromRequest(req);
 
@@ -76,4 +77,6 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     return json(res, 400, { error: error.message || "Unable to handle chat messages." });
   }
-};
+}
+
+module.exports = withApiTelemetry("chat/messages", handler);

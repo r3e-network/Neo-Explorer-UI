@@ -42,7 +42,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
   // ---------------------------------------------------------------------------
   const { data: tokenInfo, loading: tokenLoading, error: tokenError, execute: executeTokenFetch } = useAsync(
-    (id, { signal }) => tokenService.getByHash(id, { signal }),
+    (id, { signal }) => tokenService.getByHashWithFallback(id, { signal }),
     {
       initialData: {},
       onSuccess: (res) => {

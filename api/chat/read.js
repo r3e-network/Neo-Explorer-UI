@@ -1,7 +1,8 @@
 const { json, readJsonBody, readSessionFromRequest } = require("../lib/chatAuth");
 const { markMessagesRead } = require("../lib/chatSupabase");
+const { withApiTelemetry } = require("../lib/telemetry");
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed." });
   }
@@ -18,4 +19,6 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     return json(res, 400, { error: error.message || "Unable to mark chat messages as read." });
   }
-};
+}
+
+module.exports = withApiTelemetry("chat/read", handler);

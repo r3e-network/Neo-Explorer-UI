@@ -232,11 +232,11 @@ describe("safeRpc", () => {
         return Promise.reject(timeoutError);
       }
 
-      if (method === "getversion" && baseURL === "/api/mainnet/fallback2") {
+      if (method === "getversion" && baseURL === "https://api2.n3index.dev/mainnet") {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback2") {
+      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
         return Promise.resolve({ data: { result: { index: 456 } } });
       }
 
@@ -249,12 +249,12 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/fallback2" })
+      expect.objectContaining({ baseURL: "https://api2.n3index.dev/mainnet" })
     );
   });
 
-  it("retries the rest of the pool when the globally selected fallback route fails", async () => {
-    envState.currentBasePath = "/api/mainnet/fallback2";
+  it("retries the rest of the pool when the globally selected absolute endpoint fails", async () => {
+    envState.currentBasePath = "https://api2.n3index.dev/mainnet";
 
     const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
       code: "ECONNABORTED",
@@ -264,15 +264,15 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && (baseURL === "/api/mainnet/fallback2" || baseURL === "/api/mainnet/primary")) {
+      if (method === "getversion" && (baseURL === "https://api2.n3index.dev/mainnet" || baseURL === "https://api.n3index.dev/mainnet")) {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback2") {
+      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
         return Promise.reject(timeoutError);
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+      if (method === "GetBlockCount" && baseURL === "https://api.n3index.dev/mainnet") {
         return Promise.resolve({ data: { result: { index: 654 } } });
       }
 
@@ -285,7 +285,7 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+      expect.objectContaining({ baseURL: "https://api.n3index.dev/mainnet" })
     );
   });
 

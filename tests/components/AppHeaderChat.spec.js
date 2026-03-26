@@ -36,13 +36,17 @@ vi.mock("@/composables/usePriceCache", () => ({
   }),
 }));
 
-vi.mock("@/utils/env", () => ({
-  NETWORK_CHANGE_EVENT: "network-change",
-  NETWORK_OPTIONS: [{ id: "MainNet", label: "MainNet" }],
-  getCurrentEnv: () => "MainNet",
-  getNetworkLabel: () => "MainNet",
-  setCurrentEnv: (env) => env,
-}));
+vi.mock("@/utils/env", async () => {
+  const actual = await vi.importActual("@/utils/env");
+  return {
+    ...actual,
+    NETWORK_CHANGE_EVENT: "network-change",
+    NETWORK_OPTIONS: [{ id: actual.NET_ENV.Mainnet, label: "MainNet" }],
+    getCurrentEnv: () => actual.NET_ENV.Mainnet,
+    getNetworkLabel: () => "MainNet",
+    setCurrentEnv: (env) => env,
+  };
+});
 
 vi.mock("@/utils/wallet", () => ({
   connectedAccount: connectedAccountRef,

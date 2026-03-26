@@ -9,9 +9,10 @@ const { resolvePrimaryIndexMock, getPrimaryNodeNameMock, getPrimaryNodeAddressMo
   getPrimaryNodeAddressMock: vi.fn(() => "0x1234567890abcdef1234567890abcdef12345678"),
   getPrimaryNodeLogoMock: vi.fn(() => "https://example.com/logo.png"),
 }));
+const useNowMock = vi.hoisted(() => vi.fn(() => ({ value: new Date() })));
 
 vi.mock("@vueuse/core", () => ({
-  useNow: () => ({ value: new Date() }),
+  useNow: useNowMock,
 }));
 
 vi.mock("@/utils/explorerFormat", () => ({
@@ -37,6 +38,31 @@ describe("BlockListItem", () => {
     getPrimaryNodeNameMock.mockImplementation(() => "Unknown Validator");
     getPrimaryNodeAddressMock.mockImplementation(() => "0x1234567890abcdef1234567890abcdef12345678");
     getPrimaryNodeLogoMock.mockImplementation(() => "https://example.com/logo.png");
+  });
+
+  it("updates relative ages every second", () => {
+    mount(BlockListItem, {
+      props: {
+        block: {
+          index: 99,
+          timestamp: Date.now(),
+          transactioncount: 1,
+          systemFee: 1,
+          networkFee: 1,
+          size: 900,
+          primary: 0,
+          nextconsensus: "0x1234567890abcdef1234567890abcdef12345678",
+        },
+      },
+      global: {
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+          HashLink: true,
+        },
+      },
+    });
+
+    expect(useNowMock).toHaveBeenCalledWith({ interval: 1000 });
   });
 
   it("renders validator from speaker fallback when nextconsensus is absent", () => {

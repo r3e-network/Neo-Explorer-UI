@@ -9,8 +9,9 @@ const {
   verifyChallengeSignature,
 } = require("../../lib/chatAuth");
 const { consumeChallenge, getChallengeById } = require("../../lib/chatSupabase");
+const { withApiTelemetry } = require("../../lib/telemetry");
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return json(res, 405, { error: "Method not allowed." });
   }
@@ -45,7 +46,7 @@ module.exports = async function handler(req, res) {
         issuedAt: challenge.created_at,
       });
 
-    verifyChallengeSignature({
+    await verifyChallengeSignature({
       message,
       signature,
       publicKey,
@@ -60,4 +61,6 @@ module.exports = async function handler(req, res) {
     res.setHeader("Set-Cookie", clearSessionCookie());
     return json(res, 400, { error: error.message || "Chat auth verification failed." });
   }
-};
+}
+
+module.exports = withApiTelemetry("chat/auth/verify", handler);

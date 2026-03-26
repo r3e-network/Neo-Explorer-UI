@@ -161,6 +161,9 @@ async function loadPage() {
 }
 
 function getTxnCount(account) {
+  if (account?.txCount !== undefined && account?.txCount !== null) {
+    return account.txCount;
+  }
   return (account.nep17TransferCount || 0) + (account.nep11TransferCount || 0);
 }
 

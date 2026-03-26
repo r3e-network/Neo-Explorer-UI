@@ -31,14 +31,14 @@ const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
   /ByContractHash(?:TokenId)?$/i,
   /ByCandidateAddress$/i,
 ];
-const NETWORK_FALLBACK_PATHS = Object.freeze({
+const ABSOLUTE_RPC_FALLBACK_ENDPOINTS = Object.freeze({
   mainnet: [
-    "/api/mainnet/fallback2",
-    "/api/mainnet/fallback3",
+    "https://api2.n3index.dev/mainnet",
+    "https://api3.n3index.dev/mainnet",
   ],
   testnet: [
-    "/api/testnet/fallback2",
-    "/api/testnet/fallback3",
+    "https://api2.n3index.dev/testnet",
+    "https://api3.n3index.dev/testnet",
   ],
 });
 const endpointNetworkCache = new Map();
@@ -110,7 +110,7 @@ const buildRetryBaseUrls = (baseUrl) => {
   }
   if (useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
 
-  const extraFallbacks = NETWORK_FALLBACK_PATHS[parsed.network] || [];
+  const extraFallbacks = ABSOLUTE_RPC_FALLBACK_ENDPOINTS[parsed.network] || [];
 
   const primary = `${parsed.prefix}/primary`;
   const fallback = `${parsed.prefix}/fallback`;

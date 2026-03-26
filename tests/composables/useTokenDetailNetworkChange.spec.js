@@ -5,14 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   route,
   push,
-  getTokenByHash,
+  getTokenByHashWithFallback,
   getContractByHash,
   getContractByHashWithFallback,
   getContractMetadata,
 } = vi.hoisted(() => ({
   route: { params: { hash: "0xtoken" } },
   push: vi.fn(),
-  getTokenByHash: vi.fn(),
+  getTokenByHashWithFallback: vi.fn(),
   getContractByHash: vi.fn(),
   getContractByHashWithFallback: vi.fn(),
   getContractMetadata: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("vue-i18n", () => ({
 
 vi.mock("@/services", () => ({
   tokenService: {
-    getByHash: getTokenByHash,
+    getByHashWithFallback: getTokenByHashWithFallback,
   },
   contractService: {
     getByHash: getContractByHash,
@@ -55,7 +55,7 @@ describe("useTokenDetail network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     route.params.hash = "0xtoken";
-    getTokenByHash.mockResolvedValue({ hash: "0xtoken", tokenname: "Token", decimals: 8 });
+    getTokenByHashWithFallback.mockResolvedValue({ hash: "0xtoken", tokenname: "Token", decimals: 8 });
     getContractByHash.mockResolvedValue({ hash: "0xtoken", manifest: "{}", updatecounter: 0 });
     getContractByHashWithFallback.mockResolvedValue({ hash: "0xtoken", manifest: "{}", updatecounter: 0 });
     getContractMetadata.mockResolvedValue(null);
@@ -74,13 +74,13 @@ describe("useTokenDetail network changes", () => {
     const wrapper = mount(Harness);
     await flushPromises();
 
-    expect(getTokenByHash).toHaveBeenCalledTimes(1);
+    expect(getTokenByHashWithFallback).toHaveBeenCalledTimes(1);
     expect(getContractByHashWithFallback).toHaveBeenCalledTimes(1);
 
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
 
-    expect(getTokenByHash).toHaveBeenCalledTimes(2);
+    expect(getTokenByHashWithFallback).toHaveBeenCalledTimes(2);
     expect(getContractByHashWithFallback).toHaveBeenCalledTimes(2);
     expect(getContractMetadata).toHaveBeenCalledTimes(2);
 

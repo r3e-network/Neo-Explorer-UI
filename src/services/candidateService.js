@@ -1,5 +1,7 @@
-import { CACHE_TTL } from "./cache";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
+import { safeRpc } from "./api";
+import { mapRpcCandidatesToCandidateRows } from "./legacyFallbacks";
 
 /**
  * Candidate Service - Neo3 候选人/验证人相关 API
@@ -8,7 +10,7 @@ import { createService } from "./serviceFactory";
  */
 
 export const candidateService = createService({
-  getCount: {
+  _getCountRpc: {
     cacheKey: "candidate_count",
     rpcMethod: "GetCandidateCount",
     fallback: 0,
@@ -16,7 +18,7 @@ export const candidateService = createService({
     realtime: true,
     buildParams: () => ({}),
   },
-  getList: {
+  _getListRpc: {
     _type: "list",
     cacheKey: "candidate_list",
     rpcMethod: "GetCandidate",
@@ -55,6 +57,60 @@ export const candidateService = createService({
       Skip: skip,
     }),
     buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
+  },
+}, {
+  async getCount(options = {}) {
+    const key = getCacheKey("candidate_count_fallback", {});
+    return cachedRequest(
+      key,
+      async () => {
+        let rpcResult = null;
+        try {
+          rpcResult = await this._getCountRpc(options);
+        } catch (_err) {
+          rpcResult = null;
+        }
+        const directCount = Number(rpcResult?.["total counts"] ?? rpcResult?.count ?? rpcResult ?? 0);
+        if (Number.isFinite(directCount) && directCount > 0) {
+          return rpcResult;
+        }
+
+        const rows = await safeRpc("getcandidates", [], [], options);
+        return { "total counts": Array.isArray(rows) ? rows.length : 0 };
+      },
+      CACHE_TTL.stats,
+      options,
+    );
+  },
+
+  async getList(limit = 20, skip = 0, options = {}) {
+    const key = getCacheKey("candidate_list_fallback", { limit, skip });
+    return cachedRequest(
+      key,
+      async () => {
+        let rpcResult = null;
+        try {
+          rpcResult = await this._getListRpc(limit, skip, options);
+        } catch (_err) {
+          rpcResult = null;
+        }
+        const existingRows = Array.isArray(rpcResult?.result) ? rpcResult.result : [];
+        if (existingRows.length > 0) {
+          return rpcResult;
+        }
+
+        const nativeRows = await safeRpc("getcandidates", [], [], options);
+        const mapped = mapRpcCandidatesToCandidateRows(nativeRows);
+        const safeSkip = Math.max(0, Number(skip) || 0);
+        const safeLimit = Math.max(1, Number(limit) || 20);
+        return {
+          result: mapped.slice(safeSkip, safeSkip + safeLimit),
+          totalCount: mapped.length,
+        };
+      },
+      CACHE_TTL.chart,
+      options,
+    );
   },
 });
 

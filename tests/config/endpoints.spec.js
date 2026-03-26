@@ -21,9 +21,9 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
-    expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
-    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/mainnet/, "/indexer/v1/networks/mainnet"),');
-    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/testnet/, "/indexer/v1/networks/testnet"),');
+    expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api1.n3index.dev";');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/mainnet/, "/mainnet"),');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/testnet/, "/testnet"),');
 
     expect(viteConfig).not.toMatch(/198\.244\.215\.132/);
     expect(viteConfig).not.toContain("testneofura.ngd.network");
@@ -82,11 +82,12 @@ describe("endpoint defaults", () => {
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://rpc.r3e.network/testnet/bpi/$1");
     expect(routeDest("/indexer/mainnet/(.*)")).toBe(
-      "https://api.n3index.dev/indexer/v1/networks/mainnet/$1"
+      "https://api1.n3index.dev/mainnet/$1"
     );
     expect(routeDest("/indexer/testnet/(.*)")).toBe(
-      "https://api.n3index.dev/indexer/v1/networks/testnet/$1"
+      "https://api1.n3index.dev/testnet/$1"
     );
+    expect(routeDest("/:path((?!api/|bpi/|indexer/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

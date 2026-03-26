@@ -14,7 +14,71 @@ const DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
-const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
+const DEFAULT_INDEXER_PROXY_TARGET = "https://api1.n3index.dev";
+const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
+const PRICE_ENDPOINT_PATH = "/api/prices";
+const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";
+const DEV_PRICE_CACHE_TTL_MS = 60 * 1000;
+
+let devPriceCache = {
+  payload: null,
+  fetchedAt: 0,
+};
+
+function createDevPriceProxyPlugin(target) {
+  const normalizedTarget = String(target || "").replace(/\/+$/, "");
+
+  return {
+    name: "dev-price-proxy",
+    configureServer(server) {
+      server.middlewares.use(PRICE_ENDPOINT_PATH, async (req, res, next) => {
+        if (req.method !== "GET") {
+          next();
+          return;
+        }
+
+        const now = Date.now();
+        if (devPriceCache.payload && now - devPriceCache.fetchedAt < DEV_PRICE_CACHE_TTL_MS) {
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(devPriceCache.payload));
+          return;
+        }
+
+        try {
+          const upstream = await fetch(`${normalizedTarget}${PRICE_UPSTREAM_PATH}`, {
+            headers: {
+              Accept: "application/json",
+              "User-Agent": "neo-explorer-dev-price-proxy/1.0",
+            },
+          });
+
+          if (!upstream.ok) {
+            throw new Error(`Upstream status ${upstream.status}`);
+          }
+
+          const payload = await upstream.json();
+          devPriceCache = {
+            payload,
+            fetchedAt: now,
+          };
+
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(payload));
+        } catch (error) {
+          if (devPriceCache.payload) {
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify(devPriceCache.payload));
+            return;
+          }
+
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: error.message || "Price fetch failed" }));
+        }
+      });
+    },
+  };
+}
 
 export function shouldIgnoreRollupWarning(warning) {
   const message = String(warning?.message || "");
@@ -168,6 +232,9 @@ export function getManualChunkName(id) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const appRelease =
+    String(env.VITE_APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || process.env.npm_package_version || "dev")
+      .trim() || "dev";
   const mainnetRpcPrimaryTarget = env.VITE_MAINNET_RPC_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_RPC_PRIMARY_PROXY_TARGET;
   const testnetRpcPrimaryTarget = env.VITE_TESTNET_RPC_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_RPC_PRIMARY_PROXY_TARGET;
   const mainnetRpcFallbackTarget =
@@ -190,10 +257,12 @@ export default defineConfig(({ mode }) => {
   const mainnetBpiPrimaryTarget = env.VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET;
   const testnetBpiPrimaryTarget = env.VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET;
   const indexerProxyTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
+  const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
 
   return {
     plugins: [
       vue(),
+      createDevPriceProxyPlugin(coingeckoProxyTarget),
       nodePolyfills({
         include: ["buffer", "crypto", "stream", "util", "events", "process"],
         globals: {
@@ -219,6 +288,9 @@ export default defineConfig(({ mode }) => {
         "vue-i18n": "vue-i18n/dist/vue-i18n.esm-bundler.js",
       },
     },
+    define: {
+      __APP_RELEASE__: JSON.stringify(appRelease),
+    },
     server: {
       headers: {
         "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
@@ -227,12 +299,22 @@ export default defineConfig(({ mode }) => {
         "/indexer/mainnet": {
           target: indexerProxyTarget,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/indexer/v1/networks/mainnet"),
+          rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/mainnet"),
         },
         "/indexer/testnet": {
           target: indexerProxyTarget,
           changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/indexer/v1/networks/testnet"),
+          rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/testnet"),
+        },
+        "/rest/mainnet": {
+          target: mainnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/rest\/mainnet/, "/rest/v1"),
+        },
+        "/rest/testnet": {
+          target: testnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1"),
         },
         "/api/mainnet/primary": {
           target: mainnetRpcPrimaryTarget,

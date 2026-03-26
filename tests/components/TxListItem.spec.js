@@ -4,6 +4,12 @@ import TxListItem from "@/components/common/TxListItem.vue";
 import { NEO_HASH } from "@/constants";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
+const useNowMock = vi.hoisted(() => vi.fn(() => ({ value: new Date() })));
+
+vi.mock("@vueuse/core", () => ({
+  useNow: useNowMock,
+}));
+
 const { resolveAddressToNNS, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),
   getContractMetadata: vi.fn(async () => null),
@@ -34,6 +40,31 @@ function reverseScriptHash(hash) {
 }
 
 describe("TxListItem", () => {
+  it("updates relative ages every second", () => {
+    mount(TxListItem, {
+      props: {
+        tx: {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          blocktime: Date.now(),
+          sender: "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc",
+          netfee: 0,
+          sysfee: 0,
+        },
+      },
+      global: {
+        stubs: {
+          RouterLink: {
+            name: "RouterLink",
+            props: ["to"],
+            template: "<a><slot /></a>",
+          },
+        },
+      },
+    });
+
+    expect(useNowMock).toHaveBeenCalledWith({ interval: 1000 });
+  });
+
   it("resolves known contract names from reversed script-hash form", () => {
     const reversedNeoHash = reverseScriptHash(NEO_HASH);
 

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   NET_ENV,
+  getActiveBasePath,
+  getRpcApiBasePath,
   getNetworkRefreshIntervalMs,
   getRpcClientUrl,
   setCurrentEnv,
@@ -26,11 +28,15 @@ describe("env refresh intervals", () => {
 describe("rpc client url", () => {
   it("returns an absolute mainnet URL by default", () => {
     window.localStorage.removeItem("neo_explorer_network");
-    expect(getRpcClientUrl()).toBe(`${window.location.origin}/api/mainnet`);
+    expect(getActiveBasePath()).toBe("https://api.n3index.dev/mainnet");
+    expect(getRpcApiBasePath()).toBe("https://api.n3index.dev/mainnet");
+    expect(getRpcClientUrl()).toBe("https://api.n3index.dev/mainnet");
   });
 
   it("returns an absolute testnet URL when switched to testnet", () => {
     setCurrentEnv(NET_ENV.TestT5);
-    expect(getRpcClientUrl()).toBe(`${window.location.origin}/api/testnet`);
+    expect(getActiveBasePath()).toBe("https://api.n3index.dev/testnet");
+    expect(getRpcApiBasePath()).toBe("https://api.n3index.dev/testnet");
+    expect(getRpcClientUrl()).toBe("https://api.n3index.dev/testnet");
   });
 });

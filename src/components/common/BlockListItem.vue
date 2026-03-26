@@ -87,8 +87,7 @@ const props = defineProps({
   block: { type: Object, default: () => ({}) },
 });
 
-// Age labels don't need per-second precision; avoid one timer per row.
-const now = useNow({ interval: 10_000 });
+const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
 
 const resolvedPrimary = computed(() => resolvePrimaryIndex(props.block));

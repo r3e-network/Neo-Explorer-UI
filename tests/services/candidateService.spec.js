@@ -26,9 +26,11 @@ describe("candidateService", () => {
     });
 
     it("returns fallback 0 when rpc resolves with fallback", async () => {
-      api.safeRpc.mockResolvedValueOnce(0);
+      api.safeRpc
+        .mockResolvedValueOnce(0) // GetCandidateCount
+        .mockResolvedValueOnce([]); // getcandidates
       const result = await candidateService.getCount();
-      expect(result).toBe(0);
+      expect(result).toEqual({ "total counts": 0 });
     });
   });
 

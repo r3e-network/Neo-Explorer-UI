@@ -270,11 +270,9 @@ async function loadPage() {
   try {
     let response;
 
-    if (isSearchMode.value) {
-      response = await contractService.searchByName(query, pageSize.value, offset);
-    } else {
-      response = await contractService.getList(pageSize.value, offset);
-    }
+    response = await contractService.getListWithFallback(pageSize.value, offset, {
+      search: isSearchMode.value ? query : "",
+    });
 
     if (myRequestId !== currentRequestId) return;
     contracts.value = response?.result || [];

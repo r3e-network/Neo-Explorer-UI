@@ -2,6 +2,7 @@ import axios from "axios";
 import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
+import { indexerReadService } from "./indexerReadService";
 
 /**
  * Contract Service - Neo3 合约相关 API 调用
@@ -90,6 +91,30 @@ export const contractService = createService(
     },
   },
   {
+    async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
+      const legacy = search
+        ? await contractService.searchByName(search, limit, skip, { forceRefresh }).catch(() => null)
+        : await contractService.getList(limit, skip, { forceRefresh }).catch(() => null);
+
+      if (Array.isArray(legacy?.result) && legacy.result.length > 0) {
+        return legacy;
+      }
+
+      const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh });
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      return {
+        result: rows.map((item) => ({
+          hash: item.contract_hash,
+          name: item.display_name || item.contract_hash,
+          manifest: { supportedstandards: Array.isArray(item.standards) ? item.standards : [] },
+          totalsccall: item.tx_count || 0,
+          verified: Boolean(item.verified),
+          createtime: item.created_at_ms || 0,
+        })),
+        totalCount: Number(payload?.paging?.total || rows.length || 0),
+      };
+    },
+
     async getChainStateByHash(hash, options = {}) {
       const key = getCacheKey("contract_chain_state", { hash });
       return cachedRequest(

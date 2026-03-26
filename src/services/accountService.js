@@ -1,8 +1,11 @@
-import { CACHE_TTL } from "./cache";
+import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { safeRpc } from "./api";
+import { getCurrentEnv } from "@/utils/env";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { NEO_HASH, GAS_HASH } from "@/constants";
+import { indexerReadService } from "./indexerReadService";
+import { mapAccountOverviewRowsToAccounts } from "./legacyFallbacks";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -10,9 +13,69 @@ import { NEO_HASH, GAS_HASH } from "@/constants";
  * @description 通过 neo3fura 后端获取账户数据
  */
 
+const resolveAccountNetwork = () => {
+  const env = String(getCurrentEnv() || "").toLowerCase();
+  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+};
+
+const buildAccountRestBasePath = (network) => `/rest/${network}`;
+
+async function fetchJsonWithFallback(urls) {
+  for (const url of urls.filter(Boolean)) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) continue;
+      return await res.json();
+    } catch {
+      // try next fallback
+    }
+  }
+  return null;
+}
+
+async function fetchAccountOverviewRows(network, limit, skip) {
+  const select = [
+    "address",
+    "tx_sent",
+    "tx_signed",
+    "nep11_sent_events",
+    "nep11_received_events",
+    "last_tx_ms",
+  ].join(",");
+  const query = new URLSearchParams({
+    select,
+    network: `eq.${network}`,
+    limit: String(limit),
+    offset: String(skip),
+    order: "nep17_net_raw.desc,last_tx_ms.desc",
+  });
+  const basePath = buildAccountRestBasePath(network);
+  return fetchJsonWithFallback([`${basePath}/v_account_overview?${query}`]);
+}
+
+async function fetchAccountBalances(network, rows = []) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const addresses = [...new Set(safeRows.map((row) => row?.address).filter(Boolean))];
+  if (!addresses.length) return [];
+
+  const addressList = addresses.join(",");
+  const contractList = [NEO_HASH, GAS_HASH].join(",");
+  const query = new URLSearchParams({
+    select: "address,contract_hash,balance_raw",
+    network: `eq.${network}`,
+    address: `in.(${addressList})`,
+    contract_hash: `in.(${contractList})`,
+  });
+  const basePath = buildAccountRestBasePath(network);
+  return (await fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`])) || [];
+}
+
 export const accountService = createService(
   {
-    getCount: {
+    _getCountRpc: {
       cacheKey: "account_count",
       rpcMethod: "GetAddressCount",
       fallback: 0,
@@ -20,7 +83,7 @@ export const accountService = createService(
       realtime: true,
       buildParams: () => ({}),
     },
-    getList: {
+    _getListRpc: {
       _type: "list",
       cacheKey: "account_list",
       rpcMethod: "GetAddressList",
@@ -75,6 +138,64 @@ export const accountService = createService(
     },
   },
   {
+    async getCount(options = {}) {
+      const key = getCacheKey("account_count_fallback", {});
+      return cachedRequest(
+        key,
+        async () => {
+          let rpcResult = null;
+          try {
+            rpcResult = await this._getCountRpc(options);
+          } catch (_err) {
+            rpcResult = null;
+          }
+          const directCount = Number(rpcResult?.["total counts"] ?? rpcResult?.count ?? rpcResult ?? 0);
+          if (Number.isFinite(directCount) && directCount > 0) {
+            return rpcResult;
+          }
+
+          const summary = await indexerReadService.getSummary(options);
+          const total = Number(summary?.total_address_count ?? 0);
+          return { "total counts": Number.isFinite(total) ? total : 0 };
+        },
+        CACHE_TTL.stats,
+        options,
+      );
+    },
+
+    async getList(limit = 20, skip = 0, options = {}) {
+      const key = getCacheKey("account_list_fallback", { limit, skip, env: resolveAccountNetwork() });
+      return cachedRequest(
+        key,
+        async () => {
+          let rpcResult = null;
+          try {
+            rpcResult = await this._getListRpc(limit, skip, options);
+          } catch (_err) {
+            rpcResult = null;
+          }
+          const existingRows = Array.isArray(rpcResult?.result) ? rpcResult.result : [];
+          const existingCount = Number(rpcResult?.totalCount ?? 0);
+          if (existingRows.length > 0 || existingCount > 0) {
+            return rpcResult;
+          }
+
+          const network = resolveAccountNetwork();
+          const [rows, summary] = await Promise.all([
+            fetchAccountOverviewRows(network, limit, skip),
+            indexerReadService.getSummary(options),
+          ]);
+          const balanceRows = await fetchAccountBalances(network, rows);
+          return {
+            result: mapAccountOverviewRowsToAccounts(rows || [], balanceRows),
+            totalCount: Number(summary?.total_address_count ?? 0),
+          };
+        },
+        CACHE_TTL.chart,
+        options,
+      );
+    },
+
     _normalizeAddress(address) {
       return String(address || "").trim();
     },

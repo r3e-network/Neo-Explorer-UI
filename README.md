@@ -194,6 +194,18 @@ Optional build-time environment variable:
 - `VITE_MAINNET_RPC_PROXY_TARGET` / `VITE_TESTNET_RPC_PROXY_TARGET` (optional Vite dev proxy overrides)
 - `VITE_MAINNET_BPI_PROXY_TARGET` / `VITE_TESTNET_BPI_PROXY_TARGET` (optional Vite dev BPI proxy overrides)
 - `VITE_ENABLE_RPC_STARTUP_HEDGE` (optional; default `true`)
+- `VITE_SENTRY_DSN` / `VITE_SENTRY_ENVIRONMENT` / `VITE_SENTRY_TRACES_SAMPLE_RATE`
+- `VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE` / `VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE`
+- `SENTRY_DSN` / `SENTRY_ENVIRONMENT` / `SENTRY_TRACES_SAMPLE_RATE` for Vercel serverless APIs
+- `VITE_APP_RELEASE` / `SENTRY_RELEASE` to override release tagging (otherwise `VERCEL_GIT_COMMIT_SHA` is used when available)
+- `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` / `VITE_POSTHOG_CAPTURE_DEV`
+
+### Observability Trial
+
+- Browser telemetry: optional Sentry tracing/replay and PostHog analytics are initialized from `src/main.js` when the corresponding env vars are present.
+- Server-side telemetry: node-runtime Vercel handlers can report uncaught and selected 5xx failures through `api/lib/telemetry.js`.
+- If no keys are configured, telemetry stays disabled and the app behavior is unchanged.
+- Full env rollout matrix: [managed-observability-env-matrix.md](/home/neo/git/neo3fura/deploy/managed-observability-env-matrix.md)
 
 Vercel routing is defined in `vercel.json`:
 

@@ -1,16 +1,15 @@
-const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
+const { captureApiException, withApiTelemetry } = require('./lib/telemetry');
 
-module.exports.config = {
-  runtime: 'nodejs',
-};
+const loadSdk = () => import("@r3e/neo-js-sdk/browser");
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    const { tx, wallet, rpc } = await loadSdk();
     const { action, transactionHex, network } = req.body;
     
     const sponsorWif = process.env.SPONSORED_WIF;
@@ -73,12 +72,15 @@ module.exports = async function handler(req, res) {
     }
 
     // Let's clear and rebuild witnesses explicitly to be safe
-    const sponsorWitnessObj = tx.Witness.fromSignature(transaction.hash(), sponsorAccount.privateKey);
-    
-    // The user's witness was passed in from frontend. 
-    // Wait, when we called `transaction.sign()`, neon-js might have modified `transaction.witnesses`.
-    // Let's deserialize a FRESH copy to extract the user's witness safely.
+    // The user's witness was passed in from frontend.
+    // Deserialize a fresh copy to extract it safely, then keep the newly added sponsor witness first.
     const originalTx = tx.Transaction.deserialize(transactionHex);
+    const sponsorWitnessObj = transaction.witnesses.find((w) =>
+      !originalTx.witnesses.some(
+        (originalWitness) =>
+          originalWitness.invocation === w.invocation && originalWitness.verification === w.verification,
+      ),
+    );
     let userWitness = originalTx.witnesses.find(w => w.invocation && w.invocation.length > 0);
     
     if (!userWitness) {
@@ -86,7 +88,7 @@ module.exports = async function handler(req, res) {
         userWitness = originalTx.witnesses[0];
     }
     
-    transaction.witnesses = [sponsorWitnessObj, userWitness];
+    transaction.witnesses = sponsorWitnessObj ? [sponsorWitnessObj, userWitness] : [userWitness];
 
     // Broadcast
     const fullySignedHex = transaction.serialize(true);
@@ -94,7 +96,7 @@ module.exports = async function handler(req, res) {
     try {
        const txid = await callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
          const rpcClient = new rpc.RPCClient(endpoint);
-         return rpcClient.sendRawTransaction(fullySignedHex);
+         return rpcClient.sendRawTransaction({ tx: fullySignedHex });
        });
        return res.status(200).json({ txid, fullySignedHex });
     } catch (err) {
@@ -102,7 +104,13 @@ module.exports = async function handler(req, res) {
     }
 
   } catch (e) {
+    await captureApiException(e, { route: "sponsor", req });
     console.error(e);
     res.status(500).json({ error: e.message });
   }
 }
+
+module.exports = withApiTelemetry("sponsor", handler);
+module.exports.config = {
+  runtime: 'nodejs',
+};

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { accountService } from "../../src/services/accountService.js";
 import * as api from "../../src/services/api.js";
+import { clearAllCache } from "../../src/services/cache.js";
+
+const summaryMock = vi.hoisted(() => vi.fn());
+const fetchMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
@@ -9,9 +13,22 @@ vi.mock("../../src/services/api.js", () => ({
   formatListResponse: vi.fn((r) => r),
 }));
 
+vi.mock("../../src/services/indexerReadService.js", () => ({
+  indexerReadService: {
+    getSummary: summaryMock,
+  },
+}));
+
 describe("accountService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAllCache();
+    summaryMock.mockResolvedValue({ total_address_count: 0 });
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: async () => null,
+    });
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   describe("getList", () => {

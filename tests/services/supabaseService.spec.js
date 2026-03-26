@@ -233,6 +233,30 @@ describe("supabaseService metadata", () => {
     expect(result).toEqual({});
   });
 
+  it("retries the absolute indexer metadata origin when the same-origin proxy aborts", async () => {
+    const address = "Nabc";
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error("Failed to fetch"), { name: "AbortError" }))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: [{ address, label: "Recovered From Absolute Origin", category: "exchange" }],
+          }),
+        }),
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[0][0]).toContain("/indexer/mainnet/metadata/addresses");
+    expect(fetch.mock.calls[1][0]).toContain("https://api1.n3index.dev/mainnet/metadata/addresses");
+    expect(result[address]?.label).toBe("Recovered From Absolute Origin");
+  });
+
   it("still falls back to Supabase when the indexer fails with a generic fetch error", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
@@ -275,6 +299,8 @@ describe("supabaseService metadata", () => {
     const { supabaseService } = await import("../../src/services/supabaseService.js");
     const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
 
+    expect(fetch).toHaveBeenCalled();
+    expect(fetch.mock.calls[0][0]).toContain("/indexer/mainnet/metadata/addresses");
     expect(result[address]?.nns_domain).toBe("oracle.morpheus.neo");
   });
 

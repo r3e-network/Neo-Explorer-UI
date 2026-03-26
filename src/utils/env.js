@@ -88,21 +88,23 @@ export const AI_API = {
   METHOD: "gettxdetail",
 };
 
-// RPC Node URLs (neofura endpoints used by Neon RPC client)
+const DEFAULT_RPC_BASE_URLS = {
+  [NET_ENV.Mainnet]: "https://api.n3index.dev/mainnet",
+  [NET_ENV.TestT5]: "https://api.n3index.dev/testnet",
+};
+
+// RPC Node URLs used by browser-side SDK clients and HTTP API calls.
 export const RPC_URLS = {
-  [NET_ENV.Mainnet]: "/api/mainnet",
-  [NET_ENV.TestT5]: "/api/testnet",
+  ...DEFAULT_RPC_BASE_URLS,
 };
 
 export const RPC_API_BASE_PATHS = {
-  [NET_ENV.Mainnet]: "/api/mainnet",
-  [NET_ENV.TestT5]: "/api/testnet",
+  ...DEFAULT_RPC_BASE_URLS,
 };
 
 // Store active endpoint paths dynamically
 const activeBasePaths = {
-  [NET_ENV.Mainnet]: "/api/mainnet",
-  [NET_ENV.TestT5]: "/api/testnet",
+  ...DEFAULT_RPC_BASE_URLS,
 };
 
 const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
@@ -143,7 +145,7 @@ export const setActiveBasePath = (env, path) => {
   }
 };
 
-export const getActiveBasePath = (env) => {
+export const getActiveBasePath = (env = getCurrentEnv()) => {
   const normalized = normalizeEnv(env);
   return activeBasePaths[normalized] || RPC_API_BASE_PATHS[normalized] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
 };

@@ -1,11 +1,26 @@
-const { tx, wallet, rpc, sc, u } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 const { enforceRelayerRateLimit } = require('./lib/relayerRateLimit');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
+const { captureApiException, withApiTelemetry } = require('./lib/telemetry');
 const aaMethodPolicy = require('../src/constants/aaMethodPolicy.json');
 
-module.exports.config = {
-  runtime: 'nodejs',
+let rpcLib = null;
+let txLib = null;
+let walletLib = null;
+let scLib = null;
+let uLib = null;
+
+const loadSdk = async () => {
+    if (!rpcLib || !txLib || !walletLib || !scLib || !uLib) {
+        const sdk = await import("@r3e/neo-js-sdk/browser");
+        rpcLib = sdk.rpc;
+        txLib = sdk.tx;
+        walletLib = sdk.wallet;
+        scLib = sdk.sc;
+        uLib = sdk.u;
+    }
+
+    return { rpc: rpcLib, tx: txLib, wallet: walletLib, sc: scLib, u: uLib };
 };
 
 const DEFAULT_DEADLINE_SECONDS = 5 * 60; // 5 minutes
@@ -27,19 +42,19 @@ const isValidHex = (hexStr, expectedLen) => {
 
 // Helper to convert hex strings or integers to Neo ContractParams.
 function parseToContractParam(arg) {
-    if (arg === null || arg === undefined) return sc.ContractParam.any(null);
+    if (arg === null || arg === undefined) return scLib.ContractParam.any(null);
     if (typeof arg === 'object' && arg.type && arg.value !== undefined) {
-        if (arg.type === 'Hash160') return sc.ContractParam.hash160(sanitizeHex(arg.value));
-        if (arg.type === 'Hash256') return sc.ContractParam.hash256(sanitizeHex(arg.value));
-        if (arg.type === 'ByteArray') return sc.ContractParam.byteArray(u.HexString.fromHex(sanitizeHex(arg.value), false));
-        if (arg.type === 'Integer') return sc.ContractParam.integer(arg.value);
-        if (arg.type === 'String') return sc.ContractParam.string(arg.value);
-        if (arg.type === 'Boolean') return sc.ContractParam.boolean(arg.value);
-        if (arg.type === 'PublicKey') return sc.ContractParam.publicKey(sanitizeHex(arg.value));
-        if (arg.type === 'Array') return sc.ContractParam.array(...arg.value.map(parseToContractParam));
-        if (arg.type === 'Any') return sc.ContractParam.any(arg.value);
+        if (arg.type === 'Hash160') return scLib.ContractParam.hash160(sanitizeHex(arg.value));
+        if (arg.type === 'Hash256') return scLib.ContractParam.hash256(sanitizeHex(arg.value));
+        if (arg.type === 'ByteArray') return scLib.ContractParam.byteArray(uLib.HexString.fromHex(sanitizeHex(arg.value), false));
+        if (arg.type === 'Integer') return scLib.ContractParam.integer(arg.value);
+        if (arg.type === 'String') return scLib.ContractParam.string(arg.value);
+        if (arg.type === 'Boolean') return scLib.ContractParam.boolean(arg.value);
+        if (arg.type === 'PublicKey') return scLib.ContractParam.publicKey(sanitizeHex(arg.value));
+        if (arg.type === 'Array') return scLib.ContractParam.array(...arg.value.map(parseToContractParam));
+        if (arg.type === 'Any') return scLib.ContractParam.any(arg.value);
     }
-    return sc.ContractParam.any(arg);
+    return scLib.ContractParam.any(arg);
 }
 
 function parseNonNegativeInteger(value, label) {
@@ -126,6 +141,20 @@ function assertByteArrayHex(value, fieldName, { minBytes = 1, maxBytes = 64 } = 
     return clean;
 }
 
+function getWallet() {
+    if (!walletLib) {
+        throw new Error('Neo SDK compatibility layer not initialized');
+    }
+    return walletLib;
+}
+
+function getSc() {
+    if (!scLib || !uLib) {
+        throw new Error('Neo SDK compatibility layer not initialized');
+    }
+    return { sc: scLib, u: uLib };
+}
+
 function normalizeAccountAddress(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -136,7 +165,7 @@ function normalizeAccountAddress(value) {
     }
 
     try {
-        return sanitizeHex(wallet.getScriptHashFromAddress(raw));
+        return sanitizeHex(getWallet().getScriptHashFromAddress(raw));
     } catch {
         throw new Error('Invalid accountAddress (expected Neo N3 address or 160-bit hex)');
     }
@@ -174,6 +203,7 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
 }
 
 async function computeArgsHash(rpcClient, aaHash, args) {
+    const { sc } = getSc();
     const parsedArgs = Array.isArray(args) ? args : [];
     const script = sc.createScript({
         scriptHash: aaHash,
@@ -181,7 +211,7 @@ async function computeArgsHash(rpcClient, aaHash, args) {
         args: [sc.ContractParam.array(parsedArgs.map(parseToContractParam))]
     });
 
-    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`computeArgsHash fault: ${exceptionMsg}`);
@@ -200,6 +230,7 @@ async function computeMetaArgsHash(rpcClient, {
     nonce,
     deadline,
 }) {
+    const { sc, u } = getSc();
     const parsedArgs = Array.isArray(args) ? args : [];
     const operation = hasAddressBinding ? 'computeArgsHashForMetaTxByAddress' : 'computeArgsHashForMetaTx';
     const dummyPubKey = `04${'00'.repeat(64)}`;
@@ -224,7 +255,7 @@ async function computeMetaArgsHash(rpcClient, {
         ]
     });
 
-    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`computeMetaArgsHash fault: ${exceptionMsg}`);
@@ -233,6 +264,7 @@ async function computeMetaArgsHash(rpcClient, {
 }
 
 async function getNonceForAccount(rpcClient, aaHash, accountId, signerAddress) {
+    const { sc, u } = getSc();
     const script = sc.createScript({
         scriptHash: aaHash,
         operation: 'getNonceForAccount',
@@ -242,7 +274,7 @@ async function getNonceForAccount(rpcClient, aaHash, accountId, signerAddress) {
         ]
     });
 
-    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`getNonceForAccount fault: ${exceptionMsg}`);
@@ -251,6 +283,7 @@ async function getNonceForAccount(rpcClient, aaHash, accountId, signerAddress) {
 }
 
 async function getNonceForAddress(rpcClient, aaHash, accountAddress, signerAddress) {
+    const { sc, u } = getSc();
     const script = sc.createScript({
         scriptHash: aaHash,
         operation: 'getNonceForAddress',
@@ -260,7 +293,7 @@ async function getNonceForAddress(rpcClient, aaHash, accountAddress, signerAddre
         ]
     });
 
-    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`getNonceForAddress fault: ${exceptionMsg}`);
@@ -269,6 +302,7 @@ async function getNonceForAddress(rpcClient, aaHash, accountAddress, signerAddre
 }
 
 async function getAccountIdByAddress(rpcClient, aaHash, accountAddress) {
+    const { sc, u } = getSc();
     const script = sc.createScript({
         scriptHash: aaHash,
         operation: 'getAccountIdByAddress',
@@ -277,7 +311,7 @@ async function getAccountIdByAddress(rpcClient, aaHash, accountAddress) {
         ]
     });
 
-    const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), []);
+    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
     if (invokeRes.state === 'FAULT') {
         const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
         throw new Error(`getAccountIdByAddress fault: ${exceptionMsg}`);
@@ -334,7 +368,7 @@ function assertAllowedAaMetaMethod(method) {
     return parsedMethod;
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
         return res.status(405).json({ error: `Method ${req.method} not allowed` });
@@ -358,6 +392,7 @@ module.exports = async function handler(req, res) {
     } = body;
 
     try {
+        const { tx, wallet, rpc } = await loadSdk();
         const relayerWif = process.env.SPONSORED_WIF || process.env.RELAYER_WIF;
         if (!relayerWif) {
             console.error('[Relayer API] Missing WIF configuration in environment variables.');
@@ -687,7 +722,7 @@ module.exports = async function handler(req, res) {
             }
         ];
 
-        const invokeRes = await rpcClient.invokeScript(u.HexString.fromHex(script), signers);
+        const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers });
         if (invokeRes.state === 'FAULT') {
             const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
             return res.status(400).json({ error: `Simulation failed: ${exceptionMsg}` });
@@ -708,7 +743,7 @@ module.exports = async function handler(req, res) {
 
         transaction.sign(relayerAccount, magic);
 
-        const networkFeeResponse = await rpcClient.calculateNetworkFee(transaction);
+        const networkFeeResponse = await rpcClient.calculateNetworkFee({ tx: transaction.serialize(true) });
         const parsedNetworkFee = parseInt(networkFeeResponse ? networkFeeResponse.toString() : '5000000', 10);
         const MAX_NETWORK_FEE = 100000000; // 1 GAS
         if (parsedNetworkFee > MAX_NETWORK_FEE) {
@@ -727,7 +762,7 @@ module.exports = async function handler(req, res) {
 
         const fullySignedHex = transaction.serialize(true);
         try {
-            const txid = await rpcClient.sendRawTransaction(fullySignedHex);
+            const txid = await rpcClient.sendRawTransaction({ tx: fullySignedHex });
             return res.status(200).json({
                 success: true,
                 txid,
@@ -740,7 +775,13 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: `Broadcast failed: ${err.message}` });
         }
     } catch (e) {
+        await captureApiException(e, { route: "relayer", req });
         console.error('[Relayer API] Internal Error:', e);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+
+module.exports = withApiTelemetry("relayer", handler);
+module.exports.config = {
+  runtime: 'nodejs',
+};

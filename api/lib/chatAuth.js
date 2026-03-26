@@ -1,5 +1,14 @@
 const crypto = require("crypto");
-const { wallet, u } = require("@cityofzion/neon-js");
+const bs58Module = require("bs58");
+const bs58 = bs58Module.decode ? bs58Module : bs58Module.default;
+let neoSdkPromise = null;
+
+function loadNeoSdk() {
+  if (!neoSdkPromise) {
+    neoSdkPromise = import("@r3e/neo-js-sdk");
+  }
+  return neoSdkPromise;
+}
 
 const SESSION_COOKIE_NAME = "neo_chat_session";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -7,7 +16,7 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function normalizeAddress(address) {
   const value = String(address || "").trim();
-  if (!wallet.isAddress(value)) {
+  if (!isNeoAddress(value)) {
     throw new Error("Invalid Neo address.");
   }
   return value;
@@ -15,10 +24,28 @@ function normalizeAddress(address) {
 
 function normalizePublicKey(publicKey) {
   const value = String(publicKey || "").trim();
-  if (!wallet.isPublicKey(value)) {
+  if (!/^(02|03)[0-9a-fA-F]{64}$|^04[0-9a-fA-F]{128}$/.test(value)) {
     throw new Error("Invalid public key.");
   }
   return value;
+}
+
+function sha256(data) {
+  return crypto.createHash("sha256").update(data).digest();
+}
+
+function isNeoAddress(address) {
+  try {
+    const decoded = bs58.decode(String(address || "").trim());
+    if (decoded.length !== 25) return false;
+    if (decoded[0] !== 53) return false;
+    const payload = decoded.subarray(0, 21);
+    const checksum = decoded.subarray(21);
+    const expected = sha256(sha256(payload)).subarray(0, 4);
+    return Buffer.from(checksum).equals(Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
 function canonicalizeParticipantPair(addressA, addressB) {
@@ -120,13 +147,13 @@ function readSessionFromRequest(req) {
   return payload;
 }
 
-function deriveAddressFromPublicKey(publicKey) {
+async function deriveAddressFromPublicKey(publicKey) {
   const normalizedPublicKey = normalizePublicKey(publicKey);
-  const scriptHash = wallet.getScriptHashFromPublicKey(normalizedPublicKey);
-  return wallet.getAddressFromScriptHash(scriptHash);
+  const { PublicKey } = await loadNeoSdk();
+  return new PublicKey(normalizedPublicKey).getAddress();
 }
 
-function verifyChallengeSignature({ message, signature, publicKey, address }) {
+async function verifyChallengeSignature({ message, signature, publicKey, address }) {
   const normalizedAddress = normalizeAddress(address);
   const normalizedPublicKey = normalizePublicKey(publicKey);
   const normalizedSignature = String(signature || "").trim();
@@ -134,12 +161,16 @@ function verifyChallengeSignature({ message, signature, publicKey, address }) {
     throw new Error("Missing signature.");
   }
 
-  const matches = wallet.verify(u.str2hexstring(message), normalizedSignature, normalizedPublicKey);
+  const { PublicKey, hexToBytes, str2hexstring } = await loadNeoSdk();
+  const matches = new PublicKey(normalizedPublicKey).verify(
+    hexToBytes(str2hexstring(message)),
+    hexToBytes(normalizedSignature),
+  );
   if (!matches) {
     throw new Error("Invalid chat login signature.");
   }
 
-  const derivedAddress = deriveAddressFromPublicKey(normalizedPublicKey);
+  const derivedAddress = await deriveAddressFromPublicKey(normalizedPublicKey);
   if (derivedAddress !== normalizedAddress) {
     throw new Error("Signature public key does not match the requested address.");
   }

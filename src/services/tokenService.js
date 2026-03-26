@@ -1,6 +1,7 @@
 import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
+import { indexerReadService } from "./indexerReadService";
 
 /**
  * Token Service - Neo3 代币相关 API 调用
@@ -170,6 +171,59 @@ export const tokenService = createService(
     /** @see getTokenList */
     async getNep11List(limit = 20, skip = 0, options = {}) {
       return tokenService.getTokenList("NEP11", limit, skip, options);
+    },
+
+    async getTokenListWithFallback(type, limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
+      const legacy = search
+        ? await tokenService.searchTokenByName(type, search, limit, skip, { forceRefresh }).catch(() => null)
+        : await tokenService.getTokenList(type, limit, skip, { forceRefresh }).catch(() => null);
+
+      if (Array.isArray(legacy?.result) && legacy.result.length > 0) {
+        return legacy;
+      }
+
+      const payload = await indexerReadService.getTokens(type, limit, skip, { search, forceRefresh });
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      return {
+        result: rows.map((item) => ({
+          hash: item.contract_hash,
+          tokenname: item.display_name || item.contract_hash,
+          symbol: item.symbol || "",
+          holders: item.holder_count || 0,
+          totalsupply:
+            String(item.standard || "").toUpperCase() === "NEP11"
+              ? item.total_supply_raw || "0"
+              : null,
+          decimals: Number(item.decimals || 0),
+          type: item.standard || type,
+          standard: item.standard || type,
+        })),
+        totalCount: Number(payload?.paging?.total || rows.length || 0),
+      };
+    },
+
+    async getByHashWithFallback(hash, options = {}) {
+      const legacy = await tokenService.getByHash(hash, options).catch(() => null);
+      if (legacy?.hash || legacy?.tokenname || legacy?.symbol) {
+        return legacy;
+      }
+
+      const item = await indexerReadService.getToken(hash, options);
+      if (!item) return null;
+
+      return {
+        hash: item.contract_hash,
+        tokenname: item.display_name || item.contract_hash,
+        symbol: item.symbol || "",
+        holders: item.holder_count || 0,
+        totalsupply:
+          String(item.standard || "").toUpperCase() === "NEP11"
+            ? item.total_supply_raw || "0"
+            : null,
+        decimals: Number(item.decimals || 0),
+        type: item.standard || "NEP17",
+        standard: item.standard || "NEP17",
+      };
     },
 
     /**

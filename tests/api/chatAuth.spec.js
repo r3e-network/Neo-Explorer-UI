@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { wallet, u } from "@cityofzion/neon-js";
+import { PrivateKey, hexToBytes, str2hexstring } from "@r3e/neo-js-sdk";
 
 describe("chatAuth helpers", () => {
   beforeEach(() => {
@@ -32,21 +32,23 @@ describe("chatAuth helpers", () => {
   });
 
   it("verifies a Neo signed login challenge against the claimed address", async () => {
-    const privateKey = wallet.generatePrivateKey();
-    const wif = wallet.getWIFFromPrivateKey(privateKey);
-    const account = new wallet.Account(wif);
+    const privateKey = new PrivateKey();
+    const account = {
+      address: privateKey.publicKey().getAddress(),
+      publicKey: privateKey.publicKey().toString(),
+    };
     const message = "Neo Explorer Chat Login\nAddress: " + account.address;
-    const signature = wallet.sign(u.str2hexstring(message), wif);
+    const signature = Buffer.from(privateKey.sign(hexToBytes(str2hexstring(message)))).toString("hex");
 
     const { verifyChallengeSignature } = await import("../../api/lib/chatAuth.js");
 
-    expect(
+    await expect(
       verifyChallengeSignature({
         message,
         signature,
         publicKey: account.publicKey,
         address: account.address,
       })
-    ).toBe(true);
+    ).resolves.toBe(true);
   });
 });

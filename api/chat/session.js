@@ -1,6 +1,7 @@
 const { clearSessionCookie, json, readSessionFromRequest } = require("../lib/chatAuth");
+const { withApiTelemetry } = require("../lib/telemetry");
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET") {
     return json(res, 405, { error: "Method not allowed." });
   }
@@ -12,4 +13,6 @@ module.exports = async function handler(req, res) {
     res.setHeader("Set-Cookie", clearSessionCookie());
     return json(res, 200, { session: null });
   }
-};
+}
+
+module.exports = withApiTelemetry("chat/session", handler);

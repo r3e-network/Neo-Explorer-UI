@@ -5,7 +5,7 @@
         :items="[
           { label: 'Home', to: '/homepage' },
           { label: 'Tokens', to: '/tokens/1' },
-          { label: token.tokenname || 'Token Detail' },
+          { label: tokenValue?.tokenname || 'Token Detail' },
         ]"
       />
 
@@ -19,8 +19,8 @@
             loading="lazy"
           />
           <img
-            v-else-if="hasTokenIcon(token.hash)"
-            :src="getTokenIcon(token.hash, token.type)"
+            v-else-if="hasTokenIcon(tokenValue?.hash)"
+            :src="getTokenIcon(tokenValue?.hash, tokenValue?.type)"
             class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
             alt="Token Logo"
             loading="lazy"
@@ -29,13 +29,13 @@
             v-else
             class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400"
           >
-            <span class="text-lg font-bold">{{ tokenMetadata?.symbol || token.symbol?.charAt(0) || "?" }}</span>
+            <span class="text-lg font-bold">{{ tokenMetadata?.symbol || tokenValue?.symbol?.charAt(0) || "?" }}</span>
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <h1 class="page-title">
-                {{ tokenMetadata?.name || token.tokenname || "Token" }} ({{
-                  tokenMetadata?.symbol || token.symbol || "-"
+                {{ tokenMetadata?.name || tokenValue?.tokenname || "Token" }} ({{
+                  tokenMetadata?.symbol || tokenValue?.symbol || "-"
                 }})
               </h1>
               <span
@@ -53,7 +53,7 @@
               </span>
             </div>
             <p class="page-subtitle mt-1">
-              {{ token.type ? `NEP-${token.type} Token` : "Token" }}
+              {{ tokenValue?.type ? `NEP-${tokenValue.type} Token` : "Token" }}
               <a
                 v-if="tokenMetadata?.website"
                 :href="tokenMetadata.website"
@@ -77,15 +77,15 @@
           </div>
           <div class="stat-card">
             <p class="stat-label">Holders</p>
-            <p class="stat-value">{{ formatNumber(token.holders) }}</p>
+            <p class="stat-value">{{ formatNumber(tokenValue?.holders) }}</p>
           </div>
           <div class="stat-card">
             <p class="stat-label">Type</p>
-            <p class="stat-value">{{ token.type || "NEP-17" }}</p>
+            <p class="stat-value">{{ tokenValue?.type || "NEP-17" }}</p>
           </div>
           <div class="stat-card">
             <p class="stat-label">Decimals</p>
-            <p class="stat-value">{{ token.decimals || 0 }}</p>
+            <p class="stat-value">{{ tokenValue?.decimals || 0 }}</p>
           </div>
         </div>
 
@@ -93,15 +93,15 @@
           <InfoRow
             label="Contract"
             tooltip="The smart contract address for this token"
-            :copyable="!!token.hash"
-            :copy-value="token.hash"
+            :copyable="!!tokenValue?.hash"
+            :copy-value="tokenValue?.hash"
           >
             <router-link
-              v-if="token.hash"
-              :to="`/contract-info/${token.hash}`"
+              v-if="tokenValue?.hash"
+              :to="`/contract-info/${tokenValue.hash}`"
               class="break-all font-hash text-sm etherscan-link"
             >
-              {{ token.hash }}
+              {{ tokenValue.hash }}
             </router-link>
             <span v-else>-</span>
           </InfoRow>
@@ -117,18 +117,26 @@
               <Skeleton v-for="i in 6" :key="i" height="44px" />
             </div>
 
+            <div v-else-if="!tokenValue?.hash" class="p-6 text-center text-sm text-mid">
+              Token data is currently unavailable.
+            </div>
+
             <div v-else-if="activeTab === 'transfers'">
               <TokenTxNep17
-                :key="`token-transfers-${token.hash}`"
+                :key="`token-transfers-${tokenValue?.hash || 'unknown'}`"
                 type="nep17"
-                :contract-hash="token.hash"
+                :contract-hash="tokenValue?.hash"
                 :decimal="tokenDecimals"
-                :symbol="token.symbol"
+                :symbol="tokenValue?.symbol"
               />
             </div>
 
             <div v-else>
-              <TokenHolder :key="`token-holders-${token.hash}`" :contract-hash="token.hash" :decimal="tokenDecimals" />
+              <TokenHolder
+                :key="`token-holders-${tokenValue?.hash || 'unknown'}`"
+                :contract-hash="tokenValue?.hash"
+                :decimal="tokenDecimals"
+              />
             </div>
           </div>
         </div>
@@ -148,11 +156,13 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import TokenTxNep17 from "@/components/common/TransferTable.vue";
 import TokenHolder from "@/views/Token/TokenHolder.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 
 const {
   isLoading,
   error,
   tokenInfo: token,
+  tokenMetadata,
   activeName: activeTab,
   tabs,
   reloadToken,
@@ -164,6 +174,11 @@ const {
   ],
 });
 
-const formatSupply = computed(() => formatSupplyUtil(token.value?.totalsupply, token.value?.decimals || 0));
+const tokenValue = computed(() => token.value || null);
+const formatSupply = computed(() =>
+  token.value?.totalsupply === null || token.value?.totalsupply === undefined
+    ? "-"
+    : formatSupplyUtil(token.value?.totalsupply, token.value?.decimals || 0)
+);
 const tokenDecimals = computed(() => Number(token.value?.decimals || 0));
 </script>

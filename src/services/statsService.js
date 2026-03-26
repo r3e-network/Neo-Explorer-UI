@@ -4,6 +4,7 @@ import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { getCurrentEnv } from "@/utils/env";
+import { mapDailyAnalyticsToTransactionSeries } from "./legacyFallbacks";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -100,7 +101,7 @@ function generateMockChartData(type, days) {
 
 export const statsService = createService(
   {
-    getNetworkActivity: {
+    _getNetworkActivityRpc: {
       cacheKey: "network_activity",
       rpcMethod: "GetDailyTransactions",
       fallback: [],
@@ -108,7 +109,7 @@ export const statsService = createService(
       buildParams: ([days = 14]) => ({ Days: days }),
       buildCacheParams: ([days = 14]) => ({ days }),
     },
-    getDailyStats: {
+    _getDailyStatsRpc: {
       cacheKey: "daily_stats",
       rpcMethod: "GetDailyTransactions",
       fallback: [],
@@ -118,6 +119,40 @@ export const statsService = createService(
     },
   },
   {
+    async getNetworkActivity(days = 14, options = {}) {
+      const key = getCacheKey("network_activity_fallback", { days });
+      return cachedRequest(
+        key,
+        async () => {
+          const res = await this._getNetworkActivityRpc(days, options);
+          if (Array.isArray(res) && res.length > 0) {
+            return res;
+          }
+          const daily = await indexerReadService.getDailyAnalytics(days, options);
+          return mapDailyAnalyticsToTransactionSeries(daily, days);
+        },
+        CACHE_TTL.chart,
+        getRealtimeListCacheOptions(options),
+      );
+    },
+
+    async getDailyStats(days = 30, options = {}) {
+      const key = getCacheKey("daily_stats_fallback", { days });
+      return cachedRequest(
+        key,
+        async () => {
+          const res = await this._getDailyStatsRpc(days, options);
+          if (Array.isArray(res) && res.length > 0) {
+            return res;
+          }
+          const daily = await indexerReadService.getDailyAnalytics(days, options);
+          return mapDailyAnalyticsToTransactionSeries(daily, days);
+        },
+        CACHE_TTL.chart,
+        getRealtimeListCacheOptions(options),
+      );
+    },
+
     /**
      * 获取仪表盘统计数据（带缓存）
      * Aggregates 6 parallel RPC calls — cannot be expressed as a single factory config.
@@ -229,17 +264,14 @@ export const statsService = createService(
         key,
         async () => {
           try {
-            const [rpcTxRes, feeRes] = await Promise.all([
-              rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null),
-              rpc("GetNetFeeRange", {}).catch(() => null),
-            ]);
+            const rpcTxRes = await rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null);
 
             const latestTx = Array.isArray(rpcTxRes?.result) ? rpcTxRes.result[0] : null;
 
             return {
               latestNetworkFee: latestTx?.netfee ?? "0",
               latestSystemFee: latestTx?.sysfee ?? "0",
-              networkFee: feeRes ?? null,
+              networkFee: null,
             };
           } catch (error) {
             if (import.meta.env.DEV) console.error("Failed to get gas tracker:", error);

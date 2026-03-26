@@ -38,28 +38,8 @@ const uniqueCandidates = (candidates) => {
   return out;
 };
 
-const usesDefaultGlobalCandidates = (candidates) =>
-  candidates.some((candidate) => candidate.includes("api.n3index.dev")) ||
-  candidates.some((candidate) => candidate.includes("api1.n3index.dev"));
-
 const getProbeCandidates = (network) => {
-  const rpcCandidates = uniqueCandidates(getRpcEndpointCandidates(network.env));
-  if (!usesDefaultGlobalCandidates(rpcCandidates)) {
-    return rpcCandidates;
-  }
-
-  const directBackups = rpcCandidates.filter(
-    (candidate) =>
-      candidate.startsWith("http") &&
-      !candidate.includes("api.n3index.dev") &&
-      !candidate.includes("api1.n3index.dev"),
-  );
-
-  return uniqueCandidates([
-    `${network.prefix}/primary`,
-    `${network.prefix}/fallback`,
-    ...directBackups,
-  ]);
+  return uniqueCandidates(getRpcEndpointCandidates(network.env));
 };
 
 const readNetworkMagic = async (url) => {
