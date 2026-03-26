@@ -474,6 +474,62 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("keeps backfilling latest transactions when one height lookup in the batch fails", async () => {
+    getLatestHomepageSnapshotMock.mockResolvedValueOnce({
+      blocks: [
+        { hash: "0xblock-9", index: 9, timestamp: Date.now(), txcount: 1 },
+        { hash: "0xblock-8", index: 8, timestamp: Date.now() - 15000, txcount: 3 },
+        { hash: "0xblock-7", index: 7, timestamp: Date.now() - 30000, txcount: 3 },
+      ],
+      transactions: [{ hash: "0xlive-only", blocktime: Date.now(), status: "success" }],
+    });
+    getBlockCount.mockResolvedValueOnce(10);
+    getTxsByBlockHeight.mockImplementation(async (height) => {
+      if (Number(height) === 9) {
+        throw new Error("transient block tx fetch failure");
+      }
+      if (Number(height) === 8) {
+        return {
+          result: [
+            { hash: "0x8-1", blocktime: Date.now() - 15000, status: "success" },
+            { hash: "0x8-2", blocktime: Date.now() - 15000, status: "success" },
+            { hash: "0x8-3", blocktime: Date.now() - 15000, status: "success" },
+          ],
+          totalCount: 3,
+        };
+      }
+      if (Number(height) === 7) {
+        return {
+          result: [
+            { hash: "0x7-1", blocktime: Date.now() - 30000, status: "success" },
+            { hash: "0x7-2", blocktime: Date.now() - 30000, status: "success" },
+            { hash: "0x7-3", blocktime: Date.now() - 30000, status: "success" },
+          ],
+          totalCount: 3,
+        };
+      }
+      return { result: [], totalCount: 0 };
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    wrapper.unmount();
+  });
+
   it("renders short latest transaction list immediately without waiting for fallback block scans", async () => {
     let resolveFallbackScan;
     getBlockCount.mockResolvedValueOnce(2);

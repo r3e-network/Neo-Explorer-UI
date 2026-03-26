@@ -322,7 +322,7 @@ async function fetchLatestTransactionsByRecentBlocks(
 
   for (let start = 0; start < heights.length && txs.length < maxItems; start += TX_FALLBACK_BATCH_SIZE) {
     const batch = heights.slice(start, start + TX_FALLBACK_BATCH_SIZE);
-    const batchResults = await Promise.all(
+    const batchResults = await Promise.allSettled(
       batch.map((height) =>
         blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
           ...requestOptions,
@@ -331,7 +331,9 @@ async function fetchLatestTransactionsByRecentBlocks(
       ),
     );
 
-    for (const listRes of batchResults) {
+    for (const settledResult of batchResults) {
+      if (settledResult.status !== "fulfilled") continue;
+      const listRes = settledResult.value;
       const rows = Array.isArray(listRes?.result) ? listRes.result : [];
       if (!rows.length) continue;
 
@@ -459,6 +461,28 @@ async function loadLatestData(forceRefresh = false) {
         const live = await liveHomepagePromise;
         const liveTransactions = Array.isArray(live?.transactions) ? live.transactions : [];
         if (liveTransactions.length > 0) {
+          if (liveTransactions.length >= 6) {
+            return {
+              result: liveTransactions,
+              totalCount: liveTransactions.length,
+            };
+          }
+
+          try {
+            const latestHeight = await latestHeightPromise;
+            const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
+            const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
+            const mergedRows = mergeUniqueTransactions(liveTransactions, directRows, 6);
+            if (mergedRows.length > 0) {
+              return {
+                result: mergedRows,
+                totalCount: Math.max(mergedRows.length, Number(directRes?.totalCount ?? 0)),
+              };
+            }
+          } catch {
+            // keep sparse live rows below
+          }
+
           return {
             result: liveTransactions,
             totalCount: liveTransactions.length,
@@ -574,21 +598,26 @@ async function loadLatestData(forceRefresh = false) {
 
       // Backfill to target size without blocking first paint.
       if (initialRows.length > 0 && initialRows.length < 6) {
-        void fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions)
-          .then((fallbackRes) => {
-            const fallbackRows = Array.isArray(fallbackRes?.result) ? fallbackRes.result : [];
-            if (!fallbackRows.length) return;
+        const applyFallbackBackfill = async () => {
+          const fallbackRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
+          const fallbackRows = Array.isArray(fallbackRes?.result) ? fallbackRes.result : [];
+          if (!fallbackRows.length) return;
 
-            const mergedRows = mergeUniqueTransactions(initialRows, fallbackRows, 6);
-            if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
-            latestTxs.value = mergedRows;
+          const mergedRows = mergeUniqueTransactions(initialRows, fallbackRows, 6);
+          if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
+          latestTxs.value = mergedRows;
 
-            const nonPendingMerged = mergedRows.filter((tx) => tx.status !== "pending");
-            if (nonPendingMerged.length) {
-              void enrichTransactions(nonPendingMerged, { maxItems: 6 });
-            }
-          })
-          .catch(() => {});
+          const nonPendingMerged = mergedRows.filter((tx) => tx.status !== "pending");
+          if (nonPendingMerged.length) {
+            void enrichTransactions(nonPendingMerged, { maxItems: 6 });
+          }
+        };
+
+        if (!previousRows.length) {
+          await applyFallbackBackfill().catch(() => {});
+        } else {
+          void applyFallbackBackfill().catch(() => {});
+        }
       }
     })()
       .catch((err) => {
