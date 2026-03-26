@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { wallet as neonWallet } from "@cityofzion/neon-js";
+import { addressToScriptHash } from "../../src/utils/neoHelpers.js";
+import { normalizeHash160 } from "../../src/utils/walletNormalization.js";
 
 const toast = {
   success: vi.fn(),
@@ -284,7 +285,7 @@ describe("utils/wallet connectWallet", () => {
   it("uses script hash args and signer when submitting vote", async () => {
     const voterAddress = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
     const candidatePubkey = "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b";
-    const voterScriptHash = new neonWallet.Account(voterAddress).scriptHash;
+    const voterScriptHash = normalizeHash160(addressToScriptHash(voterAddress));
 
     walletServiceMock.isConnected = true;
     walletServiceMock.account = { address: voterAddress };
@@ -309,7 +310,7 @@ describe("utils/wallet connectWallet", () => {
 
   it("submits unvote by passing Any/null as the candidate argument", async () => {
     const voterAddress = "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf";
-    const voterScriptHash = new neonWallet.Account(voterAddress).scriptHash;
+    const voterScriptHash = normalizeHash160(addressToScriptHash(voterAddress));
 
     walletServiceMock.isConnected = true;
     walletServiceMock.account = { address: voterAddress };

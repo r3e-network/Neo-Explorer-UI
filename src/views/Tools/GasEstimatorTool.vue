@@ -322,7 +322,7 @@ async function estimateGas() {
     toast.info("Simulating execution...");
     const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new rpc.RPCClient(endpoint);
-      const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
+      const invokeRes = await rpcClient.invokeScript({ script: base64Script, signers: invokeSigners });
 
       // Build a dummy transaction for precise network-fee sizing.
       const txn = new tx.Transaction({
@@ -336,7 +336,7 @@ async function estimateGas() {
         txn.sign(acc, 860833102); // magic does not affect serialized size
       }
 
-      const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
+      const rawNetworkFee = await rpcClient.calculateNetworkFee({ tx: txn.serialize(true) });
       return { invokeRes, rawNetworkFee };
     });
 

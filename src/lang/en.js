@@ -189,6 +189,10 @@ const en = {
       cancel: "Cancel",
       creating: "Creating...",
       createProposal: "Create Proposal",
+      forkProposal: "Fork Proposal",
+      forkProposalDesc:
+        "Create a new editable proposal draft from this packet and refresh it with the latest maximum valid-until-block before publishing.",
+      publishForkProposal: "Publish Forked Proposal",
       signProposalTitle: "Sign Proposal",
       optionWallet: "Option 1: Wallet Signature",
       signWithWallet: "Sign with Connected Wallet",
@@ -429,6 +433,7 @@ const en = {
     loadTransactions: "Failed to load transactions. Please try again.",
     loadCandidates: "Failed to load candidates. Please try again.",
     loadTokens: "Failed to load tokens. Please try again.",
+    loadTokensUnavailable: "Token listing is currently unavailable from the backend API.",
     loadTokenBalances: "Failed to load token balances. Please try again.",
     loadNftDetails: "Failed to load NFT details. Please try again.",
     loadNftItems: "Failed to load NFT items. Please try again.",

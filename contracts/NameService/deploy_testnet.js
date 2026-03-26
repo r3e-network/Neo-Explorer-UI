@@ -1,12 +1,10 @@
-const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const fs = require('fs');
 const path = require('path');
+const { loadNeoCompat } = require('../../scripts/lib/loadNeoCompat');
 
 const deployerWif = process.env.NAMESERVICE_TESTNET_DEPLOYER_WIF || process.env.DEPLOYER_WIF || "";
 if (!deployerWif) throw new Error("Missing NAMESERVICE_TESTNET_DEPLOYER_WIF or DEPLOYER_WIF");
-const account = new wallet.Account(deployerWif);
 const rpcUrl = process.env.RPC_URL || 'https://testnet1.neo.coz.io:443';
-const rpcClient = new rpc.RPCClient(rpcUrl);
 
 const nefPath = path.resolve(__dirname, './bin/sc/NameService.nef');
 const manifestPath = path.resolve(__dirname, './bin/sc/NameService.manifest.json');
@@ -19,6 +17,9 @@ console.log('Account ScriptHash:', account.scriptHash);
 
 async function deployContract() {
   try {
+    const { rpc, tx, wallet, sc, u } = await loadNeoCompat();
+    const account = new wallet.Account(deployerWif);
+    const rpcClient = new rpc.RPCClient(rpcUrl);
     const contractManagementHash = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
 
     console.log("Creating transaction...");

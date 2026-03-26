@@ -1,18 +1,28 @@
-import { config, mount, flushPromises } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { config, mount, flushPromises, enableAutoUnmount } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+  }),
+}));
 
 config.global.mocks = {
   ...(config.global.mocks || {}),
   $t: (key) => key,
 };
 
+enableAutoUnmount(afterEach);
+
 const connectedAccount = ref("");
 const getMultisigRequestByIdMock = vi.fn();
 const getValidatorMetadataMock = vi.fn();
 const addMultisigSignatureMock = vi.fn();
 const updateMultisigRequestStatusMock = vi.fn();
+const createMultisigRequestMock = vi.fn();
 const getCommitteeMock = vi.fn();
+const envState = { value: "Mainnet" };
 const toast = {
   success: vi.fn(),
   error: vi.fn(),
@@ -25,6 +35,7 @@ vi.mock("@/services/supabaseService", () => ({
     getValidatorMetadata: getValidatorMetadataMock,
     addMultisigSignature: addMultisigSignatureMock,
     updateMultisigRequestStatus: updateMultisigRequestStatusMock,
+    createMultisigRequest: createMultisigRequestMock,
   },
 }));
 
@@ -63,8 +74,19 @@ vi.mock("@/utils/env", () => ({
     TestT5: "TestT5",
   },
   getRpcClientUrl: () => "http://rpc.test",
-  getCurrentEnv: () => "Mainnet",
+  getCurrentEnv: () => envState.value,
+  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
+
+vi.mock("@/composables/useNetworkChange", async () => {
+  const { onMounted, onBeforeUnmount } = await import("vue");
+  return {
+    useNetworkChange: (handler) => {
+      onMounted(() => window.addEventListener("neo-explorer-network-change", handler));
+      onBeforeUnmount(() => window.removeEventListener("neo-explorer-network-change", handler));
+    },
+  };
+});
 
 function findNestedSignModalState(instance) {
   const children = instance.subTree?.children;
@@ -90,13 +112,39 @@ function findNestedSignModalState(instance) {
   return null;
 }
 
+function findNestedCreateModalState(instance) {
+  const children = instance.subTree?.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      if (child?.component?.setupState?.createForm) return child.component.setupState;
+      if (child?.component) {
+        const result = findNestedCreateModalState(child.component);
+        if (result) return result;
+      }
+    }
+  }
+  const dynamicChildren = instance.subTree?.dynamicChildren;
+  if (Array.isArray(dynamicChildren)) {
+    for (const child of dynamicChildren) {
+      if (child?.component?.setupState?.createForm) return child.component.setupState;
+      if (child?.component) {
+        const result = findNestedCreateModalState(child.component);
+        if (result) return result;
+      }
+    }
+  }
+  return null;
+}
+
 describe("GovernanceProposalDetail", () => {
   const unsignedTx =
     "007e5263f000e1f505000000000065cd1d00000000ad84dd0001aa72bef4c00356e5a63303e3f475789b1ef1f87b80003001e80311c01f0c0d736574466565506572427974650c147bc681c0a1f71d543457b68bba8d5f9fdd4e5ecc41627d5b52";
 
   beforeEach(() => {
     vi.clearAllMocks();
+    envState.value = "Mainnet";
     connectedAccount.value = "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 100 } });
     window.Neon = {
       wallet: {
         Account: class {
@@ -217,6 +265,136 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]').attributes("src")).toBe("https://example.com/alpha.png");
     expect(wrapper.get('[data-testid="council-status-logo-A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"]').attributes("src")).toBe("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
     expect(wrapper.html()).not.toContain("/img/brand/neo.png");
+  });
+
+  it("opens a forked proposal draft with the current proposal prefilled", async () => {
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: "proposal-1",
+      type: "governance",
+      method: "setMillisecondsPerBlock,setGasPerBlock",
+      description: "Reduce block time and GAS reward",
+      target_contract: "MULTI_CALL",
+      status: "PENDING",
+      signers_required: 11,
+      eligible_signers: [
+        "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      signatures: [],
+      params: {
+        unsigned_tx: unsignedTx,
+        hash: "0xfeedface",
+        scriptHash: "0xcommittee",
+        valid_until_block: 9055023,
+        committee_pubkeys: [
+          "02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        ],
+        governance_mode: "official",
+        invocations: [
+          {
+            selectedContract: "PolicyContract",
+            selectedMethod: "setMillisecondsPerBlock",
+            params: { value: "3000" },
+          },
+          {
+            selectedContract: "NEO",
+            selectedMethod: "setGasPerBlock",
+            params: { gasPerBlock: "100000000" },
+          },
+        ],
+      },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const forkButton = wrapper.find('[data-testid="governance-fork-proposal-button"]');
+    expect(forkButton.exists()).toBe(true);
+
+    await forkButton.trigger("click");
+    await flushPromises();
+
+    const createModalState = findNestedCreateModalState(wrapper.vm.$);
+    expect(createModalState).toBeTruthy();
+    expect(createModalState.createForm.description).toBe("Reduce block time and GAS reward");
+    expect(createModalState.createForm.mode).toBe("official");
+    expect(createModalState.createForm.invocations).toEqual([
+      {
+        selectedContract: "PolicyContract",
+        selectedMethod: "setMillisecondsPerBlock",
+        params: { value: "3000" },
+      },
+      {
+        selectedContract: "NEO",
+        selectedMethod: "setGasPerBlock",
+        params: { gasPerBlock: "100000000" },
+      },
+    ]);
+    expect(createModalState.sourceProposalId).toBe("proposal-1");
+    expect(wrapper.text()).toContain("tools.governance.forkProposal");
+  });
+
+  it("reloads the proposal after a network change event for direct testnet detail routes", async () => {
+    envState.value = "Mainnet";
+    getMultisigRequestByIdMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "proposal-network-switch",
+        type: "governance",
+        method: "setFeePerByte",
+        description: "Testnet proposal after network switch",
+        target_contract: "0xcc5e4e",
+        status: "PENDING",
+        signers_required: 2,
+        eligible_signers: [
+          "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        ],
+        signatures: [],
+        params: {
+          unsigned_tx: unsignedTx,
+          hash: "0xfeedbead",
+        },
+        created_at: "2026-03-15T00:00:00.000Z",
+      });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+    expect(wrapper.text()).toContain("Proposal Not Found");
+
+    envState.value = "TestT5";
+    window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
+    await flushPromises();
+    await flushPromises();
+
+    expect(getMultisigRequestByIdMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain("Testnet proposal after network switch");
+    wrapper.unmount();
   });
 
   it("prevents a council member from signing the same proposal twice in the detail page", async () => {

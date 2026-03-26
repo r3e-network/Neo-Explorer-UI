@@ -1,6 +1,7 @@
 const net = require("node:net");
 const dns = require("node:dns").promises;
 const sharp = require("sharp");
+const { withApiTelemetry } = require("./lib/telemetry");
 
 const MAX_SOURCE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8000;
@@ -66,7 +67,7 @@ const isDisallowedHostname = async (hostname) => {
   }
 };
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   const respondWithFallbackLogo = () => {
     res.setHeader(
       "Cache-Control",
@@ -180,4 +181,6 @@ module.exports = async function handler(req, res) {
     );
     return res.redirect(302, sourceUrl.toString());
   }
-};
+}
+
+module.exports = withApiTelemetry("logo", handler);

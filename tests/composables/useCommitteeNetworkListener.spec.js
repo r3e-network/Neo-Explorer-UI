@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const rpcMock = vi.hoisted(() => vi.fn());
 const cachedRequestMock = vi.hoisted(() => vi.fn());
 const getCurrentEnvMock = vi.hoisted(() => vi.fn());
-const walletAccountMock = vi.hoisted(() => vi.fn());
 const getValidatorMetadataMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/api", () => ({ rpc: rpcMock }));
@@ -15,7 +14,6 @@ vi.mock("@/utils/env", () => ({
   NET_ENV: { TestT5: "TestT5" },
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
-vi.mock("@cityofzion/neon-js", () => ({ wallet: { Account: walletAccountMock } }));
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: { getValidatorMetadata: getValidatorMetadataMock },
 }));
@@ -25,7 +23,6 @@ describe("useCommittee network listener cleanup", () => {
     vi.resetModules();
     vi.clearAllMocks();
     getCurrentEnvMock.mockReturnValue("MainNet");
-    walletAccountMock.mockImplementation(function () { this.address = "Naddr"; });
     getValidatorMetadataMock.mockResolvedValue([]);
     cachedRequestMock.mockResolvedValue([]);
     rpcMock.mockResolvedValue([]);

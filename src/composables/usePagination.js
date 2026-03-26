@@ -68,7 +68,7 @@ export function usePagination(
       if (myId !== requestId) return;
       if (import.meta.env.DEV) console.error("Failed to load page:", err);
       if (!silent || items.value.length === 0) {
-        error.value = errorMessage || t("errors.generic");
+        error.value = typeof errorMessage === "function" ? errorMessage(err) : errorMessage || t("errors.generic");
         items.value = [];
       }
     } finally {

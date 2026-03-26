@@ -77,6 +77,7 @@
               :action-tone-class="actionToneClass"
               @open-sign-modal="openSignModal"
               @broadcast="handleBroadcast(proposal)"
+              @fork-proposal="openForkProposal"
             />
           </div>
         </div>
@@ -89,13 +90,26 @@
         @close="closeSignModal"
         @signed="handleSigned"
       />
+
+      <GovernanceCreateModal
+        :is-open="showCreateModal"
+        :is-governance-lab-mode-available="activeNetworkMode === 'testnet'"
+        :connected-account="connectedAccount"
+        :committee-pubkeys="committeePubkeys"
+        :threshold="requiredCount"
+        :committee-multi-sig="null"
+        :is-council-node="false"
+        :prefill-proposal="proposal"
+        @close="closeCreateModal"
+        @created="handleForkCreated"
+      />
     </section>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -104,22 +118,26 @@ import GovernanceDetailPayload from "./components/GovernanceDetailPayload.vue";
 import GovernanceDetailCouncilPanel from "./components/GovernanceDetailCouncilPanel.vue";
 import GovernanceDetailActionCenter from "./components/GovernanceDetailActionCenter.vue";
 import GovernanceSignModal from "./components/GovernanceSignModal.vue";
+import GovernanceCreateModal from "./components/GovernanceCreateModal.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
 import { getCurrentEnv, getRpcClientUrl } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
 import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
 
 const route = useRoute();
+const router = useRouter();
 const toast = useToast();
 
 const proposal = ref(null);
 const committeePubkeys = ref([]);
 const validatorMetadata = ref([]);
 const showSignModal = ref(false);
+const showCreateModal = ref(false);
 const loading = ref(true);
 let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
@@ -402,12 +420,34 @@ async function loadValidatorMetadata() {
   }
 }
 
+async function handleNetworkChange() {
+  await Promise.all([loadCommittee(), loadValidatorMetadata(), loadProposal()]);
+}
+
 function openSignModal() {
   showSignModal.value = true;
 }
 
 function closeSignModal() {
   showSignModal.value = false;
+}
+
+function openForkProposal() {
+  showCreateModal.value = true;
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false;
+}
+
+async function handleForkCreated(createdProposal) {
+  closeCreateModal();
+  if (createdProposal?.id && String(createdProposal.id) !== String(proposal.value?.id || "")) {
+    await router.push({
+      name: "governanceProposalDetail",
+      params: { id: createdProposal.id },
+    });
+  }
 }
 
 async function maybeBroadcastIfReady() {
@@ -480,10 +520,12 @@ async function handleBroadcast(currentProposal) {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
-    await Promise.all([loadCommittee(), loadValidatorMetadata(), loadProposal()]);
+    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    await handleNetworkChange();
   } finally {
     loading.value = false;
   }
 });
+
+useNetworkChange(handleNetworkChange);
 </script>

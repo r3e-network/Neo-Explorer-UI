@@ -201,7 +201,7 @@ async function fetchStorage() {
 
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);
-      return rpcClient.getStorage(hash, keyHex);
+      return rpcClient.getStorage({ scriptHash: hash, key: keyHex });
     });
     rawBase64Result.value = result || "";
     hasQueried.value = true;

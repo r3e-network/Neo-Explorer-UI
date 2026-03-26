@@ -292,7 +292,6 @@
 import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { ScriptBuilder, Wallet } from "@r3e/neo-js-sdk";
 import { disassembleScript, extractContractInvocation } from "@/utils/scriptDisassembler";
 import { hex2base64 } from "@/utils/sdkCompat";
 

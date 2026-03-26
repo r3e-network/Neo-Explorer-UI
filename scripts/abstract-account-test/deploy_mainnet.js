@@ -1,6 +1,12 @@
-const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const fs = require('fs');
 const path = require('path');
+const { loadNeoCompat } = require('../lib/loadNeoCompat');
+
+let rpc;
+let tx;
+let wallet;
+let sc;
+let u;
 
 const deployerWif = process.env.ABSTRACT_ACCOUNT_DEPLOYER_WIF;
 
@@ -8,9 +14,7 @@ if (!deployerWif) {
   throw new Error('Missing deployer WIF. Set ABSTRACT_ACCOUNT_DEPLOYER_WIF');
 }
 
-const account = new wallet.Account(deployerWif);
 const rpcUrl = 'https://mainnet1.neo.coz.io:443';
-const rpcClient = new rpc.RPCClient(rpcUrl);
 
 const nefPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.nef');
 const manifestPath = path.resolve(__dirname, '../../contracts/AbstractAccount/bin/sc/UnifiedSmartWalletV2.manifest.json');
@@ -23,6 +27,9 @@ console.log('Account ScriptHash:', account.scriptHash);
 
 async function deployContract() {
   try {
+    ({ rpc, tx, wallet, sc, u } = await loadNeoCompat());
+    const account = new wallet.Account(deployerWif);
+    const rpcClient = new rpc.RPCClient(rpcUrl);
     const contractManagementHash = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
 
     console.log("Creating transaction...");

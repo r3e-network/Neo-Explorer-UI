@@ -164,13 +164,6 @@ export const API_DOCS_RPC_METHODS = [
     type: "indexed",
   },
   {
-    name: "GetNetFeeRange",
-    desc: "Get current net fee estimates.",
-    category: "stats",
-    params: {},
-    type: "indexed",
-  },
-  {
     name: "GetApplicationLogByTransactionHash",
     desc: "Get transaction execution log by tx hash.",
     category: "stats",

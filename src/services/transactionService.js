@@ -107,7 +107,7 @@ export const transactionService = createService(
         const network = toNetworkMode(getCurrentEnv());
         const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
           const client = new RpcClient(endpoint);
-          return client.getRawTransaction(hash, true);
+          return client.getRawTransaction({ hash, verbose: true });
         });
         if (nativeTx && nativeTx.hash) {
           let blockIndex = 0;
@@ -115,7 +115,7 @@ export const transactionService = createService(
             try {
               const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
                 const client = new RpcClient(endpoint);
-                return client.getBlockHeader(nativeTx.blockhash, true);
+                return client.getBlockHeader({ blockHash: nativeTx.blockhash, verbose: true });
               });
               blockIndex = blockHeader.index;
             } catch (e) {

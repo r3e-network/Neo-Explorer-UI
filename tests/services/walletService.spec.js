@@ -10,7 +10,7 @@ const web3AuthAccount = {
 const connectMock = vi.fn(async () => web3AuthAccount);
 const getAccountMock = vi.fn(async () => web3AuthAccount);
 
-const invokeScriptMock = vi.fn(async (params) => {
+const invokeScriptMock = vi.fn(async (_params) => {
   return { state: "HALT", gasconsumed: "100000" };
 });
 const getBlockCountMock = vi.fn(async () => 123456);

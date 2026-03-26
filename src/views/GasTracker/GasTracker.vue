@@ -131,7 +131,7 @@ async function loadBlocks(forceRefresh = false) {
   blocksLoading.value = true;
   blocksError.value = null;
   try {
-    const res = await blockService.getList(20, 0, { forceRefresh });
+    const res = await blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true });
     blocks.value = res?.result || [];
     computeFeeEstimates();
   } catch (e) {

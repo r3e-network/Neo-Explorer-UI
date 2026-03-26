@@ -63,10 +63,26 @@
     >
       Broadcast Threshold-Signed Proposal
     </button>
+
+    <div v-if="canForkProposal" class="mt-5 border-t border-line-soft pt-5">
+      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">{{ t("tools.governance.forkProposal") }}</div>
+      <p class="mt-2 text-sm text-mid">{{ t("tools.governance.forkProposalDesc") }}</p>
+      <button
+        data-testid="governance-fork-proposal-button"
+        class="mt-3 w-full rounded-xl border border-line-soft bg-surface px-4 py-3 text-sm font-semibold text-high hover:bg-surface-muted transition-all"
+        @click="$emit('fork-proposal')"
+      >
+        {{ t("tools.governance.forkProposal") }}
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+
 defineProps({
   proposal: { type: Object, required: true },
   signedCount: { type: Number, required: true },
@@ -77,7 +93,8 @@ defineProps({
   actionTitle: { type: String, required: true },
   actionDescription: { type: String, required: true },
   actionToneClass: { type: String, required: true },
+  canForkProposal: { type: Boolean, default: true },
 });
 
-defineEmits(["open-sign-modal", "broadcast"]);
+defineEmits(["open-sign-modal", "broadcast", "fork-proposal"]);
 </script>

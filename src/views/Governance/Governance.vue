@@ -528,11 +528,11 @@ async function loadCurrentVoteState() {
       currentVotePublicKey.value = "";
       return;
     }
-    const result = await rpcClient.invokeFunction(
-      NEO_HASH,
-      "getAccountState",
-      [{ type: "Hash160", value: scriptHash }]
-    );
+    const result = await rpcClient.invokeFunction({
+      contractHash: NEO_HASH,
+      method: "getAccountState",
+      args: [{ type: "Hash160", value: scriptHash }],
+    });
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;
     const structValues = Array.isArray(item?.value) ? item.value : [];

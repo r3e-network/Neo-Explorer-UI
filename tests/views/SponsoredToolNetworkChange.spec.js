@@ -60,15 +60,13 @@ vi.mock("@/utils/rpcEndpoints", () => ({
   callWithRpcEndpointFallback: callWithRpcEndpointFallbackMock,
 }));
 
-vi.mock("@cityofzion/neon-js", () => ({
-  rpc: { RPCClient: MockRpcClient },
-  wallet: {
-    Account: class {
-      constructor(value) {
-        this.address = value;
-        this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
-      }
-    },
+vi.mock("@r3e/neo-js-sdk", () => ({
+  RpcClient: MockRpcClient,
+  Account: class {
+    constructor(value) {
+      this.address = value;
+      this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
+    }
   },
 }));
 

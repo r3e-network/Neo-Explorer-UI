@@ -1,12 +1,17 @@
-const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { loadNeoCompat } = require('../lib/loadNeoCompat');
 
 const rpcUrl = 'https://testnet1.neo.coz.io:443';
-const rpcClient = new rpc.RPCClient(rpcUrl);
 const GAS_TOKEN_HASH = 'd2a4cff31913016155e38e474a2c06d08be276cf';
+let rpc;
+let tx;
+let wallet;
+let sc;
+let u;
+let rpcClient;
 
 function sanitizeHex(v) {
   return String(v || '').replace(/^0x/i, '').toLowerCase();
@@ -449,6 +454,8 @@ function deriveAaAddressFromId(aaHash, accountIdHex) {
 }
 
 async function main() {
+  ({ rpc, tx, wallet, sc, u } = await loadNeoCompat());
+  rpcClient = new rpc.RPCClient(rpcUrl);
   const wif = process.env.TEST_WIF;
   if (!wif) throw new Error('TEST_WIF is required');
 

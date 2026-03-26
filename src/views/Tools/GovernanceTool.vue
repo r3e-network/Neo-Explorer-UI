@@ -13,7 +13,7 @@
         :connected-account="connectedAccount"
         :can-create-proposal="canCreateProposal"
         :is-governance-lab-mode-available="isGovernanceLabModeAvailable"
-        @create-proposal="showCreateModal = true"
+        @create-proposal="openCreateModal"
       />
 
       <GovernanceProposalList
@@ -29,7 +29,8 @@
         @add-witness="openSignModal"
         @view-details="viewDetails"
         @broadcast="handleBroadcast"
-        @create-proposal="showCreateModal = true"
+        @create-proposal="openCreateModal"
+        @fork-proposal="openForkProposal"
       />
 
       <!-- Sign Modal -->
@@ -44,8 +45,9 @@
         :threshold="threshold"
         :committee-multi-sig="committeeMultiSig"
         :is-council-node="isCouncilNode"
-        @close="showCreateModal = false"
-        @created="loadRequests()"
+        :prefill-proposal="forkProposalDraft"
+        @close="closeCreateModal"
+        @created="handleCreated"
       />
 
       <!-- Details Modal -->
@@ -74,6 +76,7 @@ const toast = useToast();
 const loading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
+const forkProposalDraft = ref(null);
 
 const committeePubkeys = ref([]);
 const committeeMultiSig = ref(null);
@@ -173,6 +176,26 @@ function openSignModal(req) {
   signModalReq.value = req;
 }
 
+function openCreateModal() {
+  forkProposalDraft.value = null;
+  showCreateModal.value = true;
+}
+
+function openForkProposal(req) {
+  forkProposalDraft.value = req;
+  showCreateModal.value = true;
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false;
+  forkProposalDraft.value = null;
+}
+
+async function handleCreated() {
+  closeCreateModal();
+  await loadRequests();
+}
+
 async function handleBroadcast(req) {
   if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < req.signers_required) {
     toast.error("Not enough signatures or missing tx data.");
@@ -244,7 +267,7 @@ async function handleNetworkChange() {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
+    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
     await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
   } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);

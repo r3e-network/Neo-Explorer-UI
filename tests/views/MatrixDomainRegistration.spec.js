@@ -6,8 +6,6 @@ const getMatrixDomainProfile = vi.fn();
 const invokeContract = vi.fn();
 const successToast = vi.fn();
 const errorToast = vi.fn();
-const getScriptHashFromAddress = vi.fn(() => "13ef519c362973f9a34648a9eac5b71250b2a80a");
-
 vi.mock("vue-toastification", () => ({
   useToast: () => ({
     error: errorToast,
@@ -39,20 +37,6 @@ vi.mock("@/services/nnsService", () => ({
 vi.mock("@/utils/wallet", () => ({
   connectedAccount: { value: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu" },
   invokeContract,
-}));
-
-vi.mock("@cityofzion/neon-js", () => ({
-  sc: {
-    ContractParam: {
-      string: vi.fn((value) => ({ type: "String", value })),
-      hash160: vi.fn((value) => ({ type: "Hash160", value })),
-      byteArray: vi.fn((value) => ({ type: "ByteArray", value })),
-      any: vi.fn(() => ({ type: "Any", value: null })),
-    },
-  },
-  wallet: {
-    getScriptHashFromAddress,
-  },
 }));
 
 describe("MatrixDomain registration", () => {

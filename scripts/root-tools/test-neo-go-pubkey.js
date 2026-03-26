@@ -1,4 +1,3 @@
-const { rpc, sc, u, tx, wallet } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
 
 async function main() {

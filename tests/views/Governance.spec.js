@@ -73,7 +73,7 @@ vi.mock("@r3e/neo-js-sdk", () => ({
     async getCandidates() {
       return executeMock({ config: { method: "getcandidates" } });
     }
-    async invokeFunction(scriptHash, method, params, signers) {
+    async invokeFunction(_scriptHash, _method, _params, _signers) {
       return executeMock({ config: { method: "invokefunction" } });
     }
   },

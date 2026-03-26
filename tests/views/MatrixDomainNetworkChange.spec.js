@@ -38,11 +38,6 @@ vi.mock("@/utils/wallet", () => ({
   invokeContract: vi.fn(),
 }));
 
-vi.mock("@cityofzion/neon-js", () => ({
-  sc: { ContractParam: { string: vi.fn(), hash160: vi.fn(), byteArray: vi.fn(), any: vi.fn() } },
-  wallet: { getScriptHashFromAddress: vi.fn(() => "0xabc") },
-}));
-
 describe("MatrixDomain network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();

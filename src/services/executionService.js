@@ -69,7 +69,7 @@ export const executionService = createService(
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
             const client = new RpcClient(endpoint);
-            return client.getApplicationLog({ txid: txHash });
+            return client.getApplicationLog({ hash: txHash });
           });
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);

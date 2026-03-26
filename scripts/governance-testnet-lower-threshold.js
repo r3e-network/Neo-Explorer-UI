@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
-const neon = require("@cityofzion/neon-js");
+const { loadNeoCompat } = require("./lib/loadNeoCompat");
+
+let neon = null;
 
 const GAS_TOKEN = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const DEFAULT_RPC_URL = "https://api.n3index.dev/testnet";
@@ -295,6 +297,7 @@ function buildDummyMultisigWitness(multisigAccount, threshold) {
 }
 
 async function main() {
+  neon = await loadNeoCompat();
   const localEnv = readEnvFile(path.join(process.cwd(), ".env"));
 
   const councilWif = getEnvValue(localEnv, "TESTNET_COUNCIL_WIF");

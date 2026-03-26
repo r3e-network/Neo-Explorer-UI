@@ -17,16 +17,16 @@ const getBlockCountMock = vi.fn(async () => 123);
 const calculateNetworkFeeMock = vi.fn(async () => "2000000");
 
 class MockRpcClient {
-  async invokeScript(script, signers) {
-    return invokeScriptMock(script, signers);
+  async invokeScript(input) {
+    return invokeScriptMock(input);
   }
 
   async getBlockCount() {
     return getBlockCountMock();
   }
 
-  async calculateNetworkFee(txn) {
-    return calculateNetworkFeeMock(txn);
+  async calculateNetworkFee(input) {
+    return calculateNetworkFeeMock(input);
   }
 }
 
@@ -37,6 +37,10 @@ class MockTransaction {
 
   sign() {
     return this;
+  }
+
+  serialize() {
+    return "serialized-tx";
   }
 }
 
@@ -98,10 +102,11 @@ describe("GasEstimatorTool", () => {
     await estimateButton.trigger("click");
     await flushPromises();
 
-    expect(invokeScriptMock).toHaveBeenCalledWith("base64:01", [
-      { account: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", scopes: 1 },
-    ]);
-    expect(calculateNetworkFeeMock).toHaveBeenCalledTimes(1);
+    expect(invokeScriptMock).toHaveBeenCalledWith({
+      script: "base64:01",
+      signers: [{ account: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", scopes: 1 }],
+    });
+    expect(calculateNetworkFeeMock).toHaveBeenCalledWith({ tx: "serialized-tx" });
     expect(toast.success).toHaveBeenCalledWith("Simulation complete!");
     expect(wrapper.text()).toContain("Total Estimated Cost");
   });

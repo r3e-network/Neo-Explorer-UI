@@ -10,10 +10,8 @@ class MockRpcClient {
   getBlockHeader = vi.fn().mockRejectedValue(new Error("Mock network error"));
 }
 
-vi.mock("@cityofzion/neon-js", () => ({
-  rpc: {
-    RPCClient: MockRpcClient,
-  },
+vi.mock("@r3e/neo-js-sdk", () => ({
+  RpcClient: MockRpcClient,
 }));
 
 vi.mock("../../src/services/api.js", () => ({
@@ -96,7 +94,7 @@ describe("transactionService", () => {
 
     it("does not default missing enriched vmstate to HALT", async () => {
       api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xNoState" }], totalCount: 1 });
-      api.safeRpc.mockResolvedValueOnce({ hash: "0xNoState" });
+      api.safeRpc.mockResolvedValueOnce({ hash: "0xNoState", blocktime: 1700000000 });
 
       const result = await transactionService.getList(10, 0, { enrichMissingFields: true });
 
@@ -138,7 +136,7 @@ describe("transactionService", () => {
   describe("getByHash", () => {
     it("calls safeRpc with hash", async () => {
       const hash = "0xabc123";
-      api.safeRpc.mockResolvedValueOnce({ sender: "addr1" });
+      api.safeRpc.mockResolvedValueOnce({ hash, sender: "addr1", vmstate: "HALT" });
       await transactionService.getByHash(hash);
       expect(api.safeRpc).toHaveBeenCalledWith(
         "GetRawTransactionByTransactionHash",

@@ -33,15 +33,8 @@ vi.mock("@/constants/knownAddresses", () => ({
   getTreasuryKnownAddresses: () => [{ name: "Treasury A", address: "Naddr" }],
 }));
 
-vi.mock("@cityofzion/neon-js", () => ({
-  rpc: {
-    RPCClient: class {},
-    Query: class {
-      constructor(config) {
-        this.config = config;
-      }
-    },
-  },
+vi.mock("@r3e/neo-js-sdk", () => ({
+  RpcClient: class {},
 }));
 
 describe("Treasury network changes", () => {
@@ -52,7 +45,28 @@ describe("Treasury network changes", () => {
     cachedRequestMock.mockResolvedValue([{ name: "Treasury A", address: "Naddr", neo: 1, gas: 2, usdValue: 0 }]);
   });
 
-  it("reloads treasury data with the active network cache key after a network switch", async () => {
+  it("shows a mainnet-only notice and skips treasury loading on testnet", async () => {
+    envState.value = "TestT5";
+
+    const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
+    const wrapper = mount(Treasury, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          HashLink: true,
+          Skeleton: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(cachedRequestMock).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("Switch to N3 Mainnet to view live foundation balances.");
+    wrapper.unmount();
+  });
+
+  it("loads treasury data on mainnet, skips testnet loads, and resumes when switching back", async () => {
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {
       global: {
@@ -72,8 +86,15 @@ describe("Treasury network changes", () => {
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
 
+    expect(cachedRequestMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain("Switch to N3 Mainnet to view live foundation balances.");
+
+    envState.value = "MainNet";
+    window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "MainNet" } }));
+    await flushPromises();
+
     expect(cachedRequestMock).toHaveBeenCalledTimes(2);
-    expect(cachedRequestMock.mock.calls[1][0]).toBe("TestT5:treasury_data");
+    expect(cachedRequestMock.mock.calls[1][0]).toBe("MainNet:treasury_data");
     wrapper.unmount();
   });
 });

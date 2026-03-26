@@ -1,4 +1,4 @@
-const { wallet } = require('@cityofzion/neon-js');
+const { loadNeoCompat } = require("../lib/loadNeoCompat");
 
 const keys = {
 "0239a37436652f41b3b802ca44cbcb7d65d3aa0b88c9a0380243bdbe1aaa5cb35b": "The Neo Order",
@@ -41,7 +41,16 @@ const keys = {
 "024c7b7fb6c310fccf1ba33b082519d82964ea93868d676662d4a59ad548df0e7d": "NF5",
 };
 
-for (const [k, v] of Object.entries(keys)) {
-  const acct = new wallet.Account(k);
-  console.log(`"${acct.address}": "${v}",`);
+async function main() {
+  const { wallet } = await loadNeoCompat();
+
+  for (const [k, v] of Object.entries(keys)) {
+    const acct = new wallet.Account(k);
+    console.log(`"${acct.address}": "${v}",`);
+  }
 }
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

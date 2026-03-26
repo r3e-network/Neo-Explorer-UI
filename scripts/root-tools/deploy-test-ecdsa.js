@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { rpc, tx, sc, wallet, u } = require('@cityofzion/neon-js');
+const { loadNeoCompat } = require("../lib/loadNeoCompat");
 
 async function main() {
+    const { rpc, tx, sc, wallet } = await loadNeoCompat();
     const rpcUrl = process.env.RPC_URL || 'https://testnet1.neo.coz.io:443';
     const rpcClient = new rpc.RPCClient(rpcUrl);
 
@@ -38,7 +39,7 @@ async function main() {
     transaction.sign(account, magic);
 
     console.log("Deploying TestECDSA...");
-    const txid = await rpcClient.sendRawTransaction(transaction.serialize(true));
+    const txid = await rpcClient.sendRawTransaction(transaction);
     console.log("TxId:", txid);
 }
 

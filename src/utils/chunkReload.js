@@ -1,5 +1,6 @@
 export const CHUNK_RELOAD_KEY = "chunk-reload";
 export const CHUNK_RELOAD_TARGET_KEY = "chunk-reload-target";
+export const CHUNK_RELOAD_QUERY_KEY = "__chunk_reload";
 
 export function isChunkLoadError(error) {
   if (!error) return false;
@@ -34,8 +35,22 @@ export function triggerChunkReload(
     storage.setItem(CHUNK_RELOAD_TARGET_KEY, target);
   }
 
-  if (target && typeof location.assign === "function") {
-    location.assign(target);
+  const buildReloadTarget = () => {
+    if (!target) return null;
+    try {
+      const url = new URL(target, location.href);
+      url.searchParams.set(CHUNK_RELOAD_QUERY_KEY, String(Date.now()));
+      return `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      const separator = target.includes("?") ? "&" : "?";
+      return `${target}${separator}${CHUNK_RELOAD_QUERY_KEY}=${Date.now()}`;
+    }
+  };
+
+  const reloadTarget = buildReloadTarget();
+
+  if (reloadTarget && typeof location.assign === "function") {
+    location.assign(reloadTarget);
     return true;
   }
 

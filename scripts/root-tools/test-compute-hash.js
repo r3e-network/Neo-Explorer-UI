@@ -1,5 +1,6 @@
-const { rpc, sc, u, tx, wallet } = require('@cityofzion/neon-js');
+const { loadNeoCompat } = require("../lib/loadNeoCompat");
 async function main() {
+    const { rpc, sc, u } = await loadNeoCompat();
     const aaHash = String(process.env.AA_HASH_TESTNET || process.env.VITE_AA_HASH_TESTNET || '49c095ce04d38642e39155f5481615c58227a498')
       .replace(/^0x/i, '')
       .toLowerCase();

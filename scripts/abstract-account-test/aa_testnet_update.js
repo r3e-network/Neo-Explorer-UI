@@ -1,6 +1,12 @@
-const { rpc, tx, wallet, sc, u } = require('@cityofzion/neon-js');
 const fs = require('fs');
 const path = require('path');
+const { loadNeoCompat } = require('../lib/loadNeoCompat');
+
+let rpc;
+let tx;
+let wallet;
+let sc;
+let u;
 
 function sanitizeHex(v) {
   return String(v || '').replace(/^0x/i, '').toLowerCase();
@@ -37,6 +43,7 @@ async function waitForTx(rpcClient, txid, timeoutMs = 120000) {
 }
 
 async function main() {
+  ({ rpc, tx, wallet, sc, u } = await loadNeoCompat());
   const wif = process.env.TEST_WIF;
   if (!wif) throw new Error('TEST_WIF is required');
 

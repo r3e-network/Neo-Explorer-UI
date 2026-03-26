@@ -153,6 +153,10 @@ const ko = {
       cancel: "Cancel",
       creating: "Creating...",
       createProposal: "Create Proposal",
+      forkProposal: "Fork Proposal",
+      forkProposalDesc:
+        "Create a new editable proposal draft from this packet and refresh it with the latest maximum valid-until-block before publishing.",
+      publishForkProposal: "Publish Forked Proposal",
       signProposalTitle: "Sign Proposal",
       optionWallet: "Option 1: Wallet Signature",
       signWithWallet: "Sign with Connected Wallet",

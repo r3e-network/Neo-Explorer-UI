@@ -268,7 +268,7 @@ async function fetchBalance() {
   try {
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);
-      return rpcClient.getNep17Balances(connectedAccount.value);
+      return rpcClient.getNep17Balances({ account: connectedAccount.value });
     });
     const gasAsset = result.balance.find((b) => b.assethash === GAS_HASH);
     if (gasAsset) {

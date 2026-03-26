@@ -44,6 +44,23 @@
         </div>
       </div>
 
+      <div
+        v-if="!isTreasuryNetworkSupported"
+        class="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900 shadow-sm dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-200"
+      >
+        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
+          />
+        </svg>
+        <div class="text-sm font-medium">
+          Neo Treasury holdings are tracked on mainnet only. Switch to N3 Mainnet to view live foundation balances.
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         <!-- Global Stats Card -->
         <div
@@ -70,10 +87,16 @@
                 Total NEO
               </p>
               <div v-if="loading" class="animate-pulse h-8 w-32 bg-green-500/20 rounded mt-1 mb-2"></div>
+              <p v-else-if="!isTreasuryNetworkSupported" class="text-2xl font-extrabold text-high tracking-tight">
+                Mainnet only
+              </p>
               <p v-else class="text-3xl font-extrabold text-high font-mono tracking-tight">
                 {{ formatNumber(totalNeo) }}
               </p>
-              <p v-if="neoPrice && !loading" class="text-sm font-medium text-green-600 dark:text-green-400 mt-2">
+              <p
+                v-if="isTreasuryNetworkSupported && neoPrice && !loading"
+                class="text-sm font-medium text-green-600 dark:text-green-400 mt-2"
+              >
                 ≈ ${{ formatLargeNumber(totalNeo * neoPrice) }}
               </p>
             </div>
@@ -86,10 +109,16 @@
                 Total GAS
               </p>
               <div v-if="loading" class="animate-pulse h-8 w-32 bg-cyan-500/20 rounded mt-1 mb-2"></div>
+              <p v-else-if="!isTreasuryNetworkSupported" class="text-2xl font-extrabold text-high tracking-tight">
+                Mainnet only
+              </p>
               <p v-else class="text-3xl font-extrabold text-high font-mono tracking-tight">
                 {{ formatNumber(totalGas) }}
               </p>
-              <p v-if="gasPrice && !loading" class="text-sm font-medium text-cyan-600 dark:text-cyan-400 mt-2">
+              <p
+                v-if="isTreasuryNetworkSupported && gasPrice && !loading"
+                class="text-sm font-medium text-cyan-600 dark:text-cyan-400 mt-2"
+              >
                 ≈ ${{ formatLargeNumber(totalGas * gasPrice) }}
               </p>
             </div>
@@ -98,6 +127,7 @@
           <div class="mt-6 pt-5 border-t soft-divider flex items-center justify-between">
             <span class="text-sm text-mid font-medium">Estimated Total USD Value</span>
             <span v-if="loading" class="animate-pulse h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded"></span>
+            <span v-else-if="!isTreasuryNetworkSupported" class="text-base font-bold text-mid">Switch to N3 Mainnet</span>
             <span v-else class="text-lg font-bold text-high"
               >${{ formatLargeNumber(totalNeo * neoPrice + totalGas * gasPrice) }}</span
             >
@@ -110,6 +140,9 @@
 
           <div v-if="loading" class="space-y-4">
             <Skeleton v-for="i in 3" :key="i" height="40px" />
+          </div>
+          <div v-else-if="!isTreasuryNetworkSupported" class="rounded-xl border border-dashed border-line-soft bg-surface-muted/40 p-4 text-sm text-mid">
+            Switch to N3 Mainnet to view the treasury distribution chart.
           </div>
           <div v-else class="space-y-5">
             <div v-for="group in groups" :key="group.name" class="group">
@@ -179,6 +212,12 @@
         <div v-if="loading && balances.length === 0" class="p-5 space-y-3">
           <Skeleton v-for="i in 8" :key="i" height="56px" />
         </div>
+        <div
+          v-else-if="!isTreasuryNetworkSupported"
+          class="p-8 text-center text-mid"
+        >
+          Switch to N3 Mainnet to view live foundation balances.
+        </div>
 
         <div v-else class="overflow-x-auto">
           <table class="w-full text-sm whitespace-nowrap">
@@ -241,7 +280,8 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { RpcClient } from "@r3e/neo-js-sdk";
-import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
+import { getCurrentEnv } from "@/utils/env";
+import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { fetchPrices } = usePriceCache();
@@ -249,6 +289,15 @@ const loading = ref(true);
 const neoPrice = ref(0);
 const gasPrice = ref(0);
 const balances = ref([]);
+const activeEnv = ref(getCurrentEnv());
+const activeNetworkMode = computed(() =>
+  String(activeEnv.value || "")
+    .toLowerCase()
+    .includes("test")
+      ? "testnet"
+      : "mainnet",
+);
+const isTreasuryNetworkSupported = computed(() => activeNetworkMode.value === "mainnet");
 
 const totalNeo = computed(() => balances.value.reduce((sum, item) => sum + item.neo, 0));
 const totalGas = computed(() => balances.value.reduce((sum, item) => sum + item.gas, 0));
@@ -274,6 +323,7 @@ const groups = computed(() => {
 });
 
 function groupWidthStyle(group) {
+  if (!totalNeo.value) return { width: "0%" };
   return { width: `${(group.neo / totalNeo.value) * 100}%` };
 }
 
@@ -295,47 +345,54 @@ async function loadPrices() {
 
 async function fetchTreasuryDataFromRpc() {
   const treasuryAddresses = getTreasuryKnownAddresses();
-
-  const rpcClient = new RpcClient(getRpcClientUrl());
   const BATCH_SIZE = 5;
-  const results = [];
 
-  for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
-    const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
-    const responses = await Promise.allSettled(
-      batch.map((item) => rpcClient.getNep17Balances(item.address)),
-    );
+  return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+    const rpcClient = new RpcClient(endpoint);
+    const results = [];
 
-    batch.forEach((item, index) => {
-      const res = responses[index];
-      let neo = 0;
-      let gas = 0;
+    for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
+      const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
+      const responses = await Promise.allSettled(
+        batch.map((item) => rpcClient.getNep17Balances({ account: item.address })),
+      );
 
-      if (res.status === "fulfilled" && res.value && Array.isArray(res.value.balance)) {
-        const balances = res.value.balance;
-        const neoToken = balances.find((b) => b.assethash === NEO_HASH);
-        const gasToken = balances.find((b) => b.assethash === GAS_HASH);
+      batch.forEach((item, index) => {
+        const res = responses[index];
+        let neo = 0;
+        let gas = 0;
 
-        neo = neoToken ? Number(neoToken.amount) : 0;
-        gas = gasToken ? Number(gasToken.amount) / 100000000 : 0;
-      }
+        if (res.status === "fulfilled" && res.value && Array.isArray(res.value.balance)) {
+          const balances = res.value.balance;
+          const neoToken = balances.find((b) => b.assethash === NEO_HASH);
+          const gasToken = balances.find((b) => b.assethash === GAS_HASH);
 
-      results.push({
-        ...item,
-        neo: Number.isFinite(neo) ? neo : 0,
-        gas: Number.isFinite(gas) ? gas : 0,
-        usdValue: 0,
+          neo = neoToken ? Number(neoToken.amount) : 0;
+          gas = gasToken ? Number(gasToken.amount) / 100000000 : 0;
+        }
+
+        results.push({
+          ...item,
+          neo: Number.isFinite(neo) ? neo : 0,
+          gas: Number.isFinite(gas) ? gas : 0,
+          usdValue: 0,
+        });
       });
-    });
-  }
+    }
 
-  return results;
+    return results;
+  });
 }
 
 async function loadTreasuryData(forceRefresh = false) {
   loading.value = true;
   try {
-    const network = getCurrentEnv();
+    if (!isTreasuryNetworkSupported.value) {
+      balances.value = [];
+      return;
+    }
+
+    const network = activeEnv.value;
     const cacheKey = `${network}:treasury_data`;
 
     const results = await cachedRequest(cacheKey, fetchTreasuryDataFromRpc, CACHE_TTL.chart, { forceRefresh });
@@ -354,10 +411,12 @@ async function loadTreasuryData(forceRefresh = false) {
 }
 
 async function handleNetworkChange() {
+  activeEnv.value = getCurrentEnv();
   await loadTreasuryData(true);
 }
 
 onMounted(async () => {
+  activeEnv.value = getCurrentEnv();
   await loadPrices();
   await loadTreasuryData();
 });

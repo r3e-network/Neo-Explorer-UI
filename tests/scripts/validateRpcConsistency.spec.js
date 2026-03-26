@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
 
 import {
   buildHandlerCoverageSet,
   buildDocStub,
   collectApiDocsCatalogIssues,
   collectApiDocsCatalogUsageIssues,
+  collectDocsMissingInBackend,
   extractMethodArgsFromApiSource,
   extractBackendAllowedApis,
   findMissingMethods,
@@ -125,6 +128,30 @@ var Apis = map[string]bool{
     expect(coverage.has("getblock")).toBe(true);
   });
 
+  it("does not keep reserved-only legacy RPC names in the backend allowlist", () => {
+    const backendConfigPath = path.resolve(process.cwd(), "../neo3fura/neo3fura_http/config/config.go");
+    const source = fs.readFileSync(backendConfigPath, "utf8");
+    const allowedApis = extractBackendAllowedApis(source);
+
+    for (const method of [
+      "GetApplicationLogsByTransactionHash",
+      "GetAssetInfoByTokenName",
+      "GetBalanceOfByAddress",
+      "GetCompareVerify",
+      "GetEventByContractHash",
+      "GetHoldersByContractHash",
+      "GetNep11BalanceByContractHashAddress",
+      "GetVoteRecord",
+      "GetVoteRecordByProjectIdList",
+      "GetWithdrawalCount",
+      "InsertContractSourceCode",
+      "InsertContractSourceCodefromBak",
+      "ScanNFTLatestTransaction",
+    ]) {
+      expect(allowedApis.has(method)).toBe(false);
+    }
+  });
+
   it("collects api docs catalog structural issues", () => {
     const issues = collectApiDocsCatalogIssues({
       categories: [{ key: "blocks" }, { key: "blocks" }],
@@ -150,5 +177,16 @@ var Apis = map[string]bool{
     });
 
     expect(issues.catalogMethodsMissingInFrontendUsage).toEqual(["GetBlockInfoList"]);
+  });
+
+  it("does not count reserved compatibility docs as missing backend allowlist methods", () => {
+    const missing = collectDocsMissingInBackend({
+      docsMethods: ["GetBlockCount", "GetLegacyFoo", "GetLegacyBar"],
+      backendAllowedApis: new Set(["GetBlockCount"]),
+      passthroughMethods: new Set(),
+      reservedDocMethods: new Set(["GetLegacyFoo", "GetLegacyBar"]),
+    });
+
+    expect(missing).toEqual([]);
   });
 });

@@ -27,7 +27,7 @@
       </div>
       <div class="p-6 space-y-6 overflow-y-auto custom-scrollbar">
         <div
-          v-if="isGovernanceLabModeAvailable"
+          v-if="isGovernanceLabModeAvailable && !isForkMode"
           class="space-y-3 rounded-2xl border border-line-soft bg-surface-muted/50 p-4"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
@@ -104,6 +104,14 @@
             class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
             placeholder="e.g. Decrease GAS Network Fee"
           />
+        </div>
+
+        <div
+          v-if="isForkMode"
+          class="rounded-2xl border border-line-soft bg-surface-muted/50 p-4 text-sm text-mid"
+          data-testid="governance-fork-draft-banner"
+        >
+          {{ $t("tools.governance.forkProposalDesc") }}
         </div>
 
         <div class="space-y-6">
@@ -267,7 +275,13 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             ></path>
           </svg>
-          {{ isCreating ? $t("tools.governance.creating") : $t("tools.governance.createProposal") }}
+          {{
+            isCreating
+              ? $t("tools.governance.creating")
+              : isForkMode
+                ? $t("tools.governance.publishForkProposal")
+                : $t("tools.governance.createProposal")
+          }}
         </button>
       </div>
     </div>
@@ -275,7 +289,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { supabaseService } from "@/services/supabaseService";
 import { walletService } from "@/services/walletService";
 import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
@@ -291,6 +305,7 @@ const props = defineProps({
   threshold: { type: Number, default: 0 },
   committeeMultiSig: { type: Object, default: null },
   isCouncilNode: { type: Boolean, default: false },
+  prefillProposal: { type: Object, default: null },
 });
 
 const emit = defineEmits(["close", "created"]);
@@ -384,13 +399,25 @@ function createInvocation() {
   };
 }
 
-const createForm = ref({
-  description: "",
-  mode: "official",
-  labSignerPubkeys: "",
-  labThreshold: "2",
-  invocations: [createInvocation()],
-});
+function createEmptyForm() {
+  return {
+    description: "",
+    mode: "official",
+    labSignerPubkeys: "",
+    labThreshold: "2",
+    invocations: [createInvocation()],
+  };
+}
+
+const CONTRACT_NAME_BY_HASH = Object.fromEntries(
+  Object.entries(NATIVE_CONTRACTS).map(([name, hash]) => [String(hash || "").toLowerCase(), name]),
+);
+
+const sourceProposalId = computed(() =>
+  props.prefillProposal?.id === undefined || props.prefillProposal?.id === null ? "" : String(props.prefillProposal.id),
+);
+const isForkMode = computed(() => Boolean(sourceProposalId.value));
+const createForm = ref(createEmptyForm());
 
 const isCreating = ref(false);
 
@@ -457,7 +484,198 @@ function setCreateMode(mode) {
   createForm.value.mode = mode;
 }
 
+function cloneDraftInvocations(invocations = []) {
+  return invocations.map((invocation) => ({
+    selectedContract: invocation?.selectedContract || "",
+    selectedMethod: invocation?.selectedMethod || "",
+    params: { ...(invocation?.params || {}) },
+  }));
+}
+
+function buildInvocationDrafts(proposalLike) {
+  const invocations = Array.isArray(proposalLike?.params?.invocations) ? proposalLike.params.invocations : [];
+  if (invocations.length > 0) {
+    return cloneDraftInvocations(invocations);
+  }
+
+  const targetHash = String(proposalLike?.target_contract || "").trim().toLowerCase();
+  const selectedContract = CONTRACT_NAME_BY_HASH[targetHash] || "PolicyContract";
+  const selectedMethod = String(proposalLike?.method || "").split(",").map((value) => value.trim()).filter(Boolean)[0];
+
+  return [
+    {
+      selectedContract,
+      selectedMethod: selectedMethod || getAvailableMethods(selectedContract)[0]?.name || "",
+      params: {},
+    },
+  ];
+}
+
+function buildDraftForm(proposalLike) {
+  const governanceMode = proposalLike?.params?.lab_mode || proposalLike?.params?.governance_mode === "lab" ? "lab" : "official";
+  const signerPubkeys = Array.isArray(proposalLike?.params?.committee_pubkeys)
+    ? proposalLike.params.committee_pubkeys
+    : Array.isArray(proposalLike?.params?.committee)
+      ? proposalLike.params.committee
+      : [];
+
+  return {
+    description: String(proposalLike?.description || "").trim(),
+    mode: governanceMode,
+    labSignerPubkeys: governanceMode === "lab" ? signerPubkeys.join("\n") : "",
+    labThreshold: String(proposalLike?.signers_required || props.threshold || 2),
+    invocations: buildInvocationDrafts(proposalLike),
+  };
+}
+
+function normalizeInvocationForComparison(invocation = {}) {
+  const params = Object.entries(invocation?.params || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .reduce((acc, [key, value]) => {
+      acc[key] = String(value);
+      return acc;
+    }, {});
+
+  return JSON.stringify({
+    selectedContract: String(invocation?.selectedContract || ""),
+    selectedMethod: String(invocation?.selectedMethod || ""),
+    params,
+  });
+}
+
+function hasForkInvocationChanges() {
+  if (!isForkMode.value || !props.prefillProposal) return false;
+
+  const sourceInvocations = buildInvocationDrafts(props.prefillProposal);
+  const currentInvocations = Array.isArray(createForm.value.invocations) ? createForm.value.invocations : [];
+
+  if (sourceInvocations.length !== currentInvocations.length) {
+    return true;
+  }
+
+  return currentInvocations.some((invocation, index) => {
+    return normalizeInvocationForComparison(invocation) !== normalizeInvocationForComparison(sourceInvocations[index]);
+  });
+}
+
+function syncCreateFormFromContext() {
+  createForm.value = isForkMode.value ? buildDraftForm(props.prefillProposal) : createEmptyForm();
+}
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      syncCreateFormFromContext();
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.prefillProposal,
+  () => {
+    if (props.isOpen) {
+      syncCreateFormFromContext();
+    }
+  },
+);
+
+function buildDummyMultisigWitness(multisigAccount, thresholdValue, neonJs) {
+  const dummySignature = "00".repeat(64);
+  let invocationScript = "";
+
+  if (typeof neonJs?.sc?.ScriptBuilder === "function") {
+    const builder = new neonJs.sc.ScriptBuilder();
+    for (let i = 0; i < thresholdValue; i += 1) {
+      builder.emitPush(neonJs.u.HexString.fromHex(dummySignature));
+    }
+    invocationScript = builder.build();
+  } else {
+    invocationScript = dummySignature.repeat(Math.max(1, thresholdValue));
+  }
+
+  const rawVerificationScript = String(multisigAccount?.contract?.script || "").trim();
+  const verificationScript =
+    /^[0-9a-f]+$/i.test(rawVerificationScript) && rawVerificationScript.length % 2 === 0
+      ? rawVerificationScript
+      : rawVerificationScript && neonJs.u?.base642hex
+        ? neonJs.u.base642hex(rawVerificationScript)
+        : rawVerificationScript;
+
+  return new neonJs.tx.Witness({
+    invocationScript,
+    verificationScript,
+  });
+}
+
+function resolveExistingValidUntilBlock(proposalLike, neonJs) {
+  const directValue = Number(
+    proposalLike?.params?.refreshed_valid_until_block ||
+      proposalLike?.params?.valid_until_block ||
+      proposalLike?.params?.previous_valid_until_block,
+  );
+  if (Number.isFinite(directValue) && directValue > 0) {
+    return directValue;
+  }
+
+  if (!proposalLike?.params?.unsigned_tx || typeof neonJs?.tx?.Transaction?.deserialize !== "function") {
+    return null;
+  }
+
+  try {
+    const transaction = neonJs.tx.Transaction.deserialize(proposalLike.params.unsigned_tx);
+    const value = Number(transaction?.validUntilBlock || transaction?.validuntilblock || 0);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getProtocolVersion(rpcClient, neonJs) {
+  if (typeof rpcClient?.getVersion === "function") {
+    return rpcClient.getVersion();
+  }
+  if (typeof rpcClient?.execute === "function" && neonJs?.rpc?.Query) {
+    return rpcClient.execute(new neonJs.rpc.Query({ method: "getversion" }));
+  }
+  return null;
+}
+
 function resolveSignerConfig(neonJs) {
+  if (isForkMode.value && props.prefillProposal) {
+    const mode = props.prefillProposal?.params?.lab_mode || props.prefillProposal?.params?.governance_mode === "lab" ? "lab" : "official";
+    const signerPubkeys = Array.isArray(props.prefillProposal?.params?.committee_pubkeys)
+      ? props.prefillProposal.params.committee_pubkeys
+      : Array.isArray(props.prefillProposal?.params?.committee)
+        ? props.prefillProposal.params.committee
+        : [];
+    const signerAddresses =
+      Array.isArray(props.prefillProposal?.eligible_signers) && props.prefillProposal.eligible_signers.length > 0
+        ? props.prefillProposal.eligible_signers
+        : signerPubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
+    const thresholdValue = Number(props.prefillProposal?.signers_required || props.threshold || 0);
+    const derivedMultiSig =
+      signerPubkeys.length > 0 && thresholdValue > 0 ? neonJs.wallet.Account.createMultiSig(thresholdValue, signerPubkeys) : null;
+    const preservedScriptHash = String(props.prefillProposal?.params?.scriptHash || "").trim();
+
+    return {
+      mode,
+      signerPubkeys,
+      signerAddresses,
+      thresholdValue,
+      multiSigAccount: {
+        scriptHash: preservedScriptHash || derivedMultiSig?.scriptHash || "",
+        contract: {
+          script:
+            props.prefillProposal?.params?.broadcast_witness?.verificationScript ||
+            derivedMultiSig?.contract?.script ||
+            "",
+        },
+      },
+    };
+  }
+
   if (createForm.value.mode === "lab") {
     if (!props.isGovernanceLabModeAvailable) {
       throw new Error("Lab mode is only available on testnet.");
@@ -504,6 +722,88 @@ function resolveSignerConfig(neonJs) {
   };
 }
 
+function resolveLiveOfficialSignerConfig(neonJs) {
+  const signerPubkeys = Array.isArray(props.committeePubkeys) ? props.committeePubkeys : [];
+  const signerAddresses = signerPubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
+  const multiSigAccount =
+    props.committeeMultiSig ||
+    (signerPubkeys.length > 0 && props.threshold > 0
+      ? neonJs.wallet.Account.createMultiSig(props.threshold, signerPubkeys)
+      : null);
+
+  return {
+    mode: "official",
+    signerPubkeys,
+    signerAddresses,
+    thresholdValue: props.threshold,
+    multiSigAccount,
+  };
+}
+
+function isInvalidCommitteeSignatureFault(errorOrResult) {
+  const message = String(
+    errorOrResult?.exception ||
+      errorOrResult?.message ||
+      "",
+  ).toLowerCase();
+  return message.includes("invalid committee signature");
+}
+
+async function buildDraftTransaction({ neonJs, rpcClient, signerConfig, validUntilBlock, script }) {
+  const signers = [{ account: signerConfig.multiSigAccount.scriptHash, scopes: neonJs.tx.WitnessScope.Global }];
+  const invokeResult = await rpcClient.invokeScript(neonJs.u.HexString.fromHex(script), signers);
+  if (invokeResult?.state === "FAULT") {
+    const error = new Error(`Simulation faulted: ${invokeResult.exception || "unknown error"}`);
+    error.invokeResult = invokeResult;
+    throw error;
+  }
+
+  const feeProbeTx = new neonJs.tx.Transaction({
+    signers,
+    validUntilBlock,
+    systemFee: String(invokeResult?.gasconsumed || 0),
+    networkFee: "0",
+    script: neonJs.u.HexString.fromHex(script),
+  });
+
+  if (signerConfig.signerPubkeys.length > 0 && signerConfig.thresholdValue > 0) {
+    const dummyWitness = buildDummyMultisigWitness(signerConfig.multiSigAccount, signerConfig.thresholdValue, neonJs);
+    if (typeof feeProbeTx.addWitness === "function") {
+      feeProbeTx.addWitness(dummyWitness);
+    } else {
+      feeProbeTx.witnesses = [dummyWitness];
+    }
+  }
+
+  const networkFee = await rpcClient.calculateNetworkFee(feeProbeTx);
+  const transaction = new neonJs.tx.Transaction({
+    signers,
+    validUntilBlock,
+    systemFee: String(invokeResult?.gasconsumed || 0),
+    networkFee: String(networkFee || 0),
+    script: neonJs.u.HexString.fromHex(script),
+  });
+
+  return {
+    invokeResult,
+    networkFee,
+    transaction,
+  };
+}
+
+function cloneSourceTransaction({ neonJs, sourceUnsignedTx, validUntilBlock }) {
+  const transaction = neonJs.tx.Transaction.deserialize(sourceUnsignedTx);
+  transaction.validUntilBlock = validUntilBlock;
+
+  return {
+    invokeResult: {
+      gasconsumed: String(transaction.systemFee || 0),
+    },
+    networkFee: String(transaction.networkFee || 0),
+    transaction,
+  };
+}
+
 function normalizeArg(val, type, neonJs) {
   if (type === "Integer") return neonJs.sc.ContractParam.integer(val);
   if (type === "Hash160") {
@@ -528,7 +828,7 @@ async function handleCreateProposal() {
     toast.error("Please connect your wallet first.");
     return;
   }
-  if (createForm.value.mode !== "lab" && !props.isCouncilNode) {
+  if (!isForkMode.value && createForm.value.mode !== "lab" && !props.isCouncilNode) {
     toast.error("Only council nodes can create proposals.");
     return;
   }
@@ -543,10 +843,17 @@ async function handleCreateProposal() {
 
   isCreating.value = true;
   try {
-    const neonJs = window.Neon || (await import("@r3e/neo-js-sdk"));
+    const neonJs = window.Neon || (await import("@cityofzion/neon-js"));
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
+    const version = await getProtocolVersion(rpcClient, neonJs);
+    const maxValidUntilBlockIncrement = Number(version?.protocol?.maxvaliduntilblockincrement);
+    const validUntilBlock =
+      Number.isFinite(maxValidUntilBlockIncrement) && maxValidUntilBlockIncrement > 0
+        ? currentHeight + maxValidUntilBlockIncrement
+        : currentHeight + 1000;
     const signerConfig = resolveSignerConfig(neonJs);
+    const previousValidUntilBlock = isForkMode.value ? resolveExistingValidUntilBlock(props.prefillProposal, neonJs) : null;
 
     const intents = createForm.value.invocations.map((inv) => {
       const targetContract = NATIVE_CONTRACTS[inv.selectedContract];
@@ -571,14 +878,52 @@ async function handleCreateProposal() {
     });
 
     const script = neonJs.sc.createScript(...intents);
+    let activeSignerConfig = signerConfig;
+    let transactionBuild;
+    const canCloneSourceTransaction =
+      isForkMode.value &&
+      !hasForkInvocationChanges() &&
+      typeof neonJs?.tx?.Transaction?.deserialize === "function" &&
+      typeof props.prefillProposal?.params?.unsigned_tx === "string" &&
+      props.prefillProposal.params.unsigned_tx.trim().length > 0;
 
-    const t = new neonJs.tx.Transaction({
-      signers: [{ account: signerConfig.multiSigAccount.scriptHash, scopes: neonJs.tx.WitnessScope.Global }],
-      validUntilBlock: currentHeight + 100000,
-      systemFee: "100000000",
-      networkFee: "500000000",
-      script: neonJs.u.HexString.fromHex(script),
-    });
+    if (canCloneSourceTransaction) {
+      transactionBuild = cloneSourceTransaction({
+        neonJs,
+        sourceUnsignedTx: props.prefillProposal.params.unsigned_tx,
+        validUntilBlock,
+      });
+    } else {
+      try {
+        transactionBuild = await buildDraftTransaction({
+          neonJs,
+          rpcClient,
+          signerConfig: activeSignerConfig,
+          validUntilBlock,
+          script,
+        });
+      } catch (error) {
+        const canRetryWithLiveCommittee =
+          isForkMode.value &&
+          activeSignerConfig.mode === "official" &&
+          isInvalidCommitteeSignatureFault(error?.invokeResult || error);
+
+        if (!canRetryWithLiveCommittee) {
+          throw error;
+        }
+
+        activeSignerConfig = resolveLiveOfficialSignerConfig(neonJs);
+        transactionBuild = await buildDraftTransaction({
+          neonJs,
+          rpcClient,
+          signerConfig: activeSignerConfig,
+          validUntilBlock,
+          script,
+        });
+      }
+    }
+
+    const { invokeResult, networkFee, transaction: t } = transactionBuild;
 
     const unsignedTxHex = t.serialize(false);
     const txHash = t.hash();
@@ -593,18 +938,28 @@ async function handleCreateProposal() {
       target_contract: targetSummary,
       method: methods.length > 255 ? methods.substring(0, 250) + "..." : methods,
       description: createForm.value.description,
-      signers_required: signerConfig.thresholdValue,
-      eligible_signers: signerConfig.signerAddresses,
+      signers_required: activeSignerConfig.thresholdValue,
+      eligible_signers: activeSignerConfig.signerAddresses,
       status: "PENDING",
       network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
         hash: txHash,
-        scriptHash: signerConfig.multiSigAccount.scriptHash,
-        committee_pubkeys: signerConfig.signerPubkeys,
-        governance_mode: signerConfig.mode,
-        lab_mode: signerConfig.mode === "lab",
-        lab_signer_addresses: signerConfig.mode === "lab" ? signerConfig.signerAddresses : undefined,
+        valid_until_block: validUntilBlock,
+        previous_valid_until_block: previousValidUntilBlock,
+        refreshed_valid_until_block: isForkMode.value ? validUntilBlock : undefined,
+        forked_from_proposal_id: isForkMode.value ? props.prefillProposal?.id : undefined,
+        refreshed_from_expired:
+          isForkMode.value && Number.isFinite(previousValidUntilBlock) ? previousValidUntilBlock <= currentHeight : undefined,
+        fee_snapshot: {
+          system_fee: String(invokeResult?.gasconsumed || 0),
+          network_fee: String(networkFee || 0),
+        },
+        scriptHash: activeSignerConfig.multiSigAccount.scriptHash,
+        committee_pubkeys: activeSignerConfig.signerPubkeys,
+        governance_mode: activeSignerConfig.mode,
+        lab_mode: activeSignerConfig.mode === "lab",
+        lab_signer_addresses: activeSignerConfig.mode === "lab" ? activeSignerConfig.signerAddresses : undefined,
         target_contracts: targetContracts,
         invocations: createForm.value.invocations.map((inv) => ({
           ...inv,
@@ -617,15 +972,9 @@ async function handleCreateProposal() {
     if (!res.success) throw new Error(res.error);
 
     toast.success("Proposal created successfully!");
-    createForm.value = {
-      description: "",
-      mode: "official",
-      labSignerPubkeys: "",
-      labThreshold: "2",
-      invocations: [createInvocation()],
-    };
+    createForm.value = createEmptyForm();
     emit("close");
-    emit("created");
+    emit("created", res.data || null);
   } catch (e) {
     console.error(e);
     toast.error("Failed to create proposal: " + e.message);

@@ -1,5 +1,11 @@
-const { rpc, sc, u, tx, wallet } = require('@cityofzion/neon-js');
 const { ethers } = require('ethers');
+const { loadNeoCompat } = require('../lib/loadNeoCompat');
+
+let rpc;
+let sc;
+let u;
+let tx;
+let wallet;
 
 function sanitizeHex(v) {
     return String(v || '').replace(/^0x/i, '').toLowerCase();
@@ -12,6 +18,7 @@ const aaHash = sanitizeHex(
 );
 
 async function main() {
+    ({ rpc, sc, u, tx, wallet } = await loadNeoCompat());
     const rpcUrl = 'https://testnet1.neo.coz.io:443';
     const rpcClient = new rpc.RPCClient(rpcUrl);
 

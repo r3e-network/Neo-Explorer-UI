@@ -85,7 +85,7 @@
                   class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50"
                 >
                   {{
-                    $tc("tools.governance.callCount", getRequestInvocationCount(req), {
+                    t("tools.governance.callCount", getRequestInvocationCount(req), {
                       count: getRequestInvocationCount(req),
                     })
                   }}
@@ -147,7 +147,7 @@
 
               <div class="mt-4 flex flex-wrap gap-3 text-xs">
                 <RouterLink
-                  :to="{ name: 'governance-proposal-detail', params: { id: req.id } }"
+                  :to="{ name: 'governanceProposalDetail', params: { id: req.id } }"
                   class="font-semibold text-primary-500 hover:underline"
                   >{{ $t("tools.governance.openProposalPage") }}</RouterLink
                 >
@@ -191,6 +191,13 @@
                       class="w-full px-4 py-2.5 bg-surface-muted text-high border border-line-soft text-sm font-bold rounded-xl hover:bg-surface transition-colors"
                     >
                       {{ $t("tools.governance.addWitness") }}
+                    </button>
+                    <button
+                      :data-testid="`governance-list-fork-${req.id}`"
+                      @click="emit('fork-proposal', req)"
+                      class="w-full px-4 py-2.5 bg-white text-high border border-line-soft text-sm font-bold rounded-xl hover:bg-surface transition-colors"
+                    >
+                      {{ $t("tools.governance.forkProposal") }}
                     </button>
                     <span
                       v-if="hasSigned(req)"
@@ -265,7 +272,7 @@ const props = defineProps({
   committeePubkeys: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["sign", "add-witness", "view-details", "broadcast", "create-proposal"]);
+const emit = defineEmits(["sign", "add-witness", "view-details", "broadcast", "create-proposal", "fork-proposal"]);
 
 const pendingRequestCount = computed(() => props.requests.filter((r) => r.status === "PENDING").length);
 

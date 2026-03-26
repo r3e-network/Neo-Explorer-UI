@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import * as neon from '@cityofzion/neon-js';
 
 const RUN_LIVE_GOVERNANCE_E2E = String(process.env.RUN_LIVE_GOVERNANCE_E2E || "").trim() === "1";
 const describeLive = RUN_LIVE_GOVERNANCE_E2E ? describe : describe.skip;
+
+let neon;
 
 describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () => {
   const TESTNET_RPC = "https://testnet1.neo.coz.io:443";
@@ -20,6 +21,9 @@ describeLive('Governance Tool MultiSig and Signature Collection End-to-End', () 
     if (!TESTNET_WIF) {
       throw new Error("Missing TESTNET_WIF env var. Refusing to run live governance E2E without an explicit key.");
     }
+    const compatModule = await import("../../scripts/lib/loadNeoCompat.js");
+    const loadNeoCompat = compatModule.loadNeoCompat || compatModule.default?.loadNeoCompat;
+    neon = await loadNeoCompat();
     account = new neon.wallet.Account(TESTNET_WIF);
     rpcClient = new neon.rpc.RPCClient(TESTNET_RPC);
     

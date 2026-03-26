@@ -3,7 +3,6 @@ import { nextTick } from "vue";
 const rpcMock = vi.hoisted(() => vi.fn());
 const cachedRequestMock = vi.hoisted(() => vi.fn());
 const getCurrentEnvMock = vi.hoisted(() => vi.fn());
-const walletAccountMock = vi.hoisted(() => vi.fn());
 const getValidatorMetadataMock = vi.hoisted(() => vi.fn());
 const publicKeyToAddressMock = vi.hoisted(() => vi.fn());
 
@@ -19,12 +18,6 @@ vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
   NET_ENV: { TestT5: "TestT5" },
   NETWORK_CHANGE_EVENT: "neo:network-change",
-}));
-
-vi.mock("@cityofzion/neon-js", () => ({
-  wallet: {
-    Account: walletAccountMock,
-  },
 }));
 
 vi.mock("@/utils/neoHelpers", async () => {
@@ -58,9 +51,6 @@ describe("useCommittee", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
     getCurrentEnvMock.mockReturnValue("MainNet");
-    walletAccountMock.mockImplementation(function () {
-      this.address = "NFallbackAddress";
-    });
     publicKeyToAddressMock.mockReturnValue("NFallbackAddress");
     getValidatorMetadataMock.mockResolvedValue([]);
     cachedRequestMock.mockResolvedValue([
@@ -100,13 +90,6 @@ describe("useCommittee", () => {
   });
 
   it("maps primary index against next block validators instead of committee order", async () => {
-    walletAccountMock.mockImplementation(function (publickey) {
-      this.address = publickey === "PUBKEY_VALIDATOR_0"
-        ? "NValidatorZeroAddress"
-        : publickey === "PUBKEY_VALIDATOR_1"
-          ? "NValidatorOneAddress"
-          : "NCommitteeAddress";
-    });
     publicKeyToAddressMock.mockImplementation((publickey) => (
       publickey === "PUBKEY_VALIDATOR_0"
         ? "NValidatorZeroAddress"
@@ -216,9 +199,6 @@ describe("useCommittee", () => {
   it("falls back to known-address validator name when Dora metadata is missing", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
     cachedRequestMock.mockResolvedValueOnce([]);
-    walletAccountMock.mockImplementation(function () {
-      this.address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
-    });
     publicKeyToAddressMock.mockReturnValue("NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w");
 
     const { useCommittee } = await import("@/composables/useCommittee");
@@ -233,9 +213,6 @@ describe("useCommittee", () => {
   it("falls back to deterministic consensus-node label when no metadata is available", async () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
     cachedRequestMock.mockResolvedValueOnce([]);
-    walletAccountMock.mockImplementation(function () {
-      this.address = "NNoMetadataFallbackAddress";
-    });
     publicKeyToAddressMock.mockReturnValue("NNoMetadataFallbackAddress");
 
     const { useCommittee } = await import("@/composables/useCommittee");

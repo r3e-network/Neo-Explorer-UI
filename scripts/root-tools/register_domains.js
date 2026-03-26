@@ -1,13 +1,11 @@
-const { rpc, tx, wallet, sc, u } = require("@cityofzion/neon-js");
+const { loadNeoCompat } = require("../lib/loadNeoCompat");
 
 const deployerWif = process.env.DEPLOYER_WIF || "";
 if (!deployerWif) {
   throw new Error("Missing DEPLOYER_WIF env var");
 }
 
-const account = new wallet.Account(deployerWif);
 const rpcUrl = process.env.RPC_URL || "https://rpc.r3e.network";
-const rpcClient = new rpc.RPCClient(rpcUrl);
 
 const contractHash =
   process.env.MATRIX_CONTRACT_HASH ||
@@ -51,6 +49,10 @@ const domainsToRegister = [
 ];
 
 async function checkAndRegisterDomains() {
+  const { rpc, tx, wallet, sc, u } = await loadNeoCompat();
+  const account = new wallet.Account(deployerWif);
+  const rpcClient = new rpc.RPCClient(rpcUrl);
+
   console.log("Account Address:", account.address);
   console.log("RPC URL:", rpcUrl);
   console.log("Targeting Contract:", contractHash);

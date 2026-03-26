@@ -2,7 +2,9 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { createClient } = require("@supabase/supabase-js");
-const neon = require("@cityofzion/neon-js");
+const { loadNeoCompat } = require("./lib/loadNeoCompat");
+
+let neon = null;
 
 const DEFAULT_RPC_URL = "https://api.n3index.dev/testnet";
 const DEFAULT_THRESHOLD = 2;
@@ -395,6 +397,7 @@ async function invokeGetter(rpcClient, contractHash, operation) {
 }
 
 async function main() {
+  neon = await loadNeoCompat();
   const localEnv = readEnvFile(path.join(process.cwd(), ".env"));
   const councilWif = getEnvValue(localEnv, "TESTNET_COUNCIL_WIF");
   if (!councilWif) throw new Error("Missing TESTNET_COUNCIL_WIF.");

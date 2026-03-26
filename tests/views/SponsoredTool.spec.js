@@ -64,9 +64,9 @@ vi.mock("@/services/cache", () => ({
   cachedRequest: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@cityofzion/neon-js", () => ({
-  rpc: { RPCClient: MockRpcClient },
-  wallet: { Account: MockAccount },
+vi.mock("@r3e/neo-js-sdk", () => ({
+  RpcClient: MockRpcClient,
+  Account: MockAccount,
 }));
 
 describe("SponsoredTool wallet provider handling", () => {
