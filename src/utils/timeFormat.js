@@ -1,5 +1,10 @@
 import { getCurrentEnv, NET_ENV } from "./env";
 
+const DISPLAY_DELAY_OFFSET_SECONDS = {
+  [NET_ENV.Mainnet]: 0,
+  [NET_ENV.TestT5]: 0,
+};
+
 /**
  * Time and date formatting utilities for Neo N3 explorer.
  */
@@ -30,10 +35,8 @@ export function formatAge(timestamp, nowMs = Date.now()) {
   if (!timestamp) return "";
 
   const ts = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
-  
   const network = getCurrentEnv();
-  const delayOffset = network === NET_ENV.TestT5 ? 2 : 10;
-  
+  const delayOffset = DISPLAY_DELAY_OFFSET_SECONDS[network] ?? 0;
   const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts) - delayOffset);
 
   if (seconds === 0) return "just now";

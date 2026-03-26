@@ -65,4 +65,22 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.emitted("fetch-latest")?.length || 0).toBe(2);
     wrapper.unmount();
   });
+
+  it("treats a 16 second old mainnet block as overdue so homepage refresh starts sooner", async () => {
+    const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
+    const nearTipTimestamp = Math.floor((Date.now() - 16_000) / 1000);
+    const wrapper = mount(HomeStats, {
+      props: {
+        latestBlockTimestamp: nearTipTimestamp,
+      },
+      global: {
+        stubs: {
+          "router-link": true,
+        },
+      },
+    });
+
+    expect(wrapper.emitted("fetch-latest")?.length || 0).toBe(1);
+    wrapper.unmount();
+  });
 });

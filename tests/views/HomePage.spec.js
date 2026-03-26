@@ -19,6 +19,8 @@ const getIndexerTransactions = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
+const useAutoRefreshMock = vi.fn();
+const getLatestHomepageSnapshotMock = vi.fn();
 const loadCommitteeMock = vi.hoisted(() => vi.fn());
 const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
   enrichTransactionsMock: vi.fn(),
@@ -74,9 +76,12 @@ vi.mock("@/composables/usePriceCache", () => ({
 }));
 
 vi.mock("@/composables/useAutoRefresh", () => ({
-  useAutoRefresh: () => ({
-    start: startAutoRefresh,
-  }),
+  useAutoRefresh: (...args) => {
+    useAutoRefreshMock(...args);
+    return {
+      start: startAutoRefresh,
+    };
+  },
 }));
 
 vi.mock("@/composables/useCommittee", () => ({
@@ -90,6 +95,10 @@ vi.mock("@/composables/useTransferSummary", () => ({
     transferSummaryByHash: transferSummaryByHashMock,
     enrichTransactions: enrichTransactionsMock,
   }),
+}));
+
+vi.mock("@/services/liveHomepageService", () => ({
+  getLatestHomepageSnapshot: getLatestHomepageSnapshotMock,
 }));
 
 const LatestBlocksStub = defineComponent({
@@ -150,16 +159,16 @@ describe("HomePage initial loading", () => {
       totalCount: 1,
     });
     getBlockCount.mockResolvedValue(10);
-    getBlockByHeight.mockResolvedValue({
-      hash: "0xblock-by-height",
-      index: 9,
-      timestamp: Date.now(),
-      txcount: 1,
-    });
-    getTxsByBlockHeight.mockResolvedValue({
-      result: [{ hash: "0xtx-by-height", blocktime: Date.now() }],
-      totalCount: 1,
-    });
+    getBlockByHeight.mockImplementation(async (height) => ({
+      hash: `0xblock-by-height-${height}`,
+      index: height,
+      timestamp: Date.now() - Math.max(0, 9 - Number(height || 0)) * 15000,
+      txcount: Number(height) === 9 ? 1 : 0,
+    }));
+    getTxsByBlockHeight.mockImplementation(async (height) => ({
+      result: Number(height) === 9 ? [{ hash: "0xtx-by-height", blocktime: Date.now() }] : [],
+      totalCount: Number(height) === 9 ? 1 : 0,
+    }));
     getTxList.mockResolvedValue({
       result: [{ hash: "0xtx" }],
       totalCount: 1,
@@ -168,6 +177,8 @@ describe("HomePage initial loading", () => {
     search.mockResolvedValue(null);
     fetchPrices.mockImplementation(() => new Promise(() => { }));
     startAutoRefresh.mockImplementation(() => { });
+    useAutoRefreshMock.mockClear();
+    getLatestHomepageSnapshotMock.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -191,20 +202,26 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(getBlockList).toHaveBeenCalledWith(6, 0, { forceRefresh: true, enrichMissingFields: true });
-    expect(getBlockList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
-    expect(getTxList.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
+    expect(getBlockByHeight.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
+    expect(getTxsByBlockHeight.mock.invocationCallOrder[0]).toBeLessThan(getDashboardStats.mock.invocationCallOrder[0]);
     wrapper.unmount();
   });
 
-  it("prefers indexed homepage endpoints before legacy RPC list calls", async () => {
-    getIndexerBlocks.mockResolvedValueOnce({
-      data: [{ hash: "0xidx-block", block_index: 12, time_ms: Date.now(), tx_count: 2 }],
-      paging: { total: 12 },
-    });
-    getIndexerTransactions.mockResolvedValueOnce({
-      data: [{ txid: "0xidx-tx", block_time_ms: Date.now(), vm_state: "HALT" }],
-      paging: { total: 1 },
+  it("prefers direct tip-based block and transaction loaders for homepage freshness", async () => {
+    getBlockCount.mockResolvedValueOnce(13);
+    getBlockByHeight
+      .mockResolvedValueOnce({ hash: "0xrpc-block-12", index: 12, timestamp: Date.now(), txcount: 2 })
+      .mockResolvedValueOnce({ hash: "0xrpc-block-11", index: 11, timestamp: Date.now() - 15000, txcount: 0 })
+      .mockResolvedValueOnce({ hash: "0xrpc-block-10", index: 10, timestamp: Date.now() - 30000, txcount: 0 })
+      .mockResolvedValueOnce({ hash: "0xrpc-block-9", index: 9, timestamp: Date.now() - 45000, txcount: 0 })
+      .mockResolvedValueOnce({ hash: "0xrpc-block-8", index: 8, timestamp: Date.now() - 60000, txcount: 0 })
+      .mockResolvedValueOnce({ hash: "0xrpc-block-7", index: 7, timestamp: Date.now() - 75000, txcount: 0 });
+    getTxsByBlockHeight.mockResolvedValueOnce({
+      result: [{ hash: "0xrpc-tx", blocktime: Date.now() }],
+      totalCount: 1,
     });
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
@@ -221,13 +238,48 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getIndexerBlocks).toHaveBeenCalledWith(6, 0, { forceRefresh: true });
-    expect(getIndexerTransactions).toHaveBeenCalledWith(6, 0, { forceRefresh: true });
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
+    expect(getIndexerBlocks).not.toHaveBeenCalled();
+    expect(getIndexerTransactions).not.toHaveBeenCalled();
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
-    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("1");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
     expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThanOrEqual(1);
 
+    wrapper.unmount();
+  });
+
+  it("supplements stale indexed latest blocks with direct height fetches when the indexer head lags the live chain", async () => {
+    getIndexerBlocks.mockResolvedValueOnce({
+      data: [{ hash: "0xidx-block-old", block_index: 100, time_ms: Date.now(), tx_count: 1 }],
+      paging: { total: 101 },
+    });
+    getBlockCount.mockResolvedValueOnce(103);
+    getBlockByHeight
+      .mockResolvedValueOnce({ hash: "0xrpc-102", index: 102, timestamp: Date.now(), txcount: 1 })
+      .mockResolvedValueOnce({ hash: "0xrpc-101", index: 101, timestamp: Date.now(), txcount: 0 })
+      .mockResolvedValueOnce({ hash: "0xrpc-100", index: 100, timestamp: Date.now(), txcount: 1 });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getIndexerBlocks).not.toHaveBeenCalled();
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("103");
     wrapper.unmount();
   });
 
@@ -252,15 +304,11 @@ describe("HomePage initial loading", () => {
   });
 
   it("does not block latest blocks rendering on slow transactions response", async () => {
-    let resolveTxList;
-    getBlockList.mockResolvedValue({
-      result: [{ hash: "0xblock", timestamp: Date.now(), txcount: 1 }],
-      totalCount: 1,
-    });
-    getTxList.mockImplementation(
+    let resolveTxsByBlockHeight;
+    getTxsByBlockHeight.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
-          resolveTxList = resolve;
+          resolveTxsByBlockHeight = resolve;
         })
     );
 
@@ -281,7 +329,7 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("true");
 
-    resolveTxList({
+    resolveTxsByBlockHeight({
       result: [{ hash: "0xtx" }],
       totalCount: 1,
     });
@@ -292,10 +340,10 @@ describe("HomePage initial loading", () => {
   });
 
   it("normalizes latest block transactionCount into txcount for rendering", async () => {
-    getBlockList.mockResolvedValueOnce({
-      result: [{ hash: "0xblock-camel", index: 123, timestamp: Date.now(), transactionCount: 7 }],
-      totalCount: 1,
-    });
+    getBlockCount.mockResolvedValueOnce(124);
+    getBlockByHeight
+      .mockResolvedValueOnce({ hash: "0xblock-camel", index: 123, timestamp: Date.now(), transactionCount: 7 })
+      .mockResolvedValue({ hash: "0xolder-block", index: 122, timestamp: Date.now() - 15000, txcount: 0 });
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -315,18 +363,11 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("does not block latest transactions rendering on slow pending-transactions response", async () => {
-    let resolvePendingTxs;
+  it("does not consult pending-transactions for the homepage latest confirmed transaction list", async () => {
     getTxList.mockResolvedValueOnce({
       result: [{ hash: "0xtx-immediate" }],
       totalCount: 1,
     });
-    getPendingTransactions.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolvePendingTxs = resolve;
-        })
-    );
 
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -343,19 +384,64 @@ describe("HomePage initial loading", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("2");
-
-    resolvePendingTxs([{ hash: "0xpending" }]);
-    await flushPromises();
+    expect(getPendingTransactions).not.toHaveBeenCalled();
 
     wrapper.unmount();
   });
 
-  it("supplements short transaction list from recent blocks to avoid temporary one-item flashes", async () => {
+  it("does not merge pending transactions into the homepage latest confirmed transaction list", async () => {
     getTxList.mockResolvedValueOnce({
-      result: [{ hash: "0xonly" }],
+      result: [{ hash: "0xconfirmed" }],
       totalCount: 1,
     });
+    getPendingTransactions.mockResolvedValueOnce([{ hash: "0xpending" }]);
+    getBlockCount.mockResolvedValueOnce(0);
+    getTxsByBlockHeight.mockResolvedValueOnce({ result: [], totalCount: 0 });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("1");
+    expect(getPendingTransactions).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("uses a faster dedicated homepage auto-refresh interval", async () => {
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(useAutoRefreshMock).toHaveBeenCalled();
+    expect(useAutoRefreshMock.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        intervalMs: 5000,
+      }),
+    );
+    wrapper.unmount();
+  });
+
+  it("supplements short transaction list from recent blocks to avoid temporary one-item flashes", async () => {
     getBlockCount.mockResolvedValueOnce(2);
     getTxsByBlockHeight.mockResolvedValueOnce({
       result: [
@@ -390,10 +476,6 @@ describe("HomePage initial loading", () => {
 
   it("renders short latest transaction list immediately without waiting for fallback block scans", async () => {
     let resolveFallbackScan;
-    getTxList.mockResolvedValueOnce({
-      result: [{ hash: "0xonly" }],
-      totalCount: 1,
-    });
     getBlockCount.mockResolvedValueOnce(2);
     getTxsByBlockHeight.mockImplementationOnce(
       () =>
@@ -416,8 +498,7 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(Number(wrapper.get('[data-testid="latest-txs"]').attributes("data-count"))).toBeGreaterThan(0);
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("true");
 
     resolveFallbackScan({ result: [{ hash: "0xonly" }], totalCount: 1 });
     await flushPromises();
@@ -441,8 +522,9 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getBlockList).toHaveBeenCalled();
-    expect(getTxList).toHaveBeenCalled();
+    expect(getBlockCount).toHaveBeenCalled();
+    expect(getBlockByHeight).toHaveBeenCalled();
+    expect(getTxsByBlockHeight).toHaveBeenCalled();
     expect(getDashboardStats).toHaveBeenCalled();
     expect(getNeoTubeBlocks).not.toHaveBeenCalled();
     expect(getNeoTubeTxs).not.toHaveBeenCalled();
@@ -452,8 +534,6 @@ describe("HomePage initial loading", () => {
 
   it("falls back to per-height RPC loaders after latest list RPC failures", async () => {
     supportsNeoTubeNetwork.mockReturnValue(true);
-    getBlockList.mockRejectedValueOnce(new Error("rpc blocks unavailable"));
-    getTxList.mockRejectedValueOnce(new Error("rpc txs unavailable"));
     getBlockCount.mockResolvedValueOnce(5);
     getBlockByHeight.mockResolvedValueOnce({
       hash: "0xrpc-fallback-block",
@@ -480,8 +560,6 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getBlockList).toHaveBeenCalled();
-    expect(getTxList).toHaveBeenCalled();
     expect(getBlockCount).toHaveBeenCalled();
     expect(getBlockByHeight).toHaveBeenCalled();
     expect(getTxsByBlockHeight).toHaveBeenCalled();
@@ -507,14 +585,17 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-summary-size")).toBe("1");
     expect(enrichTransactionsMock).toHaveBeenCalled();
-    expect(enrichTransactionsMock.mock.calls[0][0]).toEqual([{ hash: "0xtx" }]);
+    expect(enrichTransactionsMock.mock.calls[0][0]).toEqual([{ hash: "0xtx-by-height", blocktime: expect.any(Number) }]);
     wrapper.unmount();
   });
 
   it("keeps block height aligned to latest block list even when stats endpoint lags", async () => {
-    getBlockList.mockResolvedValueOnce({
-      result: [{ hash: "0xrpc-block", index: 12345, timestamp: Date.now(), txcount: 1 }],
-      totalCount: 1,
+    getBlockCount.mockResolvedValueOnce(12346);
+    getBlockByHeight.mockResolvedValueOnce({
+      hash: "0xrpc-block",
+      index: 12345,
+      timestamp: Date.now(),
+      txcount: 1,
     });
     getDashboardStats.mockResolvedValueOnce({ blocks: 10, txs: 20 });
 
@@ -537,14 +618,21 @@ describe("HomePage initial loading", () => {
   });
 
   it("updates block height immediately when latest blocks refresh returns a newer height", async () => {
-    getBlockList
+    getBlockCount
+      .mockResolvedValueOnce(5001)
+      .mockResolvedValueOnce(5002);
+    getBlockByHeight
       .mockResolvedValueOnce({
-        result: [{ hash: "0xrpc-block-a", index: 5000, timestamp: Date.now(), txcount: 1 }],
-        totalCount: 1,
+        hash: "0xrpc-block-a",
+        index: 5000,
+        timestamp: Date.now(),
+        txcount: 1,
       })
       .mockResolvedValueOnce({
-        result: [{ hash: "0xrpc-block-b", index: 5001, timestamp: Date.now(), txcount: 1 }],
-        totalCount: 1,
+        hash: "0xrpc-block-b",
+        index: 5001,
+        timestamp: Date.now(),
+        txcount: 1,
       });
     getDashboardStats.mockResolvedValue({ blocks: 100, txs: 200 });
 

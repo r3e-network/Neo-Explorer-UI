@@ -58,6 +58,7 @@ import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
 import { statsService, blockService, transactionService, searchService, indexerReadService } from "@/services";
+import { getLatestHomepageSnapshot } from "@/services/liveHomepageService";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
@@ -91,6 +92,7 @@ let isRefreshing = false;
 let lastFetchLatestTime = 0;
 let lastStatsRefreshTime = 0;
 const STATS_REFRESH_INTERVAL_MS = 60_000;
+const HOMEPAGE_REFRESH_INTERVAL_MS = 5_000;
 const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
 const TX_FALLBACK_BATCH_SIZE = 4;
 const blockDetailsByHash = new Map();
@@ -266,10 +268,13 @@ function computeBlockFeeTotals(block = {}) {
   );
 }
 
-async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {}) {
+async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {}, latestHeightOverride = null) {
   const maxItems = Math.max(1, Number(limit) || 6);
   const normalizedSkip = Math.max(0, Number(skip) || 0);
-  const latestHeight = Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
+  const latestHeight =
+    Number.isFinite(Number(latestHeightOverride))
+      ? Number(latestHeightOverride)
+      : Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
   if (!Number.isFinite(latestHeight) || latestHeight < 0) {
     return { result: [], totalCount: 0 };
   }
@@ -291,10 +296,18 @@ async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {
   return { result, totalCount: latestHeight + 1 };
 }
 
-async function fetchLatestTransactionsByRecentBlocks(limit = 6, skip = 0, requestOptions = {}) {
+async function fetchLatestTransactionsByRecentBlocks(
+  limit = 6,
+  skip = 0,
+  requestOptions = {},
+  latestHeightOverride = null,
+) {
   const maxItems = Math.max(1, Number(limit) || 6);
   let remainingSkip = Math.max(0, Number(skip) || 0);
-  const latestHeight = Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
+  const latestHeight =
+    Number.isFinite(Number(latestHeightOverride))
+      ? Number(latestHeightOverride)
+      : Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
 
   if (!Number.isFinite(latestHeight) || latestHeight < 0) {
     return { result: [], totalCount: 0 };
@@ -343,23 +356,6 @@ async function fetchLatestTransactionsByRecentBlocks(limit = 6, skip = 0, reques
   };
 }
 
-async function fetchPendingTransactionsSafe(limit = 20) {
-  const pendingFetcher = transactionService?.getPendingTransactions;
-  if (typeof pendingFetcher !== "function") {
-    if (import.meta.env.DEV) {
-      console.warn("transactionService.getPendingTransactions is unavailable; skipping mempool merge.");
-    }
-    return [];
-  }
-
-  try {
-    return await pendingFetcher.call(transactionService, limit);
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn("Pending tx fetch failed; continuing without mempool data:", err);
-    return [];
-  }
-}
-
 // Data loading
 async function loadData() {
   blocksLoading.value = true;
@@ -400,8 +396,40 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
+    const latestHeightPromise = blockService
+      .getCount({ ...requestOptions, throwOnError: false })
+      .then((count) => Number(count) - 1)
+      .catch(() => -1);
+    const liveHomepagePromise = getLatestHomepageSnapshot({ blockLimit: 6, txLimit: 6 }).catch(() => null);
 
     const fetchLatestBlocks = async () => {
+      try {
+        const live = await liveHomepagePromise;
+        const liveBlocks = Array.isArray(live?.blocks) ? live.blocks : [];
+        if (liveBlocks.length > 0) {
+          return {
+            result: liveBlocks,
+            totalCount: Number(liveBlocks[0]?.index ?? 0) + 1,
+          };
+        }
+      } catch {
+        // fallback below
+      }
+
+      try {
+        const latestHeight = await latestHeightPromise;
+        const directRes = await fetchLatestBlocksByHeight(6, 0, requestOptions, latestHeight);
+        const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
+        if (directRows.length > 0) {
+          return {
+            result: directRows,
+            totalCount: Number(directRes?.totalCount ?? directRows.length),
+          };
+        }
+      } catch {
+        // fallback below
+      }
+
       try {
         const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
@@ -428,6 +456,30 @@ async function loadLatestData(forceRefresh = false) {
 
     const fetchLatestTransactions = async () => {
       try {
+        const live = await liveHomepagePromise;
+        const liveTransactions = Array.isArray(live?.transactions) ? live.transactions : [];
+        if (liveTransactions.length > 0) {
+          return {
+            result: liveTransactions,
+            totalCount: liveTransactions.length,
+          };
+        }
+      } catch {
+        // fallback below
+      }
+
+      try {
+        const latestHeight = await latestHeightPromise;
+        const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
+        const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
+        if (directRows.length > 0) {
+          return directRes;
+        }
+      } catch {
+        // fallback below
+      }
+
+      try {
         const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {
@@ -436,8 +488,10 @@ async function loadLatestData(forceRefresh = false) {
             totalCount: Number(indexerRes?.paging?.total ?? rows.length),
           };
         }
-      } catch {
-        // fallback below
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn("Indexed latest transaction list unavailable, falling back to legacy tx list:", err);
+        }
       }
 
       try {
@@ -446,9 +500,6 @@ async function loadLatestData(forceRefresh = false) {
         if (rows.length > 0) {
           return txListRes;
         }
-
-        // No immediate rows available from primary list; use recent-block fallback synchronously.
-        return fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
       } catch (err) {
         if (import.meta.env.DEV) {
           console.warn("RPC latest transaction list unavailable, falling back to per-block tx fetch:", err);
@@ -488,19 +539,14 @@ async function loadLatestData(forceRefresh = false) {
     const fastTxsPromise = (async () => {
       const previousRows = Array.isArray(latestTxs.value) ? latestTxs.value : [];
       const previousConfirmedRows = previousRows.filter((tx) => tx?.status !== "pending");
-      const pendingPromise = fetchPendingTransactionsSafe(6)
-        .then((rows) => (Array.isArray(rows) ? rows : []))
-        .catch(() => []);
-
       let confirmedRows = [];
       try {
         const txsRes = await fetchLatestTransactions();
         confirmedRows = Array.isArray(txsRes?.result) ? txsRes.result : [];
       } catch (err) {
-        const pendingWithPrevious = mergeUniqueTransactions(await pendingPromise, previousRows, 6);
-        if (pendingWithPrevious.length) {
-          if (!hasSameOrderedTransactions(latestTxs.value, pendingWithPrevious)) {
-            latestTxs.value = pendingWithPrevious;
+        if (previousRows.length) {
+          if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
+            latestTxs.value = previousRows;
           }
           return;
         }
@@ -544,13 +590,6 @@ async function loadLatestData(forceRefresh = false) {
           })
           .catch(() => {});
       }
-
-      // Merge pending transactions when ready without blocking initial confirmed tx rendering.
-      void pendingPromise.then((pendingRows) => {
-        const mergedRows = mergeUniqueTransactions(pendingRows, initialRows, 6);
-        if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
-        latestTxs.value = mergedRows;
-      });
     })()
       .catch((err) => {
         if (import.meta.env.DEV) console.warn("txs load err:", err);
@@ -677,7 +716,7 @@ const { start: startAutoRefresh } = useAutoRefresh(() => {
   if (now - lastStatsRefreshTime >= STATS_REFRESH_INTERVAL_MS) {
     void loadStats(true);
   }
-});
+}, { intervalMs: HOMEPAGE_REFRESH_INTERVAL_MS });
 
 function handleNetworkChange() {
   void loadCommittee(true);
