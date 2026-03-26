@@ -2,10 +2,17 @@ import { getCurrentEnv } from "@/utils/env";
 
 const INDEXER_TIMEOUT_MS = 3000;
 const INDEXER_READ_BASE_URL = String(
-  import.meta.env.VITE_INDEXER_READ_BASE_URL || "https://api1.n3index.dev",
+  import.meta.env.VITE_INDEXER_READ_BASE_URL || "https://api.n3index.dev",
 )
   .trim()
   .replace(/\/+$/, "");
+const INDEXER_READ_FALLBACK_BASE_URLS = String(
+  import.meta.env.VITE_INDEXER_READ_FALLBACK_BASE_URLS ||
+    "https://api1.n3index.dev,https://api2.n3index.dev,https://api3.n3index.dev",
+)
+  .split(",")
+  .map((value) => String(value || "").trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
 function resolveIndexerNetworkPath() {
   const env = String(getCurrentEnv() || "").toLowerCase();
@@ -22,11 +29,11 @@ function isAbsoluteUrl(path) {
   return /^https?:\/\//i.test(String(path || "").trim());
 }
 
-async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRefresh = false } = {}) {
+async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRefresh = false, retryAbsolute = true } = {}) {
   if (typeof fetch !== "function") return null;
 
   const requestPath = withCacheBusting(path, forceRefresh);
-  const attempts = isAbsoluteUrl(requestPath) ? 2 : 1;
+  const attempts = isAbsoluteUrl(requestPath) && retryAbsolute ? 2 : 1;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -57,21 +64,31 @@ async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRef
 }
 
 async function fetchIndexerJsonWithFallback(paths, options = {}) {
-  for (const path of paths.filter(Boolean)) {
-    const payload = await fetchIndexerJson(path, options);
+  const filteredPaths = paths.filter(Boolean);
+  for (let index = 0; index < filteredPaths.length; index += 1) {
+    const path = filteredPaths[index];
+    const payload = await fetchIndexerJson(path, {
+      ...options,
+      retryAbsolute: index === 0,
+    });
     if (payload) return payload;
   }
   return null;
+}
+
+function buildIndexerFallbackPaths(network, pathSuffix) {
+  return [
+    `${INDEXER_READ_BASE_URL}/${network}/${pathSuffix}`,
+    ...INDEXER_READ_FALLBACK_BASE_URLS.map((baseUrl) => `${baseUrl}/${network}/${pathSuffix}`),
+    `/indexer/${network}/${pathSuffix}`,
+  ];
 }
 
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
     const payload = await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/summary`,
-        `/indexer/${network}/summary`,
-      ],
+      buildIndexerFallbackPaths(network, "summary"),
       options,
     );
     return payload?.data || null;
@@ -84,10 +101,7 @@ export const indexerReadService = {
       offset: String(offset),
     });
     return await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/blocks?${params.toString()}`,
-        `/indexer/${network}/blocks?${params.toString()}`,
-      ],
+      buildIndexerFallbackPaths(network, `blocks?${params.toString()}`),
       options,
     );
   },
@@ -99,10 +113,7 @@ export const indexerReadService = {
       offset: String(offset),
     });
     return await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/transactions?${params.toString()}`,
-        `/indexer/${network}/transactions?${params.toString()}`,
-      ],
+      buildIndexerFallbackPaths(network, `transactions?${params.toString()}`),
       options,
     );
   },
@@ -117,10 +128,7 @@ export const indexerReadService = {
       params.set("search", String(search).trim());
     }
     return await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/contracts?${params.toString()}`,
-        `/indexer/${network}/contracts?${params.toString()}`,
-      ],
+      buildIndexerFallbackPaths(network, `contracts?${params.toString()}`),
       options,
     );
   },
@@ -138,10 +146,7 @@ export const indexerReadService = {
       params.set("search", String(search).trim());
     }
     return await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/tokens?${params.toString()}`,
-        `/indexer/${network}/tokens?${params.toString()}`,
-      ],
+      buildIndexerFallbackPaths(network, `tokens?${params.toString()}`),
       options,
     );
   },
@@ -150,10 +155,7 @@ export const indexerReadService = {
     const network = resolveIndexerNetworkPath();
     if (!contractHash) return null;
     const payload = await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/tokens/${contractHash}`,
-        `/indexer/${network}/tokens/${contractHash}`,
-      ],
+      buildIndexerFallbackPaths(network, `tokens/${contractHash}`),
       options,
     );
     return payload?.data || null;
@@ -165,10 +167,7 @@ export const indexerReadService = {
       days: String(days),
     });
     const payload = await fetchIndexerJsonWithFallback(
-      [
-        `${INDEXER_READ_BASE_URL}/${network}/analytics/daily?${params.toString()}`,
-        `/indexer/${network}/analytics/daily?${params.toString()}`,
-      ],
+      buildIndexerFallbackPaths(network, `analytics/daily?${params.toString()}`),
       options,
     );
     return Array.isArray(payload?.data) ? payload.data : [];

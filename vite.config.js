@@ -14,7 +14,7 @@ const DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
-const DEFAULT_INDEXER_PROXY_TARGET = "https://api1.n3index.dev";
+const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";

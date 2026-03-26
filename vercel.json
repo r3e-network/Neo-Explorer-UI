@@ -72,11 +72,11 @@
     },
     {
       "source": "/indexer/mainnet/(.*)",
-      "destination": "https://api1.n3index.dev/mainnet/$1"
+      "destination": "https://api.n3index.dev/mainnet/$1"
     },
     {
       "source": "/indexer/testnet/(.*)",
-      "destination": "https://api1.n3index.dev/testnet/$1"
+      "destination": "https://api.n3index.dev/testnet/$1"
     },
     {
       "source": "/rest/mainnet/(.*)",

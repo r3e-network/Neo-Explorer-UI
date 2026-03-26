@@ -7,7 +7,7 @@ describe("indexerReadService freshness controls", () => {
     vi.unstubAllEnvs();
   });
 
-  it("prefers the absolute indexer origin first for force-refresh homepage reads", async () => {
+  it("prefers api.n3index.dev first for force-refresh homepage reads", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
     }));
@@ -23,7 +23,7 @@ describe("indexerReadService freshness controls", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toMatch(
-      /^https:\/\/api1\.n3index\.dev\/mainnet\/blocks\?limit=6&offset=0&_ts=\d+$/,
+      /^https:\/\/api\.n3index\.dev\/mainnet\/blocks\?limit=6&offset=0&_ts=\d+$/,
     );
     expect(fetchMock.mock.calls[0][1]).toEqual(
       expect.objectContaining({
@@ -36,7 +36,7 @@ describe("indexerReadService freshness controls", () => {
     );
   });
 
-  it("uses the absolute testnet indexer path without cache busting by default", async () => {
+  it("uses api.n3index.dev first for testnet indexer reads by default", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "TestT5"),
     }));
@@ -51,7 +51,7 @@ describe("indexerReadService freshness controls", () => {
     await indexerReadService.getTransactions(6, 0);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://api1.n3index.dev/testnet/transactions?limit=6&offset=0");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.n3index.dev/testnet/transactions?limit=6&offset=0");
     expect(fetchMock.mock.calls[0][1]).toEqual(
       expect.objectContaining({
         method: "GET",
@@ -60,13 +60,15 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("cache");
   });
 
-  it("falls back to the same-origin proxy when the absolute indexer origin fails", async () => {
+  it("falls back through api1/api2/api3 before the same-origin proxy when the primary origin fails", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
     }));
 
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
       .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
       .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
       .mockResolvedValueOnce({
@@ -78,10 +80,12 @@ describe("indexerReadService freshness controls", () => {
     const { indexerReadService } = await import("../../src/services/indexerReadService.js");
     const payload = await indexerReadService.getBlocks(1, 0);
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://api1.n3index.dev/mainnet/blocks?limit=1&offset=0");
-    expect(fetchMock.mock.calls[1][0]).toBe("https://api1.n3index.dev/mainnet/blocks?limit=1&offset=0");
-    expect(fetchMock.mock.calls[2][0]).toBe("/indexer/mainnet/blocks?limit=1&offset=0");
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.n3index.dev/mainnet/blocks?limit=1&offset=0");
+    expect(fetchMock.mock.calls[1][0]).toBe("https://api.n3index.dev/mainnet/blocks?limit=1&offset=0");
+    expect(fetchMock.mock.calls[2][0]).toBe("https://api1.n3index.dev/mainnet/blocks?limit=1&offset=0");
+    expect(fetchMock.mock.calls[3][0]).toBe("https://api2.n3index.dev/mainnet/blocks?limit=1&offset=0");
+    expect(fetchMock.mock.calls[4][0]).toBe("https://api3.n3index.dev/mainnet/blocks?limit=1&offset=0");
     expect(payload).toEqual({ data: [{ block_index: 1 }], paging: { total: 1 } });
   });
 });
