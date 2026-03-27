@@ -65,8 +65,8 @@ vi.mock("@/utils/env", () => ({
   },
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => envState.value,
-  getActiveBasePath: () => "/api/mainnet",
-  getRpcApiBasePath: () => "/api/mainnet",
+  getActiveBasePath: () => "/rpc/mainnet",
+  getRpcApiBasePath: () => "/rpc/mainnet",
   setActiveBasePath: vi.fn(),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
@@ -180,7 +180,7 @@ describe("GovernanceTool network changes", () => {
       u: { HexString: { fromHex: (value) => value } },
     };
     getCommitteeMock.mockResolvedValue(["PK1", "PK2", "PK3", "PK4"]);
-    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 5760 } });
+    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 5760, msperblock: 15000 } });
     invokeScriptMock.mockResolvedValue({ state: "HALT", gasconsumed: "135208" });
     calculateNetworkFeeMock.mockResolvedValue("721066");
     getValidatorMetadataMock.mockResolvedValue([
@@ -791,6 +791,76 @@ describe("GovernanceTool network changes", () => {
           previous_valid_until_block: 9055023,
           refreshed_valid_until_block: 5883,
           forked_from_proposal_id: 99,
+        }),
+      }),
+    );
+
+    wrapper.unmount();
+  });
+
+  it("targets a 30 day valid-until window when the active protocol allows it", async () => {
+    connectedAccount.value = "APK1";
+    walletServiceMock.isConnected = true;
+    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 999999, msperblock: 15000 } });
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    const createButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
+    expect(createButton).toBeTruthy();
+    await createButton.trigger("click");
+    await flushPromises();
+
+    function findCreateFormInTree(instance) {
+      if (instance.setupState?.createForm) return instance.setupState;
+      if (instance.subTree?.component?.setupState?.createForm) return instance.subTree.component.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+
+    const createState = findCreateFormInTree(wrapper.vm.$);
+    createState.createForm.description = "Thirty day governance window";
+    createState.createForm.invocations[0].params.value = "1000";
+    await createState.handleCreateProposal();
+    await flushPromises();
+
+    expect(createMultisigRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          valid_until_block: 172923,
         }),
       }),
     );

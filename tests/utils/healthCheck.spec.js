@@ -4,7 +4,7 @@ const post = vi.fn();
 const setActiveBasePath = vi.fn();
 const getCurrentEnv = vi.fn(() => "Mainnet");
 const getActiveBasePath = vi.fn((env) =>
-  env === "TestT5" ? "https://api.n3index.dev/testnet" : "https://api.n3index.dev/mainnet"
+  env === "TestT5" ? "/rpc/testnet" : "/rpc/mainnet"
 );
 const getConfiguredRpcBaseUrl = vi.fn(() => "");
 const toAbsoluteUrl = vi.fn((value) => value);
@@ -45,10 +45,10 @@ describe("healthCheck endpoint selection", () => {
 
   it("selects fallback when primary endpoint fails and fallback is healthy", async () => {
     post.mockImplementation(async (url) => {
-      if (url === "https://api.n3index.dev/mainnet") {
+      if (url === "/rpc/mainnet/primary") {
         throw new Error("primary down");
       }
-      if (url === "https://api1.n3index.dev/mainnet") {
+      if (url === "/rpc/mainnet/fallback") {
         return { data: { result: { index: 100 } } };
       }
       throw new Error("ignore deferred network calls");
@@ -57,19 +57,19 @@ describe("healthCheck endpoint selection", () => {
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "https://api1.n3index.dev/mainnet");
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
   });
 
   it("prefers fallback when both are healthy but fallback is much faster", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(0));
     post.mockImplementation((url) => {
-      if (url === "https://api.n3index.dev/mainnet") {
+      if (url === "/rpc/mainnet/primary") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 1600)
         );
       }
-      if (url === "https://api1.n3index.dev/mainnet") {
+      if (url === "/rpc/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 15)
         );
@@ -86,22 +86,22 @@ describe("healthCheck endpoint selection", () => {
       vi.useRealTimers();
     }
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "https://api1.n3index.dev/mainnet");
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
   });
 
   it("rejects endpoints with wrong network magic and picks the endpoint matching the selected network", async () => {
     post.mockImplementation(async (url, payload) => {
       const method = payload?.method;
-      if (url === "https://api.n3index.dev/mainnet" && method === "getversion") {
+      if (url === "/rpc/mainnet/primary" && method === "getversion") {
         return { data: { result: { protocol: { network: 894710606 } } } };
       }
-      if (url === "https://api.n3index.dev/mainnet" && method === "GetBlockCount") {
+      if (url === "/rpc/mainnet/primary" && method === "GetBlockCount") {
         return { data: { result: { index: 500 } } };
       }
-      if (url === "https://api1.n3index.dev/mainnet" && method === "getversion") {
+      if (url === "/rpc/mainnet/fallback" && method === "getversion") {
         return { data: { result: { protocol: { network: 860833102 } } } };
       }
-      if (url === "https://api1.n3index.dev/mainnet" && method === "GetBlockCount") {
+      if (url === "/rpc/mainnet/fallback" && method === "GetBlockCount") {
         return { data: { result: { index: 490 } } };
       }
       throw new Error(`unexpected call: ${url} ${method}`);
@@ -110,16 +110,16 @@ describe("healthCheck endpoint selection", () => {
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "https://api1.n3index.dev/mainnet");
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
   });
 
   it("keeps current route when all local candidates are wrong-network", async () => {
     post.mockImplementation(async (url, payload) => {
       const method = payload?.method;
-      if (url.includes("/api/mainnet/") && method === "getversion") {
+      if (url.includes("/rpc/mainnet/") && method === "getversion") {
         return { data: { result: { protocol: { network: 894710606 } } } };
       }
-      if (url.includes("/api/mainnet/") && method === "GetBlockCount") {
+      if (url.includes("/rpc/mainnet/") && method === "GetBlockCount") {
         return { data: { result: { index: 100 } } };
       }
       throw new Error(`unexpected call: ${url} ${method}`);
@@ -132,6 +132,10 @@ describe("healthCheck endpoint selection", () => {
   });
 
   it("treats slower but healthy probes as valid when the default timeout budget covers them", async () => {
+    getActiveBasePath.mockImplementation((env) =>
+      env === "Mainnet" ? "/rpc/mainnet/primary" : "/rpc/testnet/primary"
+    );
+
     post.mockImplementation(async (_url, payload, config) => {
       const requiredTimeoutMs = payload?.method === "getversion" ? 3000 : 3500;
       if ((config?.timeout || 0) < requiredTimeoutMs) {
@@ -155,16 +159,16 @@ describe("healthCheck endpoint selection", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(0));
     getActiveBasePath.mockImplementation((env) =>
-      env === "Mainnet" ? "https://api.n3index.dev/mainnet" : "https://api.n3index.dev/testnet"
+      env === "Mainnet" ? "/rpc/mainnet/primary" : "/rpc/testnet/primary"
     );
 
     post.mockImplementation((url) => {
-      if (url.includes("/api/mainnet/primary")) {
+      if (url.includes("/rpc/mainnet/primary")) {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 220)
         );
       }
-      if (url === "/api/mainnet/fallback") {
+      if (url === "/rpc/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 40)
         );
@@ -181,23 +185,23 @@ describe("healthCheck endpoint selection", () => {
       vi.useRealTimers();
     }
 
-    expect(setActiveBasePath).not.toHaveBeenCalledWith("Mainnet", "https://api1.n3index.dev/mainnet");
+    expect(setActiveBasePath).not.toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
   });
 
   it("does not log an endpoint switch when the selected endpoint is unchanged", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(0));
     getActiveBasePath.mockImplementation((env) =>
-      env === "Mainnet" ? "https://api1.n3index.dev/mainnet" : "https://api.n3index.dev/testnet"
+      env === "Mainnet" ? "/rpc/mainnet/fallback" : "/rpc/testnet/primary"
     );
 
     post.mockImplementation((url) => {
-      if (url.includes("/api/mainnet/primary")) {
+      if (url.includes("/rpc/mainnet/primary")) {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 260)
         );
       }
-      if (url === "/api/mainnet/fallback") {
+      if (url === "/rpc/mainnet/fallback") {
         return new Promise((resolve) =>
           setTimeout(() => resolve({ data: { result: { index: 500 } } }), 25)
         );
@@ -224,16 +228,16 @@ describe("healthCheck endpoint selection", () => {
       if (method === "getversion") {
         return { data: { result: { protocol: { network: 860833102 } } } };
       }
-      if (method === "GetBlockCount" && url === "/api/mainnet/primary") {
+      if (method === "GetBlockCount" && url === "/rpc/mainnet/primary") {
         return { data: { result: { index: 100 } } };
       }
-      if (method === "GetBlockCount" && url === "/api/mainnet/fallback") {
+      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback") {
         return { data: { result: { index: 101 } } };
       }
-      if (method === "GetBlockCount" && url === "https://api2.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback2") {
         return { data: { result: { index: 105 } } };
       }
-      if (method === "GetBlockCount" && url === "https://api3.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback3") {
         return { data: { result: { index: 104 } } };
       }
       throw new Error(`unexpected call: ${url} ${method}`);
@@ -242,6 +246,6 @@ describe("healthCheck endpoint selection", () => {
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "https://api2.n3index.dev/mainnet");
+    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback2");
   });
 });

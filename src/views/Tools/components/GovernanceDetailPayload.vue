@@ -123,6 +123,8 @@
       <UnsignedTransactionViewer
         v-if="proposal.params?.unsigned_tx"
         :transaction-hex="proposal.params.unsigned_tx"
+        :current-block-height="currentBlockHeight"
+        :milliseconds-per-block="millisecondsPerBlock"
         label="Unsigned Transaction Packet"
         description="The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script."
       />
@@ -340,5 +342,7 @@ defineProps({
   proposalInvocations: { type: Array, required: true },
   signatureWitnessRows: { type: Array, required: true },
   connectedAccount: { type: String, default: "" },
+  currentBlockHeight: { type: Number, default: null },
+  millisecondsPerBlock: { type: Number, default: null },
 });
 </script>

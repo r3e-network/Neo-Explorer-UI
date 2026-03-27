@@ -41,6 +41,8 @@ const getOrCreateBatchState = (stateMap, network) => {
   return stateMap.get(key);
 };
 
+const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+
 const flushContractMetadataBatch = async (network) => {
   const state = contractMetadataBatchState.get(network);
   if (!state) return;
@@ -93,12 +95,27 @@ const flushAddressTagBatch = async (network) => {
   });
 };
 
-const INDEXER_METADATA_BASE_URL = String(
-  import.meta.env.VITE_INDEXER_METADATA_BASE_URL || "https://api1.n3index.dev"
+const INDEXER_METADATA_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_INDEXER_METADATA_BASE_URL || "");
+const INDEXER_METADATA_FALLBACK_BASE_URLS = String(
+  import.meta.env.VITE_INDEXER_METADATA_FALLBACK_BASE_URLS || "",
 )
-  .trim()
-  .replace(/\/+$/, "");
-const INDEXER_METADATA_PROXY_BASE_PATH = "/indexer";
+  .split(",")
+  .map(normalizeBaseUrl)
+  .filter(Boolean);
+const DEFAULT_INDEXER_METADATA_BASE_PATHS = Object.freeze({
+  mainnet: [
+    "/data/mainnet",
+    "/data/mainnet/fallback",
+    "/data/mainnet/fallback2",
+    "/data/mainnet/fallback3",
+  ],
+  testnet: [
+    "/data/testnet",
+    "/data/testnet/fallback",
+    "/data/testnet/fallback2",
+    "/data/testnet/fallback3",
+  ],
+});
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;
 const GOVERNANCE_CANDIDATE_INFO_CONTRACTS = Object.freeze({
@@ -255,12 +272,23 @@ const fetchGovernanceCandidateMetadata = async (networkMode) => {
 
 const getNetworkMode = (networkMode) => toNetworkMode(networkMode);
 
-const buildIndexerMetadataUrl = (network, resource, query = "") => {
-  return `${INDEXER_METADATA_BASE_URL}/${network}/metadata/${resource}${query}`;
+const getIndexerMetadataBaseUrls = (network) => {
+  const configuredBaseUrls = [
+    INDEXER_METADATA_BASE_URL ? `${INDEXER_METADATA_BASE_URL}/${network}` : "",
+    ...INDEXER_METADATA_FALLBACK_BASE_URLS.map((baseUrl) => `${baseUrl}/${network}`),
+  ].filter(Boolean);
+
+  if (configuredBaseUrls.length > 0) {
+    return configuredBaseUrls;
+  }
+
+  return DEFAULT_INDEXER_METADATA_BASE_PATHS[network] || DEFAULT_INDEXER_METADATA_BASE_PATHS.mainnet;
 };
 
-const buildIndexerMetadataProxyUrl = (network, resource, query = "") => {
-  return `${INDEXER_METADATA_PROXY_BASE_PATH}/${network}/metadata/${resource}${query}`;
+const buildIndexerMetadataUrls = (network, resource, query = "") => {
+  return getIndexerMetadataBaseUrls(network).map(
+    (baseUrl) => `${baseUrl}/metadata/${resource}${query}`
+  );
 };
 
 const fetchJsonWithTimeout = async (url, timeoutMs = METADATA_FETCH_TIMEOUT_MS) => {
@@ -483,6 +511,56 @@ const hydrateRequestSignatures = (request) => {
   };
 };
 
+const attachMultisigSignatures = async (requests = []) => {
+  if (!supabase || !Array.isArray(requests) || requests.length === 0) {
+    return Array.isArray(requests) ? requests : [];
+  }
+
+  const hydratedRequests = await Promise.all(
+    requests.map(async (request) => {
+      const requestId = Number(request?.id || 0);
+      if (!Number.isFinite(requestId) || requestId <= 0) {
+        return hydrateRequestSignatures({ ...request, signatures: [] });
+      }
+
+      const { data, error } = await supabase
+        .from("multisig_signatures")
+        .select("*")
+        .eq("request_id", requestId);
+
+      if (error) throw error;
+
+      return hydrateRequestSignatures({
+        ...request,
+        signatures: Array.isArray(data) ? data : [],
+      });
+    }),
+  );
+
+  return hydratedRequests;
+};
+
+const fetchMultisigRequestsPlain = async (network, column = "") => {
+  let query = supabase.from("multisig_requests").select("*");
+  if (column) {
+    query = query.eq(column, network);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
+  if (error) throw error;
+  return attachMultisigSignatures(data || []);
+};
+
+const fetchMultisigRequestByIdPlain = async (requestId, network, column = "") => {
+  let query = supabase.from("multisig_requests").select("*").eq("id", requestId);
+  if (column) {
+    query = query.eq(column, network);
+  }
+  const { data, error } = await query.single();
+  if (error) throw error;
+  const [hydrated] = await attachMultisigSignatures(data ? [data] : []);
+  return hydrated || null;
+};
+
 const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {
   for (const column of ["network", "network_mode"]) {
     try {
@@ -552,10 +630,9 @@ export const supabaseService = {
           Math.max(toFetch.length, 1),
           1000
         )}`;
-        const payload = await fetchJsonWithTimeoutWithFallback([
-          buildIndexerMetadataProxyUrl(network, "contracts", query),
-          buildIndexerMetadataUrl(network, "contracts", query),
-        ]);
+        const payload = await fetchJsonWithTimeoutWithFallback(
+          buildIndexerMetadataUrls(network, "contracts", query)
+        );
         const rows = Array.isArray(payload?.data) ? payload.data : [];
 
         toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
@@ -665,10 +742,9 @@ export const supabaseService = {
           Math.max(toFetch.length, 1),
           1000
         )}`;
-        const payload = await fetchJsonWithTimeoutWithFallback([
-          buildIndexerMetadataProxyUrl(network, "addresses", query),
-          buildIndexerMetadataUrl(network, "addresses", query),
-        ]);
+        const payload = await fetchJsonWithTimeoutWithFallback(
+          buildIndexerMetadataUrls(network, "addresses", query)
+        );
         const rows = Array.isArray(payload?.data) ? payload.data : [];
 
         toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
@@ -732,10 +808,7 @@ export const supabaseService = {
 
     try {
       const [payload, governanceRows] = await Promise.all([
-        fetchJsonWithTimeoutWithFallback([
-          buildIndexerMetadataProxyUrl(network, "validators"),
-          buildIndexerMetadataUrl(network, "validators"),
-        ]),
+        fetchJsonWithTimeoutWithFallback(buildIndexerMetadataUrls(network, "validators")),
         fetchGovernanceCandidateMetadata(network),
       ]);
       const rows = Array.isArray(payload?.data) ? payload.data : [];
@@ -784,18 +857,30 @@ export const supabaseService = {
             if (error) throw error;
             return (data || []).map((request) => hydrateRequestSignatures(request));
           } catch (error) {
-            if (!isMissingSupabaseColumnError(error, column)) {
-              throw error;
+            try {
+              return await fetchMultisigRequestsPlain(network, column);
+            } catch (fallbackError) {
+              if (
+                isMissingSupabaseColumnError(error, column) ||
+                isMissingSupabaseColumnError(fallbackError, column)
+              ) {
+                continue;
+              }
+              throw fallbackError;
             }
           }
         }
 
-        const { data, error } = await supabase
-          .from('multisig_requests')
-          .select('*, signatures:multisig_signatures(*)')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        return (data || []).map((request) => hydrateRequestSignatures(request));
+        try {
+          const { data, error } = await supabase
+            .from('multisig_requests')
+            .select('*, signatures:multisig_signatures(*)')
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          return (data || []).map((request) => hydrateRequestSignatures(request));
+        } catch (error) {
+          return await fetchMultisigRequestsPlain(network);
+        }
       })();
     } catch (err) {
       return [];
@@ -818,19 +903,31 @@ export const supabaseService = {
             if (error) throw error;
             return data ? hydrateRequestSignatures(data) : null;
           } catch (error) {
-            if (!isMissingSupabaseColumnError(error, column)) {
-              throw error;
+            try {
+              return await fetchMultisigRequestByIdPlain(requestId, network, column);
+            } catch (fallbackError) {
+              if (
+                isMissingSupabaseColumnError(error, column) ||
+                isMissingSupabaseColumnError(fallbackError, column)
+              ) {
+                continue;
+              }
+              throw fallbackError;
             }
           }
         }
 
-        const { data, error } = await supabase
-          .from("multisig_requests")
-          .select("*, signatures:multisig_signatures(*)")
-          .eq("id", requestId)
-          .single();
-        if (error) throw error;
-        return data ? hydrateRequestSignatures(data) : null;
+        try {
+          const { data, error } = await supabase
+            .from("multisig_requests")
+            .select("*, signatures:multisig_signatures(*)")
+            .eq("id", requestId)
+            .single();
+          if (error) throw error;
+          return data ? hydrateRequestSignatures(data) : null;
+        } catch (error) {
+          return await fetchMultisigRequestByIdPlain(requestId, network);
+        }
       })();
     } catch (_err) {
       return null;

@@ -89,8 +89,8 @@ export const AI_API = {
 };
 
 const DEFAULT_RPC_BASE_URLS = {
-  [NET_ENV.Mainnet]: "https://api.n3index.dev/mainnet",
-  [NET_ENV.TestT5]: "https://api.n3index.dev/testnet",
+  [NET_ENV.Mainnet]: "/rpc/mainnet",
+  [NET_ENV.TestT5]: "/rpc/testnet",
 };
 
 // RPC Node URLs used by browser-side SDK clients and HTTP API calls.
@@ -107,7 +107,7 @@ const activeBasePaths = {
   ...DEFAULT_RPC_BASE_URLS,
 };
 
-const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 
 const normalizeBaseUrl = (value) => {
   if (typeof value !== "string") return "";
@@ -124,7 +124,8 @@ const parseConfiguredNetworkBase = (value) => {
   return {
     normalized,
     basePrefix: normalized.slice(0, matched.index),
-    endpoint: (matched[2] || "").toLowerCase() || null,
+    routeBase: (matched[1] || "rpc").toLowerCase(),
+    endpoint: (matched[3] || "").toLowerCase() || null,
   };
 };
 
@@ -135,7 +136,7 @@ export const getConfiguredRpcBaseUrl = (env = getCurrentEnv()) => {
   if (!parsed) return configuredRpcBaseUrl;
 
   const network = normalizeEnv(env) === NET_ENV.TestT5 ? "testnet" : "mainnet";
-  const targetPrefix = `${parsed.basePrefix}/api/${network}`;
+  const targetPrefix = `${parsed.basePrefix}/${parsed.routeBase}/${network}`;
   return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
 };
 

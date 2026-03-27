@@ -26,6 +26,51 @@ const createRequestByIdTableMock = ({ singleResult }) => {
   return { select, query };
 };
 
+const createMultisigRelationshipFailureTableMock = ({
+  rows = [{ id: 1, network: "mainnet", description: "Recovered Request" }],
+  signaturesByRequestId = {},
+}) => {
+  const signatureQuery = {
+    eq: vi.fn((column, value) =>
+      Promise.resolve({
+        data: column === "request_id" ? signaturesByRequestId[value] || [] : [],
+        error: null,
+      })
+    ),
+  };
+  const signatureSelect = vi.fn(() => signatureQuery);
+
+  const relationshipQuery = {
+    order: vi.fn(() =>
+      Promise.resolve({
+        data: null,
+        error: new Error("Could not find a relationship between 'multisig_requests' and 'multisig_signatures'"),
+      })
+    ),
+  };
+
+  const baseQuery = {
+    eq: vi.fn(() => ({
+      order: vi.fn(() => Promise.resolve({ data: rows, error: null })),
+    })),
+    order: vi.fn(() => Promise.resolve({ data: rows, error: null })),
+  };
+
+  const requestSelect = vi.fn((query) => {
+    if (query === "*, signatures:multisig_signatures(*)") return relationshipQuery;
+    if (query === "*") return baseQuery;
+    throw new Error(`unexpected request select: ${query}`);
+  });
+
+  const from = vi.fn((tableName) => {
+    if (tableName === "multisig_signatures") {
+      return { select: signatureSelect };
+    }
+    return { select: requestSelect };
+  });
+  return { from, requestSelect, relationshipQuery, baseQuery, signatureSelect, signatureQuery };
+};
+
 const createSignatureDuplicateTableMock = ({ existingRows = [], insertResult = { data: [{ id: 9 }], error: null } }) => {
   const duplicateQuery = {
     eq: vi.fn(() => duplicateQuery),
@@ -155,9 +200,82 @@ describe("supabaseService multisig requests", () => {
     const result = await supabaseService.getMultisigRequests("testnet");
 
     expect(table.query.eq).toHaveBeenNthCalledWith(1, "network", "testnet");
-    expect(table.query.eq).toHaveBeenNthCalledWith(2, "network_mode", "testnet");
+    expect(table.query.eq).toHaveBeenNthCalledWith(2, "network", "testnet");
+    expect(table.query.eq).toHaveBeenNthCalledWith(3, "network_mode", "testnet");
+    expect(table.query.eq).toHaveBeenNthCalledWith(4, "network_mode", "testnet");
     expect(table.query.order).toHaveBeenCalledWith("created_at", { ascending: false });
     expect(result).toEqual([{ id: 9, description: "Legacy Request" }]);
+  });
+
+  it("falls back to separate signature queries when the embedded Supabase relationship is unavailable", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+
+    const table = createMultisigRelationshipFailureTableMock({
+      rows: [{ id: 1, network: "mainnet", description: "Recovered Request" }],
+      signaturesByRequestId: {
+        1: [{ signer_address: "NSigner", signature: "ab".repeat(64) }],
+      },
+    });
+    createClientMock.mockReturnValue({ from: table.from });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getMultisigRequests("mainnet");
+
+    expect(table.requestSelect).toHaveBeenCalledWith("*, signatures:multisig_signatures(*)");
+    expect(result).toEqual([
+      {
+        id: 1,
+        network: "mainnet",
+        description: "Recovered Request",
+        signatures: [{ signer_address: "NSigner", signature: "ab".repeat(64) }],
+      },
+    ]);
+  });
+
+  it("falls back to a separate signature query for a single request when the embedded relationship is unavailable", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+
+    const relationshipError = new Error(
+      "Could not find a relationship between 'multisig_requests' and 'multisig_signatures'"
+    );
+    const requestQuery = {
+      eq: vi.fn(() => requestQuery),
+      single: vi
+        .fn()
+        .mockResolvedValueOnce({ data: null, error: relationshipError })
+        .mockResolvedValueOnce({ data: { id: 7, description: "Recovered Request" }, error: null }),
+    };
+    const signatureQuery = {
+      eq: vi.fn((column, value) =>
+        Promise.resolve({
+          data: column === "request_id" && value === 7 ? [{ signer_address: "NSigner" }] : [],
+          error: null,
+        })
+      ),
+    };
+    const requestSelect = vi.fn(() => requestQuery);
+    const signatureSelect = vi.fn(() => signatureQuery);
+
+    createClientMock.mockReturnValue({
+      from: vi.fn((tableName) =>
+        tableName === "multisig_signatures" ? { select: signatureSelect } : { select: requestSelect }
+      ),
+    });
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getMultisigRequestById(7, "mainnet");
+
+    expect(requestSelect).toHaveBeenCalledWith("*, signatures:multisig_signatures(*)");
+    expect(requestSelect).toHaveBeenCalledWith("*");
+    expect(signatureSelect).toHaveBeenCalledWith("*");
+    expect(signatureQuery.eq).toHaveBeenCalledWith("request_id", 7);
+    expect(result).toEqual({
+      id: 7,
+      description: "Recovered Request",
+      signatures: [{ signer_address: "NSigner" }],
+    });
   });
 
   it("loads a single multisig request by id with signatures", async () => {

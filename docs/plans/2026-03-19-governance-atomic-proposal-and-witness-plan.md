@@ -1,6 +1,6 @@
 # Governance Atomic Proposal And Witness Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Implementer:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Finish the governance tool so it can author the atomic mainnet proposal for `setMillisecondsPerBlock(3000)` plus `setGasPerBlock(100000000)`, explain the parameter units clearly, and accept imported witness fragments from external council signers.
 

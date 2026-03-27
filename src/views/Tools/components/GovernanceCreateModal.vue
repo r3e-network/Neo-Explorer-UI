@@ -295,6 +295,7 @@ import { walletService } from "@/services/walletService";
 import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { isPublicKeyHex } from "@/utils/neoHelpers";
+import { resolveGovernanceValidUntilBlock } from "@/utils/governanceTiming";
 import { useToast } from "vue-toastification";
 
 const props = defineProps({
@@ -847,11 +848,13 @@ async function handleCreateProposal() {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     const version = await getProtocolVersion(rpcClient, neonJs);
+    const msPerBlock = Number(version?.protocol?.msperblock);
     const maxValidUntilBlockIncrement = Number(version?.protocol?.maxvaliduntilblockincrement);
-    const validUntilBlock =
-      Number.isFinite(maxValidUntilBlockIncrement) && maxValidUntilBlockIncrement > 0
-        ? currentHeight + maxValidUntilBlockIncrement
-        : currentHeight + 1000;
+    const validUntilBlock = resolveGovernanceValidUntilBlock({
+      currentHeight,
+      msPerBlock,
+      maxValidUntilBlockIncrement,
+    });
     const signerConfig = resolveSignerConfig(neonJs);
     const previousValidUntilBlock = isForkMode.value ? resolveExistingValidUntilBlock(props.prefillProposal, neonJs) : null;
 
@@ -955,6 +958,11 @@ async function handleCreateProposal() {
           system_fee: String(invokeResult?.gasconsumed || 0),
           network_fee: String(networkFee || 0),
         },
+        protocol_ms_per_block: Number.isFinite(msPerBlock) && msPerBlock > 0 ? msPerBlock : undefined,
+        protocol_max_valid_until_block_increment:
+          Number.isFinite(maxValidUntilBlockIncrement) && maxValidUntilBlockIncrement > 0
+            ? maxValidUntilBlockIncrement
+            : undefined,
         scriptHash: activeSignerConfig.multiSigAccount.scriptHash,
         committee_pubkeys: activeSignerConfig.signerPubkeys,
         governance_mode: activeSignerConfig.mode,

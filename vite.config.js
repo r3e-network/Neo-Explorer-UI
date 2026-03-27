@@ -12,9 +12,10 @@ const DEFAULT_MAINNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";
 const DEFAULT_TESTNET_RPC_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";
 const DEFAULT_MAINNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
-const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
-const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
+const DEFAULT_INDEXER_FALLBACK_PROXY_TARGET = "https://api1.n3index.dev";
+const DEFAULT_INDEXER_FALLBACK2_PROXY_TARGET = "https://api2.n3index.dev";
+const DEFAULT_INDEXER_FALLBACK3_PROXY_TARGET = "https://api3.n3index.dev";
 const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";
@@ -254,9 +255,12 @@ export default defineConfig(({ mode }) => {
   const testnetRpcFallback3Target =
     env.VITE_TESTNET_RPC_FALLBACK3_PROXY_TARGET || DEFAULT_TESTNET_RPC_FALLBACK3_PROXY_TARGET;
 
-  const mainnetBpiPrimaryTarget = env.VITE_MAINNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET;
-  const testnetBpiPrimaryTarget = env.VITE_TESTNET_BPI_PRIMARY_PROXY_TARGET || DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET;
   const indexerProxyTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
+  const indexerFallbackProxyTarget = env.VITE_INDEXER_FALLBACK_PROXY_TARGET || DEFAULT_INDEXER_FALLBACK_PROXY_TARGET;
+  const indexerFallback2ProxyTarget =
+    env.VITE_INDEXER_FALLBACK2_PROXY_TARGET || DEFAULT_INDEXER_FALLBACK2_PROXY_TARGET;
+  const indexerFallback3ProxyTarget =
+    env.VITE_INDEXER_FALLBACK3_PROXY_TARGET || DEFAULT_INDEXER_FALLBACK3_PROXY_TARGET;
   const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
 
   return {
@@ -296,15 +300,135 @@ export default defineConfig(({ mode }) => {
         "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       },
       proxy: {
+        "/data/mainnet/fallback3": {
+          target: indexerFallback3ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/mainnet\/fallback3/, "/mainnet"),
+        },
+        "/data/mainnet/fallback2": {
+          target: indexerFallback2ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/mainnet\/fallback2/, "/mainnet"),
+        },
+        "/data/mainnet/fallback": {
+          target: indexerFallbackProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/mainnet\/fallback/, "/mainnet"),
+        },
+        "/data/mainnet": {
+          target: indexerProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/mainnet/, "/mainnet"),
+        },
+        "/data/testnet/fallback3": {
+          target: indexerFallback3ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/testnet\/fallback3/, "/testnet"),
+        },
+        "/data/testnet/fallback2": {
+          target: indexerFallback2ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/testnet\/fallback2/, "/testnet"),
+        },
+        "/data/testnet/fallback": {
+          target: indexerFallbackProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/testnet\/fallback/, "/testnet"),
+        },
+        "/data/testnet": {
+          target: indexerProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/data\/testnet/, "/testnet"),
+        },
+        "/indexer/mainnet/fallback3": {
+          target: indexerFallback3ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/mainnet\/fallback3/, "/mainnet"),
+        },
+        "/indexer/mainnet/fallback2": {
+          target: indexerFallback2ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/mainnet\/fallback2/, "/mainnet"),
+        },
+        "/indexer/mainnet/fallback": {
+          target: indexerFallbackProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/mainnet\/fallback/, "/mainnet"),
+        },
         "/indexer/mainnet": {
           target: indexerProxyTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/indexer\/mainnet/, "/mainnet"),
         },
+        "/indexer/testnet/fallback3": {
+          target: indexerFallback3ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/testnet\/fallback3/, "/testnet"),
+        },
+        "/indexer/testnet/fallback2": {
+          target: indexerFallback2ProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/testnet\/fallback2/, "/testnet"),
+        },
+        "/indexer/testnet/fallback": {
+          target: indexerFallbackProxyTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/indexer\/testnet\/fallback/, "/testnet"),
+        },
         "/indexer/testnet": {
           target: indexerProxyTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/indexer\/testnet/, "/testnet"),
+        },
+        "/rpc/mainnet/primary": {
+          target: mainnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/rpc/mainnet/fallback": {
+          target: mainnetRpcFallbackTarget,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/rpc/testnet/primary": {
+          target: testnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
+        "/rpc/testnet/fallback": {
+          target: testnetRpcFallbackTarget,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
+        "/rpc/mainnet/fallback2": {
+          target: mainnetRpcFallback2Target,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/rpc/mainnet/fallback3": {
+          target: mainnetRpcFallback3Target,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/rpc/testnet/fallback2": {
+          target: testnetRpcFallback2Target,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
+        "/rpc/testnet/fallback3": {
+          target: testnetRpcFallback3Target,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
+        },
+        "/rpc/mainnet": {
+          target: mainnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: () => "/mainnet",
+        },
+        "/rpc/testnet": {
+          target: testnetRpcPrimaryTarget,
+          changeOrigin: true,
+          rewrite: () => "/testnet",
         },
         "/rest/mainnet": {
           target: mainnetRpcPrimaryTarget,
@@ -365,21 +489,6 @@ export default defineConfig(({ mode }) => {
           target: testnetRpcPrimaryTarget,
           changeOrigin: true,
           rewrite: () => "/testnet",
-        },
-        "/bpi/mainnet": {
-          target: mainnetBpiPrimaryTarget,
-          changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi\/mainnet/, "/mainnet/bpi"),
-        },
-        "/bpi/testnet": {
-          target: testnetBpiPrimaryTarget,
-          changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi\/testnet/, "/testnet/bpi"),
-        },
-        "/bpi": {
-          target: mainnetBpiPrimaryTarget,
-          changeOrigin: true,
-          rewrite: (p) => p.replace(/^\/bpi/, "/mainnet/bpi"),
         },
       },
     },

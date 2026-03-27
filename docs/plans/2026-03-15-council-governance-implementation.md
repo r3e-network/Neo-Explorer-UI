@@ -1,6 +1,6 @@
 # Council Governance Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Implementer:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Deliver a user-friendly council governance workflow where council nodes create proposals, all users can view proposal details and vote status, council members sign once, signatures are stored in Supabase, and fully signed proposals can be broadcast on-chain.
 

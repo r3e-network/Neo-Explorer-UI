@@ -57,7 +57,7 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
-import { statsService, blockService, transactionService, searchService, indexerReadService } from "@/services";
+import { blockService, transactionService, searchService, indexerReadService } from "@/services";
 import { getLatestHomepageSnapshot } from "@/services/liveHomepageService";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
@@ -90,12 +90,29 @@ const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
-let lastStatsRefreshTime = 0;
-const STATS_REFRESH_INTERVAL_MS = 60_000;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 5_000;
 const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
 const TX_FALLBACK_BATCH_SIZE = 4;
 const blockDetailsByHash = new Map();
+
+function isFreshHomepageSummary(summary) {
+  if (!summary || typeof summary !== "object") return false;
+
+  const totalBlocks = Number(summary.total_block_count ?? summary.last_indexed_block ?? 0);
+  const lagBlocks = Number(summary.lag_blocks ?? summary.lagBlocks ?? Number.POSITIVE_INFINITY);
+  const freshnessSeconds = Number(
+    summary.freshness_seconds ?? summary.freshnessSeconds ?? Number.POSITIVE_INFINITY,
+  );
+
+  return (
+    Number.isFinite(totalBlocks) &&
+    totalBlocks > 0 &&
+    Number.isFinite(lagBlocks) &&
+    lagBlocks <= 2 &&
+    Number.isFinite(freshnessSeconds) &&
+    freshnessSeconds <= 30
+  );
+}
 
 function getLatestKnownHeight() {
   const latestIndex = Number(latestBlocks.value?.[0]?.index);
@@ -207,10 +224,12 @@ function normalizeBlockSummary(block = {}) {
     timestamp: Number.isFinite(timestamp) ? timestamp : 0,
     txcount: Number.isFinite(txCount) ? txCount : 0,
     transactioncount: Number.isFinite(txCount) ? txCount : 0,
+    primary: block.primary ?? block.primary_node,
     netfee: block.netfee ?? block.networkFee,
     sysfee: block.sysfee ?? block.systemFee,
     tx: block.tx || [],
-    nextconsensus: block.nextconsensus ?? block.nextConsensus ?? block.speaker ?? block.validator,
+    nextconsensus:
+      block.nextconsensus ?? block.nextConsensus ?? block.next_consensus ?? block.speaker ?? block.validator,
     speaker: block.speaker ?? block.nextconsensus ?? block.nextConsensus ?? block.validator,
     validator: block.validator ?? block.speaker ?? block.nextconsensus ?? block.nextConsensus,
   };
@@ -372,20 +391,6 @@ async function loadData() {
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load homepage data:", err);
   }
-
-  // Defer heavy dashboard stats until latest blocks/transactions are rendered.
-  void loadStats();
-}
-
-async function loadStats(forceRefresh = false) {
-  try {
-    const stats = await statsService.getDashboardStats(forceRefresh);
-    blockCount.value = resolveLiveBlockHeight(stats.blocks || 0);
-    txCount.value = stats.txs || 0;
-    lastStatsRefreshTime = Date.now();
-  } catch (err) {
-    if (import.meta.env.DEV) console.warn("Failed to load dashboard stats:", err);
-  }
 }
 
 async function loadLatestData(forceRefresh = false) {
@@ -398,28 +403,38 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
-    const latestHeightPromise = blockService
-      .getCount({ ...requestOptions, throwOnError: false })
-      .then((count) => Number(count) - 1)
-      .catch(() => -1);
+    const summaryPromise = indexerReadService.getSummary(requestOptions).catch(() => null);
     const liveHomepagePromise = getLatestHomepageSnapshot({ blockLimit: 6, txLimit: 6 }).catch(() => null);
+    let latestHeightPromise = null;
+    const getLatestHeight = () => {
+      if (!latestHeightPromise) {
+        latestHeightPromise = blockService
+          .getCount({ ...requestOptions, throwOnError: false })
+          .then((count) => Number(count) - 1)
+          .catch(() => -1);
+      }
+      return latestHeightPromise;
+    };
 
     const fetchLatestBlocks = async () => {
       try {
-        const live = await liveHomepagePromise;
-        const liveBlocks = Array.isArray(live?.blocks) ? live.blocks : [];
-        if (liveBlocks.length > 0) {
-          return {
-            result: liveBlocks,
-            totalCount: Number(liveBlocks[0]?.index ?? 0) + 1,
-          };
+        const summary = await summaryPromise;
+        if (summary && isFreshHomepageSummary(summary)) {
+          const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
+          const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
+          if (rows.length > 0) {
+            return {
+              result: rows,
+              totalCount: Number(indexerRes?.paging?.total ?? summary.total_block_count ?? rows.length),
+            };
+          }
         }
       } catch {
         // fallback below
       }
 
       try {
-        const latestHeight = await latestHeightPromise;
+        const latestHeight = await getLatestHeight();
         const directRes = await fetchLatestBlocksByHeight(6, 0, requestOptions, latestHeight);
         const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
         if (directRows.length > 0) {
@@ -457,64 +472,33 @@ async function loadLatestData(forceRefresh = false) {
     };
 
     const fetchLatestTransactions = async () => {
+      let summary = null;
       try {
-        const live = await liveHomepagePromise;
-        const liveTransactions = Array.isArray(live?.transactions) ? live.transactions : [];
-        if (liveTransactions.length > 0) {
-          if (liveTransactions.length >= 6) {
-            return {
-              result: liveTransactions,
-              totalCount: liveTransactions.length,
-            };
-          }
+        summary = await summaryPromise;
+      } catch {
+        summary = null;
+      }
 
-          try {
-            const latestHeight = await latestHeightPromise;
-            const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
-            const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
-            const mergedRows = mergeUniqueTransactions(liveTransactions, directRows, 6);
-            if (mergedRows.length > 0) {
+      let primaryRows = [];
+      let primaryTotalCount = 0;
+      if (summary && isFreshHomepageSummary(summary)) {
+        try {
+          const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
+          const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
+          if (rows.length > 0) {
+            primaryRows = rows;
+            primaryTotalCount = Number(indexerRes?.paging?.total ?? summary.total_tx_count ?? rows.length);
+            if (primaryRows.length >= 6) {
               return {
-                result: mergedRows,
-                totalCount: Math.max(mergedRows.length, Number(directRes?.totalCount ?? 0)),
+                result: primaryRows,
+                totalCount: Math.max(primaryTotalCount, primaryRows.length),
               };
             }
-          } catch {
-            // keep sparse live rows below
           }
-
-          return {
-            result: liveTransactions,
-            totalCount: liveTransactions.length,
-          };
-        }
-      } catch {
-        // fallback below
-      }
-
-      try {
-        const latestHeight = await latestHeightPromise;
-        const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
-        const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
-        if (directRows.length > 0) {
-          return directRes;
-        }
-      } catch {
-        // fallback below
-      }
-
-      try {
-        const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
-        const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
-        if (rows.length > 0) {
-          return {
-            result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
-          };
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.warn("Indexed latest transaction list unavailable, falling back to legacy tx list:", err);
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn("Indexed latest transaction list unavailable, falling back to legacy tx list:", err);
+          }
         }
       }
 
@@ -522,12 +506,42 @@ async function loadLatestData(forceRefresh = false) {
         const txListRes = await transactionService.getList(6, 0, requestOptions);
         const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
         if (rows.length > 0) {
-          return txListRes;
+          primaryRows = mergeUniqueTransactions(primaryRows, rows, 6);
+          primaryTotalCount = Math.max(primaryTotalCount, Number(txListRes?.totalCount ?? rows.length));
         }
       } catch (err) {
         if (import.meta.env.DEV) {
           console.warn("RPC latest transaction list unavailable, falling back to per-block tx fetch:", err);
         }
+      }
+
+      if (primaryRows.length >= 6) {
+        return {
+          result: primaryRows,
+          totalCount: Math.max(primaryTotalCount, primaryRows.length),
+        };
+      }
+
+      if (primaryRows.length > 0) {
+        try {
+          const latestHeight = await getLatestHeight();
+          const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
+          const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
+          const mergedRows = mergeUniqueTransactions(directRows, primaryRows, 6);
+          if (mergedRows.length > 0) {
+            return {
+              result: mergedRows,
+              totalCount: Math.max(primaryTotalCount, Number(directRes?.totalCount ?? 0), mergedRows.length),
+            };
+          }
+        } catch {
+          // keep the fast rows below
+        }
+
+        return {
+          result: primaryRows,
+          totalCount: Math.max(primaryTotalCount, primaryRows.length),
+        };
       }
 
       return fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
@@ -559,6 +573,12 @@ async function loadLatestData(forceRefresh = false) {
       .finally(() => {
         blocksLoading.value = false;
       });
+
+    void summaryPromise.then((summary) => {
+      if (!summary || !isFreshHomepageSummary(summary)) return;
+      blockCount.value = resolveLiveBlockHeight(Number(summary.total_block_count || 0));
+      txCount.value = Number(summary.total_tx_count || 0);
+    }).catch(() => {});
 
     const fastTxsPromise = (async () => {
       const previousRows = Array.isArray(latestTxs.value) ? latestTxs.value : [];
@@ -596,14 +616,12 @@ async function loadLatestData(forceRefresh = false) {
         }
       }
 
-      // Backfill to target size without blocking first paint.
-      if (initialRows.length > 0 && initialRows.length < 6) {
-        const applyFallbackBackfill = async () => {
-          const fallbackRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
-          const fallbackRows = Array.isArray(fallbackRes?.result) ? fallbackRes.result : [];
-          if (!fallbackRows.length) return;
+      void liveHomepagePromise
+        .then((live) => {
+          const liveRows = Array.isArray(live?.transactions) ? live.transactions : [];
+          if (!liveRows.length) return;
 
-          const mergedRows = mergeUniqueTransactions(initialRows, fallbackRows, 6);
+          const mergedRows = mergeUniqueTransactions(liveRows, latestTxs.value, 6);
           if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
           latestTxs.value = mergedRows;
 
@@ -611,14 +629,8 @@ async function loadLatestData(forceRefresh = false) {
           if (nonPendingMerged.length) {
             void enrichTransactions(nonPendingMerged, { maxItems: 6 });
           }
-        };
-
-        if (!previousRows.length) {
-          await applyFallbackBackfill().catch(() => {});
-        } else {
-          void applyFallbackBackfill().catch(() => {});
-        }
-      }
+        })
+        .catch(() => {});
     })()
       .catch((err) => {
         if (import.meta.env.DEV) console.warn("txs load err:", err);
@@ -741,16 +753,11 @@ async function handleSearch(inputValue) {
 // Auto-refresh via composable (handles cleanup + visibility pause)
 const { start: startAutoRefresh } = useAutoRefresh(() => {
   void loadLatestData(true);
-  const now = Date.now();
-  if (now - lastStatsRefreshTime >= STATS_REFRESH_INTERVAL_MS) {
-    void loadStats(true);
-  }
 }, { intervalMs: HOMEPAGE_REFRESH_INTERVAL_MS });
 
 function handleNetworkChange() {
   void loadCommittee(true);
   void loadLatestData(true);
-  void loadStats(true);
   startAutoRefresh();
 }
 

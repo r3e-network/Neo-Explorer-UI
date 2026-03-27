@@ -6,6 +6,9 @@ module.exports = {
     browser: true,
     es2021: true,
   },
+  globals: {
+    __APP_RELEASE__: "readonly",
+  },
   extends: ["plugin:vue/vue3-essential", "eslint:recommended"],
   parserOptions: {
     parser: "@babel/eslint-parser",

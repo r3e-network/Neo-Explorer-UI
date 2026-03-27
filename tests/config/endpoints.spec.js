@@ -22,8 +22,18 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('const DEFAULT_MAINNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_TESTNET_BPI_PRIMARY_PROXY_TARGET = "https://rpc.r3e.network";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
+    expect(viteConfig).toContain('"/data/mainnet/fallback": {');
+    expect(viteConfig).toContain('"/data/mainnet/fallback2": {');
+    expect(viteConfig).toContain('"/data/mainnet/fallback3": {');
+    expect(viteConfig).toContain('"/data/testnet/fallback": {');
+    expect(viteConfig).toContain('"/data/testnet/fallback2": {');
+    expect(viteConfig).toContain('"/data/testnet/fallback3": {');
+    expect(viteConfig).toContain('"/rpc/mainnet/primary": {');
+    expect(viteConfig).toContain('"/rpc/testnet/primary": {');
     expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/mainnet/, "/mainnet"),');
     expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/indexer\\/testnet/, "/testnet"),');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/data\\/mainnet/, "/mainnet"),');
+    expect(viteConfig).toContain('rewrite: (p) => p.replace(/^\\/data\\/testnet/, "/testnet"),');
 
     expect(viteConfig).not.toMatch(/198\.244\.215\.132/);
     expect(viteConfig).not.toContain("testneofura.ngd.network");
@@ -69,25 +79,43 @@ describe("endpoint defaults", () => {
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
-    expect(routeDest("/api/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/api/mainnet/fallback")).toBe("https://api1.n3index.dev/mainnet");
-    expect(routeDest("/api/mainnet/fallback2")).toBe("https://api2.n3index.dev/mainnet");
-    expect(routeDest("/api/mainnet/fallback3")).toBe("https://api3.n3index.dev/mainnet");
-    expect(routeDest("/api/testnet/primary")).toBe("https://api.n3index.dev/testnet");
-    expect(routeDest("/api/testnet/fallback")).toBe("https://api1.n3index.dev/testnet");
-    expect(routeDest("/api/testnet/fallback2")).toBe("https://api2.n3index.dev/testnet");
-    expect(routeDest("/api/testnet/fallback3")).toBe("https://api3.n3index.dev/testnet");
-    expect(routeDest("/api/mainnet")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/api/testnet")).toBe("https://api.n3index.dev/testnet");
+    expect(routeDest("/rpc/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback")).toBe("https://api1.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://api2.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://api3.n3index.dev/mainnet");
+    expect(routeDest("/rpc/testnet/primary")).toBe("https://api.n3index.dev/testnet");
+    expect(routeDest("/rpc/testnet/fallback")).toBe("https://api1.n3index.dev/testnet");
+    expect(routeDest("/rpc/testnet/fallback2")).toBe("https://api2.n3index.dev/testnet");
+    expect(routeDest("/rpc/testnet/fallback3")).toBe("https://api3.n3index.dev/testnet");
+    expect(routeDest("/rpc/mainnet")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/rpc/testnet")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/bpi/mainnet/(.*)")).toBe("https://rpc.r3e.network/mainnet/bpi/$1");
     expect(routeDest("/bpi/testnet/(.*)")).toBe("https://rpc.r3e.network/testnet/bpi/$1");
-    expect(routeDest("/indexer/mainnet/(.*)")).toBe(
+    expect(routeDest("/data/mainnet/fallback/(.*)")).toBe(
+      "https://api1.n3index.dev/mainnet/$1"
+    );
+    expect(routeDest("/data/mainnet/fallback2/(.*)")).toBe(
+      "https://api2.n3index.dev/mainnet/$1"
+    );
+    expect(routeDest("/data/mainnet/fallback3/(.*)")).toBe(
+      "https://api3.n3index.dev/mainnet/$1"
+    );
+    expect(routeDest("/data/mainnet/(.*)")).toBe(
       "https://api.n3index.dev/mainnet/$1"
     );
-    expect(routeDest("/indexer/testnet/(.*)")).toBe(
+    expect(routeDest("/data/testnet/fallback/(.*)")).toBe(
+      "https://api1.n3index.dev/testnet/$1"
+    );
+    expect(routeDest("/data/testnet/fallback2/(.*)")).toBe(
+      "https://api2.n3index.dev/testnet/$1"
+    );
+    expect(routeDest("/data/testnet/fallback3/(.*)")).toBe(
+      "https://api3.n3index.dev/testnet/$1"
+    );
+    expect(routeDest("/data/testnet/(.*)")).toBe(
       "https://api.n3index.dev/testnet/$1"
     );
-    expect(routeDest("/:path((?!api/|bpi/|indexer/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
+    expect(routeDest("/:path((?!api/|rpc/|bpi/|indexer/|data/|assets/|img/|.*\\..*).*)")).toBe("/index.html");
 
     const serialized = JSON.stringify(vercelConfig);
     expect(serialized).not.toMatch(/198\.244\.215\.132/);

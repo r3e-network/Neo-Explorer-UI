@@ -2,7 +2,7 @@ import axios from "axios";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
 import { getRpcEndpointCandidates } from "../utils/rpcEndpoints";
 
-const LEGACY_RPC_BASE_URL = "/api";
+const LEGACY_RPC_BASE_URL = "/rpc";
 const parseTimeout = (value, fallbackMs) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
@@ -17,7 +17,7 @@ const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
 const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
 const ENABLE_RPC_STARTUP_HEDGE =
   String(import.meta.env.VITE_ENABLE_RPC_STARTUP_HEDGE ?? "true").trim().toLowerCase() !== "false";
-const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
 const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
 const EXPECTED_NETWORK_MAGIC = {
@@ -31,16 +31,6 @@ const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
   /ByContractHash(?:TokenId)?$/i,
   /ByCandidateAddress$/i,
 ];
-const ABSOLUTE_RPC_FALLBACK_ENDPOINTS = Object.freeze({
-  mainnet: [
-    "https://api2.n3index.dev/mainnet",
-    "https://api3.n3index.dev/mainnet",
-  ],
-  testnet: [
-    "https://api2.n3index.dev/testnet",
-    "https://api3.n3index.dev/testnet",
-  ],
-});
 const endpointNetworkCache = new Map();
 
 export const __resetEndpointNetworkCacheForTests = () => {
@@ -57,67 +47,95 @@ const configuredRpcBaseUrl = normalizeBaseUrl(import.meta.env.VITE_RPC_BASE_URL 
 
 const useConfiguredBaseUrl = Boolean(configuredRpcBaseUrl && configuredRpcBaseUrl !== LEGACY_RPC_BASE_URL);
 
-const getNetworkBasePrefix = (env = getCurrentEnv()) =>
-  env === NET_ENV.TestT5 ? "/api/testnet" : "/api/mainnet";
-
 const parseNetworkBase = (baseUrl) => {
   const normalized = normalizeBaseUrl(baseUrl);
   const matched = normalized.match(NETWORK_BASE_PATTERN);
   if (!matched) return null;
 
-  const network = matched[1].toLowerCase();
+  const routeBase = matched[1].toLowerCase();
+  const network = matched[2].toLowerCase();
   const basePrefix = normalized.slice(0, matched.index);
 
   return {
     normalized,
     network,
+    routeBase,
     basePrefix,
-    prefix: `${basePrefix}/api/${network}`,
-    endpoint: (matched[2] || "").toLowerCase() || null,
+    prefix: `${basePrefix}/${routeBase}/${network}`,
+    endpoint: (matched[3] || "").toLowerCase() || null,
   };
 };
 
 const configuredRpcBaseMatch = parseNetworkBase(configuredRpcBaseUrl);
 const useFixedConfiguredBaseUrl = useConfiguredBaseUrl && !configuredRpcBaseMatch;
 
+const ensureNetworkEndpointBase = (baseUrl) => {
+  const normalized = normalizeBaseUrl(baseUrl);
+  const parsed = parseNetworkBase(normalized);
+  if (!parsed || parsed.endpoint) return normalized;
+  return `${parsed.prefix}/primary`;
+};
+
 const rewriteConfiguredBaseUrl = (baseUrl, env = getCurrentEnv()) => {
   const normalized = normalizeBaseUrl(baseUrl);
   const parsed = parseNetworkBase(normalized);
   if (!parsed) return normalized;
 
-  const targetPrefix = `${parsed.basePrefix}${getNetworkBasePrefix(env)}`;
+  const network = env === NET_ENV.TestT5 ? "testnet" : "mainnet";
+  const targetPrefix = `${parsed.basePrefix}/${parsed.routeBase}/${network}`;
   return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
 };
 
 const resolveRpcBaseUrl = () => {
   if (useConfiguredBaseUrl) {
-    return rewriteConfiguredBaseUrl(configuredRpcBaseUrl);
+    return ensureNetworkEndpointBase(rewriteConfiguredBaseUrl(configuredRpcBaseUrl));
   }
 
-  return getRpcApiBasePath();
+  return ensureNetworkEndpointBase(getRpcApiBasePath());
+};
+
+const reorderBaseUrls = (candidates, preferred) => {
+  const normalizedPreferred = normalizeBaseUrl(preferred);
+  if (!normalizedPreferred) return candidates;
+
+  const remaining = [];
+  let preferredCandidate = "";
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeBaseUrl(candidate);
+    if (!preferredCandidate && normalizedCandidate === normalizedPreferred) {
+      preferredCandidate = candidate;
+      continue;
+    }
+    remaining.push(candidate);
+  }
+
+  return preferredCandidate ? [preferredCandidate, ...remaining] : candidates;
+};
+
+const buildNetworkRetryBaseUrls = (parsed) => {
+  const candidates = [
+    `${parsed.prefix}/primary`,
+    `${parsed.prefix}/fallback`,
+    `${parsed.prefix}/fallback2`,
+    `${parsed.prefix}/fallback3`,
+  ];
+  const preferredCandidate = parsed.endpoint ? `${parsed.prefix}/${parsed.endpoint}` : `${parsed.prefix}/primary`;
+  return reorderBaseUrls(candidates, preferredCandidate);
 };
 
 const buildRetryBaseUrls = (baseUrl) => {
-  const parsed = parseNetworkBase(baseUrl);
-  if (!parsed) {
-    const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-    if (useFixedConfiguredBaseUrl) return [normalizedBaseUrl];
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  if (!normalizedBaseUrl) return [];
+  if (useFixedConfiguredBaseUrl) return [normalizedBaseUrl];
 
-    const env = getEnvForBaseUrl(baseUrl) || getCurrentEnv();
-    const candidates = [...new Set(getRpcEndpointCandidates(env).filter(Boolean))];
-    if (!normalizedBaseUrl) return candidates;
-    return [normalizedBaseUrl, ...candidates.filter((candidate) => normalizeBaseUrl(candidate) !== normalizedBaseUrl)];
+  const parsed = parseNetworkBase(normalizedBaseUrl);
+  if (parsed) {
+    return buildNetworkRetryBaseUrls(parsed);
   }
-  if (useFixedConfiguredBaseUrl) return [normalizeBaseUrl(baseUrl)];
 
-  const extraFallbacks = ABSOLUTE_RPC_FALLBACK_ENDPOINTS[parsed.network] || [];
-
-  const primary = `${parsed.prefix}/primary`;
-  const fallback = `${parsed.prefix}/fallback`;
-
-  if (parsed.endpoint === "primary") return [primary, fallback, ...extraFallbacks];
-  if (parsed.endpoint === "fallback") return [fallback, ...extraFallbacks];
-  return [primary, fallback, ...extraFallbacks];
+  const env = getEnvForBaseUrl(normalizedBaseUrl) || getCurrentEnv();
+  const candidates = [...new Set(getRpcEndpointCandidates(env).filter(Boolean))];
+  return [normalizedBaseUrl, ...candidates.filter((candidate) => normalizeBaseUrl(candidate) !== normalizedBaseUrl)];
 };
 
 const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
@@ -125,7 +143,7 @@ const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
   if (!fallbackBaseUrl || useFixedConfiguredBaseUrl) return false;
 
   const parsed = parseNetworkBase(preferredBaseUrl);
-  if (!parsed || parsed.endpoint === "fallback") return false;
+  if (!parsed || (parsed.endpoint && parsed.endpoint !== "primary")) return false;
 
   return /^(get|find|search|invoke)/i.test(String(method || ""));
 };

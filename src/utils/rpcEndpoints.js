@@ -3,20 +3,20 @@ import { getActiveBasePath, getConfiguredRpcBaseUrl, getCurrentEnv, toAbsoluteUr
 const DEFAULT_NETWORK = "mainnet";
 
 const PRIMARY_RPC_ENDPOINTS = Object.freeze({
-  mainnet: "https://api.n3index.dev/mainnet",
-  testnet: "https://api.n3index.dev/testnet",
+  mainnet: "/rpc/mainnet/primary",
+  testnet: "/rpc/testnet/primary",
 });
 
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   mainnet: [
-    "https://api1.n3index.dev/mainnet",
-    "https://api2.n3index.dev/mainnet",
-    "https://api3.n3index.dev/mainnet",
+    "/rpc/mainnet/fallback",
+    "/rpc/mainnet/fallback2",
+    "/rpc/mainnet/fallback3",
   ],
   testnet: [
-    "https://api1.n3index.dev/testnet",
-    "https://api2.n3index.dev/testnet",
-    "https://api3.n3index.dev/testnet",
+    "/rpc/testnet/fallback",
+    "/rpc/testnet/fallback2",
+    "/rpc/testnet/fallback3",
   ],
 });
 
@@ -30,7 +30,7 @@ const FALLBACK_WS_ENDPOINTS = Object.freeze({
   testnet: ["wss://testmagnet.ngd.network/ws"],
 });
 
-const NETWORK_BASE_PATTERN = /\/api\/(mainnet|testnet)(?:\/(primary|fallback))?$/i;
+const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 const normalizeBaseUrl = (value) => {
   if (typeof value !== "string") return "";
   return value.trim().replace(/\/+$/, "");
@@ -64,12 +64,13 @@ const parseConfiguredNetworkBase = (value) => {
   if (!matched) return null;
 
   const basePrefix = normalized.slice(0, matched.index);
-  const network = matched[1].toLowerCase();
+  const routeBase = matched[1].toLowerCase();
+  const network = matched[2].toLowerCase();
 
   return {
     normalized,
-    prefix: `${basePrefix}/api/${network}`,
-    endpoint: (matched[2] || "").toLowerCase() || null,
+    prefix: `${basePrefix}/${routeBase}/${network}`,
+    endpoint: (matched[3] || "").toLowerCase() || null,
   };
 };
 
@@ -80,14 +81,14 @@ const getConfiguredRpcEndpointCandidates = (value = getCurrentEnv()) => {
   const parsed = parseConfiguredNetworkBase(configuredBaseUrl);
   if (!parsed) return [toAbsoluteUrl(configuredBaseUrl)];
 
-  const primary = toAbsoluteUrl(`${parsed.prefix}/primary`);
-  const fallback = toAbsoluteUrl(`${parsed.prefix}/fallback`);
-  const fallback2 = toAbsoluteUrl(`${parsed.prefix}/fallback2`);
-  const fallback3 = toAbsoluteUrl(`${parsed.prefix}/fallback3`);
-
-  if (parsed.endpoint === "primary") return [primary, fallback, fallback2, fallback3];
-  if (parsed.endpoint === "fallback") return [fallback, primary, fallback2, fallback3];
-  return [primary, fallback, fallback2, fallback3];
+  const candidates = [
+    toAbsoluteUrl(`${parsed.prefix}/primary`),
+    toAbsoluteUrl(`${parsed.prefix}/fallback`),
+    toAbsoluteUrl(`${parsed.prefix}/fallback2`),
+    toAbsoluteUrl(`${parsed.prefix}/fallback3`),
+  ];
+  const preferredCandidate = parsed.endpoint ? toAbsoluteUrl(`${parsed.prefix}/${parsed.endpoint}`) : "";
+  return reorderCandidates(candidates, preferredCandidate);
 };
 
 export const toNetworkMode = (value = getCurrentEnv()) => {

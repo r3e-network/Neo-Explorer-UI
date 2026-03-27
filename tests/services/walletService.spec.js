@@ -213,7 +213,7 @@ vi.mock("../../src/utils/env.js", () => ({
     Mainnet: "Mainnet",
     TestT5: "TestT5",
   },
-  getActiveBasePath: (env) => (env === "TestT5" ? "/api/testnet/primary" : "/api/mainnet/primary"),
+  getActiveBasePath: (env) => (env === "TestT5" ? "/rpc/testnet/primary" : "/rpc/mainnet/primary"),
   getCurrentEnv: () => envState.value,
   getConfiguredRpcBaseUrl: () => "",
   setActiveBasePath: vi.fn(),

@@ -1,6 +1,6 @@
 # Governance Proposal Refresh Fork Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Implementer:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add a governance proposal detail action that forks the current proposal into a new editable draft and refreshes the new proposal's `validUntilBlock` at publish time.
 

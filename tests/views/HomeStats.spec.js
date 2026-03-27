@@ -19,7 +19,7 @@ describe("HomeStats countdown refresh behavior", () => {
     vi.useRealTimers();
   });
 
-  it("emits fetch-latest continuously when overdue (HomePage handles throttling)", async () => {
+  it("emits fetch-latest only once per overdue block timestamp", async () => {
     const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
     const overdueTimestamp = Math.floor((Date.now() - 45_000) / 1000);
     const wrapper = mount(HomeStats, {
@@ -38,8 +38,7 @@ describe("HomeStats countdown refresh behavior", () => {
     vi.advanceTimersByTime(4_000);
     await vi.dynamicImportSettled();
 
-    // Emits once on mount + 4 times from interval
-    expect(wrapper.emitted("fetch-latest")?.length || 0).toBe(5);
+    expect(wrapper.emitted("fetch-latest")?.length || 0).toBe(1);
     wrapper.unmount();
   });
 

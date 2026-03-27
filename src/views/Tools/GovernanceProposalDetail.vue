@@ -54,6 +54,8 @@
               :proposal-invocations="proposalInvocations"
               :signature-witness-rows="signatureWitnessRows"
               :connected-account="connectedAccount"
+              :current-block-height="currentBlockHeight"
+              :milliseconds-per-block="millisecondsPerBlock"
             />
           </div>
 
@@ -139,6 +141,8 @@ const validatorMetadata = ref([]);
 const showSignModal = ref(false);
 const showCreateModal = ref(false);
 const loading = ref(true);
+const currentBlockHeight = ref(null);
+const millisecondsPerBlock = ref(null);
 let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
 
@@ -408,6 +412,25 @@ async function loadCommittee() {
   }
 }
 
+async function loadChainSnapshot() {
+  if (!neonJs) return;
+  try {
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
+    const [height, version] = await Promise.all([
+      typeof rpcClient.getBlockCount === "function" ? rpcClient.getBlockCount() : null,
+      typeof rpcClient.getVersion === "function" ? rpcClient.getVersion() : null,
+    ]);
+    const nextBlockHeight = Number(height);
+    const nextMsPerBlock = Number(version?.protocol?.msperblock);
+
+    currentBlockHeight.value = Number.isFinite(nextBlockHeight) && nextBlockHeight > 0 ? nextBlockHeight : null;
+    millisecondsPerBlock.value = Number.isFinite(nextMsPerBlock) && nextMsPerBlock > 0 ? nextMsPerBlock : null;
+  } catch {
+    currentBlockHeight.value = null;
+    millisecondsPerBlock.value = null;
+  }
+}
+
 async function loadProposal() {
   proposal.value = await supabaseService.getMultisigRequestById(route.params.id, getCurrentEnv());
 }
@@ -421,7 +444,7 @@ async function loadValidatorMetadata() {
 }
 
 async function handleNetworkChange() {
-  await Promise.all([loadCommittee(), loadValidatorMetadata(), loadProposal()]);
+  await Promise.all([loadCommittee(), loadChainSnapshot(), loadValidatorMetadata(), loadProposal()]);
 }
 
 function openSignModal() {

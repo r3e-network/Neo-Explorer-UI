@@ -38,6 +38,19 @@ describe("UnsignedTransactionViewer", () => {
     expect(wrapper.find('[data-testid="script-viewer"]').exists()).toBe(true);
   });
 
+  it("shows an expiry countdown after the valid-until block when chain timing is available", async () => {
+    const UnsignedTransactionViewer = (await import("@/components/trace/UnsignedTransactionViewer.vue")).default;
+    const wrapper = mount(UnsignedTransactionViewer, {
+      props: {
+        transactionHex: unsignedTx,
+        currentBlockHeight: 9050003,
+        millisecondsPerBlock: 15000,
+      },
+    });
+
+    expect(wrapper.get('[data-testid="unsigned-tx-expiry-countdown"]').text()).toContain("Expires in 20h 55m");
+  });
+
   it("uses high-contrast theme text for the header copy on light surfaces", async () => {
     const UnsignedTransactionViewer = (await import("@/components/trace/UnsignedTransactionViewer.vue")).default;
     const wrapper = mount(UnsignedTransactionViewer, {

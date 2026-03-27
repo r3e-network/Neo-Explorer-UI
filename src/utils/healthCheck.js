@@ -20,10 +20,11 @@ const ENDPOINT_SWITCH_HYSTERESIS_MS = Math.max(
   0,
   Number(import.meta.env.VITE_RPC_ENDPOINT_SWITCH_HYSTERESIS_MS || 1000),
 );
+const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 
 const NETWORKS = [
-  { env: NET_ENV.Mainnet, prefix: "/api/mainnet" },
-  { env: NET_ENV.TestT5, prefix: "/api/testnet" },
+  { env: NET_ENV.Mainnet, prefix: "/rpc/mainnet" },
+  { env: NET_ENV.TestT5, prefix: "/rpc/testnet" },
 ];
 
 const uniqueCandidates = (candidates) => {
@@ -36,6 +37,15 @@ const uniqueCandidates = (candidates) => {
     out.push(normalized);
   }
   return out;
+};
+
+const normalizeCandidatePath = (value) => String(value || "").trim().replace(/\/+$/, "");
+
+const normalizePrimaryAlias = (value) => {
+  const normalized = normalizeCandidatePath(value);
+  const matched = normalized.match(NETWORK_BASE_PATTERN);
+  if (!matched || matched[2]) return normalized;
+  return `${normalized}/primary`;
 };
 
 const getProbeCandidates = (network) => {
@@ -134,10 +144,13 @@ const checkNetworkEndpoints = async (network) => {
     );
     const healthyCandidates = probeResults.filter((candidate) => candidate.height >= 0);
     const current = getActiveBasePath(network.env);
-    const currentCandidate = healthyCandidates.find((candidate) => candidate.basePath === current);
+    const normalizedCurrent = normalizePrimaryAlias(current);
+    const currentCandidate = healthyCandidates.find(
+      (candidate) => normalizePrimaryAlias(candidate.basePath) === normalizedCurrent
+    );
 
     const commitSelection = (path, message) => {
-      if (current === path) return;
+      if (normalizePrimaryAlias(path) === normalizedCurrent) return;
       setActiveBasePath(network.env, path);
       console.info(message);
     };

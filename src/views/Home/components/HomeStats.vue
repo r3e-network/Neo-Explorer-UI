@@ -211,13 +211,17 @@ function updateCountdown() {
   }
   // Convert timestamp to ms if needed
   const tsMs = props.latestBlockTimestamp > 1e12 ? props.latestBlockTimestamp : props.latestBlockTimestamp * 1000;
+  if (lastFetchRequestedForTimestamp.value !== null && lastFetchRequestedForTimestamp.value !== tsMs) {
+    lastFetchRequestedForTimestamp.value = null;
+  }
 
   const delayOffset = 0;
   const ageSecs = Math.max(0, Math.floor((Date.now() - tsMs) / 1000) - delayOffset);
   nextBlockCountdown.value = Math.max(0, targetTime.value - ageSecs);
 
-  // If block is overdue, emit fetch-latest. HomePage will throttle this to once every 3 seconds.
-  if (nextBlockCountdown.value <= 0) {
+  // Emit at most once per observed block timestamp; the page-level auto-refresh handles ongoing polling.
+  if (nextBlockCountdown.value <= 0 && lastFetchRequestedForTimestamp.value !== tsMs) {
+    lastFetchRequestedForTimestamp.value = tsMs;
     emit("fetch-latest");
   }
 }

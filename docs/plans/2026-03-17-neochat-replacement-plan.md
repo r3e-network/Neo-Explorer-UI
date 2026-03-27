@@ -1,6 +1,6 @@
 # NeoChat Replacement Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Implementer:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Replace the external NGD NeoChat link with an in-product, Supabase-backed 1:1 chat system with one-time wallet-auth sessions, unread notifications, canonical rooms, and persistent history.
 

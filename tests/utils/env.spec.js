@@ -26,17 +26,17 @@ describe("env refresh intervals", () => {
 });
 
 describe("rpc client url", () => {
-  it("returns an absolute mainnet URL by default", () => {
+  it("returns a same-origin absolute mainnet URL by default", () => {
     window.localStorage.removeItem("neo_explorer_network");
-    expect(getActiveBasePath()).toBe("https://api.n3index.dev/mainnet");
-    expect(getRpcApiBasePath()).toBe("https://api.n3index.dev/mainnet");
-    expect(getRpcClientUrl()).toBe("https://api.n3index.dev/mainnet");
+    expect(getActiveBasePath()).toBe("/rpc/mainnet");
+    expect(getRpcApiBasePath()).toBe("/rpc/mainnet");
+    expect(getRpcClientUrl()).toBe(new URL("/rpc/mainnet", window.location.origin).toString());
   });
 
-  it("returns an absolute testnet URL when switched to testnet", () => {
+  it("returns a same-origin absolute testnet URL when switched to testnet", () => {
     setCurrentEnv(NET_ENV.TestT5);
-    expect(getActiveBasePath()).toBe("https://api.n3index.dev/testnet");
-    expect(getRpcApiBasePath()).toBe("https://api.n3index.dev/testnet");
-    expect(getRpcClientUrl()).toBe("https://api.n3index.dev/testnet");
+    expect(getActiveBasePath()).toBe("/rpc/testnet");
+    expect(getRpcApiBasePath()).toBe("/rpc/testnet");
+    expect(getRpcClientUrl()).toBe(new URL("/rpc/testnet", window.location.origin).toString());
   });
 });

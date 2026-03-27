@@ -1,23 +1,33 @@
 import { getCurrentEnv } from "@/utils/env";
 
 const INDEXER_TIMEOUT_MS = 3000;
-const INDEXER_READ_BASE_URL = String(
-  import.meta.env.VITE_INDEXER_READ_BASE_URL || "https://api.n3index.dev",
-)
-  .trim()
-  .replace(/\/+$/, "");
-const INDEXER_READ_FALLBACK_BASE_URLS = String(
-  import.meta.env.VITE_INDEXER_READ_FALLBACK_BASE_URLS ||
-    "https://api1.n3index.dev,https://api2.n3index.dev,https://api3.n3index.dev",
-)
-  .split(",")
-  .map((value) => String(value || "").trim().replace(/\/+$/, ""))
-  .filter(Boolean);
 const HOT_INDEXER_SELECTION_TTL_MS = Math.max(
   5_000,
   Number(import.meta.env.VITE_INDEXER_HOT_SELECTION_TTL_MS || 30_000),
 );
 const hotIndexerSelectionCache = new Map();
+const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+const CONFIGURED_INDEXER_READ_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_INDEXER_READ_BASE_URL || "");
+const CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS = String(
+  import.meta.env.VITE_INDEXER_READ_FALLBACK_BASE_URLS || "",
+)
+  .split(",")
+  .map(normalizeBaseUrl)
+  .filter(Boolean);
+const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze({
+  mainnet: [
+    "/data/mainnet",
+    "/data/mainnet/fallback",
+    "/data/mainnet/fallback2",
+    "/data/mainnet/fallback3",
+  ],
+  testnet: [
+    "/data/testnet",
+    "/data/testnet/fallback",
+    "/data/testnet/fallback2",
+    "/data/testnet/fallback3",
+  ],
+});
 
 function resolveIndexerNetworkPath() {
   const env = String(getCurrentEnv() || "").toLowerCase();
@@ -32,6 +42,19 @@ function withCacheBusting(path, forceRefresh = false) {
 
 function isAbsoluteUrl(path) {
   return /^https?:\/\//i.test(String(path || "").trim());
+}
+
+function getIndexerBaseUrls(network) {
+  const configuredBaseUrls = [
+    CONFIGURED_INDEXER_READ_BASE_URL ? `${CONFIGURED_INDEXER_READ_BASE_URL}/${network}` : "",
+    ...CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS.map((baseUrl) => `${baseUrl}/${network}`),
+  ].filter(Boolean);
+
+  if (configuredBaseUrls.length > 0) {
+    return configuredBaseUrls;
+  }
+
+  return DEFAULT_INDEXER_PROXY_BASE_PATHS[network] || DEFAULT_INDEXER_PROXY_BASE_PATHS.mainnet;
 }
 
 async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRefresh = false, retryAbsolute = true } = {}) {
@@ -82,11 +105,7 @@ async function fetchIndexerJsonWithFallback(paths, options = {}) {
 }
 
 function buildIndexerFallbackPaths(network, pathSuffix) {
-  return [
-    `${INDEXER_READ_BASE_URL}/${network}/${pathSuffix}`,
-    ...INDEXER_READ_FALLBACK_BASE_URLS.map((baseUrl) => `${baseUrl}/${network}/${pathSuffix}`),
-    `/indexer/${network}/${pathSuffix}`,
-  ];
+  return getIndexerBaseUrls(network).map((baseUrl) => `${baseUrl}/${pathSuffix}`);
 }
 
 function getHotIndexerCacheKey(network) {
@@ -114,16 +133,13 @@ async function selectFreshestHotIndexerBase(network, { forceRefresh = false } = 
   const cached = getCachedHotIndexerBase(network);
   if (cached) return cached;
 
-  const candidates = [
-    INDEXER_READ_BASE_URL,
-    ...INDEXER_READ_FALLBACK_BASE_URLS,
-  ]
-    .map((baseUrl) => String(baseUrl || "").trim().replace(/\/+$/, ""))
+  const candidates = getIndexerBaseUrls(network)
+    .map(normalizeBaseUrl)
     .filter(Boolean);
 
   const results = await Promise.all(
     candidates.map(async (baseUrl) => {
-      const payload = await fetchIndexerJson(`${baseUrl}/${network}/summary`, {
+      const payload = await fetchIndexerJson(`${baseUrl}/summary`, {
         forceRefresh,
         retryAbsolute: false,
       });
@@ -140,7 +156,7 @@ async function selectFreshestHotIndexerBase(network, { forceRefresh = false } = 
 
   const healthy = results.filter((item) => item.lastIndexedBlock >= 0);
   if (healthy.length === 0) {
-    return INDEXER_READ_BASE_URL;
+    return candidates[0] || `/data/${network}`;
   }
 
   const freshest = healthy.sort((left, right) => {
@@ -161,17 +177,13 @@ async function buildHotIndexerPaths(network, pathSuffix, options = {}) {
   const preferredBaseUrl = await selectFreshestHotIndexerBase(network, options);
   const orderedBases = [
     preferredBaseUrl,
-    INDEXER_READ_BASE_URL,
-    ...INDEXER_READ_FALLBACK_BASE_URLS,
+    ...getIndexerBaseUrls(network),
   ]
-    .map((baseUrl) => String(baseUrl || "").trim().replace(/\/+$/, ""))
+    .map(normalizeBaseUrl)
     .filter(Boolean)
     .filter((baseUrl, index, items) => items.indexOf(baseUrl) === index);
 
-  return [
-    ...orderedBases.map((baseUrl) => `${baseUrl}/${network}/${pathSuffix}`),
-    `/indexer/${network}/${pathSuffix}`,
-  ];
+  return orderedBases.map((baseUrl) => `${baseUrl}/${pathSuffix}`);
 }
 
 function shouldUseHotIndexerSelection({ pathType = "", forceRefresh = false, limit = 0, offset = 0 } = {}) {

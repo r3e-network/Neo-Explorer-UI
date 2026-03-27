@@ -23,21 +23,21 @@ describe("rpcEndpoints configured base URL", () => {
     ]);
   });
 
-  it("defaults to api.n3index.dev primary with api1/api2/api3 backups", async () => {
+  it("defaults to same-origin primary and fallback proxy routes", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
 
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
     expect(getRpcEndpointCandidates()).toEqual([
-      "https://api.n3index.dev/mainnet",
-      "https://api1.n3index.dev/mainnet",
-      "https://api2.n3index.dev/mainnet",
-      "https://api3.n3index.dev/mainnet",
+      "/rpc/mainnet/primary",
+      "/rpc/mainnet/fallback",
+      "/rpc/mainnet/fallback2",
+      "/rpc/mainnet/fallback3",
     ]);
   });
 
-  it("calls runtime fallback endpoints in primary -> api1 -> api2 -> api3 order", async () => {
+  it("calls runtime fallback endpoints in primary -> fallback -> fallback2 -> fallback3 order", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
 
@@ -46,7 +46,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     const result = await callWithRpcEndpointFallback(env.NET_ENV.Mainnet, async (endpoint) => {
       visited.push(endpoint);
-      if (endpoint !== "https://api3.n3index.dev/mainnet") {
+      if (endpoint !== "/rpc/mainnet/fallback3") {
         throw new Error(`down:${endpoint}`);
       }
       return "ok";
@@ -54,25 +54,25 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(result).toBe("ok");
     expect(visited).toEqual([
-      "https://api.n3index.dev/mainnet",
-      "https://api1.n3index.dev/mainnet",
-      "https://api2.n3index.dev/mainnet",
-      "https://api3.n3index.dev/mainnet",
+      "/rpc/mainnet/primary",
+      "/rpc/mainnet/fallback",
+      "/rpc/mainnet/fallback2",
+      "/rpc/mainnet/fallback3",
     ]);
   });
 
   it("reorders candidates to reuse the globally selected active endpoint first", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
-    env.setActiveBasePath(env.NET_ENV.Mainnet, "https://api2.n3index.dev/mainnet");
+    env.setActiveBasePath(env.NET_ENV.Mainnet, "/rpc/mainnet/fallback2");
 
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
     expect(getRpcEndpointCandidates()).toEqual([
-      "https://api2.n3index.dev/mainnet",
-      "https://api.n3index.dev/mainnet",
-      "https://api1.n3index.dev/mainnet",
-      "https://api3.n3index.dev/mainnet",
+      "/rpc/mainnet/fallback2",
+      "/rpc/mainnet/primary",
+      "/rpc/mainnet/fallback",
+      "/rpc/mainnet/fallback3",
     ]);
   });
 });

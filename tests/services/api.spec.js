@@ -21,7 +21,7 @@ vi.mock("axios", () => {
 });
 
 const { envState, setActiveBasePathMock } = vi.hoisted(() => {
-  const state = { currentBasePath: "/api/mainnet" };
+  const state = { currentBasePath: "/rpc/mainnet" };
   return {
     envState: state,
     setActiveBasePathMock: vi.fn((_env, path) => {
@@ -105,7 +105,7 @@ let consoleWarnSpy;
 describe("safeRpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    envState.currentBasePath = "/api/mainnet";
+    envState.currentBasePath = "/rpc/mainnet";
     __resetEndpointNetworkCacheForTests();
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -174,16 +174,16 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && baseURL === "/api/mainnet/primary") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/primary") {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/primary") {
         return Promise.reject(timeoutError);
       }
-      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({ data: { result: { index: 123 } } });
       }
 
@@ -199,23 +199,23 @@ describe("safeRpc", () => {
       1,
       "",
       expect.objectContaining({ method: "getversion" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/primary" })
     );
     expect(axios.post).toHaveBeenNthCalledWith(
       2,
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/primary" })
     );
     expect(axios.post).toHaveBeenNthCalledWith(
       3,
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/fallback" })
     );
   });
 
-  it("continues beyond the first fallback and retries api2 then api3 backups", async () => {
+  it("continues beyond the first fallback and retries fallback2 then fallback3 proxy routes", async () => {
     const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
       code: "ECONNABORTED",
     });
@@ -224,19 +224,19 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && (baseURL === "/api/mainnet/primary" || baseURL === "/api/mainnet/fallback")) {
+      if (method === "getversion" && (baseURL === "/rpc/mainnet/primary" || baseURL === "/rpc/mainnet/fallback")) {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && (baseURL === "/api/mainnet/primary" || baseURL === "/api/mainnet/fallback")) {
+      if (method === "GetBlockCount" && (baseURL === "/rpc/mainnet/primary" || baseURL === "/rpc/mainnet/fallback")) {
         return Promise.reject(timeoutError);
       }
 
-      if (method === "getversion" && baseURL === "https://api2.n3index.dev/mainnet") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/fallback2") {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/fallback2") {
         return Promise.resolve({ data: { result: { index: 456 } } });
       }
 
@@ -249,12 +249,12 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "https://api2.n3index.dev/mainnet" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/fallback2" })
     );
   });
 
-  it("retries the rest of the pool when the globally selected absolute endpoint fails", async () => {
-    envState.currentBasePath = "https://api2.n3index.dev/mainnet";
+  it("retries the rest of the pool when the globally selected fallback2 endpoint fails", async () => {
+    envState.currentBasePath = "/rpc/mainnet/fallback2";
 
     const timeoutError = Object.assign(new Error("timeout of 8000ms exceeded"), {
       code: "ECONNABORTED",
@@ -264,15 +264,15 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && (baseURL === "https://api2.n3index.dev/mainnet" || baseURL === "https://api.n3index.dev/mainnet")) {
+      if (method === "getversion" && (baseURL === "/rpc/mainnet/fallback2" || baseURL === "/rpc/mainnet/primary")) {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "https://api2.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/fallback2") {
         return Promise.reject(timeoutError);
       }
 
-      if (method === "GetBlockCount" && baseURL === "https://api.n3index.dev/mainnet") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/primary") {
         return Promise.resolve({ data: { result: { index: 654 } } });
       }
 
@@ -285,7 +285,7 @@ describe("safeRpc", () => {
     expect(axios.post).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "https://api.n3index.dev/mainnet" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/primary" })
     );
   });
 
@@ -303,13 +303,13 @@ describe("safeRpc", () => {
         return Promise.resolve({ data: { result: { protocol: { network: 860833102 } } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/primary") {
         primaryCallCount += 1;
         if (primaryCallCount === 1) return Promise.reject(timeoutError);
         return Promise.resolve({ data: { result: { count: 11 } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({ data: { result: { count: 10 } } });
       }
 
@@ -319,11 +319,11 @@ describe("safeRpc", () => {
     await safeRpc("GetBlockCount", {});
     await safeRpc("GetBlockCount", {});
 
-    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
+    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
     expect(axios.post).toHaveBeenLastCalledWith(
       "",
       expect.objectContaining({ method: "GetBlockCount" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/fallback" })
     );
   });
 
@@ -343,19 +343,19 @@ describe("safeRpc", () => {
         1,
         "",
         expect.objectContaining({ method: "getversion" }),
-        expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+        expect.objectContaining({ baseURL: "/rpc/mainnet/primary" })
       );
       expect(axios.post).toHaveBeenNthCalledWith(
         2,
         "",
         expect.objectContaining({ method: "GetBlockCount" }),
-        expect.objectContaining({ baseURL: "/api/mainnet/primary" })
+        expect.objectContaining({ baseURL: "/rpc/mainnet/primary" })
       );
       expect(axios.post).toHaveBeenNthCalledWith(
         3,
         "",
         expect.objectContaining({ method: "GetBlockCount" }),
-        expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+        expect.objectContaining({ baseURL: "/rpc/mainnet/fallback" })
       );
     } finally {
       vi.useRealTimers();
@@ -393,23 +393,23 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && baseURL === "/api/mainnet/primary") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/primary") {
         return Promise.resolve({
           data: { result: { protocol: { network: 894710606 } } },
         });
       }
 
-      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({
           data: { result: { protocol: { network: 860833102 } } },
         });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/fallback") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({ data: { result: { index: 321 } } });
       }
 
-      if (method === "GetBlockCount" && baseURL === "/api/mainnet/primary") {
+      if (method === "GetBlockCount" && baseURL === "/rpc/mainnet/primary") {
         return Promise.resolve({ data: { result: { index: 999 } } });
       }
 
@@ -418,7 +418,7 @@ describe("safeRpc", () => {
 
     const result = await safeRpc("GetBlockCount", {});
     expect(result).toEqual({ index: 321 });
-    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/api/mainnet/fallback");
+    expect(setActiveBasePathMock).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
   });
 
   it("prefers the fallback endpoint first for indexed by-hash explorer APIs on mainnet", async () => {
@@ -426,13 +426,13 @@ describe("safeRpc", () => {
       const method = payload?.method;
       const baseURL = config?.baseURL;
 
-      if (method === "getversion" && baseURL === "/api/mainnet/fallback") {
+      if (method === "getversion" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({
           data: { result: { protocol: { network: 860833102 } } },
         });
       }
 
-      if (method === "GetRawTransactionByTransactionHash" && baseURL === "/api/mainnet/fallback") {
+      if (method === "GetRawTransactionByTransactionHash" && baseURL === "/rpc/mainnet/fallback") {
         return Promise.resolve({ data: { result: { hash: "0xabc" } } });
       }
 
@@ -446,13 +446,13 @@ describe("safeRpc", () => {
       1,
       "",
       expect.objectContaining({ method: "getversion" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/fallback" })
     );
     expect(axios.post).toHaveBeenNthCalledWith(
       2,
       "",
       expect.objectContaining({ method: "GetRawTransactionByTransactionHash" }),
-      expect.objectContaining({ baseURL: "/api/mainnet/fallback" })
+      expect.objectContaining({ baseURL: "/rpc/mainnet/fallback" })
     );
   });
 });
@@ -460,7 +460,7 @@ describe("safeRpc", () => {
 describe("rpc", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    envState.currentBasePath = "/api/mainnet";
+    envState.currentBasePath = "/rpc/mainnet";
     __resetEndpointNetworkCacheForTests();
   });
 

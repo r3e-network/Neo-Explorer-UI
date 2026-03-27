@@ -105,7 +105,7 @@ describe("supabaseService metadata", () => {
     const result = await supabaseService.getContractMetadataBatch(["0xabc"]);
 
     expect(fetch).toHaveBeenCalled();
-    expect(fetch.mock.calls[0][0]).toContain("/indexer/mainnet/metadata/contracts");
+    expect(fetch.mock.calls[0][0]).toContain("/data/mainnet/metadata/contracts");
     expect(result["0xabc"]?.name).toBe("Indexed Token");
     expect(result["0xabc"]?.symbol).toBe("ITK");
     expect(result["0xabc"]?.logo_url).toBe("https://example.com/itk.png");
@@ -233,7 +233,7 @@ describe("supabaseService metadata", () => {
     expect(result).toEqual({});
   });
 
-  it("retries the absolute indexer metadata origin when the same-origin proxy aborts", async () => {
+  it("retries same-origin indexer metadata backup routes when the primary proxy aborts", async () => {
     const address = "Nabc";
     vi.stubGlobal(
       "fetch",
@@ -252,8 +252,8 @@ describe("supabaseService metadata", () => {
     const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
 
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(fetch.mock.calls[0][0]).toContain("/indexer/mainnet/metadata/addresses");
-    expect(fetch.mock.calls[1][0]).toContain("https://api1.n3index.dev/mainnet/metadata/addresses");
+    expect(fetch.mock.calls[0][0]).toContain("/data/mainnet/metadata/addresses");
+    expect(fetch.mock.calls[1][0]).toContain("/data/mainnet/fallback/metadata/addresses");
     expect(result[address]?.label).toBe("Recovered From Absolute Origin");
   });
 
@@ -300,7 +300,7 @@ describe("supabaseService metadata", () => {
     const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
 
     expect(fetch).toHaveBeenCalled();
-    expect(fetch.mock.calls[0][0]).toContain("/indexer/mainnet/metadata/addresses");
+    expect(fetch.mock.calls[0][0]).toContain("/data/mainnet/metadata/addresses");
     expect(result[address]?.nns_domain).toBe("oracle.morpheus.neo");
   });
 

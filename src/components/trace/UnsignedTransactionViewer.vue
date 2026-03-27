@@ -48,6 +48,13 @@
             <div v-for="item in summaryRows" :key="item.label" class="rounded-lg border border-line-soft bg-surface-muted/60 p-3 dark:border-white/5 dark:bg-black/20">
               <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">{{ item.label }}</dt>
               <dd class="mt-1 break-all font-mono text-sm text-high dark:text-slate-200">{{ item.value }}</dd>
+              <p
+                v-if="item.label === 'Valid Until Block' && expiryCountdown"
+                data-testid="unsigned-tx-expiry-countdown"
+                class="mt-2 text-xs font-medium text-mid dark:text-slate-400"
+              >
+                {{ expiryCountdown }}
+              </p>
             </div>
           </dl>
         </section>
@@ -148,17 +155,27 @@ import { formatGas } from "@/utils/explorerFormat";
 import CopyButton from "@/components/common/CopyButton.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
+import { describeGovernanceTxExpiry } from "@/utils/governanceTiming";
 
 const props = defineProps({
   transactionHex: { type: String, default: "" },
   label: { type: String, default: "Unsigned Transaction" },
   description: { type: String, default: "" },
+  currentBlockHeight: { type: Number, default: null },
+  millisecondsPerBlock: { type: Number, default: null },
 });
 
 const showRaw = ref(false);
 
 const decodedTx = computed(() => decodeUnsignedTransaction(props.transactionHex));
 const rawHex = computed(() => decodedTx.value?.rawHex || String(props.transactionHex || "").trim().replace(/^0x/i, ""));
+const expiryCountdown = computed(() =>
+  describeGovernanceTxExpiry({
+    validUntilBlock: decodedTx.value?.validUntilBlock,
+    currentBlockHeight: props.currentBlockHeight,
+    msPerBlock: props.millisecondsPerBlock,
+  }),
+);
 
 const summaryRows = computed(() => {
   if (!decodedTx.value) return [];
