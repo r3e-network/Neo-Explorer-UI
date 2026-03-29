@@ -233,28 +233,21 @@ describe("supabaseService metadata", () => {
     expect(result).toEqual({});
   });
 
-  it("retries same-origin indexer metadata backup routes when the primary proxy aborts", async () => {
+  it("returns empty when the single indexer metadata route aborts", async () => {
     const address = "Nabc";
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
-        .mockRejectedValueOnce(Object.assign(new Error("Failed to fetch"), { name: "AbortError" }))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            data: [{ address, label: "Recovered From Absolute Origin", category: "exchange" }],
-          }),
-        }),
+        .mockRejectedValueOnce(Object.assign(new Error("Failed to fetch"), { name: "AbortError" })),
     );
 
     const { supabaseService } = await import("../../src/services/supabaseService.js");
     const result = await supabaseService.getAddressTagsBatch([address], "mainnet");
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toContain("/data/mainnet/metadata/addresses");
-    expect(fetch.mock.calls[1][0]).toContain("/data/mainnet/fallback/metadata/addresses");
-    expect(result[address]?.label).toBe("Recovered From Absolute Origin");
+    expect(result).toEqual({});
   });
 
   it("still falls back to Supabase when the indexer fails with a generic fetch error", async () => {

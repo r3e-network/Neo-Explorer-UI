@@ -43,75 +43,11 @@ describe("healthCheck endpoint selection", () => {
     consoleWarnSpy?.mockRestore();
   });
 
-  it("selects fallback when primary endpoint fails and fallback is healthy", async () => {
-    post.mockImplementation(async (url) => {
-      if (url === "/rpc/mainnet/primary") {
-        throw new Error("primary down");
-      }
-      if (url === "/rpc/mainnet/fallback") {
-        return { data: { result: { index: 100 } } };
-      }
-      throw new Error("ignore deferred network calls");
-    });
-
-    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    await checkAndSetEndpoints("Mainnet");
-
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
-  });
-
-  it("prefers fallback when both are healthy but fallback is much faster", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(0));
-    post.mockImplementation((url) => {
-      if (url === "/rpc/mainnet/primary") {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 1600)
-        );
-      }
-      if (url === "/rpc/mainnet/fallback") {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 15)
-        );
-      }
-      throw new Error("ignore deferred network calls");
-    });
-
-    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    try {
-      const pending = checkAndSetEndpoints("Mainnet");
-      await vi.runAllTimersAsync();
-      await pending;
-    } finally {
-      vi.useRealTimers();
-    }
-
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
-  });
-
-  it("rejects endpoints with wrong network magic and picks the endpoint matching the selected network", async () => {
-    post.mockImplementation(async (url, payload) => {
-      const method = payload?.method;
-      if (url === "/rpc/mainnet/primary" && method === "getversion") {
-        return { data: { result: { protocol: { network: 894710606 } } } };
-      }
-      if (url === "/rpc/mainnet/primary" && method === "GetBlockCount") {
-        return { data: { result: { index: 500 } } };
-      }
-      if (url === "/rpc/mainnet/fallback" && method === "getversion") {
-        return { data: { result: { protocol: { network: 860833102 } } } };
-      }
-      if (url === "/rpc/mainnet/fallback" && method === "GetBlockCount") {
-        return { data: { result: { index: 490 } } };
-      }
-      throw new Error(`unexpected call: ${url} ${method}`);
-    });
-
-    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    await checkAndSetEndpoints("Mainnet");
-
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
-  });
+  // Removed: "selects fallback when primary endpoint fails" — single-server, no fallback endpoints.
+  // Removed: "prefers fallback when both are healthy but fallback is much faster" — single-server, no fallback.
+  // Removed: "rejects endpoints with wrong network magic and picks the endpoint matching the selected network" — single endpoint.
+  // Removed: "does not log an endpoint switch when the selected endpoint is unchanged" — single endpoint.
+  // Removed: "promotes a deeper backup endpoint" — single endpoint, no deeper backups.
 
   it("keeps current route when all local candidates are wrong-network", async () => {
     post.mockImplementation(async (url, payload) => {
@@ -155,97 +91,24 @@ describe("healthCheck endpoint selection", () => {
     expect(setActiveBasePath).not.toHaveBeenCalled();
   });
 
-  it("keeps the current mainnet endpoint when it remains healthy and the alternative is only slightly faster", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(0));
+  it("keeps the current mainnet endpoint when it remains healthy", async () => {
     getActiveBasePath.mockImplementation((env) =>
       env === "Mainnet" ? "/rpc/mainnet/primary" : "/rpc/testnet/primary"
     );
 
-    post.mockImplementation((url) => {
-      if (url.includes("/rpc/mainnet/primary")) {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 220)
-        );
-      }
-      if (url === "/rpc/mainnet/fallback") {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 40)
-        );
-      }
-      throw new Error("ignore deferred network calls");
-    });
-
-    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    try {
-      const pending = checkAndSetEndpoints("Mainnet");
-      await vi.runAllTimersAsync();
-      await pending;
-    } finally {
-      vi.useRealTimers();
-    }
-
-    expect(setActiveBasePath).not.toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback");
-  });
-
-  it("does not log an endpoint switch when the selected endpoint is unchanged", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(0));
-    getActiveBasePath.mockImplementation((env) =>
-      env === "Mainnet" ? "/rpc/mainnet/fallback" : "/rpc/testnet/primary"
-    );
-
-    post.mockImplementation((url) => {
-      if (url.includes("/rpc/mainnet/primary")) {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 260)
-        );
-      }
-      if (url === "/rpc/mainnet/fallback") {
-        return new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { result: { index: 500 } } }), 25)
-        );
-      }
-      throw new Error("ignore deferred network calls");
-    });
-
-    const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
-    try {
-      const pending = checkAndSetEndpoints("Mainnet");
-      await vi.runAllTimersAsync();
-      await pending;
-    } finally {
-      vi.useRealTimers();
-    }
-
-    expect(setActiveBasePath).not.toHaveBeenCalled();
-    expect(consoleInfoSpy).not.toHaveBeenCalled();
-  });
-
-  it("promotes a deeper backup endpoint when it is the freshest healthy candidate", async () => {
     post.mockImplementation(async (url, payload) => {
-      const method = payload?.method;
-      if (method === "getversion") {
+      if (payload?.method === "getversion") {
         return { data: { result: { protocol: { network: 860833102 } } } };
       }
-      if (method === "GetBlockCount" && url === "/rpc/mainnet/primary") {
-        return { data: { result: { index: 100 } } };
+      if (url.includes("/rpc/mainnet/primary") && payload?.method === "GetBlockCount") {
+        return { data: { result: { index: 500 } } };
       }
-      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback") {
-        return { data: { result: { index: 101 } } };
-      }
-      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback2") {
-        return { data: { result: { index: 105 } } };
-      }
-      if (method === "GetBlockCount" && url === "/rpc/mainnet/fallback3") {
-        return { data: { result: { index: 104 } } };
-      }
-      throw new Error(`unexpected call: ${url} ${method}`);
+      throw new Error("ignore deferred network calls");
     });
 
     const { checkAndSetEndpoints } = await import("../../src/utils/healthCheck.js");
     await checkAndSetEndpoints("Mainnet");
 
-    expect(setActiveBasePath).toHaveBeenCalledWith("Mainnet", "/rpc/mainnet/fallback2");
+    expect(setActiveBasePath).not.toHaveBeenCalled();
   });
 });
