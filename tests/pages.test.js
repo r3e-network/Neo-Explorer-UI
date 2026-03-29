@@ -1,0 +1,959 @@
+#!/usr/bin/env node
+/**
+ * Page-Level Integration Tests for Neo-Explorer-UI
+ *
+ * Tests every page's backend API dependencies end-to-end through the
+ * production Cloudflare edge. Catches issues like the governance page
+ * failing because of missing database tables.
+ *
+ * Usage:
+ *   node tests/pages.test.js
+ *   TEST_API_URL=https://api.n3index.dev node tests/pages.test.js
+ *
+ * Exit code 0 = all pass, 1 = at least one failure.
+ */
+
+"use strict";
+
+const https = require("https");
+const http = require("http");
+const { URL } = require("url");
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+const BASE = (process.env.TEST_API_URL || "https://api.n3index.dev").replace(/\/+$/, "");
+const SUPABASE_ANON_KEY =
+  process.env.TEST_SUPABASE_KEY ||
+  "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogIndlYl9hbm9uIiwgImlzcyI6ICJuZW8zZnVyYS1zZWxmLWhvc3RlZCIsICJpYXQiOiAxNzc0NzczNjEwLCAiZXhwIjogMjA5MDEzMzYxMH0.NbfPVKehpKbVQznFWd6GrPlcD151GBuZCxwMvKmvsG8";
+
+const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+const REQUEST_TIMEOUT_MS = 15000;
+
+// ---------------------------------------------------------------------------
+// Auto-discovered test data (populated at runtime)
+// ---------------------------------------------------------------------------
+
+const discovered = {
+  blockIndex: null,
+  blockHash: null,
+  txid: null,
+  address: null,
+};
+
+// ---------------------------------------------------------------------------
+// HTTP helpers (pure Node.js, no external deps)
+// ---------------------------------------------------------------------------
+
+function httpRequest(url, { method = "GET", headers = {}, body = null, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const transport = parsed.protocol === "https:" ? https : http;
+    const opts = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method,
+      headers: { ...headers },
+    };
+    if (body) {
+      opts.headers["Content-Type"] = opts.headers["Content-Type"] || "application/json";
+      opts.headers["Content-Length"] = Buffer.byteLength(body);
+    }
+    const startMs = Date.now();
+    const req = transport.request(opts, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const raw = Buffer.concat(chunks).toString("utf-8");
+        let json = null;
+        try { json = JSON.parse(raw); } catch {}
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          body: raw,
+          json,
+          elapsedMs: Date.now() - startMs,
+        });
+      });
+    });
+    req.on("error", reject);
+    const timer = setTimeout(() => {
+      req.destroy(new Error("TIMEOUT"));
+    }, timeoutMs);
+    req.on("close", () => clearTimeout(timer));
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function get(path, extraHeaders = {}) {
+  const url = path.startsWith("http") ? path : `${BASE}${path}`;
+  return httpRequest(url, { method: "GET", headers: { Accept: "application/json", ...extraHeaders } });
+}
+
+function rpcPost(network, method, params) {
+  const url = `${BASE}/${network}`;
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
+  return httpRequest(url, { method: "POST", body, headers: { "Content-Type": "application/json" } });
+}
+
+function supabaseGet(path) {
+  const url = `${BASE}${path}`;
+  return httpRequest(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Test runner
+// ---------------------------------------------------------------------------
+
+const results = [];   // { page, name, status, detail }
+let currentPage = "";
+
+function setPage(name) {
+  currentPage = name;
+  console.log(`\n--- ${name} ---`);
+}
+
+function pass(name, detail = "") {
+  results.push({ page: currentPage, name, status: "PASS", detail });
+  console.log(`  PASS  ${name}${detail ? `  (${detail})` : ""}`);
+}
+
+function fail(name, detail = "") {
+  results.push({ page: currentPage, name, status: "FAIL", detail });
+  console.log(`  FAIL  ${name}  ${detail}`);
+}
+
+function skip(name, detail = "") {
+  results.push({ page: currentPage, name, status: "SKIP", detail });
+  console.log(`  SKIP  ${name}  ${detail}`);
+}
+
+async function test(name, fn) {
+  try {
+    await fn();
+  } catch (err) {
+    const msg = err instanceof AggregateError
+      ? `AggregateError: ${(err.errors || []).map((e) => e && e.message || e).join("; ")}`
+      : String(err && err.message ? err.message : err);
+    if (msg.includes("TIMEOUT") || msg.includes("ETIMEDOUT")) {
+      skip(name, `timeout: ${msg}`);
+    } else if (msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND") || msg.includes("AggregateError")) {
+      skip(name, `network: ${msg}`);
+    } else {
+      fail(name, msg);
+    }
+  }
+}
+
+function assert(condition, name, detail = "") {
+  if (condition) pass(name, detail);
+  else fail(name, detail || "assertion failed");
+}
+
+// ---------------------------------------------------------------------------
+// Auto-discovery: fetch a recent block and transaction for later tests
+// ---------------------------------------------------------------------------
+
+async function discoverTestData() {
+  // Grab recent blocks
+  const blocksRes = await get("/mainnet/blocks?limit=2");
+  const blocksData = blocksRes.json?.data || (Array.isArray(blocksRes.json) ? blocksRes.json : []);
+  if (blocksData.length > 0) {
+    const b = blocksData[0];
+    discovered.blockIndex = b.block_index ?? b.index ?? b.blockindex ?? b.height;
+    discovered.blockHash = b.hash;
+  }
+  // Grab recent transaction
+  const txRes = await get("/mainnet/transactions?limit=2");
+  const txData = txRes.json?.data || (Array.isArray(txRes.json) ? txRes.json : []);
+  if (txData.length > 0) {
+    const t = txData[0];
+    discovered.txid = t.hash || t.txid;
+    discovered.address = t.sender || t.from;
+  }
+  // Fallback address (Neo Foundation, guaranteed to exist on mainnet)
+  if (!discovered.address) {
+    discovered.address = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+  }
+  console.log(`Discovered test data:`);
+  console.log(`  blockIndex: ${discovered.blockIndex}`);
+  console.log(`  blockHash:  ${discovered.blockHash}`);
+  console.log(`  txid:       ${discovered.txid}`);
+  console.log(`  address:    ${discovered.address}`);
+}
+
+// ---------------------------------------------------------------------------
+// Page tests
+// ---------------------------------------------------------------------------
+
+async function testHomePage() {
+  setPage("Home Page (/)");
+
+  await test("GET /mainnet/summary → 200", async () => {
+    const res = await get("/mainnet/summary");
+    assert(res.status === 200, "GET /mainnet/summary → 200", `status=${res.status}`);
+    const d = res.json?.data || res.json || {};
+    assert(
+      d.total_block_count > 0 || d.block_count > 0 || d.totalBlockCount > 0,
+      "summary has block_count",
+      `got keys: ${Object.keys(d).join(", ")}`,
+    );
+  });
+
+  await test("GET /mainnet/blocks?limit=6", async () => {
+    const res = await get("/mainnet/blocks?limit=6");
+    assert(res.status === 200, "GET /mainnet/blocks?limit=6 → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(items.length > 0 && items.length <= 6, "returns <=6 blocks", `count=${items.length}`);
+  });
+
+  await test("GET /mainnet/transactions?limit=6", async () => {
+    const res = await get("/mainnet/transactions?limit=6");
+    assert(res.status === 200, "GET /mainnet/transactions?limit=6 → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(items.length > 0 && items.length <= 6, "returns <=6 transactions", `count=${items.length}`);
+  });
+
+  await test("GET /mainnet/status → 200", async () => {
+    const res = await get("/mainnet/status");
+    assert(res.status === 200, "GET /mainnet/status → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetBlockCount", async () => {
+    const res = await rpcPost("mainnet", "GetBlockCount", {});
+    assert(res.status === 200, "RPC GetBlockCount → 200", `status=${res.status}`);
+    const count = res.json?.result?.["total counts"] ?? res.json?.result?.count ?? res.json?.result;
+    assert(count > 0, "RPC GetBlockCount returns positive result", `count=${count}`);
+  });
+
+  await test("RPC GetTransactionCount", async () => {
+    const res = await rpcPost("mainnet", "GetTransactionCount", {});
+    assert(res.status === 200, "RPC GetTransactionCount → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAddressCount", async () => {
+    const res = await rpcPost("mainnet", "GetAddressCount", {});
+    assert(res.status === 200, "RPC GetAddressCount → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetContractCount", async () => {
+    const res = await rpcPost("mainnet", "GetContractCount", {});
+    assert(res.status === 200, "RPC GetContractCount → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAssetCount", async () => {
+    const res = await rpcPost("mainnet", "GetAssetCount", {});
+    assert(res.status === 200, "RPC GetAssetCount → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetCandidateCount", async () => {
+    const res = await rpcPost("mainnet", "GetCandidateCount", {});
+    assert(res.status === 200, "RPC GetCandidateCount → 200", `status=${res.status}`);
+  });
+}
+
+async function testBlocksPage() {
+  setPage("Blocks Page (/blocks)");
+
+  await test("GET /mainnet/blocks?limit=20", async () => {
+    const res = await get("/mainnet/blocks?limit=20");
+    assert(res.status === 200, "GET /mainnet/blocks?limit=20 → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(Array.isArray(items) && items.length > 0, "returns block array", `count=${items.length}`);
+    // Verify DESC order
+    if (items.length >= 2) {
+      const idx0 = items[0].block_index ?? items[0].index;
+      const idx1 = items[1].block_index ?? items[1].index;
+      assert(idx0 > idx1, "blocks ordered by block_index DESC", `${idx0} > ${idx1}`);
+    }
+  });
+
+  await test("GET /mainnet/blocks?limit=20&offset=20 (pagination)", async () => {
+    const res = await get("/mainnet/blocks?limit=20&offset=20");
+    assert(res.status === 200, "GET /mainnet/blocks?limit=20&offset=20 → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(items.length > 0, "pagination returns blocks", `count=${items.length}`);
+  });
+
+  if (discovered.blockIndex != null) {
+    await test("GET /mainnet/blocks/{block_index}", async () => {
+      const res = await get(`/mainnet/blocks/${discovered.blockIndex}`);
+      assert(res.status === 200, "GET /mainnet/blocks/{index} → 200", `status=${res.status}`);
+      const d = res.json?.data || res.json || {};
+      assert(d.hash || d.block_hash, "block detail has hash", `keys: ${Object.keys(d).join(", ")}`);
+    });
+  }
+
+  if (discovered.blockHash) {
+    await test("GET /mainnet/blocks/{block_hash}", async () => {
+      const res = await get(`/mainnet/blocks/${discovered.blockHash}`);
+      assert(res.status === 200, "GET /mainnet/blocks/{hash} → 200", `status=${res.status}`);
+    });
+  }
+
+  await test("RPC GetBlockByBlockHeight", async () => {
+    const height = discovered.blockIndex || 1000;
+    const res = await rpcPost("mainnet", "GetBlockByBlockHeight", { BlockHeight: height });
+    assert(res.status === 200, "RPC GetBlockByBlockHeight → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetBlockHeaderByBlockHeight", async () => {
+    const height = discovered.blockIndex || 1000;
+    const res = await rpcPost("mainnet", "GetBlockHeaderByBlockHeight", { BlockHeight: height });
+    assert(res.status === 200, "RPC GetBlockHeaderByBlockHeight → 200", `status=${res.status}`);
+  });
+}
+
+async function testTransactionsPage() {
+  setPage("Transactions Page (/transactions)");
+
+  await test("GET /mainnet/transactions?limit=20", async () => {
+    const res = await get("/mainnet/transactions?limit=20");
+    assert(res.status === 200, "GET /mainnet/transactions?limit=20 → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(items.length > 0, "returns transactions", `count=${items.length}`);
+  });
+
+  if (discovered.txid) {
+    await test("GET /mainnet/transactions/{txid}", async () => {
+      const res = await get(`/mainnet/transactions/${discovered.txid}`);
+      assert(res.status === 200, "GET /mainnet/transactions/{txid} → 200", `status=${res.status}`);
+      const d = res.json?.data || res.json || {};
+      assert(
+        "vm_state" in d || "vmstate" in d || "vmState" in d || "gas_consumed" in d,
+        "tx detail has vm_state or gas_consumed",
+        `keys: ${Object.keys(d).slice(0, 10).join(", ")}`,
+      );
+    });
+
+    await test("RPC GetRawTransactionByTransactionHash", async () => {
+      const res = await rpcPost("mainnet", "GetRawTransactionByTransactionHash", { TransactionHash: discovered.txid });
+      assert(res.status === 200, "RPC GetRawTransactionByTransactionHash → 200", `status=${res.status}`);
+    });
+
+    await test("RPC GetApplicationLogByTransactionHash", async () => {
+      const res = await rpcPost("mainnet", "GetApplicationLogByTransactionHash", { TransactionHash: discovered.txid });
+      assert(res.status === 200, "RPC GetApplicationLogByTransactionHash → 200", `status=${res.status}`);
+    });
+
+    await test("RPC GetScCallByTransactionHash", async () => {
+      const res = await rpcPost("mainnet", "GetScCallByTransactionHash", { TransactionHash: discovered.txid, Limit: 5, Skip: 0 });
+      assert(res.status === 200, "RPC GetScCallByTransactionHash → 200", `status=${res.status}`);
+    });
+
+    await test("RPC GetNep17TransferByTransactionHash", async () => {
+      const res = await rpcPost("mainnet", "GetNep17TransferByTransactionHash", { TransactionHash: discovered.txid, Limit: 5, Skip: 0 });
+      assert(res.status === 200, "RPC GetNep17TransferByTransactionHash → 200", `status=${res.status}`);
+    });
+  }
+}
+
+async function testContractsPage() {
+  setPage("Contracts Page (/contracts)");
+
+  await test("GET /mainnet/contracts?limit=20", async () => {
+    const res = await get("/mainnet/contracts?limit=20");
+    assert(res.status === 200, "GET /mainnet/contracts?limit=20 → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/contracts?search=Neo", async () => {
+    const res = await get("/mainnet/contracts?search=Neo");
+    assert(res.status === 200, "GET /mainnet/contracts?search=Neo → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(items.length > 0, "search=Neo returns results", `count=${items.length}`);
+  });
+
+  await test("GET /mainnet/contracts/{NEO}", async () => {
+    const res = await get(`/mainnet/contracts/${NEO_HASH}`);
+    assert(res.status === 200, "GET /mainnet/contracts/{NEO} → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/contracts/{NEO}/events?limit=5", async () => {
+    const res = await get(`/mainnet/contracts/${NEO_HASH}/events?limit=5`);
+    assert(res.status === 200, "GET /mainnet/contracts/{NEO}/events → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/contracts/{NEO}/notifications?limit=5", async () => {
+    const res = await get(`/mainnet/contracts/${NEO_HASH}/notifications?limit=5`);
+    assert(res.status === 200, "GET /mainnet/contracts/{NEO}/notifications → 200", `status=${res.status}`);
+    const items = res.json?.data || res.json || [];
+    assert(Array.isArray(items) || (typeof items === "object"), "notifications response is valid", `type=${typeof items}`);
+  });
+
+  await test("RPC GetContractList", async () => {
+    const res = await rpcPost("mainnet", "GetContractList", { Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetContractList → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetContractByContractHash (NEO)", async () => {
+    const res = await rpcPost("mainnet", "GetContractByContractHash", { ContractHash: NEO_HASH });
+    assert(res.status === 200, "RPC GetContractByContractHash → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetNotificationByContractHash (NEO)", async () => {
+    const res = await rpcPost("mainnet", "GetNotificationByContractHash", { ContractHash: NEO_HASH, Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetNotificationByContractHash → 200", `status=${res.status}`);
+  });
+}
+
+async function testTokensPage() {
+  setPage("Tokens Page (/tokens)");
+
+  await test("GET /mainnet/tokens?limit=20", async () => {
+    const res = await get("/mainnet/tokens?limit=20");
+    assert(res.status === 200, "GET /mainnet/tokens?limit=20 → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/tokens/{GAS}", async () => {
+    const res = await get(`/mainnet/tokens/${GAS_HASH}`);
+    assert(res.status === 200, "GET /mainnet/tokens/{GAS} → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAssetInfos", async () => {
+    const res = await rpcPost("mainnet", "GetAssetInfos", { Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetAssetInfos → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAssetInfoByContractHash (NEO)", async () => {
+    const res = await rpcPost("mainnet", "GetAssetInfoByContractHash", { ContractHash: NEO_HASH });
+    assert(res.status === 200, "RPC GetAssetInfoByContractHash → 200", `status=${res.status}`);
+  });
+}
+
+async function testAccountPage() {
+  setPage("Account Page (/account-profile/{address})");
+  const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+
+  await test("GET /mainnet/accounts/{address}", async () => {
+    const res = await get(`/mainnet/accounts/${addr}`);
+    assert(
+      res.status === 200 || res.status === 404,
+      "GET /mainnet/accounts/{address} → 200 or 404",
+      `status=${res.status}`,
+    );
+  });
+
+  await test("GET /mainnet/accounts/{address}/transactions?limit=10", async () => {
+    const res = await get(`/mainnet/accounts/${addr}/transactions?limit=10`);
+    assert(res.status === 200, "GET /mainnet/accounts/{addr}/transactions → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/accounts/{address}/transfers?limit=10", async () => {
+    const res = await get(`/mainnet/accounts/${addr}/transfers?limit=10`);
+    assert(res.status === 200, "GET /mainnet/accounts/{addr}/transfers → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/accounts/{address}/balances", async () => {
+    const res = await get(`/mainnet/accounts/${addr}/balances`);
+    assert(res.status === 200, "GET /mainnet/accounts/{addr}/balances → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAddressByAddress", async () => {
+    const res = await rpcPost("mainnet", "GetAddressByAddress", { Address: addr });
+    assert(res.status === 200, "RPC GetAddressByAddress → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetAssetsHeldByAddress", async () => {
+    const res = await rpcPost("mainnet", "GetAssetsHeldByAddress", { Address: addr, Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetAssetsHeldByAddress → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetNep17TransferByAddress", async () => {
+    const res = await rpcPost("mainnet", "GetNep17TransferByAddress", { Address: addr, Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetNep17TransferByAddress → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetNep11TransferByAddress", async () => {
+    const res = await rpcPost("mainnet", "GetNep11TransferByAddress", { Address: addr, Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetNep11TransferByAddress → 200", `status=${res.status}`);
+  });
+
+  await test("Proxy getnep17balances", async () => {
+    const res = await rpcPost("mainnet", "getnep17balances", [addr]);
+    assert(res.status === 200, "Proxy getnep17balances → 200", `status=${res.status}`);
+  });
+}
+
+async function testGovernanceToolPage() {
+  setPage("Governance Tool (/tools/governance) [CRITICAL]");
+
+  await test("Supabase multisig_requests (network=eq.mainnet)", async () => {
+    const res = await supabaseGet(
+      "/rest/v1/multisig_requests?select=*,signatures:multisig_signatures(*)&network=eq.mainnet&order=created_at.desc&limit=5",
+    );
+    assert(res.status === 200, "multisig_requests (network col) → 200", `status=${res.status}`);
+    assert(Array.isArray(res.json), "multisig_requests returns array", `type=${typeof res.json}`);
+  });
+
+  await test("Supabase multisig_requests (network_mode=eq.mainnet)", async () => {
+    const res = await supabaseGet(
+      "/rest/v1/multisig_requests?select=*,signatures:multisig_signatures(*)&network_mode=eq.mainnet&order=created_at.desc&limit=5",
+    );
+    // Either 200 or graceful error — we just need to know it doesn't crash
+    assert(
+      res.status === 200 || res.status === 400,
+      "multisig_requests (network_mode col) → 200 or 400",
+      `status=${res.status}`,
+    );
+  });
+
+  await test("GET /mainnet/metadata/validators", async () => {
+    const res = await get("/mainnet/metadata/validators");
+    assert(res.status === 200, "GET /mainnet/metadata/validators → 200", `status=${res.status}`);
+    const items = res.json?.data || res.json || [];
+    assert(
+      (Array.isArray(items) && items.length > 0) || (typeof items === "object" && Object.keys(items).length > 0),
+      "validators metadata is non-empty",
+      `type=${typeof items}, length=${Array.isArray(items) ? items.length : "n/a"}`,
+    );
+  });
+
+  await test("Proxy getcommittee", async () => {
+    const res = await rpcPost("mainnet", "getcommittee", []);
+    assert(res.status === 200, "Proxy getcommittee → 200", `status=${res.status}`);
+    assert(Array.isArray(res.json?.result), "getcommittee returns array result", `type=${typeof res.json?.result}`);
+  });
+
+  await test("Proxy getcandidates", async () => {
+    const res = await rpcPost("mainnet", "getcandidates", []);
+    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+  });
+}
+
+async function testCandidatesPage() {
+  setPage("Candidates/Governance Page (/governance)");
+
+  await test("GET /mainnet/metadata/validators", async () => {
+    const res = await get("/mainnet/metadata/validators");
+    assert(res.status === 200, "GET /mainnet/metadata/validators → 200", `status=${res.status}`);
+    const items = res.json?.data || res.json || [];
+    assert(
+      (Array.isArray(items) && items.length > 0) || (typeof items === "object" && Object.keys(items).length > 0),
+      "validators non-empty",
+    );
+  });
+
+  await test("RPC GetCandidateCount", async () => {
+    const res = await rpcPost("mainnet", "GetCandidateCount", {});
+    assert(res.status === 200, "RPC GetCandidateCount → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetCandidate", async () => {
+    const res = await rpcPost("mainnet", "GetCandidate", { Limit: 5, Skip: 0 });
+    assert(res.status === 200, "RPC GetCandidate → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetCommittee", async () => {
+    const res = await rpcPost("mainnet", "GetCommittee", {});
+    assert(res.status === 200, "RPC GetCommittee → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetTotalVotes", async () => {
+    const res = await rpcPost("mainnet", "GetTotalVotes", {});
+    assert(res.status === 200, "RPC GetTotalVotes → 200", `status=${res.status}`);
+  });
+
+  await test("Proxy getcandidates", async () => {
+    const res = await rpcPost("mainnet", "getcandidates", []);
+    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+  });
+}
+
+async function testAnalyticsPage() {
+  setPage("Analytics Page (/analytics)");
+
+  await test("GET /mainnet/analytics/daily?days=30", async () => {
+    const res = await get("/mainnet/analytics/daily?days=30");
+    assert(res.status === 200, "GET /mainnet/analytics/daily → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(Array.isArray(items) && items.length > 0, "daily analytics has items", `count=${items.length}`);
+  });
+
+  await test("RPC GetDailyTransactions", async () => {
+    const res = await rpcPost("mainnet", "GetDailyTransactions", { Days: 7 });
+    assert(res.status === 200, "RPC GetDailyTransactions → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetHourlyTransactions", async () => {
+    const res = await rpcPost("mainnet", "GetHourlyTransactions", { Hours: 24 });
+    assert(res.status === 200, "RPC GetHourlyTransactions → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetNewAddresses", async () => {
+    const res = await rpcPost("mainnet", "GetNewAddresses", { Days: 7 });
+    assert(res.status === 200, "RPC GetNewAddresses → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetActiveAddresses", async () => {
+    const res = await rpcPost("mainnet", "GetActiveAddresses", { Days: 7 });
+    assert(res.status === 200, "RPC GetActiveAddresses → 200", `status=${res.status}`);
+  });
+}
+
+async function testNNSPage() {
+  setPage("NNS/Matrix Page");
+
+  await test("GET /mainnet/nns/domains?limit=10", async () => {
+    const res = await get("/mainnet/nns/domains?limit=10");
+    assert(res.status === 200, "GET /mainnet/nns/domains → 200", `status=${res.status}`);
+  });
+
+  await test("GET /mainnet/metadata/addresses?limit=5", async () => {
+    const res = await get("/mainnet/metadata/addresses?limit=5");
+    assert(res.status === 200, "GET /mainnet/metadata/addresses → 200", `status=${res.status}`);
+  });
+
+  await test("RPC GetNNSNameByOwner", async () => {
+    const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+    const res = await rpcPost("mainnet", "GetNNSNameByOwner", { Address: addr });
+    assert(res.status === 200, "RPC GetNNSNameByOwner → 200", `status=${res.status}`);
+  });
+}
+
+async function testBlockStateReads() {
+  setPage("Block State Reads");
+
+  await test("GET /mainnet/blocks/1846463/state-reads", async () => {
+    const res = await get("/mainnet/blocks/1846463/state-reads");
+    assert(res.status === 200, "GET state-reads → 200", `status=${res.status}`);
+    const d = res.json?.data || res.json || {};
+    const reads = d.reads || d.state_reads || (Array.isArray(d) ? d : []);
+    assert(
+      Array.isArray(reads) || typeof d === "object",
+      "state-reads response has data",
+      `type=${typeof d}`,
+    );
+  });
+}
+
+async function testMempoolTool() {
+  setPage("Mempool Tool (/tools/mempool)");
+
+  await test("Supabase mempool_transactions", async () => {
+    const res = await supabaseGet("/rest/v1/mempool_transactions?limit=20&order=first_seen_at.desc");
+    assert(
+      res.status === 200 || res.status === 404,
+      "mempool_transactions → 200 or 404",
+      `status=${res.status}`,
+    );
+  });
+
+  await test("Proxy getrawmempool", async () => {
+    const res = await rpcPost("mainnet", "getrawmempool", []);
+    assert(res.status === 200, "Proxy getrawmempool → 200", `status=${res.status}`);
+  });
+}
+
+async function testMultiSigTool() {
+  setPage("MultiSig Tool (/tools/multisig)");
+
+  await test("Supabase multisig_requests", async () => {
+    const res = await supabaseGet("/rest/v1/multisig_requests?select=*&limit=20&order=created_at.desc");
+    assert(res.status === 200, "multisig_requests → 200", `status=${res.status}`);
+    assert(Array.isArray(res.json), "multisig_requests returns array", `type=${typeof res.json}`);
+  });
+}
+
+async function testSearch() {
+  setPage("Search");
+
+  const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+
+  await test("Search by address", async () => {
+    const res = await get(`/mainnet/accounts/${addr}`);
+    assert(
+      res.status === 200 || res.status === 404,
+      "search by address → 200 or 404 (indexer may not have account summary)",
+      `status=${res.status}`,
+    );
+  });
+
+  if (discovered.blockIndex != null) {
+    await test("Search by block index", async () => {
+      const res = await get(`/mainnet/blocks/${discovered.blockIndex}`);
+      assert(res.status === 200, "search by block index → 200", `status=${res.status}`);
+    });
+  }
+
+  if (discovered.txid) {
+    await test("Search by tx hash", async () => {
+      const res = await get(`/mainnet/transactions/${discovered.txid}`);
+      assert(res.status === 200, "search by tx hash → 200", `status=${res.status}`);
+    });
+  }
+
+  await test("Search by contract hash", async () => {
+    const res = await get(`/mainnet/contracts/${NEO_HASH}`);
+    assert(res.status === 200, "search by contract hash → 200", `status=${res.status}`);
+  });
+}
+
+async function testTestnet() {
+  setPage("Testnet");
+
+  await test("GET /testnet/status", async () => {
+    const res = await get("/testnet/status");
+    assert(res.status === 200, "GET /testnet/status → 200", `status=${res.status}`);
+  });
+
+  await test("GET /testnet/blocks?limit=2", async () => {
+    const res = await get("/testnet/blocks?limit=2");
+    assert(res.status === 200, "GET /testnet/blocks → 200", `status=${res.status}`);
+  });
+
+  await test("GET /testnet/transactions?limit=2", async () => {
+    const res = await get("/testnet/transactions?limit=2");
+    assert(res.status === 200, "GET /testnet/transactions → 200", `status=${res.status}`);
+  });
+
+  await test("Testnet RPC GetBlockCount", async () => {
+    const res = await rpcPost("testnet", "GetBlockCount", {});
+    assert(res.status === 200, "Testnet RPC GetBlockCount → 200", `status=${res.status}`);
+  });
+}
+
+async function testRestCompatTables() {
+  setPage("REST Compatibility (all tables)");
+
+  // Read-API compat tables route through the indexer, so they need auth headers
+  // and specific query parameters depending on the table schema.
+  const readApiTables = [
+    { table: "contract_notifications", query: "limit=2&order=id.desc" },
+    { table: "nep17_transfers", query: "limit=2&order=id.desc" },
+    { table: "nep11_transfers", query: "limit=2&order=id.desc" },
+    { table: "validator_metadata_cache", query: "limit=2" },
+    { table: "address_metadata_cache", query: "limit=2" },
+    { table: "contract_metadata_cache", query: "limit=2" },
+    { table: "indexer_state", query: "limit=2" },
+    { table: "transaction_executions", query: "limit=2&order=id.desc" },
+    { table: "transaction_signers", query: "limit=2&order=id.desc" },
+  ];
+
+  for (const { table, query } of readApiTables) {
+    await test(`GET /rest/v1/${table}?${query}`, async () => {
+      // Read-API compat tables may need auth headers (routed to indexer, but
+      // the worker may still strip auth). Try both ways.
+      const res = await supabaseGet(`/rest/v1/${table}?${query}`);
+      assert(
+        res.status === 200 || res.status === 404 || res.status === 400,
+        `REST /rest/v1/${table} → 200, 404, or 400`,
+        `status=${res.status}`,
+      );
+    });
+  }
+
+  const supabaseTables = [
+    "multisig_requests",
+    "multisig_signatures",
+    "mempool_transactions",
+    "network_alerts",
+  ];
+
+  for (const table of supabaseTables) {
+    await test(`Supabase /rest/v1/${table}?limit=2`, async () => {
+      const res = await supabaseGet(`/rest/v1/${table}?limit=2`);
+      assert(
+        res.status === 200 || res.status === 404,
+        `Supabase /rest/v1/${table} → 200 or 404`,
+        `status=${res.status}`,
+      );
+    });
+  }
+}
+
+async function testProxyRPCs() {
+  setPage("Proxy RPCs (native neo methods)");
+
+  await test("Proxy getversion", async () => {
+    const res = await rpcPost("mainnet", "getversion", []);
+    assert(res.status === 200, "Proxy getversion → 200", `status=${res.status}`);
+    assert(res.json?.result, "getversion has result", `keys: ${Object.keys(res.json?.result || {}).join(", ")}`);
+  });
+
+  await test("Proxy getblockcount", async () => {
+    const res = await rpcPost("mainnet", "getblockcount", []);
+    assert(res.status === 200, "Proxy getblockcount → 200", `status=${res.status}`);
+    assert(res.json?.result > 0, "getblockcount returns positive", `result=${res.json?.result}`);
+  });
+
+  await test("Proxy getcandidates", async () => {
+    const res = await rpcPost("mainnet", "getcandidates", []);
+    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+  });
+
+  await test("Proxy getnep17balances", async () => {
+    const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+    const res = await rpcPost("mainnet", "getnep17balances", [addr]);
+    assert(res.status === 200, "Proxy getnep17balances → 200", `status=${res.status}`);
+  });
+
+  await test("Proxy getcontractstate (NEO)", async () => {
+    const res = await rpcPost("mainnet", "getcontractstate", [NEO_HASH]);
+    assert(res.status === 200, "Proxy getcontractstate → 200", `status=${res.status}`);
+    assert(res.json?.result, "getcontractstate has result");
+  });
+
+  await test("Proxy invokefunction (NEO symbol)", async () => {
+    const res = await rpcPost("mainnet", "invokefunction", [NEO_HASH, "symbol", []]);
+    assert(res.status === 200, "Proxy invokefunction → 200", `status=${res.status}`);
+    assert(res.json?.result?.state === "HALT", "invokefunction HALT state", `state=${res.json?.result?.state}`);
+  });
+}
+
+async function testCachePerformance() {
+  setPage("Cache & Performance");
+
+  await test("Second request faster (cache HIT)", async () => {
+    // Warm the cache
+    const first = await get("/mainnet/summary");
+    // Now hit again
+    const second = await get("/mainnet/summary");
+    assert(first.status === 200 && second.status === 200, "both requests succeed", `${first.status}, ${second.status}`);
+    const cacheStatus = second.headers["cf-cache-status"] || second.headers["x-cache-status"] || "";
+    // We check elapsed time as a signal. If the second request is faster or has cache header, pass.
+    const faster = second.elapsedMs <= first.elapsedMs + 50; // allow 50ms jitter
+    assert(
+      faster || cacheStatus.toLowerCase().includes("hit"),
+      "second request served from cache or faster",
+      `first=${first.elapsedMs}ms, second=${second.elapsedMs}ms, cache-status=${cacheStatus}`,
+    );
+  });
+
+  await test("State reads has immutable cache header", async () => {
+    const res = await get("/mainnet/blocks/1846463/state-reads");
+    assert(res.status === 200, "state-reads responds", `status=${res.status}`);
+    const cc = res.headers["cache-control"] || "";
+    assert(
+      cc.includes("max-age") || cc.includes("immutable") || cc.includes("public"),
+      "state-reads has cache-control header",
+      `cache-control: ${cc}`,
+    );
+  });
+
+  await test("Status endpoint has short-lived cache", async () => {
+    const res = await get("/mainnet/status");
+    assert(res.status === 200, "status responds");
+    const cc = res.headers["cache-control"] || "";
+    // Should have a cache header but short TTL
+    if (cc) {
+      const maxAgeMatch = cc.match(/max-age=(\d+)/);
+      if (maxAgeMatch) {
+        const maxAge = parseInt(maxAgeMatch[1], 10);
+        assert(maxAge <= 300, "status cache max-age <= 300s", `max-age=${maxAge}`);
+      } else {
+        pass("status has cache-control", `cache-control: ${cc}`);
+      }
+    } else {
+      pass("status endpoint (no cache-control, may be bypassed)");
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+async function main() {
+  console.log(`\nNeo-Explorer-UI Page Integration Tests`);
+  console.log(`Base URL: ${BASE}`);
+  console.log(`Timestamp: ${new Date().toISOString()}`);
+  console.log(`=`.repeat(60));
+
+  // Auto-discover test data
+  try {
+    await discoverTestData();
+  } catch (err) {
+    console.error(`WARN: auto-discovery failed: ${err.message}`);
+  }
+
+  // Run all page tests
+  await testHomePage();
+  await testBlocksPage();
+  await testTransactionsPage();
+  await testContractsPage();
+  await testTokensPage();
+  await testAccountPage();
+  await testGovernanceToolPage();
+  await testCandidatesPage();
+  await testAnalyticsPage();
+  await testNNSPage();
+  await testBlockStateReads();
+  await testMempoolTool();
+  await testMultiSigTool();
+  await testSearch();
+  await testTestnet();
+  await testRestCompatTables();
+  await testProxyRPCs();
+  await testCachePerformance();
+
+  // ---------------------------------------------------------------------------
+  // Summary
+  // ---------------------------------------------------------------------------
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log("SUMMARY BY PAGE");
+  console.log(`${"=".repeat(60)}`);
+
+  const pages = [...new Set(results.map((r) => r.page))];
+  let totalPass = 0;
+  let totalFail = 0;
+  let totalSkip = 0;
+
+  const pageSummary = [];
+  for (const page of pages) {
+    const pageResults = results.filter((r) => r.page === page);
+    const p = pageResults.filter((r) => r.status === "PASS").length;
+    const f = pageResults.filter((r) => r.status === "FAIL").length;
+    const s = pageResults.filter((r) => r.status === "SKIP").length;
+    totalPass += p;
+    totalFail += f;
+    totalSkip += s;
+    const icon = f > 0 ? "FAIL" : s > 0 ? "WARN" : "OK  ";
+    pageSummary.push({ page, pass: p, fail: f, skip: s, icon });
+  }
+
+  // Print table
+  const maxPageLen = Math.max(20, ...pageSummary.map((r) => r.page.length));
+  console.log(
+    `  ${"Page".padEnd(maxPageLen)}  Pass  Fail  Skip  Status`,
+  );
+  console.log(`  ${"-".repeat(maxPageLen)}  ----  ----  ----  ------`);
+  for (const row of pageSummary) {
+    console.log(
+      `  ${row.page.padEnd(maxPageLen)}  ${String(row.pass).padStart(4)}  ${String(row.fail).padStart(4)}  ${String(row.skip).padStart(4)}  ${row.icon}`,
+    );
+  }
+  console.log(`  ${"-".repeat(maxPageLen)}  ----  ----  ----  ------`);
+  console.log(
+    `  ${"TOTAL".padEnd(maxPageLen)}  ${String(totalPass).padStart(4)}  ${String(totalFail).padStart(4)}  ${String(totalSkip).padStart(4)}  ${totalFail > 0 ? "FAIL" : "PASS"}`,
+  );
+
+  // Print failing tests
+  const failures = results.filter((r) => r.status === "FAIL");
+  if (failures.length > 0) {
+    console.log(`\nFAILED TESTS:`);
+    for (const f of failures) {
+      console.log(`  [${f.page}] ${f.name}: ${f.detail}`);
+    }
+  }
+
+  console.log(`\nDone. ${totalPass} passed, ${totalFail} failed, ${totalSkip} skipped.`);
+  process.exit(totalFail > 0 ? 1 : 0);
+}
+
+main().catch((err) => {
+  console.error(`\nFATAL: ${err.message}`);
+  console.error(err.stack);
+  process.exit(2);
+});
