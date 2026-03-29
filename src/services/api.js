@@ -94,7 +94,8 @@ const resolveRpcBaseUrl = () => {
   return ensureNetworkEndpointBase(getRpcApiBasePath());
 };
 
-const reorderBaseUrls = (candidates, preferred) => {
+// Unused after single-server simplification — kept for reference.
+const _reorderBaseUrls = (candidates, preferred) => {
   const normalizedPreferred = normalizeBaseUrl(preferred);
   if (!normalizedPreferred) return candidates;
 
@@ -112,15 +113,9 @@ const reorderBaseUrls = (candidates, preferred) => {
   return preferredCandidate ? [preferredCandidate, ...remaining] : candidates;
 };
 
+// Single server — only primary endpoint.
 const buildNetworkRetryBaseUrls = (parsed) => {
-  const candidates = [
-    `${parsed.prefix}/primary`,
-    `${parsed.prefix}/fallback`,
-    `${parsed.prefix}/fallback2`,
-    `${parsed.prefix}/fallback3`,
-  ];
-  const preferredCandidate = parsed.endpoint ? `${parsed.prefix}/${parsed.endpoint}` : `${parsed.prefix}/primary`;
-  return reorderBaseUrls(candidates, preferredCandidate);
+  return [`${parsed.prefix}/primary`];
 };
 
 const buildRetryBaseUrls = (baseUrl) => {

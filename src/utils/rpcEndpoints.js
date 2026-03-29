@@ -67,6 +67,7 @@ const parseConfiguredNetworkBase = (value) => {
   };
 };
 
+// Single server — only primary endpoint, no fallbacks.
 const getConfiguredRpcEndpointCandidates = (value = getCurrentEnv()) => {
   const configuredBaseUrl = normalizeBaseUrl(getConfiguredRpcBaseUrl(value));
   if (!configuredBaseUrl) return null;
@@ -74,14 +75,7 @@ const getConfiguredRpcEndpointCandidates = (value = getCurrentEnv()) => {
   const parsed = parseConfiguredNetworkBase(configuredBaseUrl);
   if (!parsed) return [toAbsoluteUrl(configuredBaseUrl)];
 
-  const candidates = [
-    toAbsoluteUrl(`${parsed.prefix}/primary`),
-    toAbsoluteUrl(`${parsed.prefix}/fallback`),
-    toAbsoluteUrl(`${parsed.prefix}/fallback2`),
-    toAbsoluteUrl(`${parsed.prefix}/fallback3`),
-  ];
-  const preferredCandidate = parsed.endpoint ? toAbsoluteUrl(`${parsed.prefix}/${parsed.endpoint}`) : "";
-  return reorderCandidates(candidates, preferredCandidate);
+  return [toAbsoluteUrl(`${parsed.prefix}/primary`)];
 };
 
 export const toNetworkMode = (value = getCurrentEnv()) => {
