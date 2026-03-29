@@ -356,7 +356,8 @@ const normalizeAddressMetadata = (item = {}) => {
   if (!Number.isFinite(nnsExpirationMS) || nnsExpirationMS <= 0) {
     nnsExpirationMS = 0;
   }
-  const hasActiveNNS = Boolean(nnsDomain) && nnsExpirationMS > Date.now();
+  // Matrix domains have expiration_ms=0 (permanent). Treat 0 as non-expiring.
+  const hasActiveNNS = Boolean(nnsDomain) && (nnsExpirationMS === 0 || nnsExpirationMS > Date.now());
 
   return {
     ...item,
