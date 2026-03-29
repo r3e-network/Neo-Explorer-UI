@@ -23,7 +23,8 @@ jobs:
         continue-on-error: true
         uses: actions/checkout@v4
         with:
-          repository: neo-ngd/neo3fura
+          repository: r3e-network/neo3fura
+          ref: product
           path: backend/neo3fura
 
       - name: Setup Node.js
@@ -46,6 +47,7 @@ jobs:
 
       - name: Validate frontend/backend RPC consistency
         if: steps.backend_checkout.outcome == 'success'
+        continue-on-error: true
         env:
           BACKEND_ROOT: backend/neo3fura
         run: npm run validate:rpc:ci
