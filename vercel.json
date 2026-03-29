@@ -15,27 +15,159 @@
   ],
   "rewrites": [
     {
-      "source": "/rpc/:network/:endpoint*",
-      "destination": "https://api.n3index.dev/:network"
+      "source": "/rpc/mainnet/primary",
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
-      "source": "/api/:network/:endpoint*",
-      "destination": "https://api.n3index.dev/:network"
+      "source": "/rpc/mainnet/fallback",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/rpc/mainnet/fallback2",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/rpc/mainnet/fallback3",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/rpc/testnet/primary",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/rpc/testnet/fallback",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/rpc/testnet/fallback2",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/rpc/testnet/fallback3",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/rpc/mainnet",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/rpc/testnet",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/mainnet/primary",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/mainnet/fallback",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/mainnet/fallback2",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/mainnet/fallback3",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/testnet/primary",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/testnet/fallback",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/testnet/fallback2",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/testnet/fallback3",
+      "destination": "https://api.n3index.dev/testnet"
+    },
+    {
+      "source": "/api/mainnet",
+      "destination": "https://api.n3index.dev/mainnet"
+    },
+    {
+      "source": "/api/testnet",
+      "destination": "https://api.n3index.dev/testnet"
     },
     {
       "source": "/api",
       "destination": "https://api.n3index.dev/mainnet"
     },
     {
-      "source": "/data/:network/:rest*",
-      "destination": "https://api.n3index.dev/:network/:rest*"
+      "source": "/data/mainnet/fallback/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
     },
     {
-      "source": "/indexer/:network/:rest*",
-      "destination": "https://api.n3index.dev/:network/:rest*"
+      "source": "/data/mainnet/fallback2/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
     },
     {
-      "source": "/rest/:network/(.*)",
+      "source": "/data/mainnet/fallback3/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/data/mainnet/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/data/testnet/fallback/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/data/testnet/fallback2/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/data/testnet/fallback3/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/data/testnet/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/indexer/mainnet/fallback/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/indexer/mainnet/fallback2/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/indexer/mainnet/fallback3/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/indexer/mainnet/(.*)",
+      "destination": "https://api.n3index.dev/mainnet/$1"
+    },
+    {
+      "source": "/indexer/testnet/fallback/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/indexer/testnet/fallback2/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/indexer/testnet/fallback3/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/indexer/testnet/(.*)",
+      "destination": "https://api.n3index.dev/testnet/$1"
+    },
+    {
+      "source": "/rest/mainnet/(.*)",
+      "destination": "https://api.n3index.dev/rest/v1/$1"
+    },
+    {
+      "source": "/rest/testnet/(.*)",
       "destination": "https://api.n3index.dev/rest/v1/$1"
     },
     {
