@@ -69,7 +69,7 @@ function httpRequest(url, { method = "GET", headers = {}, body = null, timeoutMs
       res.on("end", () => {
         const raw = Buffer.concat(chunks).toString("utf-8");
         let json = null;
-        try { json = JSON.parse(raw); } catch {}
+        try { json = JSON.parse(raw); } catch { /* non-JSON response */ }
         resolve({
           status: res.statusCode,
           headers: res.headers,

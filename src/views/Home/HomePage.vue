@@ -58,7 +58,6 @@ import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
 import { blockService, transactionService, searchService, indexerReadService } from "@/services";
-import { getLatestHomepageSnapshot } from "@/services/liveHomepageService";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
@@ -91,8 +90,6 @@ const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 5_000;
-const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
-const TX_FALLBACK_BATCH_SIZE = 4;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -287,96 +284,6 @@ function computeBlockFeeTotals(block = {}) {
   );
 }
 
-async function fetchLatestBlocksByHeight(limit = 6, skip = 0, requestOptions = {}, latestHeightOverride = null) {
-  const maxItems = Math.max(1, Number(limit) || 6);
-  const normalizedSkip = Math.max(0, Number(skip) || 0);
-  const latestHeight =
-    Number.isFinite(Number(latestHeightOverride))
-      ? Number(latestHeightOverride)
-      : Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
-  if (!Number.isFinite(latestHeight) || latestHeight < 0) {
-    return { result: [], totalCount: 0 };
-  }
-
-  const startHeight = Math.max(0, latestHeight - normalizedSkip);
-  const heights = [];
-  for (let offset = 0; offset < maxItems && startHeight - offset >= 0; offset += 1) {
-    heights.push(startHeight - offset);
-  }
-
-  const blockResults = await Promise.all(
-    heights.map(async (height) => {
-      const block = await blockService.getByHeight(height, { ...requestOptions, throwOnError: false });
-      return block ? normalizeBlockSummary(block) : null;
-    }),
-  );
-
-  const result = blockResults.filter(Boolean);
-  return { result, totalCount: latestHeight + 1 };
-}
-
-async function fetchLatestTransactionsByRecentBlocks(
-  limit = 6,
-  skip = 0,
-  requestOptions = {},
-  latestHeightOverride = null,
-) {
-  const maxItems = Math.max(1, Number(limit) || 6);
-  let remainingSkip = Math.max(0, Number(skip) || 0);
-  const latestHeight =
-    Number.isFinite(Number(latestHeightOverride))
-      ? Number(latestHeightOverride)
-      : Number(await blockService.getCount({ ...requestOptions, throwOnError: false })) - 1;
-
-  if (!Number.isFinite(latestHeight) || latestHeight < 0) {
-    return { result: [], totalCount: 0 };
-  }
-
-  const maxBlocksToScan = Math.max(TX_FALLBACK_BLOCK_SCAN_LIMIT, maxItems * 4);
-  const txs = [];
-  const heights = [];
-  for (let offset = 0; offset < maxBlocksToScan && latestHeight - offset >= 0; offset += 1) {
-    heights.push(latestHeight - offset);
-  }
-
-  for (let start = 0; start < heights.length && txs.length < maxItems; start += TX_FALLBACK_BATCH_SIZE) {
-    const batch = heights.slice(start, start + TX_FALLBACK_BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map((height) =>
-        blockService.getTransactionsByHeight(height, maxItems + remainingSkip, 0, {
-          ...requestOptions,
-          throwOnError: false,
-        }),
-      ),
-    );
-
-    for (const settledResult of batchResults) {
-      if (settledResult.status !== "fulfilled") continue;
-      const listRes = settledResult.value;
-      const rows = Array.isArray(listRes?.result) ? listRes.result : [];
-      if (!rows.length) continue;
-
-      let slicedRows = rows;
-      if (remainingSkip > 0) {
-        if (rows.length <= remainingSkip) {
-          remainingSkip -= rows.length;
-          continue;
-        }
-        slicedRows = rows.slice(remainingSkip);
-        remainingSkip = 0;
-      }
-
-      txs.push(...slicedRows);
-      if (txs.length >= maxItems) break;
-    }
-  }
-
-  return {
-    result: txs.slice(0, maxItems),
-    totalCount: txs.length,
-  };
-}
-
 // Data loading
 async function loadData() {
   blocksLoading.value = true;
@@ -520,21 +427,7 @@ async function loadLatestData(forceRefresh = false) {
         }
       }
 
-      void liveHomepagePromise
-        .then((live) => {
-          const liveRows = Array.isArray(live?.transactions) ? live.transactions : [];
-          if (!liveRows.length) return;
-
-          const mergedRows = mergeUniqueTransactions(liveRows, latestTxs.value, 6);
-          if (!mergedRows.length || hasSameOrderedTransactions(latestTxs.value, mergedRows)) return;
-          latestTxs.value = mergedRows;
-
-          const nonPendingMerged = mergedRows.filter((tx) => tx.status !== "pending");
-          if (nonPendingMerged.length) {
-            void enrichTransactions(nonPendingMerged, { maxItems: 6 });
-          }
-        })
-        .catch(() => {});
+      // Live homepage snapshot removed — single server, indexer is the source of truth.
     })()
       .catch((err) => {
         if (import.meta.env.DEV) console.warn("txs load err:", err);
