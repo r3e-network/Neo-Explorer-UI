@@ -403,148 +403,52 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
+    // Single fast path: indexer summary + blocks + transactions in parallel.
     const summaryPromise = indexerReadService.getSummary(requestOptions).catch(() => null);
-    const liveHomepagePromise = getLatestHomepageSnapshot({ blockLimit: 6, txLimit: 6 }).catch(() => null);
-    let latestHeightPromise = null;
-    const getLatestHeight = () => {
-      if (!latestHeightPromise) {
-        latestHeightPromise = blockService
-          .getCount({ ...requestOptions, throwOnError: false })
-          .then((count) => Number(count) - 1)
-          .catch(() => -1);
-      }
-      return latestHeightPromise;
-    };
 
+    // Single server — fetch directly from indexer, one fallback to RPC.
     const fetchLatestBlocks = async () => {
-      try {
-        const summary = await summaryPromise;
-        if (summary && isFreshHomepageSummary(summary)) {
-          const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
-          const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
-          if (rows.length > 0) {
-            return {
-              result: rows,
-              totalCount: Number(indexerRes?.paging?.total ?? summary.total_block_count ?? rows.length),
-            };
-          }
-        }
-      } catch {
-        // fallback below
-      }
-
-      try {
-        const latestHeight = await getLatestHeight();
-        const directRes = await fetchLatestBlocksByHeight(6, 0, requestOptions, latestHeight);
-        const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
-        if (directRows.length > 0) {
-          return {
-            result: directRows,
-            totalCount: Number(directRes?.totalCount ?? directRows.length),
-          };
-        }
-      } catch {
-        // fallback below
-      }
-
       try {
         const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
+          const summary = await summaryPromise;
           return {
             result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
+            totalCount: Number(indexerRes?.paging?.total ?? summary?.total_block_count ?? rows.length),
           };
         }
       } catch {
-        // fallback below
+        // single fallback to RPC
       }
-
-      try {
-        return await blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: true });
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.warn("RPC latest block list unavailable, falling back to per-height fetch:", err);
-        }
-      }
-
-      return fetchLatestBlocksByHeight(6, 0, requestOptions);
+      return blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: true });
     };
 
+    // Single server — fetch directly from indexer, one fallback to RPC.
     const fetchLatestTransactions = async () => {
-      let summary = null;
       try {
-        summary = await summaryPromise;
-      } catch {
-        summary = null;
-      }
-
-      let primaryRows = [];
-      let primaryTotalCount = 0;
-      if (summary && isFreshHomepageSummary(summary)) {
-        try {
-          const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
-          const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
-          if (rows.length > 0) {
-            primaryRows = rows;
-            primaryTotalCount = Number(indexerRes?.paging?.total ?? summary.total_tx_count ?? rows.length);
-            if (primaryRows.length >= 6) {
-              return {
-                result: primaryRows,
-                totalCount: Math.max(primaryTotalCount, primaryRows.length),
-              };
-            }
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.warn("Indexed latest transaction list unavailable, falling back to legacy tx list:", err);
-          }
+        const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
+        const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
+        if (rows.length > 0) {
+          const summary = await summaryPromise;
+          return {
+            result: rows,
+            totalCount: Number(indexerRes?.paging?.total ?? summary?.total_tx_count ?? rows.length),
+          };
         }
+      } catch {
+        // single fallback to RPC
       }
-
       try {
         const txListRes = await transactionService.getList(6, 0, requestOptions);
         const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
-        if (rows.length > 0) {
-          primaryRows = mergeUniqueTransactions(primaryRows, rows, 6);
-          primaryTotalCount = Math.max(primaryTotalCount, Number(txListRes?.totalCount ?? rows.length));
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.warn("RPC latest transaction list unavailable, falling back to per-block tx fetch:", err);
-        }
-      }
-
-      if (primaryRows.length >= 6) {
         return {
-          result: primaryRows,
-          totalCount: Math.max(primaryTotalCount, primaryRows.length),
+          result: rows,
+          totalCount: Number(txListRes?.totalCount ?? rows.length),
         };
+      } catch {
+        return { result: [], totalCount: 0 };
       }
-
-      if (primaryRows.length > 0) {
-        try {
-          const latestHeight = await getLatestHeight();
-          const directRes = await fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions, latestHeight);
-          const directRows = Array.isArray(directRes?.result) ? directRes.result : [];
-          const mergedRows = mergeUniqueTransactions(directRows, primaryRows, 6);
-          if (mergedRows.length > 0) {
-            return {
-              result: mergedRows,
-              totalCount: Math.max(primaryTotalCount, Number(directRes?.totalCount ?? 0), mergedRows.length),
-            };
-          }
-        } catch {
-          // keep the fast rows below
-        }
-
-        return {
-          result: primaryRows,
-          totalCount: Math.max(primaryTotalCount, primaryRows.length),
-        };
-      }
-
-      return fetchLatestTransactionsByRecentBlocks(6, 0, requestOptions);
     };
 
     const blocksPromise = fetchLatestBlocks()
