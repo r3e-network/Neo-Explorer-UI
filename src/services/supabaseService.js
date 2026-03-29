@@ -102,19 +102,10 @@ const INDEXER_METADATA_FALLBACK_BASE_URLS = String(
   .split(",")
   .map(normalizeBaseUrl)
   .filter(Boolean);
+// Single server — no fallbacks needed.
 const DEFAULT_INDEXER_METADATA_BASE_PATHS = Object.freeze({
-  mainnet: [
-    "/data/mainnet",
-    "/data/mainnet/fallback",
-    "/data/mainnet/fallback2",
-    "/data/mainnet/fallback3",
-  ],
-  testnet: [
-    "/data/testnet",
-    "/data/testnet/fallback",
-    "/data/testnet/fallback2",
-    "/data/testnet/fallback3",
-  ],
+  mainnet: ["/data/mainnet"],
+  testnet: ["/data/testnet"],
 });
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;

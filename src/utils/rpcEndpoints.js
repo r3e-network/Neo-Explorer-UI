@@ -7,17 +7,10 @@ const PRIMARY_RPC_ENDPOINTS = Object.freeze({
   testnet: "/rpc/testnet/primary",
 });
 
+// Single server — no fallbacks needed.
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
-  mainnet: [
-    "/rpc/mainnet/fallback",
-    "/rpc/mainnet/fallback2",
-    "/rpc/mainnet/fallback3",
-  ],
-  testnet: [
-    "/rpc/testnet/fallback",
-    "/rpc/testnet/fallback2",
-    "/rpc/testnet/fallback3",
-  ],
+  mainnet: [],
+  testnet: [],
 });
 
 const PRIMARY_WS_ENDPOINTS = Object.freeze({
@@ -26,8 +19,8 @@ const PRIMARY_WS_ENDPOINTS = Object.freeze({
 });
 
 const FALLBACK_WS_ENDPOINTS = Object.freeze({
-  mainnet: ["wss://neofura.ngd.network/ws"],
-  testnet: ["wss://testmagnet.ngd.network/ws"],
+  mainnet: [],
+  testnet: [],
 });
 
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;

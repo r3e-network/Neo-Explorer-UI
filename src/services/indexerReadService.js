@@ -14,19 +14,10 @@ const CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS = String(
   .split(",")
   .map(normalizeBaseUrl)
   .filter(Boolean);
+// Single server — no fallbacks needed.
 const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze({
-  mainnet: [
-    "/data/mainnet",
-    "/data/mainnet/fallback",
-    "/data/mainnet/fallback2",
-    "/data/mainnet/fallback3",
-  ],
-  testnet: [
-    "/data/testnet",
-    "/data/testnet/fallback",
-    "/data/testnet/fallback2",
-    "/data/testnet/fallback3",
-  ],
+  mainnet: ["/data/mainnet"],
+  testnet: ["/data/testnet"],
 });
 
 function resolveIndexerNetworkPath() {
