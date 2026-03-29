@@ -14,9 +14,9 @@ const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
   import.meta.env.VITE_RPC_STARTUP_WAIT_MS,
   120
 );
+// Hedge disabled — single server, no fallback to race against.
 const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
-const ENABLE_RPC_STARTUP_HEDGE =
-  String(import.meta.env.VITE_ENABLE_RPC_STARTUP_HEDGE ?? "true").trim().toLowerCase() !== "false";
+const ENABLE_RPC_STARTUP_HEDGE = false;
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 const HEDGE_SKIPPED_ERROR_CODE = "HEDGE_SKIPPED";
 const NETWORK_MISMATCH_ERROR_CODE = "RPC_NETWORK_MISMATCH";
@@ -362,10 +362,7 @@ const waitForInitialHealthCheck = async () => {
 api.interceptors.request.use(
   async (config) => {
     await waitForInitialHealthCheck();
-    if (!useConfiguredBaseUrl) {
-      // Re-check endpoint health in the background so a stale primary/fallback choice self-recovers.
-      void checkAndSetEndpoints(getCurrentEnv());
-    }
+    // Single server — no need to re-check endpoints on every request.
 
     if (!config.__manualBaseURL) {
       config.baseURL = resolveRpcBaseUrl();
