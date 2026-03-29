@@ -90,8 +90,7 @@ const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
-// Neo N3 block time is 15s — polling faster than block time wastes requests.
-const HOMEPAGE_REFRESH_INTERVAL_MS = 15_000;
+const HOMEPAGE_REFRESH_INTERVAL_MS = 5_000;
 const TX_FALLBACK_BLOCK_SCAN_LIMIT = 24;
 const TX_FALLBACK_BATCH_SIZE = 4;
 const blockDetailsByHash = new Map();
