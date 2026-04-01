@@ -454,6 +454,9 @@ const normalizeItem = (item) => {
   if ("transactioncount" in out && !("txcount" in out)) {
     out.txcount = out.transactioncount;
   }
+  if ("previousblockhash" in out && !("prevhash" in out)) {
+    out.prevhash = out.previousblockhash;
+  }
 
   // Handle camelCase from DB
   if ("networkFee" in out && !("netfee" in out)) {

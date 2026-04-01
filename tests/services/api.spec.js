@@ -165,6 +165,27 @@ describe("safeRpc", () => {
     expect(result).toEqual({ hash: "0xabc", transactioncount: 1, txcount: 1 });
   });
 
+  it("normalizes previousblockhash to prevhash for block detail payloads", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: { result: { protocol: { network: 860833102 } } },
+    });
+    axios.post.mockResolvedValueOnce({
+      data: {
+        result: {
+          hash: "0xabc",
+          previousblockhash: "0xprev",
+        },
+      },
+    });
+
+    const result = await safeRpc("GetBlockInfoByBlockHash", { BlockHash: "0xabc" });
+    expect(result).toEqual({
+      hash: "0xabc",
+      previousblockhash: "0xprev",
+      prevhash: "0xprev",
+    });
+  });
+
   // Removed: "fails over to fallback endpoint" — fallback endpoints removed in single-server architecture.
   // Removed: "continues beyond the first fallback" — fallback chain removed in single-server architecture.
 
