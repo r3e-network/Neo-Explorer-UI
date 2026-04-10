@@ -164,7 +164,7 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
   });
 
-  it("renders the wallet modal with an opaque backdrop and solid panel", async () => {
+  it("renders the wallet modal with a fully dark opaque backdrop and panel", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
@@ -198,13 +198,55 @@ describe("AppHeader wallet CTA", () => {
 
     const backdrop = wrapper.find('div.fixed.inset-0.z-\\[200\\]');
     expect(backdrop.exists()).toBe(true);
-    expect(backdrop.attributes("class")).toContain("bg-slate-950/90");
+    expect(backdrop.attributes("class")).toContain("bg-slate-950");
+    expect(backdrop.attributes("class")).not.toContain("bg-slate-950/90");
 
-    const panel = wrapper.find('div.bg-surface-base');
+    const panel = wrapper.find('div.wallet-modal-panel');
     expect(panel.exists()).toBe(true);
     expect(panel.attributes("class")).toContain("max-w-md");
-    expect(panel.attributes("class")).toContain("border-2");
-    expect(panel.attributes("class")).toContain("ring-1");
+    expect(panel.attributes("class")).toContain("bg-slate-900");
+    expect(panel.attributes("class")).toContain("text-slate-100");
+    expect(panel.attributes("class")).not.toContain("bg-surface-base");
+  });
+
+  it("renders wallet provider rows with explicit dark readable surfaces instead of transparent bg-surface-muted classes", async () => {
+    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+      "NeoLine",
+      "Google / Email (Web3Auth)",
+    ]);
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const providerButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Google / Email (Web3Auth)"));
+    expect(providerButton).toBeTruthy();
+    expect(providerButton.attributes("class")).toContain("wallet-modal-option");
+    expect(providerButton.attributes("class")).toContain("bg-slate-800");
+    expect(providerButton.attributes("class")).toContain("text-slate-100");
+    expect(providerButton.attributes("class")).not.toContain("bg-surface-muted");
   });
 
   it("connects the local dev testnet WIF provider without persisting walletProvider", async () => {

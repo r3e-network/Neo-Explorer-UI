@@ -1,4 +1,4 @@
-import { Auth, LOGIN_PROVIDER, UX_MODE } from "@web3auth/auth";
+import { Auth, LOGIN_PROVIDER, THEME_MODES, UX_MODE } from "@web3auth/auth";
 
 let _web3auth = null;
 let _chainConfigKey = null;
@@ -42,8 +42,6 @@ export const web3authService = {
       const lang = localStorage.getItem("lang") || "en";
       const w3aLang = lang.startsWith("zh") ? "zh" : lang;
 
-      const isDarkMode = document.documentElement.classList.contains("dark");
-
       _web3auth = new Auth({
         clientId,
         network: import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet",
@@ -51,9 +49,10 @@ export const web3authService = {
         redirectUrl: typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}${window.location.pathname}` : undefined,
         sessionNamespace: getCurrentEnv(),
         whiteLabel: {
-          name: "Neo Explorer",
+          appName: "Neo Explorer",
           defaultLanguage: w3aLang,
-          dark: isDarkMode,
+          // Web3Auth reads theme mode from whiteLabel, not the top-level Auth options.
+          mode: THEME_MODES.DARK,
         },
       });
       await _web3auth.init();

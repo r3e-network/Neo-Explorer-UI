@@ -166,11 +166,11 @@
     </nav>
   
     <transition name="fade">
-      <div v-if="showWalletModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 p-5">
-        <div class="bg-surface-base w-full max-w-md rounded-2xl shadow-2xl border-2 border-line-soft ring-1 ring-black/40 overflow-hidden relative" @click.stop>
-          <div class="px-7 py-5 border-b border-line-soft flex items-center justify-between">
-            <h2 class="text-lg font-bold text-high">Connect Wallet</h2>
-            <button @click="showWalletModal = false; resetDevWifForm()" class="text-low hover:text-high transition-colors">
+      <div v-if="showWalletModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950 p-5">
+        <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
+          <div class="wallet-modal-header px-7 py-5 flex items-center justify-between border-b border-white/10">
+            <h2 class="wallet-modal-title text-lg font-bold">Connect Wallet</h2>
+            <button @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
@@ -181,10 +181,10 @@
               :disabled="walletLoading"
               :title="isProviderAvailable(provider) ? provider : getProviderUnavailableReason(provider)"
               @click="handleConnect(provider)"
-              class="w-full flex items-center justify-between p-5 rounded-xl border border-line-soft bg-surface-muted hover:border-emerald-500/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
+              class="wallet-modal-option w-full flex items-center justify-between p-5 rounded-xl border border-white/10 bg-slate-800 text-slate-100 transition-all group disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-700 hover:border-emerald-400/40"
             >
               <div class="flex items-center gap-4">
-                <div class="h-11 w-11 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center border border-line-soft p-2">
+                <div class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-white/10 bg-slate-950 p-2">
                   <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
@@ -195,14 +195,14 @@
                   <img v-else-if="provider === 'EVM Wallets (MetaMask, OKX, Rabby, etc.)'" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="w-full h-full object-contain" />
                   <svg v-else class="w-6 h-6 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 15.92 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
                 </div>
-                <span class="font-semibold text-high group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{{ provider }}</span>
+                <span class="wallet-modal-option-label font-semibold group-hover:text-emerald-600">{{ provider }}</span>
               </div>
-              <svg class="w-5 h-5 text-low group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+              <svg class="wallet-modal-chevron w-5 h-5 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
 
-            <div v-if="showDevWifForm" class="mt-4 rounded-xl border border-line-soft bg-surface-muted p-4 space-y-3">
+            <div v-if="showDevWifForm" class="wallet-modal-dev-panel mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 space-y-3">
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Testnet WIF</label>
+                <label class="block text-sm font-medium wallet-modal-label mb-1">Testnet WIF</label>
                 <input
                   v-model="devWifInput"
                   type="password"
@@ -221,12 +221,12 @@
                 </button>
                 <button
                   @click="resetDevWifForm"
-                  class="rounded-lg border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:bg-line-soft transition-colors"
+                  class="wallet-modal-secondary rounded-lg border border-white/10 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
                 >
                   Cancel
                 </button>
               </div>
-              <p class="text-xs text-mid">
+              <p class="wallet-modal-help text-xs">
                 Development-only. The WIF is used only in memory and is not persisted to local storage.
               </p>
             </div>
@@ -663,5 +663,60 @@ onBeforeUnmount(() => {
 .slide-enter-from,
 .slide-leave-to {
   opacity: 0;
+}
+
+.wallet-modal-panel {
+  box-shadow:
+    0 28px 80px rgba(2, 6, 23, 0.72),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.wallet-modal-title {
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+.wallet-modal-close {
+  color: #94a3b8;
+}
+
+.wallet-modal-close:hover {
+  color: #f8fafc;
+  background: #0f172a;
+}
+
+.wallet-modal-option {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.wallet-modal-option:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 18px 32px rgba(2, 6, 23, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.wallet-modal-option-label {
+  color: #f8fafc;
+}
+
+.wallet-modal-chevron {
+  color: #94a3b8;
+}
+
+.wallet-modal-icon-shell {
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.26);
+}
+
+.wallet-modal-dev-panel {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.wallet-modal-label {
+  color: #e2e8f0;
+}
+
+.wallet-modal-help {
+  color: #94a3b8;
 }
 </style>

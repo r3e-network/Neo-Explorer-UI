@@ -41,6 +41,10 @@ vi.mock("@web3auth/auth", () => ({
   UX_MODE: {
     POPUP: "popup",
   },
+  THEME_MODES: {
+    LIGHT: "light",
+    DARK: "dark",
+  },
 }));
 
 vi.mock("@web3auth/base", () => ({
@@ -72,7 +76,7 @@ describe("web3authService", () => {
     envState.value = "Mainnet";
   });
 
-  it("initializes without custom uiConfig theme to avoid whitelabel-only options", async () => {
+  it("initializes the popup in explicit dark mode so the auth window matches the wallet flow", async () => {
     const { web3authService } = await import("../../src/services/web3authService.js");
 
     await web3authService.init();
@@ -81,6 +85,9 @@ describe("web3authService", () => {
     const constructorOptions = web3AuthCtorMock.mock.calls[0][0];
     expect(constructorOptions.whiteLabel).toBeDefined();
     expect(constructorOptions.uxMode).toBe("popup");
+    expect(constructorOptions.mode).toBeUndefined();
+    expect(constructorOptions.whiteLabel.mode).toBe("dark");
+    expect(constructorOptions.whiteLabel.appName).toBe("Neo Explorer");
   });
 
   it("uses the current app origin as the block explorer URL", async () => {
