@@ -164,7 +164,7 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
   });
 
-  it("renders the wallet modal with a fully dark opaque backdrop and panel", async () => {
+  it("renders the wallet modal as a dark floating panel without a fullscreen backdrop tint", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
@@ -198,8 +198,8 @@ describe("AppHeader wallet CTA", () => {
 
     const backdrop = wrapper.find('div.fixed.inset-0.z-\\[200\\]');
     expect(backdrop.exists()).toBe(true);
-    expect(backdrop.attributes("class")).toContain("bg-slate-950");
-    expect(backdrop.attributes("class")).not.toContain("bg-slate-950/90");
+    expect(backdrop.attributes("class")).toContain("bg-transparent");
+    expect(backdrop.attributes("class")).not.toContain("bg-slate-950");
 
     const panel = wrapper.find('div.wallet-modal-panel');
     expect(panel.exists()).toBe(true);

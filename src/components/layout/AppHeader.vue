@@ -166,7 +166,11 @@
     </nav>
   
     <transition name="fade">
-      <div v-if="showWalletModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950 p-5">
+      <div
+        v-if="showWalletModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center bg-transparent p-5"
+        @click.self="showWalletModal = false; resetDevWifForm()"
+      >
         <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
           <div class="wallet-modal-header px-7 py-5 flex items-center justify-between border-b border-white/10">
             <h2 class="wallet-modal-title text-lg font-bold">Connect Wallet</h2>
