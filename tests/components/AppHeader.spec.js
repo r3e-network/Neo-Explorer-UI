@@ -247,6 +247,15 @@ describe("AppHeader wallet CTA", () => {
     expect(providerButton.attributes("class")).toContain("bg-slate-800");
     expect(providerButton.attributes("class")).toContain("text-slate-100");
     expect(providerButton.attributes("class")).not.toContain("bg-surface-muted");
+
+    const iconShell = wrapper.findAll("div.wallet-modal-icon-shell").at(0);
+    expect(iconShell.exists()).toBe(true);
+    expect(iconShell.attributes("class")).toContain("bg-white");
+    expect(iconShell.attributes("class")).not.toContain("bg-slate-950");
+
+    const neoLineLogo = wrapper.find('img[alt="NeoLine"]');
+    expect(neoLineLogo.attributes("class")).toContain("wallet-modal-logo-wordmark");
+    expect(neoLineLogo.attributes("class")).toContain("w-auto");
   });
 
   it("connects the local dev testnet WIF provider without persisting walletProvider", async () => {

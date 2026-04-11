@@ -188,8 +188,8 @@
               class="wallet-modal-option w-full flex items-center justify-between p-5 rounded-xl border border-white/10 bg-slate-800 text-slate-100 transition-all group disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-700 hover:border-emerald-400/40"
             >
               <div class="flex items-center gap-4">
-                <div class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-white/10 bg-slate-950 p-2">
-                  <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
+                <div :class="provider === 'NeoLine' ? 'wallet-modal-icon-shell--wordmark overflow-hidden justify-start pl-1.5' : ''" class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-slate-200/80 bg-white p-2">
+                  <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="wallet-modal-logo-wordmark h-full w-auto max-w-none" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'Neon Wallet'" :src="'/img/brand/neon.ico'" alt="Neon Wallet" class="w-full h-full object-contain" />
