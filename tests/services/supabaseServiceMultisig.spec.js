@@ -135,19 +135,20 @@ const createRequestMetadataTableMock = ({
   return { select, selectQuery, update, updateEq, updateSelect };
 };
 
-const createRequestInsertTableMock = ({ firstInsertError, secondInsertResult }) => {
-  const insert = vi
-    .fn()
-    .mockImplementationOnce(() => ({
+const createRequestInsertTableMock = ({ insertResults = [] }) => {
+  const normalizedResults =
+    insertResults.length > 0
+      ? insertResults
+      : [{ data: { id: 1 }, error: null }];
+
+  const insert = vi.fn();
+  normalizedResults.forEach((result) => {
+    insert.mockImplementationOnce(() => ({
       select: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve({ data: null, error: firstInsertError })),
-      })),
-    }))
-    .mockImplementationOnce(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve(secondInsertResult ?? { data: { id: 1 }, error: null })),
+        single: vi.fn(() => Promise.resolve(result)),
       })),
     }));
+  });
 
   return { insert };
 };
@@ -337,8 +338,11 @@ describe("supabaseService multisig requests", () => {
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
 
     const table = createRequestInsertTableMock({
-      firstInsertError: new Error('column "type" of relation "multisig_requests" does not exist'),
-      secondInsertResult: { data: { id: 11, description: "Legacy Request" }, error: null },
+      insertResults: [
+        { data: null, error: new Error('column "type" of relation "multisig_requests" does not exist') },
+        { data: null, error: new Error('column "eligible_signers" of relation "multisig_requests" does not exist') },
+        { data: { id: 11, description: "Legacy Request" }, error: null },
+      ],
     });
 
     createClientMock.mockReturnValue({
@@ -353,7 +357,7 @@ describe("supabaseService multisig requests", () => {
       eligible_signers: ["A1"],
     });
 
-    expect(table.insert).toHaveBeenCalledTimes(2);
+    expect(table.insert).toHaveBeenCalledTimes(3);
     expect(table.insert.mock.calls[0][0][0]).toMatchObject({
       type: "governance",
       description: "Legacy Request",
@@ -366,6 +370,12 @@ describe("supabaseService multisig requests", () => {
       eligible_signers: ["A1"],
     });
     expect(table.insert.mock.calls[1][0][0].type).toBeUndefined();
+    expect(table.insert.mock.calls[2][0][0]).toMatchObject({
+      description: "Legacy Request",
+      network: "testnet",
+    });
+    expect(table.insert.mock.calls[2][0][0].type).toBeUndefined();
+    expect(table.insert.mock.calls[2][0][0].eligible_signers).toBeUndefined();
     expect(result).toEqual({
       success: true,
       data: { id: 11, description: "Legacy Request" },

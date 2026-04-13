@@ -929,7 +929,7 @@ export const supabaseService = {
   async createMultisigRequest(payload) {
     if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const optionalColumns = ["type"];
+      const optionalColumns = ["type", "eligible_signers"];
       let currentPayload = { ...payload };
 
       for (;;) {
