@@ -450,16 +450,41 @@ async function autoSignTx() {
     } catch (directError) {
       // If this is NOT a NeoLine multisig mismatch, rethrow immediately.
       if (!isNeoLineMultisigSignerMismatch.value) throw directError;
-      // NeoLine rejected because the tx signer is the committee multisig.
-      // Auto-prepare the signing payload so the user can sign offline.
-      if (import.meta.env.DEV) console.warn("[GovernanceSignModal] NeoLine signTransaction rejected for multisig signer:", directError.message);
+      if (import.meta.env.DEV) console.warn("[GovernanceSignModal] NeoLine signTransaction rejected for multisig signer, trying context flow:", directError.message);
+    }
+
+    // NeoLine rejected because the tx signer is the committee multisig.
+    // Use the ContractParametersContext flow to sign as an individual council member.
+    try {
+      const committeePubkeys = props.request.params?.committee_pubkeys || [];
+      const multisigScriptHash = props.request.params?.scriptHash || "";
+      if (!committeePubkeys.length || !multisigScriptHash) {
+        throw new Error("Missing committee pubkeys or multisig script hash in proposal.");
+      }
+
+      await ensureNeonJs();
+      const threshold = props.request.signers_required
+        || Math.floor(committeePubkeys.length / 2) + 1;
+      const multisigAccount = neonJs.wallet.Account.createMultiSig(threshold, committeePubkeys);
+      const verificationScript = neonJs.u.base642hex(multisigAccount.contract.script);
+
+      const { signature, publicKey } = await walletService.signTransactionWithContext(
+        unsignedTxHex,
+        verificationScript,
+        multisigScriptHash,
+      );
+      await submitSig(signature, "neoline_context_signature");
+      return;
+    } catch (contextError) {
+      if (import.meta.env.DEV) console.warn("[GovernanceSignModal] NeoLine context signing also failed:", contextError.message);
+      // Last resort: auto-prepare the offline signing payload.
       try {
         await prepareSigningPayload();
       } catch {
-        // Payload preparation is best-effort.
+        // Best-effort.
       }
       toast.warning(
-        "NeoLine cannot sign multisig transactions directly. The signing payload has been prepared below — copy it, sign with an offline tool, and paste the signature."
+        "NeoLine could not sign this governance transaction. The signing payload has been prepared below — copy it, sign with an offline tool, and paste the signature."
       );
       return;
     }
