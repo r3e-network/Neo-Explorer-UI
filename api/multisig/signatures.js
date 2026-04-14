@@ -30,13 +30,20 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Valid signature is required (at least 128 hex chars)." });
     }
 
-    // Duplicate check
+    // Check for existing signature from this signer
     const { rows: existing } = await query(
       `SELECT id FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2 LIMIT 1`,
       [requestId, signerAddress]
     );
-    if (existing.length > 0) {
+
+    const allowOverwrite = body.overwrite === true;
+    if (existing.length > 0 && !allowOverwrite) {
       return res.status(409).json({ error: "Signature from this signer already exists for this request." });
+    }
+
+    // Delete old signature if overwriting
+    if (existing.length > 0 && allowOverwrite) {
+      await query(`DELETE FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2`, [requestId, signerAddress]);
     }
 
     // Insert signature

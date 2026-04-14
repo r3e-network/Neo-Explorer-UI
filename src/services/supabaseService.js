@@ -901,6 +901,7 @@ export const supabaseService = {
         request_id: requestId,
         signer_address: signerAddress,
         signature,
+        overwrite: options.overwrite || false,
         ...(options.publicKey ? { public_key: options.publicKey } : {}),
         ...(options.witness ? { witness: options.witness } : {}),
         ...(options.invocationScript ? { invocation_script: options.invocationScript } : {}),
@@ -914,7 +915,7 @@ export const supabaseService = {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         if (res.status === 409) {
-          return { success: false, error: "This council member has already signed the proposal." };
+          return { success: false, error: "This council member has already signed the proposal.", isDuplicate: true };
         }
         throw new Error(err.error || `HTTP ${res.status}`);
       }

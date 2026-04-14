@@ -13,34 +13,69 @@
         <div class="flex items-center gap-3">
           <div class="p-2 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-              ></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
           </div>
           <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.governance.signProposalTitle") }}</h2>
         </div>
-        <button
-          @click="$emit('close')"
-          aria-label="Close"
-          class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
-        >
+        <button @click="$emit('close')" aria-label="Close" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-      <div :data-testid="testId('body')" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
-        <UnsignedTransactionViewer
-          v-if="request.params?.unsigned_tx"
-          :transaction-hex="request.params.unsigned_tx"
-          label="Unsigned Transaction Packet"
-          description="Review the complete unsigned governance transaction before signing or importing a witness."
-        />
 
+      <div :data-testid="testId('body')" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
+
+        <!-- ═══ Section 1: NeoLine Committee Wallet Setup ═══ -->
+        <div v-if="isNeoLineMultisigSignerMismatch" class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <p class="text-sm font-bold text-high">NeoLine requires the committee multisig wallet</p>
+          </div>
+          <p class="text-xs text-mid leading-relaxed">
+            NeoLine is connected with your personal wallet, but governance transactions require signing as the committee multisig.
+            Generate a committee wallet file below, import it into NeoLine, then switch to it and click "Sign with Wallet".
+          </p>
+
+          <div class="space-y-3">
+            <input
+              v-model="nep6Wif"
+              type="password"
+              placeholder="Enter your WIF private key"
+              class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20"
+            />
+            <input
+              v-model="nep6Password"
+              type="password"
+              placeholder="Set a password for the wallet file"
+              class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20"
+            />
+            <button
+              @click="generateNep6"
+              :disabled="!nep6Wif || !nep6Password || nep6Password.length < 6 || isGeneratingNep6"
+              class="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            >
+              {{ isGeneratingNep6 ? "Generating..." : "Generate Committee Wallet File" }}
+            </button>
+            <p v-if="nep6Error" class="text-xs text-red-600 dark:text-red-400">{{ nep6Error }}</p>
+            <p v-if="nep6Success" class="text-xs text-emerald-600 dark:text-emerald-400">{{ nep6Success }}</p>
+          </div>
+
+          <div class="text-[11px] text-mid space-y-1">
+            <p><strong>After downloading:</strong></p>
+            <ol class="list-decimal pl-4 space-y-0.5">
+              <li>Open NeoLine → click avatar → Add Wallet → Import Wallet</li>
+              <li>Select "Import File" → choose the downloaded JSON file</li>
+              <li>Enter the password you set above</li>
+              <li>Switch to the committee wallet → return here and click "Sign with Wallet"</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- ═══ Section 2: Sign with Wallet ═══ -->
         <div class="space-y-3">
           <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionWallet") }}</label>
           <button
@@ -49,134 +84,44 @@
             class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
           >
             <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              ></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             {{ isSigning ? $t("tools.governance.awaitingWallet") : $t("tools.governance.signWithWallet") }}
           </button>
-          <p
-            class="text-[11px] text-center"
-            :class="walletSignBlockReason ? 'text-amber-600 dark:text-amber-400' : 'text-mid'"
-          >
+          <p class="text-[11px] text-center" :class="walletSignBlockReason ? 'text-amber-600 dark:text-amber-400' : 'text-mid'">
             {{ walletSignBlockReason || $t("tools.governance.walletSignNote") }}
           </p>
-
-          <div
-            v-if="isNeoLineMultisigSignerMismatch"
-            class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-3 dark:border-amber-900/40 dark:bg-amber-950/20"
-          >
-            <p class="text-sm font-semibold text-high">NeoLine requires the committee multisig wallet</p>
-            <p class="text-xs text-mid leading-relaxed">
-              NeoLine can only sign when the connected wallet matches the transaction signer.
-              For governance proposals, the signer is the committee multisig account.
-              To sign with NeoLine, import the committee multisig as a wallet in NeoLine first:
-            </p>
-            <ol class="space-y-1.5 text-xs text-mid list-decimal pl-4">
-              <li>Open NeoLine extension and go to <strong>wallet management</strong></li>
-              <li>Create or import a <strong>multi-signature wallet</strong> using the committee public keys below</li>
-              <li>Set the signing threshold to <strong>{{ request?.signers_required || 11 }}</strong></li>
-              <li>Switch to the multisig wallet in NeoLine, then click "Sign with Wallet" again</li>
-            </ol>
-            <div class="rounded-xl bg-slate-950 p-3 dark:bg-slate-900">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Committee Public Keys ({{ (request?.params?.committee_pubkeys || []).length }})
-                </p>
-                <CopyButton
-                  :text="(request?.params?.committee_pubkeys || []).join('\n')"
-                  size="sm"
-                />
-              </div>
-              <code class="block break-all font-mono text-[10px] leading-5 text-slate-300 max-h-24 overflow-y-auto custom-scrollbar">{{
-                (request?.params?.committee_pubkeys || []).join("\n")
-              }}</code>
-            </div>
-            <p class="text-[11px] text-mid">
-              Multisig address: <code class="font-mono text-high">{{ request?.creator_address || "—" }}</code>
-            </p>
-          </div>
         </div>
 
         <div class="relative py-2">
           <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
           <div class="relative flex justify-center">
-            <span
-              class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full"
-              >{{ $t("tools.governance.or") }}</span
-            >
+            <span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">{{ $t("tools.governance.or") }}</span>
           </div>
         </div>
 
-        <div class="space-y-3">
-          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionManual") }}</label>
-          <input
-            v-model="manualSignature"
-            type="text"
-            class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            :placeholder="$t('tools.governance.manualSigPlaceholder')"
-          />
-          <button
-            @click="submitManualSignature"
-            :disabled="!manualSignature || manualSignature.length < 128"
-            class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ $t("tools.governance.submitManualSig") }}
-          </button>
-        </div>
-
-        <div class="relative py-2">
-          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
-          <div class="relative flex justify-center">
-            <span
-              class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full"
-              >{{ $t("tools.governance.or") }}</span
-            >
-          </div>
-        </div>
-
+        <!-- ═══ Section 3: Transaction Data + External Witness ═══ -->
         <div class="space-y-4">
           <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionExternalWitness") }}</label>
 
-          <div class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
-            <div class="space-y-1">
-              <p class="text-sm font-semibold text-high">{{ $t("tools.governance.offlineSigningGuideTitle") }}</p>
-              <p class="text-xs text-mid">
-                {{
-                  isNeoLineAssistedFlow
-                    ? $t("tools.governance.neoLineMultisigNotice")
-                    : $t("tools.governance.offlineSigningGuideDesc")
-                }}
-              </p>
-            </div>
-            <ol class="space-y-2 text-xs text-mid list-decimal pl-4">
-              <li>{{ $t("tools.governance.offlineSigningStepPrepare") }}</li>
-              <li>{{ $t("tools.governance.offlineSigningStepSign") }}</li>
-              <li>{{ $t("tools.governance.offlineSigningStepSubmit") }}</li>
-            </ol>
-            <p class="text-[11px] text-mid">
-              {{ $t("tools.governance.offlineSigningVerificationNote") }}
-            </p>
-          </div>
+          <!-- Unsigned Transaction Viewer -->
+          <UnsignedTransactionViewer
+            v-if="request.params?.unsigned_tx"
+            :transaction-hex="request.params.unsigned_tx"
+            label="Unsigned Transaction Packet"
+            description="Review the governance transaction. Copy the signing payload below to sign with an external tool."
+          />
 
+          <!-- Signing Payload -->
           <div class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="space-y-1">
-                <p class="text-sm font-semibold text-high">Prepare Offline Signing Payload</p>
-                <p class="text-xs text-mid">
-                  Export the exact payload for an external raw-signing tool, then paste the 64-byte signature below.
-                </p>
+                <p class="text-sm font-semibold text-high">Signing Payload</p>
+                <p class="text-xs text-mid">The exact hex bytes to sign with your private key (SHA-256 + ECDSA).</p>
               </div>
               <button
                 :data-testid="testId('prepare-payload')"
@@ -184,22 +129,15 @@
                 :disabled="!request.params?.unsigned_tx || isPreparingSigningPayload"
                 class="shrink-0 px-4 py-2.5 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
               >
-                {{ isPreparingSigningPayload ? "Preparing..." : "Prepare Signing Payload" }}
+                {{ isPreparingSigningPayload ? "Preparing..." : (preparedSigningPayload ? "Refresh Payload" : "Prepare Signing Payload") }}
               </button>
             </div>
-
-            <div
-              v-if="preparedSigningPayload"
-              class="rounded-2xl bg-slate-950 text-slate-100 p-4 space-y-3 dark:bg-slate-900"
-            >
+            <div v-if="preparedSigningPayload" class="rounded-2xl bg-slate-950 text-slate-100 p-4 space-y-3 dark:bg-slate-900">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Signing Payload</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Payload Hex</p>
                 <CopyButton :text="preparedSigningPayload.payload" size="md" />
               </div>
-              <code
-                :data-testid="testId('signing-payload')"
-                class="block break-all font-mono text-[11px] leading-5 text-slate-100"
-              >{{ preparedSigningPayload.payload }}</code>
+              <code :data-testid="testId('signing-payload')" class="block break-all font-mono text-[11px] leading-5 text-slate-100">{{ preparedSigningPayload.payload }}</code>
               <div class="grid grid-cols-1 gap-2 text-[11px] text-slate-300 sm:grid-cols-2">
                 <p>Network magic: {{ preparedSigningPayload.networkMagic }}</p>
                 <p>Transaction hash: {{ preparedSigningPayload.transactionHash }}</p>
@@ -207,56 +145,55 @@
             </div>
           </div>
 
-          <input
-            :data-testid="testId('external-address')"
-            v-model="externalSignerAddress"
-            type="text"
-            class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            :placeholder="$t('tools.governance.signerAddressPlaceholder')"
-          />
-          <input
-            :data-testid="testId('external-pubkey')"
-            v-model="externalSignerPublicKey"
-            type="text"
-            class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            :placeholder="$t('tools.governance.signerPubkeyPlaceholder')"
-          />
-          <input
-            :data-testid="testId('external-signature')"
-            v-model="externalSignature"
-            type="text"
-            class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="Paste raw 64-byte signature hex"
-          />
-          <input
-            :data-testid="testId('external-invocation')"
-            v-model="externalInvocationScript"
-            type="text"
-            class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            :placeholder="$t('tools.governance.invocationScriptPlaceholder')"
-          />
-          <input
-            :data-testid="testId('external-verification')"
-            v-model="externalVerificationScript"
-            type="text"
-            class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            :placeholder="$t('tools.governance.verificationScriptPlaceholder')"
-          />
-          <button
-            :data-testid="testId('submit-witness')"
-            @click="submitExternalWitness"
-            :disabled="(!externalSignature.trim() && !externalInvocationScript.trim()) || isSubmittingExternalWitness"
-            class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{
-              isSubmittingExternalWitness
-                ? $t("tools.governance.submittingWitness")
-                : $t("tools.governance.submitExternalWitness")
-            }}
-          </button>
-          <p class="text-[11px] text-mid text-center">
-            Paste either a raw signature or a full invocation script. Raw signatures are converted into the witness automatically.
-          </p>
+          <!-- Submit Witness -->
+          <div class="space-y-3">
+            <p class="text-sm font-semibold text-high">Submit Witness</p>
+            <p class="text-xs text-mid">Paste a 64-byte signature from any valid committee member. The system validates the signer is in the committee before accepting.</p>
+            <input
+              :data-testid="testId('external-address')"
+              v-model="externalSignerAddress"
+              type="text"
+              class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+              :placeholder="$t('tools.governance.signerAddressPlaceholder')"
+            />
+            <input
+              :data-testid="testId('external-pubkey')"
+              v-model="externalSignerPublicKey"
+              type="text"
+              class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+              :placeholder="$t('tools.governance.signerPubkeyPlaceholder')"
+            />
+            <input
+              :data-testid="testId('external-signature')"
+              v-model="externalSignature"
+              type="text"
+              class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+              placeholder="Paste raw 64-byte signature hex"
+            />
+
+            <input
+              :data-testid="testId('external-invocation')"
+              v-model="externalInvocationScript"
+              type="text"
+              class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
+              :placeholder="$t('tools.governance.invocationScriptPlaceholder')"
+            />
+
+            <!-- Overwrite toggle -->
+            <label class="flex items-center gap-2 text-xs text-mid cursor-pointer select-none">
+              <input v-model="allowOverwrite" type="checkbox" class="rounded border-line-soft" />
+              Allow overwriting existing signature from this signer
+            </label>
+
+            <button
+              :data-testid="testId('submit-witness')"
+              @click="submitExternalWitness"
+              :disabled="!externalSignature.trim() || isSubmittingExternalWitness"
+              class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ isSubmittingExternalWitness ? $t("tools.governance.submittingWitness") : $t("tools.governance.submitExternalWitness") }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -282,7 +219,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close", "signed"]);
-
 const toast = useToast();
 
 let neonJs = null;
@@ -293,11 +229,18 @@ const externalSignerAddress = ref("");
 const externalSignerPublicKey = ref("");
 const externalSignature = ref("");
 const externalInvocationScript = ref("");
-const externalVerificationScript = ref("");
 const preparedSigningPayload = ref(null);
 const isPreparingSigningPayload = ref(false);
 const isSubmittingExternalWitness = ref(false);
 const neonReadyTick = ref(0);
+const allowOverwrite = ref(false);
+
+// NEP-6 generator state
+const nep6Wif = ref("");
+const nep6Password = ref("");
+const isGeneratingNep6 = ref(false);
+const nep6Error = ref("");
+const nep6Success = ref("");
 
 const RAW_TRANSACTION_SIGNING_PROVIDERS = new Set([
   PROVIDERS.NEOLINE,
@@ -318,8 +261,12 @@ watch(
       externalSignerPublicKey.value = "";
       externalSignature.value = "";
       externalInvocationScript.value = "";
-      externalVerificationScript.value = "";
       preparedSigningPayload.value = null;
+      allowOverwrite.value = false;
+      nep6Wif.value = "";
+      nep6Password.value = "";
+      nep6Error.value = "";
+      nep6Success.value = "";
       await ensureNeonJs();
       await prefillExternalWitnessSigner();
     }
@@ -360,18 +307,12 @@ function getUnsignedTransactionSignerAccounts(requestLike) {
   neonReadyTick.value;
   const unsignedTx = String(requestLike?.params?.unsigned_tx || "").trim();
   if (!unsignedTx || typeof neonJs?.tx?.Transaction?.deserialize !== "function") return [];
-
   try {
     const transaction = neonJs.tx.Transaction.deserialize(unsignedTx);
     const signerList = Array.isArray(transaction?.signers)
       ? transaction.signers
-      : Array.isArray(transaction?.data?.signers)
-        ? transaction.data.signers
-        : [];
-
-    return signerList
-      .map((signer) => normalizeHash160(String(signer?.account || "").trim()))
-      .filter(Boolean);
+      : Array.isArray(transaction?.data?.signers) ? transaction.data.signers : [];
+    return signerList.map((signer) => normalizeHash160(String(signer?.account || "").trim())).filter(Boolean);
   } catch {
     return [];
   }
@@ -388,22 +329,15 @@ const isNeoLineMultisigSignerMismatch = computed(() => {
 const walletSignBlockReason = computed(() => {
   neonReadyTick.value;
   if (!props.request) return "";
-
   const walletAddress = getConnectedWalletAddress();
   const provider = getActiveWalletProvider();
 
   if (!walletService.isConnected || !walletAddress) {
     return "Connect the council wallet before requesting a governance signature.";
   }
-
   if (provider && !RAW_TRANSACTION_SIGNING_PROVIDERS.has(provider)) {
     return `${provider} cannot sign governance transaction packets in-browser yet. Submit an external witness instead.`;
   }
-
-  if (isNeoLineMultisigSignerMismatch.value) {
-    return "";
-  }
-
   return "";
 });
 
@@ -413,49 +347,26 @@ function findRequestSignerPublicKey(requestLike, signerAddress) {
   const target = String(signerAddress || "").trim();
   const pubkeys = requestLike?.params?.committee_pubkeys || requestLike?.params?.committee || [];
   if (!target || !Array.isArray(pubkeys)) return "";
-
   for (const pubkey of pubkeys) {
-    try {
-      if (publicKeyToAddress(pubkey) === target) {
-        return pubkey;
-      }
-    } catch {
-      // Ignore malformed signer pubkeys.
-    }
-
-    try {
-      if (typeof neonJs?.wallet?.Account === "function" && new neonJs.wallet.Account(pubkey).address === target) {
-        return pubkey;
-      }
-    } catch {
-      // Ignore mocked or malformed wallet account conversions.
-    }
+    try { if (publicKeyToAddress(pubkey) === target) return pubkey; } catch { /* skip */ }
+    try { if (typeof neonJs?.wallet?.Account === "function" && new neonJs.wallet.Account(pubkey).address === target) return pubkey; } catch { /* skip */ }
   }
-
   return "";
 }
 
 async function prefillExternalWitnessSigner() {
   const signerAddress = getConnectedWalletAddress();
   if (!signerAddress) return;
-
-  if (!externalSignerAddress.value) {
-    externalSignerAddress.value = signerAddress;
-  }
-
+  if (!externalSignerAddress.value) externalSignerAddress.value = signerAddress;
   if (!externalSignerPublicKey.value) {
-    const signerPublicKey =
-      findRequestSignerPublicKey(props.request, signerAddress) || (await getConnectedWalletPublicKey());
-    if (signerPublicKey) {
-      externalSignerPublicKey.value = signerPublicKey;
-    }
+    const signerPublicKey = findRequestSignerPublicKey(props.request, signerAddress) || (await getConnectedWalletPublicKey());
+    if (signerPublicKey) externalSignerPublicKey.value = signerPublicKey;
   }
 }
 
 async function prepareSigningPayload() {
   const unsignedTxHex = String(props.request?.params?.unsigned_tx || "").trim();
   if (!unsignedTxHex) return;
-
   isPreparingSigningPayload.value = true;
   try {
     await prefillExternalWitnessSigner();
@@ -491,35 +402,95 @@ async function autoSignTx() {
   }
 }
 
-async function submitManualSignature() {
-  if (!manualSignature.value) return;
-  await submitSig(manualSignature.value.trim(), "manual_signature");
+// ═══ NEP-6 Committee Wallet Generator ═══
+
+async function generateNep6() {
+  if (!nep6Wif.value || !nep6Password.value) return;
+  isGeneratingNep6.value = true;
+  nep6Error.value = "";
+  nep6Success.value = "";
+
+  try {
+    await ensureNeonJs();
+    const committeePubkeys = props.request?.params?.committee_pubkeys || [];
+    const threshold = props.request?.signers_required || Math.floor(committeePubkeys.length / 2) + 1;
+
+    if (!committeePubkeys.length) throw new Error("Committee public keys not found in proposal.");
+
+    // Validate WIF and derive the account
+    const memberAccount = new neonJs.wallet.Account(nep6Wif.value.trim());
+
+    // Verify the member is in the committee
+    if (!committeePubkeys.includes(memberAccount.publicKey)) {
+      throw new Error("This WIF does not belong to a committee member for this proposal.");
+    }
+
+    // Create the multisig account
+    const multiSig = neonJs.wallet.Account.createMultiSig(threshold, committeePubkeys);
+
+    // Encrypt the private key with the password
+    const encryptedKey = await neonJs.wallet.encrypt(memberAccount.privateKey, nep6Password.value);
+
+    // Build NEP-6 wallet JSON
+    const nep6 = {
+      name: "Committee-Multisig",
+      version: "1.0",
+      scrypt: { n: 16384, r: 8, p: 8 },
+      accounts: [
+        {
+          address: multiSig.address,
+          label: "Committee " + threshold + "-of-" + committeePubkeys.length,
+          isDefault: true,
+          lock: false,
+          key: encryptedKey,
+          contract: {
+            script: neonJs.u.base642hex(multiSig.contract.script),
+            parameters: Array.from({ length: threshold }, () => ({ name: "signature", type: "Signature" })),
+            deployed: false,
+          },
+          extra: {
+            publicKey: memberAccount.publicKey,
+          },
+        },
+      ],
+      extra: null,
+    };
+
+    // Download as JSON file
+    const blob = new Blob([JSON.stringify(nep6, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `committee-wallet-${multiSig.address.substring(0, 8)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    nep6Success.value = `Wallet file downloaded. Multisig address: ${multiSig.address}. Import it into NeoLine, then switch to this wallet and click "Sign with Wallet".`;
+    nep6Wif.value = "";
+  } catch (e) {
+    nep6Error.value = e.message || String(e);
+  } finally {
+    isGeneratingNep6.value = false;
+  }
 }
+
+// ═══ Signature Submission ═══
 
 function assertSignerIdentityMatches({ signerAddress, signerPublicKey }) {
   const normalizedAddress = String(signerAddress || "").trim();
   const normalizedPublicKey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
-
   if (!normalizedAddress || !normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) return normalizedPublicKey;
-
   const derivedAddress = publicKeyToAddress(normalizedPublicKey);
   if (derivedAddress && derivedAddress !== normalizedAddress) {
     throw new Error("Signer address does not match the provided public key.");
   }
-
   return normalizedPublicKey;
 }
 
 async function getGovernanceSigningPayloadHex() {
-  if (preparedSigningPayload.value?.payload) {
-    return String(preparedSigningPayload.value.payload).trim();
-  }
-
+  if (preparedSigningPayload.value?.payload) return String(preparedSigningPayload.value.payload).trim();
   const unsignedTxHex = String(props.request?.params?.unsigned_tx || "").trim();
-  if (!unsignedTxHex) {
-    throw new Error("Missing unsigned transaction payload.");
-  }
-
+  if (!unsignedTxHex) throw new Error("Missing unsigned transaction payload.");
   const payload = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
   preparedSigningPayload.value = payload;
   return String(payload?.payload || "").trim();
@@ -529,23 +500,21 @@ async function verifyGovernanceSignature(signatureHex, signerPublicKey) {
   await ensureNeonJs();
   const normalizedSignature = String(signatureHex || "").trim().replace(/^0x/i, "");
   const normalizedPublicKey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
-
-  if (!normalizedSignature) {
-    throw new Error("Missing signature.");
-  }
-
-  if (!normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) {
-    return;
-  }
-
-  if (typeof neonJs?.wallet?.verify !== "function") {
-    return;
-  }
-
+  if (!normalizedSignature) throw new Error("Missing signature.");
+  if (!normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) return;
+  if (typeof neonJs?.wallet?.verify !== "function") return;
   const signingPayload = await getGovernanceSigningPayloadHex();
   const isValid = neonJs.wallet.verify(signingPayload, normalizedSignature, normalizedPublicKey);
-  if (!isValid) {
-    throw new Error("Signature does not match the governance signing payload for this signer.");
+  if (!isValid) throw new Error("Signature does not match the governance signing payload for this signer.");
+}
+
+function validateCommitteeMember(signerPublicKey) {
+  const committeePubkeys = props.request?.params?.committee_pubkeys || [];
+  if (!committeePubkeys.length) return; // No committee data to validate against
+  const normalizedPubkey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
+  if (!normalizedPubkey) return;
+  if (!committeePubkeys.includes(normalizedPubkey)) {
+    throw new Error("This signer is not a member of the committee for this proposal.");
   }
 }
 
@@ -569,14 +538,25 @@ async function submitSig(signatureHex, source = "manual_signature") {
       source,
     });
 
-    const res = await supabaseService.addMultisigSignature(requestId, payload.signerAddress, payload.signature, {
+    let res = await supabaseService.addMultisigSignature(requestId, payload.signerAddress, payload.signature, {
       publicKey: payload.publicKey,
       witness: payload.witness,
       invocationScript: payload.invocationScript,
       verificationScript: payload.verificationScript,
     });
-    if (!res.success) throw new Error(res.error);
 
+    // Auto-retry with overwrite if duplicate
+    if (!res.success && res.isDuplicate) {
+      res = await supabaseService.addMultisigSignature(requestId, payload.signerAddress, payload.signature, {
+        publicKey: payload.publicKey,
+        witness: payload.witness,
+        invocationScript: payload.invocationScript,
+        verificationScript: payload.verificationScript,
+        overwrite: true,
+      });
+    }
+
+    if (!res.success) throw new Error(res.error);
     toast.success("Signature added successfully!");
     emit("close");
     emit("signed", { requestId });
@@ -598,25 +578,34 @@ async function submitExternalWitness() {
         findRequestSignerPublicKey(props.request, signerAddress) ||
         (await getConnectedWalletPublicKey()),
     });
+
+    // Validate committee membership
+    validateCommitteeMember(signerPublicKey);
+
     const suppliedSignature = String(externalSignature.value || "").trim().replace(/^0x/i, "");
     const payload = buildExternalWitnessPayload({
       signerAddress,
       signerPublicKey,
       signatureHex: suppliedSignature,
-      invocationScript: externalInvocationScript.value,
-      verificationScript: externalVerificationScript.value,
+      invocationScript: String(externalInvocationScript?.value || "").trim(),
       eligibleSigners: props.request?.eligible_signers || [],
     });
     await verifyGovernanceSignature(payload.signature, payload.publicKey || signerPublicKey);
 
-    const res = await supabaseService.addMultisigSignature(requestId, payload.signerAddress, payload.signature, {
+    let res = await supabaseService.addMultisigSignature(requestId, payload.signerAddress, payload.signature, {
       publicKey: payload.publicKey,
       witness: payload.witness,
       invocationScript: payload.invocationScript,
       verificationScript: payload.verificationScript,
+      overwrite: allowOverwrite.value,
     });
-    if (!res.success) throw new Error(res.error);
 
+    if (!res.success && res.isDuplicate && !allowOverwrite.value) {
+      toast.warning("This signer already has a signature. Enable 'Allow overwriting' to update it.");
+      return;
+    }
+
+    if (!res.success) throw new Error(res.error);
     toast.success("External witness added successfully!");
     emit("close");
     emit("signed", { requestId });

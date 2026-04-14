@@ -161,7 +161,7 @@ describe("GovernanceSignModal", () => {
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-panel"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-body"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain("tools.governance.offlineSigningGuideTitle");
+    expect(wrapper.text()).toContain("tools.governance.optionExternalWitness");
   });
 
   it("prepares an offline signing payload and prefills the connected council signer details", async () => {

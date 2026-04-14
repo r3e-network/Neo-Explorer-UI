@@ -118,7 +118,7 @@ describe("supabaseService multisig requests", () => {
     const { supabaseService } = await import("../../src/services/supabaseService.js");
     const result = await supabaseService.addMultisigSignature(4, "NSigner", "ab".repeat(64));
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       success: false,
       error: "This council member has already signed the proposal.",
     });
