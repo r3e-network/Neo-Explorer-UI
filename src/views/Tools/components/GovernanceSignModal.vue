@@ -64,13 +64,13 @@
                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               ></path>
             </svg>
-            {{ isSigning ? $t("tools.governance.awaitingWallet") : $t("tools.governance.signWithWallet") }}
+            {{ isSigning ? $t("tools.governance.awaitingWallet") : (isNeoLineMultisigSignerMismatch ? "Prepare Signing Payload" : $t("tools.governance.signWithWallet")) }}
           </button>
           <p
             class="text-[11px] text-center"
-            :class="walletSignBlockReason ? 'text-amber-600 dark:text-amber-400' : 'text-mid'"
+            :class="(walletSignBlockReason || isNeoLineMultisigSignerMismatch) ? 'text-amber-600 dark:text-amber-400' : 'text-mid'"
           >
-            {{ walletSignBlockReason || $t("tools.governance.walletSignNote") }}
+            {{ walletSignBlockReason || (isNeoLineMultisigSignerMismatch ? "NeoLine cannot sign multisig transactions directly. Click above to prepare the signing payload, then paste your signature below." : $t("tools.governance.walletSignNote")) }}
           </p>
 
           <div
@@ -322,6 +322,10 @@ watch(
       preparedSigningPayload.value = null;
       await ensureNeonJs();
       await prefillExternalWitnessSigner();
+      // For NeoLine multisig, auto-prepare the signing payload on open.
+      if (isNeoLineMultisigSignerMismatch.value && newVal.params?.unsigned_tx) {
+        try { await prepareSigningPayload(); } catch { /* best-effort */ }
+      }
     }
   },
   { immediate: true },
@@ -400,6 +404,10 @@ const walletSignBlockReason = computed(() => {
     return `${provider} cannot sign governance transaction packets in-browser yet. Submit an external witness instead.`;
   }
 
+  if (isNeoLineMultisigSignerMismatch.value) {
+    return "";
+  }
+
   return "";
 });
 
@@ -468,6 +476,14 @@ async function autoSignTx() {
   if (!props.request) return;
   await ensureNeonJs();
 
+  // NeoLine cannot sign committee multisig transactions directly.
+  // Auto-prepare the offline signing payload instead.
+  if (isNeoLineMultisigSignerMismatch.value) {
+    try { await prepareSigningPayload(); } catch { /* best-effort */ }
+    toast.info("Signing payload prepared. Copy it, sign offline, and paste the signature below.");
+    return;
+  }
+
   const blockReason = walletSignBlockReason.value;
   if (blockReason) {
     toast.error(blockReason);
@@ -477,19 +493,6 @@ async function autoSignTx() {
   isSigning.value = true;
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
-
-    // For NeoLine with multisig signer mismatch, use the governance payload signing
-    // path (signMessage with isBase64Encoded) which bypasses the signer check.
-    if (isNeoLineMultisigSignerMismatch.value) {
-      const { signature, publicKey } = await walletService.signGovernancePayload(unsignedTxHex);
-      // If NeoLine returned the public key, use it; otherwise fall back to getPublicKey.
-      if (publicKey) {
-        externalSignerPublicKey.value = publicKey;
-      }
-      await submitSig(signature, "neoline_governance_payload");
-      return;
-    }
-
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature, "wallet_signature");
   } catch (e) {

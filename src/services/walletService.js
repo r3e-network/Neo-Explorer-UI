@@ -130,56 +130,6 @@ async function getNeoLineN3() {
   return _neolineN3;
 }
 
-/**
- * Send a SignMessageV3 request directly to NeoLine's content script via postMessage.
- * This bypasses both the v1 dAPI (which adds a 010001f0 prefix) and the v2 dAPI
- * discovery (which may not be available). The v3 signing component does raw
- * wallet.sign(base642hex(message), privateKey) when isBase64Encoded is true.
- */
-function sendNeoLineSignMessageV3(base64Message) {
-  // NeoLine uses Date.now().toString() for message IDs — must be a string.
-  const ID = Date.now().toString();
-  const target = "neoline.target_sign_message_v3_n3";
-
-  return new Promise((resolve, reject) => {
-    const callbackFn = (event) => {
-      const data = event.data;
-      if (data?.return === target && data?.ID === ID) {
-        window.removeEventListener("message", callbackFn);
-        if (data.error) {
-          reject(data.error);
-        } else {
-          resolve(data.data);
-        }
-      }
-    };
-
-    window.addEventListener("message", callbackFn);
-
-    window.postMessage(
-      {
-        target,
-        parameter: {
-          message: base64Message,
-          options: {
-            isBase64Encoded: true,
-            isLedgerCompatible: false,
-            isTypedData: false,
-          },
-        },
-        ID,
-        hostname: location.hostname,
-      },
-      window.location.origin,
-    );
-
-    // Timeout after 5 minutes (user may take time to review in NeoLine popup).
-    setTimeout(() => {
-      window.removeEventListener("message", callbackFn);
-      reject(new Error("NeoLine signing timed out."));
-    }, 5 * 60 * 1000);
-  });
-}
 
 /**
  * Wait for NeoLine to be ready (it injects after DOMContentLoaded).
@@ -1062,59 +1012,6 @@ export const walletService = {
     }
 
     throw new Error("Provider does not support raw transaction signing in browser.");
-  },
-
-  /**
-   * Sign a governance transaction payload using NeoLine's raw message signing.
-   * This bypasses the signTransaction signer check by using signMessage with
-   * isBase64Encoded: true, which triggers NeoLine's v3 signature path that
-   * does wallet.sign(hex, privateKey) with no salt or prefix.
-   *
-   * @param {string} unsignedTxHex - The unsigned governance transaction hex.
-   * @returns {Promise<{signature: string, publicKey: string}>}
-   */
-  async signGovernancePayload(unsignedTxHex) {
-    if (!_account) throw new Error("Wallet not connected");
-    if (_connectedProvider !== PROVIDERS.NEOLINE) {
-      throw new Error("Governance payload signing is only available with NeoLine.");
-    }
-
-    // Compute the signing payload: magic_le + reversed_tx_hash
-    const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
-    if (!payload) throw new Error("Failed to compute signing payload.");
-
-    // Convert the hex payload to base64 for NeoLine's v3 signing component.
-    // The v3 component does: base642hex(message) → wallet.sign(hex, privateKey)
-    // with no salt, no prefix, no signer check — producing a raw ECDSA signature
-    // over the exact governance payload bytes.
-    const payloadBase64 = Buffer.from(payload, "hex").toString("base64");
-
-    try {
-      // Send directly to NeoLine's SignMessageV3 target via postMessage.
-      // This bypasses the v1 dAPI (which wraps with 010001f0 prefix) and
-      // the v2 dAPI discovery (which may not be available in all versions).
-      const res = await sendNeoLineSignMessageV3(payloadBase64);
-
-      // Extract signature and public key from response.
-      const rawSignature = res?.signature || res?.data || "";
-      const publicKey = String(res?.pubkey || res?.publicKey || "").replace(/^0x/i, "");
-
-      // NeoLine v3 returns base64 signature - decode to hex.
-      const signatureHex = /^[0-9a-fA-F]+$/.test(rawSignature)
-        ? rawSignature
-        : Buffer.from(rawSignature, "base64").toString("hex");
-
-      if (!signatureHex || signatureHex.length < 128) {
-        throw new Error("NeoLine returned an invalid signature.");
-      }
-
-      return { signature: signatureHex, publicKey };
-    } catch (error) {
-      if (isDapiCanceled(error)) {
-        throw new Error("Signing canceled by user.");
-      }
-      throw toReadableWalletError(error, "NeoLine governance signing failed.");
-    }
   },
 
   async signMessage(message) {
