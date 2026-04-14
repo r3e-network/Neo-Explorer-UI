@@ -22,6 +22,7 @@ describe("extractScriptBase64FromUnsignedTx", () => {
     expect(decodeUnsignedTransaction(unsignedTx)).toEqual(
       expect.objectContaining({
         rawHex: unsignedTx,
+        hash: "e780e305d0948b068aef0b5393d87829a519e810cf97b0229108a775c2cd07a1",
         version: 0,
         nonce: 1868666677,
         systemFee: "135208",

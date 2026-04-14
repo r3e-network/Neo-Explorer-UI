@@ -79,4 +79,14 @@ describe("multisigWitness helpers", () => {
       })
     ).toThrow(/does not match/);
   });
+
+  it("rejects a mismatched signer address and public key pair", () => {
+    expect(() =>
+      buildExternalWitnessPayload({
+        signerAddress: "NZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",
+        signerPublicKey,
+        signatureHex,
+      })
+    ).toThrow(/does not match the provided public key/);
+  });
 });

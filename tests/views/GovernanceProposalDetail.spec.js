@@ -743,4 +743,130 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("setGasPerBlock");
     expect(wrapper.text()).toContain("100000000");
   });
+
+  it("renders legacy stored governance packet details from params arrays and metadata fallbacks", async () => {
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      network: "mainnet",
+      description: "Reduce block time and GAS reward",
+      method: "setMillisecondsPerBlock, setGasPerBlock",
+      contract_hash: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+      unsigned_tx: "abfbffc25e0bbd760765",
+      signers_required: 10,
+      status: "PENDING",
+      signatures: [],
+      created_at: "2026-03-19T19:55:27+00:00",
+      metadata: {
+        tx_hash: "abfbffc25e0be492095991f1a6fb074df0363e2963b0aace0ee9dd0ebd760765",
+        broadcast_state: "Awaiting Quorum",
+        execution_script:
+          "PUSHINT16 3000 / PUSH1 / PACK / PUSH11 / PUSHDATA1 setMillisecondsPerBlock / PUSHDATA1 0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b / SYSCALL System.Contract.Call / PUSHINT32 100000000 / PUSH1 / PACK / PUSH3 / PUSHDATA1 setGasPerBlock / PUSHDATA1 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5 / SYSCALL System.Contract.Call",
+        target_contracts: [
+          { hash: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b", name: "PolicyContract" },
+          { hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", name: "NEO" },
+        ],
+        signatures_needed: 10,
+        signatures_collected: 1,
+        chained_invocations: 2,
+      },
+      params: [
+        {
+          method: "setMillisecondsPerBlock",
+          contract: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+          args: [{ type: "Integer", value: "3000" }],
+        },
+        {
+          method: "setGasPerBlock",
+          contract: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          args: [{ type: "Integer", value: "100000000" }],
+        },
+      ],
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Atomic Invocation Plan");
+    expect(wrapper.text()).toContain("setMillisecondsPerBlock");
+    expect(wrapper.text()).toContain("3000");
+    expect(wrapper.text()).toContain("setGasPerBlock");
+    expect(wrapper.text()).toContain("100000000");
+    expect(wrapper.text()).toContain("Embedded Execution Script");
+    expect(wrapper.text()).toContain("System.Contract.Call");
+    expect(wrapper.text()).toContain("1 / 10");
+    expect(wrapper.text()).toContain("Awaiting Quorum");
+    expect(wrapper.text()).toContain("abfbffc25e0be492095991f1a6fb074df0363e2963b0aace0ee9dd0ebd760765");
+  });
+
+  it("labels off-chain review packets and disables broadcast messaging even when quorum is met", async () => {
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      network: "mainnet",
+      description: "Off-chain review packet",
+      method: "setMillisecondsPerBlock, setGasPerBlock",
+      contract_hash: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+      signers_required: 11,
+      status: "PENDING",
+      signatures: [],
+      created_at: "2026-03-19T19:55:27+00:00",
+      metadata: {
+        tx_hash: "4761683f32eeb8db494bb7f791910efb9312d124585bbd30abd763ce63e2eaae",
+        broadcast_state: "Awaiting Quorum",
+        execution_script:
+          "PUSHINT16 3000 / PUSH1 / PACK / PUSH11 / PUSHDATA1 setMillisecondsPerBlock / PUSHDATA1 0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b / SYSCALL System.Contract.Call / PUSHINT32 100000000 / PUSH1 / PACK / PUSH3 / PUSHDATA1 setGasPerBlock / PUSHDATA1 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5 / SYSCALL System.Contract.Call",
+        target_contracts: [
+          { hash: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b", name: "PolicyContract" },
+          { hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", name: "NEO" },
+        ],
+        signatures_needed: 11,
+        signatures_collected: 11,
+        chained_invocations: 2,
+        offchain_packet_only: true,
+        offchain_review_window_days: 31,
+      },
+      params: [
+        {
+          method: "setMillisecondsPerBlock",
+          contract: "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+          args: [{ type: "Integer", value: "3000" }],
+        },
+        {
+          method: "setGasPerBlock",
+          contract: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          args: [{ type: "Integer", value: "100000000" }],
+        },
+      ],
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Off-chain Review Packet");
+    expect(wrapper.text()).toContain("31-day review window");
+    expect(wrapper.text()).toContain("This packet is for off-chain witness collection only");
+    expect(wrapper.text()).not.toContain("Broadcast Threshold-Signed Proposal");
+    expect(wrapper.text()).not.toContain("Ready Now");
+  });
 });

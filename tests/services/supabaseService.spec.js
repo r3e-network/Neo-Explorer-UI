@@ -111,6 +111,19 @@ describe("supabaseService metadata", () => {
     expect(result["0xabc"]?.logo_url).toBe("https://example.com/itk.png");
   });
 
+  it("rewrites legacy hosted Supabase client URLs to the worker base URL", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "https://xistvcqaiusnhrujnpaz.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");
+
+    const client = { from: vi.fn() };
+    createClientMock.mockReturnValue(client);
+
+    const { supabase } = await import("../../src/services/supabaseService.js");
+
+    expect(createClientMock).toHaveBeenCalledWith("https://api.n3index.dev", "anon-key");
+    expect(supabase).toBe(client);
+  });
+
   it("filters contract metadata supabase fallback queries by the requested network", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon-key");

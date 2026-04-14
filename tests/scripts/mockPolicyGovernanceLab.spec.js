@@ -48,4 +48,25 @@ describe("mock policy governance lab script", () => {
     expect(scriptSource).toContain("generatedSignerWifs");
     expect(scriptSource).toContain("governanceSignerAccounts");
   });
+
+  it("uses the working neon-js transaction path instead of the compat loader for deploy and broadcast", () => {
+    expect(scriptSource).toContain('require("@cityofzion/neon-js")');
+    expect(scriptSource).not.toContain('require("./lib/loadNeoCompat")');
+  });
+
+  it("stores eligible signer addresses in the JSON payload instead of a missing top-level column", () => {
+    expect(scriptSource).not.toContain("signers_required: threshold,\n    eligible_signers:");
+    expect(scriptSource).toContain("committee_pubkeys: pubkeys,\n      eligible_signers:");
+  });
+
+  it("stores the mocked governance request in schema-compatible title and contract_hash columns", () => {
+    expect(scriptSource).not.toContain('target_contract: "MULTI_CALL"');
+    expect(scriptSource).toContain("title: `Mock policy governance validation");
+    expect(scriptSource).toContain("contract_hash: deployment.contractHash");
+  });
+
+  it("falls back to a fixed deploy network fee when RPC fee probes reject deployment transactions", () => {
+    expect(scriptSource).toContain("DEFAULT_DEPLOY_NETWORK_FEE_RAW");
+    expect(scriptSource).toContain("networkFee = DEFAULT_DEPLOY_NETWORK_FEE_RAW.toString()");
+  });
 });

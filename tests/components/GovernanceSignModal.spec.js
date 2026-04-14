@@ -1,10 +1,13 @@
-import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { flushPromises, mount } from "@vue/test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
 const connectedAccount = ref("");
 const toastErrorMock = vi.fn();
 const signRawTransactionMock = vi.fn();
+const getRawTransactionSigningPayloadMock = vi.fn();
+const getPublicKeyMock = vi.fn();
+const addMultisigSignatureMock = vi.fn();
 const walletSession = vi.hoisted(() => ({
   account: null,
   isConnected: false,
@@ -12,7 +15,7 @@ const walletSession = vi.hoisted(() => ({
 
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
-    addMultisigSignature: vi.fn(),
+    addMultisigSignature: addMultisigSignatureMock,
   },
 }));
 
@@ -22,12 +25,22 @@ vi.mock("@/utils/wallet", () => ({
 
 vi.mock("@/services/walletService", () => ({
   walletService: {
+    PROVIDERS: {
+      NEOLINE: "NeoLine",
+      WEB3AUTH: "Google / Email (Web3Auth)",
+      TESTNET_WIF: "Testnet WIF (Local Dev)",
+    },
     signRawTransaction: signRawTransactionMock,
+    getRawTransactionSigningPayload: getRawTransactionSigningPayloadMock,
+    getPublicKey: getPublicKeyMock,
     get account() {
       return walletSession.account;
     },
     get isConnected() {
       return walletSession.isConnected;
+    },
+    get provider() {
+      return walletSession.account?.label || null;
     },
   },
 }));
@@ -40,6 +53,17 @@ vi.mock("vue-toastification", () => ({
 }));
 
 describe("GovernanceSignModal", () => {
+  beforeEach(() => {
+    connectedAccount.value = "";
+    walletSession.account = null;
+    walletSession.isConnected = false;
+    signRawTransactionMock.mockReset();
+    getRawTransactionSigningPayloadMock.mockReset();
+    getPublicKeyMock.mockReset();
+    addMultisigSignatureMock.mockReset();
+    toastErrorMock.mockReset();
+  });
+
   it.skip("disables wallet signing when no wallet is connected", async () => {
     connectedAccount.value = "";
     walletSession.account = null;
@@ -134,5 +158,269 @@ describe("GovernanceSignModal", () => {
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-panel"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-body"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("tools.governance.offlineSigningGuideTitle");
+  });
+
+  it("prepares an offline signing payload and prefills the connected council signer details", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    getRawTransactionSigningPayloadMock.mockReset();
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+    window.Neon = {
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 1,
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="governance-sign-modal-external-address"]').element.value).toBe(signerAddress);
+    expect(wrapper.get('[data-testid="governance-sign-modal-external-pubkey"]').element.value).toBe(signerPublicKey);
+
+    await wrapper.get('[data-testid="governance-sign-modal-prepare-payload"]').trigger("click");
+    await flushPromises();
+
+    expect(getRawTransactionSigningPayloadMock).toHaveBeenCalledWith("001122");
+    expect(wrapper.get('[data-testid="governance-sign-modal-signing-payload"]').text()).toContain("3353ef4eabcd");
+
+    delete window.Neon;
+  });
+
+  it("builds an external witness from a pasted raw signature", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    addMultisigSignatureMock.mockReset();
+    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
+    window.Neon = {
+      wallet: {
+        verify: vi.fn(() => true),
+      },
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 7,
+          eligible_signers: [signerAddress],
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    await wrapper.get('[data-testid="governance-sign-modal-external-signature"]').setValue("ab".repeat(64));
+    await wrapper.get('[data-testid="governance-sign-modal-submit-witness"]').trigger("click");
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      7,
+      signerAddress,
+      "ab".repeat(64),
+      expect.objectContaining({
+        publicKey: signerPublicKey,
+        invocationScript: `0c40${"ab".repeat(64)}`,
+        witness: expect.objectContaining({
+          signer_address: signerAddress,
+          public_key: signerPublicKey,
+          invocation_script: `0c40${"ab".repeat(64)}`,
+          source: "external_witness",
+        }),
+      }),
+    );
+
+    delete window.Neon;
+  });
+
+  it("blocks NeoLine wallet signing when the council packet signer is the committee multisig account", async () => {
+    connectedAccount.value = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+    walletSession.account = {
+      address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue("");
+    signRawTransactionMock.mockReset();
+    toastErrorMock.mockReset();
+    window.Neon = {
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 1,
+          params: {
+            unsigned_tx: "001122",
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    const walletButton = wrapper.findAll("button").find((button) =>
+      button.text().includes("tools.governance.signWithWallet")
+    );
+
+    expect(walletButton?.attributes("disabled")).toBeDefined();
+    expect(wrapper.text()).toContain("NeoLine cannot sign this council packet directly");
+    expect(wrapper.text()).toContain("tools.governance.neoLineMultisigNotice");
+
+    await walletButton?.trigger("click");
+
+    expect(signRawTransactionMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+
+    delete window.Neon;
+  });
+
+  it("rejects a raw signature when it does not verify against the governance payload", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+    window.Neon = {
+      wallet: {
+        verify: vi.fn(() => false),
+      },
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 7,
+          eligible_signers: [signerAddress],
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('[data-testid="governance-sign-modal-external-signature"]').setValue("ab".repeat(64));
+    await wrapper.get('[data-testid="governance-sign-modal-submit-witness"]').trigger("click");
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to submit witness: Signature does not match the governance signing payload for this signer."
+    );
+
+    delete window.Neon;
   });
 });

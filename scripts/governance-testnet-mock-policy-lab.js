@@ -1,10 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const neon = require("@cityofzion/neon-js");
 const { createClient } = require("@supabase/supabase-js");
-const { loadNeoCompat } = require("./lib/loadNeoCompat");
-
-let neon = null;
 
 const DEFAULT_RPC_URL = "https://api.n3index.dev/testnet";
 const DEFAULT_THRESHOLD = 2;
@@ -12,6 +10,7 @@ const DEFAULT_SIGNER_COUNT = 3;
 const DEFAULT_FUND_AMOUNT_RAW = 3000000n; // 0.03 GAS
 const DEFAULT_MILLISECONDS_PER_BLOCK = 3000;
 const DEFAULT_GAS_PER_BLOCK = 100000000;
+const DEFAULT_DEPLOY_NETWORK_FEE_RAW = 100000000n; // 1 GAS fallback when RPC fee probes reject deploy txs
 const CONTRACT_MANAGEMENT_HASH = "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd";
 const GAS_TOKEN = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
@@ -297,16 +296,16 @@ async function deployCompiledContract({
   const nefPath = path.resolve(process.cwd(), artifactsDir, `${baseName}.nef`);
   const manifestPath = path.resolve(process.cwd(), artifactsDir, `${baseName}.manifest.json`);
   const nefBuffer = fs.readFileSync(nefPath);
+  const nefObject = neon.sc.NEF.fromBuffer(nefBuffer);
   const manifestObject = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   manifestObject.name = `${baseName}_${Date.now()}`;
   const manifestString = JSON.stringify(manifestObject);
-  const nefObject = neon.sc.NEF.fromBuffer(nefBuffer);
 
   const script = neon.sc.createScript({
     scriptHash: CONTRACT_MANAGEMENT_HASH,
     operation: "deploy",
     args: [
-      neon.sc.ContractParam.byteArray(nefBuffer.toString("base64")),
+      neon.sc.ContractParam.byteArray(neon.u.HexString.fromHex(nefBuffer.toString("hex"), true)),
       neon.sc.ContractParam.string(manifestString),
       neon.sc.ContractParam.hash160(ownerScriptHash),
     ],
@@ -327,7 +326,12 @@ async function deployCompiledContract({
     networkFee: 0,
   });
   transaction.sign(deployerAccount, magic);
-  const networkFee = await rpcClient.calculateNetworkFee(transaction);
+  let networkFee;
+  try {
+    networkFee = await rpcClient.calculateNetworkFee(transaction);
+  } catch (error) {
+    networkFee = DEFAULT_DEPLOY_NETWORK_FEE_RAW.toString();
+  }
   transaction = new neon.tx.Transaction({
     signers,
     validUntilBlock: currentHeight + 1000,
@@ -397,7 +401,6 @@ async function invokeGetter(rpcClient, contractHash, operation) {
 }
 
 async function main() {
-  neon = await loadNeoCompat();
   const localEnv = readEnvFile(path.join(process.cwd(), ".env"));
   const councilWif = getEnvValue(localEnv, "TESTNET_COUNCIL_WIF");
   if (!councilWif) throw new Error("Missing TESTNET_COUNCIL_WIF.");
@@ -533,11 +536,11 @@ async function main() {
   const request = await createRequestCompat(supabase, {
     type: "governance",
     creator_address: requestCreator.address,
-    target_contract: "MULTI_CALL",
+    title: `Mock policy governance validation ${new Date().toISOString()}`,
+    contract_hash: deployment.contractHash,
     method: intents.map((intent) => intent.selectedMethod).join(","),
     description: `Codex dual-contract governance validation ${new Date().toISOString()}`,
     signers_required: threshold,
-    eligible_signers: pubkeys.map((pubkey) => new neon.wallet.Account(pubkey).address),
     status: "PENDING",
     network: "testnet",
     params: {
@@ -545,6 +548,7 @@ async function main() {
       hash: finalTx.hash(),
       scriptHash: multisig.scriptHash,
       committee_pubkeys: pubkeys,
+      eligible_signers: pubkeys.map((pubkey) => new neon.wallet.Account(pubkey).address),
       governance_mode: "lab",
       lab_mode: true,
       target_contracts: [deployment.contractHash, neoTokenDeployment.contractHash],

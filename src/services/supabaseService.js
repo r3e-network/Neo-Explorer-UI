@@ -5,7 +5,19 @@ import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 import { decodeStackItem } from "@/utils/resultDecoder";
 import { rpc } from "@/services/api";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
+const LEGACY_HOSTED_SUPABASE_URL_PATTERN = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i;
+const PUBLIC_SUPABASE_WORKER_BASE_URL = "https://api.n3index.dev";
+const resolvePublicSupabaseUrl = (value) => {
+  const normalized = normalizeBaseUrl(value);
+  if (!normalized) return "";
+  if (LEGACY_HOSTED_SUPABASE_URL_PATTERN.test(normalized)) {
+    return PUBLIC_SUPABASE_WORKER_BASE_URL;
+  }
+  return normalized;
+};
+
+const supabaseUrl = resolvePublicSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Create a single supabase client for interacting with your database
@@ -40,8 +52,6 @@ const getOrCreateBatchState = (stateMap, network) => {
   }
   return stateMap.get(key);
 };
-
-const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
 
 const flushContractMetadataBatch = async (network) => {
   const state = contractMetadataBatchState.get(network);

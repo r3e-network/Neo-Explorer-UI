@@ -35,6 +35,7 @@ describe("UnsignedTransactionViewer", () => {
     expect(wrapper.text()).toContain("9,055,023");
     expect(wrapper.text()).toContain("Global");
     expect(wrapper.text()).toContain("0.00135208 GAS");
+    expect(wrapper.text()).toContain("e780e305d0948b068aef0b5393d87829a519e810cf97b0229108a775c2cd07a1");
     expect(wrapper.find('[data-testid="script-viewer"]').exists()).toBe(true);
   });
 

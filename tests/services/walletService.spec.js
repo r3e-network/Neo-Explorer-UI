@@ -22,6 +22,9 @@ const signTxMock = vi.fn();
 const compatTxDeserializeMock = vi.fn();
 const neoLineInvokeMock = vi.fn(async () => ({ txid: "0xneoline" }));
 const neoLineSignTransactionMock = vi.fn(async () => ({ signature: "neoline-signature" }));
+const neoLineGetPublicKeyMock = vi.fn(async () => ({
+  publicKey: "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+}));
 const neoLineSwitchNetworkMock = vi.fn(async () => ({ defaultNetwork: "N3TestNet" }));
 const neoLineGetNetworksMock = vi.fn(async () => ({ defaultNetwork: "MainNet" }));
 const neoLineGetAccountMock = vi.fn(async () => ({
@@ -322,6 +325,7 @@ describe("walletService", () => {
         return {
           getNetworks: neoLineGetNetworksMock,
           getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
           invoke: neoLineInvokeMock,
           signTransaction: neoLineSignTransactionMock,
           switchNetwork: neoLineSwitchNetworkMock,
@@ -439,6 +443,22 @@ describe("walletService", () => {
       address: "NTestWifAccount111111111111111111111",
       label: walletService.PROVIDERS.TESTNET_WIF,
       persistSession: "session",
+    });
+  });
+
+  it("builds a raw transaction signing payload without requiring a wallet connection", async () => {
+    envState.value = "TestT5";
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const payload = await walletService.getRawTransactionSigningPayload("001122");
+
+    expect(compatTxDeserializeMock).toHaveBeenCalledWith("001122");
+    expect(getVersionMock).toHaveBeenCalledTimes(1);
+    expect(payload).toEqual({
+      payload: "334f454eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
     });
   });
 
@@ -742,6 +762,36 @@ describe("walletService", () => {
     });
   });
 
+  it("surfaces NeoLine malformed-input signing errors as readable Error messages", async () => {
+    envState.value = "TestT5";
+    neoLineSignTransactionMock.mockRejectedValueOnce({
+      type: "MALFORMED_INPUT",
+      description: "Current account is not a signer in this transaction",
+      data: null,
+    });
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    await expect(walletService.signRawTransaction("001122")).rejects.toThrow(
+      "Current account is not a signer in this transaction"
+    );
+  });
+
   it("extracts a bare signature from NeoLine signTransaction witness results", async () => {
     envState.value = "TestT5";
     neoLineSignTransactionMock.mockResolvedValueOnce({
@@ -758,6 +808,7 @@ describe("walletService", () => {
         return {
           getNetworks: neoLineGetNetworksMock,
           getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
           invoke: neoLineInvokeMock,
           signTransaction: neoLineSignTransactionMock,
           switchNetwork: neoLineSwitchNetworkMock,
@@ -785,6 +836,7 @@ describe("walletService", () => {
         return {
           getNetworks: neoLineGetNetworksMock,
           getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
           invoke: neoLineInvokeMock,
           signTransaction: neoLineSignTransactionMock,
           switchNetwork: neoLineSwitchNetworkMock,
@@ -812,6 +864,30 @@ describe("walletService", () => {
     expect(account.address).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
     expect(account.label).toBe("NeoLine");
     expect(neoLineGetAccountMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the connected NeoLine public key when dAPI exposes it", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    await expect(walletService.getPublicKey()).resolves.toBe(
+      "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5"
+    );
   });
 
   it("accepts NeoLine connected events when getAccount hangs after approval", async () => {
