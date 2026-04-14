@@ -34,6 +34,7 @@ const getCommitteeMock = vi.fn();
 const getVersionMock = vi.fn();
 const invokeScriptMock = vi.fn();
 const calculateNetworkFeeMock = vi.fn();
+const createMultiSigMock = vi.fn(() => ({ address: "NGOV", scriptHash: "0xabc", contract: { script: "script" } }));
 const walletServiceMock = {
   isConnected: false,
   signRawTransaction: vi.fn(),
@@ -86,6 +87,35 @@ vi.mock("@/utils/governanceRequests", () => ({
     Array.isArray(request?.params?.invocations) ||
     Boolean(request?.params?.governance_mode) ||
     Array.isArray(request?.params?.target_contracts),
+  isOffchainReviewPacket: (request) => Boolean(request?.metadata?.offchain_packet_only),
+  getStoredSignatureCount: (request) => {
+    const explicitCount = Array.isArray(request?.signatures) ? request.signatures.length : 0;
+    if (explicitCount > 0) return explicitCount;
+    const metadataCount = Number(request?.metadata?.signatures_collected || 0);
+    return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+  },
+  getRequiredSignatureCount: (request) => {
+    const explicitCount = Number(request?.signers_required || 0);
+    if (Number.isFinite(explicitCount) && explicitCount > 0) return explicitCount;
+    const metadataCount = Number(request?.metadata?.signatures_needed || 0);
+    return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+  },
+  resolveCommitteePubkeys: (request, liveCommitteePubkeys = []) => {
+    const isOfficial = String(request?.params?.governance_mode || "").trim().toLowerCase() === "official";
+    if (isOfficial && Array.isArray(liveCommitteePubkeys) && liveCommitteePubkeys.length > 0) {
+      return liveCommitteePubkeys;
+    }
+    if (Array.isArray(request?.params?.committee_pubkeys) && request.params.committee_pubkeys.length > 0) {
+      return request.params.committee_pubkeys;
+    }
+    if (Array.isArray(request?.params?.committee) && request.params.committee.length > 0) {
+      return request.params.committee;
+    }
+    if (Array.isArray(request?.params?.pubkeys) && request.params.pubkeys.length > 0) {
+      return request.params.pubkeys;
+    }
+    return [];
+  },
   matchesRequestNetwork: (request, activeNetwork) => {
     const normalizedActive = String(activeNetwork || "")
       .toLowerCase()
@@ -119,8 +149,8 @@ describe("GovernanceTool network changes", () => {
             this.address = `A${value}`;
             this.scriptHash = "0xabc";
           }
-          static createMultiSig() {
-            return { address: "NGOV", scriptHash: "0xabc", contract: { script: "script" } };
+          static createMultiSig(...args) {
+            return createMultiSigMock(...args);
           }
         },
       },
@@ -183,6 +213,7 @@ describe("GovernanceTool network changes", () => {
     getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 5760, msperblock: 15000 } });
     invokeScriptMock.mockResolvedValue({ state: "HALT", gasconsumed: "135208" });
     calculateNetworkFeeMock.mockResolvedValue("721066");
+    createMultiSigMock.mockClear();
     getValidatorMetadataMock.mockResolvedValue([
       { address: "APK1", display_name: "Council Alpha", logo_url: "https://example.com/alpha.png" },
       { address: "APK2", display_name: "Council Beta", logo_url: "https://example.com/beta.png" },
@@ -403,6 +434,48 @@ describe("GovernanceTool network changes", () => {
     wrapper.unmount();
   });
 
+  it("does not count off-chain review packets as ready to broadcast", async () => {
+    getMultisigRequestsMock.mockResolvedValue([
+      {
+        id: 44,
+        type: "governance",
+        description: "Off-chain review packet",
+        network: "mainnet",
+        status: "PENDING",
+        signatures: [],
+        signers_required: 11,
+        eligible_signers: [],
+        metadata: {
+          offchain_packet_only: true,
+          signatures_collected: 11,
+          signatures_needed: 11,
+        },
+      },
+    ]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Off-chain review packet");
+    expect(wrapper.text()).toContain("0 tools.governance.ready");
+    expect(wrapper.text()).not.toContain("tools.governance.broadcastTx");
+    wrapper.unmount();
+  });
+
   it("lets a council signer create and persist a governance proposal", async () => {
     connectedAccount.value = "APK1";
     walletServiceMock.isConnected = true;
@@ -454,6 +527,171 @@ describe("GovernanceTool network changes", () => {
       status: "PENDING",
       network: "mainnet",
     });
+    wrapper.unmount();
+  });
+
+  it("stores governance proposals as unsigned transaction packets and preserves the official committee signer", async () => {
+    connectedAccount.value = "APK1";
+    walletServiceMock.isConnected = true;
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const serializeMock = vi.fn((includeWitnesses) => (includeWitnesses ? "signed-tx-should-not-be-used" : "unsigned-packet-hex"));
+    const hashMock = vi.fn(() => "0xunsigned-hash");
+    const originalTransaction = window.Neon.tx.Transaction;
+    const originalCreateMultiSig = createMultiSigMock.getMockImplementation();
+
+    createMultiSigMock.mockImplementation(() => ({
+      address: "NU6wVcRy9mb81YxZcxrpBudVn7d4MTDqEz",
+      scriptHash: "fb67b21b230ccacd20183446fd3fad96582bd459",
+      contract: { script: "script" },
+    }));
+
+    window.Neon.tx.Transaction = class {
+      constructor(config) {
+        Object.assign(this, config);
+      }
+      serialize(includeWitnesses) {
+        return serializeMock(includeWitnesses);
+      }
+      hash() {
+        return hashMock();
+      }
+    };
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const newProposalButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
+    await newProposalButton.trigger("click");
+    await flushPromises();
+
+    function findCreateFormInTree(instance) {
+      if (instance.setupState?.createForm) return instance.setupState;
+      if (instance.subTree?.component?.setupState?.createForm) return instance.subTree.component.setupState;
+      const children = instance.subTree?.children;
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      const dynChildren = instance.subTree?.dynamicChildren;
+      if (Array.isArray(dynChildren)) {
+        for (const child of dynChildren) {
+          if (child?.component) {
+            const result = findCreateFormInTree(child.component);
+            if (result) return result;
+          }
+        }
+      }
+      return null;
+    }
+
+    const createState = findCreateFormInTree(wrapper.vm.$);
+    createState.createForm.description = "Unsigned council packet";
+    createState.createForm.invocations = [
+      {
+        selectedContract: "PolicyContract",
+        selectedMethod: "setMillisecondsPerBlock",
+        params: { value: "3000" },
+      },
+      {
+        selectedContract: "NEO",
+        selectedMethod: "setGasPerBlock",
+        params: { gasPerBlock: "100000000" },
+      },
+    ];
+
+    await createState.handleCreateProposal();
+    await flushPromises();
+
+    expect(serializeMock).toHaveBeenCalledWith(false);
+    expect(serializeMock).not.toHaveBeenCalledWith(true);
+    expect(createMultisigRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
+        params: expect.objectContaining({
+          unsigned_tx: "unsigned-packet-hex",
+          hash: "0xunsigned-hash",
+          scriptHash: "fb67b21b230ccacd20183446fd3fad96582bd459",
+          valid_until_block: 5883,
+          committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
+          governance_mode: "official",
+        }),
+      }),
+    );
+
+    window.Neon.tx.Transaction = originalTransaction;
+    createMultiSigMock.mockImplementation(originalCreateMultiSig);
+    wrapper.unmount();
+  });
+
+  it("preserves raw committee ordering for official governance packets", async () => {
+    connectedAccount.value = "APK3";
+    walletServiceMock.isConnected = true;
+    getCommitteeMock.mockResolvedValue(["PK3", "PK1", "PK2"]);
+    getMultisigRequestsMock.mockResolvedValue([]);
+
+    const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
+    const wrapper = mount(GovernanceTool, {
+      global: {
+        mocks: {
+          $t: (key) => key,
+          $tc: (key) => key,
+        },
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const newProposalButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.newProposal"));
+    await newProposalButton.trigger("click");
+    await flushPromises();
+
+    const textInputs = wrapper.findAll("input");
+    await textInputs[0].setValue("Official ordering proposal");
+    await textInputs[1].setValue("1000");
+
+    const createButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("tools.governance.createProposal"));
+    await createButton.trigger("click");
+    await flushPromises();
+
+    expect(createMultiSigMock).toHaveBeenCalledWith(2, ["PK3", "PK1", "PK2"]);
+    expect(createMultisigRequestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eligible_signers: ["APK3", "APK1", "APK2"],
+        params: expect.objectContaining({
+          committee_pubkeys: ["PK3", "PK1", "PK2"],
+        }),
+      }),
+    );
     wrapper.unmount();
   });
 
