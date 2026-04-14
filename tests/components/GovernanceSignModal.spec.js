@@ -306,7 +306,7 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
-  it("auto-prepares signing payload for NeoLine multisig and shows guidance on button click", async () => {
+  it("calls signRawTransaction directly for NeoLine even when tx signer is a multisig account", async () => {
     const { publicKeyToAddress } = await import("@/utils/neoHelpers");
     const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
     const signerAddress = publicKeyToAddress(signerPublicKey);
@@ -316,7 +316,9 @@ describe("GovernanceSignModal", () => {
     walletSession.isConnected = true;
     getPublicKeyMock.mockResolvedValue(signerPublicKey);
     signRawTransactionMock.mockReset();
-    getRawTransactionSigningPayloadMock.mockReset();
+    signRawTransactionMock.mockResolvedValue("cc".repeat(64));
+    addMultisigSignatureMock.mockReset();
+    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
     getRawTransactionSigningPayloadMock.mockResolvedValue({
       payload: "3353ef4eabcd",
       networkMagic: 860833102,
@@ -324,6 +326,7 @@ describe("GovernanceSignModal", () => {
     });
     toastErrorMock.mockReset();
     window.Neon = {
+      wallet: { verify: vi.fn(() => true) },
       tx: {
         Transaction: {
           deserialize: vi.fn(() => ({
@@ -353,24 +356,17 @@ describe("GovernanceSignModal", () => {
 
     await flushPromises();
 
-    // Signing payload should be auto-prepared on modal open
-    expect(getRawTransactionSigningPayloadMock).toHaveBeenCalledWith("001122");
-    expect(wrapper.text()).toContain("3353ef4eabcd");
-
-    // Button shows "Prepare Signing Payload" instead of "Sign with Wallet"
     const walletButton = wrapper.findAll("button").find((b) =>
-      b.text().includes("Prepare Signing Payload")
+      b.text().includes("tools.governance.signWithWallet")
     );
-    expect(walletButton).toBeTruthy();
+    expect(walletButton?.attributes("disabled")).toBeUndefined();
 
-    // Clicking the button does NOT call signRawTransaction
     await walletButton?.trigger("click");
     await flushPromises();
-    expect(signRawTransactionMock).not.toHaveBeenCalled();
-    expect(toastErrorMock).not.toHaveBeenCalled();
 
-    // NeoLine guidance text is visible
-    expect(wrapper.text()).toContain("NeoLine cannot sign multisig");
+    // signRawTransaction IS called (no preemptive block)
+    expect(signRawTransactionMock).toHaveBeenCalledWith("001122");
+    expect(toastErrorMock).not.toHaveBeenCalled();
 
     delete window.Neon;
   });
