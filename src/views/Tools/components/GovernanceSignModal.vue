@@ -72,6 +72,41 @@
           >
             {{ walletSignBlockReason || $t("tools.governance.walletSignNote") }}
           </p>
+
+          <div
+            v-if="isNeoLineMultisigSignerMismatch"
+            class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-3 dark:border-amber-900/40 dark:bg-amber-950/20"
+          >
+            <p class="text-sm font-semibold text-high">NeoLine requires the committee multisig wallet</p>
+            <p class="text-xs text-mid leading-relaxed">
+              NeoLine can only sign when the connected wallet matches the transaction signer.
+              For governance proposals, the signer is the committee multisig account.
+              To sign with NeoLine, import the committee multisig as a wallet in NeoLine first:
+            </p>
+            <ol class="space-y-1.5 text-xs text-mid list-decimal pl-4">
+              <li>Open NeoLine extension and go to <strong>wallet management</strong></li>
+              <li>Create or import a <strong>multi-signature wallet</strong> using the committee public keys below</li>
+              <li>Set the signing threshold to <strong>{{ request?.signers_required || 11 }}</strong></li>
+              <li>Switch to the multisig wallet in NeoLine, then click "Sign with Wallet" again</li>
+            </ol>
+            <div class="rounded-xl bg-slate-950 p-3 dark:bg-slate-900">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Committee Public Keys ({{ (request?.params?.committee_pubkeys || []).length }})
+                </p>
+                <CopyButton
+                  :text="(request?.params?.committee_pubkeys || []).join('\n')"
+                  size="sm"
+                />
+              </div>
+              <code class="block break-all font-mono text-[10px] leading-5 text-slate-300 max-h-24 overflow-y-auto custom-scrollbar">{{
+                (request?.params?.committee_pubkeys || []).join("\n")
+              }}</code>
+            </div>
+            <p class="text-[11px] text-mid">
+              Multisig address: <code class="font-mono text-high">{{ request?.creator_address || "—" }}</code>
+            </p>
+          </div>
         </div>
 
         <div class="relative py-2">
