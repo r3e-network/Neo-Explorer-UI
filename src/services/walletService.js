@@ -1013,6 +1013,57 @@ export const walletService = {
     throw new Error("Provider does not support raw transaction signing in browser.");
   },
 
+  /**
+   * Sign a governance transaction payload using NeoLine's raw message signing.
+   * This bypasses the signTransaction signer check by using signMessage with
+   * isBase64Encoded: true, which triggers NeoLine's v3 signature path that
+   * does wallet.sign(hex, privateKey) with no salt or prefix.
+   *
+   * @param {string} unsignedTxHex - The unsigned governance transaction hex.
+   * @returns {Promise<{signature: string, publicKey: string}>}
+   */
+  async signGovernancePayload(unsignedTxHex) {
+    if (!_account) throw new Error("Wallet not connected");
+    if (_connectedProvider !== PROVIDERS.NEOLINE) {
+      throw new Error("Governance payload signing is only available with NeoLine.");
+    }
+
+    const n3 = await getNeoLineN3();
+
+    // Compute the signing payload: magic_le + reversed_tx_hash
+    const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
+    if (!payload) throw new Error("Failed to compute signing payload.");
+
+    // Convert the hex payload to base64 for NeoLine's isBase64Encoded mode.
+    // NeoLine v3 does: base642hex(message) → wallet.sign(hex, privateKey)
+    // This produces the exact same signature as transaction signing.
+    const payloadBase64 = Buffer.from(payload, "hex").toString("base64");
+
+    try {
+      const res = await n3.signMessage(payloadBase64, undefined, { isBase64Encoded: true });
+
+      // Extract signature and public key from NeoLine's response.
+      const rawSignature = res?.signature || res?.data || "";
+      const publicKey = String(res?.pubkey || res?.publicKey || "").replace(/^0x/i, "");
+
+      // NeoLine v3 returns base64 signature - decode to hex.
+      const signatureHex = /^[0-9a-fA-F]+$/.test(rawSignature)
+        ? rawSignature
+        : Buffer.from(rawSignature, "base64").toString("hex");
+
+      if (!signatureHex || signatureHex.length < 128) {
+        throw new Error("NeoLine returned an invalid signature.");
+      }
+
+      return { signature: signatureHex, publicKey };
+    } catch (error) {
+      if (isDapiCanceled(error)) {
+        throw new Error("Signing canceled by user.");
+      }
+      throw toReadableWalletError(error, "NeoLine governance signing failed.");
+    }
+  },
+
   async signMessage(message) {
     if (!_account) throw new Error("Wallet not connected");
 

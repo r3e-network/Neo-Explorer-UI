@@ -322,10 +322,6 @@ watch(
       preparedSigningPayload.value = null;
       await ensureNeonJs();
       await prefillExternalWitnessSigner();
-      // Auto-prepare signing payload for NeoLine multisig so it's visible immediately.
-      if (isNeoLineMultisigSignerMismatch.value && newVal.params?.unsigned_tx) {
-        try { await prepareSigningPayload(); } catch { /* best-effort */ }
-      }
     }
   },
   { immediate: true },
@@ -404,10 +400,6 @@ const walletSignBlockReason = computed(() => {
     return `${provider} cannot sign governance transaction packets in-browser yet. Submit an external witness instead.`;
   }
 
-  if (isNeoLineMultisigSignerMismatch.value) {
-    return "NeoLine cannot sign directly — the transaction signer is the committee multisig, not your wallet. Use the signing payload below instead.";
-  }
-
   return "";
 });
 
@@ -478,19 +470,26 @@ async function autoSignTx() {
 
   const blockReason = walletSignBlockReason.value;
   if (blockReason) {
-    // For NeoLine multisig mismatch, auto-prepare the signing payload immediately.
-    if (isNeoLineMultisigSignerMismatch.value) {
-      try { await prepareSigningPayload(); } catch { /* best-effort */ }
-      toast.warning(blockReason);
-    } else {
-      toast.error(blockReason);
-    }
+    toast.error(blockReason);
     return;
   }
 
   isSigning.value = true;
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
+
+    // For NeoLine with multisig signer mismatch, use the governance payload signing
+    // path (signMessage with isBase64Encoded) which bypasses the signer check.
+    if (isNeoLineMultisigSignerMismatch.value) {
+      const { signature, publicKey } = await walletService.signGovernancePayload(unsignedTxHex);
+      // If NeoLine returned the public key, use it; otherwise fall back to getPublicKey.
+      if (publicKey) {
+        externalSignerPublicKey.value = publicKey;
+      }
+      await submitSig(signature, "neoline_governance_payload");
+      return;
+    }
+
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature, "wallet_signature");
   } catch (e) {
