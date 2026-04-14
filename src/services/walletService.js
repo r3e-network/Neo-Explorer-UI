@@ -130,8 +130,6 @@ async function getNeoLineN3() {
   return _neolineN3;
 }
 
-let _neolineMessageId = 100000;
-
 /**
  * Send a SignMessageV3 request directly to NeoLine's content script via postMessage.
  * This bypasses both the v1 dAPI (which adds a 010001f0 prefix) and the v2 dAPI
@@ -139,7 +137,8 @@ let _neolineMessageId = 100000;
  * wallet.sign(base642hex(message), privateKey) when isBase64Encoded is true.
  */
 function sendNeoLineSignMessageV3(base64Message) {
-  const ID = ++_neolineMessageId;
+  // NeoLine uses Date.now().toString() for message IDs — must be a string.
+  const ID = Date.now().toString();
   const target = "neoline.target_sign_message_v3_n3";
 
   return new Promise((resolve, reject) => {
