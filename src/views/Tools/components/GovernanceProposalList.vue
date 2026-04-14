@@ -72,6 +72,13 @@
                   {{ $t("tools.governance.proposalId", { id: req.id }) }}
                 </span>
                 <span
+                  v-if="req.params?.hash"
+                  class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-2.5 py-1 font-mono text-[10px] tracking-wider text-low dark:bg-slate-950/50"
+                  :title="req.params.hash"
+                >
+                  {{ req.params.hash.substring(0, 8) }}&hellip;
+                </span>
+                <span
                   class="inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
                   :class="
                     req.status === 'PENDING'
@@ -99,8 +106,11 @@
               </div>
 
               <h3 class="text-lg font-black tracking-tight text-high">
-                {{ req.description || req.method || $t("tools.governance.councilProposal") }}
+                {{ req.title || req.description || req.method || $t("tools.governance.councilProposal") }}
               </h3>
+              <p v-if="req.title && req.description && req.title !== req.description" class="mt-1 text-sm text-mid leading-relaxed">
+                {{ req.description }}
+              </p>
               <p class="mt-1.5 text-sm text-mid leading-relaxed">
                 {{ getRequestMethodSummary(req) }}
               </p>

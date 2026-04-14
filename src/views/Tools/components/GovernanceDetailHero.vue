@@ -26,6 +26,13 @@
               Proposal #{{ proposal.id }}
             </span>
             <span
+              v-if="proposal.params?.hash"
+              class="rounded-full border border-line-soft bg-white/80 px-2.5 py-1 text-[10px] font-mono tracking-wider text-low dark:bg-slate-950/60"
+              :title="proposal.params.hash"
+            >
+              {{ proposal.params.hash.substring(0, 8) }}&hellip;
+            </span>
+            <span
               class="rounded-full border border-line-soft bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-low dark:bg-slate-950/60"
             >
               {{ proposal.network || activeNetworkMode }}
@@ -53,7 +60,10 @@
             </div>
 
             <div class="min-w-0">
-              <h1 class="page-title mb-2">{{ proposal.description || "Council Proposal" }}</h1>
+              <h1 class="page-title mb-2">{{ proposal.title || proposal.description || "Council Proposal" }}</h1>
+              <p v-if="proposal.title && proposal.description && proposal.title !== proposal.description" class="text-sm text-mid mb-1">
+                {{ proposal.description }}
+              </p>
               <p class="page-subtitle max-w-3xl">
                 {{ proposalSubtitle }}
               </p>
