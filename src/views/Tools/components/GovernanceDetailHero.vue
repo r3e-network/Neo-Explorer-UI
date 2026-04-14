@@ -30,6 +30,12 @@
             >
               {{ proposal.network || activeNetworkMode }}
             </span>
+            <span
+              v-if="isOffchainReviewPacket"
+              class="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-400"
+            >
+              Off-chain Review Packet
+            </span>
           </div>
 
           <div class="flex items-start gap-4">
@@ -71,9 +77,7 @@
               class="inline-flex items-center gap-2 rounded-full border border-line-soft bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:bg-slate-950/50"
             >
               Tx Hash
-              <span class="font-mono text-low">{{
-                formatCompactHash(proposal.tx_hash || proposal.params?.hash || "Pending", 12, 8)
-              }}</span>
+              <span class="font-mono text-low">{{ formatCompactHash(proposalTxHash, 12, 8) }}</span>
             </span>
           </div>
         </div>
@@ -94,7 +98,7 @@
             class="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
           >
             <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
-              {{ thresholdMet ? "Ready to Cast" : "Signatures Needed" }}
+              {{ isOffchainReviewPacket ? "Witnesses Needed" : thresholdMet ? "Ready to Cast" : "Signatures Needed" }}
             </div>
             <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ thresholdMet ? 0 : remainingVotes }}</div>
           </div>
@@ -110,9 +114,15 @@
             <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Broadcast State</div>
             <div
               class="mt-1 text-sm font-bold tracking-tight"
-              :class="thresholdMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
+              :class="
+                isOffchainReviewPacket
+                  ? 'text-sky-600 dark:text-sky-400'
+                  : thresholdMet
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-amber-600 dark:text-amber-400'
+              "
             >
-              {{ thresholdMet ? "Ready Now" : "Awaiting Quorum" }}
+              {{ proposalBroadcastState }}
             </div>
           </div>
         </div>
@@ -133,12 +143,14 @@
             <span
               class="shrink-0 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm"
               :class="
-                thresholdMet
+                isOffchainReviewPacket
+                  ? 'bg-sky-500 text-white shadow-sky-500/20'
+                  : thresholdMet
                   ? 'bg-emerald-500 text-white shadow-emerald-500/20'
                   : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
               "
             >
-              {{ thresholdMet ? "Ready to broadcast" : "Signing in progress" }}
+              {{ isOffchainReviewPacket ? "Off-chain review" : thresholdMet ? "Ready to broadcast" : "Signing in progress" }}
             </span>
           </div>
 
@@ -190,7 +202,7 @@
             <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
               <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Tx Hash</div>
               <div class="mt-1 font-mono text-xs break-all text-low">
-                {{ proposal.tx_hash || proposal.params?.hash || "Pending" }}
+                {{ proposalTxHash }}
               </div>
             </div>
           </div>
@@ -217,6 +229,9 @@ defineProps({
   proposalMethodSummary: { type: String, required: true },
   proposalTargetSummary: { type: String, required: true },
   proposalSubtitle: { type: String, required: true },
+  proposalTxHash: { type: String, required: true },
+  proposalBroadcastState: { type: String, required: true },
+  isOffchainReviewPacket: { type: Boolean, default: false },
   activeNetworkMode: { type: String, required: true },
 });
 </script>

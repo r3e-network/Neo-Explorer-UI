@@ -57,12 +57,19 @@
     </div>
 
     <button
-      v-if="thresholdMet && proposal.status !== 'EXECUTED'"
+      v-if="thresholdMet && proposal.status !== 'EXECUTED' && !isOffchainReviewPacket"
       class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:-translate-y-0.5 hover:bg-emerald-700 transition-all"
       @click="$emit('broadcast')"
     >
       Broadcast Threshold-Signed Proposal
     </button>
+
+    <div
+      v-if="isOffchainReviewPacket && proposal.status !== 'EXECUTED'"
+      class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300"
+    >
+      This packet is for off-chain witness collection only. Generate a fresh on-chain transaction before any broadcast.
+    </div>
 
     <div v-if="canForkProposal" class="mt-5 border-t border-line-soft pt-5">
       <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">{{ t("tools.governance.forkProposal") }}</div>
@@ -88,6 +95,7 @@ defineProps({
   signedCount: { type: Number, required: true },
   requiredCount: { type: Number, required: true },
   thresholdMet: { type: Boolean, required: true },
+  isOffchainReviewPacket: { type: Boolean, default: false },
   hasSigned: { type: Boolean, required: true },
   canCurrentSignerVote: { type: Boolean, required: true },
   actionTitle: { type: String, required: true },

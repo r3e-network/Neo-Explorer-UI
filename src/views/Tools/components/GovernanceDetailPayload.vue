@@ -121,13 +121,26 @@
       </div>
 
       <UnsignedTransactionViewer
-        v-if="proposal.params?.unsigned_tx"
-        :transaction-hex="proposal.params.unsigned_tx"
+        v-if="proposalUnsignedTx"
+        :transaction-hex="proposalUnsignedTx"
         :current-block-height="currentBlockHeight"
         :milliseconds-per-block="millisecondsPerBlock"
         label="Unsigned Transaction Packet"
         description="The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script."
       />
+
+      <div
+        v-if="proposalExecutionScript && (!proposalUnsignedTx || String(proposalUnsignedTx).trim().length < 64)"
+        class="rounded-xl border border-line-soft bg-surface p-4 shadow-inner dark:border-white/10 dark:bg-[#020617]"
+      >
+        <div class="mb-3">
+          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Embedded Execution Script</h5>
+          <p class="mt-1 text-xs text-mid dark:text-slate-500">
+            Fallback decoded script text stored with the proposal when a full unsigned transaction payload is unavailable.
+          </p>
+        </div>
+        <pre class="whitespace-pre-wrap break-words rounded-xl border border-line-soft bg-surface-muted/60 p-4 font-mono text-[11px] text-high dark:border-white/5 dark:bg-black/20 dark:text-slate-300">{{ proposalExecutionScript }}</pre>
+      </div>
 
       <!-- Collected Witnesses -->
       <div class="pt-6 border-t border-line-soft">
@@ -340,6 +353,8 @@ defineProps({
   proposalMethodSummary: { type: String, required: true },
   proposalTargetSummary: { type: String, required: true },
   proposalInvocations: { type: Array, required: true },
+  proposalUnsignedTx: { type: String, default: "" },
+  proposalExecutionScript: { type: String, default: "" },
   signatureWitnessRows: { type: Array, required: true },
   connectedAccount: { type: String, default: "" },
   currentBlockHeight: { type: Number, default: null },

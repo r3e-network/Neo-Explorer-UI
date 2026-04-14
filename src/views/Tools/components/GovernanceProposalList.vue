@@ -82,6 +82,12 @@
                   {{ req.status }}
                 </span>
                 <span
+                  v-if="isOffchainReviewPacket(req)"
+                  class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-400"
+                >
+                  Off-chain Review
+                </span>
+                <span
                   class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50"
                 >
                   {{
@@ -117,7 +123,7 @@
                     {{ $t("tools.governance.transactionHash") }}
                   </div>
                   <div class="mt-1 font-mono text-xs break-all text-high">
-                    {{ req.params?.hash || $t("tools.governance.unavailable") }}
+                    {{ req.params?.hash || req.metadata?.tx_hash || $t("tools.governance.unavailable") }}
                   </div>
                 </div>
               </div>
@@ -165,12 +171,15 @@
                 {{ getRequestSignatureCount(req) }}
               </div>
               <div class="text-sm text-mid">
-                {{ $t("tools.governance.ofRequiredSignatures", { required: req.signers_required }) }}
+                {{ $t("tools.governance.ofRequiredSignatures", { required: getRequestRequiredCount(req) }) }}
               </div>
 
               <div class="mt-4 space-y-2">
                 <div v-if="req.status === 'PENDING'">
-                  <div v-if="getRequestSignatureCount(req) >= req.signers_required" class="space-y-2">
+                  <div
+                    v-if="!isOffchainReviewPacket(req) && getRequestSignatureCount(req) >= getRequestRequiredCount(req)"
+                    class="space-y-2"
+                  >
                     <button
                       @click="emit('broadcast', req)"
                       class="w-full px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
@@ -179,6 +188,9 @@
                     </button>
                   </div>
                   <div v-else class="space-y-2">
+                    <div v-if="isOffchainReviewPacket(req)" class="text-sm text-mid">
+                      This packet is for off-chain witness collection only. Regenerate a fresh on-chain transaction before broadcast.
+                    </div>
                     <button
                       v-if="isCouncilNode && !hasSigned(req)"
                       @click="emit('sign', req)"
@@ -279,7 +291,10 @@ const pendingRequestCount = computed(() => props.requests.filter((r) => r.status
 const readyToBroadcastCount = computed(
   () =>
     props.requests.filter(
-      (r) => r.status === "PENDING" && getRequestSignatureCount(r) >= Number(r.signers_required || 0),
+      (r) =>
+        r.status === "PENDING" &&
+        !isOffchainReviewPacket(r) &&
+        getRequestSignatureCount(r) >= getRequestRequiredCount(r),
     ).length,
 );
 
@@ -289,7 +304,21 @@ function hasSigned(req) {
 }
 
 function getRequestSignatureCount(req) {
-  return Array.isArray(req?.signatures) ? req.signatures.length : 0;
+  const explicitCount = Array.isArray(req?.signatures) ? req.signatures.length : 0;
+  if (explicitCount > 0) return explicitCount;
+  const metadataCount = Number(req?.metadata?.signatures_collected || 0);
+  return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+}
+
+function getRequestRequiredCount(req) {
+  const explicitCount = Number(req?.signers_required || 0);
+  if (Number.isFinite(explicitCount) && explicitCount > 0) return explicitCount;
+  const metadataCount = Number(req?.metadata?.signatures_needed || 0);
+  return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+}
+
+function isOffchainReviewPacket(req) {
+  return Boolean(req?.metadata?.offchain_packet_only);
 }
 
 function getRequestInvocationCount(req) {
@@ -323,7 +352,7 @@ function getRequestTargetSummary(req) {
 }
 
 function getRequestProgressPercent(req) {
-  const required = Number(req?.signers_required || 0);
+  const required = getRequestRequiredCount(req);
   if (!Number.isFinite(required) || required <= 0) return 0;
   return Math.min(100, (getRequestSignatureCount(req) / required) * 100);
 }

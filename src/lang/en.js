@@ -203,6 +203,19 @@ const en = {
       manualSigPlaceholder: "Paste 64-byte signature hex here...",
       submitManualSig: "Submit Manual Signature",
       optionExternalWitness: "Option 3: External Witness Script",
+      offlineSigningGuideTitle: "Council Signer Workflow",
+      offlineSigningGuideDesc:
+        "Use this flow when the witness is produced outside the browser and then brought back into the governance tool.",
+      neoLineMultisigNotice:
+        "NeoLine can still identify the connected council signer here, but this proposal must be completed through the external witness flow because the transaction signer is the council multisig account.",
+      offlineSigningStepPrepare:
+        "Prepare and copy the exact governance signing payload from this modal.",
+      offlineSigningStepSign:
+        "Sign that payload with your approved council signing process and keep the raw 64-byte signature or invocation script.",
+      offlineSigningStepSubmit:
+        "Paste the signature or invocation script back here and submit the external witness for storage.",
+      offlineSigningVerificationNote:
+        "When a valid signer public key is available, the tool verifies the pasted signature against the exact governance payload before storing it.",
       signerAddressPlaceholder: "Signer address (optional if public key is provided)",
       signerPubkeyPlaceholder: "Signer public key (optional)",
       invocationScriptPlaceholder: "Invocation script hex from external signer",

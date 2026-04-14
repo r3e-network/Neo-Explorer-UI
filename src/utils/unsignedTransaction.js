@@ -53,6 +53,22 @@ function normalizeAttributes(items = []) {
     : [];
 }
 
+function normalizeTransactionHash(hash) {
+  if (typeof hash === "string") {
+    return normalizeHex(hash);
+  }
+
+  if (hash instanceof Uint8Array) {
+    return bytesToHex(hash);
+  }
+
+  if (Array.isArray(hash)) {
+    return bytesToHex(Uint8Array.from(hash));
+  }
+
+  return "";
+}
+
 export function decodeUnsignedTransaction(unsignedTxHex) {
   const normalized = normalizeHex(unsignedTxHex);
   if (!normalized) return null;
@@ -66,7 +82,7 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
     const writer = new BinaryWriter();
     transaction.marshalUnsignedTo(writer);
     const rawHex = bytesToHex(writer.toBytes());
-    const txHash = sha256(sha256(hexToBytes(rawHex)));
+    const txHash = normalizeTransactionHash(sha256(sha256(hexToBytes(rawHex))));
     const scriptHex = normalizeHex(bytesToHex(transaction.script));
     const signers = Array.isArray(transaction.signers)
       ? transaction.signers.map((signer, index) => {
@@ -89,7 +105,7 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
 
     return {
       rawHex,
-      hash: txHash,
+      hash: txHash || "Unavailable",
       version: Number(transaction.version ?? 0),
       nonce: Number(transaction.nonce ?? 0),
       validUntilBlock: Number(transaction.validUntilBlock ?? 0),

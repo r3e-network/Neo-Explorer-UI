@@ -68,7 +68,14 @@ import { connectedAccount } from "@/utils/wallet";
 import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
-import { isGovernanceRequest, matchesRequestNetwork } from "@/utils/governanceRequests";
+import {
+  getRequiredSignatureCount,
+  getStoredSignatureCount,
+  isGovernanceRequest,
+  isOffchainReviewPacket,
+  matchesRequestNetwork,
+  resolveCommitteePubkeys,
+} from "@/utils/governanceRequests";
 import { buildCouncilIdentityMap } from "@/utils/councilIdentity";
 import { useToast } from "vue-toastification";
 
@@ -96,7 +103,9 @@ const readyToBroadcastCount = computed(
   () =>
     requests.value.filter(
       (request) =>
-        request.status === "PENDING" && getRequestSignatureCount(request) >= Number(request.signers_required || 0),
+        request.status === "PENDING" &&
+        !isOffchainReviewPacket(request) &&
+        getRequestSignatureCount(request) >= getRequestRequiredCount(request),
     ).length,
 );
 const collectedSignatureCount = computed(() =>
@@ -129,11 +138,10 @@ async function loadCommittee() {
   try {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const committee = await rpcClient.getCommittee();
-    const sorted = [...committee].sort((a, b) => a.localeCompare(b));
-    committeePubkeys.value = sorted;
-    committeeSize.value = sorted.length;
-    threshold.value = Math.floor(sorted.length / 2) + 1;
-    committeeMultiSig.value = neonJs.wallet.Account.createMultiSig(threshold.value, sorted);
+    committeePubkeys.value = Array.isArray(committee) ? committee : [];
+    committeeSize.value = committeePubkeys.value.length;
+    threshold.value = Math.floor(committeeSize.value / 2) + 1;
+    committeeMultiSig.value = neonJs.wallet.Account.createMultiSig(threshold.value, committeePubkeys.value);
   } catch (e) {
     console.error("Failed to load committee:", e);
   }
@@ -162,7 +170,11 @@ async function loadValidatorMetadata() {
 }
 
 function getRequestSignatureCount(req) {
-  return Array.isArray(req?.signatures) ? req.signatures.length : 0;
+  return getStoredSignatureCount(req);
+}
+
+function getRequestRequiredCount(req) {
+  return getRequiredSignatureCount(req);
 }
 
 const signModalReq = ref(null);
@@ -197,7 +209,12 @@ async function handleCreated() {
 }
 
 async function handleBroadcast(req) {
-  if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < req.signers_required) {
+  if (isOffchainReviewPacket(req)) {
+    toast.error("This is an off-chain review packet. Regenerate a fresh on-chain transaction before broadcast.");
+    return;
+  }
+
+  if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < getRequestRequiredCount(req)) {
     toast.error("Not enough signatures or missing tx data.");
     return;
   }
@@ -207,7 +224,7 @@ async function handleBroadcast(req) {
     const t = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
 
     // Sort signatures based on the order of public keys in the committee
-    const committee = req.params?.committee_pubkeys || req.params?.committee || []; // Array of pubkeys
+    const committee = resolveCommitteePubkeys(req, committeePubkeys.value);
     const sortedSignatures = [];
 
     for (const pubkey of committee) {
@@ -216,10 +233,10 @@ async function handleBroadcast(req) {
       if (sigObj) {
         sortedSignatures.push(sigObj.signature);
       }
-      if (sortedSignatures.length >= req.signers_required) break; // We only need M sigs
+      if (sortedSignatures.length >= getRequestRequiredCount(req)) break; // We only need M sigs
     }
 
-    if (sortedSignatures.length < req.signers_required) {
+    if (sortedSignatures.length < getRequestRequiredCount(req)) {
       throw new Error("Failed to match enough signatures to valid committee members.");
     }
 
@@ -232,7 +249,10 @@ async function handleBroadcast(req) {
     const invocationScript = builder.build();
 
     // The verification script is the multisig script
-    const verificationScript = neonJs.wallet.Account.createMultiSig(req.signers_required, committee).contract.script;
+    const verificationScript = neonJs.wallet.Account.createMultiSig(
+      getRequestRequiredCount(req),
+      committee,
+    ).contract.script;
 
     t.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
 

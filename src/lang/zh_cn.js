@@ -167,6 +167,19 @@ const zh = {
       manualSigPlaceholder: "Paste 64-byte signature hex here...",
       submitManualSig: "Submit Manual Signature",
       optionExternalWitness: "Option 3: External Witness Script",
+      offlineSigningGuideTitle: "委员签名流程",
+      offlineSigningGuideDesc:
+        "当见证签名需要在浏览器外完成、再回到治理工具提交时，请使用这个流程。",
+      neoLineMultisigNotice:
+        "这里仍然可以用 NeoLine 识别当前连接的委员签名人，但这个提案必须走外部见证提交流程，因为交易 signer 是委员会多签账户，不是当前个人账户。",
+      offlineSigningStepPrepare:
+        "先在这个弹窗里生成并复制精确的治理签名 payload。",
+      offlineSigningStepSign:
+        "使用你们认可的委员签名流程对这个 payload 签名，并保留原始 64 字节签名或 invocation script。",
+      offlineSigningStepSubmit:
+        "把签名或 invocation script 粘贴回这里，然后提交外部 witness。",
+      offlineSigningVerificationNote:
+        "如果能拿到有效的 signer 公钥，工具会先用精确的治理 payload 校验签名，再写入存储。",
       signerAddressPlaceholder: "Signer address (optional if public key is provided)",
       signerPubkeyPlaceholder: "Signer public key (optional)",
       invocationScriptPlaceholder: "Invocation script hex from external signer",

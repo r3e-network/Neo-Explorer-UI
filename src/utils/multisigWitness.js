@@ -121,6 +121,13 @@ export function buildExternalWitnessPayload(
     throw new Error("Signer address or signer public key is required.");
   }
 
+  if (resolvedSigner.signerPublicKey && isPublicKeyHex(resolvedSigner.signerPublicKey) && signerAddress) {
+    const derivedAddress = publicKeyToAddress(resolvedSigner.signerPublicKey);
+    if (derivedAddress && derivedAddress !== String(signerAddress).trim()) {
+      throw new Error("Signer address does not match the provided public key.");
+    }
+  }
+
   if (Array.isArray(eligibleSigners) && eligibleSigners.length > 0 && !eligibleSigners.includes(resolvedSigner.signerAddress)) {
     throw new Error("Signer is not part of the eligible council signer set.");
   }

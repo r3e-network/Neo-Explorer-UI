@@ -42,6 +42,9 @@
           :proposal-method-summary="proposalMethodSummary"
           :proposal-target-summary="proposalTargetSummary"
           :proposal-subtitle="proposalSubtitle"
+          :proposal-tx-hash="proposalTxHash"
+          :proposal-broadcast-state="proposalBroadcastState"
+          :is-offchain-review-packet="isOffchainReviewPacket"
           :active-network-mode="activeNetworkMode"
         />
 
@@ -52,6 +55,8 @@
               :proposal-method-summary="proposalMethodSummary"
               :proposal-target-summary="proposalTargetSummary"
               :proposal-invocations="proposalInvocations"
+              :proposal-unsigned-tx="proposalUnsignedTx"
+              :proposal-execution-script="proposalExecutionScript"
               :signature-witness-rows="signatureWitnessRows"
               :connected-account="connectedAccount"
               :current-block-height="currentBlockHeight"
@@ -72,6 +77,7 @@
               :signed-count="signedCount"
               :required-count="requiredCount"
               :threshold-met="thresholdMet"
+              :is-offchain-review-packet="isOffchainReviewPacket"
               :has-signed="hasSigned"
               :can-current-signer-vote="canCurrentSignerVote"
               :action-title="actionTitle"
@@ -127,6 +133,7 @@ import { getCurrentEnv, getRpcClientUrl } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
+import { isOffchainReviewPacket as isOffchainReviewPacketUtil, resolveCommitteePubkeys } from "@/utils/governanceRequests";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
 import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
@@ -147,22 +154,69 @@ let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
 
 const activeNetworkMode = computed(() => toNetworkMode(getCurrentEnv()) || "mainnet");
-const signedCount = computed(() => proposal.value?.signatures?.length || 0);
-const requiredCount = computed(() => Number(proposal.value?.signers_required || 0));
+const isOffchainReviewPacket = computed(() => isOffchainReviewPacketUtil(proposal.value));
+const signedCount = computed(() => {
+  const storedSignatures = Array.isArray(proposal.value?.signatures) ? proposal.value.signatures.length : 0;
+  if (storedSignatures > 0) return storedSignatures;
+  const metadataCount = Number(proposal.value?.metadata?.signatures_collected || 0);
+  return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+});
+const requiredCount = computed(() => {
+  const explicitCount = Number(proposal.value?.signers_required || 0);
+  if (Number.isFinite(explicitCount) && explicitCount > 0) return explicitCount;
+  const metadataCount = Number(proposal.value?.metadata?.signatures_needed || 0);
+  return Number.isFinite(metadataCount) && metadataCount > 0 ? metadataCount : 0;
+});
 const remainingVotes = computed(() => Math.max(requiredCount.value - signedCount.value, 0));
 const thresholdMet = computed(() => signedCount.value >= requiredCount.value && requiredCount.value > 0);
+const proposalUnsignedTx = computed(() => {
+  const nested = String(proposal.value?.params?.unsigned_tx || "").trim();
+  if (nested) return nested;
+  return String(proposal.value?.unsigned_tx || "").trim();
+});
+const proposalExecutionScript = computed(() => String(proposal.value?.metadata?.execution_script || "").trim());
+const proposalTxHash = computed(
+  () =>
+    String(
+      proposal.value?.tx_hash ||
+        proposal.value?.params?.hash ||
+        proposal.value?.metadata?.tx_hash ||
+        proposal.value?.broadcast_tx_hash ||
+        "Pending",
+    ).trim() || "Pending",
+);
+const proposalBroadcastState = computed(() => {
+  const explicit = String(proposal.value?.metadata?.broadcast_state || "").trim();
+  if (explicit) return explicit;
+  if (isOffchainReviewPacket.value) return "Off-chain Review";
+  return thresholdMet.value ? "Ready Now" : "Awaiting Quorum";
+});
 const hasSigned = computed(() =>
   Boolean(
     connectedAccount.value &&
     proposal.value?.signatures?.some((signature) => signature.signer_address === connectedAccount.value),
   ),
 );
+const eligibleSignerAddresses = computed(() => {
+  if (Array.isArray(proposal.value?.eligible_signers) && proposal.value.eligible_signers.length > 0) {
+    return proposal.value.eligible_signers;
+  }
+  if (!neonJs) return [];
+  return (Array.isArray(committeePubkeys.value) ? committeePubkeys.value : [])
+    .map((pubkey) => {
+      try {
+        return new neonJs.wallet.Account(pubkey).address;
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean);
+});
 const canCurrentSignerVote = computed(() =>
   Boolean(
     connectedAccount.value &&
     proposal.value?.status !== "EXECUTED" &&
-    Array.isArray(proposal.value?.eligible_signers) &&
-    proposal.value.eligible_signers.includes(connectedAccount.value),
+    eligibleSignerAddresses.value.includes(connectedAccount.value),
   ),
 );
 const progressWidth = computed(
@@ -173,6 +227,29 @@ const INVOCATION_TARGETS = {
   RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",
   OracleContract: "fe924b7cfe89ddd271abaf7210a80a7e11178758",
   NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+};
+const CONTRACT_LABELS_BY_HASH = Object.fromEntries(
+  Object.entries(INVOCATION_TARGETS).map(([label, hash]) => [String(hash).trim().toLowerCase(), label]),
+);
+const normalizeInvocationParams = (invocation = {}) => {
+  if (invocation?.params && typeof invocation.params === "object" && !Array.isArray(invocation.params)) {
+    return invocation.params;
+  }
+
+  const args = Array.isArray(invocation?.args) ? invocation.args : [];
+  if (!args.length) return {};
+
+  if (String(invocation?.method || "").trim() === "setMillisecondsPerBlock" && args[0]?.value != null) {
+    return { value: args[0].value };
+  }
+  if (String(invocation?.method || "").trim() === "setGasPerBlock" && args[0]?.value != null) {
+    return { gasPerBlock: args[0].value };
+  }
+
+  return args.reduce((acc, arg, index) => {
+    acc[`arg${index + 1}`] = arg?.value ?? "";
+    return acc;
+  }, {});
 };
 const proposalInvocations = computed(() => {
   const invocations = Array.isArray(proposal.value?.params?.invocations) ? proposal.value.params.invocations : [];
@@ -191,13 +268,41 @@ const proposalInvocations = computed(() => {
     }));
   }
 
+  const chainedInvocations = Array.isArray(proposal.value?.params) ? proposal.value.params : [];
+  const metadataTargets = Array.isArray(proposal.value?.metadata?.target_contracts) ? proposal.value.metadata.target_contracts : [];
+  if (chainedInvocations.length > 0) {
+    return chainedInvocations.map((invocation, index) => {
+      const targetHash = String(
+        metadataTargets[index]?.hash ||
+          invocation?.contract ||
+          invocation?.contract_hash ||
+          invocation?.target_contract ||
+          proposal.value?.contract_hash ||
+          proposal.value?.target_contract ||
+          "",
+      ).trim();
+      const normalizedTargetHash = targetHash.replace(/^0x/i, "").toLowerCase();
+      return {
+        index: index + 1,
+        selectedContract:
+          String(invocation?.selectedContract || "").trim() ||
+          String(metadataTargets[index]?.name || "").trim() ||
+          CONTRACT_LABELS_BY_HASH[normalizedTargetHash] ||
+          "",
+        selectedMethod: String(invocation?.selectedMethod || invocation?.method || "").trim(),
+        params: normalizeInvocationParams(invocation),
+        targetHash,
+      };
+    });
+  }
+
   return [
     {
       index: 1,
       selectedContract: "",
       selectedMethod: String(proposal.value?.method || "").trim(),
       params: {},
-      targetHash: String(proposal.value?.target_contract || "").trim(),
+      targetHash: String(proposal.value?.target_contract || proposal.value?.contract_hash || "").trim(),
     },
   ].filter((invocation) => invocation.selectedMethod || invocation.targetHash);
 });
@@ -212,10 +317,17 @@ const proposalTargetSummary = computed(() => {
     return `${proposalInvocations.value.length} chained invocations`;
   }
   return (
-    proposalInvocations.value[0]?.targetHash || String(proposal.value?.target_contract || "").trim() || "Unavailable"
+    proposalInvocations.value[0]?.targetHash ||
+    String(proposal.value?.target_contract || proposal.value?.contract_hash || "").trim() ||
+    "Unavailable"
   );
 });
 const proposalSubtitle = computed(() => {
+  const reviewDays = Number(proposal.value?.metadata?.offchain_review_window_days || 0);
+  const reviewWindowLabel = Number.isFinite(reviewDays) && reviewDays > 0 ? `${reviewDays}-day review window` : "extended review window";
+  if (isOffchainReviewPacket.value) {
+    return `Off-chain Review Packet: this packet is for off-chain witness collection only during a ${reviewWindowLabel}. Regenerate a fresh on-chain transaction before any final broadcast.`;
+  }
   if (proposalInvocations.value.length > 1) {
     return `${proposalInvocations.value.length} chained council invocations are bundled into one governance packet. Review each contract call, verify the unsigned transaction, and broadcast once quorum is met.`;
   }
@@ -231,6 +343,11 @@ const progressHeadline = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
     return "Proposal executed successfully.";
   }
+  if (isOffchainReviewPacket.value) {
+    if (thresholdMet.value) return "Off-chain witness quorum reached.";
+    if (remainingVotes.value === 1) return "1 more off-chain witness needed to complete review.";
+    return `${remainingVotes.value} more off-chain witnesses needed to complete review.`;
+  }
   if (thresholdMet.value) {
     return "Threshold reached. Ready to broadcast.";
   }
@@ -243,6 +360,9 @@ const progressDescription = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
     return "The council quorum was reached, the final witness was assembled, and the transaction was already published on-chain.";
   }
+  if (isOffchainReviewPacket.value) {
+    return "This packet is for off-chain witness collection only. Even after quorum is reached, a fresh on-chain transaction must be generated before broadcast.";
+  }
   if (thresholdMet.value) {
     return "The required number of council signatures is already stored. Review the final witness section and broadcast the proposal when ready.";
   }
@@ -250,6 +370,9 @@ const progressDescription = computed(() => {
 });
 const actionTitle = computed(() => {
   if (proposal.value?.status === "EXECUTED") return "Proposal already executed";
+  if (isOffchainReviewPacket.value) {
+    return thresholdMet.value ? "Off-chain review packet complete" : "Collecting off-chain witness fragments";
+  }
   if (thresholdMet.value) return "Broadcast is unlocked";
   if (hasSigned.value) return "Your witness has been recorded";
   if (!canCurrentSignerVote.value) return "Waiting for eligible council signers";
@@ -258,6 +381,9 @@ const actionTitle = computed(() => {
 const actionDescription = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
     return "Execution is complete. You can still inspect the packet, signer roster, and final broadcast witness below.";
+  }
+  if (isOffchainReviewPacket.value) {
+    return "This packet is for off-chain witness collection only. Gather review witnesses here, then regenerate a fresh on-chain transaction when you are ready to broadcast.";
   }
   if (thresholdMet.value) {
     return "The quorum is already met. Broadcasting will assemble the threshold witness and submit the transaction on-chain.";
@@ -273,6 +399,9 @@ const actionDescription = computed(() => {
 const actionToneClass = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
     return "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/10";
+  }
+  if (isOffchainReviewPacket.value) {
+    return "border-sky-200 bg-sky-50/60 dark:border-sky-900/40 dark:bg-sky-950/10";
   }
   if (thresholdMet.value) {
     return "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/10";
@@ -293,19 +422,25 @@ const lifecycleSteps = computed(() => [
   {
     index: "2",
     title: "Collect Signatures",
-    description: thresholdMet.value
-      ? "Enough council witnesses are now stored to assemble the final multisig witness."
-      : "Eligible council members are still signing and uploading their witness fragments.",
+    description: isOffchainReviewPacket.value
+      ? thresholdMet.value
+        ? "Enough off-chain witness fragments are now stored to finish the review packet."
+        : "Eligible council members are still signing and uploading off-chain witness fragments."
+      : thresholdMet.value
+        ? "Enough council witnesses are now stored to assemble the final multisig witness."
+        : "Eligible council members are still signing and uploading their witness fragments.",
     stateClass: thresholdMet.value
       ? "border-emerald-200 bg-emerald-50/70 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/10 dark:text-emerald-200"
       : "border-primary-200 bg-primary-50/70 text-primary-800 dark:border-primary-900/40 dark:bg-primary-950/10 dark:text-primary-200",
   },
   {
     index: "3",
-    title: "Broadcast Transaction",
+    title: isOffchainReviewPacket.value ? "Regenerate Final Packet" : "Broadcast Transaction",
     description:
       proposal.value?.status === "EXECUTED"
         ? "The fully signed governance transaction has already been broadcast to the network."
+        : isOffchainReviewPacket.value
+          ? "After review is complete, regenerate a fresh on-chain transaction and recollect final witnesses inside the network validity window."
         : thresholdMet.value
           ? "The next valid broadcaster can submit the threshold-signed transaction on-chain."
           : "Broadcast remains locked until the council threshold is reached.",
@@ -319,7 +454,7 @@ const lifecycleSteps = computed(() => [
 ]);
 
 const signerRows = computed(() => {
-  const eligible = Array.isArray(proposal.value?.eligible_signers) ? proposal.value.eligible_signers : [];
+  const eligible = eligibleSignerAddresses.value;
   const signed = new Set((proposal.value?.signatures || []).map((signature) => signature.signer_address));
   return eligible.map((address, index) => {
     const resolved = resolveCouncilIdentity(address, councilIdentityMap.value);
@@ -335,7 +470,7 @@ const signerRows = computed(() => {
 });
 
 const signatureWitnessRows = computed(() => {
-  const eligible = Array.isArray(proposal.value?.eligible_signers) ? proposal.value.eligible_signers : [];
+  const eligible = eligibleSignerAddresses.value;
 
   return (proposal.value?.signatures || []).map((signature, index) => {
     const resolved = resolveCouncilIdentity(signature.signer_address, councilIdentityMap.value);
@@ -475,7 +610,7 @@ async function handleForkCreated(createdProposal) {
 
 async function maybeBroadcastIfReady() {
   await loadProposal();
-  if (proposal.value && thresholdMet.value && proposal.value.status !== "EXECUTED") {
+  if (proposal.value && thresholdMet.value && proposal.value.status !== "EXECUTED" && !isOffchainReviewPacket.value) {
     await handleBroadcast(proposal.value);
   }
 }
@@ -485,11 +620,14 @@ async function handleSigned() {
 }
 
 async function handleBroadcast(currentProposal) {
+  if (isOffchainReviewPacketUtil(currentProposal)) {
+    toast.error("This packet is for off-chain witness collection only. Regenerate a fresh on-chain transaction before broadcast.");
+    return;
+  }
   if (!currentProposal?.params?.unsigned_tx || !thresholdMet.value) return;
   try {
     const tx = neonJs.tx.Transaction.deserialize(currentProposal.params.unsigned_tx);
-    const committeePubkeyList =
-      currentProposal.params?.committee_pubkeys || currentProposal.params?.committee || committeePubkeys.value || [];
+    const committeePubkeyList = resolveCommitteePubkeys(currentProposal, committeePubkeys.value);
 
     const orderedSignatures = [];
     for (const pubkey of committeePubkeyList) {

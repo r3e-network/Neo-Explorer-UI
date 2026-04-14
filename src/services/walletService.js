@@ -16,6 +16,8 @@ import {
   normalizeSignersForRpc,
   normalizeSignMessageResult,
 } from "@/utils/walletNormalization";
+import { bytesToHex } from "@/utils/neoHelpers";
+import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
 /** Internal state */
@@ -220,6 +222,13 @@ function getWalletErrorMessage(err) {
   }
 
   return "";
+}
+
+function toReadableWalletError(err, fallbackMessage) {
+  if (err instanceof Error && err.message?.trim()) return err;
+
+  const message = getWalletErrorMessage(err);
+  return new Error(message || fallbackMessage);
 }
 
 function isDapiConnectionDenied(err) {
@@ -480,6 +489,85 @@ function normalizeSignersForInvokeScript(signers = []) {
     const scopes = normalizeScopeValue(signer.scopes);
     return { ...signer, scopes };
   });
+}
+
+function normalizeTransactionHash(hash) {
+  if (typeof hash === "string") {
+    return String(hash).trim().replace(/^0x/i, "");
+  }
+
+  if (hash instanceof Uint8Array) {
+    return bytesToHex(hash);
+  }
+
+  if (Array.isArray(hash)) {
+    return bytesToHex(Uint8Array.from(hash));
+  }
+
+  return "";
+}
+
+function normalizePublicKeyResult(result) {
+  if (typeof result === "string") {
+    return result.trim().replace(/^0x/i, "");
+  }
+
+  if (!result || typeof result !== "object") {
+    return "";
+  }
+
+  const candidate = [
+    result.publicKey,
+    result.publickey,
+    result.data,
+    result.value,
+  ].find((value) => typeof value === "string" && value.trim());
+
+  return candidate ? candidate.trim().replace(/^0x/i, "") : "";
+}
+
+async function resolveUnsignedTransactionHash(unsignedTxHex) {
+  const sdk = await loadSdk();
+  const CompatTransaction = getCompatTransactionClass(sdk);
+
+  try {
+    const transaction = CompatTransaction.deserialize(unsignedTxHex);
+    const transactionHash = normalizeTransactionHash(transaction?.hash?.());
+    if (transactionHash) {
+      return transactionHash;
+    }
+  } catch {
+    // Unsigned governance packets are stored without witnesses, so SDK full-transaction
+    // deserialization can fail. Fall back to the unsigned decoder used by the viewer.
+  }
+
+  const decodedTransaction = decodeUnsignedTransaction(unsignedTxHex);
+  const transactionHash = String(decodedTransaction?.hash || "").trim();
+  if (transactionHash) {
+    return transactionHash;
+  }
+
+  throw new Error("Failed to compute the unsigned transaction hash.");
+}
+
+async function buildRawTransactionSigningPayload(unsignedTxHex) {
+  const sdk = await loadSdk();
+  const { RpcClient } = sdk;
+  const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+    const rpcClient = new RpcClient(endpoint);
+    return rpcClient.getVersion();
+  });
+  const magic = Number(versionRes?.protocol?.network);
+  if (!Number.isFinite(magic)) {
+    throw new Error("Failed to resolve network magic from RPC getversion.");
+  }
+
+  const transactionHash = await resolveUnsignedTransactionHash(unsignedTxHex);
+  return {
+    payload: num2hexstring(magic, 4, true) + reverseHex(transactionHash),
+    networkMagic: magic,
+    transactionHash,
+  };
 }
 
 /**
@@ -818,6 +906,54 @@ export const walletService = {
    * @returns {Promise<{txid: string}>}
    */
 
+  async getRawTransactionSigningPayload(unsignedTxHex) {
+    return buildRawTransactionSigningPayload(unsignedTxHex);
+  },
+
+  async getPublicKey() {
+    if (!_account) throw new Error("Wallet not connected");
+
+    if (_connectedProvider === PROVIDERS.NEOLINE) {
+      const n3 = await getNeoLineN3();
+      if (typeof n3.getPublicKey === "function") {
+        return normalizePublicKeyResult(await n3.getPublicKey());
+      }
+      return "";
+    }
+
+    if (_connectedProvider === PROVIDERS.O3) {
+      const dapi = getO3Dapi();
+      if (typeof dapi?.getPublicKey === "function") {
+        return normalizePublicKeyResult(await dapi.getPublicKey());
+      }
+      return "";
+    }
+
+    if (_connectedProvider === PROVIDERS.ONEGATE) {
+      const dapi = getOneGateDapi();
+      if (typeof dapi?.getPublicKey === "function") {
+        return normalizePublicKeyResult(await dapi.getPublicKey());
+      }
+      return "";
+    }
+
+    if (_connectedProvider === PROVIDERS.WEB3AUTH) {
+      const web3authService = await loadWeb3authService();
+      const account = await web3authService.getAccount();
+      return normalizePublicKeyResult(account?.publicKey);
+    }
+
+    if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
+      return normalizePublicKeyResult(
+        typeof _directWifAccount?.publicKey?.toHex === "function"
+          ? _directWifAccount.publicKey.toHex()
+          : _directWifAccount?.publicKey,
+      );
+    }
+
+    return normalizePublicKeyResult(_account?.publicKey || _account?.pubKey);
+  },
+
   async signRawTransaction(unsignedTxHex) {
     if (!_account) throw new Error("Wallet not connected");
 
@@ -843,8 +979,19 @@ export const walletService = {
           }
         }
 
-        const res = await n3.signTransaction({ transaction: unsignedTxHex, network: expectedNetwork });
-        return extractNeoLineSignature(res);
+        try {
+          const res = await n3.signTransaction({ transaction: unsignedTxHex, network: expectedNetwork });
+          const signature = extractNeoLineSignature(res);
+          if (!signature) {
+            throw new Error("NeoLine returned no transaction signature.");
+          }
+          return signature;
+        } catch (error) {
+          if (isDapiCanceled(error)) {
+            throw new Error("Transaction canceled by user.");
+          }
+          throw toReadableWalletError(error, "NeoLine failed to sign the transaction.");
+        }
       }
       throw new Error("NeoLine does not support signTransaction.");
     }
@@ -853,29 +1000,14 @@ export const walletService = {
       const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       // the unsigned tx hex needs to be hashed before signing
-      const sdk = await loadSdk();
-      const CompatTransaction = getCompatTransactionClass(sdk);
-      const transaction = CompatTransaction.deserialize(unsignedTxHex);
-      const hash = transaction.hash();
+      const hash = await resolveUnsignedTransactionHash(unsignedTxHex);
       return account.sign(hash);
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
-      const sdk = await loadSdk();
-      const CompatTransaction = getCompatTransactionClass(sdk);
-      const { RpcClient } = sdk;
-      const transaction = CompatTransaction.deserialize(unsignedTxHex);
-      const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-        const rpcClient = new RpcClient(endpoint);
-        return rpcClient.getVersion();
-      });
-      const magic = Number(versionRes?.protocol?.network);
-      if (!Number.isFinite(magic)) {
-        throw new Error("Failed to resolve network magic from RPC getversion.");
-      }
-      const payloadToSign = num2hexstring(magic, 4, true) + reverseHex(transaction.hash());
-      return _directWifAccount.sign(payloadToSign);
+      const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
+      return _directWifAccount.sign(payload);
     }
 
     throw new Error("Provider does not support raw transaction signing in browser.");
