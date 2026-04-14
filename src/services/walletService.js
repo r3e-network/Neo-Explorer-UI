@@ -130,34 +130,55 @@ async function getNeoLineN3() {
   return _neolineN3;
 }
 
-let _neolineN3V2 = null;
+let _neolineMessageId = 100000;
 
 /**
- * Discover the NEP-21 v2 NeoLine dAPI provider (injected via Neo.DapiProvider.ready).
- * The v2 provider exposes signMessage(message, account?, options?) with isBase64Encoded
- * support, which triggers raw signing without salt or prefix wrapping.
+ * Send a SignMessageV3 request directly to NeoLine's content script via postMessage.
+ * This bypasses both the v1 dAPI (which adds a 010001f0 prefix) and the v2 dAPI
+ * discovery (which may not be available). The v3 signing component does raw
+ * wallet.sign(base642hex(message), privateKey) when isBase64Encoded is true.
  */
-async function getNeoLineN3V2() {
-  if (_neolineN3V2) return _neolineN3V2;
+function sendNeoLineSignMessageV3(base64Message) {
+  const ID = ++_neolineMessageId;
+  const target = "neoline.target_sign_message_v3_n3";
 
-  return new Promise((resolve) => {
-    const handler = (event) => {
-      const provider = event?.detail?.provider;
-      if (provider && typeof provider.signMessage === "function") {
-        _neolineN3V2 = provider;
-        resolve(provider);
+  return new Promise((resolve, reject) => {
+    const callbackFn = (event) => {
+      const data = event.data;
+      if (data?.return === target && data?.ID === ID) {
+        window.removeEventListener("message", callbackFn);
+        if (data.error) {
+          reject(data.error);
+        } else {
+          resolve(data.data);
+        }
       }
     };
 
-    window.addEventListener("Neo.DapiProvider.ready", handler, { once: true });
-    // Request the provider announcement.
-    window.dispatchEvent(new Event("Neo.DapiProvider.request"));
+    window.addEventListener("message", callbackFn);
 
-    // Timeout after 2s - v2 dAPI may not be available in older NeoLine versions.
+    window.postMessage(
+      {
+        target,
+        parameter: {
+          message: base64Message,
+          options: {
+            isBase64Encoded: true,
+            isLedgerCompatible: false,
+            isTypedData: false,
+          },
+        },
+        ID,
+        hostname: location.hostname,
+      },
+      window.location.origin,
+    );
+
+    // Timeout after 5 minutes (user may take time to review in NeoLine popup).
     setTimeout(() => {
-      window.removeEventListener("Neo.DapiProvider.ready", handler);
-      resolve(null);
-    }, 2000);
+      window.removeEventListener("message", callbackFn);
+      reject(new Error("NeoLine signing timed out."));
+    }, 5 * 60 * 1000);
   });
 }
 
@@ -1063,34 +1084,21 @@ export const walletService = {
     const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
     if (!payload) throw new Error("Failed to compute signing payload.");
 
-    // Convert the hex payload to base64 for NeoLine's NEP-21 v2 dAPI.
-    // The v2 signMessage with { isBase64Encoded: true } triggers the v3 signing
-    // component which does raw wallet.sign(base642hex(message), privateKey)
-    // with no salt, prefix, or signer check.
+    // Convert the hex payload to base64 for NeoLine's v3 signing component.
+    // The v3 component does: base642hex(message) → wallet.sign(hex, privateKey)
+    // with no salt, no prefix, no signer check — producing a raw ECDSA signature
+    // over the exact governance payload bytes.
     const payloadBase64 = Buffer.from(payload, "hex").toString("base64");
 
-    // Try the NEP-21 v2 dAPI first (injected via Neo.DapiProvider.ready event).
-    // Falls back to the v1 dAPI's signMessageWithoutSalt as a last resort.
-    const n3v2 = await getNeoLineN3V2();
-    const n3v1 = n3v2 ? null : await getNeoLineN3();
-
     try {
-      let res;
-      if (n3v2 && typeof n3v2.signMessage === "function") {
-        // v2 dAPI: signMessage(message, account?, options?) → triggers SignMessageV3
-        res = await n3v2.signMessage(payloadBase64, undefined, { isBase64Encoded: true });
-      } else if (n3v1 && typeof n3v1.signMessageWithoutSalt === "function") {
-        // v1 dAPI fallback: signMessageWithoutSalt wraps with 010001f0 prefix,
-        // which won't produce a valid governance signature. But try anyway in case
-        // NeoLine has updated the behavior.
-        res = await n3v1.signMessageWithoutSalt({ message: payloadBase64, isJsonObject: false });
-      } else {
-        throw new Error("NeoLine does not expose a compatible signing method.");
-      }
+      // Send directly to NeoLine's SignMessageV3 target via postMessage.
+      // This bypasses the v1 dAPI (which wraps with 010001f0 prefix) and
+      // the v2 dAPI discovery (which may not be available in all versions).
+      const res = await sendNeoLineSignMessageV3(payloadBase64);
 
       // Extract signature and public key from response.
       const rawSignature = res?.signature || res?.data || "";
-      const publicKey = String(res?.pubkey || res?.publicKey || res?.account?.publicKey || "").replace(/^0x/i, "");
+      const publicKey = String(res?.pubkey || res?.publicKey || "").replace(/^0x/i, "");
 
       // NeoLine v3 returns base64 signature - decode to hex.
       const signatureHex = /^[0-9a-fA-F]+$/.test(rawSignature)
