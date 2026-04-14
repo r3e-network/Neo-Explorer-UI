@@ -96,7 +96,27 @@ async function createRequestCompat(supabase, payload) {
   let currentPayload = { ...payload };
   for (;;) {
     const { data, error } = await supabase.from("multisig_requests").insert([currentPayload]).select().single();
-    if (!error) return data;
+    if (!error) {
+      if (data && data.id) return data;
+
+      const fallbackQuery = supabase
+        .from("multisig_requests")
+        .select("id, params, description, method, creator_address, network")
+        .eq("creator_address", currentPayload.creator_address)
+        .eq("method", currentPayload.method)
+        .eq("description", currentPayload.description)
+        .eq("network", currentPayload.network)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      const { data: rows, error: fetchError } = await fallbackQuery;
+      if (fetchError) throw fetchError;
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows[0];
+      }
+
+      throw new Error("Governance request insert succeeded but no request row could be recovered.");
+    }
     if (isMissingColumnError(error, "type") && "type" in currentPayload) {
       delete currentPayload.type;
       continue;

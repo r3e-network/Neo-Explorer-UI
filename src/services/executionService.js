@@ -37,8 +37,100 @@ export const executionService = createService(
       buildParams: ([txHash]) => ({ TransactionHash: txHash }),
       buildCacheParams: ([txHash]) => ({ txHash }),
     },
+    _getBlockApplicationLogIndexed: {
+      cacheKey: "block_app_log",
+      rpcMethod: "GetApplicationLogByBlockHash",
+      fallback: null,
+      ttl: CACHE_TTL.trace,
+      buildParams: ([blockHash]) => ({ BlockHash: blockHash }),
+      buildCacheParams: ([blockHash]) => ({ blockHash }),
+    },
+    _getBlockApplicationLogLegacy: {
+      cacheKey: "block_app_log_legacy",
+      rpcMethod: "getapplicationlog",
+      fallback: null,
+      ttl: CACHE_TTL.trace,
+      buildParams: ([blockHash]) => [blockHash],
+      buildCacheParams: ([blockHash]) => ({ blockHash }),
+    },
   },
   {
+    /**
+     * Fetch block-level application log (OnPersist / PostPersist executions).
+     * Tries the indexed neo3fura endpoint first, then falls back to legacy RPC,
+     * then to native Neo node RPC.
+     */
+    async getBlockApplicationLog(blockHash, options = {}) {
+      let indexed = null;
+      try {
+        const raw = await this._getBlockApplicationLogIndexed(blockHash, options);
+        indexed = this._normalizeBlockAppLog(raw);
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[executionService] indexed block app log fetch failed:", err);
+      }
+
+      if (indexed && this._countNotifications(indexed) > 0) {
+        return indexed;
+      }
+
+      let legacy = null;
+      try {
+        legacy = this._normalizeBlockAppLog(await this._getBlockApplicationLogLegacy(blockHash, options));
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[executionService] legacy block app log fetch failed:", err);
+      }
+
+      // Native Node RPC fallback
+      if (!indexed && !legacy) {
+        try {
+          const { RpcClient } = await import("@r3e/neo-js-sdk");
+          const { getCurrentEnv } = await import("@/utils/env");
+          const network = toNetworkMode(getCurrentEnv());
+          const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
+            const client = new RpcClient(endpoint);
+            return client.getApplicationLog({ hash: blockHash });
+          });
+          if (nativeLog) {
+            legacy = this._normalizeBlockAppLog(nativeLog);
+          }
+        } catch (nativeErr) {
+          if (import.meta.env.DEV) console.warn("[executionService] native RPC block applog fetch failed:", nativeErr);
+        }
+      }
+
+      if (!indexed && legacy) return legacy;
+      if (legacy && this._countNotifications(legacy) > this._countNotifications(indexed)) return legacy;
+      return indexed || legacy;
+    },
+
+    /**
+     * Get enriched block-level execution trace with decoded notifications.
+     */
+    async getEnrichedBlockTrace(blockHash) {
+      const appLog = await this.getBlockApplicationLog(blockHash);
+      if (!appLog) return null;
+
+      const executions = appLog.executions ?? [];
+      const contractHashes = new Set();
+      for (const exec of executions) {
+        for (const n of exec.notifications ?? []) {
+          if (n != null && n.contract) contractHashes.add(n.contract);
+        }
+      }
+
+      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes]);
+
+      const enrichedExecutions = executions.map((exec) =>
+        this._enrichExecution(exec, manifestMap, null),
+      );
+
+      return {
+        raw: appLog,
+        executions: enrichedExecutions,
+        contractMetadata: manifestMap,
+      };
+    },
+
     async getExecutionTrace(txHash, options = {}) {
       let indexed = null;
       try {
@@ -128,6 +220,45 @@ export const executionService = createService(
     _countNotifications(appLog) {
       const executions = appLog?.executions ?? [];
       return executions.reduce((sum, exec) => sum + (exec?.notifications?.length || 0), 0);
+    },
+
+    /**
+     * Normalize block application log response into { executions: [...] } shape.
+     * The indexed endpoint returns { result: [...] } with each item being an execution.
+     */
+    _normalizeBlockAppLog(raw) {
+      if (!raw || typeof raw !== "object") return raw;
+
+      // Already normalized
+      if (Array.isArray(raw.executions)) {
+        return {
+          ...raw,
+          executions: raw.executions.map((exec) => {
+            const normalized = extractVmStateFromObject(exec);
+            return normalized && exec.vmstate !== normalized ? { ...exec, vmstate: normalized } : exec;
+          }),
+        };
+      }
+
+      // neo3fura indexed format: { result: [...executions], totalCount }
+      if (Array.isArray(raw.result)) {
+        return {
+          executions: raw.result.map((exec) => {
+            const vmstate = extractVmStateFromObject(exec) || exec.vmstate;
+            return {
+              trigger: exec.trigger ?? "OnPersist",
+              vmstate: vmstate ?? "HALT",
+              exception: exec.exception ?? null,
+              gasconsumed: exec.gasconsumed ?? exec.gasConsumed ?? "0",
+              stack: Array.isArray(exec.stacks) ? exec.stacks : (Array.isArray(exec.stack) ? exec.stack : []),
+              notifications: Array.isArray(exec.notifications) ? exec.notifications : [],
+            };
+          }),
+        };
+      }
+
+      // Single flat execution (legacy format)
+      return this._normalizeExecutionTrace(raw);
     },
 
     _normalizeExecutionTrace(appLog) {

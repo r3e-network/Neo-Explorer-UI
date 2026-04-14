@@ -56,7 +56,11 @@ vi.mock("@/utils/rpcEndpoints", () => ({
 
 vi.mock("@/utils/governanceRequests", () => ({
   isGovernanceRequest: (request) => String(request?.type || "").toLowerCase() === "governance",
+  isOffchainReviewPacket: () => false,
   matchesRequestNetwork: () => true,
+  getStoredSignatureCount: (req) => (req?.signatures || []).length,
+  getRequiredSignatureCount: (req) => req?.signers_required || 0,
+  resolveCommitteePubkeys: () => [],
 }));
 
 describe("GovernanceTool opcode display", () => {

@@ -26,6 +26,7 @@
   "dependencies": {
     "@cityofzion/neon-js": "^5.8.0",
     "@highlightjs/vue-plugin": "^2.1.0",
+    "@openai/codex": "^0.118.0",
     "@r3e/neo-js-sdk": "^0.3.6",
     "@sentry/node": "^10.45.0",
     "@sentry/vue": "^10.45.0",

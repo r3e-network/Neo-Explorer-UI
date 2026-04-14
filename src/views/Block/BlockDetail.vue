@@ -37,12 +37,53 @@
       <div v-else class="space-y-6">
         <BlockOverview :block="block" :reward="reward" v-model:show-witnesses="showWitnesses" />
 
-        <BlockTransactionsCard
-          :transactions="transactions"
-          :tx-loading="txLoading"
-          :block-transaction-count="blockTransactionCount"
-          :empty-transactions-message="emptyTransactionsMessage"
-        />
+        <!-- Tab Navigation -->
+        <div class="etherscan-card overflow-hidden">
+          <div class="p-3 pb-0">
+            <TabsNav
+              :tabs="tabs"
+              v-model="activeTab"
+              aria-label="Block detail sections"
+              id-base="block-detail"
+            />
+          </div>
+
+          <div class="p-0">
+            <!-- Transactions Tab -->
+            <section
+              v-if="activeTab === 'transactions'"
+              id="block-detail-transactions-panel"
+              role="tabpanel"
+              aria-labelledby="block-detail-transactions-tab"
+              tabindex="0"
+              class="focus:outline-none"
+            >
+              <BlockTransactionsInline
+                :transactions="transactions"
+                :tx-loading="txLoading"
+                :block-transaction-count="blockTransactionCount"
+                :empty-transactions-message="emptyTransactionsMessage"
+              />
+            </section>
+
+            <!-- Block Logs Tab -->
+            <section
+              v-else-if="activeTab === 'logs'"
+              id="block-detail-logs-panel"
+              role="tabpanel"
+              aria-labelledby="block-detail-logs-tab"
+              tabindex="0"
+              class="focus:outline-none"
+            >
+              <BlockLogsInline
+                :app-log="blockAppLog"
+                :app-log-loading="blockAppLogLoading"
+                :app-log-error="blockAppLogError"
+                :enriched-trace="blockEnrichedTrace"
+              />
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -52,16 +93,18 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { blockService } from "@/services";
+import { blockService, executionService } from "@/services";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import TabsNav from "@/components/common/TabsNav.vue";
 import BlockHeader from "./components/BlockHeader.vue";
 import BlockOverview from "./components/BlockOverview.vue";
-import BlockTransactionsCard from "./components/BlockTransactionsCard.vue";
+import BlockTransactionsInline from "./components/BlockTransactionsInline.vue";
+import BlockLogsInline from "./components/BlockLogsInline.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -75,10 +118,17 @@ const txLoading = ref(false);
 const error = ref(null);
 const showWitnesses = ref(false);
 const latestBlockHeight = ref(Infinity);
+const activeTab = ref("transactions");
 const BLOCK_TX_FETCH_BATCH_SIZE = 100;
 let isBackgroundRefreshing = false;
 let blockRequestId = 0;
 let txRequestId = 0;
+
+// Block application log state
+const blockAppLog = ref(null);
+const blockAppLogLoading = ref(false);
+const blockAppLogError = ref("");
+const blockEnrichedTrace = ref(null);
 
 // --- Computed ---
 const blockTransactionCount = computed(() => {
@@ -88,6 +138,14 @@ const blockTransactionCount = computed(() => {
   }
 
   return transactions.value.length;
+});
+
+const blockLogNotificationCount = computed(() => {
+  if (!blockAppLog.value?.executions) return 0;
+  return blockAppLog.value.executions.reduce(
+    (sum, exec) => sum + (exec.notifications?.length || 0),
+    0,
+  );
 });
 
 const emptyTransactionsMessage = computed(() =>
@@ -100,6 +158,19 @@ const timeAgo = computed(() => {
   if (!block.value?.timestamp) return "";
   return formatAge(block.value.timestamp);
 });
+
+const tabs = computed(() => [
+  {
+    key: "transactions",
+    label: "Transactions",
+    count: blockTransactionCount.value || null,
+  },
+  {
+    key: "logs",
+    label: "Block Logs",
+    count: blockLogNotificationCount.value || null,
+  },
+]);
 
 // --- Methods ---
 function mergeBlockData(raw, info) {
@@ -127,6 +198,9 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
     reward.value = null;
     transactions.value = [];
     showWitnesses.value = false;
+    blockAppLog.value = null;
+    blockAppLogError.value = "";
+    blockEnrichedTrace.value = null;
   }
 
   try {
@@ -160,9 +234,10 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
         if (import.meta.env.DEV) console.warn("Block count fetch failed:", err);
       });
 
-    // Load transactions and reward in parallel (non-blocking)
+    // Load transactions, reward, and block logs in parallel (non-blocking)
     void loadTransactions({ silent, forceRefresh });
     loadReward(hash);
+    void loadBlockAppLog(block.value.hash, requestId);
   } catch (err) {
     if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
     if (import.meta.env.DEV) console.error("Failed to load block details:", err);
@@ -172,6 +247,44 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
   } finally {
     if (!silent && requestId === blockRequestId) {
       loading.value = false;
+    }
+  }
+}
+
+async function loadBlockAppLog(blockHash, requestId) {
+  if (!blockHash) return;
+
+  blockAppLogLoading.value = true;
+  blockAppLogError.value = "";
+
+  try {
+    const enriched = await executionService.getEnrichedBlockTrace(blockHash);
+    if (requestId !== blockRequestId) return;
+
+    if (enriched) {
+      blockAppLog.value = enriched.raw;
+      blockEnrichedTrace.value = enriched;
+    } else {
+      // Try plain fetch without enrichment
+      const appLog = await executionService.getBlockApplicationLog(blockHash);
+      if (requestId !== blockRequestId) return;
+      blockAppLog.value = appLog;
+    }
+  } catch (err) {
+    if (requestId !== blockRequestId) return;
+    if (import.meta.env.DEV) console.warn("Failed to load block application log:", err);
+
+    // Fallback: try plain fetch
+    try {
+      const appLog = await executionService.getBlockApplicationLog(blockHash);
+      if (requestId !== blockRequestId) return;
+      blockAppLog.value = appLog;
+    } catch {
+      blockAppLogError.value = "Failed to load block application log.";
+    }
+  } finally {
+    if (requestId === blockRequestId) {
+      blockAppLogLoading.value = false;
     }
   }
 }

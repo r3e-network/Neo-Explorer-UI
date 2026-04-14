@@ -17,6 +17,79 @@ let devPriceCache = {
   fetchedAt: 0,
 };
 
+function createDevMultisigApiPlugin() {
+  return {
+    name: "dev-multisig-api",
+    configureServer(server) {
+      const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+      if (!DATABASE_URL) return;
+
+      server.middlewares.use("/api/multisig", async (req, res, next) => {
+        try {
+          const url = new URL(req.url, "http://localhost");
+          const pathAfterMultisig = url.pathname;
+
+          // Parse JSON body for POST/PATCH
+          let body = null;
+          if (req.method === "POST" || req.method === "PATCH") {
+            body = await new Promise((resolve, reject) => {
+              let data = "";
+              req.on("data", (chunk) => (data += chunk));
+              req.on("end", () => {
+                try { resolve(data ? JSON.parse(data) : {}); }
+                catch { resolve({}); }
+              });
+              req.on("error", reject);
+            });
+          }
+
+          // Build a mock Vercel req/res
+          const mockReq = {
+            method: req.method,
+            query: Object.fromEntries(url.searchParams),
+            body,
+          };
+          const mockRes = {
+            _status: 200,
+            _headers: {},
+            _body: null,
+            setHeader(k, v) { this._headers[k] = v; },
+            status(code) { this._status = code; return this; },
+            json(data) { this._body = data; return this; },
+            end() { return this; },
+          };
+
+          let handler;
+          const idMatch = pathAfterMultisig.match(/^\/requests\/(\d+)/);
+          if (idMatch) {
+            mockReq.query.id = idMatch[1];
+            handler = (await import("./api/multisig/requests/[id].js")).default;
+          } else if (pathAfterMultisig.startsWith("/signatures")) {
+            handler = (await import("./api/multisig/signatures.js")).default;
+          } else if (pathAfterMultisig.startsWith("/requests")) {
+            handler = (await import("./api/multisig/requests.js")).default;
+          } else {
+            return next();
+          }
+
+          await handler(mockReq, mockRes);
+          res.statusCode = mockRes._status;
+          for (const [k, v] of Object.entries(mockRes._headers)) {
+            res.setHeader(k, v);
+          }
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(mockRes._body));
+        } catch (err) {
+          console.error("[dev-multisig-api]", err);
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+    },
+  };
+}
+
 function createDevPriceProxyPlugin(target) {
   const normalizedTarget = String(target || "").replace(/\/+$/, "");
 
@@ -235,6 +308,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
+      createDevMultisigApiPlugin(),
       createDevPriceProxyPlugin(coingeckoProxyTarget),
       nodePolyfills({
         include: ["buffer", "crypto", "stream", "util", "events", "process"],

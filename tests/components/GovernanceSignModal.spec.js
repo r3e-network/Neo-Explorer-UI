@@ -303,7 +303,7 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
-  it("blocks NeoLine wallet signing when the council packet signer is the committee multisig account", async () => {
+  it("tries NeoLine signTransaction for multisig council packets and falls back with a clear error if rejected", async () => {
     connectedAccount.value = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
     walletSession.account = {
       address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
@@ -312,6 +312,7 @@ describe("GovernanceSignModal", () => {
     walletSession.isConnected = true;
     getPublicKeyMock.mockResolvedValue("");
     signRawTransactionMock.mockReset();
+    signRawTransactionMock.mockRejectedValue(new Error("NeoLine rejected: signer mismatch"));
     toastErrorMock.mockReset();
     window.Neon = {
       tx: {
@@ -343,17 +344,99 @@ describe("GovernanceSignModal", () => {
       },
     });
 
+    // Button should be enabled (not preemptively blocked)
     const walletButton = wrapper.findAll("button").find((button) =>
       button.text().includes("tools.governance.signWithWallet")
     );
-
-    expect(walletButton?.attributes("disabled")).toBeDefined();
-    expect(wrapper.text()).toContain("NeoLine cannot sign this council packet directly");
-    expect(wrapper.text()).toContain("tools.governance.neoLineMultisigNotice");
+    expect(walletButton?.attributes("disabled")).toBeUndefined();
 
     await walletButton?.trigger("click");
+    await flushPromises();
 
-    expect(signRawTransactionMock).not.toHaveBeenCalled();
+    // signTransaction was attempted
+    expect(signRawTransactionMock).toHaveBeenCalledWith("001122");
+    // Fallback error shown pointing user to external witness flow
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      expect.stringContaining("committee multisig account")
+    );
+
+    delete window.Neon;
+  });
+
+  it("accepts NeoLine signTransaction for multisig council packets when NeoLine supports it", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    signRawTransactionMock.mockReset();
+    signRawTransactionMock.mockResolvedValue("cc".repeat(64));
+    addMultisigSignatureMock.mockReset();
+    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+    window.Neon = {
+      wallet: {
+        verify: vi.fn(() => true),
+      },
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 5,
+          eligible_signers: [signerAddress],
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const walletButton = wrapper.findAll("button").find((button) =>
+      button.text().includes("tools.governance.signWithWallet")
+    );
+    await walletButton?.trigger("click");
+    await flushPromises();
+
+    // signTransaction succeeded - signature was submitted
+    expect(signRawTransactionMock).toHaveBeenCalledWith("001122");
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      5,
+      signerAddress,
+      "cc".repeat(64),
+      expect.objectContaining({
+        publicKey: signerPublicKey,
+      }),
+    );
     expect(toastErrorMock).not.toHaveBeenCalled();
 
     delete window.Neon;

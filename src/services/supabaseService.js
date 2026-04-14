@@ -845,259 +845,105 @@ export const supabaseService = {
   },
 
   async getMultisigRequests(networkMode) {
-    if (!supabase) return [];
     try {
       const network = getNetworkMode(networkMode);
-      return await (async () => {
-        for (const column of ["network", "network_mode"]) {
-          try {
-            const { data, error } = await supabase
-              .from('multisig_requests')
-              .select('*, signatures:multisig_signatures(*)')
-              .eq(column, network)
-              .order('created_at', { ascending: false });
-            if (error) throw error;
-            return (data || []).map((request) => hydrateRequestSignatures(request));
-          } catch (error) {
-            try {
-              return await fetchMultisigRequestsPlain(network, column);
-            } catch (fallbackError) {
-              if (
-                isMissingSupabaseColumnError(error, column) ||
-                isMissingSupabaseColumnError(fallbackError, column)
-              ) {
-                continue;
-              }
-              throw fallbackError;
-            }
-          }
-        }
-
-        try {
-          const { data, error } = await supabase
-            .from('multisig_requests')
-            .select('*, signatures:multisig_signatures(*)')
-            .order('created_at', { ascending: false });
-          if (error) throw error;
-          return (data || []).map((request) => hydrateRequestSignatures(request));
-        } catch (error) {
-          return await fetchMultisigRequestsPlain(network);
-        }
-      })();
+      const url = new URL("/api/multisig/requests", window.location.origin);
+      if (network) url.searchParams.set("network", network);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(await res.text());
+      const rows = await res.json();
+      return (rows || []).map((request) => hydrateRequestSignatures(request));
     } catch (err) {
+      if (import.meta.env.DEV) console.warn("[supabaseService] getMultisigRequests failed:", err);
       return [];
     }
   },
 
   async getMultisigRequestById(requestId, networkMode) {
-    if (!supabase || !requestId) return null;
+    if (!requestId) return null;
     try {
       const network = getNetworkMode(networkMode);
-      return await (async () => {
-        for (const column of ["network", "network_mode"]) {
-          try {
-            const { data, error } = await supabase
-              .from("multisig_requests")
-              .select("*, signatures:multisig_signatures(*)")
-              .eq("id", requestId)
-              .eq(column, network)
-              .single();
-            if (error) throw error;
-            return data ? hydrateRequestSignatures(data) : null;
-          } catch (error) {
-            try {
-              return await fetchMultisigRequestByIdPlain(requestId, network, column);
-            } catch (fallbackError) {
-              if (
-                isMissingSupabaseColumnError(error, column) ||
-                isMissingSupabaseColumnError(fallbackError, column)
-              ) {
-                continue;
-              }
-              throw fallbackError;
-            }
-          }
-        }
-
-        try {
-          const { data, error } = await supabase
-            .from("multisig_requests")
-            .select("*, signatures:multisig_signatures(*)")
-            .eq("id", requestId)
-            .single();
-          if (error) throw error;
-          return data ? hydrateRequestSignatures(data) : null;
-        } catch (error) {
-          return await fetchMultisigRequestByIdPlain(requestId, network);
-        }
-      })();
+      const url = new URL(`/api/multisig/requests/${requestId}`, window.location.origin);
+      if (network) url.searchParams.set("network", network);
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(await res.text());
+      }
+      const data = await res.json();
+      return data ? hydrateRequestSignatures(data) : null;
     } catch (_err) {
       return null;
     }
   },
 
   async createMultisigRequest(payload) {
-    if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const optionalColumns = ["type", "eligible_signers"];
-      let currentPayload = { ...payload };
-
-      for (;;) {
-        const { data, error } = await supabase
-          .from('multisig_requests')
-          .insert([currentPayload])
-          .select()
-          .single();
-
-        if (!error) {
-          return { success: true, data };
-        }
-
-        const removableColumn = optionalColumns.find((column) =>
-          column in currentPayload && isMissingSupabaseColumnError(error, column)
-        );
-
-        if (!removableColumn) {
-          throw error;
-        }
-
-        const nextPayload = { ...currentPayload };
-        delete nextPayload[removableColumn];
-        currentPayload = nextPayload;
+      const res = await fetch("/api/multisig/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
       }
+      const data = await res.json();
+      return { success: true, data };
     } catch (err) {
       return { success: false, error: err.message };
     }
   },
 
   async addMultisigSignature(requestId, signerAddress, signature, options = {}) {
-    if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const duplicateQuery = supabase
-        .from("multisig_signatures")
-        .select("id, signer_address")
-        .eq("request_id", requestId)
-        .eq("signer_address", signerAddress);
-
-      const duplicateReader =
-        typeof duplicateQuery.maybeSingle === "function"
-          ? duplicateQuery.maybeSingle.bind(duplicateQuery)
-          : duplicateQuery.single?.bind(duplicateQuery);
-
-      if (duplicateReader) {
-        const { data: existing, error } = await duplicateReader();
-        if (error && !String(error.message || "").toLowerCase().includes("no rows")) {
-          throw error;
-        }
-        if (existing) {
-          return { success: false, error: "This council member has already signed the proposal." };
-        }
-      }
-
-      const basePayload = {
+      const body = {
         request_id: requestId,
         signer_address: signerAddress,
         signature,
-      };
-
-      const extendedPayload = {
-        ...basePayload,
         ...(options.publicKey ? { public_key: options.publicKey } : {}),
         ...(options.witness ? { witness: options.witness } : {}),
         ...(options.invocationScript ? { invocation_script: options.invocationScript } : {}),
         ...(options.verificationScript ? { verification_script: options.verificationScript } : {}),
       };
-
-      const payloads = [extendedPayload, basePayload].filter(
-        (payload, index, arr) => index === 0 || JSON.stringify(payload) !== JSON.stringify(arr[0])
-      );
-      const signatureMetadata = normalizeSignatureMetadataPayload(options);
-
-      let lastError = null;
-      for (const payload of payloads) {
-        const { data, error } = await supabase
-          .from("multisig_signatures")
-          .insert([payload])
-          .select();
-
-        if (!error) {
-          if (signatureMetadata) {
-            const { data: requestData, error: requestError } = await supabase
-              .from("multisig_requests")
-              .select("id, params")
-              .eq("id", requestId)
-              .single();
-            if (requestError) throw requestError;
-
-            const mergedParams = mergeRequestSignatureMetadata(requestData, signerAddress, signatureMetadata);
-            const { error: updateError } = await supabase
-              .from("multisig_requests")
-              .update({ params: mergedParams })
-              .eq("id", requestId)
-              .select();
-            if (updateError) throw updateError;
-          }
-          return { success: true, data };
+      const res = await fetch("/api/multisig/signatures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          return { success: false, error: "This council member has already signed the proposal." };
         }
-
-        lastError = error;
-        const optionalColumns = ["public_key", "witness", "invocation_script", "verification_script"];
-        const missingOptionalColumn = optionalColumns.some((column) =>
-          isMissingSupabaseColumnError(error, column)
-        );
-        if (!missingOptionalColumn) {
-          throw error;
-        }
+        throw new Error(err.error || `HTTP ${res.status}`);
       }
-
-      throw lastError || new Error("Failed to save signature.");
+      const data = await res.json();
+      return { success: true, data: [data] };
     } catch (err) {
       return { success: false, error: err.message };
     }
   },
 
   async updateMultisigRequestStatus(requestId, status, extras = {}) {
-    if (!supabase) return { success: false, error: "Supabase not configured" };
     try {
-      const basePayload = {
+      const body = {
         status,
-        ...(extras.tx_hash ? { tx_hash: extras.tx_hash } : {}),
-      };
-
-      const extendedPayload = {
-        ...basePayload,
-        ...(extras.executed_at ? { executed_at: extras.executed_at } : {}),
+        ...(extras.tx_hash ? { broadcast_tx_hash: extras.tx_hash } : {}),
+        ...(extras.executed_at ? { broadcast_at: extras.executed_at } : {}),
         ...(extras.params ? { params: extras.params } : {}),
       };
-
-      const payloads = [extendedPayload, basePayload].filter(
-        (payload, index, arr) => index === 0 || JSON.stringify(payload) !== JSON.stringify(arr[0])
-      );
-
-      let lastError = null;
-      for (const payload of payloads) {
-        const { data, error } = await supabase
-          .from("multisig_requests")
-          .update(payload)
-          .eq("id", requestId)
-          .select()
-          .single();
-
-        if (!error) {
-          return { success: true, data };
-        }
-
-        lastError = error;
-        const optionalColumns = ["executed_at", "params"];
-        const missingOptionalColumn = optionalColumns.some((column) =>
-          isMissingSupabaseColumnError(error, column)
-        );
-        if (!missingOptionalColumn) {
-          throw error;
-        }
+      const res = await fetch(`/api/multisig/requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
       }
-
-      throw lastError || new Error("Failed to update request status.");
+      const data = await res.json();
+      return { success: true, data };
     } catch (err) {
       return { success: false, error: err.message };
     }

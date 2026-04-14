@@ -118,3 +118,4 @@ contracts/MockPolicyLab/bin/
 contracts/MockPolicyLab/obj/
 contracts/MockNeoTokenLab/bin/
 contracts/MockNeoTokenLab/obj/
+.omx/

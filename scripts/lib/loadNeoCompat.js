@@ -16,6 +16,10 @@ function toSignedTransactionHex(value) {
   return value;
 }
 
+function hexToBase64(hex) {
+  return Buffer.from(hex, "hex").toString("base64");
+}
+
 async function loadNeoCompat() {
   if (!neonCompatPromise) {
     neonCompatPromise = import("@r3e/neo-js-sdk/browser").then((sdk) => {
@@ -43,11 +47,17 @@ async function loadNeoCompat() {
         }
 
         async calculateNetworkFee(txOrInput) {
-          return super.calculateNetworkFee({ tx: toSignedTransactionHex(txOrInput) });
+          const hex = toSignedTransactionHex(txOrInput);
+          const result = await super.calculateNetworkFee({ tx: hexToBase64(hex) });
+          if (result && typeof result === "object" && "networkfee" in result) {
+            return result.networkfee;
+          }
+          return result;
         }
 
         async sendRawTransaction(txOrInput) {
-          return super.sendRawTransaction({ tx: toSignedTransactionHex(txOrInput) });
+          const hex = toSignedTransactionHex(txOrInput);
+          return super.sendRawTransaction({ tx: hexToBase64(hex) });
         }
 
         async getApplicationLog(hashOrInput) {
@@ -97,15 +107,49 @@ async function loadNeoCompat() {
       }
 
       class CompatWitness extends sdk.tx.Witness {
-        static buildMultiSig(_signPayload, signatures, multisigAccount) {
+        static buildMultiSig(signPayload, signatures, multisigAccount) {
+          const verificationHex = sdk.u.HexString.fromBase64(multisigAccount.contract.script).toBigEndian();
+
+          // Extract sorted public keys from the verification script to reorder signatures.
+          const pubkeys = [];
+          let pos = 0;
+          while (pos < verificationHex.length) {
+            const opcode = verificationHex.substring(pos, pos + 2);
+            if (opcode === "0c" && verificationHex.substring(pos + 2, pos + 4) === "21") {
+              pubkeys.push(verificationHex.substring(pos + 4, pos + 4 + 66));
+              pos += 4 + 66;
+            } else {
+              pos += 2;
+            }
+          }
+
+          // Match each public key to a signature using verify.
+          const orderedSigs = [];
+          for (const pubkey of pubkeys) {
+            for (const sig of signatures) {
+              try {
+                const valid = new sdk.PublicKey(pubkey).verify(
+                  hexToBytes(signPayload),
+                  hexToBytes(sig),
+                );
+                if (valid) {
+                  orderedSigs.push(sig);
+                  break;
+                }
+              } catch {
+                // Not a match, continue.
+              }
+            }
+          }
+
           const builder = new sdk.sc.ScriptBuilder();
-          for (const signature of signatures) {
+          for (const signature of orderedSigs) {
             builder.emitPush(sdk.u.HexString.fromHex(signature));
           }
 
           return new CompatWitness({
             invocationScript: builder.build(),
-            verificationScript: sdk.u.HexString.fromBase64(multisigAccount.contract.script).toBigEndian(),
+            verificationScript: verificationHex,
           });
         }
       }

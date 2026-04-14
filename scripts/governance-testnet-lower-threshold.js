@@ -1,9 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
-const { loadNeoCompat } = require("./lib/loadNeoCompat");
-
-let neon = null;
+const neon = require("@cityofzion/neon-js");
 
 const GAS_TOKEN = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const DEFAULT_RPC_URL = "https://api.n3index.dev/testnet";
@@ -93,11 +91,34 @@ async function createRequestCompat(supabase, payload) {
   let currentPayload = { ...payload };
   for (;;) {
     const { data, error } = await supabase.from("multisig_requests").insert([currentPayload]).select().single();
-    if (!error) return data;
-    if (isMissingColumnError(error, "type") && "type" in currentPayload) {
-      delete currentPayload.type;
-      continue;
+    if (!error) {
+      if (data && data.id) return data;
+
+      const fallbackQuery = supabase
+        .from("multisig_requests")
+        .select("id, params, description, method, creator_address, network")
+        .eq("creator_address", currentPayload.creator_address)
+        .eq("method", currentPayload.method)
+        .eq("description", currentPayload.description)
+        .eq("network", currentPayload.network)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      const { data: rows, error: fetchError } = await fallbackQuery;
+      if (fetchError) throw fetchError;
+      if (Array.isArray(rows) && rows.length > 0) return rows[0];
+
+      throw new Error("Multisig request insert succeeded but no request row could be recovered.");
     }
+    let removed = false;
+    for (const column of ["type", "eligible_signers", "target_contract"]) {
+      if (isMissingColumnError(error, column) && column in currentPayload) {
+        delete currentPayload[column];
+        removed = true;
+        break;
+      }
+    }
+    if (removed) continue;
     throw error;
   }
 }
@@ -297,7 +318,6 @@ function buildDummyMultisigWitness(multisigAccount, threshold) {
 }
 
 async function main() {
-  neon = await loadNeoCompat();
   const localEnv = readEnvFile(path.join(process.cwd(), ".env"));
 
   const councilWif = getEnvValue(localEnv, "TESTNET_COUNCIL_WIF");
@@ -386,6 +406,7 @@ async function main() {
     type: "multisig",
     creator_address: council.address,
     target_contract: GAS_TOKEN.replace(/^0x/, ""),
+    contract_hash: GAS_TOKEN,
     method: "transfer",
     description: `Codex lower-threshold multisig validation ${new Date().toISOString()}`,
     signers_required: threshold,
@@ -397,6 +418,7 @@ async function main() {
       hash: firstTransfer.hash,
       scriptHash: multisig.scriptHash,
       pubkeys,
+      eligible_signers: eligibleSigners,
       validation_lab: true,
     },
   });

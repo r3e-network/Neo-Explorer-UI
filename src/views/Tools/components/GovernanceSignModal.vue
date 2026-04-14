@@ -342,6 +342,14 @@ function getUnsignedTransactionSignerAccounts(requestLike) {
   }
 }
 
+const isNeoLineMultisigSignerMismatch = computed(() => {
+  neonReadyTick.value;
+  if (getActiveWalletProvider() !== PROVIDERS.NEOLINE) return false;
+  const transactionSignerAccounts = getUnsignedTransactionSignerAccounts(props.request);
+  const currentSignerHash = normalizeHash160(getConnectedWalletAddress());
+  return transactionSignerAccounts.length > 0 && currentSignerHash && !transactionSignerAccounts.includes(currentSignerHash);
+});
+
 const walletSignBlockReason = computed(() => {
   neonReadyTick.value;
   if (!props.request) return "";
@@ -355,15 +363,6 @@ const walletSignBlockReason = computed(() => {
 
   if (provider && !RAW_TRANSACTION_SIGNING_PROVIDERS.has(provider)) {
     return `${provider} cannot sign governance transaction packets in-browser yet. Submit an external witness instead.`;
-  }
-
-  if (provider === PROVIDERS.NEOLINE) {
-    const transactionSignerAccounts = getUnsignedTransactionSignerAccounts(props.request);
-    const currentSignerHash = normalizeHash160(walletAddress);
-
-    if (transactionSignerAccounts.length > 0 && currentSignerHash && !transactionSignerAccounts.includes(currentSignerHash)) {
-      return "NeoLine cannot sign this council packet directly because the transaction signer is the council multisig account, not the connected wallet account. Submit an external witness instead.";
-    }
   }
 
   return "";
@@ -443,8 +442,22 @@ async function autoSignTx() {
   isSigning.value = true;
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
-    const signature = await walletService.signRawTransaction(unsignedTxHex);
-    await submitSig(signature, "wallet_signature");
+
+    try {
+      const signature = await walletService.signRawTransaction(unsignedTxHex);
+      await submitSig(signature, "wallet_signature");
+      return;
+    } catch (directError) {
+      // If this is NOT a NeoLine multisig mismatch, rethrow immediately.
+      if (!isNeoLineMultisigSignerMismatch.value) throw directError;
+      // NeoLine rejected because the tx signer is the committee multisig.
+      // Surface a specific error that points the user to the external witness flow.
+      if (import.meta.env.DEV) console.warn("[GovernanceSignModal] NeoLine signTransaction rejected for multisig signer:", directError.message);
+      throw new Error(
+        "NeoLine cannot sign this transaction directly because the signer is the committee multisig account. " +
+        "Use \"Prepare Signing Payload\" below to export the payload, sign it with an offline tool, and paste the signature."
+      );
+    }
   } catch (e) {
     console.error(e);
     toast.error("Signing failed: " + (e?.message || String(e)));
