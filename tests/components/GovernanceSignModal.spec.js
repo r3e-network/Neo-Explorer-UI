@@ -4,6 +4,7 @@ import { ref } from "vue";
 
 const connectedAccount = ref("");
 const toastErrorMock = vi.fn();
+const toastWarningMock = vi.fn();
 const signRawTransactionMock = vi.fn();
 const getRawTransactionSigningPayloadMock = vi.fn();
 const getPublicKeyMock = vi.fn();
@@ -49,6 +50,7 @@ vi.mock("vue-toastification", () => ({
   useToast: () => ({
     success: vi.fn(),
     error: toastErrorMock,
+    warning: toastWarningMock,
   }),
 }));
 
@@ -303,7 +305,7 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
-  it("tries NeoLine signTransaction for multisig council packets and falls back with a clear error if rejected", async () => {
+  it("tries NeoLine signTransaction for multisig council packets and auto-prepares the signing payload if rejected", async () => {
     connectedAccount.value = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
     walletSession.account = {
       address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
@@ -313,7 +315,14 @@ describe("GovernanceSignModal", () => {
     getPublicKeyMock.mockResolvedValue("");
     signRawTransactionMock.mockReset();
     signRawTransactionMock.mockRejectedValue(new Error("NeoLine rejected: signer mismatch"));
+    getRawTransactionSigningPayloadMock.mockReset();
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
     toastErrorMock.mockReset();
+    toastWarningMock.mockReset();
     window.Neon = {
       tx: {
         Transaction: {
@@ -355,10 +364,15 @@ describe("GovernanceSignModal", () => {
 
     // signTransaction was attempted
     expect(signRawTransactionMock).toHaveBeenCalledWith("001122");
-    // Fallback error shown pointing user to external witness flow
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      expect.stringContaining("committee multisig account")
+    // Signing payload was auto-prepared for the user
+    expect(getRawTransactionSigningPayloadMock).toHaveBeenCalledWith("001122");
+    // Warning toast (not error) guides user to the prepared payload
+    expect(toastWarningMock).toHaveBeenCalledWith(
+      expect.stringContaining("signing payload has been prepared")
     );
+    expect(toastErrorMock).not.toHaveBeenCalled();
+    // The signing payload should be visible in the component
+    expect(wrapper.text()).toContain("3353ef4eabcd");
 
     delete window.Neon;
   });

@@ -451,12 +451,17 @@ async function autoSignTx() {
       // If this is NOT a NeoLine multisig mismatch, rethrow immediately.
       if (!isNeoLineMultisigSignerMismatch.value) throw directError;
       // NeoLine rejected because the tx signer is the committee multisig.
-      // Surface a specific error that points the user to the external witness flow.
+      // Auto-prepare the signing payload so the user can sign offline.
       if (import.meta.env.DEV) console.warn("[GovernanceSignModal] NeoLine signTransaction rejected for multisig signer:", directError.message);
-      throw new Error(
-        "NeoLine cannot sign this transaction directly because the signer is the committee multisig account. " +
-        "Use \"Prepare Signing Payload\" below to export the payload, sign it with an offline tool, and paste the signature."
+      try {
+        await prepareSigningPayload();
+      } catch {
+        // Payload preparation is best-effort.
+      }
+      toast.warning(
+        "NeoLine cannot sign multisig transactions directly. The signing payload has been prepared below — copy it, sign with an offline tool, and paste the signature."
       );
+      return;
     }
   } catch (e) {
     console.error(e);
