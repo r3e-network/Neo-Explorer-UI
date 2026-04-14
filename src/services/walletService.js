@@ -16,7 +16,7 @@ import {
   normalizeSignersForRpc,
   normalizeSignMessageResult,
 } from "@/utils/walletNormalization";
-import { bytesToHex, hexToBase64 } from "@/utils/neoHelpers";
+import { bytesToHex } from "@/utils/neoHelpers";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
@@ -1011,103 +1011,6 @@ export const walletService = {
     }
 
     throw new Error("Provider does not support raw transaction signing in browser.");
-  },
-
-  /**
-   * Sign a multisig governance transaction via NeoLine's ContractParametersContext flow.
-   * This allows an individual council member to contribute their signature to a
-   * committee multisig transaction without being the direct transaction signer.
-   *
-   * @param {string} unsignedTxHex - The unsigned transaction hex (without witnesses).
-   * @param {string} multisigVerificationScript - The committee multisig verification script (hex).
-   * @param {string} multisigScriptHash - The committee multisig script hash (hex, no 0x prefix).
-   * @returns {Promise<{signature: string, publicKey: string}>} The individual signature and public key.
-   */
-  async signTransactionWithContext(unsignedTxHex, multisigVerificationScript, multisigScriptHash) {
-    if (!_account) throw new Error("Wallet not connected");
-    if (_connectedProvider !== PROVIDERS.NEOLINE) {
-      throw new Error("Context-based signing is only supported with NeoLine.");
-    }
-
-    const n3 = await getNeoLineN3();
-    if (typeof n3.signTransaction !== "function") {
-      throw new Error("NeoLine does not support signTransaction.");
-    }
-
-    const expectedNetwork = getDapiNetworkName();
-    if (typeof n3.switchNetwork === "function") {
-      try {
-        const networks = typeof n3.getNetworks === "function" ? await n3.getNetworks() : {};
-        if (!isWalletNetworkCompatible(String(networks?.defaultNetwork || ""))) {
-          await n3.switchNetwork({ network: expectedNetwork });
-        }
-      } catch {
-        // Best effort.
-      }
-    }
-
-    // Resolve the network magic for the context.
-    const { networkMagic } = await buildRawTransactionSigningPayload(unsignedTxHex);
-
-    // Build the ContractParametersContext that NeoLine expects.
-    const normalizedMultisigHash = String(multisigScriptHash || "").replace(/^0x/i, "").toLowerCase();
-    const base64Tx = hexToBase64(unsignedTxHex);
-    const base64VerificationScript = hexToBase64(multisigVerificationScript);
-
-    // Determine threshold from the verification script to build the parameter slots.
-    let parameterSlots = [{ type: "Signature" }];
-    try {
-      const sdk = await loadSdk();
-      const pubkeys = sdk.wallet.getPublicKeysFromVerificationScript(multisigVerificationScript);
-      const threshold = sdk.wallet.getSigningThresholdFromVerificationScript(multisigVerificationScript);
-      if (threshold > 0) {
-        parameterSlots = Array.from({ length: threshold }, () => ({ type: "Signature" }));
-      }
-      if (!pubkeys?.length) throw new Error("empty");
-    } catch {
-      // Fallback: single Signature slot. NeoLine will still sign correctly.
-    }
-
-    const context = {
-      type: "Neo.Network.P2P.Payloads.Transaction",
-      hash: await resolveUnsignedTransactionHash(unsignedTxHex),
-      data: base64Tx,
-      items: {
-        [normalizedMultisigHash]: {
-          script: base64VerificationScript,
-          parameters: parameterSlots,
-          signatures: {},
-        },
-      },
-      network: networkMagic,
-    };
-
-    try {
-      const res = await n3.signTransaction({ context, network: expectedNetwork });
-
-      // Extract the signature from the returned context.
-      const returnedContext = res?.data ?? res;
-      const items = returnedContext?.items || {};
-      const signerItem = items[normalizedMultisigHash];
-      const signatures = signerItem?.signatures || {};
-      const [publicKey, signatureBase64] = Object.entries(signatures).find(([, sig]) => !!sig) || [];
-
-      if (!publicKey || !signatureBase64) {
-        throw new Error("NeoLine returned no signature in the context response.");
-      }
-
-      // NeoLine returns base64 signatures - convert to hex.
-      const signatureHex = /^[0-9a-fA-F]+$/.test(signatureBase64)
-        ? signatureBase64
-        : Buffer.from(signatureBase64, "base64").toString("hex");
-
-      return { signature: signatureHex, publicKey };
-    } catch (error) {
-      if (isDapiCanceled(error)) {
-        throw new Error("Transaction canceled by user.");
-      }
-      throw toReadableWalletError(error, "NeoLine context signing failed.");
-    }
   },
 
   async signMessage(message) {
