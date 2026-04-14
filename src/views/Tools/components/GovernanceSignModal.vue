@@ -7,7 +7,7 @@
   >
     <div
       :data-testid="testId('panel')"
-      class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
+      class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
     >
       <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
         <div class="flex items-center gap-3">
