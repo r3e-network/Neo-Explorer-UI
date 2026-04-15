@@ -29,7 +29,7 @@ vi.mock("@/services/walletService", () => ({
     PROVIDERS: {
       NEOLINE: "NeoLine",
       WEB3AUTH: "Google / Email (Web3Auth)",
-      TESTNET_WIF: "Testnet WIF (Local Dev)",
+      TESTNET_WIF: "Direct WIF (Council)",
     },
     signRawTransaction: signRawTransactionMock,
     getRawTransactionSigningPayload: getRawTransactionSigningPayloadMock,

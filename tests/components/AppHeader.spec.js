@@ -18,7 +18,7 @@ const walletServiceMock = {
     ONEGATE: "OneGate",
     WALLETCONNECT: "WalletConnect",
     NEON: "Neon Wallet",
-    TESTNET_WIF: "Testnet WIF (Local Dev)",
+    TESTNET_WIF: "Direct WIF (Council)",
     WEB3AUTH: "Google / Email (Web3Auth)",
     EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
   },
@@ -84,7 +84,7 @@ describe("AppHeader wallet CTA", () => {
       "OneGate",
       "WalletConnect",
       "Neon Wallet",
-      "Testnet WIF (Local Dev)",
+      "Direct WIF (Council)",
       "Google / Email (Web3Auth)",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
     ]);
@@ -159,7 +159,7 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.text()).toContain("OneGate");
     expect(wrapper.text()).toContain("WalletConnect");
     expect(wrapper.text()).toContain("Neon Wallet");
-    expect(wrapper.text()).toContain("Testnet WIF (Local Dev)");
+    expect(wrapper.text()).toContain("Direct WIF (Council)");
     expect(wrapper.text()).toContain("Google / Email (Web3Auth)");
     expect(wrapper.text()).toContain("EVM Wallets (MetaMask, OKX, Rabby, etc.)");
   });
@@ -267,7 +267,7 @@ describe("AppHeader wallet CTA", () => {
   it("connects the local dev testnet WIF provider without persisting walletProvider", async () => {
     const directWif = "LtestDirectWif11111111111111111111111111111111111111111111";
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
-      "Testnet WIF (Local Dev)",
+      "Direct WIF (Council)",
       "Google / Email (Web3Auth)",
     ]);
     walletServiceMock.connect.mockResolvedValueOnce({
@@ -300,20 +300,20 @@ describe("AppHeader wallet CTA", () => {
     await connectButton.trigger("click");
     await flushPromises();
 
-    const wifProviderButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Testnet WIF (Local Dev)"));
+    const wifProviderButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Direct WIF (Council)"));
     await wifProviderButton.trigger("click");
     await flushPromises();
 
     const input = wrapper.find('input[type="password"]');
     await input.setValue(directWif);
 
-    const confirmButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Connect Testnet WIF"));
+    const confirmButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Connect with WIF"));
     await confirmButton.trigger("click");
     await flushPromises();
 
-    expect(walletServiceMock.connect).toHaveBeenCalledWith("Testnet WIF (Local Dev)", { wif: directWif });
+    expect(walletServiceMock.connect).toHaveBeenCalledWith("Direct WIF (Council)", { wif: directWif });
     expect(localStorage.getItem("walletProvider")).toBeNull();
-    expect(sessionStorage.getItem("walletProvider")).toBe("Testnet WIF (Local Dev)");
+    expect(sessionStorage.getItem("walletProvider")).toBe("Direct WIF (Council)");
     expect(sessionStorage.getItem("devTestWif")).toBe(directWif);
   });
 

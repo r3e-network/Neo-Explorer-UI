@@ -54,7 +54,7 @@ async function loadWeb3authService() {
 }
 
 function isDirectWifProviderEnabled() {
-  return Boolean(import.meta.env.DEV);
+  return true;
 }
 
 /**
@@ -661,7 +661,7 @@ export const walletService = {
     if (isEthereumAvailable()) providers.push(PROVIDERS.EVM_WALLET);
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.WALLETCONNECT);
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.NEON);
-    if (isDirectWifProviderEnabled() && isExplorerTestnet()) providers.push(PROVIDERS.TESTNET_WIF);
+    if (isDirectWifProviderEnabled()) providers.push(PROVIDERS.TESTNET_WIF);
     providers.push(PROVIDERS.WEB3AUTH);
     return [...new Set(providers)];
   },
@@ -742,10 +742,7 @@ export const walletService = {
 
     if (providerName === PROVIDERS.TESTNET_WIF) {
       if (!isDirectWifProviderEnabled()) {
-        throw new Error("Direct WIF testing is only available in local development.");
-      }
-      if (!isExplorerTestnet()) {
-        throw new Error("Direct WIF testing is only allowed while the explorer is on testnet.");
+        throw new Error("Direct WIF connection is not available.");
       }
 
       const wif = String(options?.wif || "").trim();

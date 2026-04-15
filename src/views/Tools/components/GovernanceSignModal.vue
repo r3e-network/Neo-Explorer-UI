@@ -33,46 +33,12 @@
             <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <p class="text-sm font-bold text-high">NeoLine requires the committee multisig wallet</p>
+            <p class="text-sm font-bold text-high">NeoLine cannot sign committee multisig transactions</p>
           </div>
           <p class="text-xs text-mid leading-relaxed">
-            NeoLine is connected with your personal wallet, but governance transactions require signing as the committee multisig.
-            Generate a committee wallet file below, import it into NeoLine, then switch to it and click "Sign with Wallet".
+            NeoLine requires the connected wallet to match the transaction signer, but governance proposals use the committee multisig address.
+            Use the <strong>"Direct WIF (Council)"</strong> wallet provider instead — disconnect NeoLine, then connect with "Direct WIF (Council)" and paste your WIF key. This enables one-click governance signing on any network.
           </p>
-
-          <div class="space-y-3">
-            <input
-              v-model="nep6Wif"
-              type="password"
-              placeholder="Enter your WIF private key"
-              class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20"
-            />
-            <input
-              v-model="nep6Password"
-              type="password"
-              placeholder="Set a password for the wallet file"
-              class="form-input w-full text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20"
-            />
-            <button
-              @click="generateNep6"
-              :disabled="!nep6Wif || !nep6Password || nep6Password.length < 6 || isGeneratingNep6"
-              class="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-            >
-              {{ isGeneratingNep6 ? "Generating..." : "Generate Committee Wallet File" }}
-            </button>
-            <p v-if="nep6Error" class="text-xs text-red-600 dark:text-red-400">{{ nep6Error }}</p>
-            <p v-if="nep6Success" class="text-xs text-emerald-600 dark:text-emerald-400">{{ nep6Success }}</p>
-          </div>
-
-          <div class="text-[11px] text-mid space-y-1">
-            <p><strong>After downloading:</strong></p>
-            <ol class="list-decimal pl-4 space-y-0.5">
-              <li>Open NeoLine → click avatar → Add Wallet → Import Wallet</li>
-              <li>Select "Import File" → choose the downloaded JSON file</li>
-              <li>Enter the password you set above</li>
-              <li>Switch to the committee wallet → return here and click "Sign with Wallet"</li>
-            </ol>
-          </div>
         </div>
 
         <!-- ═══ Section 2: Sign with Wallet ═══ -->
@@ -235,12 +201,6 @@ const isSubmittingExternalWitness = ref(false);
 const neonReadyTick = ref(0);
 const allowOverwrite = ref(false);
 
-// NEP-6 generator state
-const nep6Wif = ref("");
-const nep6Password = ref("");
-const isGeneratingNep6 = ref(false);
-const nep6Error = ref("");
-const nep6Success = ref("");
 
 const RAW_TRANSACTION_SIGNING_PROVIDERS = new Set([
   PROVIDERS.NEOLINE,
@@ -263,10 +223,6 @@ watch(
       externalInvocationScript.value = "";
       preparedSigningPayload.value = null;
       allowOverwrite.value = false;
-      nep6Wif.value = "";
-      nep6Password.value = "";
-      nep6Error.value = "";
-      nep6Success.value = "";
       await ensureNeonJs();
       await prefillExternalWitnessSigner();
     }
@@ -399,78 +355,6 @@ async function autoSignTx() {
     toast.error("Signing failed: " + (e?.message || String(e)));
   } finally {
     isSigning.value = false;
-  }
-}
-
-// ═══ NEP-6 Committee Wallet Generator ═══
-
-async function generateNep6() {
-  if (!nep6Wif.value || !nep6Password.value) return;
-  isGeneratingNep6.value = true;
-  nep6Error.value = "";
-  nep6Success.value = "";
-
-  try {
-    await ensureNeonJs();
-    const committeePubkeys = props.request?.params?.committee_pubkeys || [];
-    const threshold = props.request?.signers_required || Math.floor(committeePubkeys.length / 2) + 1;
-
-    if (!committeePubkeys.length) throw new Error("Committee public keys not found in proposal.");
-
-    // Validate WIF and derive the account
-    const memberAccount = new neonJs.wallet.Account(nep6Wif.value.trim());
-
-    // Verify the member is in the committee
-    if (!committeePubkeys.includes(memberAccount.publicKey)) {
-      throw new Error("This WIF does not belong to a committee member for this proposal.");
-    }
-
-    // Create the multisig account
-    const multiSig = neonJs.wallet.Account.createMultiSig(threshold, committeePubkeys);
-
-    // Encrypt the private key with the password
-    const encryptedKey = await neonJs.wallet.encrypt(memberAccount.privateKey, nep6Password.value);
-
-    // Build NEP-6 wallet JSON
-    const nep6 = {
-      name: "Committee-Multisig",
-      version: "1.0",
-      scrypt: { n: 16384, r: 8, p: 8 },
-      accounts: [
-        {
-          address: multiSig.address,
-          label: "Committee " + threshold + "-of-" + committeePubkeys.length,
-          isDefault: true,
-          lock: false,
-          key: encryptedKey,
-          contract: {
-            script: neonJs.u.base642hex(multiSig.contract.script),
-            parameters: Array.from({ length: threshold }, () => ({ name: "signature", type: "Signature" })),
-            deployed: false,
-          },
-          extra: {
-            publicKey: memberAccount.publicKey,
-          },
-        },
-      ],
-      extra: null,
-    };
-
-    // Download as JSON file
-    const blob = new Blob([JSON.stringify(nep6, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `committee-wallet-${multiSig.address.substring(0, 8)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    nep6Success.value = `Wallet file downloaded. Multisig address: ${multiSig.address}. Import it into NeoLine, then switch to this wallet and click "Sign with Wallet".`;
-    nep6Wif.value = "";
-  } catch (e) {
-    nep6Error.value = e.message || String(e);
-  } finally {
-    isGeneratingNep6.value = false;
   }
 }
 

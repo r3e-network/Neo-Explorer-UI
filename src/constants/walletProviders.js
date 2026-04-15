@@ -4,7 +4,7 @@ export const PROVIDERS = Object.freeze({
   ONEGATE: "OneGate",
   WALLETCONNECT: "WalletConnect",
   NEON: "Neon Wallet",
-  TESTNET_WIF: "Testnet WIF (Local Dev)",
+  TESTNET_WIF: "Direct WIF (Council)",
   WEB3AUTH: "Google / Email (Web3Auth)",
   EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
 });
