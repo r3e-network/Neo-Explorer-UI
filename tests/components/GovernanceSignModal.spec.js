@@ -306,7 +306,7 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
-  it("allows NeoLine signTransaction when proposal includes individual members as signers", async () => {
+  it("shows NeoLine multisig guide and auto-prepares signing payload when signer mismatch detected", async () => {
     const { publicKeyToAddress } = await import("@/utils/neoHelpers");
     const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
     const signerAddress = publicKeyToAddress(signerPublicKey);
@@ -316,6 +316,12 @@ describe("GovernanceSignModal", () => {
     walletSession.isConnected = true;
     getPublicKeyMock.mockResolvedValue(signerPublicKey);
     signRawTransactionMock.mockReset();
+    getRawTransactionSigningPayloadMock.mockReset();
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
     toastErrorMock.mockReset();
     window.Neon = {
       wallet: { Account: class { constructor() { this.address = signerAddress; this.publicKey = signerPublicKey; this.WIF = "test"; } }, sign: vi.fn(() => "cc".repeat(64)), verify: vi.fn(() => true) },
@@ -348,13 +354,17 @@ describe("GovernanceSignModal", () => {
 
     await flushPromises();
 
-    // With the dummy signer approach, the Sign with Wallet button should be visible
-    // for all wallets including NeoLine (members are now individual signers in the tx)
+    // Sign with Wallet button should be disabled (NeoLine mismatch)
     const walletButton = wrapper.findAll("button").find((b) =>
       b.text().includes("tools.governance.signWithWallet")
     );
-    expect(walletButton).toBeTruthy();
-    expect(walletButton?.attributes("disabled")).toBeUndefined();
+    expect(walletButton?.attributes("disabled")).toBeDefined();
+
+    // NeoLine guide and signing payload should be visible
+    expect(wrapper.text()).toContain("NeoLine requires the committee multisig wallet");
+    // Auto-prepared signing payload should be visible
+    expect(getRawTransactionSigningPayloadMock).toHaveBeenCalledWith("001122");
+    expect(wrapper.text()).toContain("3353ef4eabcd");
 
     delete window.Neon;
   });

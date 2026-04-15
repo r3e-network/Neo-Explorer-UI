@@ -49,6 +49,47 @@
           </p>
         </div>
 
+        <!-- NeoLine Mismatch Guide: NEXO Identity Impersonation Pattern -->
+        <div
+          v-if="isNeoLineMultisigSignerMismatch"
+          class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3 dark:bg-amber-900/20 dark:border-amber-800"
+        >
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div class="space-y-1">
+              <p class="text-sm font-bold text-high">NeoLine requires the committee multisig wallet</p>
+              <p class="text-xs text-mid leading-relaxed">
+                Your connected NeoLine account does not match the governance transaction signer.
+                To sign directly, create a multisig wallet <strong>inside NeoLine</strong> using the committee keys below,
+                switch to it, then click “Sign with Wallet”.
+                This is the same <strong>NEXO</strong> pattern used by NGD.
+              </p>
+            </div>
+          </div>
+
+          <ol class="text-xs text-mid list-decimal pl-4 space-y-1">
+            <li>Open NeoLine → avatar → <strong>Add Wallet → Multi-Signature</strong></li>
+            <li>Set threshold to <strong>{{ request.signers_required }}</strong> and paste the {{ committeePubkeys.length }} public keys below</li>
+            <li>Switch to the new committee wallet, then return here and click Sign</li>
+          </ol>
+
+          <div class="rounded-xl bg-slate-950 text-slate-100 p-3 space-y-2 dark:bg-slate-900">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Committee Public Keys</p>
+              <CopyButton :text="committeePubkeys.join('\n')" size="md" />
+            </div>
+            <div class="max-h-32 overflow-y-auto custom-scrollbar space-y-1">
+              <code v-for="(pk, idx) in committeePubkeys" :key="idx" class="block break-all font-mono text-[10px] text-slate-300">{{ pk }}</code>
+            </div>
+          </div>
+
+          <p class="text-xs text-mid">
+            Or disconnect NeoLine and connect with <strong>Direct WIF (Council)</strong> for one-click signing without wallet setup.
+          </p>
+        </div>
+
         <div class="relative py-2">
           <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
           <div class="relative flex justify-center">
@@ -68,12 +109,12 @@
             description="Review the governance transaction. Copy the signing payload below to sign with an external tool."
           />
 
-          <!-- Signing Payload -->
+          <!-- Signing Payload + neo-cli Guide -->
           <div class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="space-y-1">
                 <p class="text-sm font-semibold text-high">Signing Payload</p>
-                <p class="text-xs text-mid">The exact hex bytes to sign with your private key (SHA-256 + ECDSA).</p>
+                <p class="text-xs text-mid">Sign this payload offline with <code class="font-mono text-high">neo-cli</code>, neon-js, or any ECDSA tool. Then paste the 64-byte signature below.</p>
               </div>
               <button
                 :data-testid="testId('prepare-payload')"
@@ -81,18 +122,33 @@
                 :disabled="!request.params?.unsigned_tx || isPreparingSigningPayload"
                 class="shrink-0 px-4 py-2.5 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
               >
-                {{ isPreparingSigningPayload ? "Preparing..." : (preparedSigningPayload ? "Refresh Payload" : "Prepare Signing Payload") }}
+                {{ isPreparingSigningPayload ? "Preparing..." : (preparedSigningPayload ? "Refresh" : "Prepare Signing Payload") }}
               </button>
             </div>
-            <div v-if="preparedSigningPayload" class="rounded-2xl bg-slate-950 text-slate-100 p-4 space-y-3 dark:bg-slate-900">
-              <div class="flex items-center justify-between gap-3">
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Payload Hex</p>
-                <CopyButton :text="preparedSigningPayload.payload" size="md" />
+            <div v-if="preparedSigningPayload" class="space-y-3">
+              <div class="rounded-2xl bg-slate-950 text-slate-100 p-4 space-y-3 dark:bg-slate-900">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Payload Hex</p>
+                  <CopyButton :text="preparedSigningPayload.payload" size="md" />
+                </div>
+                <code :data-testid="testId('signing-payload')" class="block break-all font-mono text-[11px] leading-5 text-slate-100">{{ preparedSigningPayload.payload }}</code>
+                <div class="grid grid-cols-1 gap-2 text-[11px] text-slate-300 sm:grid-cols-2">
+                  <p>Network magic: {{ preparedSigningPayload.networkMagic }}</p>
+                  <p>Transaction hash: {{ preparedSigningPayload.transactionHash }}</p>
+                </div>
               </div>
-              <code :data-testid="testId('signing-payload')" class="block break-all font-mono text-[11px] leading-5 text-slate-100">{{ preparedSigningPayload.payload }}</code>
-              <div class="grid grid-cols-1 gap-2 text-[11px] text-slate-300 sm:grid-cols-2">
-                <p>Network magic: {{ preparedSigningPayload.networkMagic }}</p>
-                <p>Transaction hash: {{ preparedSigningPayload.transactionHash }}</p>
+
+              <!-- neo-cli signing command -->
+              <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2 dark:bg-emerald-950/20 dark:border-emerald-900/40">
+                <p class="text-xs font-bold text-high">How to sign with neon-js (Node.js):</p>
+                <div class="rounded-xl bg-slate-950 p-3 dark:bg-slate-900">
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">Copy & run in terminal</p>
+                    <CopyButton :text="neonJsSignCommand" size="sm" />
+                  </div>
+                  <code class="block break-all font-mono text-[10px] leading-5 text-emerald-300 whitespace-pre-wrap">{{ neonJsSignCommand }}</code>
+                </div>
+                <p class="text-[11px] text-mid">Replace <code class="font-mono text-high">YOUR_WIF</code> with your council WIF private key. The output is the 128-char hex signature to paste below.</p>
               </div>
             </div>
           </div>
@@ -140,7 +196,7 @@
             <button
               :data-testid="testId('submit-witness')"
               @click="submitExternalWitness"
-              :disabled="!externalSignature.trim() || isSubmittingExternalWitness"
+              :disabled="(!externalSignature.trim() && !externalInvocationScript.trim()) || isSubmittingExternalWitness"
               class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ isSubmittingExternalWitness ? $t("tools.governance.submittingWitness") : $t("tools.governance.submitExternalWitness") }}
@@ -181,7 +237,7 @@ const externalSignerAddress = ref("");
 const externalSignerPublicKey = ref("");
 const externalSignature = ref("");
 const externalInvocationScript = ref("");
-const inlineWif = ref("");
+
 const preparedSigningPayload = ref(null);
 const isPreparingSigningPayload = ref(false);
 const isSubmittingExternalWitness = ref(false);
@@ -208,11 +264,15 @@ watch(
       externalSignerPublicKey.value = "";
       externalSignature.value = "";
       externalInvocationScript.value = "";
-      inlineWif.value = "";
+
       preparedSigningPayload.value = null;
       allowOverwrite.value = false;
       await ensureNeonJs();
       await prefillExternalWitnessSigner();
+      // Auto-prepare signing payload so it's immediately visible.
+      if (newVal.params?.unsigned_tx) {
+        try { await prepareSigningPayload(); } catch { /* best-effort */ }
+      }
     }
   },
   { immediate: true },
@@ -262,6 +322,10 @@ function getUnsignedTransactionSignerAccounts(requestLike) {
   }
 }
 
+const committeePubkeys = computed(() => {
+  return Array.isArray(props.request?.params?.committee_pubkeys) ? props.request.params.committee_pubkeys : [];
+});
+
 const isNeoLineMultisigSignerMismatch = computed(() => {
   neonReadyTick.value;
   if (getActiveWalletProvider() !== PROVIDERS.NEOLINE) return false;
@@ -282,10 +346,16 @@ const walletSignBlockReason = computed(() => {
   if (provider && !RAW_TRANSACTION_SIGNING_PROVIDERS.has(provider)) {
     return `${provider} cannot sign governance transaction packets in-browser yet. Submit an external witness instead.`;
   }
+  if (isNeoLineMultisigSignerMismatch.value) {
+    return "NeoLine account does not match the committee multisig signer. Follow the guide below.";
+  }
   return "";
 });
 
-const isNeoLineAssistedFlow = computed(() => getActiveWalletProvider() === PROVIDERS.NEOLINE);
+const neonJsSignCommand = computed(() => {
+  const payload = preparedSigningPayload.value?.payload || "PAYLOAD_HEX";
+  return `node -e "const n=require('@cityofzion/neon-js');console.log(n.wallet.sign('${payload}','YOUR_WIF'))"`;
+});
 
 function findRequestSignerPublicKey(requestLike, signerAddress) {
   const target = String(signerAddress || "").trim();
@@ -338,62 +408,6 @@ async function autoSignTx() {
     const unsignedTxHex = props.request.params.unsigned_tx;
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature, "wallet_signature");
-  } catch (e) {
-    console.error(e);
-    toast.error("Signing failed: " + (e?.message || String(e)));
-  } finally {
-    isSigning.value = false;
-  }
-}
-
-async function signWithInlineWif() {
-  if (!props.request || !inlineWif.value.trim()) return;
-  await ensureNeonJs();
-
-  isSigning.value = true;
-  try {
-    const unsignedTxHex = props.request.params.unsigned_tx;
-    if (!unsignedTxHex) throw new Error("Missing unsigned transaction.");
-
-    // Derive account from WIF
-    const account = new neonJs.wallet.Account(inlineWif.value.trim());
-
-    // Validate committee membership
-    const committeePubkeys = props.request.params?.committee_pubkeys || [];
-    if (committeePubkeys.length > 0 && !committeePubkeys.includes(account.publicKey)) {
-      throw new Error("This WIF key does not belong to a committee member for this proposal.");
-    }
-
-    // Compute signing payload and sign
-    const { payload } = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
-    const signature = neonJs.wallet.sign(payload, account.WIF);
-
-    // Verify
-    const verified = neonJs.wallet.verify(payload, signature, account.publicKey);
-    if (!verified) throw new Error("Signature verification failed.");
-
-    // Build witness payload and submit
-    const witnessPayload = buildExternalWitnessPayload({
-      signerAddress: account.address,
-      signerPublicKey: account.publicKey,
-      signatureHex: signature,
-      eligibleSigners: props.request?.eligible_signers || [],
-      source: "inline_wif_signature",
-    });
-
-    let res = await supabaseService.addMultisigSignature(props.request.id, witnessPayload.signerAddress, witnessPayload.signature, {
-      publicKey: witnessPayload.publicKey,
-      witness: witnessPayload.witness,
-      invocationScript: witnessPayload.invocationScript,
-      verificationScript: witnessPayload.verificationScript,
-      overwrite: true,
-    });
-
-    if (!res.success) throw new Error(res.error);
-    inlineWif.value = "";
-    toast.success("Signature added successfully!");
-    emit("close");
-    emit("signed", { requestId: props.request.id });
   } catch (e) {
     console.error(e);
     toast.error("Signing failed: " + (e?.message || String(e)));

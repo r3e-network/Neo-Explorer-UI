@@ -254,34 +254,7 @@ async function handleBroadcast(req) {
       committee,
     ).contract.script;
 
-    // Build witnesses array: [multisig witness, ...individual member witnesses]
-    // Individual member witnesses are needed when members are included as
-    // signers with WitnessScope.None (the NEXO dummy-signer pattern).
-    const witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
-
-    // If the transaction has additional signers beyond the multisig (individual members),
-    // add their individual witnesses.
-    const txSigners = Array.isArray(t.signers) ? t.signers : [];
-    for (let i = 1; i < txSigners.length; i++) {
-      const signerHash = String(txSigners[i]?.account?.toBigEndian?.() || txSigners[i]?.account || "").replace(/^0x/i, "").toLowerCase();
-      const memberPubkey = committee.find((pk) => {
-        try { return new neonJs.wallet.Account(pk).scriptHash === signerHash; } catch { return false; }
-      });
-      const sigObj = req.signatures.find((s) => s.public_key === memberPubkey);
-
-      if (memberPubkey && sigObj) {
-        witnesses.push(neonJs.tx.Witness.fromSignature(sigObj.signature, memberPubkey));
-      } else if (memberPubkey) {
-        // Member didn't sign — provide an empty witness (WitnessScope.None requires valid verification)
-        witnesses.push(new neonJs.tx.Witness({
-          invocationScript: "",
-          verificationScript: "0c21" + memberPubkey + "4156e7b327",
-        }));
-      } else {
-        witnesses.push(new neonJs.tx.Witness({ invocationScript: "", verificationScript: "" }));
-      }
-    }
-    t.witnesses = witnesses;
+    t.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
 
     const signedTxHex = t.serialize(true);
 
