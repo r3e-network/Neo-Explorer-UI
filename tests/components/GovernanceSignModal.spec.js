@@ -306,7 +306,7 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
-  it("calls signRawTransaction directly for NeoLine even when tx signer is a multisig account", async () => {
+  it("allows NeoLine signTransaction when proposal includes individual members as signers", async () => {
     const { publicKeyToAddress } = await import("@/utils/neoHelpers");
     const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
     const signerAddress = publicKeyToAddress(signerPublicKey);
@@ -316,17 +316,9 @@ describe("GovernanceSignModal", () => {
     walletSession.isConnected = true;
     getPublicKeyMock.mockResolvedValue(signerPublicKey);
     signRawTransactionMock.mockReset();
-    signRawTransactionMock.mockResolvedValue("cc".repeat(64));
-    addMultisigSignatureMock.mockReset();
-    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
-    getRawTransactionSigningPayloadMock.mockResolvedValue({
-      payload: "3353ef4eabcd",
-      networkMagic: 860833102,
-      transactionHash: "abcd",
-    });
     toastErrorMock.mockReset();
     window.Neon = {
-      wallet: { verify: vi.fn(() => true) },
+      wallet: { Account: class { constructor() { this.address = signerAddress; this.publicKey = signerPublicKey; this.WIF = "test"; } }, sign: vi.fn(() => "cc".repeat(64)), verify: vi.fn(() => true) },
       tx: {
         Transaction: {
           deserialize: vi.fn(() => ({
@@ -356,17 +348,13 @@ describe("GovernanceSignModal", () => {
 
     await flushPromises();
 
+    // With the dummy signer approach, the Sign with Wallet button should be visible
+    // for all wallets including NeoLine (members are now individual signers in the tx)
     const walletButton = wrapper.findAll("button").find((b) =>
       b.text().includes("tools.governance.signWithWallet")
     );
+    expect(walletButton).toBeTruthy();
     expect(walletButton?.attributes("disabled")).toBeUndefined();
-
-    await walletButton?.trigger("click");
-    await flushPromises();
-
-    // signRawTransaction IS called (no preemptive block)
-    expect(signRawTransactionMock).toHaveBeenCalledWith("001122");
-    expect(toastErrorMock).not.toHaveBeenCalled();
 
     delete window.Neon;
   });

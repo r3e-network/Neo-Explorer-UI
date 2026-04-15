@@ -751,8 +751,19 @@ function isInvalidCommitteeSignatureFault(errorOrResult) {
 }
 
 async function buildDraftTransaction({ neonJs, rpcClient, signerConfig, validUntilBlock, script }) {
+  // Build signers: multisig (CalledByEntry) + each committee member (None).
+  // Adding individual members as signers with WitnessScope.None allows NeoLine
+  // to recognize the connected wallet and permit signing without exposing any
+  // contract scope. This is the same pattern NEXO uses for committee governance.
   const signers = [{ account: signerConfig.multiSigAccount.scriptHash, scopes: neonJs.tx.WitnessScope.Global }];
-  const invokeResult = await rpcClient.invokeScript(neonJs.u.HexString.fromHex(script), signers);
+  for (const pubkey of signerConfig.signerPubkeys) {
+    const memberAccount = new neonJs.wallet.Account(pubkey);
+    signers.push({ account: memberAccount.scriptHash, scopes: neonJs.tx.WitnessScope.None });
+  }
+
+  // Simulation only needs the multisig signer for CheckWitness
+  const simulationSigners = [signers[0]];
+  const invokeResult = await rpcClient.invokeScript(neonJs.u.HexString.fromHex(script), simulationSigners);
   if (invokeResult?.state === "FAULT") {
     const error = new Error(`Simulation faulted: ${invokeResult.exception || "unknown error"}`);
     error.invokeResult = invokeResult;
@@ -768,12 +779,20 @@ async function buildDraftTransaction({ neonJs, rpcClient, signerConfig, validUnt
   });
 
   if (signerConfig.signerPubkeys.length > 0 && signerConfig.thresholdValue > 0) {
-    const dummyWitness = buildDummyMultisigWitness(signerConfig.multiSigAccount, signerConfig.thresholdValue, neonJs);
-    if (typeof feeProbeTx.addWitness === "function") {
-      feeProbeTx.addWitness(dummyWitness);
-    } else {
-      feeProbeTx.witnesses = [dummyWitness];
+    // Add dummy multisig witness (position 0)
+    const dummyMultisig = buildDummyMultisigWitness(signerConfig.multiSigAccount, signerConfig.thresholdValue, neonJs);
+    const witnesses = [dummyMultisig];
+    // Add dummy individual witnesses (positions 1..N) for fee calculation
+    const dummySig = "00".repeat(64);
+    for (const pubkey of signerConfig.signerPubkeys) {
+      const dummyBuilder = new neonJs.sc.ScriptBuilder();
+      dummyBuilder.emitPush(neonJs.u.HexString.fromHex(dummySig));
+      witnesses.push(new neonJs.tx.Witness({
+        invocationScript: dummyBuilder.build(),
+        verificationScript: "0c21" + pubkey + "4156e7b327",
+      }));
     }
+    feeProbeTx.witnesses = witnesses;
   }
 
   const networkFee = await rpcClient.calculateNetworkFee(feeProbeTx);

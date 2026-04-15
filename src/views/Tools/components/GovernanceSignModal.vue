@@ -27,21 +27,7 @@
 
       <div :data-testid="testId('body')" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
 
-        <!-- ═══ Section 1: NeoLine Committee Wallet Setup ═══ -->
-        <div v-if="isNeoLineMultisigSignerMismatch" class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <p class="text-sm font-bold text-high">NeoLine cannot sign committee multisig transactions</p>
-          </div>
-          <p class="text-xs text-mid leading-relaxed">
-            NeoLine requires the connected wallet to match the transaction signer, but governance proposals use the committee multisig address.
-            Use the <strong>"Direct WIF (Council)"</strong> wallet provider instead — disconnect NeoLine, then connect with "Direct WIF (Council)" and paste your WIF key. This enables one-click governance signing on any network.
-          </p>
-        </div>
-
-        <!-- ═══ Section 2: Sign with Wallet ═══ -->
+        <!-- ═══ Sign with Wallet ═══ -->
         <div class="space-y-3">
           <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionWallet") }}</label>
           <button
@@ -195,6 +181,7 @@ const externalSignerAddress = ref("");
 const externalSignerPublicKey = ref("");
 const externalSignature = ref("");
 const externalInvocationScript = ref("");
+const inlineWif = ref("");
 const preparedSigningPayload = ref(null);
 const isPreparingSigningPayload = ref(false);
 const isSubmittingExternalWitness = ref(false);
@@ -221,6 +208,7 @@ watch(
       externalSignerPublicKey.value = "";
       externalSignature.value = "";
       externalInvocationScript.value = "";
+      inlineWif.value = "";
       preparedSigningPayload.value = null;
       allowOverwrite.value = false;
       await ensureNeonJs();
@@ -350,6 +338,62 @@ async function autoSignTx() {
     const unsignedTxHex = props.request.params.unsigned_tx;
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature, "wallet_signature");
+  } catch (e) {
+    console.error(e);
+    toast.error("Signing failed: " + (e?.message || String(e)));
+  } finally {
+    isSigning.value = false;
+  }
+}
+
+async function signWithInlineWif() {
+  if (!props.request || !inlineWif.value.trim()) return;
+  await ensureNeonJs();
+
+  isSigning.value = true;
+  try {
+    const unsignedTxHex = props.request.params.unsigned_tx;
+    if (!unsignedTxHex) throw new Error("Missing unsigned transaction.");
+
+    // Derive account from WIF
+    const account = new neonJs.wallet.Account(inlineWif.value.trim());
+
+    // Validate committee membership
+    const committeePubkeys = props.request.params?.committee_pubkeys || [];
+    if (committeePubkeys.length > 0 && !committeePubkeys.includes(account.publicKey)) {
+      throw new Error("This WIF key does not belong to a committee member for this proposal.");
+    }
+
+    // Compute signing payload and sign
+    const { payload } = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
+    const signature = neonJs.wallet.sign(payload, account.WIF);
+
+    // Verify
+    const verified = neonJs.wallet.verify(payload, signature, account.publicKey);
+    if (!verified) throw new Error("Signature verification failed.");
+
+    // Build witness payload and submit
+    const witnessPayload = buildExternalWitnessPayload({
+      signerAddress: account.address,
+      signerPublicKey: account.publicKey,
+      signatureHex: signature,
+      eligibleSigners: props.request?.eligible_signers || [],
+      source: "inline_wif_signature",
+    });
+
+    let res = await supabaseService.addMultisigSignature(props.request.id, witnessPayload.signerAddress, witnessPayload.signature, {
+      publicKey: witnessPayload.publicKey,
+      witness: witnessPayload.witness,
+      invocationScript: witnessPayload.invocationScript,
+      verificationScript: witnessPayload.verificationScript,
+      overwrite: true,
+    });
+
+    if (!res.success) throw new Error(res.error);
+    inlineWif.value = "";
+    toast.success("Signature added successfully!");
+    emit("close");
+    emit("signed", { requestId: props.request.id });
   } catch (e) {
     console.error(e);
     toast.error("Signing failed: " + (e?.message || String(e)));

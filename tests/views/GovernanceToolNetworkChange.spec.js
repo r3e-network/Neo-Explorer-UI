@@ -197,6 +197,10 @@ describe("GovernanceTool network changes", () => {
           AllowNotify: 8,
           All: 15,
         },
+        ScriptBuilder: class {
+          emitPush() { return this; }
+          build() { return "00"; }
+        },
         ContractParam: {
           fromJson: (value) => value,
           integer: (value) => value,
