@@ -188,8 +188,16 @@ async function submitWitness() {
       throw new Error("This public key is not a committee member.");
     }
 
-    // Signature verification is done server-side by verifyGovernanceWitness()
-    // which computes the signing payload fresh from the DB and RPC.
+    // Verify signature client-side — compute payload fresh at submit time
+    if (pk && props.request?.params?.unsigned_tx) {
+      await ensureNeonJs();
+      if (typeof neonJs?.wallet?.verify === "function") {
+        const freshPayload = await walletService.getRawTransactionSigningPayload(props.request.params.unsigned_tx);
+        if (!neonJs.wallet.verify(freshPayload.payload, sig, pk)) {
+          throw new Error("Signature does not verify against the transaction. Make sure you signed the correct proposal and your public key matches.");
+        }
+      }
+    }
 
     const payload = buildExternalWitnessPayload({
       signerAddress: addr, signerPublicKey: pk, signatureHex: sig,
