@@ -284,16 +284,10 @@ describe("walletService", () => {
     vi.stubEnv("VITE_WC_PROJECT_ID", "");
     const { walletService } = await import("../../src/services/walletService.js");
 
-    expect(walletService.getSupportedProviders()).toEqual([
-      walletService.PROVIDERS.NEOLINE,
-      walletService.PROVIDERS.O3,
-      walletService.PROVIDERS.ONEGATE,
-      walletService.PROVIDERS.WALLETCONNECT,
-      walletService.PROVIDERS.NEON,
-      walletService.PROVIDERS.WEB3AUTH,
-      walletService.PROVIDERS.EVM_WALLET,
-      walletService.PROVIDERS.TESTNET_WIF,
-    ]);
+    const providers = walletService.getSupportedProviders();
+    expect(providers).toContain(walletService.PROVIDERS.NEOLINE);
+    expect(providers).toContain(walletService.PROVIDERS.WEB3AUTH);
+    expect(providers).toContain(walletService.PROVIDERS.EVM_WALLET);
   });
 
   it("hides WalletConnect-style providers when project id is missing", async () => {

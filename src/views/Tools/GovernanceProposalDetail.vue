@@ -91,10 +91,9 @@
         </div>
       </div>
 
-      <GovernanceSignModal
+      <GovernanceAddWitnessModal
         v-if="showSignModal"
         :request="proposal"
-        test-id-prefix="governance-detail-sign-modal"
         @close="closeSignModal"
         @signed="handleSigned"
       />
@@ -125,7 +124,7 @@ import GovernanceDetailHero from "./components/GovernanceDetailHero.vue";
 import GovernanceDetailPayload from "./components/GovernanceDetailPayload.vue";
 import GovernanceDetailCouncilPanel from "./components/GovernanceDetailCouncilPanel.vue";
 import GovernanceDetailActionCenter from "./components/GovernanceDetailActionCenter.vue";
-import GovernanceSignModal from "./components/GovernanceSignModal.vue";
+import GovernanceAddWitnessModal from "./components/GovernanceAddWitnessModal.vue";
 import GovernanceCreateModal from "./components/GovernanceCreateModal.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";

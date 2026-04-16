@@ -193,7 +193,7 @@
                   <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'Neon Wallet'" :src="'/img/brand/neon.ico'" alt="Neon Wallet" class="w-full h-full object-contain" />
-                  <img v-else-if="provider === 'Direct WIF (Council)'" :src="'/img/brand/neo.png'" alt="Direct WIF (Council)" class="w-full h-full object-contain" />
+                  <img v-else-if="provider === 'Testnet WIF (Local Dev)'" :src="'/img/brand/neo.png'" alt="Testnet WIF (Local Dev)" class="w-full h-full object-contain" />
                   <img v-else-if="provider === 'OneGate'" :src="'/img/brand/onegate.ico'" alt="OneGate" class="w-full h-full object-contain" />
                   <img v-else-if="provider === 'Google / Email (Web3Auth)'" :src="'/img/brand/web3auth.png'" alt="Web3Auth" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                   <img v-else-if="provider === 'EVM Wallets (MetaMask, OKX, Rabby, etc.)'" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="w-full h-full object-contain" />
@@ -206,12 +206,12 @@
 
             <div v-if="showDevWifForm" class="wallet-modal-dev-panel mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 space-y-3">
               <div>
-                <label class="block text-sm font-medium wallet-modal-label mb-1">Council WIF Key</label>
+                <label class="block text-sm font-medium wallet-modal-label mb-1">Testnet WIF</label>
                 <input
                   v-model="devWifInput"
                   type="password"
                   class="form-input w-full font-mono text-sm"
-                  placeholder="Paste your council WIF private key"
+                  placeholder="Paste local testnet WIF"
                   autocomplete="off"
                 />
               </div>
@@ -221,7 +221,7 @@
                   :disabled="walletLoading || !devWifInput.trim()"
                   class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                 >
-                  Connect with WIF
+                  Connect Testnet WIF
                 </button>
                 <button
                   @click="resetDevWifForm"
