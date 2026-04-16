@@ -65,15 +65,6 @@
           </div>
 
           <div class="space-y-6 lg:sticky lg:top-24 lg:self-start">
-            <GovernanceCouncilWalletSetupCard
-              :committee-multi-sig="committeeMultiSig"
-              :committee-pubkeys="committeePubkeys"
-              :threshold="requiredCount"
-              :committee-size="committeePubkeys.length"
-              :connected-account="connectedAccount"
-              :active-network-label="activeNetworkMode"
-            />
-
             <GovernanceDetailCouncilPanel
               :signer-rows="signerRows"
               :signed-count="signedCount"
@@ -134,7 +125,6 @@ import GovernanceDetailHero from "./components/GovernanceDetailHero.vue";
 import GovernanceDetailPayload from "./components/GovernanceDetailPayload.vue";
 import GovernanceDetailCouncilPanel from "./components/GovernanceDetailCouncilPanel.vue";
 import GovernanceDetailActionCenter from "./components/GovernanceDetailActionCenter.vue";
-import GovernanceCouncilWalletSetupCard from "./components/GovernanceCouncilWalletSetupCard.vue";
 import GovernanceSignModal from "./components/GovernanceSignModal.vue";
 import GovernanceCreateModal from "./components/GovernanceCreateModal.vue";
 import { supabaseService } from "@/services/supabaseService";

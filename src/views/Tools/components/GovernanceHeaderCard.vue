@@ -173,80 +173,15 @@
               </div>
             </div>
 
-            <GovernanceCouncilWalletSetupCard
-              :committee-multi-sig="committeeMultiSig"
-              :committee-pubkeys="committeePubkeys"
-              :threshold="threshold"
-              :committee-size="committeeSize"
-              :connected-account="connectedAccount"
-              :active-network-label="activeNetworkLabel"
-            />
           </div>
         </div>
-      </div>
-    </div>
-    <!-- How to Sign Guide -->
-    <div class="mb-6 rounded-2xl border border-line-soft bg-surface/50 overflow-hidden">
-      <button
-        @click="showSigningGuide = !showSigningGuide"
-        class="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-surface-muted/50 transition-colors"
-      >
-        <div class="flex items-center gap-3">
-          <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="text-sm font-bold text-high">How Council Members Sign Governance Proposals</span>
-        </div>
-        <svg class="w-4 h-4 text-mid transition-transform" :class="showSigningGuide ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      <div v-if="showSigningGuide" class="px-6 pb-5 space-y-4 border-t border-line-soft pt-4">
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2 dark:bg-emerald-950/20 dark:border-emerald-900/40">
-            <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Option A: Direct WIF (Recommended for Testing)</p>
-            <ol class="text-xs text-mid list-decimal pl-4 space-y-1">
-              <li>Click <strong>Connect Wallet</strong> in the header</li>
-              <li>Select <strong>"Direct WIF (Council)"</strong></li>
-              <li>Paste your WIF private key → Connect</li>
-              <li>Click <strong>Sign</strong> on any proposal → <strong>Sign with Wallet</strong></li>
-            </ol>
-            <p class="text-[11px] text-mid">Your key stays in browser session memory only (cleared on tab close).</p>
-          </div>
-
-          <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-4 space-y-2 dark:bg-sky-950/20 dark:border-sky-900/40">
-            <p class="text-xs font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider">Option B: Offline Signing (Most Secure)</p>
-            <ol class="text-xs text-mid list-decimal pl-4 space-y-1">
-              <li>Click <strong>Sign</strong> on a proposal</li>
-              <li>The <strong>Signing Payload</strong> is auto-prepared</li>
-              <li>Copy the <strong>neon-js command</strong> and run it in your terminal</li>
-              <li>Paste the 128-char hex output into the <strong>Submit Witness</strong> section</li>
-            </ol>
-            <p class="text-[11px] text-mid">Your private key never touches the browser. Sign with neo-cli or any ECDSA tool.</p>
-          </div>
-        </div>
-
-        <div class="rounded-xl bg-slate-950 p-3 dark:bg-slate-900">
-          <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 mb-1">Example neon-js signing command</p>
-          <code class="block font-mono text-[10px] text-emerald-300">node -e "const n=require('@cityofzion/neon-js');console.log(n.wallet.sign('PAYLOAD_HEX','YOUR_WIF'))"</code>
-        </div>
-
-        <p class="text-[11px] text-mid">
-          Once {{ threshold }} of {{ committeeSize }} council members submit valid signatures, the proposal can be broadcast to the network.
-          Each signature is verified against the governance payload before storage.
-        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import GovernanceCouncilWalletSetupCard from "@/views/Tools/components/GovernanceCouncilWalletSetupCard.vue";
-
-const showSigningGuide = ref(false);
 
 defineProps({
   committeeMultiSig: { type: Object, default: null },
