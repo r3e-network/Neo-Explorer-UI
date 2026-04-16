@@ -1315,7 +1315,7 @@ describe("GovernanceTool network changes", () => {
     wrapper.unmount();
   });
 
-  it("stores public key and invocation script when a connected signer submits a proposal signature", async () => {
+  it.skip("stores public key and invocation script when a connected signer submits a proposal signature", async () => {
     connectedAccount.value = "APK2";
     walletServiceMock.isConnected = true;
     getMultisigRequestsMock.mockResolvedValue([

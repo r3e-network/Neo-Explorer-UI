@@ -203,19 +203,12 @@
                     </div>
                     <button
                       @click="emit('add-witness', req)"
-                      class="w-full px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors"
+                      class="w-full px-4 py-2.5 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 transition-colors"
                     >
                       Add Signature / Witness
                     </button>
-                    <button
-                      v-if="isCouncilNode && !hasSigned(req)"
-                      @click="emit('sign', req)"
-                      class="w-full px-4 py-2.5 bg-surface-muted text-high border border-line-soft text-sm font-bold rounded-xl hover:bg-surface transition-colors"
-                    >
-                      {{ $t("tools.governance.signProposal") }}
-                    </button>
                     <p class="text-xs text-mid">
-                      Sign in NeoLine or offline, then bring the signature or witness back here so the proposal can collect it.
+                      Sign the governance payload offline, then paste your public key and signature here.
                     </p>
                     <button
                       :data-testid="`governance-list-fork-${req.id}`"

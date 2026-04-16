@@ -26,16 +26,13 @@
         :can-create-proposal="canCreateProposal"
         :is-council-node="isCouncilNode"
         :committee-pubkeys="committeePubkeys"
-        @sign="openSignModal"
+        @sign="openAddWitnessModal"
         @add-witness="openAddWitnessModal"
         @view-details="viewDetails"
         @broadcast="handleBroadcast"
         @create-proposal="openCreateModal"
         @fork-proposal="openForkProposal"
       />
-
-      <!-- Sign Modal -->
-      <GovernanceSignModal :request="signModalReq" @close="signModalReq = null" @signed="loadRequests()" />
 
       <!-- Create Modal -->
       <GovernanceCreateModal
@@ -66,7 +63,6 @@ import GovernanceHeaderCard from "@/views/Tools/components/GovernanceHeaderCard.
 import GovernanceProposalList from "@/views/Tools/components/GovernanceProposalList.vue";
 import GovernanceDetailsModal from "@/views/Tools/components/GovernanceDetailsModal.vue";
 import GovernanceCreateModal from "@/views/Tools/components/GovernanceCreateModal.vue";
-import GovernanceSignModal from "@/views/Tools/components/GovernanceSignModal.vue";
 import GovernanceAddWitnessModal from "@/views/Tools/components/GovernanceAddWitnessModal.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
@@ -182,16 +178,11 @@ function getRequestRequiredCount(req) {
   return getRequiredSignatureCount(req);
 }
 
-const signModalReq = ref(null);
 const addWitnessModalReq = ref(null);
 const detailsModalReq = ref(null);
 
 function viewDetails(req) {
   detailsModalReq.value = req;
-}
-
-function openSignModal(req) {
-  signModalReq.value = req;
 }
 
 function openAddWitnessModal(req) {
