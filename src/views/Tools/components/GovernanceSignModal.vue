@@ -25,15 +25,39 @@
         </button>
       </div>
 
-      <div :data-testid="testId('body')" class="p-6 space-y-6 overflow-y-auto custom-scrollbar min-h-0">
+      <div :data-testid="testId('body')" class="p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar min-h-0">
+        <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
+          Preferred collection flow: sign the payload in NeoLine or offline with your own council member key, then paste the signature or witness back into this page so the proposal can collect it.
+          <div class="mt-3 flex flex-wrap gap-3">
+            <button
+              :data-testid="testId('jump-to-submit')"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
+              @click="jumpToWitnessForm"
+            >
+              Jump To Paste-Back Form
+            </button>
+            <button
+              :data-testid="testId('jump-to-payload')"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-4 py-2 text-sm font-semibold text-sky-800 transition-colors hover:bg-white dark:border-sky-900/40 dark:bg-slate-950/40 dark:text-sky-200 dark:hover:bg-slate-950"
+              @click="jumpToSigningPayload"
+            >
+              Jump To Signing Payload
+            </button>
+          </div>
+        </div>
 
         <!-- ═══ Sign with Wallet ═══ -->
-        <div class="space-y-3">
-          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionWallet") }}</label>
+        <div class="order-3 space-y-3 rounded-2xl border border-line-soft bg-surface-muted/40 p-4">
+          <label class="block text-sm font-bold text-high">Optional: Direct Wallet Sign</label>
+          <p class="text-xs text-mid">
+            Use this only if you want NeoLine to sign directly in-browser. The collection flow above remains the preferred path.
+          </p>
           <button
             @click="autoSignTx"
             :disabled="isSigning || Boolean(walletSignBlockReason)"
-            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
+            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-950 text-white rounded-xl font-bold hover:bg-slate-900 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
           >
             <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -52,7 +76,7 @@
         <!-- NeoLine Mismatch Guide: NEXO Identity Impersonation Pattern -->
         <div
           v-if="isNeoLineMultisigSignerMismatch"
-          class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3 dark:bg-amber-900/20 dark:border-amber-800"
+          class="order-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3 dark:bg-amber-900/20 dark:border-amber-800"
         >
           <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,16 +129,19 @@
           <p class="text-xs text-mid">Or sign the payload externally with your own council member key and paste the witness below.</p>
         </div>
 
-        <div class="relative py-2">
+        <div class="order-2 relative py-2">
           <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
           <div class="relative flex justify-center">
-            <span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">{{ $t("tools.governance.or") }}</span>
+            <span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">Recommended Collection Flow</span>
           </div>
         </div>
 
         <!-- ═══ Section 3: Transaction Data + External Witness ═══ -->
-        <div class="space-y-4">
-          <label class="block text-sm font-bold text-high">{{ $t("tools.governance.optionExternalWitness") }}</label>
+        <div class="order-1 space-y-4">
+          <label class="block text-sm font-bold text-high">Primary: Add Signature / Witness</label>
+          <p class="text-xs text-mid">
+            Sign elsewhere, then bring the signature or witness back into this proposal so it can be collected with the other council approvals.
+          </p>
 
           <!-- Unsigned Transaction Viewer -->
           <UnsignedTransactionViewer
@@ -125,7 +152,7 @@
           />
 
           <!-- Signing Payload + neo-cli Guide -->
-          <div class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
+          <div ref="signingPayloadSectionRef" class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="space-y-1">
                 <p class="text-sm font-semibold text-high">Signing Payload</p>
@@ -169,7 +196,7 @@
           </div>
 
           <!-- Submit Witness -->
-          <div class="space-y-3">
+          <div ref="witnessFormSectionRef" class="space-y-3">
             <p class="text-sm font-semibold text-high">Submit Witness</p>
             <p class="text-xs text-mid">Paste a 64-byte signature from any valid committee member. The system validates the signer is in the committee before accepting.</p>
             <input
@@ -252,6 +279,8 @@ const externalSignerAddress = ref("");
 const externalSignerPublicKey = ref("");
 const externalSignature = ref("");
 const externalInvocationScript = ref("");
+const witnessFormSectionRef = ref(null);
+const signingPayloadSectionRef = ref(null);
 
 const preparedSigningPayload = ref(null);
 const isPreparingSigningPayload = ref(false);
@@ -313,6 +342,26 @@ function getActiveWalletProvider() {
 
 function getConnectedWalletAddress() {
   return String(walletService.account?.address || connectedAccount.value || "").trim();
+}
+
+function focusFirstPasteBackInput() {
+  const section = witnessFormSectionRef.value;
+  if (!section) return;
+  const target =
+    section.querySelector?.('[data-testid$="external-signature"]') ||
+    section.querySelector?.("input");
+  target?.focus?.();
+}
+
+function jumpToWitnessForm() {
+  witnessFormSectionRef.value?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  window.setTimeout(() => {
+    focusFirstPasteBackInput();
+  }, 80);
+}
+
+function jumpToSigningPayload() {
+  signingPayloadSectionRef.value?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
 
 async function getConnectedWalletPublicKey() {

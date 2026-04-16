@@ -33,26 +33,29 @@
     </div>
     <div v-else-if="hasSigned" class="mt-5 text-sm text-emerald-600 font-semibold">You already voted.</div>
     <div v-else class="mt-5 space-y-3">
+      <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
+        Sign the governance payload in NeoLine or offline, then paste the signature or witness back into this page so it can be collected with the other council approvals.
+      </div>
       <div v-if="!canCurrentSignerVote" class="text-sm text-mid">
         Only eligible council nodes can sign directly with a connected wallet, but you can still collect and submit an
         external witness from another council signer.
       </div>
       <button
-        v-if="canCurrentSignerVote && !hasSigned"
         class="w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 hover:-translate-y-0.5 hover:bg-primary-700 transition-all"
         @click="$emit('open-sign-modal')"
       >
-        Vote / Sign Proposal
+        Add Signature / Witness
       </button>
       <button
+        v-if="canCurrentSignerVote && !hasSigned"
         class="w-full rounded-xl border border-line-soft bg-surface px-4 py-3 text-sm font-semibold text-high hover:bg-surface-muted transition-all"
         @click="$emit('open-sign-modal')"
       >
-        Add External Witness
+        Open Direct Wallet Sign
       </button>
       <p class="text-xs text-mid">
-        The collected signature or imported witness is stored in Supabase and will be used to assemble the final
-        multisig witness.
+        Paste signatures or witness fragments back into this page for collection. Once quorum is reached, the final
+        multisig witness can be assembled and broadcast.
       </p>
     </div>
 

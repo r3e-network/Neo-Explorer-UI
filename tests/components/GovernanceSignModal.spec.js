@@ -1,5 +1,5 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
 const connectedAccount = ref("");
@@ -62,6 +62,7 @@ vi.mock("vue-toastification", () => ({
 
 describe("GovernanceSignModal", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     connectedAccount.value = "";
     walletSession.account = null;
     walletSession.isConnected = false;
@@ -73,6 +74,10 @@ describe("GovernanceSignModal", () => {
     switchWalletAccountMock.mockReset();
     toastErrorMock.mockReset();
     toastSuccessMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it.skip("disables wallet signing when no wallet is connected", async () => {
@@ -169,7 +174,7 @@ describe("GovernanceSignModal", () => {
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-panel"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-body"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain("tools.governance.optionExternalWitness");
+    expect(wrapper.text()).toContain("Primary: Add Signature / Witness");
   });
 
   it("prepares an offline signing payload and prefills the connected council signer details", async () => {
@@ -233,6 +238,75 @@ describe("GovernanceSignModal", () => {
     expect(wrapper.get('[data-testid="governance-sign-modal-signing-payload"]').text()).toContain("3353ef4eabcd");
 
     delete window.Neon;
+  });
+
+  it("exposes quick actions that jump to the payload and paste-back sections", async () => {
+    vi.useFakeTimers();
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+    window.Neon = {
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const scrollIntoViewMock = vi.fn();
+    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      attachTo: document.body,
+      props: {
+        request: {
+          id: 3,
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    await wrapper.get('[data-testid="governance-sign-modal-jump-to-payload"]').trigger("click");
+    await wrapper.get('[data-testid="governance-sign-modal-jump-to-submit"]').trigger("click");
+    vi.runAllTimers();
+    await flushPromises();
+
+    expect(scrollIntoViewMock).toHaveBeenCalled();
+    expect(document.activeElement).toBe(wrapper.get('[data-testid="governance-sign-modal-external-signature"]').element);
+
+    window.HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    delete window.Neon;
+    wrapper.unmount();
   });
 
   it("builds an external witness from a pasted raw signature", async () => {

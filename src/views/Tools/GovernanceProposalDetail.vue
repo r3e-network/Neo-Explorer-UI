@@ -65,6 +65,15 @@
           </div>
 
           <div class="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <GovernanceCouncilWalletSetupCard
+              :committee-multi-sig="committeeMultiSig"
+              :committee-pubkeys="committeePubkeys"
+              :threshold="requiredCount"
+              :committee-size="committeePubkeys.length"
+              :connected-account="connectedAccount"
+              :active-network-label="activeNetworkMode"
+            />
+
             <GovernanceDetailCouncilPanel
               :signer-rows="signerRows"
               :signed-count="signedCount"
@@ -125,6 +134,7 @@ import GovernanceDetailHero from "./components/GovernanceDetailHero.vue";
 import GovernanceDetailPayload from "./components/GovernanceDetailPayload.vue";
 import GovernanceDetailCouncilPanel from "./components/GovernanceDetailCouncilPanel.vue";
 import GovernanceDetailActionCenter from "./components/GovernanceDetailActionCenter.vue";
+import GovernanceCouncilWalletSetupCard from "./components/GovernanceCouncilWalletSetupCard.vue";
 import GovernanceSignModal from "./components/GovernanceSignModal.vue";
 import GovernanceCreateModal from "./components/GovernanceCreateModal.vue";
 import { supabaseService } from "@/services/supabaseService";
@@ -219,6 +229,14 @@ const canCurrentSignerVote = computed(() =>
     eligibleSignerAddresses.value.includes(connectedAccount.value),
   ),
 );
+const committeeMultiSig = computed(() => {
+  if (!neonJs || !committeePubkeys.value.length || !requiredCount.value) return null;
+  try {
+    return neonJs.wallet.Account.createMultiSig(requiredCount.value, committeePubkeys.value);
+  } catch {
+    return null;
+  }
+});
 const progressWidth = computed(
   () => `${Math.min(100, requiredCount.value ? (signedCount.value / requiredCount.value) * 100 : 0)}%`,
 );
@@ -394,7 +412,7 @@ const actionDescription = computed(() => {
   if (!canCurrentSignerVote.value) {
     return "This proposal is visible to everyone, but only eligible council nodes can contribute signatures or broadcast the final transaction.";
   }
-  return "Sign the raw governance packet with your connected council wallet. Your witness fragment will be stored and later assembled into the final multisig witness.";
+  return "Use the external witness flow: sign the payload in NeoLine or offline with your own council member key, then paste the signature or witness back into this page for collection.";
 });
 const actionToneClass = computed(() => {
   if (proposal.value?.status === "EXECUTED") {

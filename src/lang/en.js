@@ -283,11 +283,11 @@ const en = {
       alreadyVoted: "You already voted.",
       executedOnChain: "Executed on-chain.",
       onlyEligibleCanSign:
-        "Only eligible council nodes can sign directly with a connected wallet, but you can still collect and submit an external witness from another council signer.",
+        "Only eligible council nodes can sign directly with a connected wallet, but anyone coordinating the proposal can collect an offline signature or external witness from a council signer and submit it here.",
       voteSignProposal: "Vote / Sign Proposal",
       addExternalWitness: "Add External Witness",
       signatureStoredNote:
-        "The collected signature or imported witness is stored in Supabase and will be used to assemble the final multisig witness.",
+        "Paste the signature or witness back into the proposal page for collection. Stored fragments are kept off-chain until the final multisig witness is assembled.",
       broadcastThresholdSigned: "Broadcast Threshold-Signed Proposal",
       signWithConnectedWallet: "Sign with connected wallet",
       waitingForWallet: "Waiting for wallet...",
@@ -324,7 +324,7 @@ const en = {
       actionDescNotEligible:
         "This proposal is visible to everyone, but only eligible council nodes can contribute signatures or broadcast the final transaction.",
       actionDescReadyToSign:
-        "Sign the raw governance packet with your connected council wallet. Your witness fragment will be stored and later assembled into the final multisig witness.",
+        "Use the external witness flow: sign the raw governance packet in NeoLine or offline with your own council member key, then paste the signature or witness back into the page for collection.",
       collectSignaturesThresholdMet: "Enough council witnesses are now stored to assemble the final multisig witness.",
       collectSignaturesInProgress: "Eligible council members are still signing and uploading their witness fragments.",
       broadcastExecuted: "The fully signed governance transaction has already been broadcast to the network.",

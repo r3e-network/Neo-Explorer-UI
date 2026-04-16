@@ -247,11 +247,11 @@ const zh = {
       alreadyVoted: "You already voted.",
       executedOnChain: "Executed on-chain.",
       onlyEligibleCanSign:
-        "Only eligible council nodes can sign directly with a connected wallet, but you can still collect and submit an external witness from another council signer.",
+        "只有符合条件的理事会节点才能直接用已连接钱包签名，但任何协调提案的人都可以向理事会成员收集离线签名或外部 witness，然后在这里提交。",
       voteSignProposal: "Vote / Sign Proposal",
       addExternalWitness: "Add External Witness",
       signatureStoredNote:
-        "The collected signature or imported witness is stored in Supabase and will be used to assemble the final multisig witness.",
+        "把签名或 witness 粘贴回提案页面进行收集。所有片段会先离线保存，直到最终 multisig witness 组装完成。",
       broadcastThresholdSigned: "Broadcast Threshold-Signed Proposal",
       signWithConnectedWallet: "Sign with connected wallet",
       waitingForWallet: "Waiting for wallet...",
@@ -288,7 +288,7 @@ const zh = {
       actionDescNotEligible:
         "This proposal is visible to everyone, but only eligible council nodes can contribute signatures or broadcast the final transaction.",
       actionDescReadyToSign:
-        "Sign the raw governance packet with your connected council wallet. Your witness fragment will be stored and later assembled into the final multisig witness.",
+        "优先使用外部 witness 流程：在 NeoLine 或离线环境中用你自己的理事会成员密钥签署原始治理交易，然后把签名或 witness 粘贴回页面进行收集。",
       collectSignaturesThresholdMet: "Enough council witnesses are now stored to assemble the final multisig witness.",
       collectSignaturesInProgress: "Eligible council members are still signing and uploading their witness fragments.",
       broadcastExecuted: "The fully signed governance transaction has already been broadcast to the network.",
