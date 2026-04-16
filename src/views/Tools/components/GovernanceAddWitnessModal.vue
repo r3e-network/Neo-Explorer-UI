@@ -180,8 +180,9 @@ async function submitWitness() {
     if (pk && signingPayload.value?.payload) {
       await ensureNeonJs();
       if (typeof neonJs?.wallet?.verify === "function") {
-        if (!neonJs.wallet.verify(signingPayload.value.payload, sig, pk)) {
-          throw new Error("Signature does not verify against the signing payload.");
+        const clientValid = neonJs.wallet.verify(signingPayload.value.payload, sig, pk);
+        if (!clientValid) {
+          console.warn("Client-side signature pre-check failed — deferring to server verification.");
         }
       }
     }
