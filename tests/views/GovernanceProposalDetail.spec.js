@@ -60,6 +60,7 @@ vi.mock("@/components/trace/ScriptViewer.vue", () => ({
 vi.mock("@/utils/logoOptimization", () => ({
   getDefaultCandidateLogoUrl: (pubkey) => `https://example.com/default-${pubkey}.png`,
   resolveCandidateLogoUrl: (value) => value,
+  resolveCandidateLogoUrlFallbacks: (value) => value ? [value] : [],
 }));
 
 vi.mock("vue-toastification", () => ({

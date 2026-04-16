@@ -3,6 +3,7 @@ import {
   getDefaultCandidateLogoUrl,
   optimizeLogoUrl,
   resolveCandidateLogoUrl,
+  resolveCandidateLogoUrlFallbacks,
 } from "@/utils/logoOptimization";
 
 describe("logoOptimization", () => {
@@ -53,5 +54,21 @@ describe("logoOptimization", () => {
   it("does not generate synthetic council fallback badges", () => {
     const url = getDefaultCandidateLogoUrl("03abcdef");
     expect(url).toBe("");
+  });
+
+  it("returns multiple gateway URLs for NeoFS object IDs", () => {
+    const fallbacks = resolveCandidateLogoUrlFallbacks("neofs-object-id");
+    expect(fallbacks.length).toBeGreaterThanOrEqual(2);
+    expect(fallbacks[0]).toContain("filesend.ngd.network");
+    expect(fallbacks[1]).toContain("http.fs.neo.org");
+  });
+
+  it("returns single entry for HTTP URLs", () => {
+    const fallbacks = resolveCandidateLogoUrlFallbacks("https://example.com/logo.png");
+    expect(fallbacks.length).toBe(1);
+  });
+
+  it("returns empty array for empty input", () => {
+    expect(resolveCandidateLogoUrlFallbacks("")).toEqual([]);
   });
 });

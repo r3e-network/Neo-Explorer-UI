@@ -21,6 +21,10 @@
           </svg>
           {{ showRaw ? "Decoded" : "Raw Hex" }}
         </button>
+        <div v-if="contextJson" class="relative group">
+          <CopyButton :text="contextJson" />
+          <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold bg-slate-800 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">neo-cli JSON</span>
+        </div>
         <CopyButton v-if="rawHex" :text="rawHex" />
       </div>
     </div>
@@ -159,6 +163,7 @@ import { describeGovernanceTxExpiry } from "@/utils/governanceTiming";
 
 const props = defineProps({
   transactionHex: { type: String, default: "" },
+  contextJson: { type: String, default: "" },
   label: { type: String, default: "Unsigned Transaction" },
   description: { type: String, default: "" },
   currentBlockHeight: { type: Number, default: null },

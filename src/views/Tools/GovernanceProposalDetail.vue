@@ -56,6 +56,7 @@
               :proposal-target-summary="proposalTargetSummary"
               :proposal-invocations="proposalInvocations"
               :proposal-unsigned-tx="proposalUnsignedTx"
+              :proposal-context-json="proposalContextJson"
               :proposal-execution-script="proposalExecutionScript"
               :signature-witness-rows="signatureWitnessRows"
               :connected-account="connectedAccount"
@@ -133,8 +134,9 @@ import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { isOffchainReviewPacket as isOffchainReviewPacketUtil, resolveCommitteePubkeys } from "@/utils/governanceRequests";
-import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl, resolveCandidateLogoUrlFallbacks } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
+import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
 
 const route = useRoute();
@@ -149,6 +151,7 @@ const showCreateModal = ref(false);
 const loading = ref(true);
 const currentBlockHeight = ref(null);
 const millisecondsPerBlock = ref(null);
+const networkMagic = ref(null);
 let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
 
@@ -174,6 +177,38 @@ const proposalUnsignedTx = computed(() => {
   return String(proposal.value?.unsigned_tx || "").trim();
 });
 const proposalExecutionScript = computed(() => String(proposal.value?.metadata?.execution_script || "").trim());
+const proposalContextJson = computed(() => {
+  const txHex = proposalUnsignedTx.value;
+  if (!txHex || networkMagic.value == null) return "";
+  try {
+    const decoded = decodeUnsignedTransaction(txHex);
+    if (!decoded?.hash) return "";
+    const pubkeys = resolveCommitteePubkeys(proposal.value, committeePubkeys.value);
+    const threshold = requiredCount.value || Math.floor(pubkeys.length / 2) + 1;
+    const scriptHash = String(proposal.value?.params?.scriptHash || "").replace(/^0x/i, "").toLowerCase();
+    const base64Tx = hexToBase64(txHex);
+    let base64VerificationScript = "";
+    const storedVS = proposal.value?.params?.committee_verification_script || "";
+    if (storedVS) {
+      base64VerificationScript = hexToBase64(storedVS);
+    } else if (neonJs && pubkeys.length > 0) {
+      base64VerificationScript = neonJs.wallet.Account.createMultiSig(threshold, pubkeys).contract.script;
+    }
+    const parameters = Array.from({ length: threshold }, () => ({ type: "Signature" }));
+    const context = {
+      type: "Neo.Network.P2P.Payloads.Transaction",
+      hash: decoded.hash.startsWith("0x") ? decoded.hash : "0x" + decoded.hash,
+      data: base64Tx,
+      items: scriptHash ? {
+        [scriptHash]: { script: base64VerificationScript, parameters, signatures: {} },
+      } : {},
+      network: networkMagic.value,
+    };
+    return JSON.stringify(context);
+  } catch {
+    return "";
+  }
+});
 const proposalTxHash = computed(
   () =>
     String(
@@ -532,7 +567,7 @@ function buildCouncilLogoSources(address, explicitLogo = "") {
   const candidates = [];
   const normalizedLogo = String(explicitLogo || "").trim();
   if (normalizedLogo) {
-    candidates.push(resolveCandidateLogoUrl(normalizedLogo));
+    candidates.push(...resolveCandidateLogoUrlFallbacks(normalizedLogo));
   }
 
   const pubkey = findCommitteePubkeyForAddress(address);
@@ -567,9 +602,12 @@ async function loadChainSnapshot() {
 
     currentBlockHeight.value = Number.isFinite(nextBlockHeight) && nextBlockHeight > 0 ? nextBlockHeight : null;
     millisecondsPerBlock.value = Number.isFinite(nextMsPerBlock) && nextMsPerBlock > 0 ? nextMsPerBlock : null;
+    const magic = Number(version?.protocol?.network);
+    networkMagic.value = Number.isFinite(magic) ? magic : null;
   } catch {
     currentBlockHeight.value = null;
     millisecondsPerBlock.value = null;
+    networkMagic.value = null;
   }
 }
 

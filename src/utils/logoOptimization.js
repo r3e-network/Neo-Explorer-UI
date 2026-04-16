@@ -68,6 +68,11 @@ export function optimizeLogoUrl(rawUrl, options = {}) {
   return `${LOGO_PROXY_PATH}?${params.toString()}`;
 }
 
+const NEOFS_GATEWAYS = [
+  "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+  "https://http.fs.neo.org/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+];
+
 export function resolveCandidateLogoUrl(logoValue) {
   const normalized = String(logoValue || "").trim();
   if (!normalized) return "";
@@ -84,8 +89,20 @@ export function resolveCandidateLogoUrl(logoValue) {
     return normalized;
   }
 
-  const neofsGateway = "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc";
-  return optimizeLogoUrl(`${neofsGateway}/${normalized}`, { kind: "candidate" });
+  return optimizeLogoUrl(`${NEOFS_GATEWAYS[0]}/${normalized}`, { kind: "candidate" });
+}
+
+export function resolveCandidateLogoUrlFallbacks(logoValue) {
+  const normalized = String(logoValue || "").trim();
+  if (!normalized) return [];
+
+  if (normalized.startsWith("/api/logo?") || isHttpUrl(normalized) || normalized.startsWith("/")) {
+    return [resolveCandidateLogoUrl(normalized)].filter(Boolean);
+  }
+
+  return NEOFS_GATEWAYS
+    .map((gw) => optimizeLogoUrl(`${gw}/${normalized}`, { kind: "candidate" }))
+    .filter(Boolean);
 }
 
 export function getDefaultCandidateLogoUrl(publicKey) {

@@ -123,6 +123,7 @@
       <UnsignedTransactionViewer
         v-if="proposalUnsignedTx"
         :transaction-hex="proposalUnsignedTx"
+        :context-json="proposalContextJson"
         :current-block-height="currentBlockHeight"
         :milliseconds-per-block="millisecondsPerBlock"
         label="Unsigned Transaction Packet"
@@ -354,6 +355,7 @@ defineProps({
   proposalTargetSummary: { type: String, required: true },
   proposalInvocations: { type: Array, required: true },
   proposalUnsignedTx: { type: String, default: "" },
+  proposalContextJson: { type: String, default: "" },
   proposalExecutionScript: { type: String, default: "" },
   signatureWitnessRows: { type: Array, required: true },
   connectedAccount: { type: String, default: "" },

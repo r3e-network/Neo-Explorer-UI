@@ -5,7 +5,7 @@ import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { addressToScriptHash, publicKeyToAddress, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
-import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl, resolveCandidateLogoUrlFallbacks } from "@/utils/logoOptimization";
 
 // Shared reactive state to avoid redundant fetches across components
 const validators = ref([]);
@@ -22,7 +22,11 @@ const normalizeMetaKey = (value) =>
     .toLowerCase();
 
 const normalizeScriptHashKey = (value) => normalizeMetaKey(value).replace(/^0x/, "");
-const NEOFS_LOGO_GATEWAY = "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc";
+const NEOFS_LOGO_GATEWAYS = [
+  "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+  "https://http.fs.neo.org/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+];
+const NEOFS_LOGO_GATEWAY = NEOFS_LOGO_GATEWAYS[0];
 const CONSENSUS_VALIDATOR_COUNT = 7;
 
 const normalizeCandidateScriptHash = (value) => {
@@ -208,13 +212,15 @@ const processCommitteeMetadata = (data) => {
   let topConsensusValidators = [];
   if (Array.isArray(data)) {
     data.forEach((item) => {
+      const rawLogo = item.logoUrl || item.logo_url || item.logo;
       const normalizedMeta = {
         ...item,
         pubkey: item.pubkey || item.public_key || item.publicKey,
         name: item.name || item.display_name || "",
         scripthash: item.scripthash || item.address || "",
         logo: item.logo || item.logo_url || "",
-        logoUrl: resolveCandidateLogo(item.logoUrl || item.logo_url || item.logo),
+        logoUrl: resolveCandidateLogo(rawLogo),
+        logoUrlFallbacks: resolveCandidateLogoUrlFallbacks(String(rawLogo || "").trim()),
       };
 
       addMeta(normalizedMeta.pubkey, normalizedMeta);
