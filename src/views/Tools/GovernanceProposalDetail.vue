@@ -697,7 +697,19 @@ async function handleBroadcast(currentProposal) {
       committeePubkeyList,
     ).contract.script;
 
-    tx.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
+    const committeeWitness = new neonJs.tx.Witness({ invocationScript, verificationScript });
+
+    // Dual-signer: attach fee-payer witness first, then committee multisig witness
+    if (currentProposal.params?.dual_signer && currentProposal.params?.fee_payer_witness) {
+      const fpw = currentProposal.params.fee_payer_witness;
+      const feePayerWitness = new neonJs.tx.Witness({
+        invocationScript: fpw.invocationScript,
+        verificationScript: fpw.verificationScript,
+      });
+      tx.witnesses = [feePayerWitness, committeeWitness];
+    } else {
+      tx.witnesses = [committeeWitness];
+    }
 
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(tx.serialize(true));
