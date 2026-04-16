@@ -130,6 +130,99 @@
         description="The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script."
       />
 
+      <!-- How to Sign Guide -->
+      <div v-if="proposalUnsignedTx && proposalContextJson" class="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50/80 to-amber-100/30 p-6 shadow-sm dark:border-amber-900/40 dark:from-amber-950/20 dark:to-slate-950">
+        <button
+          class="w-full flex items-center justify-between gap-3 text-left"
+          @click="showSigningGuide = !showSigningGuide"
+        >
+          <div class="flex items-center gap-3">
+            <div class="h-8 w-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 dark:bg-amber-900/30 dark:text-amber-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-black tracking-tight text-amber-800 dark:text-amber-400">How to Sign with neo-cli</h3>
+              <p class="mt-0.5 text-xs text-amber-700/70 dark:text-amber-400/60">Step-by-step guide for council members to sign this proposal offline</p>
+            </div>
+          </div>
+          <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 transition-transform shrink-0" :class="{ 'rotate-180': showSigningGuide }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div v-if="showSigningGuide" class="mt-5 space-y-5">
+          <!-- Step 1 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">1</div>
+              <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
+            </div>
+            <div class="pb-5">
+              <h4 class="text-sm font-bold text-high">Copy the signing payload</h4>
+              <p class="mt-1 text-xs text-mid leading-relaxed">
+                Click the <strong>neo-cli JSON</strong> copy button above (next to "Raw Hex") to copy the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">ContractParametersContext</code> JSON to your clipboard.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">2</div>
+              <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
+            </div>
+            <div class="pb-5">
+              <h4 class="text-sm font-bold text-high">Open your council wallet in neo-cli</h4>
+              <p class="mt-1 text-xs text-mid leading-relaxed">
+                Start neo-cli and open your council member wallet:
+              </p>
+              <div class="mt-2 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
+                <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; open wallet council.json<br />password: ********</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">3</div>
+              <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
+            </div>
+            <div class="pb-5">
+              <h4 class="text-sm font-bold text-high">Sign the transaction</h4>
+              <p class="mt-1 text-xs text-mid leading-relaxed">
+                Paste the JSON into the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">sign</code> command:
+              </p>
+              <div class="mt-2 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
+                <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; sign &#123;paste JSON here&#125;</code>
+              </div>
+              <p class="mt-2 text-xs text-mid leading-relaxed">
+                neo-cli will output a <strong>Signed Output</strong> JSON with your signature added under the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code> field.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">4</div>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-high">Submit your signature</h4>
+              <p class="mt-1 text-xs text-mid leading-relaxed">
+                From the signed output, copy your <strong>public key</strong> (the key under <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>) and <strong>signature</strong> (the value). Click "Add Signature" on this page and paste them in.
+              </p>
+              <div class="mt-3 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
+                <code class="block font-mono text-[10px] leading-5 text-slate-400">// In the signed output JSON, find:<br /></code>
+                <code class="block font-mono text-[10px] leading-5 text-emerald-300">"signatures": &#123;<br />&nbsp;&nbsp;"<span class="text-sky-300">your_public_key_hex</span>": "<span class="text-amber-300">your_signature_hex</span>"<br />&#125;</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div
         v-if="proposalExecutionScript && (!proposalUnsignedTx || String(proposalUnsignedTx).trim().length < 64)"
         class="rounded-xl border border-line-soft bg-surface p-4 shadow-inner dark:border-white/10 dark:bg-[#020617]"
@@ -345,9 +438,12 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
 import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
 import { handleCouncilLogoError } from "@/utils/governanceHelpers";
+
+const showSigningGuide = ref(false);
 
 defineProps({
   proposal: { type: Object, required: true },
