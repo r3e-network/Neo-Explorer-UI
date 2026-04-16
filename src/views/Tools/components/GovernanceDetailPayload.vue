@@ -212,11 +212,11 @@
             <div>
               <h4 class="text-sm font-bold text-high">Submit your signature</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
-                From the signed output, copy your <strong>public key</strong> (the key under <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>) and <strong>signature</strong> (the value). Click "Add Signature" on this page and paste them in.
+                From the signed output, copy your <strong>public key</strong> (the key under <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>) and <strong>signature</strong> (the base64 value). Click "Add Signature" on this page and paste them directly — both hex and base64 formats are accepted.
               </p>
               <div class="mt-3 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
                 <code class="block font-mono text-[10px] leading-5 text-slate-400">// In the signed output JSON, find:<br /></code>
-                <code class="block font-mono text-[10px] leading-5 text-emerald-300">"signatures": &#123;<br />&nbsp;&nbsp;"<span class="text-sky-300">your_public_key_hex</span>": "<span class="text-amber-300">your_signature_hex</span>"<br />&#125;</code>
+                <code class="block font-mono text-[10px] leading-5 text-emerald-300">"signatures": &#123;<br />&nbsp;&nbsp;"<span class="text-sky-300">your_public_key_hex</span>": "<span class="text-amber-300">base64_signature</span>"<br />&#125;</code>
               </div>
             </div>
           </div>
