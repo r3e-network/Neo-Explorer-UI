@@ -172,17 +172,26 @@ async function submitWitness() {
     const addr = publicKeyToAddress(pk);
     if (!addr) throw new Error("Could not derive address from public key.");
 
-    const committee = props.request?.params?.committee_pubkeys || [];
-    if (committee.length > 0 && !committee.includes(pk)) {
+    const committee = (props.request?.params?.committee_pubkeys || []).map((p) => p.toLowerCase());
+    const pkLower = pk.toLowerCase();
+    if (committee.length > 0 && !committee.includes(pkLower)) {
       throw new Error("This public key is not a committee member.");
     }
 
     if (pk && signingPayload.value?.payload) {
       await ensureNeonJs();
       if (typeof neonJs?.wallet?.verify === "function") {
-        const clientValid = neonJs.wallet.verify(signingPayload.value.payload, sig, pk);
-        if (!clientValid) {
-          console.warn("Client-side signature pre-check failed — deferring to server verification.");
+        if (!neonJs.wallet.verify(signingPayload.value.payload, sig, pk)) {
+          // Recompute payload fresh in case the page had stale data
+          try {
+            const freshPayload = await walletService.getRawTransactionSigningPayload(props.request.params.unsigned_tx);
+            if (!neonJs.wallet.verify(freshPayload.payload, sig, pk)) {
+              throw new Error("Signature does not verify against the signing payload.");
+            }
+          } catch (retryErr) {
+            if (retryErr.message.includes("does not verify")) throw retryErr;
+            // RPC failure — let server decide
+          }
         }
       }
     }
