@@ -42,11 +42,11 @@
             v-model="signatureHex"
             type="text"
             class="form-input w-full font-mono text-xs py-2.5 rounded-xl"
-            placeholder="Signature (128 hex)"
+            placeholder="Signature (128 hex or base64 from neo-cli)"
           />
           <button
             @click="submitWitness"
-            :disabled="!signatureHex.trim() || signatureHex.trim().length < 128 || !signerPublicKey.trim() || isSubmitting"
+            :disabled="!signatureHex.trim() || signatureHex.trim().length < 64 || !signerPublicKey.trim() || isSubmitting"
             class="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             {{ isSubmitting ? "Submitting..." : "Submit" }}
@@ -163,10 +163,20 @@ async function submitWitness() {
   submitError.value = "";
   isSubmitting.value = true;
   try {
-    const sig = signatureHex.value.trim().replace(/^0x/i, "");
+    let sig = signatureHex.value.trim().replace(/^0x/i, "");
     const pk = signerPublicKey.value.trim().replace(/^0x/i, "");
 
-    if (!sig || sig.length < 128) throw new Error("Signature must be 128 hex characters.");
+    // Auto-detect base64 signature (neo-cli outputs base64) and convert to hex
+    if (sig && !/^[0-9a-f]+$/i.test(sig) && /^[A-Za-z0-9+/=]+$/.test(sig)) {
+      try {
+        const decoded = Uint8Array.from(atob(sig), (c) => c.charCodeAt(0));
+        if (decoded.length === 64) {
+          sig = Array.from(decoded, (b) => b.toString(16).padStart(2, "0")).join("");
+        }
+      } catch { /* not valid base64, will fail hex check below */ }
+    }
+
+    if (!sig || sig.length < 128 || !/^[0-9a-f]+$/i.test(sig)) throw new Error("Signature must be 128 hex characters or 64-byte base64.");
     if (!pk || !isPublicKeyHex(pk)) throw new Error("Valid public key required (66 hex chars).");
 
     const addr = publicKeyToAddress(pk);
