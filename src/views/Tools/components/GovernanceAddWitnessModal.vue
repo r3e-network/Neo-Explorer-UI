@@ -182,21 +182,21 @@ async function submitWitness() {
     const addr = publicKeyToAddress(pk);
     if (!addr) throw new Error("Could not derive address from public key.");
 
+    // 1. Public key must be a committee member
     const committee = (props.request?.params?.committee_pubkeys || []).map((p) => p.toLowerCase());
-    const pkLower = pk.toLowerCase();
-    if (committee.length > 0 && !committee.includes(pkLower)) {
+    if (!committee.length) throw new Error("Committee pubkeys not available for this proposal.");
+    if (!committee.includes(pk.toLowerCase())) {
       throw new Error("This public key is not a committee member.");
     }
 
-    // Verify signature client-side — compute payload fresh at submit time
-    if (pk && props.request?.params?.unsigned_tx) {
-      await ensureNeonJs();
-      if (typeof neonJs?.wallet?.verify === "function") {
-        const freshPayload = await walletService.getRawTransactionSigningPayload(props.request.params.unsigned_tx);
-        if (!neonJs.wallet.verify(freshPayload.payload, sig, pk)) {
-          throw new Error("Signature does not verify against the transaction. Make sure you signed the correct proposal and your public key matches.");
-        }
-      }
+    // 2 & 3. Signature must be cryptographically valid for this public key AND the current transaction payload
+    const unsignedTx = props.request?.params?.unsigned_tx;
+    if (!unsignedTx) throw new Error("Proposal has no unsigned transaction.");
+    await ensureNeonJs();
+    if (typeof neonJs?.wallet?.verify !== "function") throw new Error("Crypto library not available.");
+    const freshPayload = await walletService.getRawTransactionSigningPayload(unsignedTx);
+    if (!neonJs.wallet.verify(freshPayload.payload, sig, pk)) {
+      throw new Error("Signature does not verify against the transaction. Make sure you signed the correct proposal and your public key matches.");
     }
 
     const payload = buildExternalWitnessPayload({

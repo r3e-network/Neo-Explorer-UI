@@ -148,7 +148,10 @@ async function verifyGovernanceWitness({ requestRow, signerAddress, publicKey, s
     throw new Error("Signer public key is required for server-side verification.");
   }
 
-  if (committeePubkeys.length > 0 && !committeePubkeys.includes(canonicalPublicKey)) {
+  if (!committeePubkeys.length) {
+    throw new Error("Committee pubkeys not available for this proposal.");
+  }
+  if (!committeePubkeys.includes(canonicalPublicKey)) {
     throw new Error("Signer public key is not part of the committee for this proposal.");
   }
 
