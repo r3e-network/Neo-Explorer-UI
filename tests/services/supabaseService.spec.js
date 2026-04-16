@@ -397,7 +397,7 @@ describe("supabaseService metadata", () => {
         address,
         display_name: "COZ Council",
         logo_url:
-          "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
+          "https://rest.fs.neo.org/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
       }),
     ]);
   });

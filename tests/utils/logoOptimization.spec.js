@@ -15,7 +15,7 @@ describe("logoOptimization", () => {
 
   it("keeps non-http values unchanged", () => {
     expect(optimizeLogoUrl("/img/brand/neo.png", { forceProxy: true })).toBe("/img/brand/neo.png");
-    expect(resolveCandidateLogoUrl("neofs-object-id")).toContain("filesend.ngd.network/gate/get/");
+    expect(resolveCandidateLogoUrl("neofs-object-id")).toContain("rest.fs.neo.org/");
   });
 
   it("builds proxied url when forceProxy is true", () => {
@@ -59,8 +59,8 @@ describe("logoOptimization", () => {
   it("returns multiple gateway URLs for NeoFS object IDs", () => {
     const fallbacks = resolveCandidateLogoUrlFallbacks("neofs-object-id");
     expect(fallbacks.length).toBeGreaterThanOrEqual(2);
-    expect(fallbacks[0]).toContain("filesend.ngd.network");
-    expect(fallbacks[1]).toContain("http.fs.neo.org");
+    expect(fallbacks[0]).toContain("rest.fs.neo.org");
+    expect(fallbacks[1]).toContain("filesend.ngd.network");
   });
 
   it("returns single entry for HTTP URLs", () => {

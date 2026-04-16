@@ -69,8 +69,8 @@ export function optimizeLogoUrl(rawUrl, options = {}) {
 }
 
 const NEOFS_GATEWAYS = [
+  "https://rest.fs.neo.org/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
   "https://filesend.ngd.network/gate/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
-  "https://http.fs.neo.org/get/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
 ];
 
 export function resolveCandidateLogoUrl(logoValue) {
