@@ -4,7 +4,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
   >
-    <div class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
+    <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
       <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
         <h2 class="text-lg font-bold text-high tracking-tight">Add Signature</h2>
         <button @click="$emit('close')" aria-label="Close" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
@@ -15,19 +15,23 @@
       </div>
 
       <div class="p-6 space-y-5 overflow-y-auto custom-scrollbar min-h-0">
-        <!-- Signing Payload -->
+
+        <!-- neo-cli Transaction JSON -->
         <div class="space-y-2">
-          <label class="text-xs font-bold text-high">Signing Payload</label>
-          <div v-if="signingPayload" class="flex items-center gap-2">
-            <code class="flex-1 block break-all font-mono text-[11px] leading-5 text-mid bg-surface-muted rounded-lg px-3 py-2 select-all">{{ signingPayload.payload }}</code>
-            <CopyButton :text="signingPayload.payload" size="md" />
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-high">Transaction (neo-cli JSON format)</label>
+            <CopyButton v-if="contextJson" :text="contextJson" size="md" />
+          </div>
+          <div v-if="contextJson" class="rounded-xl bg-slate-950 p-3 max-h-32 overflow-y-auto custom-scrollbar dark:bg-slate-900">
+            <code class="block break-all font-mono text-[10px] leading-5 text-emerald-300 select-all">{{ contextJson }}</code>
           </div>
           <p v-else class="text-xs text-amber-600">Loading...</p>
-          <p v-if="signingPayload" class="text-[11px] text-mid font-mono">TX Hash: {{ signingPayload.transactionHash }}</p>
+          <p class="text-[11px] text-mid">Copy this JSON into neo-cli: <code class="font-mono text-high">neo> sign &#123;paste JSON here&#125;</code></p>
         </div>
 
         <!-- Public Key + Signature -->
         <div class="space-y-3">
+          <label class="text-xs font-bold text-high">Public Key + Signature</label>
           <input
             v-model="signerPublicKey"
             type="text"
@@ -65,7 +69,7 @@ import CopyButton from "@/components/common/CopyButton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { walletService } from "@/services/walletService";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
-import { isPublicKeyHex, publicKeyToAddress } from "@/utils/neoHelpers";
+import { isPublicKeyHex, publicKeyToAddress, hexToBase64 } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
 
 const props = defineProps({
@@ -81,6 +85,56 @@ const signatureHex = ref("");
 const isSubmitting = ref(false);
 const submitError = ref("");
 
+let neonJs = null;
+
+async function ensureNeonJs() {
+  if (!neonJs) neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+}
+
+const contextJson = computed(() => {
+  if (!signingPayload.value || !props.request?.params?.unsigned_tx) return "";
+  try {
+    const unsignedTxHex = props.request.params.unsigned_tx;
+    const committeePubkeys = props.request.params?.committee_pubkeys || [];
+    const threshold = props.request.signers_required || Math.floor(committeePubkeys.length / 2) + 1;
+    const scriptHash = props.request.params?.scriptHash || "";
+
+    // Build ContractParametersContext JSON for neo-cli
+    const base64Tx = hexToBase64(unsignedTxHex);
+    const verificationScriptHex = props.request.params?.committee_verification_script || "";
+
+    // Build the verification script from committee pubkeys if not stored
+    let base64VerificationScript = "";
+    if (verificationScriptHex) {
+      base64VerificationScript = hexToBase64(verificationScriptHex);
+    } else if (neonJs && committeePubkeys.length > 0) {
+      const multiSig = neonJs.wallet.Account.createMultiSig(threshold, committeePubkeys);
+      base64VerificationScript = multiSig.contract.script;
+    }
+
+    const normalizedHash = String(scriptHash).replace(/^0x/i, "").toLowerCase();
+    const parameters = Array.from({ length: threshold }, () => ({ type: "Signature" }));
+
+    const context = {
+      type: "Neo.Network.P2P.Payloads.Transaction",
+      hash: "0x" + signingPayload.value.transactionHash,
+      data: base64Tx,
+      items: {
+        [normalizedHash]: {
+          script: base64VerificationScript,
+          parameters,
+          signatures: {},
+        },
+      },
+      network: signingPayload.value.networkMagic,
+    };
+
+    return JSON.stringify(context);
+  } catch {
+    return "";
+  }
+});
+
 const emailLink = computed(() => {
   const subject = encodeURIComponent("Council Governance Signature - Proposal #" + (props.request?.id || ""));
   const body = encodeURIComponent("Public Key: " + signerPublicKey.value + "\nSignature: " + signatureHex.value + "\nProposal: #" + (props.request?.id || ""));
@@ -93,6 +147,8 @@ watch(() => props.request, async (req) => {
   signatureHex.value = "";
   submitError.value = "";
   signingPayload.value = null;
+
+  await ensureNeonJs();
 
   if (req.params?.unsigned_tx) {
     try {
@@ -122,8 +178,8 @@ async function submitWitness() {
     }
 
     if (pk && signingPayload.value?.payload) {
-      const neonJs = window.Neon || (await import("@cityofzion/neon-js"));
-      if (typeof neonJs.wallet?.verify === "function") {
+      await ensureNeonJs();
+      if (typeof neonJs?.wallet?.verify === "function") {
         if (!neonJs.wallet.verify(signingPayload.value.payload, sig, pk)) {
           throw new Error("Signature does not verify against the signing payload.");
         }
