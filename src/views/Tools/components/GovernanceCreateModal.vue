@@ -777,11 +777,14 @@ async function buildDraftTransaction({ neonJs, rpcClient, signerConfig, validUnt
   }
 
   const networkFee = await rpcClient.calculateNetworkFee(feeProbeTx);
+  // Double both fees to ensure the transaction has sufficient margin for execution.
+  const doubledSystemFee = String(BigInt(invokeResult?.gasconsumed || 0) * 2n);
+  const doubledNetworkFee = String(BigInt(networkFee || 0) * 2n);
   const transaction = new neonJs.tx.Transaction({
     signers,
     validUntilBlock,
-    systemFee: String(invokeResult?.gasconsumed || 0),
-    networkFee: String(networkFee || 0),
+    systemFee: doubledSystemFee,
+    networkFee: doubledNetworkFee,
     script: neonJs.u.HexString.fromHex(script),
   });
 

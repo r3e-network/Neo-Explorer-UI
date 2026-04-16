@@ -48,6 +48,11 @@
             {{ isSubmitting ? "Submitting..." : "Submit" }}
           </button>
           <p v-if="submitError" class="text-xs text-red-600 dark:text-red-400">{{ submitError }}</p>
+
+          <div class="text-center pt-2 border-t border-line-soft">
+            <p class="text-[11px] text-mid mb-1">Or send your public key and signature via email:</p>
+            <a :href="emailLink" class="text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400">jimmy@r3e.network</a>
+          </div>
         </div>
       </div>
     </div>
@@ -75,6 +80,12 @@ const signerPublicKey = ref("");
 const signatureHex = ref("");
 const isSubmitting = ref(false);
 const submitError = ref("");
+
+const emailLink = computed(() => {
+  const subject = encodeURIComponent("Council Governance Signature - Proposal #" + (props.request?.id || ""));
+  const body = encodeURIComponent("Public Key: " + signerPublicKey.value + "\nSignature: " + signatureHex.value + "\nProposal: #" + (props.request?.id || ""));
+  return "mailto:jimmy@r3e.network?subject=" + subject + "&body=" + body;
+});
 
 watch(() => props.request, async (req) => {
   if (!req) return;
