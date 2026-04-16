@@ -71,9 +71,26 @@
 
           <ol class="text-xs text-mid list-decimal pl-4 space-y-1">
             <li>Open NeoLine → avatar → <strong>Add Wallet → Multi-Signature</strong></li>
-            <li>Set threshold to <strong>{{ request.signers_required }}</strong> and paste the {{ committeePubkeys.length }} public keys below</li>
+            <li>Set threshold to <strong>{{ committeeThreshold }}</strong> and paste the {{ committeePubkeys.length }} public keys below</li>
             <li>Switch to the new committee wallet, then return here and click Sign</li>
           </ol>
+
+          <div class="rounded-xl border border-amber-200 bg-white/70 p-3 space-y-2 dark:border-amber-800 dark:bg-slate-950/40">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-low">Expected Committee Multisig</p>
+              <CopyButton v-if="committeeMultiSigAddress" :text="committeeMultiSigAddress" size="sm" />
+            </div>
+            <p class="font-mono text-[11px] break-all text-high">{{ committeeMultiSigAddress || "Unavailable until committee keys load" }}</p>
+          </div>
+
+          <button
+            :data-testid="testId('switch-neoline-account')"
+            @click="switchNeoLineAccount"
+            :disabled="isSwitchingWalletAccount"
+            class="w-full px-4 py-3 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+          >
+            {{ isSwitchingWalletAccount ? "Waiting For NeoLine..." : "Switch NeoLine Account" }}
+          </button>
 
           <div class="rounded-xl bg-slate-950 text-slate-100 p-3 space-y-2 dark:bg-slate-900">
             <div class="flex items-center justify-between gap-3">
@@ -85,9 +102,7 @@
             </div>
           </div>
 
-          <p class="text-xs text-mid">
-            Or disconnect NeoLine and connect with <strong>Direct WIF (Council)</strong> for one-click signing without wallet setup.
-          </p>
+          <p class="text-xs text-mid">Or sign the payload externally with your own council member key and paste the witness below.</p>
         </div>
 
         <div class="relative py-2">
@@ -148,7 +163,7 @@
                   </div>
                   <code class="block break-all font-mono text-[10px] leading-5 text-emerald-300 whitespace-pre-wrap">{{ neonJsSignCommand }}</code>
                 </div>
-                <p class="text-[11px] text-mid">Replace <code class="font-mono text-high">YOUR_WIF</code> with your council WIF private key. The output is the 128-char hex signature to paste below.</p>
+                <p class="text-[11px] text-mid">Replace <code class="font-mono text-high">YOUR_WIF</code> with your own council member WIF private key. The output is the 128-char hex signature to paste below.</p>
               </div>
             </div>
           </div>
@@ -241,6 +256,7 @@ const externalInvocationScript = ref("");
 const preparedSigningPayload = ref(null);
 const isPreparingSigningPayload = ref(false);
 const isSubmittingExternalWitness = ref(false);
+const isSwitchingWalletAccount = ref(false);
 const neonReadyTick = ref(0);
 const allowOverwrite = ref(false);
 
@@ -326,6 +342,26 @@ const committeePubkeys = computed(() => {
   return Array.isArray(props.request?.params?.committee_pubkeys) ? props.request.params.committee_pubkeys : [];
 });
 
+const committeeThreshold = computed(() => {
+  const explicit = Number(props.request?.signers_required || 0);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const size = committeePubkeys.value.length;
+  return size > 0 ? Math.floor(size / 2) + 1 : 0;
+});
+
+const committeeMultiSigAddress = computed(() => {
+  neonReadyTick.value;
+  if (!committeePubkeys.value.length || !committeeThreshold.value || typeof neonJs?.wallet?.Account?.createMultiSig !== "function") {
+    return "";
+  }
+
+  try {
+    return neonJs.wallet.Account.createMultiSig(committeeThreshold.value, committeePubkeys.value).address;
+  } catch {
+    return "";
+  }
+});
+
 const isNeoLineMultisigSignerMismatch = computed(() => {
   neonReadyTick.value;
   if (getActiveWalletProvider() !== PROVIDERS.NEOLINE) return false;
@@ -406,13 +442,41 @@ async function autoSignTx() {
   isSigning.value = true;
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
-    const signature = await walletService.signRawTransaction(unsignedTxHex);
-    await submitSig(signature, "wallet_signature");
+    const walletSignatureResult =
+      typeof walletService.signRawTransactionDetailed === "function"
+        ? await walletService.signRawTransactionDetailed(unsignedTxHex)
+        : { signature: await walletService.signRawTransaction(unsignedTxHex) };
+    await submitSig(walletSignatureResult?.signature || walletSignatureResult, "wallet_signature", walletSignatureResult);
   } catch (e) {
     console.error(e);
     toast.error("Signing failed: " + (e?.message || String(e)));
   } finally {
     isSigning.value = false;
+  }
+}
+
+async function switchNeoLineAccount() {
+  if (!props.request || getActiveWalletProvider() !== PROVIDERS.NEOLINE) return;
+
+  isSwitchingWalletAccount.value = true;
+  try {
+    const nextAccount = await walletService.switchWalletAccount?.();
+    await ensureNeonJs();
+    externalSignerAddress.value = String(nextAccount?.address || "").trim();
+    externalSignerPublicKey.value = "";
+    await prefillExternalWitnessSigner();
+
+    if (isNeoLineMultisigSignerMismatch.value) {
+      toast.warning("NeoLine switched accounts, but the selected account still does not match the committee multisig signer.");
+      return;
+    }
+
+    toast.success("NeoLine switched to the committee signer account. You can sign directly now.");
+  } catch (e) {
+    console.error(e);
+    toast.error("Failed to switch NeoLine account: " + (e?.message || String(e)));
+  } finally {
+    isSwitchingWalletAccount.value = false;
   }
 }
 
@@ -460,16 +524,25 @@ function validateCommitteeMember(signerPublicKey) {
   }
 }
 
-async function submitSig(signatureHex, source = "manual_signature") {
+async function submitSig(signatureHex, source = "manual_signature", signerOverride = null) {
   if (!signatureHex || signatureHex.length < 128) {
     throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
   }
   try {
     const requestId = props.request.id;
-    const signerAddress = getConnectedWalletAddress();
+    const overridePublicKey = String(
+      signerOverride?.publicKey || signerOverride?.signerPublicKey || "",
+    ).trim().replace(/^0x/i, "");
+    const overrideAddress = String(
+      signerOverride?.signerAddress || signerOverride?.address || "",
+    ).trim();
+    const signerAddress = overrideAddress || getConnectedWalletAddress();
     const signerPublicKey = assertSignerIdentityMatches({
       signerAddress,
-      signerPublicKey: findRequestSignerPublicKey(props.request, signerAddress) || (await getConnectedWalletPublicKey()),
+      signerPublicKey:
+        overridePublicKey ||
+        findRequestSignerPublicKey(props.request, signerAddress) ||
+        (await getConnectedWalletPublicKey()),
     });
     await verifyGovernanceSignature(signatureHex, signerPublicKey);
     const payload = buildExternalWitnessPayload({

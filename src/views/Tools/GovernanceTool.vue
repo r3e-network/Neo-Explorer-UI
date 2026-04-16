@@ -3,6 +3,7 @@
     <section class="page-container py-6 md:py-8">
       <GovernanceHeaderCard
         :committee-multi-sig="committeeMultiSig"
+        :committee-pubkeys="committeePubkeys"
         :threshold="threshold"
         :committee-size="committeeSize"
         :active-network-label="activeNetworkLabel"

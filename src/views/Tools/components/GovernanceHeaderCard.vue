@@ -172,6 +172,15 @@
                 </button>
               </div>
             </div>
+
+            <GovernanceCouncilWalletSetupCard
+              :committee-multi-sig="committeeMultiSig"
+              :committee-pubkeys="committeePubkeys"
+              :threshold="threshold"
+              :committee-size="committeeSize"
+              :connected-account="connectedAccount"
+              :active-network-label="activeNetworkLabel"
+            />
           </div>
         </div>
       </div>
@@ -235,11 +244,13 @@
 <script setup>
 import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import GovernanceCouncilWalletSetupCard from "@/views/Tools/components/GovernanceCouncilWalletSetupCard.vue";
 
 const showSigningGuide = ref(false);
 
 defineProps({
   committeeMultiSig: { type: Object, default: null },
+  committeePubkeys: { type: Array, default: () => [] },
   threshold: { type: Number, default: 0 },
   committeeSize: { type: Number, default: 0 },
   activeNetworkLabel: { type: String, default: "" },

@@ -1,4 +1,5 @@
 const { query } = require("../lib/db");
+const { verifyGovernanceWitness } = require("../lib/governanceSignature");
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -23,17 +24,31 @@ module.exports = async function handler(req, res) {
     if (!Number.isFinite(requestId) || requestId <= 0) {
       return res.status(400).json({ error: "Valid request_id is required." });
     }
-    if (!signerAddress) {
-      return res.status(400).json({ error: "signer_address is required." });
-    }
     if (!signature || signature.length < 128) {
       return res.status(400).json({ error: "Valid signature is required (at least 128 hex chars)." });
     }
 
+    const { rows: requestRows } = await query(
+      `SELECT * FROM multisig_requests WHERE id = $1 LIMIT 1`,
+      [requestId]
+    );
+    if (!requestRows.length) {
+      return res.status(404).json({ error: "Request not found." });
+    }
+
+    const verifiedWitness = await verifyGovernanceWitness({
+      requestRow: requestRows[0],
+      signerAddress,
+      publicKey: body.public_key,
+      signature,
+      invocationScript: body.invocation_script,
+      verificationScript: body.verification_script,
+    });
+
     // Check for existing signature from this signer
     const { rows: existing } = await query(
       `SELECT id FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2 LIMIT 1`,
-      [requestId, signerAddress]
+      [requestId, verifiedWitness.signerAddress]
     );
 
     const allowOverwrite = body.overwrite === true;
@@ -43,28 +58,39 @@ module.exports = async function handler(req, res) {
 
     // Delete old signature if overwriting
     if (existing.length > 0 && allowOverwrite) {
-      await query(`DELETE FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2`, [requestId, signerAddress]);
+      await query(`DELETE FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2`, [requestId, verifiedWitness.signerAddress]);
     }
 
     // Insert signature
     const columns = ["request_id", "signer_address", "signature"];
-    const values = [requestId, signerAddress, signature];
+    const values = [requestId, verifiedWitness.signerAddress, verifiedWitness.signature];
 
-    if (body.public_key) {
+    if (verifiedWitness.publicKey) {
       columns.push("public_key");
-      values.push(body.public_key);
+      values.push(verifiedWitness.publicKey);
     }
-    if (body.witness && typeof body.witness === "object") {
+    const normalizedWitness =
+      body.witness && typeof body.witness === "object"
+        ? {
+            ...body.witness,
+            signer_address: verifiedWitness.signerAddress,
+            signature: verifiedWitness.signature,
+            ...(verifiedWitness.publicKey ? { public_key: verifiedWitness.publicKey } : {}),
+            ...(verifiedWitness.invocationScript ? { invocation_script: verifiedWitness.invocationScript } : {}),
+            ...(verifiedWitness.verificationScript ? { verification_script: verifiedWitness.verificationScript } : {}),
+          }
+        : null;
+    if (normalizedWitness) {
       columns.push("witness");
-      values.push(JSON.stringify(body.witness));
+      values.push(JSON.stringify(normalizedWitness));
     }
-    if (body.invocation_script) {
+    if (verifiedWitness.invocationScript) {
       columns.push("invocation_script");
-      values.push(body.invocation_script);
+      values.push(verifiedWitness.invocationScript);
     }
-    if (body.verification_script) {
+    if (verifiedWitness.verificationScript) {
       columns.push("verification_script");
-      values.push(body.verification_script);
+      values.push(verifiedWitness.verificationScript);
     }
     if (body.metadata && typeof body.metadata === "object") {
       columns.push("metadata");
@@ -76,19 +102,16 @@ module.exports = async function handler(req, res) {
     const { rows } = await query(sql, values);
 
     // Also merge signature metadata into the request params (for witness hydration)
-    if (body.public_key || body.invocation_script || body.witness) {
+    if (verifiedWitness.publicKey || verifiedWitness.invocationScript || normalizedWitness) {
       try {
-        const { rows: reqRows } = await query(
-          `SELECT params FROM multisig_requests WHERE id = $1`,
-          [requestId]
-        );
-        const currentParams = reqRows[0]?.params || {};
+        const currentParams = requestRows[0]?.params || {};
         const sigMeta = currentParams.signature_metadata || {};
-        sigMeta[signerAddress] = {
-          ...(sigMeta[signerAddress] || {}),
-          ...(body.public_key ? { public_key: body.public_key } : {}),
-          ...(body.invocation_script ? { invocation_script: body.invocation_script } : {}),
-          ...(body.witness ? { witness: body.witness } : {}),
+        sigMeta[verifiedWitness.signerAddress] = {
+          ...(sigMeta[verifiedWitness.signerAddress] || {}),
+          ...(verifiedWitness.publicKey ? { public_key: verifiedWitness.publicKey } : {}),
+          ...(verifiedWitness.invocationScript ? { invocation_script: verifiedWitness.invocationScript } : {}),
+          ...(verifiedWitness.verificationScript ? { verification_script: verifiedWitness.verificationScript } : {}),
+          ...(normalizedWitness ? { witness: normalizedWitness } : {}),
         };
         await query(
           `UPDATE multisig_requests SET params = $2, updated_at = now() WHERE id = $1`,
@@ -102,6 +125,10 @@ module.exports = async function handler(req, res) {
     return res.status(201).json(rows[0]);
   } catch (err) {
     console.error("[api/multisig/signatures]", err);
-    return res.status(500).json({ error: err.message });
+    const message = String(err?.message || "Unknown error");
+    const isClientError = /required|does not match|not part of the committee|request is missing|failed to resolve|valid signature|not found|verification script|invocation script/i.test(
+      message
+    );
+    return res.status(isClientError ? 400 : 500).json({ error: message });
   }
 };

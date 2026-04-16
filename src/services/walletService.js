@@ -16,7 +16,7 @@ import {
   normalizeSignersForRpc,
   normalizeSignMessageResult,
 } from "@/utils/walletNormalization";
-import { bytesToHex } from "@/utils/neoHelpers";
+import { bytesToHex, publicKeyToAddress } from "@/utils/neoHelpers";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
@@ -527,6 +527,66 @@ function normalizePublicKeyResult(result) {
   return candidate ? candidate.trim().replace(/^0x/i, "") : "";
 }
 
+function extractNeoLineSignatureMetadata(result) {
+  if (!result || typeof result !== "object") {
+    return {
+      signature: result?.signature || result?.data || "",
+      publicKey: "",
+      invocationScript: "",
+      verificationScript: "",
+    };
+  }
+
+  const invocationScript = String(result?.witnesses?.[0]?.invocationScript || "").trim().replace(/^0x/i, "");
+  const verificationScript = String(result?.witnesses?.[0]?.verificationScript || "").trim().replace(/^0x/i, "");
+  const directSignature = typeof result.signature === "string" && result.signature
+    ? result.signature
+    : typeof result.data === "string" && result.data
+      ? result.data
+      : "";
+
+  let signature = directSignature.replace(/^0x/i, "");
+  if (!signature && invocationScript && typeof window?.Neon?.wallet?.getSignaturesFromInvocationScript === "function") {
+    try {
+      const signatures = window.Neon.wallet.getSignaturesFromInvocationScript(invocationScript);
+      if (Array.isArray(signatures) && signatures[0]) {
+        signature = String(signatures[0]).trim().replace(/^0x/i, "");
+      }
+    } catch {
+      // fall through to regex fallback
+    }
+  }
+
+  if (!signature && invocationScript) {
+    const match = invocationScript.match(/^(?:0c40|40)([0-9a-fA-F]{128})/);
+    if (match) signature = match[1];
+  }
+
+  let publicKey = "";
+  if (verificationScript && typeof window?.Neon?.wallet?.getPublicKeyFromVerificationScript === "function") {
+    try {
+      publicKey = normalizePublicKeyResult(window.Neon.wallet.getPublicKeyFromVerificationScript(verificationScript));
+    } catch {
+      publicKey = "";
+    }
+  }
+
+  if (!publicKey && verificationScript) {
+    const checksigMatch = verificationScript.match(/(?:0c21|21)(0[23][0-9a-fA-F]{64})(?:4156e7b327|ac)$/i);
+    if (checksigMatch) {
+      publicKey = normalizePublicKeyResult(checksigMatch[1]);
+    }
+  }
+
+  return {
+    signature,
+    publicKey,
+    signerAddress: publicKey ? publicKeyToAddress(publicKey) : "",
+    invocationScript,
+    verificationScript,
+  };
+}
+
 async function resolveUnsignedTransactionHash(unsignedTxHex) {
   const sdk = await loadSdk();
   const CompatTransaction = getCompatTransactionClass(sdk);
@@ -953,6 +1013,11 @@ export const walletService = {
   },
 
   async signRawTransaction(unsignedTxHex) {
+    const result = await this.signRawTransactionDetailed(unsignedTxHex);
+    return result.signature;
+  },
+
+  async signRawTransactionDetailed(unsignedTxHex) {
     if (!_account) throw new Error("Wallet not connected");
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
@@ -979,11 +1044,11 @@ export const walletService = {
 
         try {
           const res = await n3.signTransaction({ transaction: unsignedTxHex, network: expectedNetwork });
-          const signature = extractNeoLineSignature(res);
-          if (!signature) {
+          const details = extractNeoLineSignatureMetadata(res);
+          if (!details.signature) {
             throw new Error("NeoLine returned no transaction signature.");
           }
-          return signature;
+          return details;
         } catch (error) {
           if (isDapiCanceled(error)) {
             throw new Error("Transaction canceled by user.");
@@ -999,16 +1064,52 @@ export const walletService = {
       const account = await web3authService.getAccount();
       // the unsigned tx hex needs to be hashed before signing
       const hash = await resolveUnsignedTransactionHash(unsignedTxHex);
-      return account.sign(hash);
+      return {
+        signature: account.sign(hash),
+        publicKey: normalizePublicKeyResult(account?.publicKey),
+        signerAddress: String(account?.address || _account?.address || "").trim(),
+      };
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
       const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
-      return _directWifAccount.sign(payload);
+      return {
+        signature: _directWifAccount.sign(payload),
+        publicKey: normalizePublicKeyResult(
+          typeof _directWifAccount?.publicKey?.toHex === "function"
+            ? _directWifAccount.publicKey.toHex()
+            : _directWifAccount?.publicKey,
+        ),
+        signerAddress: String(_directWifAccount?.address || _account?.address || "").trim(),
+      };
     }
 
     throw new Error("Provider does not support raw transaction signing in browser.");
+  },
+
+  async switchWalletAccount() {
+    if (!_account) throw new Error("Wallet not connected");
+
+    if (_connectedProvider === PROVIDERS.NEOLINE) {
+      const n3 = await getNeoLineN3();
+      if (typeof n3.switchWalletAccount !== "function") {
+        throw new Error("NeoLine does not support account switching.");
+      }
+
+      const nextAccount = await n3.switchWalletAccount();
+      if (!nextAccount?.address) {
+        throw new Error("NeoLine returned no account after switching.");
+      }
+
+      _account = {
+        address: nextAccount.address,
+        label: String(nextAccount.label || PROVIDERS.NEOLINE).trim() || PROVIDERS.NEOLINE,
+      };
+      return _account;
+    }
+
+    throw new Error("Active wallet does not support account switching.");
   },
 
   async signMessage(message) {
@@ -1519,28 +1620,6 @@ function normalizeArgForDapi(arg = {}) {
     type,
     value: normalizeArgValueForDapi(type, arg?.value),
   };
-}
-
-function extractNeoLineSignature(result) {
-  if (!result || typeof result !== "object") {
-    return result?.signature || result?.data;
-  }
-
-  if (typeof result.signature === "string" && result.signature) {
-    return result.signature;
-  }
-
-  if (typeof result.data === "string" && result.data) {
-    return result.data;
-  }
-
-  const invocationScript = String(result?.witnesses?.[0]?.invocationScript || "").trim();
-  const match = invocationScript.match(/^(?:0c40|40)([0-9a-fA-F]{128})/);
-  if (match) {
-    return match[1];
-  }
-
-  return undefined;
 }
 
 export default walletService;
