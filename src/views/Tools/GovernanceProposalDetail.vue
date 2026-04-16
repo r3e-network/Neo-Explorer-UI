@@ -521,16 +521,37 @@ const signatureWitnessRows = computed(() => {
     const eligibleIndex = eligible.findIndex((addr) => addr === signature.signer_address);
     const displayIndex = eligibleIndex >= 0 ? eligibleIndex + 1 : index + 1;
 
+    const sigHex = String(signature.signature || "").trim();
+    const sigBase64 = sigHex && /^[0-9a-f]+$/i.test(sigHex) && sigHex.length === 128
+      ? hexToBase64(sigHex)
+      : sigHex;
+
+    // Convert hex signatures in witness meta to base64 for display
+    let witnessDisplay = "";
+    if (signature.witness) {
+      const w = { ...signature.witness };
+      if (typeof w.signature === "string" && /^[0-9a-f]{128}$/i.test(w.signature)) {
+        w.signature = hexToBase64(w.signature);
+      }
+      if (typeof w.invocation_script === "string" && /^[0-9a-f]+$/i.test(w.invocation_script)) {
+        w.invocation_script = hexToBase64(w.invocation_script);
+      }
+      if (typeof w.verification_script === "string" && /^[0-9a-f]+$/i.test(w.verification_script)) {
+        w.verification_script = hexToBase64(w.verification_script);
+      }
+      witnessDisplay = JSON.stringify(w, null, 2);
+    }
+
     return {
       signerAddress: signature.signer_address,
       name: resolved.name === signature.signer_address ? `Council Node ${displayIndex}` : resolved.name,
       logo: resolveCouncilLogo(signature.signer_address, resolved.logo),
       logoSources: buildCouncilLogoSources(signature.signer_address, resolved.logo),
-      signature: signature.signature,
+      signature: sigBase64,
       invocationScriptBase64: signature.invocation_script
         ? hexToBase64(signature.invocation_script.replace(/^0x/i, ""))
         : buildSignatureInvocationScriptBase64(signature.signature),
-      witnessJson: signature.witness ? JSON.stringify(signature.witness, null, 2) : "",
+      witnessJson: witnessDisplay,
       councilIndex: displayIndex,
     };
   });
