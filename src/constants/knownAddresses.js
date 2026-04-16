@@ -95,27 +95,10 @@ export const KNOWN_ADDRESS_LOGOS = {
   "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "/img/known/binance.svg",
   "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "/img/known/binance.svg",
 
-  // Committee member logos (fallback when NeoFS gateway is down)
+  // Committee members with working direct HTTP logos from Dora
   "NhUHywGfUYevMjtbpRDDgGBgkwzYiGD9W9": "https://flamingo.finance/img/flamingo-node.png",
-  "NbobgCMmKhHFfdfAfL7579W4bHrsh66wPt": "https://avatars.githubusercontent.com/u/57609621",
   "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf": "https://avatars.githubusercontent.com/u/83441851",
-  "NaxjMApXDkYQc3paoyAErLsm6XWo1FUw4X": "https://www.hashkey.cloud/favicon.ico",
-  "NSTSntFPK36QXsjEK6oAhnPzSyfgfVA2GQ": "https://avatars.githubusercontent.com/u/42820008",
-  "NdtjAqrUnk1fcnfGLfsi3TNdz5ejAJJ6QQ": "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
-  "NZ9rkPKcDQqH6bffyYqU6yd5A2cUvuDLUw": "https://avatars.githubusercontent.com/u/46aborgen",
-  "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK": "https://avatars.githubusercontent.com/u/90037270",
   "NZWWneZw9ucujrXUQvV6fLtENmn8xvKZ3u": "https://avatars.githubusercontent.com/u/33096324",
-  "NaqNz8kAYezSMUnK6CZxduc7oFxDaYZeCb": "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
-  "NhMvRrhBnZyAwZnw8y9mHoCzwSEDmZJo2n": "https://avatars.githubusercontent.com/u/25768328",
-  "NSZunX9DXXvdMrjQqQWqGAMvgNTPsbhQ2L": "https://avatars.githubusercontent.com/u/32463516",
-  "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w": "https://avatars.githubusercontent.com/u/13908560",
-  "NXMSUhKfia45bxbiRGbzBgcbRmAvSGL96s": "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
-  "NSkSDp2FjS4G3ngP5Rryi77qa6yWFuR8LK": "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
-  "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv": "https://neo3.azureedge.net/images/presskit/Neo%20symbol.svg",
-  "NiymdbpxariiQ5kW16TnAkPdPwd9KNJUBT": "https://avatars.githubusercontent.com/u/42379918",
-  "NSPCCpw8YmgNDYWiBfXJHRfz38NDjv6WW3": "https://avatars.githubusercontent.com/u/38847461",
-  "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW": "https://avatars.githubusercontent.com/u/37048819",
-  "NRpsHvG4WY6WcAZpSb58d547cSQFiBxrUS": "https://avatars.githubusercontent.com/u/153524424",
 };
 
 const normalizeKey = (value) => String(value || "").trim().toLowerCase();

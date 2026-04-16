@@ -296,6 +296,12 @@ describe("HashLink", () => {
 
   it("shows candidate logo for known validator addresses when address tags lack one", async () => {
     getAddressTag.mockResolvedValueOnce(null);
+    getValidatorMetadata.mockResolvedValueOnce([
+      {
+        scripthash: EVERSTAKE_ADDRESS,
+        logo_url: "https://example.com/everstake.png",
+      },
+    ]);
 
     const wrapper = mountHashLink({
       hash: EVERSTAKE_ADDRESS,
@@ -309,8 +315,7 @@ describe("HashLink", () => {
     expect(wrapper.text()).toContain("Everstake");
     const logo = wrapper.find('img[alt="Everstake"]');
     expect(logo.exists()).toBe(true);
-    // Known address logo takes priority over validator metadata
-    expect(logo.attributes("src")).toBe("https://avatars.githubusercontent.com/u/46aborgen");
+    expect(logo.attributes("src")).toBe("https://example.com/everstake.png");
   });
 
   it("uses validator metadata names as primary address labels by default", async () => {
