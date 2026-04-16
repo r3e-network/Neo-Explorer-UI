@@ -164,9 +164,19 @@ async function verifyGovernanceWitness({ requestRow, signerAddress, publicKey, s
 
   canonicalAddress = derivedAddress;
 
-  const { payload } = await computeSigningPayload(unsignedTxHex, resolveRequestNetwork(requestRow));
+  const networkMode = resolveRequestNetwork(requestRow);
+  const { payload, transactionHash, networkMagic } = await computeSigningPayload(unsignedTxHex, networkMode);
   const isValid = neon.wallet.verify(payload, normalizedSignature, canonicalPublicKey);
   if (!isValid) {
+    console.error("[governanceSignature] Verification FAILED", JSON.stringify({
+      networkMode,
+      networkMagic,
+      transactionHash,
+      payload,
+      publicKey: canonicalPublicKey,
+      signaturePrefix: normalizedSignature.slice(0, 32),
+      unsignedTxPrefix: unsignedTxHex.slice(0, 40),
+    }));
     throw new Error("Signature does not match the governance signing payload for this signer.");
   }
 
