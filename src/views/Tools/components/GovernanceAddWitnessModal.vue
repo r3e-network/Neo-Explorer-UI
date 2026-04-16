@@ -57,34 +57,30 @@ neo> sign {{ signingPayload?.payload || 'PAYLOAD' }}</code>
           <p class="text-[11px] text-mid">The output is a 128-character hex string (64 bytes). Copy it for step 3.</p>
         </div>
 
-        <!-- Step 3: Paste Witness -->
+        <!-- Step 3: Paste Public Key + Signature -->
         <div class="space-y-3">
           <p class="text-sm font-bold text-high">Step 3: Paste Public Key + Signature</p>
           <input
             v-model="signerPublicKey"
             type="text"
             class="form-input w-full font-mono text-xs py-2.5 rounded-xl"
-            placeholder="Your public key (66 hex chars, starts with 02 or 03)"
+            placeholder="Public key (66 hex chars, starts with 02 or 03)"
           />
           <input
             v-model="signatureHex"
             type="text"
             class="form-input w-full font-mono text-xs py-2.5 rounded-xl"
-            placeholder="Paste 128-char hex signature here"
+            placeholder="128-char hex signature"
           />
-          <p v-if="derivedAddress" class="text-[11px] text-emerald-600 dark:text-emerald-400">
-            Address: {{ derivedAddress }}
+          <p v-if="derivedAddress" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
+            {{ derivedAddress }}
           </p>
-          <label class="flex items-center gap-2 text-xs text-mid cursor-pointer select-none">
-            <input v-model="allowOverwrite" type="checkbox" class="rounded border-line-soft" />
-            Overwrite existing signature from this signer
-          </label>
           <button
             @click="submitWitness"
-            :disabled="!signatureHex.trim() || signatureHex.trim().length < 128 || isSubmitting"
+            :disabled="!signatureHex.trim() || signatureHex.trim().length < 128 || !signerPublicKey.trim() || isSubmitting"
             class="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            {{ isSubmitting ? "Submitting..." : "Submit Witness" }}
+            {{ isSubmitting ? "Submitting..." : "Submit" }}
           </button>
           <p v-if="submitError" class="text-xs text-red-600 dark:text-red-400">{{ submitError }}</p>
         </div>
@@ -98,7 +94,6 @@ import { ref, watch, computed } from "vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { walletService } from "@/services/walletService";
-import { connectedAccount } from "@/utils/wallet";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
 import { isPublicKeyHex, publicKeyToAddress } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
@@ -111,10 +106,8 @@ const emit = defineEmits(["close", "signed"]);
 const toast = useToast();
 
 const signingPayload = ref(null);
-const signerAddress = ref("");
 const signerPublicKey = ref("");
 const signatureHex = ref("");
-const allowOverwrite = ref(false);
 const isSubmitting = ref(false);
 const submitError = ref("");
 
@@ -132,29 +125,11 @@ const neonJsCmd = computed(() => {
 
 watch(() => props.request, async (req) => {
   if (!req) return;
-  signerAddress.value = "";
   signerPublicKey.value = "";
   signatureHex.value = "";
-  allowOverwrite.value = false;
   submitError.value = "";
   signingPayload.value = null;
 
-  // Prefill signer from connected wallet
-  const addr = String(walletService.account?.address || connectedAccount.value || "").trim();
-  if (addr) signerAddress.value = addr;
-  try {
-    const pk = String((await walletService.getPublicKey?.()) || "").trim().replace(/^0x/i, "");
-    if (pk) signerPublicKey.value = pk;
-  } catch { /* skip */ }
-  // If no pubkey from wallet, try matching from committee
-  if (!signerPublicKey.value && addr) {
-    const pks = req.params?.committee_pubkeys || [];
-    for (const pk of pks) {
-      try { if (publicKeyToAddress(pk) === addr) { signerPublicKey.value = pk; break; } } catch { /* skip */ }
-    }
-  }
-
-  // Auto-prepare signing payload
   if (req.params?.unsigned_tx) {
     try {
       signingPayload.value = await walletService.getRawTransactionSigningPayload(req.params.unsigned_tx);
@@ -174,8 +149,7 @@ async function submitWitness() {
     if (!sig || sig.length < 128) throw new Error("Signature must be at least 128 hex characters (64 bytes).");
     if (!pk || !isPublicKeyHex(pk)) throw new Error("A valid public key is required (66 hex chars, starting with 02 or 03).");
 
-    // Derive address from public key
-    const addr = derivedAddress.value || signerAddress.value.trim();
+    const addr = publicKeyToAddress(pk);
     if (!addr) throw new Error("Could not derive address from public key.");
 
     // Validate committee membership
@@ -208,16 +182,11 @@ async function submitWitness() {
         witness: payload.witness,
         invocationScript: payload.invocationScript,
         verificationScript: payload.verificationScript,
-        overwrite: allowOverwrite.value,
+        overwrite: true,
       }
     );
 
-    if (!res.success) {
-      if (res.isDuplicate && !allowOverwrite.value) {
-        throw new Error("This signer already has a signature. Enable 'Overwrite' to replace it.");
-      }
-      throw new Error(res.error);
-    }
+    if (!res.success) throw new Error(res.error);
 
     toast.success("Witness added successfully!");
     emit("signed", { requestId: props.request.id });
