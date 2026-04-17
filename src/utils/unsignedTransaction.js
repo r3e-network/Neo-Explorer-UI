@@ -1,24 +1,15 @@
+import * as _neonJsRaw from "@cityofzion/neon-js";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
-let _neonJsCache = null;
-
-// Eagerly start loading neon-js at module init (non-blocking)
-const _neonJsReady = import("@cityofzion/neon-js").then((mod) => {
-  _neonJsCache = mod;
-  return _neonJsCache;
-}).catch(() => null);
+// neon-js is CJS. Vite puts the full API on .default, Node puts it on the root.
+const neonJs = _neonJsRaw.tx ? _neonJsRaw : (_neonJsRaw.default?.tx ? _neonJsRaw.default : _neonJsRaw);
 
 export async function ensureNeonJs() {
-  if (_neonJsCache) return _neonJsCache;
-  return _neonJsReady;
+  return neonJs;
 }
 
 function getNeonJs() {
-  if (_neonJsCache) return _neonJsCache;
-  if (typeof window !== "undefined" && window.Neon) {
-    _neonJsCache = window.Neon;
-  }
-  return _neonJsCache;
+  return neonJs;
 }
 
 function hexToBytes(hex) {
