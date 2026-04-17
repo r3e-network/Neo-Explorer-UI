@@ -4,9 +4,11 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import neonJsStatic from "@cityofzion/neon-js";
-const { sc: { ScriptBuilder: ScriptBuilderImport }, u: { reverseHex, num2hexstring } } = neonJsStatic;
-const ScriptBuilder = ScriptBuilderImport;
+import * as _neonJsRaw from "@cityofzion/neon-js";
+const neonJsStatic = _neonJsRaw.default || _neonJsRaw;
+const ScriptBuilder = neonJsStatic.sc.ScriptBuilder;
+const reverseHex = neonJsStatic.u.reverseHex;
+const num2hexstring = neonJsStatic.u.num2hexstring;
 const hash160 = neonJsStatic.u.hash160;
 const str2hexstring = neonJsStatic.u.str2hexstring;
 function hexToBytes(hex) {

@@ -1,20 +1,18 @@
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 let _neonJsCache = null;
+
+// Eagerly start loading neon-js at module init (non-blocking)
+const _neonJsReady = import("@cityofzion/neon-js").then((mod) => {
+  _neonJsCache = mod.default || mod;
+  return _neonJsCache;
+}).catch(() => null);
+
 export async function ensureNeonJs() {
   if (_neonJsCache) return _neonJsCache;
-  if (typeof window !== "undefined" && window.Neon) {
-    _neonJsCache = window.Neon;
-    return _neonJsCache;
-  }
-  try {
-    const mod = await import("@cityofzion/neon-js");
-    _neonJsCache = mod.default || mod;
-    return _neonJsCache;
-  } catch {
-    return null;
-  }
+  return _neonJsReady;
 }
+
 function getNeonJs() {
   if (_neonJsCache) return _neonJsCache;
   if (typeof window !== "undefined" && window.Neon) {
