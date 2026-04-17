@@ -60,19 +60,37 @@ vi.mock("@/utils/rpcEndpoints", () => ({
   callWithRpcEndpointFallback: callWithRpcEndpointFallbackMock,
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: MockRpcClient,
-  Account: class {
+vi.mock("@cityofzion/neon-js", () => {
+  const Account = class {
     constructor(value) {
       this.address = value;
       this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
     }
-  },
-}));
+  };
+  const neonMock = {
+    RpcClient: MockRpcClient,
+    Account,
+  };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("SponsoredTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: MockRpcClient,
+      },
+      wallet: {
+        Account: class {
+          constructor(value) {
+            this.address = value;
+            this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
+          }
+        },
+      },
+    };
     sharedConnectedAccount.value = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
     envState.value = "Mainnet";
     callWithRpcEndpointFallbackMock.mockResolvedValue({ balance: [] });

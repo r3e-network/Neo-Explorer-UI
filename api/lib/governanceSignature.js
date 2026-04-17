@@ -4,6 +4,26 @@ function normalizeHex(value = "") {
   return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
 }
 
+function normalizeBase64Signature(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw || /\s/.test(raw) || !/^[A-Za-z0-9+/=]+$/.test(raw)) return "";
+  try {
+    const hex = Buffer.from(raw, "base64").toString("hex");
+    const normalized = normalizeHex(hex);
+    return normalized.length === 128 ? normalized : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeSignatureHex(value = "") {
+  const normalizedHex = normalizeHex(value);
+  if (normalizedHex.length === 128 && !/[^0-9a-f]/i.test(normalizedHex)) {
+    return normalizedHex;
+  }
+  return normalizeBase64Signature(value);
+}
+
 function readPushDataLength(bytes, opcode) {
   if (opcode === 0x0c && bytes.length >= 2) {
     return { headerSize: 2, dataSize: bytes[1] };
@@ -113,7 +133,7 @@ async function verifyGovernanceWitness({ requestRow, signerAddress, publicKey, s
   }
 
   const normalizedPublicKey = normalizeHex(publicKey);
-  const normalizedSignature = normalizeHex(signature);
+  const normalizedSignature = normalizeSignatureHex(signature);
   const normalizedInvocationScript = normalizeHex(invocationScript);
   const normalizedVerificationScript = normalizeHex(verificationScript);
 

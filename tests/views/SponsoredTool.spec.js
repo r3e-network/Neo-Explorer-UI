@@ -64,14 +64,30 @@ vi.mock("@/services/cache", () => ({
   cachedRequest: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: MockRpcClient,
-  Account: MockAccount,
+vi.mock("@/utils/rpcEndpoints", () => ({
+  callWithRpcEndpointFallback: vi.fn(async (_env, callback) => callback("https://rpc.example")),
 }));
+
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = {
+    RpcClient: MockRpcClient,
+    Account: MockAccount,
+  };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("SponsoredTool wallet provider handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: MockRpcClient,
+      },
+      wallet: {
+        Account: MockAccount,
+      },
+    };
     sharedConnectedAccount.value = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
     providerRef.value = "Google / Email (Web3Auth)";
     walletServiceMock.isConnected = true;

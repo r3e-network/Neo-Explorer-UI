@@ -10,9 +10,12 @@ class MockRpcClient {
   getBlockHeader = vi.fn().mockRejectedValue(new Error("Mock network error"));
 }
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: MockRpcClient,
-}));
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = { RpcClient: MockRpcClient };
+  neonMock.rpc = { RPCClient: MockRpcClient };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),

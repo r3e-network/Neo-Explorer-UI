@@ -62,7 +62,7 @@ vi.mock("@/services/nnsService", () => ({
   },
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
+vi.mock("@cityofzion/neon-js", () => ({
   Wallet: {
     isAddress: vi.fn((addr) => {
       // Return true only for actual Neo addresses, false for domains
@@ -74,6 +74,11 @@ vi.mock("@cityofzion/neon-js", () => { const _nm = {
 describe("ChatPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      wallet: {
+        isAddress: vi.fn((addr) => addr && addr.startsWith("N") && addr.length === 34),
+      },
+    };
     routeRef.value = {
       fullPath: "/chat?with=alice.neo",
       query: { with: "alice.neo" },

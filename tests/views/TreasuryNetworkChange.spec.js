@@ -33,13 +33,20 @@ vi.mock("@/constants/knownAddresses", () => ({
   getTreasuryKnownAddresses: () => [{ name: "Treasury A", address: "Naddr" }],
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: class {},
-}));
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = { RpcClient: class {} };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("Treasury network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: class {},
+      },
+    };
     envState.value = "MainNet";
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
     cachedRequestMock.mockResolvedValue([{ name: "Treasury A", address: "Naddr", neo: 1, gas: 2, usdValue: 0 }]);

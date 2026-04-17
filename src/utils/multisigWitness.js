@@ -12,6 +12,22 @@ function normalizeBase64Signature(value = "") {
   return normalized.length === 128 ? normalized : "";
 }
 
+export function detectSignatureFormat(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return "empty";
+
+  const normalizedHex = normalizeHex(raw);
+  if (normalizedHex.length === 128 && !/[^0-9a-f]/i.test(normalizedHex)) {
+    return "hex";
+  }
+
+  if (normalizeBase64Signature(raw)) {
+    return "base64";
+  }
+
+  return "invalid";
+}
+
 export function normalizeSignatureHex(value = "") {
   const normalizedHex = normalizeHex(value);
   if (normalizedHex.length === 128 && !/[^0-9a-f]/i.test(normalizedHex)) {

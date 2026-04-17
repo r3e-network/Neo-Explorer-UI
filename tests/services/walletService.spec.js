@@ -155,43 +155,67 @@ class MockWalletAccount {
   }
 }
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: MockRpcClient,
-  Tx: MockTransaction,
-  Account: class MockAccount extends MockWalletAccount {
-    static fromWIF(wif) {
-      return new MockAccount(wif);
-    }
-  },
-  ScriptBuilder: MockScriptBuilder,
-  reverseHex: (value) => value,
-  hash160: (value) => value,
-  str2hexstring: (value) => value,
-  num2hexstring: (value) => value.toString(16),
-  hexToBytes: (hex) => {
-    const buffer = Buffer.from(hex, "hex");
-    return {
-      ...buffer,
-      toBase64: () => buffer.toString("base64"),
-    };
-  },
-  bytesToHex: (bytes) => Buffer.from(bytes).toString("hex"),
-  bytesToBase64: (bytes) => Buffer.from(bytes).toString("base64"),
-  base64ToBytes: (b64) => Buffer.from(b64, "base64"),
-  scriptHashToAddress: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
-  addressToScriptHash: (value) => {
-    if (value === "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu") return "0x13ef519c362973f9a34648a9eac5b71250b2a80a";
-    if (value === "NTestWifAccount111111111111111111111") return "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
-    return `0x${value.slice(1)}`;
-  },
-  deserialize: () => new MockTransaction(),
-  WitnessScope: { Global: 128, CalledByEntry: 1 },
-  rpc: { RPCClient: MockRpcClient },
-  tx: {
-    Transaction: MockCompatTransaction,
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = {
+    RpcClient: MockRpcClient,
+    Tx: MockTransaction,
+    Account: class MockAccount extends MockWalletAccount {
+      static fromWIF(wif) {
+        return new MockAccount(wif);
+      }
+    },
+    ScriptBuilder: MockScriptBuilder,
+    reverseHex: (value) => value,
+    hash160: (value) => value,
+    str2hexstring: (value) => value,
+    num2hexstring: (value) => value.toString(16),
+    hexToBytes: (hex) => {
+      const buffer = Buffer.from(hex, "hex");
+      return {
+        ...buffer,
+        toBase64: () => buffer.toString("base64"),
+      };
+    },
+    bytesToHex: (bytes) => Buffer.from(bytes).toString("hex"),
+    bytesToBase64: (bytes) => Buffer.from(bytes).toString("base64"),
+    base64ToBytes: (b64) => Buffer.from(b64, "base64"),
+    scriptHashToAddress: (value) => `N${String(value).replace(/^0x/i, "").slice(0, 33)}`,
+    addressToScriptHash: (value) => {
+      if (value === "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu") return "0x13ef519c362973f9a34648a9eac5b71250b2a80a";
+      if (value === "NTestWifAccount111111111111111111111") return "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+      return `0x${value.slice(1)}`;
+    },
+    deserialize: () => new MockTransaction(),
     WitnessScope: { Global: 128, CalledByEntry: 1 },
-  },
-}));
+    rpc: { RPCClient: MockRpcClient },
+    tx: {
+      Transaction: MockCompatTransaction,
+      WitnessScope: { Global: 128, CalledByEntry: 1 },
+    },
+  };
+  neonMock.wallet = {
+    Account: neonMock.Account,
+    getSignaturesFromInvocationScript: vi.fn((invocationScript) => {
+      const match = String(invocationScript || "").match(/^(?:0c40|40)([0-9a-fA-F]{128})/);
+      return match ? [match[1]] : [];
+    }),
+    getPublicKeyFromVerificationScript: vi.fn((verificationScript) => {
+      const match = String(verificationScript || "").match(/(?:0c21|21)(0[23][0-9a-fA-F]{64})/i);
+      return match ? match[1] : "";
+    }),
+  };
+  neonMock.u = {
+    num2hexstring: neonMock.num2hexstring,
+    reverseHex: neonMock.reverseHex,
+    hash160: neonMock.hash160,
+    str2hexstring: neonMock.str2hexstring,
+  };
+  neonMock.sc = {
+    ScriptBuilder: neonMock.ScriptBuilder,
+  };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 vi.mock("../../src/services/walletConnectService.js", () => ({
   walletConnectService: {

@@ -47,17 +47,29 @@ vi.mock("@/services/supabaseService", () => ({
   },
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: class {
+vi.mock("@cityofzion/neon-js", () => {
+  const RpcClient = class {
     async getCandidates() {
       return executeMock({ config: { method: "getcandidates" } });
     }
-  },
-}));
+  };
+  const neonMock = { RpcClient };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("Governance network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: class {
+          async getCandidates() {
+            return executeMock({ config: { method: "getcandidates" } });
+          }
+        },
+      },
+    };
     envState.value = "MainNet";
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
     executeMock.mockResolvedValue([{ publickey: "PUBKEY1", votes: "100", active: true }]);

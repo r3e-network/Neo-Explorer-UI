@@ -134,7 +134,7 @@ import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
 import { isOffchainReviewPacket as isOffchainReviewPacketUtil, resolveCommitteePubkeys } from "@/utils/governanceRequests";
-import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl, resolveCandidateLogoUrlFallbacks } from "@/utils/logoOptimization";
+import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrlFallbacks } from "@/utils/logoOptimization";
 import { hexToBase64 } from "@/utils/neoHelpers";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
@@ -261,14 +261,6 @@ const canCurrentSignerVote = computed(() =>
     eligibleSignerAddresses.value.includes(connectedAccount.value),
   ),
 );
-const committeeMultiSig = computed(() => {
-  if (!neonJs || !committeePubkeys.value.length || !requiredCount.value) return null;
-  try {
-    return neonJs.wallet.Account.createMultiSig(requiredCount.value, committeePubkeys.value);
-  } catch {
-    return null;
-  }
-});
 const progressWidth = computed(
   () => `${Math.min(100, requiredCount.value ? (signedCount.value / requiredCount.value) * 100 : 0)}%`,
 );

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
 import StackViewer from "@/components/trace/StackViewer.vue";
 import HashLink from "@/components/common/HashLink.vue";
@@ -7,7 +7,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatGas } from "@/utils/explorerFormat";
 
-const props = defineProps({
+defineProps({
   appLog: { type: Object, default: null },
   appLogLoading: { type: Boolean, default: false },
   appLogError: { type: String, default: "" },

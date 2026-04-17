@@ -77,20 +77,19 @@ vi.mock("@/components/common/Breadcrumb.vue", () => ({
   },
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  rpc: { RPCClient: MockRpcClient },
-  tx: {
-    Transaction: MockTransaction,
-    WitnessScope: { CalledByEntry: 1 },
-  },
-  wallet: {
-    Account: MockAccount,
-  },
-}));
-
 describe("GasEstimatorTool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: { RPCClient: MockRpcClient },
+      tx: {
+        Transaction: MockTransaction,
+        WitnessScope: { CalledByEntry: 1 },
+      },
+      wallet: {
+        Account: MockAccount,
+      },
+    };
   });
 
   it("estimates fees with the SDK compatibility namespaces", async () => {

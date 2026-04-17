@@ -156,7 +156,7 @@
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="space-y-1">
                 <p class="text-sm font-semibold text-high">Signing Payload</p>
-                <p class="text-xs text-mid">Sign this payload offline with <code class="font-mono text-high">neo-cli</code>, neon-js, or any ECDSA tool. Then paste the 64-byte signature below.</p>
+                <p class="text-xs text-mid">Sign this payload offline with <code class="font-mono text-high">neo-cli</code>, neon-js, or any ECDSA tool. Then paste the 64-byte signature below in hex or Base64.</p>
               </div>
               <button
                 :data-testid="testId('prepare-payload')"
@@ -198,7 +198,7 @@
           <!-- Submit Witness -->
           <div ref="witnessFormSectionRef" class="space-y-3">
             <p class="text-sm font-semibold text-high">Submit Witness</p>
-            <p class="text-xs text-mid">Paste a 64-byte signature from any valid committee member. The system validates the signer is in the committee before accepting.</p>
+            <p class="text-xs text-mid">Paste a 64-byte signature from any valid committee member in hex or Base64. The system validates the signer is in the committee before accepting.</p>
             <input
               :data-testid="testId('external-address')"
               v-model="externalSignerAddress"
@@ -218,8 +218,16 @@
               v-model="externalSignature"
               type="text"
               class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-              placeholder="Paste raw 64-byte signature hex"
+              placeholder="Paste raw 64-byte signature (hex or Base64)"
             />
+            <p
+              v-if="signatureFormatHint"
+              :data-testid="testId('signature-format-hint')"
+              class="text-[11px]"
+              :class="signatureFormatHintToneClass"
+            >
+              {{ signatureFormatHint }}
+            </p>
 
             <input
               :data-testid="testId('external-invocation')"
@@ -258,7 +266,7 @@ import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { PROVIDERS } from "@/constants/walletProviders";
-import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
+import { buildExternalWitnessPayload, detectSignatureFormat, normalizeSignatureHex } from "@/utils/multisigWitness";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { isPublicKeyHex, publicKeyToAddress } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
@@ -411,6 +419,21 @@ const committeeMultiSigAddress = computed(() => {
   }
 });
 
+const signatureFormat = computed(() => detectSignatureFormat(externalSignature.value));
+const signatureFormatHint = computed(() => {
+  if (signatureFormat.value === "hex") return "Detected format: Hex signature";
+  if (signatureFormat.value === "base64") return "Detected format: Base64 signature";
+  if (signatureFormat.value === "invalid" && String(externalSignature.value || "").trim()) {
+    return "Detected format: Invalid signature input";
+  }
+  return "";
+});
+const signatureFormatHintToneClass = computed(() => (
+  signatureFormat.value === "invalid"
+    ? "text-rose-600 dark:text-rose-400"
+    : "text-emerald-700 dark:text-emerald-400"
+));
+
 const isNeoLineMultisigSignerMismatch = computed(() => {
   neonReadyTick.value;
   if (getActiveWalletProvider() !== PROVIDERS.NEOLINE) return false;
@@ -553,7 +576,7 @@ async function getGovernanceSigningPayloadHex() {
 
 async function verifyGovernanceSignature(signatureHex, signerPublicKey) {
   await ensureNeonJs();
-  const normalizedSignature = String(signatureHex || "").trim().replace(/^0x/i, "");
+  const normalizedSignature = normalizeSignatureHex(signatureHex);
   const normalizedPublicKey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
   if (!normalizedSignature) throw new Error("Missing signature.");
   if (!normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) return;
@@ -574,7 +597,8 @@ function validateCommitteeMember(signerPublicKey) {
 }
 
 async function submitSig(signatureHex, source = "manual_signature", signerOverride = null) {
-  if (!signatureHex || signatureHex.length < 128) {
+  const normalizedSignature = normalizeSignatureHex(signatureHex);
+  if (!normalizedSignature || normalizedSignature.length < 128) {
     throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
   }
   try {
@@ -593,11 +617,11 @@ async function submitSig(signatureHex, source = "manual_signature", signerOverri
         findRequestSignerPublicKey(props.request, signerAddress) ||
         (await getConnectedWalletPublicKey()),
     });
-    await verifyGovernanceSignature(signatureHex, signerPublicKey);
+    await verifyGovernanceSignature(normalizedSignature, signerPublicKey);
     const payload = buildExternalWitnessPayload({
       signerAddress,
       signerPublicKey,
-      signatureHex,
+      signatureHex: normalizedSignature,
       eligibleSigners: props.request?.eligible_signers || [],
       source,
     });
@@ -646,7 +670,7 @@ async function submitExternalWitness() {
     // Validate committee membership
     validateCommitteeMember(signerPublicKey);
 
-    const suppliedSignature = String(externalSignature.value || "").trim().replace(/^0x/i, "");
+    const suppliedSignature = normalizeSignatureHex(externalSignature.value);
     const payload = buildExternalWitnessPayload({
       signerAddress,
       signerPublicKey,

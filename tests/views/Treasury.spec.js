@@ -45,17 +45,29 @@ vi.mock("@/composables/useNetworkChange", () => ({
   useNetworkChange: vi.fn(),
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: class {
+vi.mock("@cityofzion/neon-js", () => {
+  const RpcClient = class {
     async getNep17Balances(input) {
       return getNep17BalancesMock(input);
     }
-  },
-}));
+  };
+  const neonMock = { RpcClient };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("Treasury view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: class {
+          async getNep17Balances(input) {
+            return getNep17BalancesMock(input);
+          }
+        },
+      },
+    };
     getNep17BalancesMock.mockImplementation(async (input) => {
       if (!input || typeof input !== "object" || !input.account) {
         throw new Error("expected { account } input");

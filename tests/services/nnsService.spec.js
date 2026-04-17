@@ -45,24 +45,29 @@ vi.mock("@/utils/neoHelpers", async () => {
   };
 });
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: class {
-    constructor() {}
-    invokeFunction(...args) {
-      return invokeFunctionMock(...args);
-    }
-  },
-  ContractParam: {
-    string: vi.fn(),
-    integer: vi.fn(),
-    byteArray: vi.fn((value) => value),
-  },
-  Wallet: {
-    getScriptHashFromAddress,
-    getAddressFromScriptHash,
-  },
-  reverseHex,
-}));
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = {
+    RpcClient: class {
+      constructor() {}
+      invokeFunction(...args) {
+        return invokeFunctionMock(...args);
+      }
+    },
+    ContractParam: {
+      string: vi.fn(),
+      integer: vi.fn(),
+      byteArray: vi.fn((value) => value),
+    },
+    Wallet: {
+      getScriptHashFromAddress,
+      getAddressFromScriptHash,
+    },
+    reverseHex,
+  };
+  neonMock.rpc = { RPCClient: neonMock.RpcClient };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 vi.mock("../../src/utils/env.js", () => ({
   NET_ENV: {

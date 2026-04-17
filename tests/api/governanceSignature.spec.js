@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const verifyMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
+vi.mock("@cityofzion/neon-js", () => ({
   rpc: {
     RPCClient: class MockRpcClient {
       async getVersion() {
@@ -72,6 +72,29 @@ describe("governance signature verification", () => {
       invocationScript: `0c40${"ab".repeat(64)}`,
       verificationScript: "0c2103f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c54156e7b327",
     });
+  });
+
+  it("accepts a base64-encoded signature and normalizes it to hex", async () => {
+    verifyMock.mockReturnValue(true);
+    const signatureHex = "ab".repeat(64);
+    const signatureBase64 = Buffer.from(signatureHex, "hex").toString("base64");
+
+    const { verifyGovernanceWitness } = await import("../../api/lib/governanceSignature.js");
+    const result = await verifyGovernanceWitness({
+      requestRow: {
+        network: "mainnet",
+        params: {
+          unsigned_tx: "001122",
+          committee_pubkeys: ["03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5"],
+        },
+      },
+      signerAddress: "NSmKqfS6nR5dA8gVn4hU2pLw9bY7xT3cQe",
+      publicKey: "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+      signature: signatureBase64,
+    });
+
+    expect(result.signature).toBe(signatureHex);
+    expect(result.invocationScript).toBe(`0c40${signatureHex}`);
   });
 
   it("rejects signatures that do not match the governance payload", async () => {

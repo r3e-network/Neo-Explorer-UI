@@ -68,20 +68,35 @@ vi.mock("@/utils/logoOptimization", () => ({
   resolveCandidateLogoUrl: (value) => value,
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  RpcClient: class {
+vi.mock("@cityofzion/neon-js", () => {
+  const RpcClient = class {
     async getCandidates() {
       return executeMock({ config: { method: "getcandidates" } });
     }
     async invokeFunction(_scriptHash, _method, _params, _signers) {
       return executeMock({ config: { method: "invokefunction" } });
     }
-  },
-}));
+  };
+  const neonMock = { RpcClient };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 describe("Governance view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.Neon = {
+      rpc: {
+        RPCClient: class {
+          async getCandidates() {
+            return executeMock({ config: { method: "getcandidates" } });
+          }
+          async invokeFunction(_scriptHash, _method, _params, _signers) {
+            return executeMock({ config: { method: "invokefunction" } });
+          }
+        },
+      },
+    };
     connectedAccountRef.value = null;
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
     executeMock.mockImplementation((query) => {

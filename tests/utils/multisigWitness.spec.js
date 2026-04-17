@@ -5,6 +5,7 @@ import {
   buildSignatureInvocationScriptBase64,
   buildSignatureInvocationScriptHex,
   decodeSingleSignatureFromInvocationScript,
+  normalizeSignatureHex,
   resolveWitnessSignerAddress,
 } from "../../src/utils/multisigWitness.js";
 
@@ -20,6 +21,11 @@ describe("multisigWitness helpers", () => {
   it("builds a pushdata invocation script from signature hex", () => {
     expect(buildSignatureInvocationScriptHex(signatureHex)).toBe(invocationScriptHex);
     expect(buildSignatureInvocationScriptBase64(signatureHex)).toBeTruthy();
+  });
+
+  it("normalizes a base64-encoded 64-byte signature into hex", () => {
+    const base64Signature = Buffer.from(signatureHex, "hex").toString("base64");
+    expect(normalizeSignatureHex(base64Signature)).toBe(signatureHex);
   });
 
   it("derives signer address from public key when address is missing", () => {

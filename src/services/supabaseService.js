@@ -436,48 +436,6 @@ function isTransientIndexerMetadataError(error) {
 const isPlainObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-const normalizeSignatureMetadataPayload = (options = {}) => {
-  const payload = {};
-
-  if (typeof options.publicKey === "string" && options.publicKey.trim()) {
-    payload.public_key = options.publicKey.trim();
-  }
-  if (typeof options.invocationScript === "string" && options.invocationScript.trim()) {
-    payload.invocation_script = options.invocationScript.trim();
-  }
-  if (typeof options.verificationScript === "string" && options.verificationScript.trim()) {
-    payload.verification_script = options.verificationScript.trim();
-  }
-  if (isPlainObject(options.witness)) {
-    payload.witness = options.witness;
-  }
-
-  return Object.keys(payload).length > 0 ? payload : null;
-};
-
-const mergeRequestSignatureMetadata = (request = {}, signerAddress, metadata) => {
-  if (!signerAddress || !metadata) return request?.params || {};
-
-  const currentParams = isPlainObject(request?.params) ? request.params : {};
-  const currentSignatureMetadata = isPlainObject(currentParams.signature_metadata)
-    ? currentParams.signature_metadata
-    : {};
-  const existingEntry = isPlainObject(currentSignatureMetadata[signerAddress])
-    ? currentSignatureMetadata[signerAddress]
-    : {};
-
-  return {
-    ...currentParams,
-    signature_metadata: {
-      ...currentSignatureMetadata,
-      [signerAddress]: {
-        ...existingEntry,
-        ...metadata,
-      },
-    },
-  };
-};
-
 const hydrateRequestSignatures = (request) => {
   if (!isPlainObject(request)) return request;
 
@@ -511,56 +469,6 @@ const hydrateRequestSignatures = (request) => {
     ...request,
     signatures: hydratedSignatures,
   };
-};
-
-const attachMultisigSignatures = async (requests = []) => {
-  if (!supabase || !Array.isArray(requests) || requests.length === 0) {
-    return Array.isArray(requests) ? requests : [];
-  }
-
-  const hydratedRequests = await Promise.all(
-    requests.map(async (request) => {
-      const requestId = Number(request?.id || 0);
-      if (!Number.isFinite(requestId) || requestId <= 0) {
-        return hydrateRequestSignatures({ ...request, signatures: [] });
-      }
-
-      const { data, error } = await supabase
-        .from("multisig_signatures")
-        .select("*")
-        .eq("request_id", requestId);
-
-      if (error) throw error;
-
-      return hydrateRequestSignatures({
-        ...request,
-        signatures: Array.isArray(data) ? data : [],
-      });
-    }),
-  );
-
-  return hydratedRequests;
-};
-
-const fetchMultisigRequestsPlain = async (network, column = "") => {
-  let query = supabase.from("multisig_requests").select("*");
-  if (column) {
-    query = query.eq(column, network);
-  }
-  const { data, error } = await query.order("created_at", { ascending: false });
-  if (error) throw error;
-  return attachMultisigSignatures(data || []);
-};
-
-const fetchMultisigRequestByIdPlain = async (requestId, network, column = "") => {
-  let query = supabase.from("multisig_requests").select("*").eq("id", requestId);
-  if (column) {
-    query = query.eq(column, network);
-  }
-  const { data, error } = await query.single();
-  if (error) throw error;
-  const [hydrated] = await attachMultisigSignatures(data ? [data] : []);
-  return hydrated || null;
 };
 
 const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {

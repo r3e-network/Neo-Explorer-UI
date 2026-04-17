@@ -47,17 +47,18 @@ function sumFixed8Values(left = "0", right = "0") {
 }
 
 function getScopeLabels(scopeValue) {
+  const witnessScope = getNeonJs()?.tx?.WitnessScope || {};
   const numeric = Number(scopeValue || 0);
   if (!Number.isFinite(numeric) || numeric === 0) {
     return ["None"];
   }
 
-  if (numeric === WitnessScope.Global) {
+  if (Number.isInteger(witnessScope.Global) && numeric === witnessScope.Global) {
     return ["Global"];
   }
 
-  return Object.entries(WitnessScope)
-    .filter(([, value]) => Number.isInteger(value) && value > 0 && value !== WitnessScope.Global)
+  return Object.entries(witnessScope)
+    .filter(([, value]) => Number.isInteger(value) && value > 0 && value !== witnessScope.Global)
     .filter(([, value]) => (numeric & value) === value)
     .map(([label]) => label);
 }

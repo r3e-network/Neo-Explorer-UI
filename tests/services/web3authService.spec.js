@@ -51,13 +51,18 @@ vi.mock("@web3auth/base", () => ({
   CHAIN_NAMESPACES: { OTHER: "OTHER" },
 }));
 
-vi.mock("@cityofzion/neon-js", () => { const _nm = {
-  Account: class {
-    constructor() {
-      this.address = "NWeb3AuthTestAddress";
-    }
-  },
-}));
+vi.mock("@cityofzion/neon-js", () => {
+  const neonMock = {
+    Account: class {
+      constructor() {
+        this.address = "NWeb3AuthTestAddress";
+      }
+    },
+  };
+  neonMock.wallet = { Account: neonMock.Account };
+  neonMock.default = neonMock;
+  return neonMock;
+});
 
 vi.mock("../../src/utils/env.js", () => ({
   getCurrentEnv: () => envState.value,

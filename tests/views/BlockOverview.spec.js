@@ -52,7 +52,7 @@ describe("BlockOverview", () => {
 
     expect(wrapper.text()).toContain("0xprev");
     expect(wrapper.text()).not.toContain("Genesis Block (no previous)");
-    expect(wrapper.find('[data-testid=\"previous-hash-link\"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="previous-hash-link"]').exists()).toBe(true);
   });
 
   it("does not duplicate validator names when the shared address link already resolves identity", async () => {

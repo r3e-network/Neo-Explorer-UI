@@ -388,6 +388,142 @@ describe("GovernanceSignModal", () => {
     delete window.Neon;
   });
 
+  it("accepts a base64 signature in the external witness form", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+    const signatureHex = "ab".repeat(64);
+    const signatureBase64 = Buffer.from(signatureHex, "hex").toString("base64");
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    addMultisigSignatureMock.mockReset();
+    addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
+    window.Neon = {
+      wallet: {
+        verify: vi.fn(() => true),
+      },
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 8,
+          eligible_signers: [signerAddress],
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    await wrapper.get('[data-testid="governance-sign-modal-external-signature"]').setValue(signatureBase64);
+    await wrapper.get('[data-testid="governance-sign-modal-submit-witness"]').trigger("click");
+    await flushPromises();
+
+    expect(addMultisigSignatureMock).toHaveBeenCalledWith(
+      8,
+      signerAddress,
+      signatureHex,
+      expect.objectContaining({
+        publicKey: signerPublicKey,
+        invocationScript: `0c40${signatureHex}`,
+      }),
+    );
+
+    delete window.Neon;
+  });
+
+  it("shows a live signature format hint for valid and invalid pasted signatures", async () => {
+    const { publicKeyToAddress } = await import("@/utils/neoHelpers");
+    const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
+    const signerAddress = publicKeyToAddress(signerPublicKey);
+    const signatureHex = "ab".repeat(64);
+    const signatureBase64 = Buffer.from(signatureHex, "hex").toString("base64");
+
+    connectedAccount.value = signerAddress;
+    walletSession.account = {
+      address: signerAddress,
+      label: "NeoLine",
+    };
+    walletSession.isConnected = true;
+    getPublicKeyMock.mockResolvedValue(signerPublicKey);
+    getRawTransactionSigningPayloadMock.mockResolvedValue({
+      payload: "3353ef4eabcd",
+      networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+    window.Neon = {
+      tx: {
+        Transaction: {
+          deserialize: vi.fn(() => ({
+            signers: [{ account: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+          })),
+        },
+      },
+    };
+
+    const GovernanceSignModal = (await import("@/views/Tools/components/GovernanceSignModal.vue")).default;
+    const wrapper = mount(GovernanceSignModal, {
+      props: {
+        request: {
+          id: 11,
+          params: {
+            unsigned_tx: "001122",
+            committee_pubkeys: [signerPublicKey],
+          },
+        },
+      },
+      global: {
+        mocks: {
+          $t: (key) => key,
+        },
+        stubs: {
+          UnsignedTransactionViewer: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    await wrapper.get('[data-testid="governance-sign-modal-external-signature"]').setValue(signatureBase64);
+    expect(wrapper.get('[data-testid="governance-sign-modal-signature-format-hint"]').text()).toContain("Detected format: Base64 signature");
+
+    await wrapper.get('[data-testid="governance-sign-modal-external-signature"]').setValue("not-a-signature");
+    expect(wrapper.get('[data-testid="governance-sign-modal-signature-format-hint"]').text()).toContain("Detected format: Invalid signature input");
+
+    delete window.Neon;
+  });
+
   it("shows NeoLine multisig guide and auto-prepares signing payload when signer mismatch detected", async () => {
     const { publicKeyToAddress } = await import("@/utils/neoHelpers");
     const signerPublicKey = "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5";
