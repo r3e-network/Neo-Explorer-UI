@@ -193,7 +193,9 @@ async function submitWitness() {
     }
 
     // 2 & 3. Signature must be cryptographically valid for this public key AND the current transaction payload
-    const unsignedTx = props.request?.params?.unsigned_tx;
+    // Fetch the proposal fresh from the API to avoid stale page cache
+    const freshRequest = await supabaseService.getMultisigRequestById(props.request.id, props.request.network);
+    const unsignedTx = freshRequest?.params?.unsigned_tx || props.request?.params?.unsigned_tx;
     if (!unsignedTx) throw new Error("Proposal has no unsigned transaction.");
     await ensureNeonJs();
     if (typeof neonJs?.wallet?.verify !== "function") throw new Error("Crypto library not available.");
