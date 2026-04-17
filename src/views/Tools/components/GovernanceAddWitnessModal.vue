@@ -192,15 +192,26 @@ async function submitWitness() {
       throw new Error("This public key is not a committee member.");
     }
 
-    // 2 & 3. Signature must be cryptographically valid for this public key AND the current transaction payload
-    // Fetch the proposal fresh from the API to avoid stale page cache
+    // 2 & 3. Verify signature against the current transaction using neon-js directly
+    // (not walletService which uses @r3e/neo-js-sdk and may compute a different hash)
+    await ensureNeonJs();
     const freshRequest = await supabaseService.getMultisigRequestById(props.request.id, props.request.network);
     const unsignedTx = freshRequest?.params?.unsigned_tx || props.request?.params?.unsigned_tx;
     if (!unsignedTx) throw new Error("Proposal has no unsigned transaction.");
-    await ensureNeonJs();
-    if (typeof neonJs?.wallet?.verify !== "function") throw new Error("Crypto library not available.");
-    const freshPayload = await walletService.getRawTransactionSigningPayload(unsignedTx);
-    if (!neonJs.wallet.verify(freshPayload.payload, sig, pk)) {
+    const txObj = neonJs.tx.Transaction.deserialize(unsignedTx);
+    const txHash = typeof txObj.hash === "function" ? txObj.hash() : txObj.hash;
+    const { getRpcClientUrl } = await import("@/utils/env.js");
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
+    let networkMagic = props.request?.params?.network_magic;
+    if (!networkMagic) {
+      try {
+        const ver = await rpcClient.getVersion();
+        networkMagic = ver?.protocol?.network;
+      } catch { /* fallback below */ }
+    }
+    if (!networkMagic) networkMagic = 860833102;
+    const sigPayload = neonJs.u.num2hexstring(networkMagic, 4, true) + neonJs.u.reverseHex(String(txHash).replace(/^0x/i, ""));
+    if (!neonJs.wallet.verify(sigPayload, sig, pk)) {
       throw new Error("Signature does not verify against the transaction. Make sure you signed the correct proposal and your public key matches.");
     }
 
