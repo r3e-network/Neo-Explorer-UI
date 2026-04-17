@@ -85,14 +85,18 @@ const signatureHex = ref("");
 const isSubmitting = ref(false);
 const submitError = ref("");
 
+const neonJsRef = ref(null);
 let neonJs = null;
 
 async function ensureNeonJs() {
-  if (!neonJs) neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+  if (!neonJs) {
+    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJsRef.value = neonJs;
+  }
 }
 
 const contextJson = computed(() => {
-  if (!props.request?.params?.unsigned_tx || !neonJs) return "";
+  if (!props.request?.params?.unsigned_tx || !neonJsRef.value) return "";
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
     const committeePubkeys = props.request.params?.committee_pubkeys || [];
