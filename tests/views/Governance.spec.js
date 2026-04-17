@@ -68,7 +68,7 @@ vi.mock("@/utils/logoOptimization", () => ({
   resolveCandidateLogoUrl: (value) => value,
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: class {
     async getCandidates() {
       return executeMock({ config: { method: "getcandidates" } });

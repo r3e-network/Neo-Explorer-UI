@@ -56,7 +56,7 @@ defineOptions({ name: "ChatPage" });
 
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Wallet } from "@r3e/neo-js-sdk";
+const Wallet = window.Neon?.wallet;
 import ChatSidebar from "./components/ChatSidebar.vue";
 import ChatThread from "./components/ChatThread.vue";
 import { connectedAccount } from "@/utils/wallet";

@@ -247,7 +247,7 @@
 import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { rpc, tx, wallet } from "@r3e/neo-js-sdk";
+const { rpc, tx, wallet } = window.Neon;
 import { base642hex, hex2base64 } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";

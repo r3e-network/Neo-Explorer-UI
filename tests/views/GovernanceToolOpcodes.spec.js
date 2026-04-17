@@ -83,7 +83,7 @@ describe("GovernanceTool opcode display", () => {
       tx: {
         WitnessScope: { Global: 1 },
         Witness: class {},
-        Transaction: class {
+        Transaction: Object.assign(class {
           constructor(config) {
             Object.assign(this, config);
           }
@@ -93,7 +93,20 @@ describe("GovernanceTool opcode display", () => {
           hash() {
             return "0xdeadbeef";
           }
-        },
+        }, {
+          deserialize: (hex) => ({
+            hash: () => "deadbeef".repeat(8).slice(0, 64),
+            serialize: () => hex,
+            script: { toString: () => "" },
+            signers: [],
+            attributes: [],
+            systemFee: "0",
+            networkFee: "0",
+            validUntilBlock: 0,
+            version: 0,
+            nonce: 0,
+          }),
+        }),
       },
       rpc: {
         RPCClient: class {

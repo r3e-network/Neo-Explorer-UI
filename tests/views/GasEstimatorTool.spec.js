@@ -77,7 +77,7 @@ vi.mock("@/components/common/Breadcrumb.vue", () => ({
   },
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   rpc: { RPCClient: MockRpcClient },
   tx: {
     Transaction: MockTransaction,

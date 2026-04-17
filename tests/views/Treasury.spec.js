@@ -45,7 +45,7 @@ vi.mock("@/composables/useNetworkChange", () => ({
   useNetworkChange: vi.fn(),
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: class {
     async getNep17Balances(input) {
       return getNep17BalancesMock(input);

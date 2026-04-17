@@ -175,7 +175,7 @@ const showRaw = ref(false);
 const decodedTx = computed(() => decodeUnsignedTransaction(props.transactionHex));
 const rawHex = computed(() => decodedTx.value?.rawHex || String(props.transactionHex || "").trim().replace(/^0x/i, ""));
 
-// Compute authoritative tx hash using neon-js (the @r3e/neo-js-sdk decoder produces a different hash)
+// Compute authoritative tx hash using neon-js (the @cityofzion/neon-js decoder produces a different hash)
 const neonJsTxHash = computed(() => {
   if (!props.transactionHex) return "";
   try {

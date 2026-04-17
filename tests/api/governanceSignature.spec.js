@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const verifyMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@cityofzion/neon-js", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   rpc: {
     RPCClient: class MockRpcClient {
       async getVersion() {

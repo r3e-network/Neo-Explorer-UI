@@ -135,7 +135,10 @@
 import { ref, computed } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { RpcClient, hexstring2str, reverseHex, str2hexstring } from "@r3e/neo-js-sdk";
+const RpcClient = window.Neon?.rpc?.RPCClient;
+const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/../g) || [], b => parseInt(b, 16)));
+const reverseHex = (hex) => hex.match(/../g).reverse().join("");
+const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
 import { base642hex, BigInteger } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";

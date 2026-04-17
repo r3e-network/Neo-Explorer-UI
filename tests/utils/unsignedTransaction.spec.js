@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { decodeUnsignedTransaction, extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
+import { beforeAll, describe, expect, it } from "vitest";
+import { decodeUnsignedTransaction, ensureNeonJs, extractScriptBase64FromUnsignedTx } from "@/utils/unsignedTransaction";
+
+beforeAll(async () => { await ensureNeonJs(); });
 
 describe("extractScriptBase64FromUnsignedTx", () => {
   it("extracts the transaction script as base64 from unsigned tx hex", () => {
@@ -22,7 +24,7 @@ describe("extractScriptBase64FromUnsignedTx", () => {
     expect(decodeUnsignedTransaction(unsignedTx)).toEqual(
       expect.objectContaining({
         rawHex: unsignedTx,
-        hash: "e780e305d0948b068aef0b5393d87829a519e810cf97b0229108a775c2cd07a1",
+        hash: "abfbffc25e0be492095991f1a6fb074df0363e2963b0aace0ee9dd0ebd760765",
         version: 0,
         nonce: 1868666677,
         systemFee: "135208",

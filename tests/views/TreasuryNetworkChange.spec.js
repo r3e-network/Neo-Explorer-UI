@@ -33,7 +33,7 @@ vi.mock("@/constants/knownAddresses", () => ({
   getTreasuryKnownAddresses: () => [{ name: "Treasury A", address: "Naddr" }],
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: class {},
 }));
 

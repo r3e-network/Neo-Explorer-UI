@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PrivateKey, hexToBytes, str2hexstring } from "@r3e/neo-js-sdk";
+import neonJsMod from "@cityofzion/neon-js";
+const PrivateKey = neonJsMod.wallet.PrivateKey;
+const str2hexstring = neonJsMod.u.str2hexstring;
+function hexToBytes(hex) {
+  const h = String(hex || "").replace(/^0x/i, "");
+  return Uint8Array.from((h.match(/../g) || []), (b) => parseInt(b, 16));
+}
 
 describe("chatAuth helpers", () => {
   beforeEach(() => {

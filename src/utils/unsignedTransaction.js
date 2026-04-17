@@ -1,7 +1,45 @@
-import { Tx, WitnessScope, deserialize, BinaryReader, BinaryWriter, hexToBytes, bytesToHex } from "@r3e/neo-js-sdk";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
-import { hex2base64 } from "@/utils/sdkCompat";
-import { sha256 } from "ethereum-cryptography/sha256";
+
+let _neonJsCache = null;
+export async function ensureNeonJs() {
+  if (_neonJsCache) return _neonJsCache;
+  if (typeof window !== "undefined" && window.Neon) {
+    _neonJsCache = window.Neon;
+    return _neonJsCache;
+  }
+  try {
+    const mod = await import("@cityofzion/neon-js");
+    _neonJsCache = mod.default || mod;
+    return _neonJsCache;
+  } catch {
+    return null;
+  }
+}
+function getNeonJs() {
+  if (_neonJsCache) return _neonJsCache;
+  if (typeof window !== "undefined" && window.Neon) {
+    _neonJsCache = window.Neon;
+  }
+  return _neonJsCache;
+}
+
+function hexToBytes(hex) {
+  const h = String(hex || "").replace(/^0x/i, "");
+  return Uint8Array.from((h.match(/../g) || []), (b) => parseInt(b, 16));
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function hex2base64(hex) {
+  const bytes = hexToBytes(hex);
+  if (typeof btoa === "function") {
+    return btoa(String.fromCharCode(...bytes));
+  }
+  // Node.js fallback
+  return Buffer.from(bytes).toString("base64");
+}
 
 function normalizeHex(value = "") {
   return String(value || "")
@@ -74,16 +112,30 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
   if (!normalized) return null;
 
   try {
-    const transaction = Tx.unmarshalUnsignedFrom
-      ? Tx.unmarshalUnsignedFrom(new BinaryReader(hexToBytes(normalized)))
-      : deserialize(normalized, Tx);
+    const neonJs = getNeonJs();
+    if (!neonJs?.tx?.Transaction?.deserialize) return null;
 
-    // Use marshalUnsignedTo to get bytes without witnesses
-    const writer = new BinaryWriter();
-    transaction.marshalUnsignedTo(writer);
-    const rawHex = bytesToHex(writer.toBytes());
-    const txHash = normalizeTransactionHash(sha256(sha256(hexToBytes(rawHex))));
-    const scriptHex = normalizeHex(bytesToHex(transaction.script));
+    let transaction;
+    let rawHex = normalized;
+    let txHash = "";
+
+    try {
+      transaction = neonJs.tx.Transaction.deserialize(normalized);
+      txHash = normalizeTransactionHash(typeof transaction.hash === "function" ? transaction.hash() : transaction.hash);
+      rawHex = transaction.serialize(false);
+    } catch {
+      // Unsigned governance packets may not have witnesses — neon-js may fail.
+      // Try appending an empty witness array (00) to make it deserializable.
+      try {
+        transaction = neonJs.tx.Transaction.deserialize(normalized + "00");
+        txHash = normalizeTransactionHash(typeof transaction.hash === "function" ? transaction.hash() : transaction.hash);
+        rawHex = transaction.serialize(false);
+      } catch {
+        return null;
+      }
+    }
+
+    const scriptHex = normalizeHex(transaction.script?.toString?.() || "");
     const signers = Array.isArray(transaction.signers)
       ? transaction.signers.map((signer, index) => {
           const accountScriptHash = normalizeHex(signer?.account?.toString?.() || "");

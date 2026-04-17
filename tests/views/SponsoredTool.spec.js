@@ -64,7 +64,7 @@ vi.mock("@/services/cache", () => ({
   cachedRequest: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: MockRpcClient,
   Account: MockAccount,
 }));

@@ -10,7 +10,7 @@ import { addressToScriptHash, reverseHex, scriptHashToAddress } from "@/utils/ne
 const NNS_CONTRACT_HASH = NNS_HASH; // Mainnet
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
-const loadSdk = () => import("@r3e/neo-js-sdk");
+const loadSdk = () => import("@cityofzion/neon-js").then((m) => m.default || m);
 
 const getMatrixContractHash = (env = getCurrentEnv()) =>
   env === NET_ENV.TestT5

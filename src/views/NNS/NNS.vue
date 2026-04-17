@@ -417,7 +417,7 @@ async function handleSearch() {
 
 import { addressToScriptHash } from "@/utils/neoHelpers";
 import { invokeContract } from "@/utils/wallet";
-import { hexToBytes } from "@r3e/neo-js-sdk";
+const hexToBytes = (hex) => Uint8Array.from((hex.startsWith("0x") ? hex.slice(2) : hex).match(/../g) || [], b => parseInt(b, 16));
 
 async function registerDomain() {
   if (!account.value) {

@@ -51,7 +51,7 @@ vi.mock("@web3auth/base", () => ({
   CHAIN_NAMESPACES: { OTHER: "OTHER" },
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   Account: class {
     constructor() {
       this.address = "NWeb3AuthTestAddress";

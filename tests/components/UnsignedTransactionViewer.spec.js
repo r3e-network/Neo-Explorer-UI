@@ -1,5 +1,8 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { ensureNeonJs } from "@/utils/unsignedTransaction";
+
+beforeAll(async () => { await ensureNeonJs(); });
 
 vi.mock("@/components/common/CopyButton.vue", () => ({
   default: {

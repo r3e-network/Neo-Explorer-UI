@@ -260,7 +260,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { RpcClient } from "@r3e/neo-js-sdk";
+const RpcClient = window.Neon?.rpc?.RPCClient;
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";

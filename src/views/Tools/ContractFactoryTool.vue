@@ -212,7 +212,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
-import { Account } from "@r3e/neo-js-sdk";
+const Account = window.Neon?.wallet?.Account;
 import { GAS_HASH } from "@/constants";
 
 const toast = useToast();

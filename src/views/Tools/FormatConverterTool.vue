@@ -151,7 +151,8 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-import { str2hexstring, hexstring2str } from "@r3e/neo-js-sdk";
+const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
+const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/../g) || [], b => parseInt(b, 16)));
 import { hex2base64, base642hex } from "@/utils/sdkCompat";
 
 const { t } = useI18n();

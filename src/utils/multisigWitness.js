@@ -1,7 +1,23 @@
-import { hexToBase64, isPublicKeyHex, publicKeyToAddress, strip0x } from "@/utils/neoHelpers";
+import { base64ToHex, hexToBase64, isPublicKeyHex, publicKeyToAddress, strip0x } from "@/utils/neoHelpers";
 
 export function normalizeHex(value = "") {
   return strip0x(String(value || "").trim()).toLowerCase();
+}
+
+function normalizeBase64Signature(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw || /\s/.test(raw)) return "";
+  if (!/^[A-Za-z0-9+/=]+$/.test(raw)) return "";
+  const normalized = normalizeHex(base64ToHex(raw));
+  return normalized.length === 128 ? normalized : "";
+}
+
+export function normalizeSignatureHex(value = "") {
+  const normalizedHex = normalizeHex(value);
+  if (normalizedHex.length === 128 && !/[^0-9a-f]/i.test(normalizedHex)) {
+    return normalizedHex;
+  }
+  return normalizeBase64Signature(value);
 }
 
 function readPushDataLength(bytes, opcode) {
@@ -132,7 +148,7 @@ export function buildExternalWitnessPayload(
     throw new Error("Signer is not part of the eligible council signer set.");
   }
 
-  const normalizedSignature = normalizeHex(signatureHex);
+  const normalizedSignature = normalizeSignatureHex(signatureHex);
   const normalizedInvocationScript = normalizeHex(invocationScript);
   const normalizedVerificationScript = normalizeHex(verificationScript);
 

@@ -82,7 +82,7 @@ export const web3authService = {
     const privateKeyHex = String(_web3auth?.privKey || "").trim();
     if (!privateKeyHex) return null;
 
-    const { Account } = await import("@r3e/neo-js-sdk");
+    const neonJs = (await import("@cityofzion/neon-js")).default; const Account = neonJs.wallet.Account;
     const account = new Account(privateKeyHex);
     return account;
   },

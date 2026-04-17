@@ -62,7 +62,7 @@ vi.mock("@/services/nnsService", () => ({
   },
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   Wallet: {
     isAddress: vi.fn((addr) => {
       // Return true only for actual Neo addresses, false for domains

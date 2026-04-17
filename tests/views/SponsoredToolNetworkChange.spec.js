@@ -60,7 +60,7 @@ vi.mock("@/utils/rpcEndpoints", () => ({
   callWithRpcEndpointFallback: callWithRpcEndpointFallbackMock,
 }));
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: MockRpcClient,
   Account: class {
     constructor(value) {

@@ -4,7 +4,15 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import { ScriptBuilder, reverseHex, hash160, str2hexstring, num2hexstring, hexToBytes } from "@r3e/neo-js-sdk";
+import neonJsStatic from "@cityofzion/neon-js";
+const { sc: { ScriptBuilder: ScriptBuilderImport }, u: { reverseHex, num2hexstring } } = neonJsStatic;
+const ScriptBuilder = ScriptBuilderImport;
+const hash160 = neonJsStatic.u.hash160;
+const str2hexstring = neonJsStatic.u.str2hexstring;
+function hexToBytes(hex) {
+  const h = String(hex || "").replace(/^0x/i, "");
+  return Uint8Array.from(h.match(/../g) || [], (b) => parseInt(b, 16));
+}
 import { PROVIDERS } from "@/constants/walletProviders";
 
 import { getCurrentEnv } from "@/utils/env";
@@ -30,10 +38,10 @@ const AA_ALLOWED_META_METHODS = new Set(
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
 
-const loadSdk = () => import("@r3e/neo-js-sdk");
+const loadSdk = () => import("@cityofzion/neon-js").then((m) => m.default || m);
 
 function getCompatTransactionClass(sdk) {
-  return sdk?.tx?.Transaction || sdk?.Tx;
+  return sdk?.tx?.Transaction;
 }
 
 let walletConnectServicePromise = null;

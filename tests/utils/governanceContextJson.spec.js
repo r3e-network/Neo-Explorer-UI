@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { hexToBase64 } from "@/utils/neoHelpers";
-import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
+import { decodeUnsignedTransaction, ensureNeonJs } from "@/utils/unsignedTransaction";
+
+beforeAll(async () => { await ensureNeonJs(); });
 
 /**
  * Validates the ContractParametersContext JSON format that neo-cli expects.

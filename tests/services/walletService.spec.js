@@ -155,7 +155,7 @@ class MockWalletAccount {
   }
 }
 
-vi.mock("@r3e/neo-js-sdk", () => ({
+vi.mock("@cityofzion/neon-js", () => { const _nm = {
   RpcClient: MockRpcClient,
   Tx: MockTransaction,
   Account: class MockAccount extends MockWalletAccount {

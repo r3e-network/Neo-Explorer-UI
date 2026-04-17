@@ -201,7 +201,7 @@ async function submitWitness() {
     }
 
     // 2 & 3. Verify signature against the current transaction using neon-js directly
-    // (not walletService which uses @r3e/neo-js-sdk and may compute a different hash)
+    // (not walletService which uses @cityofzion/neon-js and may compute a different hash)
     await ensureNeonJs();
     const freshRequest = await supabaseService.getMultisigRequestById(props.request.id, props.request.network);
     const unsignedTx = freshRequest?.params?.unsigned_tx || props.request?.params?.unsigned_tx;
