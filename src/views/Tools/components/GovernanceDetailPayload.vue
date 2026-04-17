@@ -160,10 +160,21 @@
               <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
             </div>
             <div class="pb-5">
-              <h4 class="text-sm font-bold text-high">Copy the signing payload</h4>
+              <h4 class="text-sm font-bold text-high">Open your council wallet and import the multisig address</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
-                Click the <strong>neo-cli JSON</strong> copy button above (next to "Raw Hex") to copy the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">ContractParametersContext</code> JSON to your clipboard.
+                Start neo-cli, open your council member wallet, then import the committee multisig address. neo-cli requires the multisig address to be imported before signing.
               </p>
+              <div class="mt-2 rounded-xl bg-slate-950 p-3 overflow-x-auto dark:bg-black/40">
+                <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; open wallet council.json<br />password: ********</code>
+              </div>
+              <p class="mt-2 text-xs text-mid leading-relaxed">Import the multisig address:</p>
+              <div class="mt-1 rounded-xl bg-slate-950 p-3 overflow-x-auto dark:bg-black/40">
+                <code class="block font-mono text-[10px] leading-5 text-emerald-300 whitespace-nowrap select-all">{{ multisigImportCommand }}</code>
+              </div>
+              <div class="mt-1 flex items-center gap-2">
+                <CopyButton v-if="multisigImportCommand" :text="multisigImportCommand" size="md" />
+                <span class="text-[10px] text-mid">Copy the import command</span>
+              </div>
             </div>
           </div>
 
@@ -174,13 +185,10 @@
               <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
             </div>
             <div class="pb-5">
-              <h4 class="text-sm font-bold text-high">Open your council wallet in neo-cli</h4>
+              <h4 class="text-sm font-bold text-high">Copy the signing payload</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
-                Start neo-cli and open your council member wallet:
+                Click the <strong>neo-cli JSON</strong> copy button above (next to "Raw Hex") to copy the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">ContractParametersContext</code> JSON to your clipboard.
               </p>
-              <div class="mt-2 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
-                <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; open wallet council.json<br />password: ********</code>
-              </div>
             </div>
           </div>
 
@@ -438,14 +446,15 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
 import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
+import CopyButton from "@/components/common/CopyButton.vue";
 import { handleCouncilLogoError } from "@/utils/governanceHelpers";
 
 const showSigningGuide = ref(false);
 
-defineProps({
+const props = defineProps({
   proposal: { type: Object, required: true },
   proposalMethodSummary: { type: String, required: true },
   proposalTargetSummary: { type: String, required: true },
@@ -457,5 +466,13 @@ defineProps({
   connectedAccount: { type: String, default: "" },
   currentBlockHeight: { type: Number, default: null },
   millisecondsPerBlock: { type: Number, default: null },
+});
+
+const multisigImportCommand = computed(() => {
+  const pubkeys = props.proposal?.params?.committee_pubkeys || [];
+  const threshold = props.proposal?.signers_required || Math.floor(pubkeys.length / 2) + 1;
+  if (!pubkeys.length) return "";
+  const sorted = [...pubkeys].sort((a, b) => a.localeCompare(b));
+  return "import multisigaddress " + threshold + " " + sorted.join(" ");
 });
 </script>

@@ -92,32 +92,35 @@ async function ensureNeonJs() {
 }
 
 const contextJson = computed(() => {
-  if (!signingPayload.value || !props.request?.params?.unsigned_tx) return "";
+  if (!props.request?.params?.unsigned_tx || !neonJs) return "";
   try {
     const unsignedTxHex = props.request.params.unsigned_tx;
     const committeePubkeys = props.request.params?.committee_pubkeys || [];
     const threshold = props.request.signers_required || Math.floor(committeePubkeys.length / 2) + 1;
     const scriptHash = props.request.params?.scriptHash || "";
 
-    // Build ContractParametersContext JSON for neo-cli
+    // Compute hash directly from the unsigned tx — never use a cached value
+    const tx = neonJs.tx.Transaction.deserialize(unsignedTxHex);
+    const txHash = typeof tx.hash === "function" ? tx.hash() : tx.hash;
+
     const base64Tx = hexToBase64(unsignedTxHex);
     const verificationScriptHex = props.request.params?.committee_verification_script || "";
 
-    // Build the verification script from committee pubkeys if not stored
     let base64VerificationScript = "";
     if (verificationScriptHex) {
       base64VerificationScript = hexToBase64(verificationScriptHex);
-    } else if (neonJs && committeePubkeys.length > 0) {
+    } else if (committeePubkeys.length > 0) {
       const multiSig = neonJs.wallet.Account.createMultiSig(threshold, committeePubkeys);
       base64VerificationScript = multiSig.contract.script;
     }
 
     const normalizedHash = String(scriptHash).replace(/^0x/i, "").toLowerCase();
     const parameters = Array.from({ length: threshold }, () => ({ type: "Signature" }));
+    const networkMagic = signingPayload.value?.networkMagic ?? props.request.params?.network_magic ?? 860833102;
 
     const context = {
       type: "Neo.Network.P2P.Payloads.Transaction",
-      hash: "0x" + signingPayload.value.transactionHash,
+      hash: String(txHash).startsWith("0x") ? txHash : "0x" + txHash,
       data: base64Tx,
       items: {
         [normalizedHash]: {
@@ -126,7 +129,7 @@ const contextJson = computed(() => {
           signatures: {},
         },
       },
-      network: signingPayload.value.networkMagic,
+      network: networkMagic,
     };
 
     return JSON.stringify(context);
