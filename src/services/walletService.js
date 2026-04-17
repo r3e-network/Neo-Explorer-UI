@@ -4,8 +4,9 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import * as _neonJsRaw from "@cityofzion/neon-js";
-const neonJsStatic = _neonJsRaw.sc ? _neonJsRaw : (_neonJsRaw.default?.sc ? _neonJsRaw.default : _neonJsRaw);
+import neonJsDefault from "@cityofzion/neon-js";
+import * as neonJsNamespace from "@cityofzion/neon-js";
+const neonJsStatic = neonJsDefault?.sc?.ScriptBuilder ? neonJsDefault : neonJsNamespace;
 const ScriptBuilder = neonJsStatic.sc.ScriptBuilder;
 const reverseHex = neonJsStatic.u.reverseHex;
 const num2hexstring = neonJsStatic.u.num2hexstring;

@@ -1,8 +1,10 @@
-import * as _neonJsRaw from "@cityofzion/neon-js";
+import neonJsDefault from "@cityofzion/neon-js";
+import * as neonJsNamespace from "@cityofzion/neon-js";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
-// neon-js is CJS. Vite puts the full API on .default, Node puts it on the root.
-const neonJs = _neonJsRaw.tx ? _neonJsRaw : (_neonJsRaw.default?.tx ? _neonJsRaw.default : _neonJsRaw);
+// Rollup (production): default import gives the CJS module with tx/sc/rpc.
+// Vite dev: namespace import has the API spread on root.
+const neonJs = neonJsDefault?.tx?.Transaction ? neonJsDefault : neonJsNamespace;
 
 export async function ensureNeonJs() {
   return neonJs;
