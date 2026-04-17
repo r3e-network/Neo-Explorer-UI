@@ -209,16 +209,24 @@ const proposalContextJson = computed(() => {
     return "";
   }
 });
-const proposalTxHash = computed(
-  () =>
-    String(
-      proposal.value?.tx_hash ||
-        proposal.value?.params?.hash ||
-        proposal.value?.metadata?.tx_hash ||
-        proposal.value?.broadcast_tx_hash ||
-        "Pending",
-    ).trim() || "Pending",
-);
+const proposalTxHash = computed(() => {
+  // Compute hash from the actual unsigned tx when available (authoritative)
+  if (neonJs && proposalUnsignedTx.value) {
+    try {
+      const tx = neonJs.tx.Transaction.deserialize(proposalUnsignedTx.value);
+      const hash = typeof tx.hash === "function" ? tx.hash() : tx.hash;
+      const normalized = String(hash).trim().replace(/^0x/i, "");
+      if (normalized.length === 64) return "0x" + normalized;
+    } catch { /* fall through to stored values */ }
+  }
+  return String(
+    proposal.value?.tx_hash ||
+      proposal.value?.params?.hash ||
+      proposal.value?.metadata?.tx_hash ||
+      proposal.value?.broadcast_tx_hash ||
+      "Pending",
+  ).trim() || "Pending";
+});
 const proposalBroadcastState = computed(() => {
   const explicit = String(proposal.value?.metadata?.broadcast_state || "").trim();
   if (explicit) return explicit;

@@ -173,6 +173,10 @@ async function submitWitness() {
     let sig = signatureHex.value.trim().replace(/^0x/i, "");
     const pk = signerPublicKey.value.trim().replace(/^0x/i, "");
 
+    // neo-cli JSON output uses \uXXXX unicode escapes (e.g. \u002B for +)
+    // Unescape them before processing
+    sig = sig.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+
     // Auto-detect base64 signature (neo-cli outputs base64) and convert to hex
     if (sig && !/^[0-9a-f]+$/i.test(sig) && /^[A-Za-z0-9+/=]+$/.test(sig)) {
       try {
