@@ -4,7 +4,7 @@ let _neonJsCache = null;
 
 // Eagerly start loading neon-js at module init (non-blocking)
 const _neonJsReady = import("@cityofzion/neon-js").then((mod) => {
-  _neonJsCache = mod.default || mod;
+  _neonJsCache = mod;
   return _neonJsCache;
 }).catch(() => null);
 

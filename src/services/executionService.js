@@ -83,7 +83,7 @@ export const executionService = createService(
       // Native Node RPC fallback
       if (!indexed && !legacy) {
         try {
-          const neonJs = (await import("@cityofzion/neon-js")).default; const RpcClient = neonJs.rpc.RPCClient;
+          const neonJs = (await import("@cityofzion/neon-js")); const RpcClient = neonJs.rpc.RPCClient;
           const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
@@ -156,7 +156,7 @@ export const executionService = createService(
       // If Fura proxy failed, hit the native Node RPC directly
       if (!indexed && !legacy) {
         try {
-          const neonJs = (await import("@cityofzion/neon-js")).default; const RpcClient = neonJs.rpc.RPCClient;
+          const neonJs = (await import("@cityofzion/neon-js")); const RpcClient = neonJs.rpc.RPCClient;
           const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
