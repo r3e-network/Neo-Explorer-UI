@@ -174,6 +174,21 @@ const showRaw = ref(false);
 
 const decodedTx = computed(() => decodeUnsignedTransaction(props.transactionHex));
 const rawHex = computed(() => decodedTx.value?.rawHex || String(props.transactionHex || "").trim().replace(/^0x/i, ""));
+
+// Compute authoritative tx hash using neon-js (the @r3e/neo-js-sdk decoder produces a different hash)
+const neonJsTxHash = computed(() => {
+  if (!props.transactionHex) return "";
+  try {
+    const neonJs = window.Neon;
+    if (!neonJs?.tx?.Transaction?.deserialize) return "";
+    const tx = neonJs.tx.Transaction.deserialize(props.transactionHex);
+    const hash = typeof tx.hash === "function" ? tx.hash() : tx.hash;
+    const normalized = String(hash).replace(/^0x/i, "").trim();
+    return normalized.length === 64 ? normalized : "";
+  } catch {
+    return "";
+  }
+});
 const expiryCountdown = computed(() =>
   describeGovernanceTxExpiry({
     validUntilBlock: decodedTx.value?.validUntilBlock,
@@ -191,7 +206,7 @@ const summaryRows = computed(() => {
     { label: "Valid Until Block", value: formatInteger(decodedTx.value.validUntilBlock) },
     { label: "Signers", value: String(decodedTx.value.signersCount) },
     { label: "Attributes", value: String(decodedTx.value.attributesCount) },
-    { label: "Transaction Hash", value: decodedTx.value.hash || "Unavailable" },
+    { label: "Transaction Hash", value: neonJsTxHash.value || decodedTx.value.hash || "Unavailable" },
   ];
 });
 
