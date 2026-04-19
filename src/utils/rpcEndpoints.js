@@ -7,15 +7,13 @@ const PRIMARY_RPC_ENDPOINTS = Object.freeze({
   testnet: "/rpc/testnet/primary",
 });
 
+// Browser-side fallbacks must go through Vercel rewrites (CORS-safe proxied)
+// or our own CORS-enabled endpoint. Direct third-party endpoints hit CORS.
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   mainnet: [
-    "http://seed1.neo.org:10332",
-    "http://seed2.neo.org:10332",
-    "http://seed3.neo.org:10332",
+    "https://rpc.n3index.dev",
   ],
-  testnet: [
-    "https://testnet1.neo.coz.io:443",
-  ],
+  testnet: [],
 });
 
 const PRIMARY_WS_ENDPOINTS = Object.freeze({

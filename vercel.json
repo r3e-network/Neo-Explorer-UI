@@ -20,15 +20,15 @@
     },
     {
       "source": "/rpc/mainnet/fallback",
-      "destination": "https://rpc.n3index.dev"
+      "destination": "https://mainnet1.neo.coz.io:443"
     },
     {
       "source": "/rpc/mainnet/fallback2",
-      "destination": "http://seed1.neo.org:10332"
+      "destination": "https://mainnet2.neo.coz.io:443"
     },
     {
       "source": "/rpc/mainnet/fallback3",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "https://rpc.n3index.dev"
     },
     {
       "source": "/rpc/testnet/primary",
