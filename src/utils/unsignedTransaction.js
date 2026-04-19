@@ -105,7 +105,16 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
 
   try {
     const neonJs = getNeonJs();
-    if (!neonJs?.tx?.Transaction?.deserialize) return null;
+    if (!neonJs?.tx?.Transaction?.deserialize) {
+      console.warn("[decodeUnsignedTransaction] neon-js not available:", {
+        hasNeonJs: !!neonJs,
+        hasTx: !!neonJs?.tx,
+        hasTransaction: !!neonJs?.tx?.Transaction,
+        hasDeserialize: typeof neonJs?.tx?.Transaction?.deserialize,
+        keys: neonJs ? Object.keys(neonJs).slice(0, 10) : [],
+      });
+      return null;
+    }
 
     let transaction;
     let rawHex = normalized;
