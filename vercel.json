@@ -16,15 +16,15 @@
   "rewrites": [
     {
       "source": "/rpc/mainnet/primary",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "https://rpc.n3index.dev"
     },
     {
       "source": "/rpc/mainnet/fallback",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "https://rpc.n3index.dev"
     },
     {
       "source": "/rpc/mainnet/fallback2",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "http://seed1.neo.org:10332"
     },
     {
       "source": "/rpc/mainnet/fallback3",

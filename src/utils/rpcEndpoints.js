@@ -7,10 +7,15 @@ const PRIMARY_RPC_ENDPOINTS = Object.freeze({
   testnet: "/rpc/testnet/primary",
 });
 
-// Single server — no fallbacks needed.
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
-  mainnet: [],
-  testnet: [],
+  mainnet: [
+    "http://seed1.neo.org:10332",
+    "http://seed2.neo.org:10332",
+    "http://seed3.neo.org:10332",
+  ],
+  testnet: [
+    "https://testnet1.neo.coz.io:443",
+  ],
 });
 
 const PRIMARY_WS_ENDPOINTS = Object.freeze({
