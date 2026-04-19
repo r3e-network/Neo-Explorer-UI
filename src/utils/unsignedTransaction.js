@@ -1,17 +1,10 @@
-import neonJsDefault from "@cityofzion/neon-js";
-import * as neonJsNamespace from "@cityofzion/neon-js";
+import { getNeonJsSync, loadNeonJs } from "@/utils/neonLoader";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
-// Rollup (production): default import gives the CJS module with tx/sc/rpc.
-// Vite dev: namespace import has the API spread on root.
-const neonJs = neonJsDefault?.tx?.Transaction ? neonJsDefault : neonJsNamespace;
-
-export async function ensureNeonJs() {
-  return neonJs;
-}
+export const ensureNeonJs = loadNeonJs;
 
 function getNeonJs() {
-  return neonJs;
+  return getNeonJsSync();
 }
 
 function hexToBytes(hex) {

@@ -90,7 +90,7 @@ let neonJs = null;
 
 async function ensureNeonJs() {
   if (!neonJs) {
-    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
     neonJsRef.value = neonJs;
   }
 }

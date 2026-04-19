@@ -288,7 +288,7 @@ async function handleNetworkChange() {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
     await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
   } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);

@@ -82,7 +82,7 @@ export const web3authService = {
     const privateKeyHex = String(_web3auth?.privKey || "").trim();
     if (!privateKeyHex) return null;
 
-    const _m = await import("@cityofzion/neon-js"); const neonJs = _m.wallet ? _m : _m.default; const Account = neonJs.wallet.Account;
+    const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); const Account = _njs.wallet.Account;
     const account = new Account(privateKeyHex);
     return account;
   },

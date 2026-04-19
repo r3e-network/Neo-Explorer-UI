@@ -4,9 +4,8 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import neonJsDefault from "@cityofzion/neon-js";
-import * as neonJsNamespace from "@cityofzion/neon-js";
-const neonJsStatic = neonJsDefault?.sc?.ScriptBuilder ? neonJsDefault : neonJsNamespace;
+import { getNeonJsSync as _getNeonSync } from "@/utils/neonLoader";
+const neonJsStatic = _getNeonSync();
 const ScriptBuilder = neonJsStatic.sc.ScriptBuilder;
 const reverseHex = neonJsStatic.u.reverseHex;
 const num2hexstring = neonJsStatic.u.num2hexstring;
@@ -41,7 +40,7 @@ const AA_ALLOWED_META_METHODS = new Set(
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
 
-const loadSdk = () => import("@cityofzion/neon-js").then(m => m.rpc ? m : m.default);
+const loadSdk = () => import("@/utils/neonLoader.js").then(m => m.loadNeonJs());
 
 function getCompatTransactionClass(sdk) {
   return sdk?.tx?.Transaction;

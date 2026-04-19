@@ -988,7 +988,7 @@ function handleNetworkChange() {
 
 onMounted(async () => {
   try {
-    neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
     loadSavedConfigs();
     await loadRequests();
   } catch (e) {

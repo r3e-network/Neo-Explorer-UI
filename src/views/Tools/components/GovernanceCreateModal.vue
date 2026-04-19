@@ -847,7 +847,7 @@ async function handleCreateProposal() {
 
   isCreating.value = true;
   try {
-    const neonJs = window.Neon || (await import("@cityofzion/neon-js"));
+    const neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const currentHeight = await rpcClient.getBlockCount();
     const version = await getProtocolVersion(rpcClient, neonJs);
