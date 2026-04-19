@@ -105,8 +105,9 @@ export const transactionService = createService(
         const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
         const { getCurrentEnv } = await import("@/utils/env");
         const network = toNetworkMode(getCurrentEnv());
+        const { toAbsoluteUrl } = await import("@/utils/env");
         const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
-          const client = new RpcClient(endpoint);
+          const client = new RpcClient(toAbsoluteUrl(endpoint));
           return client.getRawTransaction(hash, true);
         });
         if (nativeTx && nativeTx.hash) {
@@ -114,7 +115,7 @@ export const transactionService = createService(
           if (nativeTx.blockhash) {
             try {
               const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
-                const client = new RpcClient(endpoint);
+                const client = new RpcClient(toAbsoluteUrl(endpoint));
                 return client.getBlockHeader(nativeTx.blockhash, true);
               });
               blockIndex = blockHeader.index;

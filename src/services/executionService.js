@@ -84,10 +84,10 @@ export const executionService = createService(
       if (!indexed && !legacy) {
         try {
           const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-          const { getCurrentEnv } = await import("@/utils/env");
+          const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-            const client = new RpcClient(endpoint);
+            const client = new RpcClient(toAbsoluteUrl(endpoint));
             return client.getApplicationLog(blockHash);
           });
           if (nativeLog) {
@@ -157,10 +157,10 @@ export const executionService = createService(
       if (!indexed && !legacy) {
         try {
           const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-          const { getCurrentEnv } = await import("@/utils/env");
+          const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-            const client = new RpcClient(endpoint);
+            const client = new RpcClient(toAbsoluteUrl(endpoint));
             return client.getApplicationLog(txHash);
           });
           if (nativeLog) {
