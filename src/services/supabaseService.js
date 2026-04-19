@@ -861,14 +861,15 @@ export const supabaseService = {
   async getMempoolTransactions(network, limit = 1000) {
     if (!supabase) return [];
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('mempool_transactions')
         .select('*')
         .eq('network', network)
         .order('timestamp', { ascending: false })
         .limit(limit);
+      if (error) return [];
       return data || [];
-    } catch (err) {
+    } catch {
       return [];
     }
   },
