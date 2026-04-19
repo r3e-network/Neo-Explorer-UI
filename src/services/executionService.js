@@ -83,12 +83,12 @@ export const executionService = createService(
       // Native Node RPC fallback
       if (!indexed && !legacy) {
         try {
-          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); const RpcClient = _njs.rpc.RPCClient;
+          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
           const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
             const client = new RpcClient(endpoint);
-            return client.getApplicationLog({ hash: blockHash });
+            return client.getApplicationLog(blockHash);
           });
           if (nativeLog) {
             legacy = this._normalizeBlockAppLog(nativeLog);
@@ -156,12 +156,12 @@ export const executionService = createService(
       // If Fura proxy failed, hit the native Node RPC directly
       if (!indexed && !legacy) {
         try {
-          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); const RpcClient = _njs.rpc.RPCClient;
+          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
           const { getCurrentEnv } = await import("@/utils/env");
           const network = toNetworkMode(getCurrentEnv());
           const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
             const client = new RpcClient(endpoint);
-            return client.getApplicationLog({ hash: txHash });
+            return client.getApplicationLog(txHash);
           });
           if (nativeLog) {
             legacy = this._normalizeExecutionTrace(nativeLog);

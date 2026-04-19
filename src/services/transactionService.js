@@ -102,12 +102,12 @@ export const transactionService = createService(
 
       try {
         // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
-        const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); const RpcClient = _njs.rpc.RPCClient;
+        const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
         const { getCurrentEnv } = await import("@/utils/env");
         const network = toNetworkMode(getCurrentEnv());
         const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
           const client = new RpcClient(endpoint);
-          return client.getRawTransaction({ hash, verbose: true });
+          return client.getRawTransaction(hash, true);
         });
         if (nativeTx && nativeTx.hash) {
           let blockIndex = 0;
@@ -115,7 +115,7 @@ export const transactionService = createService(
             try {
               const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
                 const client = new RpcClient(endpoint);
-                return client.getBlockHeader({ blockHash: nativeTx.blockhash, verbose: true });
+                return client.getBlockHeader(nativeTx.blockhash, true);
               });
               blockIndex = blockHeader.index;
             } catch (e) {
