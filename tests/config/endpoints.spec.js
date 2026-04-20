@@ -62,11 +62,11 @@ describe("endpoint defaults", () => {
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
-    // All RPC routes point to the same single server
-    expect(routeDest("/rpc/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/mainnet/fallback")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://api.n3index.dev/mainnet");
+    // Mainnet RPC routes follow the current mixed-primary/fallback policy
+    expect(routeDest("/rpc/mainnet/primary")).toBe("https://rpc.n3index.dev");
+    expect(routeDest("/rpc/mainnet/fallback")).toBe("https://mainnet1.neo.coz.io:443");
+    expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://mainnet2.neo.coz.io:443");
+    expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://rpc.n3index.dev");
     expect(routeDest("/rpc/testnet/primary")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback2")).toBe("https://api.n3index.dev/testnet");

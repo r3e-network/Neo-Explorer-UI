@@ -28,6 +28,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(getRpcEndpointCandidates()).toEqual([
       "/rpc/mainnet/primary",
+      "https://rpc.n3index.dev",
     ]);
   });
 
@@ -71,6 +72,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(getRpcEndpointCandidates()).toEqual([
       "/rpc/mainnet/primary",
+      "https://rpc.n3index.dev",
     ]);
   });
 });

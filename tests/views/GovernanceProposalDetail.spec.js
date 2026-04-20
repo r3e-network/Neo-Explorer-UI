@@ -57,6 +57,30 @@ vi.mock("@/components/trace/ScriptViewer.vue", () => ({
   default: { name: "ScriptViewer", props: ["label"], template: "<div>{{ label }}</div>" },
 }));
 
+vi.mock("@cityofzion/neon-js", () => {
+  const runtime = () => globalThis.window?.Neon || {};
+  return {
+    get default() {
+      return runtime();
+    },
+    get wallet() {
+      return runtime().wallet;
+    },
+    get tx() {
+      return runtime().tx;
+    },
+    get rpc() {
+      return runtime().rpc;
+    },
+    get sc() {
+      return runtime().sc;
+    },
+    get u() {
+      return runtime().u;
+    },
+  };
+});
+
 vi.mock("@/utils/logoOptimization", () => ({
   getDefaultCandidateLogoUrl: (pubkey) => `https://example.com/default-${pubkey}.png`,
   resolveCandidateLogoUrl: (value) => value,
@@ -146,6 +170,7 @@ describe("GovernanceProposalDetail", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     envState.value = "Mainnet";
     connectedAccount.value = "A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 100 } });
@@ -161,7 +186,26 @@ describe("GovernanceProposalDetail", () => {
           }
         },
       },
-      tx: { WitnessScope: { Global: 1 }, Witness: class {}, Transaction: class {} },
+      tx: {
+        WitnessScope: { Global: 1 },
+        Witness: class {},
+        Transaction: class {
+          static deserialize() {
+            return {
+              hash: () => "abfbffc25e0be492095991f1a6fb074df0363e2963b0aace0ee9dd0ebd760765",
+              serialize: () => unsignedTx,
+              script: { toString: () => "01e80311c01f0c0d736574466565506572427974650c147bc681c0a1f71d543457b68bba8d5f9fdd4e5ecc41627d5b52" },
+              signers: [{ account: "28efcfe621689e222598d6cc013400c911ce2b86", scopes: 128 }],
+              attributes: [],
+              systemFee: "135208",
+              networkFee: "721066",
+              validUntilBlock: 9055023,
+              version: 0,
+              nonce: 1868666677,
+            };
+          }
+        },
+      },
       rpc: {
         RPCClient: class {
           async getCommittee() {

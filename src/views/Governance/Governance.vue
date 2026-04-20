@@ -260,7 +260,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-const RpcClient = window.Neon?.rpc?.RPCClient;
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
@@ -321,6 +320,14 @@ const neoBurgerMonthlyGas = computed(() => {
   }
   return maxGas;
 });
+
+function createRpcClient(url = getRpcClientUrl()) {
+  const RpcClient = window.Neon?.rpc?.RPCClient;
+  if (typeof RpcClient !== "function") {
+    throw new Error("Neo RPC client is not available.");
+  }
+  return new RpcClient(url);
+}
 
 const sortedCandidates = computed(() => {
   const list = [...candidates.value];
@@ -427,7 +434,7 @@ async function loadCandidates() {
   loading.value = true;
   error.value = "";
   try {
-    const rpcClient = new RpcClient(getRpcClientUrl());
+    const rpcClient = createRpcClient();
 
     // Determine the environment string for Dora API
     const env = getCurrentEnv().toLowerCase();
@@ -522,7 +529,7 @@ async function loadCurrentVoteState() {
   }
 
   try {
-    const rpcClient = new RpcClient(getRpcClientUrl());
+    const rpcClient = createRpcClient();
     const scriptHash = addressToScriptHash(account.value);
     if (!scriptHash) {
       currentVotePublicKey.value = "";

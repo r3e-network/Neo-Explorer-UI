@@ -51,6 +51,30 @@ vi.mock("@/services/walletService", () => ({
   },
 }));
 
+vi.mock("@cityofzion/neon-js", () => {
+  const runtime = () => globalThis.window?.Neon || {};
+  return {
+    get default() {
+      return runtime();
+    },
+    get wallet() {
+      return runtime().wallet;
+    },
+    get tx() {
+      return runtime().tx;
+    },
+    get rpc() {
+      return runtime().rpc;
+    },
+    get sc() {
+      return runtime().sc;
+    },
+    get u() {
+      return runtime().u;
+    },
+  };
+});
+
 vi.mock("vue-toastification", () => ({
   useToast: () => ({
     success: toastSuccessMock,
@@ -63,6 +87,7 @@ vi.mock("vue-toastification", () => ({
 describe("GovernanceSignModal", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    delete window.Neon;
     connectedAccount.value = "";
     walletSession.account = null;
     walletSession.isConnected = false;
@@ -77,6 +102,7 @@ describe("GovernanceSignModal", () => {
   });
 
   afterEach(() => {
+    delete window.Neon;
     vi.useRealTimers();
   });
 

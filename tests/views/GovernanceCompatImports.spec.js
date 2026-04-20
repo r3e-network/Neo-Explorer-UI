@@ -18,7 +18,7 @@ describe("governance compat sdk imports", () => {
 
     files.forEach((file) => {
       const source = readSource(file);
-      expect(source).toContain('@cityofzion/neon-js');
+      expect(source).toMatch(/@cityofzion\/neon-js|@\/utils\/neonLoader\.js/);
       expect(source).not.toContain('import("@r3e/neo-js-sdk/browser")');
     });
   });

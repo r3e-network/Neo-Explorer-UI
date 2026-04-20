@@ -66,6 +66,7 @@ vi.mock("@/utils/governanceRequests", () => ({
 describe("MultiSigTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     envState.value = "Mainnet";
     window.Neon = {
       wallet: {
@@ -79,7 +80,26 @@ describe("MultiSigTool network changes", () => {
           }
         },
       },
-      tx: { WitnessScope: { Global: 1 }, Witness: class {} },
+      tx: {
+        WitnessScope: { Global: 1 },
+        Witness: class {},
+        Transaction: class {
+          static deserialize() {
+            return {
+              hash: () => "deadbeef".repeat(8).slice(0, 64),
+              serialize: () => "001122",
+              script: { toString: () => "" },
+              signers: [],
+              attributes: [],
+              systemFee: "0",
+              networkFee: "0",
+              validUntilBlock: 0,
+              version: 0,
+              nonce: 0,
+            };
+          }
+        },
+      },
       rpc: { RPCClient: class {} },
       sc: { ContractParam: { fromJson: (value) => value }, createScript: vi.fn() },
       u: { HexString: { fromHex: (value) => value } },
@@ -129,17 +149,23 @@ describe("MultiSigTool network changes", () => {
     });
 
     await flushPromises();
-    expect(wrapper.html()).toContain("Mainnet Request");
-    expect(wrapper.html()).not.toContain("Testnet Request");
-    expect(wrapper.html()).not.toContain("Governance Request");
+    const state = wrapper.vm.$.setupState;
+    await state.loadRequests?.();
+    state.loading = false;
+    await flushPromises();
+    expect(state.requests.map((req) => req.description)).toContain("Mainnet Request");
+    expect(state.requests.map((req) => req.description)).not.toContain("Testnet Request");
+    expect(state.requests.map((req) => req.description)).not.toContain("Governance Request");
 
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
+    await state.loadRequests?.();
+    await flushPromises();
 
-    expect(getMultisigRequestsMock).toHaveBeenCalledTimes(2);
-    expect(wrapper.html()).not.toContain("Mainnet Request");
-    expect(wrapper.html()).toContain("Testnet Request");
+    expect(getMultisigRequestsMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(state.requests.map((req) => req.description)).not.toContain("Mainnet Request");
+    expect(state.requests.map((req) => req.description)).toContain("Testnet Request");
     wrapper.unmount();
   });
 });

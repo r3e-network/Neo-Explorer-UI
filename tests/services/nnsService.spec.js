@@ -65,6 +65,7 @@ vi.mock("@cityofzion/neon-js", () => {
     reverseHex,
   };
   neonMock.rpc = { RPCClient: neonMock.RpcClient };
+  neonMock.tx = { Transaction: { deserialize: vi.fn() } };
   neonMock.default = neonMock;
   return neonMock;
 });

@@ -34,13 +34,19 @@ const resolved = findNeonJs(
 );
 
 export async function loadNeonJs() {
+  if (typeof window !== "undefined") {
+    const runtime = findNeonJs(window.Neon);
+    if (runtime) return runtime;
+  }
   if (resolved) return resolved;
-  if (typeof window !== "undefined") return findNeonJs(window.Neon);
   return null;
 }
 
 export function getNeonJsSync() {
+  if (typeof window !== "undefined") {
+    const runtime = findNeonJs(window.Neon);
+    if (runtime) return runtime;
+  }
   if (resolved) return resolved;
-  if (typeof window !== "undefined") return findNeonJs(window.Neon);
   return null;
 }

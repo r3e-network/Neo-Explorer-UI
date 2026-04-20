@@ -60,6 +60,8 @@ vi.mock("@cityofzion/neon-js", () => {
     },
   };
   neonMock.wallet = { Account: neonMock.Account };
+  neonMock.tx = { Transaction: { deserialize: vi.fn() } };
+  neonMock.rpc = { RPCClient: class {} };
   neonMock.default = neonMock;
   return neonMock;
 });

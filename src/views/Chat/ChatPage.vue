@@ -56,7 +56,6 @@ defineOptions({ name: "ChatPage" });
 
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-const Wallet = window.Neon?.wallet;
 import ChatSidebar from "./components/ChatSidebar.vue";
 import ChatThread from "./components/ChatThread.vue";
 import { connectedAccount } from "@/utils/wallet";
@@ -87,6 +86,10 @@ const selectedRoomId = ref(String(route.query.room || ""));
 const selectedRoom = computed(() =>
   rooms.value.find((room) => (room.roomId || room.id) === selectedRoomId.value) || null
 );
+
+function getWalletRuntime() {
+  return window.Neon?.wallet || null;
+}
 
 function normalizeRoom(room) {
   return {
@@ -140,11 +143,15 @@ async function openRoom(room) {
 async function resolvePeerAddress(rawTarget) {
   const value = String(rawTarget || "").trim();
   if (!value) throw new Error("Enter an address or domain.");
-  if (Wallet.isAddress(value)) {
+  const wallet = getWalletRuntime();
+  if (!wallet?.isAddress) {
+    throw new Error("Neo wallet runtime unavailable.");
+  }
+  if (wallet.isAddress(value)) {
     return { address: value, label: value };
   }
   const resolved = await nnsService.resolveDomain(value);
-  if (!resolved || !Wallet.isAddress(resolved)) {
+  if (!resolved || !wallet.isAddress(resolved)) {
     throw new Error("Unable to resolve chat recipient.");
   }
   return { address: resolved, label: value };

@@ -247,7 +247,6 @@
 import { ref } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-const { rpc, tx, wallet } = window.Neon;
 import { base642hex, hex2base64 } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
@@ -258,6 +257,14 @@ const scriptInput = ref("");
 const signers = ref([]);
 const isEstimating = ref(false);
 const result = ref(null);
+
+function getNeonRuntime() {
+  const runtime = window.Neon;
+  if (!runtime?.rpc?.RPCClient || !runtime?.tx?.Transaction || !runtime?.wallet?.Account) {
+    throw new Error("Neo runtime is not available.");
+  }
+  return runtime;
+}
 
 function addSigner() {
   signers.value.push("");
@@ -280,6 +287,7 @@ async function estimateGas() {
   result.value = null;
 
   try {
+    const { rpc, tx, wallet } = getNeonRuntime();
     // Normalize Script
     let hexScript = "";
     if (scriptFormat.value === "hex") {

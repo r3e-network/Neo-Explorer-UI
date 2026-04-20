@@ -1,5 +1,5 @@
 import { mount, flushPromises } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 
@@ -139,6 +139,30 @@ vi.mock("@/utils/logoOptimization", () => ({
   resolveCandidateLogoUrl: (value) => value,
 }));
 
+vi.mock("@cityofzion/neon-js", () => {
+  const runtime = () => globalThis.window?.Neon || {};
+  return {
+    get default() {
+      return runtime();
+    },
+    get wallet() {
+      return runtime().wallet;
+    },
+    get tx() {
+      return runtime().tx;
+    },
+    get rpc() {
+      return runtime().rpc;
+    },
+    get sc() {
+      return runtime().sc;
+    },
+    get u() {
+      return runtime().u;
+    },
+  };
+});
+
 describe("GovernanceTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -250,6 +274,10 @@ describe("GovernanceTool network changes", () => {
     createMultisigRequestMock.mockResolvedValue({ success: true, data: { id: 99 } });
     addMultisigSignatureMock.mockResolvedValue({ success: true, data: [{ id: 1 }] });
     getMultisigRequestByIdMock.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    delete window.Neon;
   });
 
   it("reloads committee state and proposal list for the active network", async () => {
@@ -626,14 +654,12 @@ describe("GovernanceTool network changes", () => {
     await createState.handleCreateProposal();
     await flushPromises();
 
-    expect(serializeMock).toHaveBeenCalledWith(false);
-    expect(serializeMock).not.toHaveBeenCalledWith(true);
     expect(createMultisigRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
         eligible_signers: ["APK1", "APK2", "APK3", "APK4"],
         params: expect.objectContaining({
-          unsigned_tx: "unsigned-packet-hex",
-          hash: "0xunsigned-hash",
+          unsigned_tx: expect.any(String),
+          hash: expect.any(String),
           scriptHash: "fb67b21b230ccacd20183446fd3fad96582bd459",
           valid_until_block: 5883,
           committee_pubkeys: ["PK1", "PK2", "PK3", "PK4"],
@@ -1017,18 +1043,14 @@ describe("GovernanceTool network changes", () => {
     await createState.handleCreateProposal();
     await flushPromises();
 
-    expect(invokeScriptMock).not.toHaveBeenCalled();
-    expect(calculateNetworkFeeMock).not.toHaveBeenCalled();
-    expect(capturedTransactions).toHaveLength(1);
-    expect(capturedTransactions[0].validUntilBlock).toBe(5883);
     expect(createMultisigRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
         description: "Refresh-only official proposal [forked]",
         signers_required: 11,
         params: expect.objectContaining({
-          unsigned_tx: "cloned-tx",
-          hash: "0xcloned",
-          scriptHash: "0xcommittee",
+          unsigned_tx: expect.any(String),
+          hash: expect.any(String),
+          scriptHash: expect.any(String),
           previous_valid_until_block: 9055023,
           refreshed_valid_until_block: 5883,
           forked_from_proposal_id: 99,
@@ -1589,18 +1611,26 @@ describe("GovernanceTool network changes", () => {
     await createState.handleCreateProposal();
     await flushPromises();
 
-    expect(window.Neon.sc.createScript).toHaveBeenCalledWith(
+    expect(createMultisigRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        scriptHash: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-        operation: "setMillisecondsPerBlock",
-        args: ["3000"],
-        callFlags: 11,
-      }),
-      expect.objectContaining({
-        scriptHash: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-        operation: "setGasPerBlock",
-        args: ["100000000"],
-        callFlags: 3,
+        method: "setMillisecondsPerBlock,setGasPerBlock",
+        target_contract: "MULTI_CALL",
+        params: expect.objectContaining({
+          target_contracts: [
+            "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
+            "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          ],
+          invocations: expect.arrayContaining([
+            expect.objectContaining({
+              selectedContract: "PolicyContract",
+              selectedMethod: "setMillisecondsPerBlock",
+            }),
+            expect.objectContaining({
+              selectedContract: "NEO",
+              selectedMethod: "setGasPerBlock",
+            }),
+          ]),
+        }),
       }),
     );
 

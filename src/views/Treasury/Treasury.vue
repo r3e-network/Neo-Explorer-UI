@@ -279,7 +279,6 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
-const RpcClient = window.Neon?.rpc?.RPCClient;
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
@@ -322,6 +321,14 @@ const groups = computed(() => {
   return [da, erik, ops].sort((a, b) => b.neo - a.neo);
 });
 
+function createRpcClient(endpoint) {
+  const RpcClient = window.Neon?.rpc?.RPCClient;
+  if (typeof RpcClient !== "function") {
+    throw new Error("Neo RPC client is not available.");
+  }
+  return new RpcClient(endpoint);
+}
+
 function groupWidthStyle(group) {
   if (!totalNeo.value) return { width: "0%" };
   return { width: `${(group.neo / totalNeo.value) * 100}%` };
@@ -348,7 +355,7 @@ async function fetchTreasuryDataFromRpc() {
   const BATCH_SIZE = 5;
 
   return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-    const rpcClient = new RpcClient(endpoint);
+    const rpcClient = createRpcClient(endpoint);
     const results = [];
 
     for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
