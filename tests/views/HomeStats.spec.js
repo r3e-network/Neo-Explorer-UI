@@ -65,9 +65,9 @@ describe("HomeStats countdown refresh behavior", () => {
     wrapper.unmount();
   });
 
-  it("treats a 16 second old mainnet block as overdue so homepage refresh starts sooner", async () => {
+  it("treats a 4 second old mainnet block as overdue so homepage refresh starts sooner", async () => {
     const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
-    const nearTipTimestamp = Math.floor((Date.now() - 16_000) / 1000);
+    const nearTipTimestamp = Math.floor((Date.now() - 4_000) / 1000);
     const wrapper = mount(HomeStats, {
       props: {
         latestBlockTimestamp: nearTipTimestamp,

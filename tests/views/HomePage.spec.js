@@ -354,7 +354,7 @@ describe("HomePage initial loading", () => {
     expect(useAutoRefreshMock).toHaveBeenCalled();
     expect(useAutoRefreshMock.mock.calls[0][1]).toEqual(
       expect.objectContaining({
-        intervalMs: 5000,
+        intervalMs: 3000,
       }),
     );
     wrapper.unmount();

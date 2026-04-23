@@ -53,7 +53,7 @@
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-mid">NEO</span>
             </div>
             <span class="hidden md:inline-block text-xs text-mid">
-              Estimated rewards based on network total votes and 15s block time.
+              Estimated rewards based on network total votes and 3s block time.
             </span>
           </div>
           <div v-if="neoPrice && gasPrice" class="flex items-center gap-4 text-xs font-semibold text-mid">
@@ -293,7 +293,7 @@ const gasPrice = ref(0);
 
 // Neo N3 specific constants
 const TOTAL_NEO_SUPPLY = 100_000_000;
-const BLOCKS_PER_YEAR = 2_102_400; // Assuming exactly 15 seconds per block
+const BLOCKS_PER_YEAR = 10_512_000; // Assuming exactly 3 seconds per block
 const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
 
 const totalNetworkVotes = computed(() => {

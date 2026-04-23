@@ -20,6 +20,7 @@ const validatorAddress = computed(() => {
 
 const props = defineProps({
   block: { type: Object, required: true },
+  transactions: { type: Array, default: () => [] },
   reward: { type: [Number, String, null], default: null },
   showWitnesses: { type: Boolean, default: false },
 });
@@ -43,6 +44,40 @@ const blockTransactionCount = computed(() => {
 const timeAgo = computed(() => {
   if (!props.block?.timestamp) return "";
   return formatAge(props.block.timestamp);
+});
+
+const feeSourceTransactions = computed(() => {
+  if (Array.isArray(props.transactions) && props.transactions.length > 0) {
+    return props.transactions;
+  }
+  return Array.isArray(props.block?.tx) ? props.block.tx : [];
+});
+
+const feeTotals = computed(() => {
+  const directSysFee = Number(props.block?.sysfee ?? props.block?.systemFee ?? props.block?.sys_fee ?? props.block?.totalSysFee);
+  const directNetFee = Number(props.block?.netfee ?? props.block?.networkFee ?? props.block?.net_fee ?? props.block?.totalNetFee);
+  const hasDirectSysFee = Number.isFinite(directSysFee);
+  const hasDirectNetFee = Number.isFinite(directNetFee);
+
+  let sysfee = hasDirectSysFee ? directSysFee : 0;
+  let netfee = hasDirectNetFee ? directNetFee : 0;
+
+  const shouldUseTxFallback =
+    feeSourceTransactions.value.length > 0 &&
+    (!hasDirectSysFee || !hasDirectNetFee || (sysfee === 0 && netfee === 0));
+
+  if (shouldUseTxFallback) {
+    sysfee = feeSourceTransactions.value.reduce(
+      (sum, tx) => sum + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
+      0,
+    );
+    netfee = feeSourceTransactions.value.reduce(
+      (sum, tx) => sum + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
+      0,
+    );
+  }
+
+  return { sysfee, netfee };
 });
 </script>
 
@@ -151,10 +186,10 @@ const timeAgo = computed(() => {
     </div>
     <div class="p-4 md:p-6">
       <InfoRow label="System Fee Total">
-        <span class="font-mono">{{ formatGas(block.sysfee || block.totalSysFee || 0) }} GAS</span>
+        <span class="font-mono">{{ formatGas(feeTotals.sysfee) }} GAS</span>
       </InfoRow>
       <InfoRow label="Network Fee Total">
-        <span class="font-mono">{{ formatGas(block.netfee || block.totalNetFee || 0) }} GAS</span>
+        <span class="font-mono">{{ formatGas(feeTotals.netfee) }} GAS</span>
       </InfoRow>
       <InfoRow v-if="reward !== null" label="GAS Reward" tooltip="Block reward distributed to consensus nodes">
         <span class="font-mono text-green-600 dark:text-green-400"> {{ formatGas(reward) }} GAS </span>
@@ -217,7 +252,7 @@ const timeAgo = computed(() => {
         <span>Delegated Byzantine Fault Tolerance (dBFT 2.0)</span>
       </InfoRow>
       <InfoRow label="Block Time">
-        <span>~15 seconds</span>
+        <span>~3 seconds</span>
       </InfoRow>
       <InfoRow label="Finality">
         <span class="inline-flex items-center gap-1.5">

@@ -89,7 +89,7 @@ const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
-const HOMEPAGE_REFRESH_INTERVAL_MS = 5_000;
+const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -222,8 +222,8 @@ function normalizeBlockSummary(block = {}) {
     txcount: Number.isFinite(txCount) ? txCount : 0,
     transactioncount: Number.isFinite(txCount) ? txCount : 0,
     primary: block.primary ?? block.primary_node,
-    netfee: block.netfee ?? block.networkFee,
-    sysfee: block.sysfee ?? block.systemFee,
+    netfee: block.netfee ?? block.networkFee ?? block.net_fee ?? block.totalNetFee,
+    sysfee: block.sysfee ?? block.systemFee ?? block.sys_fee ?? block.totalSysFee,
     tx: block.tx || [],
     nextconsensus:
       block.nextconsensus ?? block.nextConsensus ?? block.next_consensus ?? block.speaker ?? block.validator,
@@ -248,8 +248,8 @@ function normalizeHomepageTransaction(tx = {}) {
 }
 
 function computeBlockFeeTotals(block = {}) {
-  const directSysFee = Number(block.sysfee ?? block.systemFee);
-  const directNetFee = Number(block.netfee ?? block.networkFee);
+  const directSysFee = Number(block.sysfee ?? block.systemFee ?? block.sys_fee ?? block.totalSysFee);
+  const directNetFee = Number(block.netfee ?? block.networkFee ?? block.net_fee ?? block.totalNetFee);
   const txList = Array.isArray(block.tx) ? block.tx : [];
   const txCount = Number(
     block.txcount ??
@@ -489,7 +489,32 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
         const full = await blockService.getByHeight(block.index, requestOptions);
         if (!full) return null;
 
-        return {
+      let feeTotals = {
+        sysfee: full.sysfee ?? full.systemFee ?? full.sys_fee ?? full.totalSysFee,
+        netfee: full.netfee ?? full.networkFee ?? full.net_fee ?? full.totalNetFee,
+      };
+
+      const normalizedFeeTotals = {
+        sysfee: Number(feeTotals.sysfee),
+        netfee: Number(feeTotals.netfee),
+      };
+
+      const txCount = Number(block.txcount ?? block.transactioncount ?? 0);
+      const shouldFetchTransactions =
+        txCount > 0 &&
+        (!Number.isFinite(normalizedFeeTotals.sysfee) ||
+          !Number.isFinite(normalizedFeeTotals.netfee) ||
+          (normalizedFeeTotals.sysfee === 0 && normalizedFeeTotals.netfee === 0));
+
+      if (shouldFetchTransactions) {
+        const txRes = await blockService.getTransactionsByHeight(block.index, txCount, 0, requestOptions);
+        const txs = Array.isArray(txRes?.result) ? txRes.result : [];
+        if (txs.length > 0) {
+          full.tx = txs;
+        }
+      }
+
+      return {
           hash: block.hash,
           details: {
             primary: full.primary,

@@ -12,7 +12,7 @@ vi.mock("@/services/supabaseService", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: () => envState.value,
-  getNetworkRefreshIntervalMs: vi.fn(() => 15000),
+  getNetworkRefreshIntervalMs: vi.fn(() => 3000),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 

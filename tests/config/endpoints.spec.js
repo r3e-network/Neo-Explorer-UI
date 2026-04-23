@@ -62,8 +62,9 @@ describe("endpoint defaults", () => {
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
-    // Mainnet RPC routes follow the current mixed-primary/fallback policy
-    expect(routeDest("/rpc/mainnet/primary")).toBe("https://rpc.n3index.dev");
+    // Frontend block/tx pages call indexed Get* methods through /rpc/mainnet/primary,
+    // so the primary rewrite must target the indexed API rather than the native node.
+    expect(routeDest("/rpc/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/rpc/mainnet/fallback")).toBe("https://mainnet1.neo.coz.io:443");
     expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://mainnet2.neo.coz.io:443");
     expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://rpc.n3index.dev");

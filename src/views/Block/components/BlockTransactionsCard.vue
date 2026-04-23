@@ -13,6 +13,14 @@ defineProps({
     default: "No transactions in this block",
   },
 });
+
+function getSystemFee(tx) {
+  return tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0;
+}
+
+function getNetworkFee(tx) {
+  return tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0;
+}
 </script>
 
 <template>
@@ -65,10 +73,10 @@ defineProps({
               <span v-else class="text-sm text-mid">--</span>
             </td>
             <td class="table-cell-right font-mono">
-              {{ formatGas(tx.sysfee || 0) }}
+              {{ formatGas(getSystemFee(tx)) }}
             </td>
             <td class="table-cell-right font-mono">
-              {{ formatGas(tx.netfee || 0) }}
+              {{ formatGas(getNetworkFee(tx)) }}
             </td>
             <td class="table-cell-secondary-right">
               {{ formatBytes(tx.size) }}

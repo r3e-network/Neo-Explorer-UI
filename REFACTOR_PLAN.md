@@ -136,6 +136,6 @@ Transform Neo-Explorer-UI into a production-grade, Etherscan-quality blockchain 
 - [ ] NEP-11 Transfer event: `Transfer(from, to, amount, tokenId)`
 - [ ] GAS decimals: 8
 - [ ] NEO decimals: 0 (indivisible)
-- [ ] Block time: ~15 seconds
+- [ ] Block time: ~3 seconds
 - [ ] Consensus: dBFT 2.0
 - [ ] System fee + Network fee (not just "gas")

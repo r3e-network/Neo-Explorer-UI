@@ -13,7 +13,7 @@
             <span class="text-high text-lg font-extrabold tracking-tight">Neo Explorer</span>
           </div>
           <p class="text-mid mb-4 text-sm leading-relaxed">
-            A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~15s finality.
+            A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~3s finality.
           </p>
           <div class="flex items-center gap-3">
             <a

@@ -16,7 +16,7 @@
   "rewrites": [
     {
       "source": "/rpc/mainnet/primary",
-      "destination": "https://rpc.n3index.dev"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/mainnet/fallback",

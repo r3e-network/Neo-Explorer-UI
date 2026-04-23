@@ -237,7 +237,7 @@ describe("GovernanceTool network changes", () => {
       u: { HexString: { fromHex: (value) => value } },
     };
     getCommitteeMock.mockResolvedValue(["PK1", "PK2", "PK3", "PK4"]);
-    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 5760, msperblock: 15000 } });
+    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 5760, msperblock: 3000 } });
     invokeScriptMock.mockResolvedValue({ state: "HALT", gasconsumed: "135208" });
     calculateNetworkFeeMock.mockResolvedValue("721066");
     createMultiSigMock.mockClear();
@@ -1064,7 +1064,7 @@ describe("GovernanceTool network changes", () => {
   it("targets a 30 day valid-until window when the active protocol allows it", async () => {
     connectedAccount.value = "APK1";
     walletServiceMock.isConnected = true;
-    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 999999, msperblock: 15000 } });
+    getVersionMock.mockResolvedValue({ protocol: { maxvaliduntilblockincrement: 999999, msperblock: 3000 } });
     getMultisigRequestsMock.mockResolvedValue([]);
 
     const GovernanceTool = (await import("@/views/Tools/GovernanceTool.vue")).default;
@@ -1123,7 +1123,7 @@ describe("GovernanceTool network changes", () => {
     expect(createMultisigRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
-          valid_until_block: 172923,
+          valid_until_block: 864123,
         }),
       }),
     );

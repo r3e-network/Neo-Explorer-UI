@@ -9,8 +9,8 @@ import {
 } from "../../src/utils/env.js";
 
 describe("env refresh intervals", () => {
-  it("uses 8 seconds for mainnet", () => {
-    expect(getNetworkRefreshIntervalMs(NET_ENV.Mainnet)).toBe(15000);
+  it("uses 3 seconds for mainnet", () => {
+    expect(getNetworkRefreshIntervalMs(NET_ENV.Mainnet)).toBe(3000);
   });
 
   it("uses 3 seconds for testnet", () => {
@@ -21,7 +21,7 @@ describe("env refresh intervals", () => {
   });
 
   it("falls back to mainnet interval for unknown env", () => {
-    expect(getNetworkRefreshIntervalMs("UnknownNetwork")).toBe(15000);
+    expect(getNetworkRefreshIntervalMs("UnknownNetwork")).toBe(3000);
   });
 });
 

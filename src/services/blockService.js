@@ -89,9 +89,19 @@ export const blockService = createService(
     },
   },
   {
+    _computeTransactionFeeTotals(transactions = []) {
+      return (Array.isArray(transactions) ? transactions : []).reduce(
+        (sum, tx) => ({
+          sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? tx?.totalSysFee ?? 0),
+          netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? tx?.totalNetFee ?? 0),
+        }),
+        { sysfee: 0, netfee: 0 },
+      );
+    },
+
     _computeBlockFeeTotals(block = {}) {
-      const directSysFee = Number(block.sysfee ?? block.systemFee);
-      const directNetFee = Number(block.netfee ?? block.networkFee);
+      const directSysFee = Number(block.sysfee ?? block.systemFee ?? block.sys_fee ?? block.totalSysFee);
+      const directNetFee = Number(block.netfee ?? block.networkFee ?? block.net_fee ?? block.totalNetFee);
       const txCount = Number(
         block.txcount ??
           block.transactioncount ??
@@ -117,15 +127,7 @@ export const blockService = createService(
         };
       }
 
-      const totals = block.tx.reduce(
-        (sum, tx) => ({
-          sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
-          netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
-        }),
-        { sysfee: 0, netfee: 0 },
-      );
-
-      return totals;
+      return this._computeTransactionFeeTotals(block.tx);
     },
 
     _extractCount(res) {
@@ -196,7 +198,25 @@ export const blockService = createService(
             try {
               const full = await this.getByHeight(b.index, requestOptions);
               if (full) {
-                const feeTotals = this._computeBlockFeeTotals(full);
+                let feeTotals = this._computeBlockFeeTotals(full);
+                const stillMissingFees =
+                  txCount > 0 &&
+                  (!Number.isFinite(feeTotals.sysfee) ||
+                    !Number.isFinite(feeTotals.netfee) ||
+                    (feeTotals.sysfee === 0 && feeTotals.netfee === 0));
+
+                if (stillMissingFees) {
+                  try {
+                    const txRes = await this.getTransactionsByHeight(b.index, txCount, 0, requestOptions);
+                    const txs = Array.isArray(txRes?.result) ? txRes.result : [];
+                    if (txs.length > 0) {
+                      feeTotals = this._computeTransactionFeeTotals(txs);
+                    }
+                  } catch (innerError) {
+                    if (import.meta.env.DEV) console.warn("[blockService] transaction fee backfill failed:", innerError);
+                  }
+                }
+
                 b.sysfee = feeTotals.sysfee;
                 b.netfee = feeTotals.netfee;
                 b.primary = full.primary;

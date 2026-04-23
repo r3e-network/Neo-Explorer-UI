@@ -131,8 +131,8 @@ const hasNamedValidatorIdentity = computed(() => {
 });
 
 const blockFee = computed(() => {
-  const directSys = Number(props.block.sysfee ?? props.block.systemFee);
-  const directNet = Number(props.block.netfee ?? props.block.networkFee);
+  const directSys = Number(props.block.sysfee ?? props.block.systemFee ?? props.block.sys_fee ?? props.block.totalSysFee);
+  const directNet = Number(props.block.netfee ?? props.block.networkFee ?? props.block.net_fee ?? props.block.totalNetFee);
   const hasDirectSys = Number.isFinite(directSys);
   const hasDirectNet = Number.isFinite(directNet);
 

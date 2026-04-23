@@ -1,7 +1,7 @@
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 vi.mock("@/utils/env", () => ({
-  getNetworkRefreshIntervalMs: () => 15000,
+  getNetworkRefreshIntervalMs: () => 3000,
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 
@@ -35,10 +35,10 @@ describe("useAutoRefresh", () => {
       expect(isActive.value).toBe(true);
       expect(cb).not.toHaveBeenCalled();
 
-      await vi.advanceTimersByTimeAsync(15000);
+      await vi.advanceTimersByTimeAsync(3000);
       expect(cb).toHaveBeenCalledTimes(1);
 
-      await vi.advanceTimersByTimeAsync(15000);
+      await vi.advanceTimersByTimeAsync(3000);
       expect(cb).toHaveBeenCalledTimes(2);
     });
   });
@@ -63,7 +63,7 @@ describe("useAutoRefresh", () => {
       const { isActive } = useAutoRefresh(cb, { immediate: true });
 
       expect(isActive.value).toBe(true);
-      vi.advanceTimersByTime(15000);
+      vi.advanceTimersByTime(3000);
       expect(cb).toHaveBeenCalledTimes(1);
     });
 
@@ -84,7 +84,7 @@ describe("useAutoRefresh", () => {
       const { start } = useAutoRefresh(cb);
 
       start();
-      vi.advanceTimersByTime(14999);
+      vi.advanceTimersByTime(2999);
       expect(cb).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(1);
@@ -96,13 +96,13 @@ describe("useAutoRefresh", () => {
       const { start } = useAutoRefresh(cb);
 
       start();
-      vi.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(2000);
       expect(cb).toHaveBeenCalledTimes(0);
 
       window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
       expect(cb).toHaveBeenCalledTimes(1);
 
-      vi.advanceTimersByTime(14999);
+      vi.advanceTimersByTime(2999);
       expect(cb).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1);
@@ -114,7 +114,7 @@ describe("useAutoRefresh", () => {
       const { start } = useAutoRefresh(cb, { pauseWhenHidden: true });
 
       start();
-      vi.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(2000);
       expect(cb).toHaveBeenCalledTimes(0);
 
       Object.defineProperty(document, "hidden", { configurable: true, value: true });

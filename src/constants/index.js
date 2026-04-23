@@ -38,7 +38,7 @@ export const BURN_RATE = 0.00003;
 // Timer & delay constants (milliseconds)
 
 /** Homepage auto-refresh interval for latest blocks/transactions */
-export const HOME_REFRESH_INTERVAL = 15000;
+export const HOME_REFRESH_INTERVAL = 3000;
 
 /** Gas tracker page auto-refresh interval */
 export const GAS_TRACKER_REFRESH_INTERVAL = 30000;

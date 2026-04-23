@@ -233,7 +233,12 @@ async function testHomePage() {
   await test("RPC GetBlockCount", async () => {
     const res = await rpcPost("mainnet", "GetBlockCount", {});
     assert(res.status === 200, "RPC GetBlockCount → 200", `status=${res.status}`);
-    const count = res.json?.result?.["total counts"] ?? res.json?.result?.count ?? res.json?.result;
+    const count = Number(
+      res.json?.result?.["total counts"] ??
+      res.json?.result?.count ??
+      res.json?.result?.index ??
+      res.json?.result
+    );
     assert(count > 0, "RPC GetBlockCount returns positive result", `count=${count}`);
   });
 
@@ -720,6 +725,13 @@ async function testTestnet() {
   await test("Testnet RPC GetBlockCount", async () => {
     const res = await rpcPost("testnet", "GetBlockCount", {});
     assert(res.status === 200, "Testnet RPC GetBlockCount → 200", `status=${res.status}`);
+    const count = Number(
+      res.json?.result?.["total counts"] ??
+      res.json?.result?.count ??
+      res.json?.result?.index ??
+      res.json?.result
+    );
+    assert(count > 0, "Testnet GetBlockCount returns positive result", `count=${count}`);
   });
 }
 
@@ -784,7 +796,13 @@ async function testProxyRPCs() {
   await test("Proxy getblockcount", async () => {
     const res = await rpcPost("mainnet", "getblockcount", []);
     assert(res.status === 200, "Proxy getblockcount → 200", `status=${res.status}`);
-    assert(res.json?.result > 0, "getblockcount returns positive", `result=${res.json?.result}`);
+    const result = Number(
+      res.json?.result?.["total counts"] ??
+      res.json?.result?.count ??
+      res.json?.result?.index ??
+      res.json?.result
+    );
+    assert(Number.isFinite(result) && result > 0, "getblockcount returns positive", `result=${res.json?.result}`);
   });
 
   await test("Proxy getcandidates", async () => {

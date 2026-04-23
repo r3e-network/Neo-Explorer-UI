@@ -154,6 +154,52 @@ describe("blockService", () => {
         netfee: 30,
       });
     });
+
+    it("falls back to fetching block transactions when full block detail omits tx fees", async () => {
+      api.safeRpcList
+        .mockResolvedValueOnce({
+          result: [
+            {
+              hash: "0x3",
+              index: 3,
+              txcount: 2,
+              sysfee: 0,
+              netfee: 0,
+            },
+          ],
+          totalCount: 1,
+        })
+        .mockResolvedValueOnce({
+          result: [
+            { sysfee: "100", netfee: "10" },
+            { systemFee: "200", networkFee: "20" },
+          ],
+          totalCount: 2,
+        });
+
+      api.safeRpc.mockResolvedValueOnce({
+        hash: "0x3",
+        index: 3,
+        txcount: 2,
+        tx: [],
+        primary: 0,
+        nextconsensus: "0xabc",
+      });
+
+      const result = await blockService.getList(1, 0, { enrichMissingFields: true });
+
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 3 }, null, expect.any(Object));
+      expect(api.safeRpcList).toHaveBeenLastCalledWith(
+        "GetRawTransactionByBlockHeight",
+        { BlockHeight: 3, Limit: 2, Skip: 0 },
+        "get transactions by block height",
+        expect.any(Object)
+      );
+      expect(result.result[0]).toMatchObject({
+        sysfee: 300,
+        netfee: 30,
+      });
+    });
   });
 
   describe("getByHash", () => {

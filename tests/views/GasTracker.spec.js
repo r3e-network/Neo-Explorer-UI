@@ -17,7 +17,7 @@ vi.mock("@/utils/env", async () => {
   const actual = await vi.importActual("@/utils/env");
   return {
     ...actual,
-    getNetworkRefreshIntervalMs: () => 15000,
+    getNetworkRefreshIntervalMs: () => 3000,
   };
 });
 

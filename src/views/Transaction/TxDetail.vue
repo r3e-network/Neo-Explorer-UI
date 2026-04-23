@@ -503,7 +503,7 @@ watch(txStatus, (newStatus) => {
   if (newStatus === 'pending') {
     if (!pollInterval) {
       const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-      const intervalMs = env.includes('test') || env.includes('t5') ? 3000 : 15000;
+      const intervalMs = env.includes('test') || env.includes('t5') ? 3000 : 3000;
       pollInterval = setInterval(() => {
         if (route.params.txhash) {
           loadTx(route.params.txhash);

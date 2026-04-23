@@ -35,7 +35,7 @@
       <ErrorState v-else-if="error" title="Block not found" :message="error" @retry="loadBlock(route.params.hash)" />
 
       <div v-else class="space-y-6">
-        <BlockOverview :block="block" :reward="reward" v-model:show-witnesses="showWitnesses" />
+        <BlockOverview :block="block" :transactions="transactions" :reward="reward" v-model:show-witnesses="showWitnesses" />
 
         <!-- Tab Navigation -->
         <div class="etherscan-card overflow-hidden">
@@ -171,6 +171,16 @@ const tabs = computed(() => [
     count: blockLogNotificationCount.value || null,
   },
 ]);
+
+function computeTransactionFeeTotals(items = []) {
+  return (Array.isArray(items) ? items : []).reduce(
+    (sum, tx) => ({
+      sysfee: sum.sysfee + Number(tx?.sysfee ?? tx?.systemFee ?? tx?.sys_fee ?? 0),
+      netfee: sum.netfee + Number(tx?.netfee ?? tx?.networkFee ?? tx?.net_fee ?? 0),
+    }),
+    { sysfee: 0, netfee: 0 },
+  );
+}
 
 // --- Methods ---
 function mergeBlockData(raw, info) {
@@ -382,6 +392,20 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
 
     if (!silent || collected.length > 0 || blockTransactionCount.value === 0) {
       transactions.value = collected;
+    }
+
+    const directSysFee = Number(block.value?.sysfee ?? block.value?.systemFee ?? block.value?.totalSysFee);
+    const directNetFee = Number(block.value?.netfee ?? block.value?.networkFee ?? block.value?.totalNetFee);
+    const hasDirectSysFee = Number.isFinite(directSysFee);
+    const hasDirectNetFee = Number.isFinite(directNetFee);
+    const shouldBackfillFeeTotals =
+      collected.length > 0 &&
+      (!hasDirectSysFee || !hasDirectNetFee || (directSysFee === 0 && directNetFee === 0));
+
+    if (shouldBackfillFeeTotals) {
+      const totals = computeTransactionFeeTotals(collected);
+      block.value.sysfee = totals.sysfee;
+      block.value.netfee = totals.netfee;
     }
 
     const resolvedCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);

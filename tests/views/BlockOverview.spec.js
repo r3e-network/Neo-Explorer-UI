@@ -84,4 +84,76 @@ describe("BlockOverview", () => {
     const cozMatches = wrapper.text().match(/COZ/g) || [];
     expect(cozMatches).toHaveLength(3);
   });
+
+  it("falls back to the fetched transaction list when aggregate block fees are zero", async () => {
+    const BlockOverview = (await import("@/views/Block/components/BlockOverview.vue")).default;
+    const wrapper = mount(BlockOverview, {
+      props: {
+        block: {
+          index: 3,
+          hash: "0xblock",
+          prevhash: "0xprev",
+          merkleroot: "0xmerkle",
+          nextconsensus: "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8",
+          timestamp: 1710000000,
+          txcount: 2,
+          sysfee: 0,
+          netfee: 0,
+          size: 123,
+          version: 0,
+        },
+        transactions: [
+          { sysfee: 100, netfee: 10 },
+          { sysfee: 200, netfee: 20 },
+        ],
+        reward: 0,
+        showWitnesses: false,
+      },
+      global: {
+        stubs: {
+          InfoRow: { template: "<div><slot /></div>" },
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("300 GAS");
+    expect(wrapper.text()).toContain("30 GAS");
+  });
+
+  it("treats string zero aggregate fees as missing and falls back to transaction fee aliases", async () => {
+    const BlockOverview = (await import("@/views/Block/components/BlockOverview.vue")).default;
+    const wrapper = mount(BlockOverview, {
+      props: {
+        block: {
+          index: 4,
+          hash: "0xblock",
+          prevhash: "0xprev",
+          merkleroot: "0xmerkle",
+          nextconsensus: "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8",
+          timestamp: 1710000000,
+          txcount: 2,
+          sysfee: "0",
+          netfee: "0",
+          size: 123,
+          version: 0,
+        },
+        transactions: [
+          { systemFee: "100", networkFee: "10" },
+          { systemFee: "200", networkFee: "20" },
+        ],
+        reward: 0,
+        showWitnesses: false,
+      },
+      global: {
+        stubs: {
+          InfoRow: { template: "<div><slot /></div>" },
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("300 GAS");
+    expect(wrapper.text()).toContain("30 GAS");
+  });
 });
