@@ -1,6 +1,12 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const getNep17BalancesMock = vi.fn();
 
 vi.mock("@/composables/usePriceCache", () => ({
@@ -86,6 +92,7 @@ describe("Treasury view", () => {
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,

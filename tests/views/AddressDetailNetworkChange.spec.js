@@ -2,6 +2,12 @@ import { ref } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const route = { params: { accountAddress: "NTestAddress123" } };
 const getByAddress = vi.fn();
 const getAssets = vi.fn();
@@ -143,6 +149,7 @@ describe("AddressDetail network changes", () => {
     const AddressDetail = (await import("@/views/Account/AddressDetail.vue")).default;
     const wrapper = mount(AddressDetail, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           TabsNav: true,

@@ -217,10 +217,13 @@ export const blockService = createService(
                   }
                 }
 
-                b.sysfee = feeTotals.sysfee;
-                b.netfee = feeTotals.netfee;
-                b.primary = full.primary;
-                b.nextconsensus = full.nextconsensus ?? full.nextConsensus;
+                return {
+                  ...b,
+                  sysfee: feeTotals.sysfee,
+                  netfee: feeTotals.netfee,
+                  primary: full.primary,
+                  nextconsensus: full.nextconsensus ?? full.nextConsensus,
+                };
               }
             } catch (e) {
               if (import.meta.env.DEV) console.warn("[blockService] individual block enrichment failed:", e);

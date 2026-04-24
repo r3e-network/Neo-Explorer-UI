@@ -2,6 +2,19 @@ import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const getBlockList = vi.fn();
 const getBlockCount = vi.fn();
 const getBlockByHeight = vi.fn();
@@ -185,6 +198,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: HomeStatsStub,
@@ -216,6 +230,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: HomeStatsStub,
@@ -245,6 +260,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -273,6 +289,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -300,6 +317,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -320,6 +338,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -340,6 +359,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -364,6 +384,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -389,6 +410,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: HomeStatsStub,
@@ -421,6 +443,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: HomeStatsStub,
@@ -449,6 +472,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,
@@ -478,6 +502,7 @@ describe("HomePage initial loading", () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           SearchBox: true,
           HomeStats: true,

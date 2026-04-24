@@ -1,7 +1,7 @@
 <template>
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Abstract Account Creator' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.abstractAccount') }]" />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-4">
@@ -35,10 +35,10 @@
               </div>
               <div v-else>
                 <div class="flex items-center justify-between mb-2">
-                  <label class="block text-sm font-bold text-high">Account UUID</label>
+                  <label for="account-uuid" class="block text-sm font-bold text-high">Account UUID</label>
                   <button @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">Regenerate</button>
                 </div>
-                <input type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+                <input id="account-uuid" type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
               </div>
 
               <!-- Derived Address Preview -->
@@ -97,8 +97,8 @@
                 </h3>
                 <p class="text-xs text-mid">Admins have full execution and configuration authority.</p>
                 <div v-for="(admin, index) in admins" :key="'admin-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="admins[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
-                  <button @click="admins.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
+                  <input type="text" v-model="admins[index]" :aria-label="'Admin address ' + (index + 1)" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
+                  <button @click="admins.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0" aria-label="Remove admin">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
                 </div>
@@ -106,7 +106,7 @@
                   <button @click="admins.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Admin</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="adminThreshold" min="1" :max="Math.max(1, admins.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
+                     <input type="number" v-model.number="adminThreshold" min="1" :max="Math.max(1, admins.length)" aria-label="Admin threshold" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
               </div>
@@ -118,8 +118,8 @@
                 </h3>
                 <p class="text-xs text-mid">Managers can execute whitelisted dApp transactions but cannot reconfigure the account.</p>
                 <div v-for="(manager, index) in managers" :key="'manager-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="managers[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
-                  <button @click="managers.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
+                  <input type="text" v-model="managers[index]" :aria-label="'Manager address ' + (index + 1)" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
+                  <button @click="managers.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0" aria-label="Remove manager">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
                 </div>
@@ -127,7 +127,7 @@
                   <button @click="managers.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Manager</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="managerThreshold" min="0" :max="Math.max(0, managers.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
+                     <input type="number" v-model.number="managerThreshold" min="0" :max="Math.max(0, managers.length)" aria-label="Manager threshold" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
               </div>
@@ -139,8 +139,8 @@
                 </h3>
                 <p class="text-xs text-mid">Dome accounts can take control of the wallet if all Admins and Managers are inactive for the specified timeout period.</p>
                 <div v-for="(dome, index) in domes" :key="'dome-'+index" class="flex items-center gap-2">
-                  <input type="text" v-model="domes[index]" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
-                  <button @click="domes.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
+                  <input type="text" v-model="domes[index]" :aria-label="'Dome account address ' + (index + 1)" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
+                  <button @click="domes.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0" aria-label="Remove dome account">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                   </button>
                 </div>
@@ -148,14 +148,14 @@
                   <button @click="domes.push('')" class="text-xs text-indigo-600 font-semibold hover:underline">+ Add Dome Account</button>
                   <div class="flex items-center gap-2">
                      <span class="text-xs font-bold text-high">Threshold:</span>
-                     <input type="number" v-model.number="domeThreshold" min="0" :max="Math.max(0, domes.length)" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
+                     <input type="number" v-model.number="domeThreshold" min="0" :max="Math.max(0, domes.length)" aria-label="Dome threshold" class="form-input w-20 py-1 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" />
                   </div>
                 </div>
                 
                 <div class="flex items-center gap-4 mt-3" v-if="domes.length > 0">
                   <div class="flex-1">
-                    <label class="block text-xs font-bold text-high mb-1">Inactivity Timeout (ms)</label>
-                    <input type="number" v-model.number="domeTimeout" class="form-input w-full py-2 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 15768000000 (6 months)" />
+                    <label for="dome-timeout" class="block text-xs font-bold text-high mb-1">Inactivity Timeout (ms)</label>
+                    <input id="dome-timeout" type="number" v-model.number="domeTimeout" class="form-input w-full py-2 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 15768000000 (6 months)" />
                   </div>
                 </div>
               </div>
@@ -205,7 +205,7 @@
 
               <div class="relative group mt-2 rounded-xl overflow-hidden border border-line-soft">
                 <div class="absolute right-3 top-3 z-10 flex gap-2">
-                  <button @click="copyCode(sourceFiles[activeFileIdx].content)" class="p-2 bg-surface/80 backdrop-blur-sm border border-line-soft rounded-lg text-low hover:text-high transition-colors shadow-sm" title="Copy code">
+                  <button @click="copyCode(sourceFiles[activeFileIdx].content)" class="p-2 bg-surface/80 backdrop-blur-sm border border-line-soft rounded-lg text-low hover:text-high transition-colors shadow-sm" aria-label="Copy code">
                     <svg v-if="copied" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                   </button>
@@ -226,6 +226,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from '@/utils/wallet';
 import { walletService, getAbstractAccountHash } from "@/services/walletService";
 import { useToast } from "vue-toastification";
+import { useI18n } from "vue-i18n";
 import { useNetworkChange } from '@/composables/useNetworkChange';
 
 import hljs from 'highlight.js/lib/core';
@@ -265,6 +266,7 @@ function copyCode(text) {
 }
 
 const toast = useToast();
+const { t } = useI18n();
 const uuid = ref("");
 
 const admins = ref([""]);
@@ -333,7 +335,7 @@ function deriveAccount() {
     const hash160 = neonJs.u.reverseHex(neonJs.u.hash160(script));
     computedAddress.value = neonJs.wallet.getAddressFromScriptHash(hash160);
   } catch (e) {
-    console.error(e);
+    if (import.meta.env.DEV) console.error(e);
     computedAddress.value = "Error computing address";
   }
 }
@@ -358,7 +360,7 @@ onMounted(async () => {
       uuid.value = walletService.account.pubKey;
     }
       } catch (e) {
-    console.error(e);
+    if (import.meta.env.DEV) console.error(e);
   }
 });
 
@@ -384,21 +386,21 @@ function normalizeAddress(addr) {
 
 async function createAccount() {
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first");
+    toast.error(t('tools.abstractAccount.toasts.connectWalletFirst'));
     return;
   }
   if (!uuid.value) {
-    toast.error("Account ID (UUID or PubKey) is required");
+    toast.error(t('tools.abstractAccount.toasts.accountIdRequired'));
     return;
   }
-  
+
   const validAdmins = admins.value.filter(a => a.trim().length > 0);
   if (validAdmins.length === 0) {
-    toast.error("Must have at least one admin public key");
+    toast.error(t('tools.abstractAccount.toasts.adminRequired'));
     return;
   }
   if (adminThreshold.value < 1 || adminThreshold.value > validAdmins.length) {
-    toast.error("Invalid Admin Threshold");
+    toast.error(t('tools.abstractAccount.toasts.invalidAdminThreshold'));
     return;
   }
 
@@ -431,7 +433,7 @@ async function createAccount() {
         // Technically CreateAccountWithAddress in our contract does not accept dome accounts in the init constructor. 
         // Dome accounts must be added using setDomeAccounts after initialization! Let's just create it first.
         // Wait, yes, CreateAccount doesn't initialize Dome. We will need to set it via invoke if we want to.
-        toast.info("Dome settings are applied in a separate transaction after creation.");
+        toast.info(t('tools.abstractAccount.toasts.domeSeparateTx'));
     }
 
     const invokeParams = {
@@ -456,11 +458,11 @@ async function createAccount() {
     }
 
     txHash.value = deployedTxId;
-    toast.success("Account registration transaction submitted!");
+    toast.success(t('tools.abstractAccount.toasts.registrationSubmitted'));
 
   } catch (err) {
-    console.error(err);
-    toast.error("Registration failed: " + formatErrorMessage(err));
+    if (import.meta.env.DEV) console.error(err);
+    toast.error(t('tools.abstractAccount.toasts.registrationFailed', { reason: formatErrorMessage(err) }));
   } finally {
     isCreating.value = false;
   }

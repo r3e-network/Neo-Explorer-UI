@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Contract Deployer' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.contractDeployer') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,9 +18,9 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Contract Deployer</h1>
+            <h1 class="page-title">{{ $t("tools.contractDeployer.pageTitle") }}</h1>
             <p class="page-subtitle">
-              Upload your compiled NEF and Manifest files to deploy directly to the Neo N3 blockchain.
+              {{ $t("tools.contractDeployer.pageSubtitle") }}
             </p>
           </div>
         </div>
@@ -44,16 +44,16 @@
                 ></path>
               </svg>
             </div>
-            <p class="text-lg text-high font-bold tracking-tight mb-2">Wallet Not Connected</p>
+            <p class="text-lg text-high font-bold tracking-tight mb-2">{{ $t("tools.contractDeployer.walletNotConnected") }}</p>
             <p class="text-sm text-mid max-w-sm mx-auto">
-              Please connect your NeoLine or O3 wallet to proceed with contract deployment.
+              {{ $t("tools.contractDeployer.walletNotConnectedDesc") }}
             </p>
           </div>
 
           <template v-else>
             <!-- NEF Upload -->
             <div class="space-y-3">
-              <label class="block text-sm font-bold text-high tracking-tight">Compiled NEF File</label>
+              <label class="block text-sm font-bold text-high tracking-tight">{{ $t("tools.contractDeployer.nefLabel") }}</label>
               <div
                 class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group"
                 :class="
@@ -78,8 +78,8 @@
                       ></path>
                     </svg>
                   </div>
-                  <p class="text-sm font-semibold text-high">Click to select your .nef file</p>
-                  <p class="text-xs text-low mt-1">Upload the Neo Executable Format bytecode</p>
+                  <p class="text-sm font-semibold text-high">{{ $t("tools.contractDeployer.nefPrompt") }}</p>
+                  <p class="text-xs text-low mt-1">{{ $t("tools.contractDeployer.nefHint") }}</p>
                 </template>
                 <template v-else>
                   <div
@@ -100,7 +100,7 @@
                     @click.stop="clearNef"
                     class="mt-4 text-xs px-3 py-1 rounded-md bg-white dark:bg-slate-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium transition-colors border border-line-soft hover:border-red-200 dark:hover:border-red-800/30 shadow-sm"
                   >
-                    Remove file
+                    {{ $t("tools.contractDeployer.removeFile") }}
                   </button>
                 </template>
               </div>
@@ -108,7 +108,7 @@
 
             <!-- Manifest Upload -->
             <div class="space-y-3">
-              <label class="block text-sm font-bold text-high tracking-tight">Manifest JSON File</label>
+              <label class="block text-sm font-bold text-high tracking-tight">{{ $t("tools.contractDeployer.manifestLabel") }}</label>
               <div
                 class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group"
                 :class="
@@ -133,8 +133,8 @@
                       ></path>
                     </svg>
                   </div>
-                  <p class="text-sm font-semibold text-high">Click to select your manifest.json</p>
-                  <p class="text-xs text-low mt-1">Upload the contract's ABI and feature definitions</p>
+                  <p class="text-sm font-semibold text-high">{{ $t("tools.contractDeployer.manifestPrompt") }}</p>
+                  <p class="text-xs text-low mt-1">{{ $t("tools.contractDeployer.manifestHint") }}</p>
                 </template>
                 <template v-else>
                   <div
@@ -151,13 +151,13 @@
                   </div>
                   <p class="text-sm font-bold text-blue-700 dark:text-blue-400">{{ manifestFile.name }}</p>
                   <p v-if="parsedManifestName" class="text-xs text-mid mt-1">
-                    Contract: <span class="font-semibold text-high">{{ parsedManifestName }}</span>
+                    {{ $t("tools.contractDeployer.contractLabel") }} <span class="font-semibold text-high">{{ parsedManifestName }}</span>
                   </p>
                   <button
                     @click.stop="clearManifest"
                     class="mt-4 text-xs px-3 py-1 rounded-md bg-white dark:bg-slate-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium transition-colors border border-line-soft hover:border-red-200 dark:hover:border-red-800/30 shadow-sm"
                   >
-                    Remove file
+                    {{ $t("tools.contractDeployer.removeFile") }}
                   </button>
                 </template>
               </div>
@@ -185,7 +185,7 @@
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                   ></path>
                 </svg>
-                {{ isDeploying ? "Deploying..." : "Deploy Contract" }}
+                {{ isDeploying ? $t("tools.contractDeployer.deploying") : $t("tools.contractDeployer.deployContract") }}
               </button>
             </div>
 
@@ -204,7 +204,7 @@
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                       ></path>
                     </svg>
-                    <p class="text-sm font-bold tracking-tight">Contract Deployment Submitted!</p>
+                    <p class="text-sm font-bold tracking-tight">{{ $t("tools.contractDeployer.deploymentSubmitted") }}</p>
                   </div>
                   <p class="text-xs break-all font-mono opacity-80 pl-7">{{ txHash }}</p>
                 </div>
@@ -212,7 +212,7 @@
                   :to="'/transaction-info/' + txHash"
                   class="w-full sm:w-auto text-sm font-semibold hover:underline flex items-center justify-center gap-1.5 whitespace-nowrap bg-emerald-200/50 dark:bg-emerald-800/50 px-4 py-2 rounded-xl transition-colors hover:bg-emerald-300/50 dark:hover:bg-emerald-700/50 shadow-sm text-emerald-900 dark:text-emerald-100"
                 >
-                  View Transaction
+                  {{ $t("tools.contractDeployer.viewTransaction") }}
                 </router-link>
               </div>
             </transition>
@@ -225,6 +225,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { useToast } from "vue-toastification";
@@ -232,6 +233,7 @@ import { formatBytes } from "@/utils/explorerFormat";
 import { walletService } from "@/services/walletService";
 import { CONTRACT_MANAGEMENT_HASH } from "@/constants";
 
+const { t } = useI18n();
 const toast = useToast();
 const nefFile = ref(null);
 const manifestFile = ref(null);
@@ -277,11 +279,11 @@ function onManifestSelected(e) {
       try {
         const text = ev.target.result;
         const parsed = JSON.parse(text);
-        parsedManifestName.value = parsed.name || "Unknown Contract";
+        parsedManifestName.value = parsed.name || t("tools.contractDeployer.unknownContract");
         // Minify string
         manifestString.value = JSON.stringify(parsed);
       } catch (err) {
-        toast.error("Invalid Manifest JSON");
+        toast.error(t("tools.contractDeployer.invalidManifest"));
         clearManifest();
       }
     };
@@ -305,7 +307,7 @@ async function deployContract() {
   if (!isReadyToDeploy.value) return;
 
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.contractDeployer.connectWalletFirst"));
     return;
   }
 
@@ -313,7 +315,7 @@ async function deployContract() {
   txHash.value = "";
 
   try {
-    toast.info("Please review the deployment in your wallet...");
+    toast.info(t("tools.contractDeployer.reviewInWallet"));
 
     const result = await walletService.invoke({
       scriptHash: CONTRACT_MANAGEMENT_HASH, // ContractManagement
@@ -328,13 +330,14 @@ async function deployContract() {
 
     if (result && result.txid) {
       txHash.value = result.txid;
-      toast.success("Contract successfully deployed to the network!");
+      toast.success(t("tools.contractDeployer.deploySuccess"));
     } else {
-      throw new Error("No transaction ID returned.");
+      throw new Error(t("tools.contractDeployer.noTxIdReturned"));
     }
   } catch (e) {
-    console.error(e);
-    toast.error("Deployment failed: " + (e.description || e.message || "User rejected"));
+    if (import.meta.env.DEV) console.error(e);
+    const reason = e.description || e.message || t("tools.contractDeployer.userRejected");
+    toast.error(t("tools.contractDeployer.deploymentFailed", { reason }));
   } finally {
     isDeploying.value = false;
   }

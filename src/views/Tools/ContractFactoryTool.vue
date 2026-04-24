@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Contract Factory' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.contractFactory') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,8 +18,8 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Contract Factory</h1>
-            <p class="page-subtitle">Launch standard tokens and NFT collections quickly without writing code.</p>
+            <h1 class="page-title">{{ $t('tools.contractFactory.pageTitle') }}</h1>
+            <p class="page-subtitle">{{ $t('tools.contractFactory.pageSubtitle') }}</p>
           </div>
         </div>
       </div>
@@ -28,7 +28,7 @@
         <!-- Sidebar / Selection -->
         <div class="lg:col-span-4 space-y-4">
           <div class="etherscan-card p-5">
-            <h2 class="text-base font-bold text-high mb-4">Select Template</h2>
+            <h2 class="text-base font-bold text-high mb-4">{{ $t('tools.contractFactory.selectTemplate') }}</h2>
             <div class="space-y-3">
               <label
                 v-for="(tpl, key) in templates"
@@ -64,15 +64,15 @@
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               ></path>
             </svg>
-            <p class="text-sm font-semibold text-high mb-1">Wallet Not Connected</p>
-            <p class="text-xs text-mid">Connect your NeoLine wallet to deploy contracts.</p>
+            <p class="text-sm font-semibold text-high mb-1">{{ $t('tools.contractFactory.walletNotConnected') }}</p>
+            <p class="text-xs text-mid">{{ $t('tools.contractFactory.connectToDeploy') }}</p>
           </div>
         </div>
 
         <!-- Form Area -->
         <div class="lg:col-span-8">
           <div class="etherscan-card p-6 md:p-8 min-h-[400px] flex flex-col">
-            <h2 class="text-lg font-bold text-high mb-4">Configure {{ activeTemplate.name }}</h2>
+            <h2 class="text-lg font-bold text-high mb-4">{{ $t('tools.contractFactory.configureTemplate', { name: activeTemplate.name }) }}</h2>
 
             <div
               class="mb-6 p-3 rounded-lg bg-blue-50/80 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm flex gap-3"
@@ -86,9 +86,7 @@
                 ></path>
               </svg>
               <div>
-                <strong>Demonstration Mode:</strong> Because dynamic smart contract compilation requires a dedicated
-                backend compiler, this tool currently simulates a factory deployment. Submitting will record your
-                configuration payload immutably to the blockchain via a 0 GAS self-transfer remark.
+                <strong>{{ $t('tools.contractFactory.demoModeLabel') }}</strong> {{ $t('tools.contractFactory.demoModeDescription') }}
               </div>
             </div>
 
@@ -126,7 +124,7 @@
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                       ></path>
                     </svg>
-                    Upload to NeoFS
+                    {{ $t('tools.contractFactory.uploadToNeoFS') }}
                   </button>
                   <input
                     type="file"
@@ -178,7 +176,7 @@
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   ></path>
                 </svg>
-                {{ isDeploying ? "Deploying..." : "Deploy Contract" }}
+                {{ isDeploying ? $t('tools.contractFactory.deploying') : $t('tools.contractFactory.deployContract') }}
               </button>
             </div>
 
@@ -188,14 +186,14 @@
                 class="p-4 rounded-xl border border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10 text-green-800 dark:text-green-400 flex items-center justify-between mt-6"
               >
                 <div>
-                  <p class="text-sm font-bold mb-1">Contract Deploy Transaction Submitted!</p>
+                  <p class="text-sm font-bold mb-1">{{ $t('tools.contractFactory.txSubmitted') }}</p>
                   <p class="text-xs break-all font-mono opacity-80">{{ txHash }}</p>
                 </div>
                 <router-link
                   :to="`/transaction-info/${txHash}`"
                   class="text-sm font-semibold hover:underline flex items-center gap-1.5 whitespace-nowrap bg-green-200/50 dark:bg-green-800/50 px-3 py-1.5 rounded-lg transition-colors hover:bg-green-300/50 dark:hover:bg-green-700/50"
                 >
-                  View Tx
+                  {{ $t('tools.contractFactory.viewTx') }}
                 </router-link>
               </div>
             </transition>
@@ -208,13 +206,15 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
-const Account = window.Neon?.wallet?.Account;
+// Account is resolved lazily to avoid crashes if Neon SDK loads after module evaluation
 import { GAS_HASH } from "@/constants";
 
+const { t } = useI18n();
 const toast = useToast();
 const selectedTemplate = ref("nep17");
 const isDeploying = ref(false);
@@ -222,51 +222,129 @@ const isUploadingLogo = ref(false);
 const txHash = ref("");
 const formData = ref({});
 
-const templates = {
+const templates = computed(() => ({
   nep17: {
-    name: "NEP-17 Token",
-    description: "Standard fungible token. Ideal for utility tokens, currencies, and DAOs.",
+    name: t("tools.contractFactory.templates.nep17Name"),
+    description: t("tools.contractFactory.templates.nep17Desc"),
     fields: [
-      { id: "name", label: "Token Name", type: "text", placeholder: "e.g. My Awesome Token", required: true },
-      { id: "symbol", label: "Symbol", type: "text", placeholder: "e.g. MAT", required: true },
-      { id: "decimals", label: "Decimals", type: "number", default: 8, required: true },
-      { id: "initialSupply", label: "Initial Supply", type: "number", default: 1000000, required: true },
-      { id: "author", label: "Author / Company", type: "text", placeholder: "e.g. Neo Community" },
-      { id: "description", label: "Description", type: "textarea", placeholder: "Brief description of the token..." },
-      { id: "logoUrl", label: "Logo URL (NeoFS or HTTPS)", type: "neofs_upload", placeholder: "neofs:..." },
+      {
+        id: "name",
+        label: t("tools.contractFactory.fields.tokenName"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.tokenNamePlaceholder"),
+        required: true,
+      },
+      {
+        id: "symbol",
+        label: t("tools.contractFactory.fields.symbol"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.symbolPlaceholder"),
+        required: true,
+      },
+      { id: "decimals", label: t("tools.contractFactory.fields.decimals"), type: "number", default: 8, required: true },
+      {
+        id: "initialSupply",
+        label: t("tools.contractFactory.fields.initialSupply"),
+        type: "number",
+        default: 1000000,
+        required: true,
+      },
+      {
+        id: "author",
+        label: t("tools.contractFactory.fields.author"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.authorPlaceholder"),
+      },
+      {
+        id: "description",
+        label: t("tools.contractFactory.fields.description"),
+        type: "textarea",
+        placeholder: t("tools.contractFactory.fields.descriptionPlaceholder"),
+      },
+      { id: "logoUrl", label: t("tools.contractFactory.fields.logoUrl"), type: "neofs_upload", placeholder: "neofs:..." },
     ],
   },
   meme: {
-    name: "Meme Coin Template",
-    description: "Specialized NEP-17 token optimized for Meme coins with built-in social links.",
+    name: t("tools.contractFactory.templates.memeName"),
+    description: t("tools.contractFactory.templates.memeDesc"),
     fields: [
-      { id: "name", label: "Meme Name", type: "text", placeholder: "e.g. DogeNeo", required: true },
-      { id: "symbol", label: "Ticker Symbol", type: "text", placeholder: "e.g. DNEO", required: true },
-      { id: "initialSupply", label: "Total Supply", type: "number", default: 1000000000, required: true },
-      { id: "twitter", label: "Twitter / X Handle", type: "text", placeholder: "e.g. @DogeNeo" },
-      { id: "telegram", label: "Telegram Group", type: "text", placeholder: "e.g. t.me/DogeNeo" },
-      { id: "logoUrl", label: "Meme Mascot Logo (NeoFS)", type: "neofs_upload", placeholder: "neofs:..." },
+      {
+        id: "name",
+        label: t("tools.contractFactory.fields.memeName"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.memeNamePlaceholder"),
+        required: true,
+      },
+      {
+        id: "symbol",
+        label: t("tools.contractFactory.fields.tickerSymbol"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.tickerSymbolPlaceholder"),
+        required: true,
+      },
+      {
+        id: "initialSupply",
+        label: t("tools.contractFactory.fields.totalSupply"),
+        type: "number",
+        default: 1000000000,
+        required: true,
+      },
+      {
+        id: "twitter",
+        label: t("tools.contractFactory.fields.twitter"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.twitterPlaceholder"),
+      },
+      {
+        id: "telegram",
+        label: t("tools.contractFactory.fields.telegram"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.telegramPlaceholder"),
+      },
+      {
+        id: "logoUrl",
+        label: t("tools.contractFactory.fields.memeLogo"),
+        type: "neofs_upload",
+        placeholder: "neofs:...",
+      },
     ],
   },
   nep11: {
-    name: "NEP-11 NFT Collection",
-    description: "Standard Non-Fungible Token collection contract.",
+    name: t("tools.contractFactory.templates.nep11Name"),
+    description: t("tools.contractFactory.templates.nep11Desc"),
     fields: [
-      { id: "name", label: "Collection Name", type: "text", placeholder: "e.g. Neo Punks", required: true },
-      { id: "symbol", label: "Symbol", type: "text", placeholder: "e.g. NPUNK", required: true },
+      {
+        id: "name",
+        label: t("tools.contractFactory.fields.collectionName"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.collectionNamePlaceholder"),
+        required: true,
+      },
+      {
+        id: "symbol",
+        label: t("tools.contractFactory.fields.symbol"),
+        type: "text",
+        placeholder: t("tools.contractFactory.fields.nep11SymbolPlaceholder"),
+        required: true,
+      },
       {
         id: "baseUri",
-        label: "Base URI for Metadata",
+        label: t("tools.contractFactory.fields.baseUri"),
         type: "text",
-        placeholder: "e.g. https://api.mycollection.com/metadata/",
-        hint: "The trailing slash is recommended.",
+        placeholder: t("tools.contractFactory.fields.baseUriPlaceholder"),
+        hint: t("tools.contractFactory.fields.baseUriHint"),
       },
-      { id: "logoUrl", label: "Collection Banner (NeoFS)", type: "neofs_upload", placeholder: "neofs:..." },
+      {
+        id: "logoUrl",
+        label: t("tools.contractFactory.fields.collectionBanner"),
+        type: "neofs_upload",
+        placeholder: "neofs:...",
+      },
     ],
   },
-};
+}));
 
-const activeTemplate = computed(() => templates[selectedTemplate.value]);
+const activeTemplate = computed(() => templates.value[selectedTemplate.value]);
 
 const isFormValid = computed(() => {
   for (const field of activeTemplate.value.fields) {
@@ -305,7 +383,7 @@ async function uploadLogoToNeoFS(e, fieldId) {
   if (!file) return;
 
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.contractFactory.toasts.connectFirst"));
     return;
   }
 
@@ -315,7 +393,7 @@ async function uploadLogoToNeoFS(e, fieldId) {
   // or we can just mock it for now since we are just filling a string.
 
   isUploadingLogo.value = true;
-  toast.info("Preparing NeoFS upload payload...");
+  toast.info(t("tools.contractFactory.toasts.preparingUpload"));
 
   try {
     // Mock successful upload by generating a NeoFS OID after a small delay
@@ -325,10 +403,10 @@ async function uploadLogoToNeoFS(e, fieldId) {
       () => "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"[Math.floor(Math.random() * 58)],
     ).join("");
     formData.value[fieldId] = `neofs:${mockOid}`;
-    toast.success("Logo uploaded to NeoFS successfully!");
+    toast.success(t("tools.contractFactory.toasts.uploadSuccess"));
   } catch (err) {
-    console.error(err);
-    toast.error("Upload rejected or failed.");
+    if (import.meta.env.DEV) console.error(err);
+    toast.error(t("tools.contractFactory.toasts.uploadFailed"));
   } finally {
     isUploadingLogo.value = false;
     e.target.value = null; // reset input
@@ -339,7 +417,7 @@ async function deployFactoryContract() {
   if (!connectedAccount.value || !isFormValid.value) return;
 
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.contractFactory.toasts.connectFirst"));
     return;
   }
 
@@ -347,16 +425,21 @@ async function deployFactoryContract() {
   txHash.value = "";
 
   try {
-    toast.info("Compiling template parameters...");
+    toast.info(t("tools.contractFactory.toasts.compilingParams"));
     // Simulate compilation delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    toast.info("Please review the deployment in your wallet...");
+    toast.info(t("tools.contractFactory.toasts.reviewInWallet"));
 
     // In a real factory, we would invoke the Factory Contract with our parameters.
     // For this demonstration, we simulate the factory deployment signature payload.
     // Let's do a self-transfer with a remark containing the template instructions to simulate deployment on-chain.
 
+    const Account = window.Neon?.wallet?.Account;
+    if (!Account) {
+      toast.error(t("tools.contractFactory.toasts.neonNotLoaded"));
+      return;
+    }
     const userScriptHash = new Account(connectedAccount.value).scriptHash;
 
     const result = await walletService.invoke({
@@ -373,13 +456,14 @@ async function deployFactoryContract() {
 
     if (result && result.txid) {
       txHash.value = result.txid;
-      toast.success(activeTemplate.value.name + " deployed successfully!");
+      toast.success(t("tools.contractFactory.toasts.deploySuccess", { name: activeTemplate.value.name }));
     } else {
-      throw new Error("No transaction ID returned.");
+      throw new Error(t("tools.contractFactory.toasts.noTxId"));
     }
   } catch (e) {
-    console.error(e);
-    toast.error("Deployment failed: " + (e.description || e.message || "User rejected"));
+    if (import.meta.env.DEV) console.error(e);
+    const reason = e.description || e.message || t("tools.contractFactory.toasts.userRejected");
+    toast.error(t("tools.contractFactory.toasts.deployFailed", { reason }));
   } finally {
     isDeploying.value = false;
   }

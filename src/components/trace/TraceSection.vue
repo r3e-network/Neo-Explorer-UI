@@ -42,7 +42,7 @@ import { ref } from "vue";
 
 const props = defineProps({
   title: { type: String, required: true },
-  count: { type: Number, default: null },
+  count: { type: [Number, null], default: null },
   defaultOpen: { type: Boolean, default: false },
 });
 

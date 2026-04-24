@@ -17,6 +17,22 @@
         @create-proposal="openCreateModal"
       />
 
+      <div v-if="!loading && (committeeError || requestsError || validatorError)" class="mb-6 space-y-3">
+        <div v-if="committeeError" class="etherscan-card overflow-hidden">
+          <ErrorState title="Failed to load committee" :message="committeeError" @retry="loadCommittee()" />
+        </div>
+        <div v-if="requestsError" class="etherscan-card overflow-hidden">
+          <ErrorState title="Failed to load proposals" :message="requestsError" @retry="loadRequests()" />
+        </div>
+        <div v-if="validatorError" class="etherscan-card overflow-hidden">
+          <ErrorState
+            title="Failed to load validator metadata"
+            :message="validatorError"
+            :show-retry="false"
+          />
+        </div>
+      </div>
+
       <GovernanceProposalList
         :requests="requests"
         :loading="loading"
@@ -59,6 +75,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 import GovernanceHeaderCard from "@/views/Tools/components/GovernanceHeaderCard.vue";
 import GovernanceProposalList from "@/views/Tools/components/GovernanceProposalList.vue";
 import GovernanceDetailsModal from "@/views/Tools/components/GovernanceDetailsModal.vue";
@@ -79,12 +96,17 @@ import {
 } from "@/utils/governanceRequests";
 import { buildCouncilIdentityMap } from "@/utils/councilIdentity";
 import { useToast } from "vue-toastification";
+import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 const toast = useToast();
 const loading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
 const forkProposalDraft = ref(null);
+const committeeError = ref(null);
+const requestsError = ref(null);
+const validatorError = ref(null);
 
 const committeePubkeys = ref([]);
 const committeeMultiSig = ref(null);
@@ -136,6 +158,7 @@ const NATIVE_CONTRACTS = {
 
 async function loadCommittee() {
   if (!neonJs) return;
+  committeeError.value = null;
   try {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const committee = await rpcClient.getCommittee();
@@ -144,11 +167,13 @@ async function loadCommittee() {
     threshold.value = Math.floor(committeeSize.value / 2) + 1;
     committeeMultiSig.value = neonJs.wallet.Account.createMultiSig(threshold.value, committeePubkeys.value);
   } catch (e) {
-    console.error("Failed to load committee:", e);
+    if (import.meta.env.DEV) console.error("Failed to load committee:", e);
+    committeeError.value = "Failed to load committee data. Please try again.";
   }
 }
 
 async function loadRequests() {
+  requestsError.value = null;
   try {
     const data = await supabaseService.getMultisigRequests();
     const activeNetwork = getCurrentEnv();
@@ -158,14 +183,18 @@ async function loadRequests() {
         )
       : [];
   } catch (e) {
-    console.error("Error loading requests", e);
+    if (import.meta.env.DEV) console.error("Error loading requests", e);
+    requestsError.value = "Failed to load governance proposals. Please try again.";
   }
 }
 
 async function loadValidatorMetadata() {
+  validatorError.value = null;
   try {
     validatorMetadata.value = await supabaseService.getValidatorMetadata(getCurrentEnv());
-  } catch {
+  } catch (e) {
+    if (import.meta.env.DEV) console.error("Failed to load validator metadata:", e);
+    validatorError.value = "Failed to load validator metadata. Council member names may not be shown.";
     validatorMetadata.value = [];
   }
 }
@@ -211,18 +240,22 @@ async function handleCreated() {
 
 async function handleBroadcast(req) {
   if (isOffchainReviewPacket(req)) {
-    toast.error("This is an off-chain review packet. Regenerate a fresh on-chain transaction before broadcast.");
+    toast.error(t("tools.governance.toasts.offchainReviewPacket"));
     return;
   }
 
   if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < getRequestRequiredCount(req)) {
-    toast.error("Not enough signatures or missing tx data.");
+    toast.error(t("tools.governance.toasts.notEnoughSignatures"));
     return;
   }
 
   try {
-    toast.info("Assembling multisig transaction...");
-    const t = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
+    if (!neonJs) {
+      toast.error(t("tools.governance.toasts.walletLibraryNotLoaded"));
+      return;
+    }
+    toast.info(t("tools.governance.toasts.assemblingMultisig"));
+    const tx = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
 
     // Sort signatures based on the order of public keys in the committee
     const committee = resolveCommitteePubkeys(req, committeePubkeys.value);
@@ -255,15 +288,15 @@ async function handleBroadcast(req) {
       committee,
     ).contract.script;
 
-    t.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
+    tx.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
 
-    const signedTxHex = t.serialize(true);
+    const signedTxHex = tx.serialize(true);
 
-    toast.info("Broadcasting to network...");
+    toast.info(t("tools.governance.toasts.broadcastingNetwork"));
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(signedTxHex);
 
-    toast.success("Transaction broadcasted! TXID: " + txid);
+    toast.success(t("tools.governance.toasts.broadcastSuccess", { txid }));
     await supabaseService.updateMultisigRequestStatus(req.id, "EXECUTED", {
       tx_hash: txid,
       executed_at: new Date().toISOString(),
@@ -277,8 +310,8 @@ async function handleBroadcast(req) {
     });
     await loadRequests();
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to broadcast: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.toasts.broadcastFailed", { reason: e.message }));
   }
 }
 

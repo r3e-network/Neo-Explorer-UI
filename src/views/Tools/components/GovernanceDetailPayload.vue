@@ -236,7 +236,7 @@
         class="rounded-xl border border-line-soft bg-surface p-4 shadow-inner dark:border-white/10 dark:bg-[#020617]"
       >
         <div class="mb-3">
-          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Embedded Execution Script</h5>
+          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-mid dark:text-slate-400">Embedded Execution Script</h5>
           <p class="mt-1 text-xs text-mid dark:text-slate-500">
             Fallback decoded script text stored with the proposal when a full unsigned transaction payload is unavailable.
           </p>

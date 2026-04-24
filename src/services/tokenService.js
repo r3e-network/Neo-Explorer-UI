@@ -216,10 +216,7 @@ export const tokenService = createService(
         tokenname: item.display_name || item.contract_hash,
         symbol: item.symbol || "",
         holders: item.holder_count || 0,
-        totalsupply:
-          String(item.standard || "").toUpperCase() === "NEP11"
-            ? item.total_supply_raw || "0"
-            : null,
+        totalsupply: item.total_supply_raw || "0",
         decimals: Number(item.decimals || 0),
         type: item.standard || "NEP17",
         standard: item.standard || "NEP17",

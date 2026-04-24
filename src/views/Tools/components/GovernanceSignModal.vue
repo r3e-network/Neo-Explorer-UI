@@ -1,9 +1,15 @@
 <template>
   <div
     v-if="request"
+    ref="dialogRef"
     :data-testid="testId('overlay')"
+    role="dialog"
+    tabindex="0"
+    aria-modal="true"
+    aria-label="Sign Proposal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
+    @keydown.escape="$emit('close')"
   >
     <div
       :data-testid="testId('panel')"
@@ -261,6 +267,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import CopyButton from "@/components/common/CopyButton.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
@@ -270,6 +277,11 @@ import { buildExternalWitnessPayload, detectSignatureFormat, normalizeSignatureH
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { isPublicKeyHex, publicKeyToAddress } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+const dialogRef = ref(null);
+useFocusTrap(dialogRef);
 
 const props = defineProps({
   request: { type: Object, default: null },
@@ -494,8 +506,8 @@ async function prepareSigningPayload() {
     await prefillExternalWitnessSigner();
     preparedSigningPayload.value = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to prepare signing payload: " + (e?.message || String(e)));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.signModalToasts.preparePayloadFailed", { reason: e?.message || String(e) }));
   } finally {
     isPreparingSigningPayload.value = false;
   }
@@ -520,8 +532,8 @@ async function autoSignTx() {
         : { signature: await walletService.signRawTransaction(unsignedTxHex) };
     await submitSig(walletSignatureResult?.signature || walletSignatureResult, "wallet_signature", walletSignatureResult);
   } catch (e) {
-    console.error(e);
-    toast.error("Signing failed: " + (e?.message || String(e)));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.signModalToasts.signingFailed", { reason: e?.message || String(e) }));
   } finally {
     isSigning.value = false;
   }
@@ -539,14 +551,14 @@ async function switchNeoLineAccount() {
     await prefillExternalWitnessSigner();
 
     if (isNeoLineMultisigSignerMismatch.value) {
-      toast.warning("NeoLine switched accounts, but the selected account still does not match the committee multisig signer.");
+      toast.warning(t("tools.governance.signModalToasts.neoLineSwitchedStillMismatch"));
       return;
     }
 
-    toast.success("NeoLine switched to the committee signer account. You can sign directly now.");
+    toast.success(t("tools.governance.signModalToasts.neoLineSwitchedSuccess"));
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to switch NeoLine account: " + (e?.message || String(e)));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.signModalToasts.switchNeoLineFailed", { reason: e?.message || String(e) }));
   } finally {
     isSwitchingWalletAccount.value = false;
   }
@@ -645,7 +657,7 @@ async function submitSig(signatureHex, source = "manual_signature", signerOverri
     }
 
     if (!res.success) throw new Error(res.error);
-    toast.success("Signature added successfully!");
+    toast.success(t("tools.governance.signModalToasts.signatureAdded"));
     emit("close");
     emit("signed", { requestId });
   } catch (e) {
@@ -689,17 +701,17 @@ async function submitExternalWitness() {
     });
 
     if (!res.success && res.isDuplicate && !allowOverwrite.value) {
-      toast.warning("This signer already has a signature. Enable 'Allow overwriting' to update it.");
+      toast.warning(t("tools.governance.signModalToasts.signerAlreadyHasSignature"));
       return;
     }
 
     if (!res.success) throw new Error(res.error);
-    toast.success("External witness added successfully!");
+    toast.success(t("tools.governance.signModalToasts.witnessAdded"));
     emit("close");
     emit("signed", { requestId });
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to submit witness: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.signModalToasts.submitWitnessFailed", { reason: e.message }));
   } finally {
     isSubmittingExternalWitness.value = false;
   }

@@ -2,7 +2,7 @@
   <div class="blocks-page">
     <section class="page-container py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Blocks' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.blocks') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">
@@ -16,8 +16,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">{{ $t("nav.blocks") || "Blocks" }}</h1>
-          <p class="page-subtitle">Blocks confirmed on the Neo N3 blockchain (dBFT 2.0 consensus)</p>
+          <h1 class="page-title">{{ $t("nav.blocks") || $t("blocks.title") }}</h1>
+          <p class="page-subtitle">{{ $t("blocks.subtitle") }}</p>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="text-mid text-xs">Total Blocks</p>
+            <p class="text-mid text-xs">{{ $t("blocks.stats.totalBlocks") }}</p>
             <p class="text-high truncate text-sm font-semibold">
               {{ statsLoading ? "..." : formatNumber(totalBlocks) }}
             </p>
@@ -52,7 +52,7 @@
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="text-mid text-xs">Latest Block</p>
+            <p class="text-mid text-xs">{{ $t("blocks.stats.latestBlock") }}</p>
             <p class="text-high truncate text-sm font-semibold">
               {{ statsLoading ? "..." : "#" + formatNumber(latestHeight) }}
             </p>
@@ -64,14 +64,14 @@
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
           <p class="text-mid text-sm">
-            Block #{{ formatNumber(rangeStart) }} to #{{ formatNumber(rangeEnd) }}
-            <span class="hidden sm:inline">(Total of {{ formatNumber(totalCount) }} blocks)</span>
+            {{ $t("blocks.range.label", { start: formatNumber(rangeStart), end: formatNumber(rangeEnd) }) }}
+            <span class="hidden sm:inline">{{ $t("blocks.range.total", { count: formatNumber(totalCount) }) }}</span>
           </p>
           <button
             v-if="blocks.length > 0"
             @click="exportData"
             class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
-            title="Export to CSV"
+            :title="$t('blocks.export.title')"
           >
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -81,7 +81,7 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            Export CSV
+            {{ $t("blocks.export.label") }}
           </button>
         </div>
 
@@ -98,23 +98,23 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Failed to load blocks" :message="error" @retry="() => loadPage(currentPage)" />
+          <ErrorState :title="$t('blocks.errorTitle')" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty State -->
-        <EmptyState v-else-if="blocks.length === 0" message="No blocks found" icon="block" />
+        <EmptyState v-else-if="blocks.length === 0" :message="$t('blocks.emptyMessage')" icon="block" />
 
         <!-- Table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[800px]">
+          <table class="w-full min-w-[800px]" :aria-label="$t('blocks.ariaLabel')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell">Block</th>
+                <th class="table-header-cell">{{ $t("blocks.table.block") }}</th>
                 <th
                   class="table-header-cell cursor-pointer select-none hover:text-primary-500"
                   @click="showAbsoluteTime = !showAbsoluteTime"
                 >
-                  {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
+                  {{ showAbsoluteTime ? $t("blocks.table.dateTimeUtc") : $t("blocks.table.age") }}
                   <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -124,9 +124,9 @@
                     />
                   </svg>
                 </th>
-                <th class="table-header-cell">Txn</th>
-                <th class="table-header-cell">Validator</th>
-                <th class="table-header-cell-right">Size</th>
+                <th class="table-header-cell">{{ $t("blocks.table.txn") }}</th>
+                <th class="table-header-cell">{{ $t("blocks.table.validator") }}</th>
+                <th class="table-header-cell-right">{{ $t("blocks.table.size") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -159,7 +159,7 @@
                       <img
                         v-if="getActiveValidatorLogo(block)"
                         :src="getActiveValidatorLogo(block)"
-                        :alt="(getPrimaryNodeName(resolvePrimaryIndex(block)) || 'Validator') + ' logo'"
+                        :alt="(getPrimaryNodeName(resolvePrimaryIndex(block)) || $t('blocks.validator.fallback')) + ' logo'"
                         class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
                         onerror="this.src = '/img/brand/neo.png'"
                       />
@@ -168,13 +168,13 @@
                         :to="`/account-profile/${getActiveValidatorAddress(block)}`"
                         class="etherscan-link text-sm font-semibold"
                       >
-                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || $t("blocks.validator.consensusNode") }}
                       </router-link>
                       <span
                         v-else-if="resolvePrimaryIndex(block) !== undefined"
                         class="text-sm font-semibold text-high"
                       >
-                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || "Consensus Node" }}
+                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || $t("blocks.validator.consensusNode") }}
                       </span>
                     </div>
                     <router-link

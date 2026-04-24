@@ -194,6 +194,7 @@ export const contractService = createService(
       try {
         const { data } = await axios.post(nodeUrl, formData, {
           headers: { "Content-Type": "multipart/form-data" },
+          timeout: 60000,
         });
         return data;
       } catch (err) {

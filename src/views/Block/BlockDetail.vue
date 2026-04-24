@@ -3,8 +3,8 @@
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Blocks', to: '/blocks/1' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.blocks'), to: '/blocks/1' },
           {
             label: block.index != null ? `Block #${formatNumber(block.index)}` : 'Block',
           },
@@ -195,8 +195,18 @@ function mergeBlockData(raw, info) {
   return merged;
 }
 
-async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
-  if (!hash) return;
+async function resolveBlockParam(param) {
+  if (!param) return null;
+  if (/^\d+$/.test(String(param).trim())) {
+    const height = Number(param);
+    const block = await blockService.getByHeight(height);
+    return block?.hash || null;
+  }
+  return param;
+}
+
+async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
+  if (!param) return;
 
   const requestId = ++blockRequestId;
 
@@ -214,6 +224,14 @@ async function loadBlock(hash, { silent = false, forceRefresh = false } = {}) {
   }
 
   try {
+    const hash = await resolveBlockParam(param);
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+
+    if (!hash) {
+      if (!silent) error.value = t("errors.blockNotFound");
+      return;
+    }
+
     // Fetch block info and raw block data in parallel
     const [info, raw] = await Promise.all([
       blockService.getInfoByHash(hash, { forceRefresh }),

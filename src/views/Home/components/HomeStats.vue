@@ -198,11 +198,8 @@ const targetTime = ref(15);
 const lastFetchRequestedForTimestamp = ref(null);
 let countdownTimer = null;
 
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
-
 function updateCountdown() {
-  const network = getCurrentEnv();
-  targetTime.value = network === NET_ENV.TestT5 ? 3 : 3;
+  targetTime.value = 3;
 
   if (!props.latestBlockTimestamp) {
     nextBlockCountdown.value = null;

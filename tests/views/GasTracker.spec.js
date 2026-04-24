@@ -1,6 +1,12 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const getGasTrackerMock = vi.fn();
 const getBlockListMock = vi.fn();
 
@@ -38,6 +44,7 @@ describe("GasTracker view", () => {
     const GasTracker = (await import("@/views/GasTracker/GasTracker.vue")).default;
     const wrapper = mount(GasTracker, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           FeeEstimateCards: true,

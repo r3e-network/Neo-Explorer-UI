@@ -137,19 +137,31 @@
   <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
     <div class="stat-card">
       <p class="stat-label">NEO Balance</p>
-      <p class="stat-value">{{ formatBalance(neoBalance, 8) }}</p>
+      <p class="stat-value">
+        <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
+        <span v-else>{{ formatBalance(neoBalance, 8) }}</span>
+      </p>
     </div>
     <div class="stat-card">
       <p class="stat-label">GAS Balance</p>
-      <p class="stat-value">{{ formatTokenAmount(gasBalance, 8, 8) }}</p>
+      <p class="stat-value">
+        <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
+        <span v-else>{{ formatTokenAmount(gasBalance, 8, 8) }}</span>
+      </p>
     </div>
     <div class="stat-card">
       <p class="stat-label">Transactions</p>
-      <p class="stat-value">{{ formatNumber(txCount) }}</p>
+      <p class="stat-value">
+        <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
+        <span v-else>{{ formatNumber(txCount) }}</span>
+      </p>
     </div>
     <div class="stat-card">
       <p class="stat-label">Token Holdings</p>
-      <p class="stat-value">{{ formatNumber(tokenCount) }}</p>
+      <p class="stat-value">
+        <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
+        <span v-else>{{ formatNumber(tokenCount) }}</span>
+      </p>
     </div>
   </div>
 </template>
@@ -157,6 +169,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import QrcodeVue from "qrcode.vue";
+import Skeleton from "@/components/common/Skeleton.vue";
 import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
@@ -177,6 +190,7 @@ const props = defineProps({
   txCount: { type: Number, default: 0 },
   tokenCount: { type: Number, default: 0 },
   candidateData: { type: Object, default: null },
+  summaryLoading: { type: Boolean, default: false },
 });
 
 defineEmits(["update:showQr"]);

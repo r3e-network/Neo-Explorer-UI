@@ -2,6 +2,12 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const routeRef = {
   value: {
     fullPath: "/chat?with=alice.neo",
@@ -91,6 +97,7 @@ describe("ChatPage", () => {
     const ChatPage = (await import("@/views/Chat/ChatPage.vue")).default;
     mount(ChatPage, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           ChatSidebar: { template: "<div />" },
           ChatThread: { template: "<div />" },

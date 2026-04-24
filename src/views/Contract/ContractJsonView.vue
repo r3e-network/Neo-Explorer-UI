@@ -97,6 +97,7 @@ const isArray = computed(() => {
 });
 
 const length = computed(() => {
+  if (!props.json) return 0;
   return isArray.value ? props.json.length : Object.keys(props.json).length;
 });
 

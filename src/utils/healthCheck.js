@@ -152,7 +152,7 @@ const checkNetworkEndpoints = async (network) => {
     const commitSelection = (path, message) => {
       if (normalizePrimaryAlias(path) === normalizedCurrent) return;
       setActiveBasePath(network.env, path);
-      console.info(message);
+      if (import.meta.env.DEV) console.info(message);
     };
 
     if (healthyCandidates.length > 0) {

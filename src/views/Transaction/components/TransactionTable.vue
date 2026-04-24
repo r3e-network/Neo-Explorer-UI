@@ -1,6 +1,6 @@
 <template>
   <div class="overflow-x-auto">
-    <table class="w-full min-w-[900px]">
+    <table class="w-full min-w-[900px]" aria-label="Transactions">
       <thead class="table-head">
         <tr>
           <th class="table-header-cell w-[180px]">Txn Hash</th>
@@ -53,7 +53,7 @@
 
           <!-- Block -->
           <td class="table-cell">
-            <router-link :to="`/block-info/${tx.blockhash || tx.blockHash || tx.block_hash}`" class="etherscan-link">
+            <router-link :to="`/block-info/${tx.blockIndex ?? tx.blockindex}`" class="etherscan-link">
               {{ tx.blockIndex ?? tx.blockindex }}
             </router-link>
           </td>

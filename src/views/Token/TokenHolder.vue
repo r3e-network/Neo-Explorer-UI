@@ -18,7 +18,7 @@
 
       <!-- Table -->
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]">
+        <table class="w-full min-w-[700px]" aria-label="Token holders">
           <thead class="table-head">
             <tr>
               <th class="table-header-cell">Rank</th>

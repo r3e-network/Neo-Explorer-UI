@@ -3,9 +3,9 @@
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tokens', to: '/tokens/1' },
-          { label: tokenValue?.tokenname || 'Token Detail' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.tokens'), to: '/tokens/1' },
+          { label: tokenValue?.tokenname || $t('breadcrumb.tokenDetail') },
         ]"
       />
 
@@ -58,6 +58,7 @@
                 v-if="tokenMetadata?.website"
                 :href="tokenMetadata.website"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="ml-2 text-primary-500 hover:underline"
                 >Official Website ↗</a
               >

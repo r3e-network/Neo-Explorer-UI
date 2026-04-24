@@ -9,6 +9,13 @@ const getValidatorMetadataMock = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const toastInfoMock = vi.hoisted(() => vi.fn());
 const executeMock = vi.hoisted(() => vi.fn().mockResolvedValue([{ publickey: "PUBKEY1", votes: "100", active: true }]));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
 vi.mock("@/composables/usePriceCache", () => ({
   usePriceCache: () => ({ fetchPrices: fetchPricesMock }),
 }));

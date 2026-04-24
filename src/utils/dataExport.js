@@ -70,6 +70,7 @@ export function flattenObject(obj, prefix = "") {
 }
 
 export function exportTransactionsToCSV(transactions) {
+  if (!Array.isArray(transactions) || !transactions.length) return;
   const flatData = transactions.map((tx) => ({
     hash: tx.hash,
     block: tx.block,
@@ -84,6 +85,7 @@ export function exportTransactionsToCSV(transactions) {
 }
 
 export function exportBlocksToCSV(blocks) {
+  if (!Array.isArray(blocks) || !blocks.length) return;
   const flatData = blocks.map((block) => ({
     index: block.index || block.blockindex,
     hash: block.hash,
@@ -96,6 +98,7 @@ export function exportBlocksToCSV(blocks) {
 }
 
 export function exportTransfersToCSV(transfers) {
+  if (!Array.isArray(transfers) || !transfers.length) return;
   const flatData = transfers.map((t) => ({
     tx_hash: t.txhash || t.hash,
     block: t.blockindex || t.block,
@@ -109,6 +112,7 @@ export function exportTransfersToCSV(transfers) {
 }
 
 export function exportTokenHoldersToCSV(holders) {
+  if (!Array.isArray(holders) || !holders.length) return;
   const flatData = holders.map((h) => ({
     address: h.address,
     balance: h.balance || h.amount,

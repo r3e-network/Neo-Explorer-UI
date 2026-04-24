@@ -2,7 +2,7 @@
   <div class="tokens-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tokens' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tokens') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
@@ -87,7 +87,7 @@
 
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
-          <table class="w-full min-w-[920px]">
+          <table class="w-full min-w-[920px]" aria-label="NEP-17 tokens">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
@@ -167,7 +167,7 @@
 
         <!-- NEP-11 Table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[920px]">
+          <table class="w-full min-w-[920px]" aria-label="NEP-11 NFTs">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>

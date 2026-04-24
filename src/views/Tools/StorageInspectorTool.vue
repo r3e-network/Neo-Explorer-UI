@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Storage Inspector' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.storageInspector') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,8 +18,8 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Storage Inspector</h1>
-            <p class="page-subtitle">Read the raw Key-Value storage state of any smart contract on Neo N3.</p>
+            <h1 class="page-title">{{ $t('tools.storageInspector.pageTitle') }}</h1>
+            <p class="page-subtitle">{{ $t('tools.storageInspector.pageSubtitle') }}</p>
           </div>
         </div>
       </div>
@@ -28,35 +28,35 @@
         <div class="max-w-3xl mx-auto space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2 md:col-span-2">
-              <label class="block text-sm font-semibold text-high">Contract Hash</label>
+              <label class="block text-sm font-semibold text-high">{{ $t('tools.storageInspector.contractHashLabel') }}</label>
               <input
                 type="text"
                 v-model="contractHash"
                 class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none"
-                placeholder="e.g. 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
+                :placeholder="$t('tools.storageInspector.contractHashPlaceholder')"
               />
             </div>
 
             <div class="space-y-2">
-              <label class="block text-sm font-semibold text-high">Storage Key</label>
+              <label class="block text-sm font-semibold text-high">{{ $t('tools.storageInspector.storageKeyLabel') }}</label>
               <input
                 type="text"
                 v-model="storageKey"
                 class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none"
-                placeholder="e.g. totalSupply or 0x01..."
+                :placeholder="$t('tools.storageInspector.storageKeyPlaceholder')"
                 @keyup.enter="fetchStorage"
               />
             </div>
 
             <div class="space-y-2">
-              <label class="block text-sm font-semibold text-high">Key Format</label>
+              <label class="block text-sm font-semibold text-high">{{ $t('tools.storageInspector.keyFormatLabel') }}</label>
               <select
                 v-model="keyFormat"
                 class="form-input w-full bg-surface text-high text-sm appearance-none rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none"
               >
-                <option value="string">String (UTF-8)</option>
-                <option value="hex">Hex String</option>
-                <option value="base64">Base64</option>
+                <option value="string">{{ $t('tools.storageInspector.keyFormatString') }}</option>
+                <option value="hex">{{ $t('tools.storageInspector.keyFormatHex') }}</option>
+                <option value="base64">{{ $t('tools.storageInspector.keyFormatBase64') }}</option>
               </select>
             </div>
           </div>
@@ -83,42 +83,42 @@
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 ></path>
               </svg>
-              {{ isLoading ? "Querying..." : "Read Storage" }}
+              {{ isLoading ? $t('tools.storageInspector.querying') : $t('tools.storageInspector.readStorage') }}
             </button>
           </div>
 
           <!-- Result Area -->
           <transition name="fade">
             <div v-if="hasQueried" class="mt-6 space-y-4">
-              <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">Storage Value</h3>
+              <h3 class="text-base font-bold text-high border-b border-line-soft pb-2">{{ $t('tools.storageInspector.storageValue') }}</h3>
 
               <div
                 v-if="!rawBase64Result"
                 class="p-6 text-center border border-dashed border-line-soft rounded-xl bg-surface-muted"
               >
-                <p class="text-high font-medium">No Data Found</p>
-                <p class="text-sm text-mid mt-1">The requested key does not exist in the contract's storage.</p>
+                <p class="text-high font-medium">{{ $t('tools.storageInspector.noDataFound') }}</p>
+                <p class="text-sm text-mid mt-1">{{ $t('tools.storageInspector.noDataHint') }}</p>
               </div>
 
               <div v-else class="space-y-4">
                 <div class="p-4 rounded-xl border border-line-soft bg-surface">
-                  <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">Base64</p>
+                  <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">{{ $t('tools.storageInspector.base64Label') }}</p>
                   <p class="text-sm text-high font-mono break-all">{{ rawBase64Result }}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div class="p-4 rounded-xl border border-line-soft bg-surface">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">Hex</p>
+                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">{{ $t('tools.storageInspector.hexLabel') }}</p>
                     <p class="text-sm text-high font-mono break-all">{{ hexResult ? "0x" + hexResult : "" }}</p>
                   </div>
 
                   <div class="p-4 rounded-xl border border-line-soft bg-surface">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">String (UTF-8)</p>
+                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">{{ $t('tools.storageInspector.stringLabel') }}</p>
                     <p class="text-sm text-high font-mono break-all">{{ stringResult || "—" }}</p>
                   </div>
 
                   <div class="p-4 rounded-xl border border-line-soft bg-surface md:col-span-2">
-                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">Integer</p>
+                    <p class="text-xs text-mid font-semibold uppercase tracking-wider mb-2">{{ $t('tools.storageInspector.integerLabel') }}</p>
                     <p class="text-sm text-high font-mono break-all">{{ intResult }}</p>
                   </div>
                 </div>
@@ -133,9 +133,10 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
-const RpcClient = window.Neon?.rpc?.RPCClient;
+// RpcClient is resolved lazily to avoid crashes if Neon SDK loads after module evaluation
 const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/../g) || [], b => parseInt(b, 16)));
 const reverseHex = (hex) => hex.match(/../g).reverse().join("");
 const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
@@ -143,6 +144,7 @@ import { base642hex, BigInteger } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
+const { t } = useI18n();
 const toast = useToast();
 const contractHash = ref("");
 const storageKey = ref("");
@@ -179,7 +181,7 @@ const intResult = computed(() => {
     const reversedHex = reverseHex(hexResult.value);
     return BigInteger.fromTwos(reversedHex).toString();
   } catch (e) {
-    return "Invalid Integer";
+    return t("tools.storageInspector.invalidInteger");
   }
 });
 
@@ -202,6 +204,11 @@ async function fetchStorage() {
 
     const hash = contractHash.value.startsWith("0x") ? contractHash.value : "0x" + contractHash.value;
 
+    const RpcClient = window.Neon?.rpc?.RPCClient;
+    if (!RpcClient) {
+      toast.error(t("tools.storageInspector.runtimeUnavailable"));
+      return;
+    }
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);
       return rpcClient.getStorage({ scriptHash: hash, key: keyHex });
@@ -209,8 +216,8 @@ async function fetchStorage() {
     rawBase64Result.value = result || "";
     hasQueried.value = true;
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to fetch storage: " + (e.message || "Unknown error"));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.storageInspector.fetchFailedPrefix") + (e.message || t("tools.storageInspector.unknownError")));
   } finally {
     isLoading.value = false;
   }

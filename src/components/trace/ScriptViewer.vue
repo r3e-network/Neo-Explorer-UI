@@ -237,6 +237,7 @@ function opcodeColor(opcode) {
 
 function operandClass(inst) {
   if (inst.opcode === "SYSCALL") return "text-amber-600 dark:text-amber-400 font-semibold";
+  if (!inst.operand) return "";
   if (inst.operand.startsWith('"')) return "text-emerald-600 dark:text-emerald-400";
   if (
     inst.operand.includes("Hash160") ||

@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const envState = { value: "MainNet" };
 const fetchPricesMock = vi.hoisted(() => vi.fn().mockResolvedValue({ neo: 1, gas: 1 }));
 const cachedRequestMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
@@ -58,6 +64,7 @@ describe("Treasury network changes", () => {
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,
@@ -77,6 +84,7 @@ describe("Treasury network changes", () => {
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,

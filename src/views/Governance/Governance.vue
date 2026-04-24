@@ -1,7 +1,7 @@
 <template>
   <div class="governance-page">
     <section class="max-w-[1400px] mx-auto px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Governance' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.governance') }]" />
 
       <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
         <div class="flex items-center gap-3">
@@ -81,6 +81,7 @@
             <span class="text-xs text-mid font-medium uppercase tracking-wide">Sort by:</span>
             <select
               v-model="sortBy"
+              aria-label="Sort candidates by"
               class="bg-surface-elevated border border-line-soft rounded-lg px-3 py-1.5 text-sm text-high focus:outline-none focus:border-primary-500 transition-colors"
             >
               <option value="votes">Votes (High to Low)</option>
@@ -94,11 +95,11 @@
         </div>
 
         <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load candidates" :message="error" @retry="loadCandidates" />
+          <ErrorState :title="$t('common.failedToLoadCandidates')" :message="error" @retry="loadCandidates" />
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[960px]">
+          <table class="w-full min-w-[960px]" aria-label="Council candidates">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
@@ -163,7 +164,7 @@
                     class="btn-primary px-3 py-1.5 text-xs inline-flex items-center gap-1"
                   >
                     Go to NeoBurger
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
@@ -177,7 +178,7 @@
 
               <!-- Standard Candidates -->
               <tr v-for="candidate in sortedCandidates" :key="candidate.publickey" class="list-row group">
-                <td class="table-cell-secondary">{{ candidates.indexOf(candidate) + 1 }}</td>
+                <td class="table-cell-secondary">{{ (candidateIndexMap.get(candidate.publickey) ?? 0) + 1 }}</td>
                 <td class="table-cell">
                   <div class="flex items-center justify-between gap-3">
                     <div class="flex min-w-0 items-center gap-3">
@@ -221,24 +222,24 @@
                   {{ formatVotes(candidate.votes) }}
                 </td>
                 <td class="table-cell-right font-medium text-high text-xs">
-                  <template v-if="candidates.indexOf(candidate) < 7 && livenessData[candidates.indexOf(candidate)]">
+                  <template v-if="(candidateIndexMap.get(candidate.publickey) ?? 99) < 7 && livenessData[candidateIndexMap.get(candidate.publickey)]">
                     <span
                       :class="
-                        livenessData[candidates.indexOf(candidate)].ratio >= 99
+                        livenessData[candidateIndexMap.get(candidate.publickey)].ratio >= 99
                           ? 'text-status-success'
                           : 'text-status-warning'
                       "
                     >
-                      {{ livenessData[candidates.indexOf(candidate)].ratio }}%
+                      {{ livenessData[candidateIndexMap.get(candidate.publickey)].ratio }}%
                     </span>
                   </template>
                   <span v-else class="text-mid">--</span>
                 </td>
                 <td class="table-cell-right font-medium text-status-success">
-                  {{ calculateMonthlyGas(candidate.votes, candidates.indexOf(candidate)).toFixed(4) }} GAS
+                  {{ calculateMonthlyGas(candidate.votes, candidateIndexMap.get(candidate.publickey) ?? 0).toFixed(4) }} GAS
                 </td>
                 <td class="table-cell-right font-medium text-primary-500">
-                  {{ calculateAPR(candidate.votes, candidates.indexOf(candidate)).toFixed(2) }}%
+                  {{ calculateAPR(candidate.votes, candidateIndexMap.get(candidate.publickey) ?? 0).toFixed(2) }}%
                 </td>
                 <td class="table-cell-right">
                   <button
@@ -268,6 +269,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { useToast } from "vue-toastification";
+import { useI18n } from "vue-i18n";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { publicKeyToAddress, addressToScriptHash } from "@/utils/neoHelpers";
@@ -276,9 +278,15 @@ import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/log
 import { NEO_HASH } from "@/constants";
 
 const toast = useToast();
+const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
 
 const candidates = ref([]);
+const candidateIndexMap = computed(() => {
+  const map = new Map();
+  candidates.value.forEach((c, i) => map.set(c.publickey, i));
+  return map;
+});
 const livenessData = ref({});
 const sortBy = ref("votes");
 const loading = ref(true);
@@ -332,10 +340,10 @@ function createRpcClient(url = getRpcClientUrl()) {
 const sortedCandidates = computed(() => {
   const list = [...candidates.value];
   if (sortBy.value === "apr") {
+    const idxMap = candidateIndexMap.value;
     return list.sort((a, b) => {
-      // original index is needed for calculateAPR to know if it's consensus node
-      const aIndex = candidates.value.indexOf(a);
-      const bIndex = candidates.value.indexOf(b);
+      const aIndex = idxMap.get(a.publickey) ?? 0;
+      const bIndex = idxMap.get(b.publickey) ?? 0;
       return calculateAPR(b.votes, bIndex) - calculateAPR(a.votes, aIndex);
     });
   }
@@ -513,9 +521,9 @@ async function loadCandidates() {
     // Fetch liveness data passively in the background
     fetchDoraLiveness(doraEnv).then((map) => {
       livenessData.value = map;
-    });
+    }).catch(() => {});
   } catch (err) {
-    console.error("Failed to load candidates", err);
+    if (import.meta.env.DEV) console.error("Failed to load candidates", err);
     error.value = err.message || "Failed to fetch candidates from RPC node.";
   } finally {
     loading.value = false;
@@ -573,7 +581,7 @@ function isCurrentVote(candidate) {
 
 async function handleVoteAction(candidate) {
   if (!account.value) {
-    toast.info("Please connect your wallet first.");
+    toast.info(t('common.connectWalletFirst'));
     return;
   }
   try {
@@ -586,7 +594,8 @@ async function handleVoteAction(candidate) {
       currentVotePublicKey.value = String(candidate.publickey || "");
     }
   } catch (err) {
-    // Errors handled inside voteForCandidate
+    if (import.meta.env.DEV) console.error("[Governance] vote action failed:", err);
+    toast.error(t('common.voteActionFailed'));
   } finally {
     voting.value = false;
   }

@@ -3,9 +3,9 @@
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tools', to: '/tools' },
-          { label: 'ABI Encoder / Decoder' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.tools'), to: '/tools' },
+          { label: $t('breadcrumb.abiEncoder') },
         ]"
       />
 
@@ -290,11 +290,13 @@
 
 <script setup>
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
 import { disassembleScript, extractContractInvocation } from "@/utils/scriptDisassembler";
 import { hex2base64 } from "@/utils/sdkCompat";
 
+const { t } = useI18n();
 const toast = useToast();
 const activeMode = ref("encode");
 
@@ -319,14 +321,222 @@ function removeParam(index) {
   encodeForm.value.params.splice(index, 1);
 }
 
+// --- Neo N3 ABI encoding helpers (pure JS, no SDK dependency) ---
+
+const SYSCALL_CONTRACT_CALL = [0x52, 0x5b, 0x7d, 0x62]; // 0x627d5b52 in LE
+const SYSCALL_OPCODE = 0x41;
+const PACK_OPCODE = 0xc0;
+
+function _hexToBytes(hex) {
+  const h = hex.replace(/^0x/i, "");
+  const bytes = new Uint8Array(h.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(h.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+function _pushData(target, data) {
+  // data is a Uint8Array or array of byte values
+  const len = data.length;
+  if (len <= 0xff) {
+    target.push(0x0c); // PUSHDATA1
+    target.push(len);
+  } else if (len <= 0xffff) {
+    target.push(0x0d); // PUSHDATA2
+    target.push(len & 0xff);
+    target.push((len >> 8) & 0xff);
+  } else {
+    target.push(0x0e); // PUSHDATA4
+    target.push(len & 0xff);
+    target.push((len >> 8) & 0xff);
+    target.push((len >> 16) & 0xff);
+    target.push((len >> 24) & 0xff);
+  }
+  for (let i = 0; i < data.length; i++) {
+    target.push(data[i]);
+  }
+}
+
+function _pushInt(target, num) {
+  // Handle native BigInt
+  const n = typeof num === "bigint" ? num : BigInt(num);
+  if (n === 0n) {
+    target.push(0x10); // PUSH0
+    return;
+  }
+  if (n === -1n) {
+    target.push(0x0f); // PUSHM1
+    return;
+  }
+  if (n >= 1n && n <= 16n) {
+    target.push(0x10 + Number(n)); // PUSH1-PUSH16
+    return;
+  }
+
+  // Determine minimum signed byte width
+  const isNeg = n < 0n;
+  const abs = isNeg ? -n : n;
+  let byteCount = 0;
+  let tmp = abs;
+  while (tmp > 0n) {
+    byteCount++;
+    tmp >>= 8n;
+  }
+  byteCount = Math.max(byteCount, 1);
+  // If positive and high bit would be set, need an extra byte for sign
+  if (!isNeg) {
+    const highByte = Number((abs >> (8n * BigInt(byteCount - 1))) & 0xffn);
+    if (highByte >= 0x80) byteCount++;
+  }
+
+  // Map byte count to PUSHINT opcode
+  let opcode;
+  if (byteCount <= 1) opcode = 0x00; // PUSHINT8
+  else if (byteCount <= 2) opcode = 0x01; // PUSHINT16
+  else if (byteCount <= 4) opcode = 0x02; // PUSHINT32
+  else if (byteCount <= 8) opcode = 0x03; // PUSHINT64
+  else if (byteCount <= 16) opcode = 0x04; // PUSHINT128
+  else if (byteCount <= 32) opcode = 0x05; // PUSHINT256
+  else throw new Error("Integer value too large for Neo VM (max 256 bits)");
+
+  const sizes = [1, 2, 4, 8, 16, 32];
+  const size = sizes[opcode];
+
+  target.push(opcode);
+  // Encode as two's complement little-endian
+  let val = n;
+  if (val < 0n) {
+    val = (1n << (8n * BigInt(size))) + val;
+  }
+  for (let i = 0; i < size; i++) {
+    target.push(Number(val & 0xffn));
+    val >>= 8n;
+  }
+}
+
+function _encodeParam(target, param) {
+  const v = (param.value || "").trim();
+  switch (param.type) {
+    case "String": {
+      _pushData(target, new TextEncoder().encode(v));
+      break;
+    }
+    case "Integer": {
+      if (!/^-?\d+$/.test(v)) throw new Error(`Invalid integer: "${v}"`);
+      _pushInt(target, BigInt(v));
+      break;
+    }
+    case "Hash160": {
+      const hex = v.replace(/^0x/i, "");
+      if (!/^[0-9a-fA-F]{40}$/.test(hex))
+        throw new Error("Hash160 requires exactly 40 hex characters");
+      // Reverse to little-endian script-hash byte order
+      const bytes = _hexToBytes(hex);
+      _pushData(target, Uint8Array.from(bytes).reverse());
+      break;
+    }
+    case "Hash256": {
+      const hex = v.replace(/^0x/i, "");
+      if (!/^[0-9a-fA-F]{64}$/.test(hex))
+        throw new Error("Hash256 requires exactly 64 hex characters");
+      const bytes = _hexToBytes(hex);
+      _pushData(target, Uint8Array.from(bytes).reverse());
+      break;
+    }
+    case "ByteArray": {
+      const hex = v.replace(/^0x/i, "");
+      if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0)
+        throw new Error("ByteArray requires an even-length hex string");
+      _pushData(target, _hexToBytes(hex));
+      break;
+    }
+    case "PublicKey": {
+      const hex = v.replace(/^0x/i, "");
+      if (!/^[0-9a-fA-F]{66}$/.test(hex))
+        throw new Error("PublicKey requires exactly 66 hex characters (33 bytes)");
+      _pushData(target, _hexToBytes(hex));
+      break;
+    }
+    case "Boolean": {
+      const lower = v.toLowerCase();
+      if (lower === "true" || lower === "1") {
+        target.push(0x08); // PUSHT
+      } else {
+        target.push(0x09); // PUSHF
+      }
+      break;
+    }
+    case "Any": {
+      // Auto-detect from value
+      const lower = v.toLowerCase();
+      if (lower === "true" || lower === "false") {
+        _encodeParam(target, { type: "Boolean", value: v });
+      } else if (/^-?\d+$/.test(v)) {
+        _encodeParam(target, { type: "Integer", value: v });
+      } else if (/^(0x)?[0-9a-fA-F]+$/.test(v) && v.replace(/^0x/, "").length % 2 === 0) {
+        _encodeParam(target, { type: "ByteArray", value: v });
+      } else {
+        _encodeParam(target, { type: "String", value: v });
+      }
+      break;
+    }
+    default:
+      throw new Error(`Unsupported parameter type: ${param.type}`);
+  }
+}
+
 function encodeScript() {
   try {
-    toast.error("ABI Encoder is temporarily disabled during SDK migration. Please use the decoder or other tools.");
-    // TODO: Reimplement with new SDK - ContractParam.fromJson() no longer exists
-    // Need to manually construct parameters based on type
+    const { contractHash, method, params } = encodeForm.value;
+
+    if (!contractHash || !method) {
+      toast.error(t("tools.abiEncoder.toasts.contractAndMethodRequired"));
+      return;
+    }
+
+    const cleanHash = contractHash.trim().replace(/^0x/i, "");
+    if (!/^[0-9a-fA-F]{40}$/.test(cleanHash)) {
+      toast.error(t("tools.abiEncoder.toasts.invalidContractHash"));
+      return;
+    }
+
+    const script = [];
+
+    // 1. Push parameters in reverse order (last argument first on the stack)
+    for (let i = params.length - 1; i >= 0; i--) {
+      _encodeParam(script, params[i]);
+    }
+
+    // 2. If there are parameters, push count + PACK to form an array
+    if (params.length > 0) {
+      _pushInt(script, params.length);
+      script.push(PACK_OPCODE);
+    }
+
+    // 3. Push call flags — 0x0F = All (ReadStates|WriteStates|AllowCall|AllowNotify)
+    _pushInt(script, 0x0f);
+
+    // 4. Push method name
+    _pushData(script, new TextEncoder().encode(method));
+
+    // 5. Push contract hash (20 bytes, reversed to little-endian)
+    const hashBytes = _hexToBytes(cleanHash);
+    _pushData(script, Uint8Array.from(hashBytes).reverse());
+
+    // 6. SYSCALL System.Contract.Call
+    script.push(SYSCALL_OPCODE);
+    for (const b of SYSCALL_CONTRACT_CALL) script.push(b);
+
+    // Convert to hex and base64 output
+    const hexScript = Array.from(script, (b) => b.toString(16).padStart(2, "0")).join("");
+    const base64Script = btoa(String.fromCharCode(...script));
+
+    encodedResult.value = { base64: base64Script, hex: hexScript };
+    toast.success(t("tools.abiEncoder.toasts.encodeSuccess"));
   } catch (err) {
-    console.error(err);
-    toast.error("Failed to encode: " + err.message);
+    if (import.meta.env.DEV) console.error(err);
+    toast.error(t("tools.abiEncoder.toasts.encodeFailed", { reason: err.message }));
   }
 }
 
@@ -359,11 +569,11 @@ function decodeScript() {
       };
     }
 
-    toast.success("Script successfully decoded!");
+    toast.success(t("tools.abiEncoder.toasts.decodeSuccess"));
   } catch (err) {
-    console.error(err);
+    if (import.meta.env.DEV) console.error(err);
     decodedResult.value = { error: "Failed to decode script. Ensure it is valid Hex or Base64." };
-    toast.error("Failed to decode: " + err.message);
+    toast.error(t("tools.abiEncoder.toasts.decodeFailed", { reason: err.message }));
   }
 }
 </script>

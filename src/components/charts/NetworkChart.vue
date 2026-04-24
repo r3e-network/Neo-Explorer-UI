@@ -1,11 +1,29 @@
 <template>
   <div class="network-chart w-full h-full" ref="chartContainer">
-    <canvas ref="chartCanvas" role="img" aria-label="Network activity chart"></canvas>
+    <template v-if="loading">
+      <div class="space-y-2">
+        <Skeleton v-for="i in 5" :key="i" height="44px" />
+      </div>
+    </template>
+    <template v-else-if="error">
+      <ErrorState title="Failed to load chart" :message="error" @retry="$emit('retry')" />
+    </template>
+    <template v-else-if="!data || data.length === 0">
+      <div class="flex h-full items-center justify-center py-12">
+        <p class="text-sm text-mid">No data available</p>
+      </div>
+    </template>
+    <template v-else>
+      <canvas ref="chartCanvas" role="img" aria-label="Network activity chart"></canvas>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { useTheme } from "@/composables/useTheme";
+import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 
 const props = defineProps({
   type: {
@@ -17,12 +35,22 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  error: {
+    type: String,
+    default: null,
+  },
 });
 
+defineEmits(["retry"]);
+
+const { isDark } = useTheme();
 const chartContainer = ref(null);
 const chartCanvas = ref(null);
 const chart = ref(null);
-let themeObserver = null;
 
 function getLabel() {
   const labels = {
@@ -126,15 +154,14 @@ function getChartOptions(isDark) {
 }
 
 async function initChart() {
-  if (!chartCanvas.value) return;
+  if (!chartCanvas.value || !props.data || props.data.length === 0) return;
   const Chart = (await import("chart.js")).default;
   const ctx = chartCanvas.value.getContext("2d");
-  const isDark = document.documentElement.classList.contains("dark");
 
   chart.value = new Chart(ctx, {
     type: "line",
     data: getChartData(),
-    options: getChartOptions(isDark),
+    options: getChartOptions(isDark.value),
   });
 }
 
@@ -148,38 +175,37 @@ function updateChart() {
 watch(
   () => props.type,
   () => {
-    updateChart();
+    if (chart.value) {
+      updateChart();
+    } else {
+      initChart();
+    }
   },
 );
 
 watch(
   () => props.data,
   () => {
-    updateChart();
+    if (chart.value) {
+      updateChart();
+    } else {
+      initChart();
+    }
   },
 );
 
+watch(isDark, () => {
+  if (chart.value) {
+    chart.value.options = getChartOptions(isDark.value);
+    chart.value.update();
+  }
+});
+
 onMounted(() => {
   initChart();
-
-  themeObserver = new MutationObserver(() => {
-    if (chart.value) {
-      const isDark = document.documentElement.classList.contains("dark");
-      chart.value.options = getChartOptions(isDark);
-      chart.value.update();
-    }
-  });
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
 });
 
 onBeforeUnmount(() => {
-  if (themeObserver) {
-    themeObserver.disconnect();
-    themeObserver = null;
-  }
   if (chart.value) {
     chart.value.destroy();
   }

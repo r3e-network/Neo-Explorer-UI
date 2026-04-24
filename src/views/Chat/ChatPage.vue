@@ -2,27 +2,27 @@
   <div class="page-shell">
     <div class="page-container py-8">
       <div class="mb-6">
-        <h1 class="text-3xl font-black tracking-tight text-high">NeoChat</h1>
+        <h1 class="text-3xl font-black tracking-tight text-high">{{ $t('chat.title') }}</h1>
         <p class="mt-2 max-w-3xl text-sm text-mid">
-          Private 1:1 chat backed by Supabase. Rooms are canonicalized by wallet address, so A chatting with B is the same room as B chatting with A.
+          {{ $t('chat.description') }}
         </p>
       </div>
 
       <div v-if="!connectedAccount" class="rounded-2xl border border-line-soft bg-surface-base p-6 text-sm text-mid shadow-sm">
-        Connect a wallet to open NeoChat.
+        {{ $t('chat.connectWallet') }}
       </div>
 
       <div v-else-if="!chatSession" class="rounded-2xl border border-line-soft bg-surface-base p-6 shadow-sm">
-        <h2 class="text-lg font-bold text-high">Authorize NeoChat</h2>
+        <h2 class="text-lg font-bold text-high">{{ $t('chat.authorize') }}</h2>
         <p class="mt-2 text-sm text-mid">
-          Sign one message once to create a server-validated chat session. You will not be asked to sign every message.
+          {{ $t('chat.authorizeHint') }}
         </p>
         <button
           class="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
           :disabled="authorizing"
           @click="authorizeChat"
         >
-          {{ authorizing ? "Authorizing…" : "Authorize NeoChat" }}
+          {{ authorizing ? $t('chat.authorizing') : $t('chat.authorize') }}
         </button>
         <p v-if="authError" class="mt-3 text-sm text-red-500">{{ authError }}</p>
       </div>

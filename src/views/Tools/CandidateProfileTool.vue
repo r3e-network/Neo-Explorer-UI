@@ -3,9 +3,9 @@
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tools', to: '/tools' },
-          { label: 'Candidate Profile Manager' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.tools'), to: '/tools' },
+          { label: $t('breadcrumb.candidateProfile') },
         ]"
       />
 
@@ -22,9 +22,9 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Candidate Profile Manager</h1>
+            <h1 class="page-title">{{ $t('tools.candidateProfile.pageTitle') }}</h1>
             <p class="page-subtitle">
-              Update your on-chain validator identity, Dora metadata, and upload your official logo directly to NeoFS.
+              {{ $t('tools.candidateProfile.pageSubtitle') }}
             </p>
           </div>
         </div>
@@ -35,22 +35,22 @@
             disabled
             class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
           >
-            Connect in Header
+            {{ $t('tools.candidateProfile.connectInHeader') }}
           </button>
           <button
             v-else-if="loadingProfile"
             disabled
             class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
           >
-            Loading Profile...
+            {{ $t('tools.candidateProfile.loadingProfile') }}
           </button>
           <button
             v-else-if="!isCandidate"
             disabled
             class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
-            title="Connected wallet is not a valid candidate"
+            :title="$t('tools.candidateProfile.notACandidateTitle')"
           >
-            Not a Candidate
+            {{ $t('tools.candidateProfile.notACandidate') }}
           </button>
           <button
             v-else
@@ -60,7 +60,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            Save Profile
+            {{ $t('tools.candidateProfile.saveProfile') }}
           </button>
         </div>
       </div>
@@ -80,10 +80,10 @@
         <div class="lg:col-span-2 space-y-6">
           <!-- Validator Identity Section -->
           <div class="etherscan-card p-6 md:p-8">
-            <h2 class="text-lg font-bold text-high mb-4">On-Chain Identity</h2>
+            <h2 class="text-lg font-bold text-high mb-4">{{ $t('tools.candidateProfile.onChainIdentity') }}</h2>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Public Key</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.publicKeyLabel') }}</label>
                 <input
                   type="text"
                   v-model="form.publicKey"
@@ -91,50 +91,50 @@
                   placeholder="03..."
                   disabled
                 />
-                <p class="text-xs text-mid mt-1">Your validator public key, derived from your connected wallet.</p>
+                <p class="text-xs text-mid mt-1">{{ $t('tools.candidateProfile.publicKeyHelper') }}</p>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-high mb-1">Name</label>
+                  <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.nameLabel') }}</label>
                   <input
                     type="text"
                     v-model="form.name"
                     class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                    placeholder="e.g. My Neo Node"
+                    :placeholder="$t('tools.candidateProfile.namePlaceholder')"
                     :disabled="!connectedAccount || !isCandidate || loadingProfile"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-high mb-1">Location</label>
+                  <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.locationLabel') }}</label>
                   <input
                     type="text"
                     v-model="form.location"
                     class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                    placeholder="e.g. Zurich, Switzerland"
+                    :placeholder="$t('tools.candidateProfile.locationPlaceholder')"
                     :disabled="!connectedAccount || !isCandidate || loadingProfile"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Website</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.websiteLabel') }}</label>
                 <input
                   type="url"
                   v-model="form.website"
                   class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="https://..."
+                  :placeholder="$t('tools.candidateProfile.websitePlaceholder')"
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Description</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.descriptionLabel') }}</label>
                 <textarea
                   v-model="form.description"
                   rows="3"
                   class="form-input w-full bg-surface resize-none rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="Brief description of your node operation and infrastructure..."
+                  :placeholder="$t('tools.candidateProfile.descriptionPlaceholder')"
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                 ></textarea>
               </div>
@@ -143,48 +143,48 @@
 
           <!-- Social Links Section -->
           <div class="etherscan-card p-6 md:p-8">
-            <h2 class="text-lg font-bold text-high mb-4">Social Links</h2>
+            <h2 class="text-lg font-bold text-high mb-4">{{ $t('tools.candidateProfile.socialLinks') }}</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Twitter / X</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.twitterLabel') }}</label>
                 <div class="relative">
                   <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-mid">@</span>
                   <input
                     type="text"
                     v-model="form.twitter"
                     class="form-input w-full bg-surface pl-8 rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                    placeholder="username"
+                    :placeholder="$t('tools.candidateProfile.twitterPlaceholder')"
                     :disabled="!connectedAccount || !isCandidate || loadingProfile"
                   />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-high mb-1">GitHub</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.githubLabel') }}</label>
                 <input
                   type="text"
                   v-model="form.github"
                   class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="https://github.com/..."
+                  :placeholder="$t('tools.candidateProfile.githubPlaceholder')"
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Discord</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.discordLabel') }}</label>
                 <input
                   type="text"
                   v-model="form.discord"
                   class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="Server invite or username"
+                  :placeholder="$t('tools.candidateProfile.discordPlaceholder')"
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-high mb-1">Telegram</label>
+                <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.telegramLabel') }}</label>
                 <input
                   type="text"
                   v-model="form.telegram"
                   class="form-input w-full bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="t.me/..."
+                  :placeholder="$t('tools.candidateProfile.telegramPlaceholder')"
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                 />
               </div>
@@ -196,7 +196,7 @@
         <div class="space-y-6">
           <!-- Logo Upload Section -->
           <div class="etherscan-card p-6 md:p-8">
-            <h2 class="text-lg font-bold text-high mb-4">Node Logo</h2>
+            <h2 class="text-lg font-bold text-high mb-4">{{ $t('tools.candidateProfile.nodeLogo') }}</h2>
 
             <div
               class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-line-soft rounded-xl mb-4 relative"
@@ -205,7 +205,7 @@
               <template v-if="form.logoUrl">
                 <img
                   :src="form.logoUrl"
-                  alt="Node Logo"
+                  :alt="$t('tools.candidateProfile.nodeLogoAlt')"
                   class="w-32 h-32 object-contain rounded-lg mb-4"
                   loading="lazy"
                 />
@@ -236,24 +236,24 @@
                     ></path>
                   </svg>
                 </div>
-                <p class="text-sm font-medium text-high mb-1">Upload to NeoFS</p>
-                <p class="text-xs text-mid text-center mb-4">PNG, JPG, or SVG. Max 2MB.</p>
+                <p class="text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.uploadToNeoFS') }}</p>
+                <p class="text-xs text-mid text-center mb-4">{{ $t('tools.candidateProfile.uploadHint') }}</p>
                 <button
                   :disabled="!connectedAccount || !isCandidate || loadingProfile"
                   class="inline-flex items-center gap-2 rounded-lg bg-surface border border-line-soft px-4 py-2 text-sm font-semibold text-high hover:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Select File
+                  {{ $t('tools.candidateProfile.selectFile') }}
                 </button>
               </template>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-high mb-1">NeoFS Object URL</label>
+              <label class="block text-sm font-medium text-high mb-1">{{ $t('tools.candidateProfile.neoFSObjectUrl') }}</label>
               <input
                 type="text"
                 v-model="form.logoUrl"
                 class="form-input w-full bg-surface text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                placeholder="neofs://..."
+                :placeholder="$t('tools.candidateProfile.neoFSObjectUrlPlaceholder')"
                 :disabled="!connectedAccount || !isCandidate || loadingProfile"
               />
             </div>
@@ -261,12 +261,12 @@
 
           <!-- Preview Card -->
           <div class="etherscan-card p-6 md:p-8 bg-gradient-to-br from-surface to-surface-elevated">
-            <h2 class="text-lg font-bold text-high mb-4">Preview</h2>
+            <h2 class="text-lg font-bold text-high mb-4">{{ $t('tools.candidateProfile.preview') }}</h2>
             <div class="flex items-center gap-4">
               <div
                 class="w-12 h-12 rounded-full border border-line-soft bg-surface flex items-center justify-center overflow-hidden shrink-0"
               >
-                <img v-if="form.logoUrl" :src="form.logoUrl" class="w-full h-full object-cover" loading="lazy" />
+                <img v-if="form.logoUrl" :src="form.logoUrl" class="w-full h-full object-cover" loading="lazy" :alt="(form.name || $t('tools.candidateProfile.candidateLogoAlt')) + ' logo'" />
                 <svg v-else class="w-6 h-6 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -277,7 +277,7 @@
                 </svg>
               </div>
               <div class="min-w-0">
-                <div class="font-bold text-high truncate">{{ form.name || "Unnamed Validator" }}</div>
+                <div class="font-bold text-high truncate">{{ form.name || $t('tools.candidateProfile.unnamedValidator') }}</div>
                 <div class="text-xs text-mid flex items-center gap-1 mt-0.5">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -293,7 +293,7 @@
                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                     ></path>
                   </svg>
-                  <span class="truncate">{{ form.location || "Unknown Location" }}</span>
+                  <span class="truncate">{{ form.location || $t('tools.candidateProfile.unknownLocation') }}</span>
                 </div>
               </div>
             </div>
@@ -309,6 +309,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
@@ -319,6 +320,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { addressToScriptHash, isPublicKeyHex } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
 
+const { t } = useI18n();
 const toast = useToast();
 
 const isCandidate = ref(false);
@@ -406,7 +408,7 @@ async function loadExistingProfile(address) {
 
     if (!validCandidate) {
       isCandidate.value = false;
-      profileStatus.value = "Connected wallet is not a valid candidate.";
+      profileStatus.value = t("tools.candidateProfile.statusNotCandidate");
       return;
     }
 
@@ -427,7 +429,7 @@ async function loadExistingProfile(address) {
 
     if (existingProfile) {
       applyExistingProfile(existingProfile);
-      profileStatus.value = "Loaded existing candidate profile from on-chain metadata.";
+      profileStatus.value = t("tools.candidateProfile.statusLoaded");
       return;
     }
 
@@ -435,10 +437,10 @@ async function loadExistingProfile(address) {
     profileStatus.value = "";
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.warn("Failed to load candidate profile metadata", error);
+      if (import.meta.env.DEV) console.warn("Failed to load candidate profile metadata", error);
     }
     isCandidate.value = false;
-    profileStatus.value = "Failed to load candidate profile.";
+    profileStatus.value = t("tools.candidateProfile.statusFailed");
     resetProfileFields({ keepPublicKey: false });
   } finally {
     if (requestId === activeProfileRequest) {
@@ -449,20 +451,20 @@ async function loadExistingProfile(address) {
 
 async function saveProfile() {
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.candidateProfile.toastConnectWallet"));
     return;
   }
 
   try {
-    toast.info("Awaiting wallet signature to authorize profile update...");
-    const result = await walletService.signMessage("Update Neo Candidate Profile for " + form.value.name);
+    toast.info(t("tools.candidateProfile.toastAwaitingSignature"));
+    const result = await walletService.signMessage(t("tools.candidateProfile.signMessagePrefix") + form.value.name);
 
     if (result && (result.signature || result.data)) {
-      toast.success("Profile update transaction authorized and submitted!");
+      toast.success(t("tools.candidateProfile.toastSuccess"));
     }
   } catch (e) {
-    console.error(e);
-    toast.error("Signature rejected or failed: " + (e.description || e.message));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.candidateProfile.toastSignatureRejected") + (e.description || e.message));
   }
 }
 

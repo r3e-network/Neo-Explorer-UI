@@ -2,6 +2,14 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("vue-i18n", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useI18n: () => ({ t: (key) => key }),
+  };
+});
+
 const pushMock = vi.fn();
 const fetchPricesMock = vi.fn();
 const initWalletMock = vi.fn();
@@ -148,7 +156,7 @@ describe("AppHeader chat notifications", () => {
 
     await flushPromises();
 
-    const connectButton = wrapper.findAll("button").find((candidate) => candidate.text().trim() === "Connect Wallet");
+    const connectButton = wrapper.findAll("button").find((candidate) => candidate.text().trim() === "header.connectWallet");
     await connectButton.trigger("click");
     await flushPromises();
 

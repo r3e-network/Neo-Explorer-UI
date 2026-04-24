@@ -2,7 +2,7 @@
   <div class="gas-tracker-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Gas Tracker' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.gasTracker') }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -27,7 +27,14 @@
       <FeeEstimateCards :feeEstimates="feeEstimates" :loading="loading" />
 
       <!-- Latest Fee Summary -->
-      <FeeSummary :gasData="gasData" />
+      <div v-if="gasError" class="etherscan-card mb-6 p-5">
+        <div class="flex items-center gap-3 text-sm text-mid">
+          <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+          <span>Unable to load fee summary data. Showing block-based estimates only.</span>
+          <button @click="loadGasTracker(true)" class="ml-auto text-primary-500 hover:text-primary-600 font-medium text-xs underline">{{ $t('common.retry') }}</button>
+        </div>
+      </div>
+      <FeeSummary v-else :gasData="gasData" />
 
       <!-- Fee Trend Chart -->
       <FeeTrendChart :blocks="blocks" :loading="blocksLoading" />
@@ -78,6 +85,7 @@ import { getNetworkRefreshIntervalMs } from "@/utils/env";
 const loading = ref(true);
 const blocksLoading = ref(true);
 const blocksError = ref(null);
+const gasError = ref(false);
 const autoRefreshActive = ref(true);
 
 const gasData = ref({
@@ -117,11 +125,13 @@ function computeFeeEstimates() {
 // --- Data loading ---
 async function loadGasTracker(forceRefresh = false) {
   loading.value = true;
+  gasError.value = false;
   try {
     const data = await statsService.getGasTracker(forceRefresh);
     gasData.value = data;
   } catch (e) {
     if (import.meta.env.DEV) console.error("Gas tracker load failed:", e);
+    gasError.value = true;
   } finally {
     loading.value = false;
   }

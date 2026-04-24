@@ -1,7 +1,13 @@
 <template>
   <div
     v-if="request"
+    ref="dialogRef"
+    role="dialog"
+    tabindex="0"
+    aria-modal="true"
+    aria-label="Proposal Details"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+    @keydown.escape="$emit('close')"
   >
     <div
       class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
@@ -45,7 +51,12 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
 import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
+
+const dialogRef = ref(null);
+useFocusTrap(dialogRef);
 
 defineProps({
   request: { type: Object, default: null },

@@ -278,8 +278,8 @@ describe("utils/wallet connectWallet", () => {
     const wallet = await import("@/utils/wallet");
     await wallet.voteForCandidate("03c95f8e6fe4f6e9de4dbf67bf3ff47a1465644d0f32956543e12b3d6b0ffb02d7");
 
-    expect(toast.error).toHaveBeenCalledWith("Please connect your wallet first via the header.");
-    expect(toast.warning).not.toHaveBeenCalledWith("NeoLine N3 wallet not found. Please install the extension.");
+    expect(toast.error).toHaveBeenCalledWith("wallet.connectFirst");
+    expect(toast.warning).not.toHaveBeenCalledWith("wallet.notFound");
   });
 
   it("uses script hash args and signer when submitting vote", async () => {

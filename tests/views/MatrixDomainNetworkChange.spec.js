@@ -1,6 +1,19 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const envState = { value: "Mainnet" };
 const getMatrixDomainProfile = vi.fn();
 const errorToast = vi.fn();
@@ -49,6 +62,7 @@ describe("MatrixDomain network changes", () => {
     const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
     const wrapper = mount(MatrixDomain, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,

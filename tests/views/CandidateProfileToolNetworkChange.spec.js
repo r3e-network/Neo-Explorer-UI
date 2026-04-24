@@ -1,5 +1,11 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
 import { ref } from "vue";
 
 const candidateGetByAddressMock = vi.fn();
@@ -39,6 +45,10 @@ vi.mock("@/services/walletService", () => ({
   default: walletServiceMock,
 }));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (value) => value }),
+}));
+
 describe("CandidateProfileTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,6 +67,7 @@ describe("CandidateProfileTool network changes", () => {
     const CandidateProfileTool = (await import("@/views/Tools/CandidateProfileTool.vue")).default;
     const wrapper = mount(CandidateProfileTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
         },
@@ -65,7 +76,7 @@ describe("CandidateProfileTool network changes", () => {
 
     await flushPromises();
     await flushPromises();
-    expect(wrapper.get('input[placeholder="e.g. My Neo Node"]').element.value).toBe("The Neo Order");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.namePlaceholder"]').element.value).toBe("The Neo Order");
 
     getCurrentEnvMock.mockReturnValue("TestNet");
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestNet" } }));
@@ -73,7 +84,7 @@ describe("CandidateProfileTool network changes", () => {
     await flushPromises();
 
     expect(candidateGetByAddressMock).toHaveBeenCalledTimes(2);
-    expect(wrapper.get('input[placeholder="e.g. My Neo Node"]').element.value).toBe("");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.namePlaceholder"]').element.value).toBe("");
     wrapper.unmount();
   });
 });

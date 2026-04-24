@@ -1,7 +1,7 @@
 <template>
   <div class="api-docs">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'API Documentation' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.apiDocs') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">

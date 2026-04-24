@@ -1,5 +1,11 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
 import { ref } from "vue";
 
 const candidateGetByAddressMock = vi.fn();
@@ -39,6 +45,10 @@ vi.mock("@/services/walletService", () => ({
   default: walletServiceMock,
 }));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (value) => value }),
+}));
+
 describe("CandidateProfileTool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,6 +79,7 @@ describe("CandidateProfileTool", () => {
     const CandidateProfileTool = (await import("@/views/Tools/CandidateProfileTool.vue")).default;
     const wrapper = mount(CandidateProfileTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
         },
@@ -81,14 +92,30 @@ describe("CandidateProfileTool", () => {
     expect(candidateGetByAddressMock).toHaveBeenCalled();
     expect(cachedRequestMock).toHaveBeenCalled();
     expect(wrapper.get('input[placeholder="03..."]').element.value).toBe(pubkey);
-    expect(wrapper.get('input[placeholder="e.g. My Neo Node"]').element.value).toBe("The Neo Order");
-    expect(wrapper.get('input[placeholder="e.g. Zurich, Switzerland"]').element.value).toBe("Shanghai");
-    expect(wrapper.get('input[placeholder="https://..."]').element.value).toBe("https://neoorder.io");
-    expect(wrapper.get('textarea[placeholder*="Brief description"]').element.value).toBe("Profile description");
-    expect(wrapper.get('input[placeholder="username"]').element.value).toBe("neo_order");
-    expect(wrapper.get('input[placeholder="https://github.com/..."]').element.value).toBe("https://github.com/neoorder");
-    expect(wrapper.get('input[placeholder="t.me/..."]').element.value).toBe("t.me/neoorder");
-    expect(wrapper.get('input[placeholder="neofs://..."]').element.value).toBe("https://example.com/logo.png");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.namePlaceholder"]').element.value).toBe(
+      "The Neo Order",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.locationPlaceholder"]').element.value).toBe(
+      "Shanghai",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.websitePlaceholder"]').element.value).toBe(
+      "https://neoorder.io",
+    );
+    expect(
+      wrapper.get('textarea[placeholder="tools.candidateProfile.descriptionPlaceholder"]').element.value,
+    ).toBe("Profile description");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.twitterPlaceholder"]').element.value).toBe(
+      "neo_order",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.githubPlaceholder"]').element.value).toBe(
+      "https://github.com/neoorder",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.telegramPlaceholder"]').element.value).toBe(
+      "t.me/neoorder",
+    );
+    expect(
+      wrapper.get('input[placeholder="tools.candidateProfile.neoFSObjectUrlPlaceholder"]').element.value,
+    ).toBe("https://example.com/logo.png");
   });
 
   it("keeps profile fields blank when valid candidate has no existing Dora metadata", async () => {
@@ -102,6 +129,7 @@ describe("CandidateProfileTool", () => {
     const CandidateProfileTool = (await import("@/views/Tools/CandidateProfileTool.vue")).default;
     const wrapper = mount(CandidateProfileTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
         },
@@ -112,13 +140,25 @@ describe("CandidateProfileTool", () => {
     await flushPromises();
 
     expect(wrapper.get('input[placeholder="03..."]').element.value).toBe(pubkey);
-    expect(wrapper.get('input[placeholder="e.g. My Neo Node"]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="e.g. Zurich, Switzerland"]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="https://..."]').element.value).toBe("");
-    expect(wrapper.get('textarea[placeholder*="Brief description"]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="username"]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="https://github.com/..."]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="t.me/..."]').element.value).toBe("");
-    expect(wrapper.get('input[placeholder="neofs://..."]').element.value).toBe("");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.namePlaceholder"]').element.value).toBe("");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.locationPlaceholder"]').element.value).toBe(
+      "",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.websitePlaceholder"]').element.value).toBe(
+      "",
+    );
+    expect(
+      wrapper.get('textarea[placeholder="tools.candidateProfile.descriptionPlaceholder"]').element.value,
+    ).toBe("");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.twitterPlaceholder"]').element.value).toBe(
+      "",
+    );
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.githubPlaceholder"]').element.value).toBe("");
+    expect(wrapper.get('input[placeholder="tools.candidateProfile.telegramPlaceholder"]').element.value).toBe(
+      "",
+    );
+    expect(
+      wrapper.get('input[placeholder="tools.candidateProfile.neoFSObjectUrlPlaceholder"]').element.value,
+    ).toBe("");
   });
 });

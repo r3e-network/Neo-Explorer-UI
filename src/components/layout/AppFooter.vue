@@ -13,7 +13,7 @@
             <span class="text-high text-lg font-extrabold tracking-tight">Neo Explorer</span>
           </div>
           <p class="text-mid mb-4 text-sm leading-relaxed">
-            A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~3s finality.
+            {{ $t("footer.description") }}
           </p>
           <div class="flex items-center gap-3">
             <a
@@ -53,40 +53,40 @@
           <div
             class="soft-divider text-mid mt-4 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs bg-[var(--surface-elevated)]"
           >
-            Powered by <strong class="text-neo-green">Neo N3</strong>
+            {{ $t("footer.poweredBy") }} <strong class="text-neo-green">Neo N3</strong>
           </div>
         </div>
 
         <!-- Blockchain Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Blockchain</h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.blockchain") }}</h3>
           <ul class="space-y-2 text-sm">
-            <li><router-link to="/blocks/1" class="footer-link">Blocks</router-link></li>
-            <li><router-link to="/transactions/1" class="footer-link">Transactions</router-link></li>
-            <li><router-link to="/account/1" class="footer-link">Accounts</router-link></li>
-            <li><router-link to="/contracts/1" class="footer-link">Contracts</router-link></li>
-            <li><router-link to="/tokens/nep17/1" class="footer-link">Tokens</router-link></li>
+            <li><router-link to="/blocks/1" class="footer-link">{{ $t("nav.blocks") }}</router-link></li>
+            <li><router-link to="/transactions/1" class="footer-link">{{ $t("nav.transactions") }}</router-link></li>
+            <li><router-link to="/account/1" class="footer-link">{{ $t("nav.accounts") }}</router-link></li>
+            <li><router-link to="/contracts/1" class="footer-link">{{ $t("nav.contracts") }}</router-link></li>
+            <li><router-link to="/tokens/nep17/1" class="footer-link">{{ $t("nav.tokens") }}</router-link></li>
           </ul>
         </div>
 
         <!-- Resources Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Resources</h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.resources") }}</h3>
           <ul class="space-y-2 text-sm">
-            <li><router-link to="/echarts" class="footer-link">Charts &amp; Stats</router-link></li>
-            <li><router-link to="/gas-tracker" class="footer-link">Gas Tracker</router-link></li>
-            <li><router-link to="/burn" class="footer-link">Burned GAS</router-link></li>
-            <li><router-link to="/candidates/1" class="footer-link">Consensus Nodes</router-link></li>
+            <li><router-link to="/echarts" class="footer-link">{{ $t("nav.chartsStats") }}</router-link></li>
+            <li><router-link to="/gas-tracker" class="footer-link">{{ $t("nav.gasTracker") }}</router-link></li>
+            <li><router-link to="/burn" class="footer-link">{{ $t("nav.burnedGas") }}</router-link></li>
+            <li><router-link to="/candidates/1" class="footer-link">{{ $t("nav.consensusNodes") }}</router-link></li>
           </ul>
         </div>
 
         <!-- Developers Column -->
         <div>
-          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">Developers</h3>
+          <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.developers") }}</h3>
           <ul class="space-y-2 text-sm">
-            <li><router-link to="/api-docs" class="footer-link">API Docs</router-link></li>
-            <li><router-link to="/verify-contract/" class="footer-link">Verify Contract</router-link></li>
-            <li><router-link to="/source-code" class="footer-link">Source Code</router-link></li>
+            <li><router-link to="/api-docs" class="footer-link">{{ $t("nav.apiDocs") }}</router-link></li>
+            <li><router-link to="/verify-contract/" class="footer-link">{{ $t("nav.verifyContract") }}</router-link></li>
+            <li><router-link to="/source-code" class="footer-link">{{ $t("nav.sourceCode") }}</router-link></li>
           </ul>
         </div>
       </div>
@@ -96,13 +96,13 @@
         class="soft-divider text-mid mt-8 flex flex-col items-start justify-between gap-3 border-t pt-5 text-xs sm:flex-row sm:items-center"
       >
         <p>&copy; {{ currentYear }} Neo Explorer</p>
-        <p class="hidden sm:block">Powered by <strong class="text-neo-green">neo3fura</strong></p>
+        <p class="hidden sm:block">{{ $t("footer.poweredBy") }} <strong class="text-neo-green">neo3fura</strong></p>
         <button
           class="text-mid font-medium transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500"
           aria-label="Back to top"
           @click="scrollTop"
         >
-          Back to Top &uarr;
+          {{ $t("footer.backToTop") }} &uarr;
         </button>
       </div>
     </div>

@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Gas Estimator' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.gasEstimator') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,9 +18,9 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">Gas Estimator & Fee Calculator</h1>
+            <h1 class="page-title">{{ $t('tools.gasEstimator.pageTitle') }}</h1>
             <p class="page-subtitle">
-              Simulate transactions to calculate precise System Fee (GasConsumed) and Network Fee.
+              {{ $t('tools.gasEstimator.pageSubtitle') }}
             </p>
           </div>
         </div>
@@ -30,32 +30,32 @@
         <div class="max-w-3xl mx-auto space-y-8">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <label class="block text-sm font-bold text-high tracking-tight">Transaction Script</label>
+              <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.gasEstimator.scriptLabel') }}</label>
               <select
                 v-model="scriptFormat"
                 class="form-input bg-surface text-xs py-1.5 px-3 rounded-lg border-line-soft hover:border-primary-400 transition-colors shadow-sm cursor-pointer outline-none"
               >
-                <option value="base64">Base64</option>
-                <option value="hex">Hex String</option>
+                <option value="base64">{{ $t('tools.gasEstimator.formatBase64') }}</option>
+                <option value="hex">{{ $t('tools.gasEstimator.formatHex') }}</option>
               </select>
             </div>
             <textarea
               v-model="scriptInput"
               class="form-input w-full h-36 bg-surface text-high font-mono text-sm rounded-2xl shadow-inner focus:ring-2 focus:ring-orange-500/20"
-              placeholder="Paste your raw transaction payload script here..."
+              :placeholder="$t('tools.gasEstimator.scriptPlaceholder')"
             ></textarea>
           </div>
 
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <label class="block text-sm font-bold text-high tracking-tight"
-                >Transaction Signers <span class="text-mid font-normal ml-1">(Optional)</span></label
+                >{{ $t('tools.gasEstimator.signersLabel') }} <span class="text-mid font-normal ml-1">{{ $t('tools.gasEstimator.optional') }}</span></label
               >
               <button
                 @click="addSigner"
                 class="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg dark:bg-orange-900/30 dark:hover:bg-orange-900/50 dark:text-orange-400 transition-all duration-300 shadow-sm"
               >
-                + Add Signer
+                {{ $t('tools.gasEstimator.addSigner') }}
               </button>
             </div>
 
@@ -71,8 +71,8 @@
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 ></path>
               </svg>
-              No signers defined.<br /><span class="text-xs opacity-80"
-                >An empty dummy signer will be used to calculate network byte fees.</span
+              {{ $t('tools.gasEstimator.noSignersDefined') }}<br /><span class="text-xs opacity-80"
+                >{{ $t('tools.gasEstimator.dummySignerNote') }}</span
               >
             </div>
 
@@ -88,12 +88,12 @@
                     type="text"
                     v-model="signers[i]"
                     class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent focus:border-orange-400 focus:ring-0 rounded-lg shadow-sm"
-                    placeholder="ScriptHash or Address (e.g. N... or 0x...)"
+                    :placeholder="$t('tools.gasEstimator.signerPlaceholder')"
                   />
                   <button
                     @click="removeSigner(i)"
                     class="absolute right-2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-md transition-colors"
-                    title="Remove signer"
+                    :title="$t('tools.gasEstimator.removeSigner')"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -131,7 +131,7 @@
                   d="M13 10V3L4 14h7v7l9-11h-7z"
                 ></path>
               </svg>
-              {{ isEstimating ? "Simulating..." : "Estimate Fees" }}
+              {{ isEstimating ? $t('tools.gasEstimator.simulating') : $t('tools.gasEstimator.estimateFees') }}
             </button>
           </div>
 
@@ -146,7 +146,7 @@
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   ></path>
                 </svg>
-                Simulation Result
+                {{ $t('tools.gasEstimator.simulationResult') }}
               </h3>
 
               <div
@@ -164,7 +164,7 @@
                     <div
                       class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"
                     ></div>
-                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">VM State</p>
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">{{ $t('tools.gasEstimator.vmState') }}</p>
                     <p
                       class="text-xl font-black relative z-10"
                       :class="
@@ -183,7 +183,7 @@
                       class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"
                     ></div>
                     <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">
-                      System Fee (Execution)
+                      {{ $t('tools.gasEstimator.systemFeeExecution') }}
                     </p>
                     <p class="text-xl font-bold text-high relative z-10">
                       {{ result.systemFee }} <span class="text-xs font-semibold text-mid ml-0.5">GAS</span>
@@ -196,7 +196,7 @@
                       class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity"
                     ></div>
                     <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-2 relative z-10">
-                      Network Fee (Size)
+                      {{ $t('tools.gasEstimator.networkFeeSize') }}
                     </p>
                     <p class="text-xl font-bold text-high relative z-10">
                       {{ result.networkFee }} <span class="text-xs font-semibold text-mid ml-0.5">GAS</span>
@@ -219,7 +219,7 @@
                       </svg>
                     </div>
                     <p class="text-sm text-orange-900 dark:text-orange-100 font-bold tracking-tight">
-                      Total Estimated Cost
+                      {{ $t('tools.gasEstimator.totalEstimatedCost') }}
                     </p>
                   </div>
                   <p class="text-3xl font-black text-orange-600 dark:text-orange-400 tracking-tight">
@@ -231,7 +231,7 @@
                   v-if="result.exception"
                   class="p-5 rounded-2xl border border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-400 text-sm font-mono break-all mt-4 shadow-sm"
                 >
-                  <p class="font-bold mb-1 text-xs uppercase tracking-wider opacity-80">Exception Output</p>
+                  <p class="font-bold mb-1 text-xs uppercase tracking-wider opacity-80">{{ $t('tools.gasEstimator.exceptionOutput') }}</p>
                   {{ result.exception }}
                 </div>
               </template>
@@ -245,12 +245,14 @@
 
 <script setup>
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
 import { base642hex, hex2base64 } from "@/utils/sdkCompat";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
+const { t } = useI18n();
 const toast = useToast();
 const scriptFormat = ref("base64");
 const scriptInput = ref("");
@@ -261,7 +263,7 @@ const result = ref(null);
 function getNeonRuntime() {
   const runtime = window.Neon;
   if (!runtime?.rpc?.RPCClient || !runtime?.tx?.Transaction || !runtime?.wallet?.Account) {
-    throw new Error("Neo runtime is not available.");
+    throw new Error(t("tools.gasEstimator.runtimeUnavailable"));
   }
   return runtime;
 }
@@ -327,7 +329,7 @@ async function estimateGas() {
       }
     }
 
-    toast.info("Simulating execution...");
+    toast.info(t("tools.gasEstimator.toastSimulating"));
     const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new rpc.RPCClient(endpoint);
       const invokeRes = await rpcClient.invokeScript({ script: base64Script, signers: invokeSigners });
@@ -360,14 +362,14 @@ async function estimateGas() {
     };
 
     if (invokeRes.state === "FAULT") {
-      toast.warning("Simulation FAULTED. See exception details.");
+      toast.warning(t("tools.gasEstimator.toastFaulted"));
     } else {
-      toast.success("Simulation complete!");
+      toast.success(t("tools.gasEstimator.toastComplete"));
     }
   } catch (err) {
-    console.error(err);
-    result.value = { error: err.message || "Invalid script format or node unreachable." };
-    toast.error("Simulation failed");
+    if (import.meta.env.DEV) console.error(err);
+    result.value = { error: err.message || t("tools.gasEstimator.invalidScript") };
+    toast.error(t("tools.gasEstimator.toastFailed"));
   } finally {
     isEstimating.value = false;
   }

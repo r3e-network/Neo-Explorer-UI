@@ -3,9 +3,9 @@
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Contracts', to: '/contracts/1' },
-          { label: 'Source Code' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.contracts'), to: '/contracts/1' },
+          { label: $t('breadcrumb.sourceCode') },
         ]"
       />
 

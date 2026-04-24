@@ -2,6 +2,20 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key, params) => {
+      if (params && typeof params === "object") {
+        return Object.keys(params).reduce(
+          (acc, k) => acc.replace(new RegExp(`\\{${k}\\}`, "g"), String(params[k])),
+          key,
+        );
+      }
+      return key;
+    },
+  }),
+}));
+
 const connectedAccount = ref("");
 const toastErrorMock = vi.fn();
 const toastSuccessMock = vi.fn();
@@ -818,7 +832,7 @@ describe("GovernanceSignModal", () => {
     await flushPromises();
 
     expect(switchWalletAccountMock).toHaveBeenCalledTimes(1);
-    expect(toastSuccessMock).toHaveBeenCalledWith("NeoLine switched to the committee signer account. You can sign directly now.");
+    expect(toastSuccessMock).toHaveBeenCalledWith("tools.governance.signModalToasts.neoLineSwitchedSuccess");
 
     delete window.Neon;
   });
@@ -882,7 +896,7 @@ describe("GovernanceSignModal", () => {
 
     expect(addMultisigSignatureMock).not.toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to submit witness: Signature does not match the governance signing payload for this signer."
+      "tools.governance.signModalToasts.submitWitnessFailed"
     );
 
     delete window.Neon;

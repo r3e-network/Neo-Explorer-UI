@@ -87,33 +87,35 @@ export async function getLatestHomepageSnapshot({ blockLimit = 6, txLimit = 6 } 
   const safeBlockLimit = Math.max(1, Number(blockLimit) || 6);
   const safeTxLimit = Math.max(1, Number(txLimit) || 6);
 
-  const blockCount = Number(await rpc("getblockcount", []));
-  const latestHeight = blockCount - 1;
-  if (!Number.isFinite(latestHeight) || latestHeight < 0) {
-    return { blocks: [], transactions: [] };
-  }
+  try {
+    const blockCount = Number(await rpc("getblockcount", []));
+    const latestHeight = blockCount - 1;
+    if (!Number.isFinite(latestHeight) || latestHeight < 0) {
+      return { blocks: [], transactions: [] };
+    }
 
-  const heights = Array.from({ length: safeBlockLimit }, (_, index) => latestHeight - index).filter(
-    (height) => height >= 0,
-  );
+    const heights = Array.from({ length: safeBlockLimit }, (_, index) => latestHeight - index).filter(
+      (height) => height >= 0,
+    );
 
-  const rawBlocks = await Promise.all(heights.map((height) => rpc("getblock", [height, true])));
-  const blocks = rawBlocks.map(normalizeBlock);
+    const rawBlocks = await Promise.all(heights.map((height) => rpc("getblock", [height, true])));
+    const blocks = rawBlocks.map(normalizeBlock);
 
-  const transactions = [];
-  for (const block of blocks) {
-    const blockTransactions = await enrichTransactionsWithExecutionState(Array.isArray(block.tx) ? block.tx : [], block);
-    for (const tx of blockTransactions) {
-      transactions.push(tx);
+    const transactions = [];
+    for (const block of blocks) {
+      const blockTransactions = await enrichTransactionsWithExecutionState(Array.isArray(block.tx) ? block.tx : [], block);
+      for (const tx of blockTransactions) {
+        transactions.push(tx);
+        if (transactions.length >= safeTxLimit) break;
+      }
       if (transactions.length >= safeTxLimit) break;
     }
-    if (transactions.length >= safeTxLimit) break;
-  }
 
-  return {
-    blocks,
-    transactions,
-  };
+    return { blocks, transactions };
+  } catch (err) {
+    if (import.meta.env.DEV) console.error("[liveHomepageService] getLatestHomepageSnapshot failed:", err);
+    return { blocks: [], transactions: [] };
+  }
 }
 
 export default {

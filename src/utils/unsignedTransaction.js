@@ -99,7 +99,7 @@ export function decodeUnsignedTransaction(unsignedTxHex) {
   try {
     const neonJs = getNeonJs();
     if (!neonJs?.tx?.Transaction?.deserialize) {
-      console.warn("[decodeUnsignedTransaction] neon-js not available:", {
+      if (import.meta.env.DEV) console.warn("[decodeUnsignedTransaction] neon-js not available:", {
         hasNeonJs: !!neonJs,
         hasTx: !!neonJs?.tx,
         hasTransaction: !!neonJs?.tx?.Transaction,

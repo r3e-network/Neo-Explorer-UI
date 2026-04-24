@@ -2,7 +2,7 @@
   <div class="burn-fee-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Burned GAS' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.burnedGas') }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -116,9 +116,11 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
 import { BURN_RATE } from "@/constants";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
+import { useTheme } from "@/composables/useTheme";
 
 // --- State ---
 const { t } = useI18n();
+const { isDark } = useTheme();
 const loading = ref(true);
 const error = ref(null);
 const dailyData = ref([]);
@@ -320,7 +322,7 @@ async function loadData() {
   try {
     const raw = await statsService.getNetworkActivity(30);
     dailyData.value = normalizeData(raw);
-    renderCharts();
+    await renderCharts();
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load burn metrics:", err);
     error.value = t("errors.loadBurnMetrics");
@@ -328,6 +330,13 @@ async function loadData() {
     loading.value = false;
   }
 }
+
+// --- Theme reactivity ---
+watch(isDark, () => {
+  if (!loading.value && dailyData.value.length) {
+    renderCharts();
+  }
+});
 
 // --- Lifecycle ---
 onMounted(() => {

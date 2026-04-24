@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const route = { params: { hash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd" } };
 const getByHashWithFallback = vi.fn();
 const getManifest = vi.fn();
@@ -81,6 +87,7 @@ describe("ContractDetail indexed miss fallback", () => {
     const ContractDetail = (await import("@/views/Contract/ContractDetail.vue")).default;
     const wrapper = mount(ContractDetail, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           TabsNav: true,

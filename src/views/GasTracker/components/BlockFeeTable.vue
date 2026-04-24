@@ -18,7 +18,7 @@
 
     <!-- Error -->
     <div v-else-if="error" class="p-4">
-      <ErrorState title="Failed to load block fee data" :message="error" @retry="$emit('retry')" />
+      <ErrorState :title="$t('common.failedToLoad')" :message="error" @retry="$emit('retry')" />
     </div>
 
     <!-- Empty -->
@@ -28,7 +28,7 @@
 
     <!-- Table -->
     <div v-else class="overflow-x-auto">
-      <table class="w-full min-w-[700px]">
+      <table class="w-full min-w-[700px]" aria-label="Block fees">
         <thead class="table-head">
           <tr>
             <th class="table-header-cell">Block</th>

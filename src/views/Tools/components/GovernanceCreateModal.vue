@@ -1,7 +1,13 @@
 <template>
   <div
     v-if="isOpen"
+    ref="dialogRef"
+    role="dialog"
+    tabindex="0"
+    aria-modal="true"
+    aria-label="Create Proposal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+    @keydown.escape="$emit('close')"
   >
     <div
       class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
@@ -297,6 +303,12 @@ import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { isPublicKeyHex } from "@/utils/neoHelpers";
 import { resolveGovernanceValidUntilBlock } from "@/utils/governanceTiming";
 import { useToast } from "vue-toastification";
+import { useI18n } from "vue-i18n";
+import { useFocusTrap } from "@/composables/useFocusTrap";
+
+const { t } = useI18n();
+const dialogRef = ref(null);
+useFocusTrap(dialogRef);
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -829,19 +841,19 @@ function normalizeArg(val, type, neonJs) {
 
 async function handleCreateProposal() {
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first.");
+    toast.error(t("tools.governance.createModalToasts.walletNotConnected"));
     return;
   }
   if (!isForkMode.value && createForm.value.mode !== "lab" && !props.isCouncilNode) {
-    toast.error("Only council nodes can create proposals.");
+    toast.error(t("tools.governance.createModalToasts.councilOnly"));
     return;
   }
   if (!createForm.value.description) {
-    toast.error("Please enter a description.");
+    toast.error(t("tools.governance.createModalToasts.descriptionRequired"));
     return;
   }
   if (createForm.value.invocations.length === 0) {
-    toast.error("At least one invocation is required.");
+    toast.error(t("tools.governance.createModalToasts.invocationRequired"));
     return;
   }
 
@@ -929,10 +941,10 @@ async function handleCreateProposal() {
       }
     }
 
-    const { invokeResult, networkFee, transaction: t } = transactionBuild;
+    const { invokeResult, networkFee, transaction: tx } = transactionBuild;
 
-    const unsignedTxHex = t.serialize(false);
-    const txHash = t.hash();
+    const unsignedTxHex = tx.serialize(false);
+    const txHash = tx.hash();
 
     const targetContracts = createForm.value.invocations.map((inv) => NATIVE_CONTRACTS[inv.selectedContract]);
     const methods = createForm.value.invocations.map((inv) => inv.selectedMethod).join(",");
@@ -982,13 +994,13 @@ async function handleCreateProposal() {
     const res = await supabaseService.createMultisigRequest(payload);
     if (!res.success) throw new Error(res.error);
 
-    toast.success("Proposal created successfully!");
+    toast.success(t("tools.governance.createModalToasts.createSuccess"));
     createForm.value = createEmptyForm();
     emit("close");
     emit("created", res.data || null);
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to create proposal: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.governance.createModalToasts.createFailed", { reason: e.message }));
   } finally {
     isCreating.value = false;
   }

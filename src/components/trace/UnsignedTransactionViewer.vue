@@ -166,8 +166,8 @@ const props = defineProps({
   contextJson: { type: String, default: "" },
   label: { type: String, default: "Unsigned Transaction" },
   description: { type: String, default: "" },
-  currentBlockHeight: { type: Number, default: null },
-  millisecondsPerBlock: { type: Number, default: null },
+  currentBlockHeight: { type: [Number, null], default: null },
+  millisecondsPerBlock: { type: [Number, null], default: null },
 });
 
 const showRaw = ref(false);

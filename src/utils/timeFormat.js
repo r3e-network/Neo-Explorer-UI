@@ -16,8 +16,9 @@ const DISPLAY_DELAY_OFFSET_SECONDS = {
  * @returns {string}
  */
 export function formatDateTime(timestamp) {
-  if (!timestamp) return "";
-  const ms = timestamp > 1e12 ? timestamp : timestamp * 1000;
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || ts === 0) return "";
+  const ms = ts > 1e12 ? ts : ts * 1000;
   return new Date(ms).toLocaleString();
 }
 
@@ -32,9 +33,10 @@ export const formatTime = formatDateTime;
  * @returns {string}
  */
 export function formatAge(timestamp, nowMs = Date.now()) {
-  if (!timestamp) return "";
+  const raw = Number(timestamp);
+  if (!Number.isFinite(raw) || raw === 0) return "";
 
-  const ts = timestamp > 1e12 ? Math.floor(timestamp / 1000) : timestamp;
+  const ts = raw > 1e12 ? Math.floor(raw / 1000) : raw;
   const network = getCurrentEnv();
   const delayOffset = DISPLAY_DELAY_OFFSET_SECONDS[network] ?? 0;
   const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts) - delayOffset);

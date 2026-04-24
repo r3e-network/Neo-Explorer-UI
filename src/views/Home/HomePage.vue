@@ -4,11 +4,11 @@
     <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
       <div class="hero-overlay"></div>
       <div class="page-container relative z-30 py-10 md:py-14">
-        <div v-once class="mx-auto max-w-3xl text-center">
+        <div class="mx-auto max-w-3xl text-center">
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-            The Neo N3 Blockchain Explorer
+            {{ $t("homePage.heroTitle") }}
           </h1>
-          <p class="mt-2 text-sm text-white/70">Search transactions, blocks, addresses, tokens and more on Neo N3</p>
+          <p class="mt-2 text-sm text-white/70">{{ $t("homePage.heroSubtitle") }}</p>
           <div class="relative z-30 mt-6">
             <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
           </div>
@@ -545,12 +545,16 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
 }
 
 async function loadPrices() {
-  const data = await fetchPrices();
-  neoPrice.value = data.neo;
-  gasPrice.value = data.gas;
-  neoPriceChange.value = data.neoChange;
-  gasPriceChange.value = data.gasChange;
-  marketCap.value = data.marketCap;
+  try {
+    const data = await fetchPrices();
+    neoPrice.value = data.neo;
+    gasPrice.value = data.gas;
+    neoPriceChange.value = data.neoChange;
+    gasPriceChange.value = data.gasChange;
+    marketCap.value = data.marketCap;
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[HomePage] loadPrices failed:", err);
+  }
 }
 
 // Search
@@ -586,7 +590,7 @@ function handleNetworkChange() {
 // Lifecycle
 onMounted(() => {
   void loadCommittee();
-  loadData();
+  void loadData();
   startAutoRefresh();
 });
 

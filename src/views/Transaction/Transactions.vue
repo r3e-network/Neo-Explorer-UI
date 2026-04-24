@@ -18,7 +18,7 @@
         </div>
         <div>
           <h1 class="page-title">{{ $t("nav.transactions") || "Transactions" }}</h1>
-          <p class="page-subtitle">Neo N3 network transactions</p>
+          <p class="page-subtitle">{{ $t("transactionsPage.subtitle") }}</p>
         </div>
       </div>
 
@@ -35,7 +35,9 @@
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span class="text-sm text-mid"> More than {{ formatNumber(totalCount) }} transactions found </span>
+        <span class="text-sm text-mid">
+          {{ $t("transactionsPage.moreThanFound", { count: formatNumber(totalCount) }) }}
+        </span>
       </div>
 
       <!-- Main Card -->
@@ -43,13 +45,19 @@
         <!-- Card Header -->
         <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-sm text-mid">
-            Showing {{ startRecord }} to {{ endRecord }} of {{ formatNumber(totalCount) }} transactions
+            {{
+              $t("transactionsPage.showingRange", {
+                start: startRecord,
+                end: endRecord,
+                total: formatNumber(totalCount),
+              })
+            }}
           </p>
           <button
             v-if="transactions.length > 0"
             @click="exportData"
             class="btn-outline gap-1.5 text-xs"
-            title="Export to CSV"
+            :title="$t('transactionsPage.exportToCsv')"
           >
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -59,7 +67,7 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            Export CSV
+            {{ $t("transactionsPage.exportCsv") }}
           </button>
         </div>
 
@@ -79,11 +87,19 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Failed to load transactions" :message="error" @retry="() => loadPage(currentPage)" />
+          <ErrorState
+            :title="$t('transactionsPage.loadFailedTitle')"
+            :message="error"
+            @retry="() => loadPage(currentPage)"
+          />
         </div>
 
         <!-- Empty State -->
-        <EmptyState v-else-if="transactions.length === 0" icon="tx" message="No transactions found" />
+        <EmptyState
+          v-else-if="transactions.length === 0"
+          icon="tx"
+          :message="$t('transactionsPage.emptyMessage')"
+        />
 
         <!-- Transaction Table -->
         <TransactionTable
@@ -129,7 +145,7 @@ const vmStatePendingHashes = new Set();
 
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 
-const breadcrumbs = [{ label: "Home", to: "/homepage" }, { label: "Transactions" }];
+const breadcrumbs = [{ label: t("breadcrumb.home"), to: "/homepage" }, { label: t("breadcrumb.transactions") }];
 
 // --- Pagination via composable (route-synced, cache-aware) ---
 const paginationState = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {

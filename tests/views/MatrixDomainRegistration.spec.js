@@ -1,6 +1,19 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const envState = { value: "TestT5" };
 const getMatrixDomainProfile = vi.fn();
 const invokeContract = vi.fn();
@@ -57,6 +70,7 @@ describe("MatrixDomain registration", () => {
     const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
     const wrapper = mount(MatrixDomain, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,
@@ -82,7 +96,7 @@ describe("MatrixDomain registration", () => {
       ],
       [{ account: "13ef519c362973f9a34648a9eac5b71250b2a80a", scopes: "CalledByEntry" }]
     );
-    expect(successToast).toHaveBeenCalledWith("Registration transaction sent: 0xtesttxid");
+    expect(successToast).toHaveBeenCalledWith("nns.toasts.registrationSent");
   });
 
   it("wraps long available domains so the register panel stays visible", async () => {
@@ -97,6 +111,7 @@ describe("MatrixDomain registration", () => {
     const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
     const wrapper = mount(MatrixDomain, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,
@@ -128,6 +143,7 @@ describe("MatrixDomain registration", () => {
     const MatrixDomain = (await import("@/views/NNS/MatrixDomain.vue")).default;
     const wrapper = mount(MatrixDomain, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           HashLink: true,
@@ -144,8 +160,6 @@ describe("MatrixDomain registration", () => {
     await registerButton.trigger("click");
     await flushPromises();
 
-    expect(errorToast).toHaveBeenCalledWith(
-      "Registration failed: The dAPI provider refused to process this request"
-    );
+    expect(errorToast).toHaveBeenCalledWith("nns.toasts.registrationFailedWithReason");
   });
 });

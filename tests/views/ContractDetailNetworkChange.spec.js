@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const route = { params: { hash: "0xabc" } };
 const getByHash = vi.fn();
 const getByHashWithFallback = vi.fn();
@@ -73,6 +79,7 @@ describe("ContractDetail network changes", () => {
     const ContractDetail = (await import("@/views/Contract/ContractDetail.vue")).default;
     const wrapper = mount(ContractDetail, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           TabsNav: true,

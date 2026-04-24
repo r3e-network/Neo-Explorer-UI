@@ -317,7 +317,7 @@ export const transactionService = createService(
             try {
               const full = await this.getByHash(tx.hash, requestOptions);
               const vmState = this._extractVmState(full);
-              if (vmState) tx.vmstate = vmState;
+              if (vmState) return { ...tx, vmstate: vmState };
             } catch (e) {
               if (import.meta.env.DEV) console.warn("[transactionService] vmstate enrichment failed:", e);
             }

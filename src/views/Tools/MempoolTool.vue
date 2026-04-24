@@ -1,7 +1,7 @@
 <template>
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Mempool Search' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.mempool') }]" />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
@@ -36,10 +36,11 @@
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg class="h-5 w-5 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <input 
-              v-model="searchQuery" 
-              type="text" 
-              placeholder="Search by transaction hash or sender address..." 
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="$t('common.searchByHash')"
+              aria-label="Search mempool by transaction hash or sender address"
               class="form-input w-full pl-10 h-11 rounded-xl shadow-inner focus:ring-2 focus:ring-emerald-500/20 hover:border-emerald-400 focus:border-emerald-400 transition-all outline-none"
             />
           </div>
@@ -52,6 +53,14 @@
           </svg>
           Loading mempool transactions...
         </div>
+        <div v-else-if="error" class="p-12 text-center text-mid flex flex-col items-center">
+          <div class="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+          </div>
+          <p class="text-base font-medium text-high mb-1">Failed to Load Mempool</p>
+          <p class="text-sm mb-4">Unable to fetch pending transactions. The network may be unavailable.</p>
+          <button @click="fetchMempool" class="btn-primary px-4 py-2 text-sm">{{ $t('common.retry') }}</button>
+        </div>
         <div v-else-if="filteredTransactions.length === 0" class="p-12 text-center text-mid flex flex-col items-center">
           <div class="h-16 w-16 bg-surface-muted rounded-full flex items-center justify-center mb-4">
              <svg class="w-8 h-8 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4M12 20V4"></path></svg>
@@ -60,7 +69,7 @@
           <p class="text-sm">No pending transactions found matching your criteria.</p>
         </div>
         <div v-else class="overflow-x-auto">
-          <table class="etherscan-table min-w-full">
+          <table class="etherscan-table min-w-full" aria-label="Pending transactions">
             <thead>
               <tr>
                 <th class="w-1/4">Tx Hash</th>
@@ -75,7 +84,7 @@
                 <td>
                   <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse"></span>
-                    <router-link :to="'/transaction/' + tx.hash" class="etherscan-link font-mono font-medium">
+                    <router-link :to="'/transaction-info/' + tx.hash" class="etherscan-link font-mono font-medium">
                       {{ truncate(tx.hash) }}
                     </router-link>
                   </div>
@@ -84,7 +93,7 @@
                   {{ formatAge(tx.timestamp) }}
                 </td>
                 <td>
-                  <router-link v-if="tx.sender" :to="'/address/' + tx.sender" class="etherscan-link font-mono text-sm">
+                  <router-link v-if="tx.sender" :to="'/account-profile/' + tx.sender" class="etherscan-link font-mono text-sm">
                     {{ tx.sender }}
                   </router-link>
                   <span v-else class="text-mid">—</span>
@@ -115,6 +124,7 @@ import { formatAge as _formatAge, formatGas } from '@/utils/explorerFormat';
 
 const transactions = ref([]);
 const loading = ref(false);
+const error = ref(false);
 const searchQuery = ref('');
 let pollInterval = null;
 
@@ -137,11 +147,13 @@ const formatFee = (tx) => {
 
 const fetchMempool = async () => {
   loading.value = true;
+  error.value = false;
   try {
     const data = await supabaseService.getMempoolTransactions(currentNetwork.value, 1000);
     transactions.value = data || [];
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load mempool:", err);
+    error.value = true;
   } finally {
     loading.value = false;
   }

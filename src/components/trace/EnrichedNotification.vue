@@ -129,7 +129,6 @@ import { getContractDisplayName } from "@/utils/explorerFormat";
 
 const props = defineProps({
   notification: { type: Object, required: true },
-  eventDef: { type: Object, default: null },
 });
 
 const viewMode = ref("decoded");

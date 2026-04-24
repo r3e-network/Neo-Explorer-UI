@@ -522,7 +522,13 @@
       <!-- Sign Modal -->
       <div
         v-if="signModalReq"
+        ref="signModalRef"
+        role="dialog"
+        tabindex="0"
+        aria-modal="true"
+        aria-label="Sign Transaction"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+        @keydown.escape="signModalReq = null"
       >
         <div
           class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col"
@@ -624,7 +630,13 @@
       <!-- Details Modal -->
       <div
         v-if="detailsModalReq"
+        ref="detailsModalRef"
+        role="dialog"
+        tabindex="0"
+        aria-modal="true"
+        aria-label="Transaction Details"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+        @keydown.escape="detailsModalReq = null"
       >
         <div
           class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]"
@@ -663,8 +675,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
@@ -678,7 +691,7 @@ import { isGovernanceRequest, matchesRequestNetwork } from "@/utils/governanceRe
 import { NATIVE_CONTRACTS, NEO_HASH, GAS_HASH, FLM_HASH, BNEO_HASH } from "@/constants";
 import { useToast } from "vue-toastification";
 
-useI18n();
+const { t } = useI18n();
 const toast = useToast();
 const loading = ref(true);
 const requests = ref([]);
@@ -729,7 +742,7 @@ async function loadRequests() {
         )
       : [];
   } catch (e) {
-    console.error("Error loading requests", e);
+    if (import.meta.env.DEV) console.error("Error loading requests", e);
   }
 }
 
@@ -747,6 +760,12 @@ const manualSignature = ref("");
 const isSigning = ref(false);
 
 const detailsModalReq = ref(null);
+const signModalRef = ref(null);
+const detailsModalRef = ref(null);
+const { activate: activateSignTrap, deactivate: deactivateSignTrap } = useFocusTrap(signModalRef, { immediate: false });
+const { activate: activateDetailsTrap, deactivate: deactivateDetailsTrap } = useFocusTrap(detailsModalRef, { immediate: false });
+watch(signModalReq, (v) => v ? nextTick(activateSignTrap) : deactivateSignTrap());
+watch(detailsModalReq, (v) => v ? nextTick(activateDetailsTrap) : deactivateDetailsTrap());
 function viewDetails(req) {
   detailsModalReq.value = req;
 }
@@ -773,7 +792,7 @@ function saveCurrentConfig() {
     .map((p) => p.trim())
     .filter((p) => p);
   if (pubkeys.length === 0) {
-    toast.error("Enter valid public keys to save.");
+    toast.error(t("tools.multisig.toasts.enterValidPubkeys"));
     return;
   }
   const threshold = parseInt(createForm.value.threshold);
@@ -782,7 +801,7 @@ function saveCurrentConfig() {
 
   savedConfigs.value.push({ name, pubkeys, threshold });
   localStorage.setItem("neo_multisig_configs", JSON.stringify(savedConfigs.value));
-  toast.success("Group saved!");
+  toast.success(t("tools.multisig.toasts.groupSaved"));
 }
 
 function deleteConfig(idx) {
@@ -794,16 +813,16 @@ function deleteConfig(idx) {
 function loadConfig(cfg) {
   createForm.value.pubkeys = cfg.pubkeys.join(", ");
   createForm.value.threshold = cfg.threshold;
-  toast.info(`Loaded group: ${cfg.name}`);
+  toast.info(t("tools.multisig.toasts.loadedGroup", { name: cfg.name }));
 }
 
 async function handleCreateRequest() {
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first.");
+    toast.error(t("tools.multisig.toasts.connectWalletFirst"));
     return;
   }
   if (!createForm.value.description || !createForm.value.targetContract || !createForm.value.method) {
-    toast.error("Please fill all required transaction fields.");
+    toast.error(t("tools.multisig.toasts.fillAllRequired"));
     return;
   }
 
@@ -844,7 +863,7 @@ async function handleCreateRequest() {
 
     const script = neonJs.sc.createScript({ scriptHash: target, operation: createForm.value.method, args });
 
-    const t = new neonJs.tx.Transaction({
+    const tx = new neonJs.tx.Transaction({
       signers: [{ account: mAccount.scriptHash, scopes: neonJs.tx.WitnessScope.Global }],
       validUntilBlock: currentHeight + 100000,
       systemFee: 100000000,
@@ -852,7 +871,7 @@ async function handleCreateRequest() {
       script: neonJs.u.HexString.fromHex(script),
     });
 
-    const unsignedTxHex = t.serialize(false);
+    const unsignedTxHex = tx.serialize(false);
 
     const payload = {
       creator_address: connectedAccount.value,
@@ -865,7 +884,7 @@ async function handleCreateRequest() {
       network: toNetworkMode(getCurrentEnv()) || "mainnet",
       params: {
         unsigned_tx: unsignedTxHex,
-        hash: t.hash(),
+        hash: tx.hash(),
         scriptHash: mAccount.scriptHash,
         pubkeys: pubkeys,
       },
@@ -874,7 +893,7 @@ async function handleCreateRequest() {
     const res = await supabaseService.createMultisigRequest(payload);
     if (!res.success) throw new Error(res.error);
 
-    toast.success("MultiSig Request published to registry!");
+    toast.success(t("tools.multisig.toasts.requestPublished"));
 
     // reset form
     createForm.value.description = "";
@@ -885,8 +904,8 @@ async function handleCreateRequest() {
     activeTab.value = "requests";
     await loadRequests();
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to create request: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.multisig.toasts.failedToCreate", { reason: e.message }));
   } finally {
     isCreating.value = false;
   }
@@ -900,8 +919,8 @@ async function autoSignTx() {
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature);
   } catch (e) {
-    console.error(e);
-    toast.error("Signing failed: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.multisig.toasts.signingFailed", { reason: e.message }));
   } finally {
     isSigning.value = false;
   }
@@ -920,7 +939,7 @@ async function submitSig(signatureHex) {
     const res = await supabaseService.addMultisigSignature(signModalReq.value.id, connectedAccount.value, signatureHex);
     if (!res.success) throw new Error(res.error);
 
-    toast.success("Signature added successfully!");
+    toast.success(t("tools.multisig.toasts.signatureAdded"));
     signModalReq.value = null;
     await loadRequests();
   } catch (e) {
@@ -930,13 +949,13 @@ async function submitSig(signatureHex) {
 
 async function handleBroadcast(req) {
   if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < req.signers_required) {
-    toast.error("Not enough signatures or missing tx data.");
+    toast.error(t("tools.multisig.toasts.notEnoughSignatures"));
     return;
   }
 
   try {
-    toast.info("Assembling multisig transaction...");
-    const t = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
+    toast.info(t("tools.multisig.toasts.assembling"));
+    const tx = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
 
     const pubkeys = req.params.pubkeys;
     const sortedSignatures = [];
@@ -962,23 +981,23 @@ async function handleBroadcast(req) {
     const invocationScript = builder.build();
     const verificationScript = neonJs.wallet.Account.createMultiSig(req.signers_required, pubkeys).contract.script;
 
-    t.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
+    tx.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
 
-    const signedTxHex = t.serialize(true);
+    const signedTxHex = tx.serialize(true);
 
-    toast.info("Broadcasting to network...");
+    toast.info(t("tools.multisig.toasts.broadcasting"));
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(signedTxHex);
 
-    toast.success("Transaction broadcasted! TXID: " + txid);
+    toast.success(t("tools.multisig.toasts.broadcasted", { txid }));
 
     // Update local list (in production might require polling or explicit fetch)
     req.status = "EXECUTED";
     req.tx_hash = txid;
     // Assuming backend will eventually sync status
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to broadcast: " + e.message);
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.multisig.toasts.failedToBroadcast", { reason: e.message }));
   }
 }
 

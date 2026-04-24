@@ -1,6 +1,12 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const toast = {
   info: vi.fn(),
   success: vi.fn(),
@@ -51,6 +57,10 @@ class MockAccount {
   }
 }
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
 vi.mock("vue-toastification", () => ({
   useToast: () => toast,
 }));
@@ -94,10 +104,16 @@ describe("GasEstimatorTool", () => {
 
   it("estimates fees with the SDK compatibility namespaces", async () => {
     const GasEstimatorTool = (await import("@/views/Tools/GasEstimatorTool.vue")).default;
-    const wrapper = mount(GasEstimatorTool);
+    const wrapper = mount(GasEstimatorTool, {
+      global: {
+        plugins: [i18nPlugin],
+      },
+    });
 
     await wrapper.find("textarea").setValue("AQ==");
-    const estimateButton = wrapper.findAll("button").find((button) => button.text().includes("Estimate Fees"));
+    const estimateButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("tools.gasEstimator.estimateFees"));
     await estimateButton.trigger("click");
     await flushPromises();
 
@@ -106,7 +122,7 @@ describe("GasEstimatorTool", () => {
       signers: [{ account: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", scopes: 1 }],
     });
     expect(calculateNetworkFeeMock).toHaveBeenCalledWith({ tx: "serialized-tx" });
-    expect(toast.success).toHaveBeenCalledWith("Simulation complete!");
-    expect(wrapper.text()).toContain("Total Estimated Cost");
+    expect(toast.success).toHaveBeenCalledWith("tools.gasEstimator.toastComplete");
+    expect(wrapper.text()).toContain("tools.gasEstimator.totalEstimatedCost");
   });
 });

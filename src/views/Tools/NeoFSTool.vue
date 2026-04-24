@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'NeoFS Gateway' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.neofs') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,8 +18,8 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">NeoFS Gateway</h1>
-            <p class="page-subtitle">Upload, search, and manage decentralized files on NeoFS</p>
+            <h1 class="page-title">{{ $t('tools.neofs.title') }}</h1>
+            <p class="page-subtitle">{{ $t('tools.neofs.description') }}</p>
           </div>
         </div>
 
@@ -42,15 +42,54 @@
         </div>
       </div>
 
+      <!-- Network Status -->
+      <div v-if="networkInfo" class="etherscan-card p-6 md:p-8 mb-8">
+        <h2 class="text-base font-semibold text-high mb-4">{{ $t('tools.neofs.network') }}</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="rounded-xl bg-surface-muted p-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-low mb-1">{{ $t('tools.neofs.epochDuration') }}</p>
+            <p class="text-lg font-bold text-high">{{ formatEpochDuration(networkInfo.epochDuration) }}</p>
+          </div>
+          <div class="rounded-xl bg-surface-muted p-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-low mb-1">{{ $t('tools.neofs.maxObjectSize') }}</p>
+            <p class="text-lg font-bold text-high">{{ formatBytes(networkInfo.maxObjectSize) }}</p>
+          </div>
+          <div class="rounded-xl bg-surface-muted p-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-low mb-1">{{ $t('tools.neofs.storagePrice') }}</p>
+            <p class="text-lg font-bold text-high">{{ networkInfo.storagePrice?.toLocaleString() }} {{ $t('tools.neofs.perGbEpoch') }}</p>
+          </div>
+          <div class="rounded-xl bg-surface-muted p-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-low mb-1">{{ $t('tools.neofs.containerFee') }}</p>
+            <p class="text-lg font-bold text-high">{{ formatGasFee(networkInfo.containerFee) }} GAS</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- NeoFS Balance -->
+      <div v-if="connectedAccount && neoFsBalance !== null" class="etherscan-card p-6 md:p-8 mb-8">
+        <h2 class="text-base font-semibold text-high mb-4">{{ $t('tools.neofs.balance') }}</h2>
+        <div class="flex items-center gap-4">
+          <div class="p-3 rounded-xl bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-high">{{ neoFsBalance }} GAS</p>
+            <p class="text-xs text-mid mt-0.5">{{ $t('tools.neofs.balanceHint') }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Search / Retrieval Tool -->
       <div class="etherscan-card p-6 md:p-8 mb-8">
-        <h2 class="text-base font-semibold text-high mb-4">Retrieve from NeoFS</h2>
+        <h2 class="text-base font-semibold text-high mb-4">{{ $t('tools.neofs.retrieve') }}</h2>
         <div class="flex gap-3">
           <input
             v-model="searchUrl"
             type="text"
             class="form-input flex-1 rounded-xl shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none"
-            placeholder="Enter NeoFS URL (neofs://...) or Container ID"
+            :placeholder="$t('tools.neofs.retrievePlaceholder')"
             @keyup.enter="handleSearch"
           />
           <button
@@ -71,14 +110,42 @@
         </div>
         <div
           v-if="searchResult"
-          class="mt-4 p-4 border border-line-soft rounded-xl bg-surface-muted flex items-start gap-4"
+          class="mt-4 p-4 border border-line-soft rounded-xl bg-surface-muted"
         >
-          <!-- Minimal placeholder for search result -->
-          <div class="flex-1">
-            <p class="text-sm font-medium text-high">File Found</p>
-            <p class="text-xs text-mid break-all">{{ searchUrl }}</p>
-          </div>
-          <button class="btn-outline text-xs">Download</button>
+          <template v-if="searchResult.type === 'object'">
+            <div class="flex items-start gap-4">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-high">{{ $t('tools.neofs.objectFound') }}</p>
+                <p class="text-xs text-mid font-mono break-all mt-1">Container: {{ searchResult.containerId }}</p>
+                <p class="text-xs text-mid font-mono break-all mt-0.5">Object: {{ searchResult.objectId }}</p>
+              </div>
+              <a
+                :href="searchResult.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-outline text-xs shrink-0"
+              >{{ $t('tools.neofs.open') }}</a>
+            </div>
+          </template>
+          <template v-else-if="searchResult.type === 'container'">
+            <div class="flex items-start gap-4">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-high">{{ searchResult.name }}</p>
+                <p class="text-xs text-mid font-mono break-all mt-1">{{ searchResult.containerId }}</p>
+                <div class="flex gap-4 mt-2">
+                  <span class="text-xs text-mid">{{ $t('tools.neofs.owner') }}: <span class="font-mono">{{ searchResult.ownerId?.slice(0, 8) }}...</span></span>
+                  <span class="text-xs text-mid">{{ $t('tools.neofs.acl') }}: <span class="font-mono">{{ searchResult.basicAcl }}</span></span>
+                </div>
+                <p v-if="searchResult.placementPolicy" class="text-xs text-mid mt-1">{{ $t('tools.neofs.policy') }}: {{ searchResult.placementPolicy }}</p>
+              </div>
+              <a
+                :href="`https://http.fs.neo.org/${searchResult.containerId}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-outline text-xs shrink-0"
+              >{{ $t('tools.neofs.browse') }}</a>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -107,7 +174,7 @@
                 />
               </svg>
             </button>
-            <button @click="openNewContainerModal" class="btn-outline text-xs py-1.5">New Container</button>
+            <button @click="openNewContainerModal" class="btn-outline text-xs py-1.5">{{ $t('common.newContainer') }}</button>
           </div>
         </div>
 
@@ -201,11 +268,11 @@
 
               <div class="flex items-center justify-between pt-4 border-t border-line-soft/50">
                 <div class="flex gap-4">
-                  <div class="text-xs">
+                  <div v-if="container.objectCount != null" class="text-xs">
                     <span class="text-low block uppercase tracking-tighter font-semibold">Objects</span>
                     <span class="text-high font-bold">{{ container.objectCount }}</span>
                   </div>
-                  <div class="text-xs">
+                  <div v-if="container.size" class="text-xs">
                     <span class="text-low block uppercase tracking-tighter font-semibold">Size</span>
                     <span class="text-high font-bold">{{ container.size }}</span>
                   </div>
@@ -230,7 +297,13 @@
       <!-- View Objects Modal -->
       <div
         v-if="showObjectsModal"
+        ref="objectsModalRef"
+        role="dialog"
+        tabindex="0"
+        aria-modal="true"
+        aria-label="View Objects"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+        @keydown.escape="showObjectsModal = false"
       >
         <div
           class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[85vh]"
@@ -293,7 +366,7 @@
                   d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                 ></path>
               </svg>
-              <p>No objects found in this container.</p>
+              <p>{{ $t('tools.neofs.noObjects') }}</p>
             </div>
 
             <div v-else class="space-y-3">
@@ -326,7 +399,7 @@
                     <button
                       @click="copyOid(obj.id)"
                       class="text-low hover:text-cyan-500 transition-colors p-1"
-                      title="Copy Object ID"
+                      aria-label="Copy Object ID"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -337,7 +410,7 @@
                         ></path>
                       </svg>
                     </button>
-                    <button class="text-low hover:text-cyan-500 transition-colors p-1" title="Download">
+                    <button class="text-low hover:text-cyan-500 transition-colors p-1" aria-label="Download">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           stroke-linecap="round"
@@ -359,7 +432,13 @@
 
       <div
         v-if="showUploadModal"
+        ref="uploadModalRef"
+        role="dialog"
+        tabindex="0"
+        aria-modal="true"
+        aria-label="Upload File"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
+        @keydown.escape="showUploadModal = false"
       >
         <div
           class="w-full max-w-lg rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col"
@@ -482,23 +561,57 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
 
+const NEOFS_REST_GW = "https://rest.fs.neo.org";
+
+const { t } = useI18n();
 const toast = useToast();
 const showUploadModal = ref(false);
 const showObjectsModal = ref(false);
+const uploadModalRef = ref(null);
+const objectsModalRef = ref(null);
+const { activate: activateUploadTrap, deactivate: deactivateUploadTrap } = useFocusTrap(uploadModalRef, { immediate: false });
+const { activate: activateObjectsTrap, deactivate: deactivateObjectsTrap } = useFocusTrap(objectsModalRef, { immediate: false });
+watch(showUploadModal, (v) => v ? nextTick(activateUploadTrap) : deactivateUploadTrap());
+watch(showObjectsModal, (v) => v ? nextTick(activateObjectsTrap) : deactivateObjectsTrap());
 const activeContainer = ref(null);
 const isLoadingObjects = ref(false);
 const containerObjects = ref([]);
+const networkInfo = ref(null);
+const neoFsBalance = ref(null);
 
 function copyOid(id) {
   navigator.clipboard.writeText(id);
-  toast.success("Object ID copied to clipboard");
+  toast.success(t("tools.neofs.toasts.oidCopied"));
 }
+
+function formatEpochDuration(seconds) {
+  if (!seconds) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "—";
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function formatGasFee(raw) {
+  if (!raw) return "0";
+  return (raw / 100000000).toFixed(2);
+}
+
 const searchUrl = ref("");
 const isSearching = ref(false);
 const searchResult = ref(null);
@@ -534,26 +647,55 @@ async function viewObjects(container) {
   isLoadingObjects.value = true;
   containerObjects.value = [];
 
-  // Mock fetching objects
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-
-  // Generate fake objects
-  const mockObjects = [];
-  const count = container.objectCount > 0 ? Math.min(container.objectCount, 8) : 0;
-
-  for (let i = 0; i < count; i++) {
-    mockObjects.push({
-      name: container.name.includes("Logos") ? `logo_v${i + 1}.png` : `backup_part_${i + 1}.tar.gz`,
-      id: Array.from(
-        { length: 44 },
-        () => "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"[Math.floor(Math.random() * 58)],
-      ).join(""),
-      size: (Math.random() * 5 + 0.1).toFixed(2) + " MB",
+  try {
+    const resp = await fetch(`${NEOFS_REST_GW}/v2/objects/${container.id}/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filters: [] }),
     });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    containerObjects.value = (data.objects || []).map((obj) => ({
+      name: obj.attributes?.FileName || obj.objectId.slice(0, 12) + "...",
+      id: obj.objectId,
+      size: obj.attributes?.ContentLength ? formatBytes(Number(obj.attributes.ContentLength)) : "—",
+    }));
+  } catch (error) {
+    if (import.meta.env.DEV) console.error("Failed to fetch objects:", error);
+    toast.error(t("tools.neofs.toasts.fetchObjectsFailed"));
+    containerObjects.value = [];
+  } finally {
+    isLoadingObjects.value = false;
   }
+}
 
-  containerObjects.value = mockObjects;
-  isLoadingObjects.value = false;
+async function loadNetworkInfo() {
+  try {
+    const resp = await fetch(`${NEOFS_REST_GW}/v1/network-info`);
+    if (resp.ok) networkInfo.value = await resp.json();
+  } catch {
+    // Network info is optional — silently ignore
+  }
+}
+
+async function loadBalance() {
+  if (!connectedAccount.value) {
+    neoFsBalance.value = null;
+    return;
+  }
+  try {
+    const resp = await fetch(`${NEOFS_REST_GW}/v1/accounting/balance/${connectedAccount.value}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const raw = BigInt(data.value || "0");
+    const precision = data.precision || 12;
+    const divisor = BigInt(10 ** precision);
+    const whole = raw / divisor;
+    const frac = (raw % divisor).toString().padStart(precision, "0").slice(0, 4);
+    neoFsBalance.value = `${whole}.${frac}`;
+  } catch {
+    neoFsBalance.value = "0";
+  }
 }
 
 async function refreshAssets() {
@@ -563,66 +705,59 @@ async function refreshAssets() {
   }
 
   isRefreshing.value = true;
-  // Simulated NeoFS asset fetch
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    await loadBalance();
+    const resp = await fetch(`${NEOFS_REST_GW}/v1/containers?ownerId=${connectedAccount.value}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const containerIds = data.containers || [];
 
-  // Use the wallet address to deterministically generate pseudo-random mock data
-  // so different wallets see different containers.
-  const addrStr = connectedAccount.value.toString();
-  const seed = addrStr.charCodeAt(0) + addrStr.charCodeAt(addrStr.length - 1);
+    const resolved = await Promise.all(
+      containerIds.map(async (id) => {
+        try {
+          const cResp = await fetch(`${NEOFS_REST_GW}/v1/containers/${id}`);
+          if (!cResp.ok) return { id, name: id.slice(0, 12) + "...", isPublic: false };
+          const cData = await cResp.json();
+          const attrs = (cData.attributes || []).reduce((acc, a) => { acc[a.key] = a.value; return acc; }, {});
+          const isPublic = (cData.basicAcl || "").startsWith("fff");
+          return {
+            id: cData.containerId || id,
+            name: attrs.Name || cData.containerName || id.slice(0, 12) + "...",
+            isPublic,
+            objectCount: null,
+            size: null,
+          };
+        } catch {
+          return { id, name: id.slice(0, 12) + "...", isPublic: false };
+        }
+      }),
+    );
 
-  if (seed % 3 === 0) {
-    // 1/3 chance: No containers
+    assets.value = resolved;
+  } catch (error) {
+    if (import.meta.env.DEV) console.error("Failed to load NeoFS containers:", error);
+    toast.error(t("tools.neofs.toasts.containersFailed"));
     assets.value = [];
-  } else if (seed % 3 === 1) {
-    // 1/3 chance: One container
-    assets.value = [
-      {
-        id: "3X6UaypT5f9S7H1q7WiQd3rNnQJYX4Wwwc8GqLp3xYtA",
-        name: "Official Project Logos",
-        isPublic: true,
-        objectCount: 12,
-        size: "4.2 MB",
-      },
-    ];
-  } else {
-    // 1/3 chance: Two containers
-    assets.value = [
-      {
-        id: "3X6UaypT5f9S7H1q7WiQd3rNnQJYX4Wwwc8GqLp3xYtA",
-        name: "Official Project Logos",
-        isPublic: true,
-        objectCount: 12,
-        size: "4.2 MB",
-      },
-      {
-        id: "7vB2m9NqP5xR3Z1k8L0M4S2D9F6H7J1K3L5M7N9P",
-        name: "Backup Data",
-        isPublic: false,
-        objectCount: 3,
-        size: "128.5 MB",
-      },
-    ];
+  } finally {
+    isRefreshing.value = false;
   }
-
-  isRefreshing.value = false;
 }
 
 async function handleUpload() {
   if (!selectedFile.value) return;
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.neofs.toasts.connectWallet"));
     return;
   }
 
   isUploading.value = true;
-  toast.info("Awaiting wallet signature for NeoFS upload...");
+  toast.info(t("tools.neofs.toasts.awaitingSignature"));
 
   try {
     const result = await walletService.signMessage("Authorize NeoFS Upload: " + selectedFile.value.name);
 
     if (result && (result.signature || result.data)) {
-      toast.success(`Successfully uploaded ${selectedFile.value.name} to NeoFS!`);
+      toast.success(t("tools.neofs.toasts.uploadSuccess", { name: selectedFile.value.name }));
       showUploadModal.value = false;
       selectedFile.value = null;
 
@@ -631,8 +766,8 @@ async function handleUpload() {
       }
     }
   } catch (e) {
-    console.error(e);
-    toast.error("Upload rejected or failed: " + (e.description || e.message));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.neofs.toasts.uploadFailed", { reason: e.description || e.message }));
   } finally {
     isUploading.value = false;
   }
@@ -641,12 +776,67 @@ async function handleUpload() {
 function handleSearch() {
   if (!searchUrl.value.trim()) return;
   isSearching.value = true;
-  // Mock fetch
-  setTimeout(() => {
+  searchResult.value = null;
+
+  const raw = searchUrl.value.trim();
+  let containerId = "";
+  let objectId = "";
+
+  if (raw.startsWith("neofs://")) {
+    const parts = raw.replace("neofs://", "").split("/");
+    containerId = parts[0] || "";
+    objectId = parts[1] || "";
+  } else if (raw.length === 44) {
+    containerId = raw;
+  } else if (raw.includes("/")) {
+    const parts = raw.split("/");
+    containerId = parts[0];
+    objectId = parts[1];
+  } else {
+    containerId = raw;
+  }
+
+  if (!containerId) {
+    toast.error(t("tools.neofs.toasts.invalidUrl"));
     isSearching.value = false;
-    searchResult.value = true;
-    toast.success("NeoFS object found and fetched.");
-  }, 800);
+    return;
+  }
+
+  if (objectId) {
+    // Direct object reference — open via HTTP gateway
+    const url = `https://http.fs.neo.org/${containerId}/${objectId}`;
+    searchResult.value = { type: "object", containerId, objectId, url };
+    toast.success(t("tools.neofs.toasts.objectLinkGenerated"));
+  } else {
+    // Container reference — open REST gateway metadata
+    fetch(`${NEOFS_REST_GW}/v1/containers/${containerId}`)
+      .then((resp) => {
+        if (!resp.ok) throw new Error(`Container not found (HTTP ${resp.status})`);
+        return resp.json();
+      })
+      .then((data) => {
+        const attrs = (data.attributes || []).reduce((acc, a) => { acc[a.key] = a.value; return acc; }, {});
+        searchResult.value = {
+          type: "container",
+          containerId: data.containerId || containerId,
+          name: attrs.Name || data.containerName || containerId.slice(0, 12) + "...",
+          ownerId: data.ownerId,
+          placementPolicy: data.placementPolicy,
+          basicAcl: data.basicAcl,
+        };
+        toast.success(t("tools.neofs.toasts.containerFound"));
+      })
+      .catch((error) => {
+        toast.error(error.message || t("tools.neofs.toasts.containerNotFound"));
+        searchResult.value = null;
+      })
+      .finally(() => {
+        isSearching.value = false;
+      });
+    return;
+  }
+
+  isSearching.value = false;
 }
 
 watch(
@@ -658,6 +848,7 @@ watch(
 );
 
 onMounted(() => {
+  loadNetworkInfo();
   if (connectedAccount.value) refreshAssets();
 });
 </script>

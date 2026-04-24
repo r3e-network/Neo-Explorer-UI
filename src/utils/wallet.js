@@ -6,6 +6,9 @@ import { PROVIDERS } from "@/constants/walletProviders";
 import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 import { NEO_HASH } from "@/constants";
 import { loadWalletService } from "@/utils/lazyServices";
+import i18n from "@/lang/i18n";
+
+const t = (key, ...args) => i18n.global.t(key, ...args);
 
 function getStoredWalletAddress() {
   if (typeof window === "undefined") return "";
@@ -226,27 +229,27 @@ export async function connectWallet() {
         (explorerNet.includes("test") || explorerNet.includes("t5") || explorerNet === NET_ENV.TestT5.toLowerCase());
 
       if (!isMainnetMatch && !isTestnetMatch) {
-        toast.error(`Network mismatch. Please switch your NeoLine wallet to ${getCurrentEnv()} and try again.`);
+        toast.error(t('wallet.networkMismatch', getCurrentEnv()));
         return null;
       }
 
       const account = await neoline.getAccount();
       if (!account || !account.address) {
-        toast.warning("No account found in NeoLine.");
+        toast.warning(t('wallet.noAccount'));
         return null;
       }
 
       connectedAccount.value = account.address;
       localStorage.setItem("walletProvider", PROVIDERS.NEOLINE);
-      toast.success("Wallet connected: " + account.address.slice(0, 5) + "..." + account.address.slice(-4));
+      toast.success(t('wallet.connected', account.address.slice(0, 5) + "..." + account.address.slice(-4)));
       return account.address;
     } catch (e) {
-      console.error("Wallet connection failed", e);
-      toast.error("Failed to connect wallet: " + (e.message || "Unknown error"));
+      if (import.meta.env.DEV) console.error("Wallet connection failed", e);
+      toast.error(t('wallet.connectFailed', e.message || "Unknown error"));
       return null;
     }
   } else {
-    toast.warning("NeoLine N3 wallet not found. Please install the extension.");
+    toast.warning(t('wallet.notFound'));
     return null;
   }
 }
@@ -259,19 +262,19 @@ async function submitVote(candidatePubkey = null) {
   const toast = useToast();
   const walletService = await loadWalletService();
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t('wallet.connectFirst'));
     return;
   }
 
   const voterAddress = connectedAccount.value || walletService.account?.address;
   if (!voterAddress) {
-    toast.error("Connected wallet address unavailable. Please reconnect from the header.");
+    toast.error(t('wallet.addressUnavailable'));
     return;
   }
 
   const voterHash160 = normalizeHash160(voterAddress);
   if (!isHash160Hex(voterHash160)) {
-    toast.error("Connected wallet address is invalid for voting. Please reconnect.");
+    toast.error(t('wallet.addressInvalid'));
     return;
   }
 
@@ -288,12 +291,12 @@ async function submitVote(candidatePubkey = null) {
       scope: 1,
     });
 
-    toast.success(`${candidatePubkey ? "Vote" : "Unvote"} transaction submitted: ` + result.txid);
+    toast.success(t('wallet.voteSubmitted', candidatePubkey ? "Vote" : "Unvote", result.txid));
     return result.txid;
   } catch (e) {
-    console.error(e);
+    if (import.meta.env.DEV) console.error("[wallet] vote failed:", e);
     toast.error(
-      `${candidatePubkey ? "Voting" : "Unvoting"} failed: ` + (e.message || e.description || "Unknown error"),
+      t('wallet.voteFailed', candidatePubkey ? "Voting" : "Unvoting", e.message || e.description || "Unknown error"),
     );
     throw e;
   }
@@ -310,7 +313,7 @@ export async function unvoteCandidate() {
 export async function invokeContract(scriptHash, operation, args, signers) {
   const walletService = await loadWalletService();
   if (!walletService.isConnected) {
-    throw new Error("Wallet not connected");
+    throw new Error(t('wallet.notConnected'));
   }
 
   const result = await walletService.invoke({

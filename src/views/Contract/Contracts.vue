@@ -1,7 +1,7 @@
 <template>
   <div class="contracts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.contracts') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
@@ -39,7 +39,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search by contract name..."
+            :placeholder="$t('common.searchByContract')"
             aria-label="Search contracts"
             class="form-input rounded-lg py-2 pl-10 pr-4"
             @input="onSearchInput"
@@ -86,7 +86,7 @@
 
         <!-- Data Table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[900px]">
+          <table class="w-full min-w-[900px]" aria-label="Contracts">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
@@ -182,7 +182,6 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { supabaseService } from "@/services/supabaseService";
 import { contractService } from "@/services";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
@@ -205,17 +204,6 @@ const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(DEFAULT_PAGE_SIZE);
 const searchQuery = ref("");
-const supabaseMeta = ref({});
-
-watch(() => contracts.value, async (newContracts) => {
-  if (newContracts && newContracts.length) {
-    const hashes = newContracts.map(c => c.hash).filter(Boolean);
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
-    supabaseMeta.value = meta;
-  } else {
-    supabaseMeta.value = {};
-  }
-}, { immediate: true });
 let searchDebounce = null;
 let currentRequestId = 0;
 

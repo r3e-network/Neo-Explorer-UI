@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const envState = { value: "MainNet" };
 
 vi.mock("@/services/supabaseService", () => ({
@@ -24,6 +30,7 @@ describe("NetworkAlertsTool network changes", () => {
     const NetworkAlertsTool = (await import("@/views/Tools/NetworkAlertsTool.vue")).default;
     const wrapper = mount(NetworkAlertsTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
         },

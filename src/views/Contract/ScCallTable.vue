@@ -12,7 +12,7 @@
 
     <template v-else>
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]">
+        <table class="w-full min-w-[700px]" aria-label="Contract invocations">
           <thead class="table-head">
             <tr>
               <th class="table-header-cell">Txn Hash</th>

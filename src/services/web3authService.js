@@ -58,7 +58,7 @@ export const web3authService = {
       await _web3auth.init();
       _chainConfigKey = chainConfigKey;
     } catch (e) {
-      console.error("Web3Auth init failed:", e);
+      if (import.meta.env.DEV) console.error("Web3Auth init failed:", e);
       throw e;
     }
   },

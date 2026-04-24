@@ -49,8 +49,9 @@ export function getTransactionTotalFee(tx) {
  * @returns {string}
  */
 export function formatNeo(value) {
-  if (!value) return "0";
-  return Math.floor(Number(value)).toLocaleString();
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "0";
+  return Math.floor(num).toLocaleString();
 }
 
 /**

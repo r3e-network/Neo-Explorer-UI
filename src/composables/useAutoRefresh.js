@@ -38,7 +38,11 @@ export function useAutoRefresh(callback, options = {}) {
     if (timerId !== null) return;
     timerId = setTimeout(async () => {
       timerId = null;
-      await _runCallback();
+      try {
+        await _runCallback();
+      } catch {
+        // Callback error should not kill the refresh loop
+      }
       if (isIntentionallyActive.value && (!pauseWhenHidden || !document.hidden)) {
         _scheduleNextTick();
       }

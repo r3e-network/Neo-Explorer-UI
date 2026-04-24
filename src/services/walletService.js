@@ -955,12 +955,12 @@ export const walletService = {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       void loadWalletConnectService().then((walletConnectService) => {
         walletConnectService.disconnect();
-      });
+      }).catch(() => {});
     }
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
       void loadWeb3authService().then((web3authService) => {
         web3authService.disconnect();
-      });
+      }).catch(() => {});
     }
     _connectedProvider = null;
     _account = null;

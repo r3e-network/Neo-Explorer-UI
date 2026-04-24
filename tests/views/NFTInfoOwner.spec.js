@@ -1,5 +1,11 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const route = {
@@ -64,6 +70,7 @@ describe("NFTInfo owner identity", () => {
     const NFTInfo = (await import("@/views/Token/NFTInfo.vue")).default;
     const wrapper = mount(NFTInfo, {
       global: {
+        plugins: [i18nPlugin],
         directives: { lazyImage: {} },
         stubs: {
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },

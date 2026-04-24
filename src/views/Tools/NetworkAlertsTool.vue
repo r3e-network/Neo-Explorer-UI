@@ -1,7 +1,7 @@
 <template>
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'Network Alerts' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.networkAlerts') }]" />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
@@ -22,9 +22,9 @@
           <form @submit.prevent="submitAlert" class="space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label class="block text-sm font-medium text-high mb-2">Network</label>
+                <label for="alert-network" class="block text-sm font-medium text-high mb-2">Network</label>
                 <div class="relative">
-                  <select v-model="form.network" class="form-input w-full appearance-none pr-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
+                  <select id="alert-network" v-model="form.network" class="form-input w-full appearance-none pr-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
                     <option value="mainnet">N3 Mainnet</option>
                     <option value="testnet">N3 Testnet</option>
                   </select>
@@ -35,9 +35,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-high mb-2">Alert Type</label>
+                <label for="alert-type" class="block text-sm font-medium text-high mb-2">Alert Type</label>
                 <div class="relative">
-                  <select v-model="form.alertType" class="form-input w-full appearance-none pr-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
+                  <select id="alert-type" v-model="form.alertType" class="form-input w-full appearance-none pr-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
                     <option value="consensus_stuck">Consensus Stuck (No blocks generated)</option>
                     <option value="consensus_missed">Consensus Node Missed Blocks</option>
                     <option value="account_event">Watch Account Events</option>
@@ -50,9 +50,9 @@
             </div>
 
             <div v-if="form.alertType === 'consensus_stuck'" class="p-4 bg-surface-muted rounded-xl border border-line-soft">
-              <label class="block text-sm font-medium text-high mb-2">Alert me if no blocks are generated for over:</label>
+              <label for="alert-threshold" class="block text-sm font-medium text-high mb-2">Alert me if no blocks are generated for over:</label>
               <div class="relative max-w-xs">
-                <select v-model="form.threshold" class="form-input w-full appearance-none pr-10 bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
+                <select id="alert-threshold" v-model="form.threshold" class="form-input w-full appearance-none pr-10 bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none">
                   <option value="30">30 seconds</option>
                   <option value="60">1 minute</option>
                   <option value="120">2 minutes</option>
@@ -69,8 +69,8 @@
             </div>
 
             <div v-if="form.alertType === 'consensus_missed'" class="p-4 bg-surface-muted rounded-xl border border-line-soft">
-              <label class="block text-sm font-medium text-high mb-2">Consensus Node Public Key:</label>
-              <input v-model="form.target" type="text" placeholder="e.g. 03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c" class="form-input w-full font-mono text-sm bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
+              <label for="alert-consensus-key" class="block text-sm font-medium text-high mb-2">Consensus Node Public Key:</label>
+              <input id="alert-consensus-key" v-model="form.target" type="text" placeholder="e.g. 03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c" class="form-input w-full font-mono text-sm bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
               <p class="text-xs text-mid mt-3 flex items-start gap-1.5">
                 <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 <span>Alerts if this specific node misses 3 or more consecutive consensus rounds.</span>
@@ -78,8 +78,8 @@
             </div>
 
             <div v-if="form.alertType === 'account_event'" class="p-4 bg-surface-muted rounded-xl border border-line-soft">
-              <label class="block text-sm font-medium text-high mb-2">Account Address:</label>
-              <input v-model="form.target" type="text" placeholder="e.g. N..." class="form-input w-full font-mono text-sm bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
+              <label for="alert-account-address" class="block text-sm font-medium text-high mb-2">Account Address:</label>
+              <input id="alert-account-address" v-model="form.target" type="text" placeholder="e.g. N..." class="form-input w-full font-mono text-sm bg-surface rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
               <p class="text-xs text-mid mt-3 flex items-start gap-1.5">
                 <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                 <span>Alerts on any incoming/outgoing transfer or contract invocation for this account.</span>
@@ -87,12 +87,12 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-high mb-2">Delivery Email Address:</label>
+              <label for="alert-email" class="block text-sm font-medium text-high mb-2">Delivery Email Address:</label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg class="h-5 w-5 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 </div>
-                <input v-model="form.contact" type="email" placeholder="your.email@example.com" class="form-input w-full pl-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
+                <input id="alert-email" v-model="form.contact" type="email" placeholder="your.email@example.com" class="form-input w-full pl-10 rounded-xl shadow-inner focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 focus:border-rose-400 transition-all outline-none" required />
               </div>
               <p class="text-xs text-mid mt-2">We will send an immediate email to this address when the alert condition is met. Alerts auto-deactivate after firing to prevent spam.</p>
             </div>

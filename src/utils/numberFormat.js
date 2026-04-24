@@ -9,6 +9,7 @@
  */
 export function formatBytes(value) {
   const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -45,7 +46,8 @@ export function formatLargeNumber(num) {
  * @returns {string}
  */
 export function formatPrice(value) {
-  return Number(value || 0).toFixed(2);
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(2) : "0.00";
 }
 
 /**
@@ -54,7 +56,8 @@ export function formatPrice(value) {
  * @returns {string}
  */
 export function formatPriceChange(change) {
-  const value = Number(change || 0);
+  const value = Number(change);
+  if (!Number.isFinite(value)) return "+0.00%";
   const sign = value >= 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
 }
@@ -65,7 +68,9 @@ export function formatPriceChange(change) {
  * @returns {string}
  */
 export function priceChangeClass(change) {
-  return Number(change || 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
+  if (change === null || change === undefined) return "text-green-600 dark:text-green-400";
+  const num = Number(change);
+  return Number.isFinite(num) && num >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400";
 }
 
 /**
@@ -88,8 +93,9 @@ export function formatBalance(balance, maximumFractionDigits = 0) {
  * @returns {string}
  */
 export function formatSupply(totalSupply, decimals = 0) {
-  if (!totalSupply) return "0";
-  return (totalSupply / Math.pow(10, decimals)).toLocaleString();
+  const num = Number(totalSupply);
+  if (!Number.isFinite(num)) return "0";
+  return (num / Math.pow(10, decimals)).toLocaleString();
 }
 
 /**

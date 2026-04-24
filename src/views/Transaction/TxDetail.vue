@@ -12,7 +12,7 @@
         v-if="!loading && tx.hash && actionSummary"
         class="mb-6 flex items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/80 p-4 backdrop-blur-sm dark:border-blue-800/70 dark:bg-blue-900/20"
       >
-        <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -31,7 +31,7 @@
         class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/80 p-4 backdrop-blur-sm dark:border-amber-800/70 dark:bg-amber-900/20"
       >
         <div class="flex items-center gap-2">
-          <svg class="h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+          <svg aria-hidden="true" class="h-5 w-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
             <path
               fill-rule="evenodd"
               d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -199,7 +199,6 @@ import { ref, computed, watch, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
-import { getCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash } from "@/utils/explorerFormat";
@@ -217,6 +216,7 @@ import TxScriptTab from "./components/TxScriptTab.vue";
 import TxLogsTab from "./components/TxLogsTab.vue";
 import TxTransfersTab from "./components/TxTransfersTab.vue";
 import TxExecutionTraceTab from "./components/TxExecutionTraceTab.vue";
+import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -332,14 +332,12 @@ const tabs = computed(() => [
 const actionSummary = computed(() => buildActionSummary());
 
 // --- Methods ---
-function formatTransferAmount(t) {
-  const raw = Number(t.value || t.amount || 0);
-  const decimals = Number(t.decimals ?? GAS_DECIMALS);
+function formatTransferAmount(transfer) {
+  const raw = Number(transfer.value || transfer.amount || 0);
+  const decimals = Number(transfer.decimals ?? GAS_DECIMALS);
   if (decimals === 0) return String(raw);
   return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
 }
-
-import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 function hasOracleResponseAttribute(tx) {
   return Boolean(
@@ -502,8 +500,7 @@ watch(
 watch(txStatus, (newStatus) => {
   if (newStatus === 'pending') {
     if (!pollInterval) {
-      const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-      const intervalMs = env.includes('test') || env.includes('t5') ? 3000 : 3000;
+      const intervalMs = 3000;
       pollInterval = setInterval(() => {
         if (route.params.txhash) {
           loadTx(route.params.txhash);

@@ -3,7 +3,7 @@
     <div class="page-container py-6">
       <!-- Breadcrumb -->
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Addresses', to: '/account/1' }, { label: truncateAddr }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.accounts'), to: '/account/1' }, { label: truncateAddr }]"
       />
 
       <AddressHeader
@@ -15,6 +15,7 @@
         :tx-count="txTotalCount"
         :token-count="tokenCount"
         :candidate-data="candidateData"
+        :summary-loading="summaryLoading"
       />
 
       <div
@@ -160,6 +161,7 @@ const neoBalance = ref("0");
 const gasBalance = ref("0");
 const txCount = ref(0);
 const tokenCount = ref(0);
+const summaryLoading = ref(true);
 const activeTab = ref("transactions");
 const isCandidate = ref(false);
 const candidateData = ref(null);
@@ -399,6 +401,7 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 // --- Data loading methods ---
 async function loadSummary(addr) {
   const currentRequestId = addressRequestId;
+  summaryLoading.value = true;
   try {
     const account = (await accountService.getByAddress(addr)) || {};
     if (currentRequestId !== addressRequestId) return;
@@ -501,6 +504,8 @@ async function loadSummary(addr) {
     neoBalance.value = "0";
     gasBalance.value = "0";
     txCount.value = 0;
+  } finally {
+    if (currentRequestId === addressRequestId) summaryLoading.value = false;
   }
 }
 

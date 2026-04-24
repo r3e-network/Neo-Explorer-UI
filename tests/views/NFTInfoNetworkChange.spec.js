@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const route = { params: { contractHash: "0xcontract", address: "Naddr", tokenId: "token-1" } };
 const getNep11Properties = vi.fn();
 
@@ -39,6 +45,7 @@ describe("NFTInfo network changes", () => {
     const NFTInfo = (await import("@/views/Token/NFTInfo.vue")).default;
     const wrapper = mount(NFTInfo, {
       global: {
+        plugins: [i18nPlugin],
         directives: { lazyImage: {} },
         stubs: {
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },

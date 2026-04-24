@@ -21,7 +21,7 @@
 
       <!-- Table -->
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[960px]">
+        <table class="w-full min-w-[960px]" aria-label="Token transfers">
           <thead class="table-head">
             <tr>
               <th class="table-header-cell">Txn Hash</th>

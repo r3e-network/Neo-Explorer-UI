@@ -3,9 +3,9 @@
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Tools', to: '/tools' },
-          { label: 'Council Governance', to: '/tools/governance' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.tools'), to: '/tools' },
+          { label: $t('tools.governance.breadcrumb'), to: '/tools/governance' },
           { label: proposal?.description || 'Proposal Detail' },
         ]"
       />
@@ -117,6 +117,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -142,6 +143,7 @@ import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const { t } = useI18n();
 
 const proposal = ref(null);
 const committeePubkeys = ref([]);
@@ -633,7 +635,11 @@ async function loadChainSnapshot() {
 }
 
 async function loadProposal() {
-  proposal.value = await supabaseService.getMultisigRequestById(route.params.id, getCurrentEnv());
+  try {
+    proposal.value = await supabaseService.getMultisigRequestById(route.params.id, getCurrentEnv());
+  } catch {
+    proposal.value = null;
+  }
 }
 
 async function loadValidatorMetadata() {
@@ -670,14 +676,18 @@ async function handleForkCreated(createdProposal) {
     await router.push({
       name: "governanceProposalDetail",
       params: { id: createdProposal.id },
-    });
+    }).catch(() => {});
   }
 }
 
 async function maybeBroadcastIfReady() {
-  await loadProposal();
-  if (proposal.value && thresholdMet.value && proposal.value.status !== "EXECUTED" && !isOffchainReviewPacket.value) {
-    await handleBroadcast(proposal.value);
+  try {
+    await loadProposal();
+    if (proposal.value && thresholdMet.value && proposal.value.status !== "EXECUTED" && !isOffchainReviewPacket.value) {
+      await handleBroadcast(proposal.value);
+    }
+  } catch {
+    if (import.meta.env.DEV) console.warn("maybeBroadcastIfReady failed");
   }
 }
 
@@ -687,11 +697,15 @@ async function handleSigned() {
 
 async function handleBroadcast(currentProposal) {
   if (isOffchainReviewPacketUtil(currentProposal)) {
-    toast.error("This packet is for off-chain witness collection only. Regenerate a fresh on-chain transaction before broadcast.");
+    toast.error(t('tools.governance.toasts.offchainWitnessOnly'));
     return;
   }
   if (!currentProposal?.params?.unsigned_tx || !thresholdMet.value) return;
   try {
+    if (!neonJs) {
+      toast.error(t('tools.governance.toasts.walletLibraryNotLoaded'));
+      return;
+    }
     const tx = neonJs.tx.Transaction.deserialize(currentProposal.params.unsigned_tx);
     const committeePubkeyList = resolveCommitteePubkeys(currentProposal, committeePubkeys.value);
 
@@ -735,13 +749,13 @@ async function handleBroadcast(currentProposal) {
     });
 
     if (!updateResult.success) {
-      toast.error(`Proposal broadcasted but status update failed: ${updateResult.error}`);
+      toast.error(t('tools.governance.toasts.broadcastedStatusUpdateFailed', { reason: updateResult.error }));
     } else {
-      toast.success(`Proposal broadcasted: ${txid}`);
+      toast.success(t('tools.governance.toasts.proposalBroadcasted', { txid }));
     }
     await loadProposal();
   } catch (error) {
-    toast.error(`Broadcast failed: ${error.message}`);
+    toast.error(t('tools.governance.toasts.broadcastFailedShort', { reason: error.message }));
   }
 }
 

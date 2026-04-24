@@ -55,7 +55,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search for a domain (e.g. alice.matrix)"
+            :placeholder="$t('common.searchByDomain')"
             class="w-full bg-transparent border-none px-4 py-4 text-high font-bold text-lg md:text-xl placeholder:text-mid placeholder:font-medium focus:outline-none focus:ring-0"
             @keyup.enter="handleSearch"
             :disabled="searching"
@@ -275,6 +275,24 @@
           </div>
         </div>
 
+        <!-- Error State -->
+        <div
+          v-else-if="searchError"
+          class="etherscan-card overflow-hidden rounded-3xl border-2 border-red-400/50 bg-gradient-to-b from-red-50/50 to-surface dark:from-red-950/20 shadow-xl"
+        >
+          <div class="p-8 md:p-10 flex items-center gap-5">
+            <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xl font-black text-red-700 dark:text-red-400">Search failed</p>
+              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-1">Unable to check domain status. Please try again.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Taken State -->
         <div v-else class="etherscan-card overflow-hidden rounded-3xl shadow-xl">
           <div
@@ -365,7 +383,7 @@
 
       <!-- Transfer Modal -->
       <transition name="fade">
-        <div v-if="showTransferModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div v-if="showTransferModal" ref="transferModalRef" class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" tabindex="0" aria-modal="true" aria-label="Transfer Domain" @keydown.escape="showTransferModal = false">
           <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showTransferModal = false"></div>
           <div
             class="bg-surface-base border border-line-soft rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
@@ -374,6 +392,7 @@
               <h3 class="text-xl font-bold text-high">Transfer Domain</h3>
               <button
                 @click="showTransferModal = false"
+                aria-label="Close transfer modal"
                 class="text-mid hover:text-high p-1 rounded-lg hover:bg-line-soft transition-colors"
               >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -426,8 +445,10 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import { useToast } from "vue-toastification";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from "@/utils/wallet";
@@ -435,6 +456,7 @@ import nnsService from "@/services/nnsService";
 import { getCurrentEnv, NETWORK_CHANGE_EVENT } from "@/utils/env";
 import { MATRIX_HASH_TESTNET, MATRIX_HASH_MAINNET } from "@/constants";
 
+const { t } = useI18n();
 const toast = useToast();
 const account = connectedAccount;
 
@@ -443,9 +465,13 @@ const breadcrumbs = [{ label: "Home", to: "/homepage" }, { label: "Matrix Domain
 const searchQuery = ref("");
 const searching = ref(false);
 const searchResult = ref(null);
+const searchError = ref(false);
 
 const actionLoading = ref(false);
 const showTransferModal = ref(false);
+const transferModalRef = ref(null);
+const { activate: activateTransferTrap, deactivate: deactivateTransferTrap } = useFocusTrap(transferModalRef, { immediate: false });
+watch(showTransferModal, (v) => v ? nextTick(activateTransferTrap) : deactivateTransferTrap());
 const transferRecipient = ref("");
 const currentNetwork = ref(getCurrentEnv());
 const currentNetworkLabel = computed(() => (currentNetwork.value === "TestT5" ? "Testnet" : "Mainnet"));
@@ -531,10 +557,18 @@ async function handleSearch() {
   if (!query.endsWith(".matrix")) {
     query += ".matrix";
   }
+
+  // Validate domain characters to prevent btoa() crashes with non-Latin characters
+  if (!/^[a-z0-9.-]+$/.test(query.replace(/\.matrix$/, ""))) {
+    toast.error(t('nns.toasts.invalidDomainChars'));
+    return;
+  }
+
   searchQuery.value = query;
 
   searching.value = true;
   searchResult.value = null;
+  searchError.value = false;
 
   try {
     const isReserved = RESERVED_DOMAINS.includes(query);
@@ -563,13 +597,10 @@ async function handleSearch() {
       };
     }
   } catch (e) {
-    if (import.meta.env.DEV) console.error("Search NNS failed", e);
-    toast.error("Failed to query domain. It might be available.");
-    searchResult.value = {
-      domain: query,
-      available: !RESERVED_DOMAINS.includes(query),
-      reserved: RESERVED_DOMAINS.includes(query),
-    };
+    if (import.meta.env.DEV) console.error("Search matrix failed", e);
+    toast.error(t('nns.toasts.queryFailed'));
+    searchError.value = true;
+    searchResult.value = { domain: query };
   } finally {
     searching.value = false;
   }
@@ -581,7 +612,7 @@ import { invokeContract } from "@/utils/wallet";
 
 async function registerDomain() {
   if (!account.value) {
-    toast.info("Please connect your wallet first");
+    toast.info(t('common.connectWalletFirst'));
     return;
   }
 
@@ -600,14 +631,14 @@ async function registerDomain() {
     ]);
 
     if (txid) {
-      toast.success(`Registration transaction sent: ${txid}`);
+      toast.success(t('nns.toasts.registrationSent', { txid }));
       searchResult.value.available = false;
       searchResult.value.owner = account.value;
     }
   } catch (e) {
-    console.error("Register failed", e);
+    if (import.meta.env.DEV) console.error("Register failed", e);
     const message = getWalletErrorMessage(e);
-    toast.error(message ? `Registration failed: ${message}` : "Registration failed or was rejected");
+    toast.error(message ? t('nns.toasts.registrationFailedWithReason', { reason: message }) : t('nns.toasts.registrationFailed'));
   } finally {
     actionLoading.value = false;
   }
@@ -615,6 +646,13 @@ async function registerDomain() {
 
 async function transferDomain() {
   if (!account.value || !transferRecipient.value) return;
+
+  // Validate recipient address format
+  const recipient = transferRecipient.value.trim();
+  if (!recipient.startsWith("N") || recipient.length !== 34) {
+    toast.error(t('nns.toasts.invalidRecipient'));
+    return;
+  }
 
   actionLoading.value = true;
   try {
@@ -637,15 +675,15 @@ async function transferDomain() {
     ]);
 
     if (txid) {
-      toast.success(`Transfer transaction sent: ${txid}`);
+      toast.success(t('nns.toasts.transferSent', { txid }));
       showTransferModal.value = false;
       searchResult.value.owner = transferRecipient.value;
       transferRecipient.value = "";
     }
   } catch (e) {
-    console.error("Transfer failed", e);
+    if (import.meta.env.DEV) console.error("Transfer failed", e);
     const message = getWalletErrorMessage(e);
-    toast.error(message ? `Transfer failed: ${message}` : "Transfer failed or was rejected");
+    toast.error(message ? t('nns.toasts.transferFailedWithReason', { reason: message }) : t('nns.toasts.transferFailed'));
   } finally {
     actionLoading.value = false;
   }

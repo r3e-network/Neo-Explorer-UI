@@ -41,6 +41,7 @@
         <div v-if="connectedAccount" class="relative ml-3 hidden lg:block">
           <button
             data-testid="chat-notifications-button"
+            aria-label="Chat notifications"
             class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line-soft bg-surface-base text-high transition hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
             @click="toggleChatNotifications"
           >
@@ -63,11 +64,11 @@
             <div class="mb-2 flex items-center justify-between">
               <p class="text-sm font-semibold text-high">NeoChat</p>
               <button class="text-xs font-medium text-emerald-600 hover:text-emerald-500" @click="openChatPage">
-                Open
+                {{ $t('header.open') }}
               </button>
             </div>
             <div v-if="notifications.length === 0" class="rounded-xl bg-surface-muted px-3 py-4 text-sm text-mid">
-              No unread messages.
+              {{ $t('header.noUnreadMessages') }}
             </div>
             <button
               v-for="notification in notifications"
@@ -91,7 +92,7 @@
                     {{ notification.unreadCount }}
                   </span>
                 </div>
-                <p class="mt-1 truncate text-xs text-mid">{{ notification.preview || "New message" }}</p>
+                <p class="mt-1 truncate text-xs text-mid">{{ notification.preview || $t('header.newMessage') }}</p>
               </div>
             </button>
           </div>
@@ -110,7 +111,7 @@
             class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
           ></span>
           <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          {{ walletLoading ? "Connecting..." : walletButtonLabel }}
+          {{ walletLoading ? $t('header.connecting') : walletButtonLabel }}
         </button>
 
         <!-- Mobile Wallet -->
@@ -142,7 +143,7 @@
           >
             <span v-if="connectedAccount" class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            {{ walletLoading ? "Connecting wallet..." : mobilePanelWalletLabel }}
+            {{ walletLoading ? $t('header.connectingWallet') : mobilePanelWalletLabel }}
           </button>
           <div class="grid grid-cols-2 gap-3 text-sm">
             <router-link to="/homepage" class="mobile-link" @click="closeMobile">{{ $t("nav.home") }}</router-link>
@@ -153,13 +154,14 @@
             <router-link to="/account/1" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
             <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">{{ $t("nav.consensusNodes") }}</router-link>
             <router-link to="/governance" class="mobile-link" @click="closeMobile">{{ $t("nav.governance") }}</router-link>
-            <router-link to="/nns" class="mobile-link" @click="closeMobile">NNS Domains (.neo)</router-link>
-            <router-link to="/matrix" class="mobile-link" @click="closeMobile">Matrix Domain (.matrix)</router-link>
+            <router-link to="/nns" class="mobile-link" @click="closeMobile">{{ $t('header.nnsDomains') }}</router-link>
+            <router-link to="/matrix" class="mobile-link" @click="closeMobile">{{ $t('header.matrixDomain') }}</router-link>
             <router-link to="/echarts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
             <router-link to="/burn" class="mobile-link" @click="closeMobile">{{ $t("nav.burnedGas") }}</router-link>
             <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">{{ $t("nav.gasTracker") }}</router-link>
             <router-link to="/api-docs" class="mobile-link" @click="closeMobile">{{ $t("nav.apiDocs") }}</router-link>
             <router-link to="/verify-contract/" class="mobile-link" @click="closeMobile">{{ $t("nav.verifyContract") }}</router-link>
+            <router-link to="/tools" class="mobile-link" @click="closeMobile">{{ $t("nav.tools") }}</router-link>
           </div>
         </div>
       </transition>
@@ -169,12 +171,17 @@
       <div
         v-if="showWalletModal"
         class="fixed inset-0 z-[200] flex items-center justify-center bg-transparent p-5"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="$t('header.connectWallet')"
+        tabindex="0"
+        @keydown.escape="showWalletModal = false; resetDevWifForm()"
         @click.self="showWalletModal = false; resetDevWifForm()"
       >
         <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
           <div class="wallet-modal-header px-7 py-5 flex items-center justify-between border-b border-white/10">
-            <h2 class="wallet-modal-title text-lg font-bold">Connect Wallet</h2>
-            <button @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
+            <h2 class="wallet-modal-title text-lg font-bold">{{ $t('header.connectWallet') }}</h2>
+            <button aria-label="Close wallet dialog" @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
@@ -221,17 +228,17 @@
                   :disabled="walletLoading || !devWifInput.trim()"
                   class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                 >
-                  Connect Testnet WIF
+                  {{ $t('header.connectTestnetWif') }}
                 </button>
                 <button
                   @click="resetDevWifForm"
                   class="wallet-modal-secondary rounded-lg border border-white/10 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
                 >
-                  Cancel
+                  {{ $t('header.cancel') }}
                 </button>
               </div>
               <p class="wallet-modal-help text-xs">
-                Development-only. The WIF is used only in memory and is not persisted to local storage.
+                {{ $t('header.devWifHelp') }}
               </p>
             </div>
           </div>
@@ -246,6 +253,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";
 import UtilityBar from "@/components/layout/UtilityBar.vue";
@@ -271,6 +279,7 @@ import { useChatSession } from "@/composables/useChatSession";
 
 
 const router = useRouter();
+const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
 const toast = useToast();
 const {
@@ -304,14 +313,14 @@ const chatNotificationsOpen = ref(false);
 
 const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
 const walletButtonLabel = computed(() => {
-  if (!connectedAccount.value) return "Connect Wallet";
+  if (!connectedAccount.value) return t("header.connectWallet");
   return `${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`;
 });
-const mobileWalletLabel = computed(() => (connectedAccount.value ? "Disconnect" : "Connect"));
+const mobileWalletLabel = computed(() => (connectedAccount.value ? t("header.disconnect") : t("header.connectWallet")));
 const mobilePanelWalletLabel = computed(() =>
   connectedAccount.value
-    ? `Disconnect ${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`
-    : "Connect Wallet"
+    ? `${t("header.disconnect")} ${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`
+    : t("header.connectWallet")
 );
 
 function openDropdown(name) {
@@ -342,27 +351,27 @@ function isProviderAvailable(provider) {
 
 function getProviderUnavailableReason(provider) {
   if (provider === PROVIDERS.WALLETCONNECT) {
-    return "Open WalletConnect website to learn how to pair a supported wallet";
+    return t("header.providerWalletConnect");
   }
   if (provider === PROVIDERS.NEON) {
-    return "Open Neon Wallet download page";
+    return t("header.providerNeon");
   }
   if (provider === PROVIDERS.TESTNET_WIF) {
-    return "Switch the explorer to testnet to use local WIF testing";
+    return t("header.providerTestnetWif");
   }
   if (provider === PROVIDERS.ONEGATE) {
-    return "Open OneGate install page";
+    return t("header.providerOneGate");
   }
   if (provider === PROVIDERS.O3) {
-    return "Open O3 download page";
+    return t("header.providerO3");
   }
   if (provider === PROVIDERS.NEOLINE) {
-    return "Open NeoLine install page";
+    return t("header.providerNeoLine");
   }
   if (provider === PROVIDERS.EVM_WALLET) {
-    return "Open MetaMask install page";
+    return t("header.providerEvm");
   }
-  return "Wallet is currently unavailable";
+  return t("header.providerUnavailable");
 }
 
 function getProviderInstallUrl(provider) {
@@ -429,10 +438,10 @@ async function handleConnect(provider) {
           localStorage.setItem("connectedWallet", account.address);
           localStorage.setItem("walletProvider", provider);
           await bootstrapChatSession();
-          toast.success(`Connected: ${account.address.slice(0, 6)}...${account.address.slice(-4)}`);
+          toast.success(t('header.connectedAs', { address: `${account.address.slice(0, 6)}...${account.address.slice(-4)}` }));
         } catch(e) {
           wcUri.value = "";
-          toast.error(e?.message || "WalletConnect connection was not approved.");
+          toast.error(e?.message || t('header.walletConnectRejected'));
         }
         return;
      }
@@ -450,13 +459,13 @@ async function handleConnect(provider) {
        resetDevWifForm();
        showWalletModal.value = false;
        await bootstrapChatSession();
-       toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
+       toast.success(t('header.connectedAs', { address: `${result.address.slice(0, 6)}...${result.address.slice(-4)}` }));
      }
   } catch (err) {
      let errMsg = err?.message;
      if (!errMsg && err?.description) errMsg = err.description;
      if (!errMsg && err?.error?.message) errMsg = err.error.message;
-     toast.error(errMsg || "Failed to connect wallet.");
+     toast.error(errMsg || t('header.connectWalletFailed'));
   } finally {
      walletLoading.value = false;
   }
@@ -479,10 +488,10 @@ async function handleDevWifConnect() {
       resetDevWifForm();
       showWalletModal.value = false;
       await bootstrapChatSession();
-      toast.success(`Connected: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`);
+      toast.success(t('header.connectedAs', { address: `${result.address.slice(0, 6)}...${result.address.slice(-4)}` }));
     }
   } catch (err) {
-    const errMsg = err?.message || err?.description || "Failed to connect wallet.";
+    const errMsg = err?.message || err?.description || t('header.connectWalletFailed');
     toast.error(errMsg);
   } finally {
     walletLoading.value = false;
@@ -602,7 +611,11 @@ function getNotificationInitials(notification) {
 async function toggleChatNotifications() {
   chatNotificationsOpen.value = !chatNotificationsOpen.value;
   if (chatNotificationsOpen.value && connectedAccount.value && chatSession.value) {
-    await refreshNotifications();
+    try {
+      await refreshNotifications();
+    } catch {
+      // Best-effort — don't break the UI if notifications fail to load
+    }
   }
 }
 

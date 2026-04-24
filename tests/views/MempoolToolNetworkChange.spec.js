@@ -1,6 +1,12 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 const envState = { value: "MainNet" };
 const getMempoolTransactions = vi.fn();
 
@@ -36,6 +42,7 @@ describe("MempoolTool network changes", () => {
     const MempoolTool = (await import("@/views/Tools/MempoolTool.vue")).default;
     const wrapper = mount(MempoolTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },

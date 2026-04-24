@@ -1,14 +1,4 @@
-function normalizeVmState(value) {
-  const normalized = String(value || "").trim().toUpperCase();
-  if (!normalized) return "";
-  if (normalized.includes("FAULT") || normalized === "FAILED" || normalized === "FAIL" || normalized === "ERROR") {
-    return "FAULT";
-  }
-  if (normalized.includes("HALT") || normalized === "SUCCESS" || normalized === "SUCCEEDED") {
-    return "HALT";
-  }
-  return "";
-}
+import { normalizeVmState } from "./txVmState";
 
 function normalizeReason(value) {
   const text = String(value || "").trim();

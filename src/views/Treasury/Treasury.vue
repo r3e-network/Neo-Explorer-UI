@@ -6,7 +6,7 @@
       <div class="page-container relative z-30 py-10 md:py-14">
         <div class="mx-auto max-w-4xl">
           <Breadcrumb
-            :items="[{ label: 'Home', to: '/homepage' }, { label: 'Treasury' }]"
+            :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.treasury') }]"
             class="mb-6 !text-white/70"
           />
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl mb-4">
@@ -38,6 +38,7 @@
           <a
             href="https://neo-treasury.pages.dev/"
             target="_blank"
+            rel="noopener noreferrer"
             class="underline hover:text-blue-600 dark:hover:text-blue-200 font-bold decoration-2 underline-offset-2"
             >neo-treasury.pages.dev</a
           >. Visit the site for more detailed information and historical analytics.
@@ -61,7 +62,14 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+      <!-- Error State -->
+      <div v-if="error && !loading" class="mb-6">
+        <div class="etherscan-card overflow-hidden">
+          <ErrorState title="Failed to load treasury data" :message="error" @retry="loadTreasuryData(true)" />
+        </div>
+      </div>
+
+      <div v-if="!error" class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         <!-- Global Stats Card -->
         <div
           class="etherscan-card p-6 lg:col-span-7 bg-surface/95 backdrop-blur-xl border-t-4 border-t-primary-500 shadow-xl"
@@ -173,7 +181,7 @@
       </div>
 
       <!-- Treasury Table -->
-      <div class="etherscan-card overflow-hidden">
+      <div v-if="!error" class="etherscan-card overflow-hidden">
         <div class="card-header flex items-center justify-between bg-surface-muted/50 border-b soft-divider py-4 px-5">
           <h3 class="text-base font-bold text-high flex items-center gap-2">
             <svg class="w-5 h-5 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +228,7 @@
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm whitespace-nowrap">
+          <table class="w-full text-sm whitespace-nowrap" aria-label="Treasury wallets">
             <thead class="bg-surface-muted border-b soft-divider text-xs uppercase tracking-wider text-mid">
               <tr>
                 <th class="px-5 py-3.5 text-left font-semibold">Owner Group</th>
@@ -277,6 +285,7 @@ import { getTreasuryKnownAddresses } from "@/constants/knownAddresses";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
+import ErrorState from "@/components/common/ErrorState.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { getCurrentEnv } from "@/utils/env";
@@ -285,6 +294,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { fetchPrices } = usePriceCache();
 const loading = ref(true);
+const error = ref(null);
 const neoPrice = ref(0);
 const gasPrice = ref(0);
 const balances = ref([]);
@@ -393,6 +403,7 @@ async function fetchTreasuryDataFromRpc() {
 
 async function loadTreasuryData(forceRefresh = false) {
   loading.value = true;
+  error.value = null;
   try {
     if (!isTreasuryNetworkSupported.value) {
       balances.value = [];
@@ -412,6 +423,7 @@ async function loadTreasuryData(forceRefresh = false) {
     balances.value = withUsd.sort((a, b) => b.usdValue - a.usdValue);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load treasury data", err);
+    error.value = "Failed to load treasury data. Please try again.";
   } finally {
     loading.value = false;
   }

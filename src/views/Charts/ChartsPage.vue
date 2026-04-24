@@ -2,7 +2,7 @@
   <div class="daily-transaction-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Charts & Statistics' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.charts') }]" />
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
@@ -70,7 +70,7 @@
           <Skeleton v-for="i in 5" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load transaction chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="txChart"></canvas>
@@ -85,7 +85,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load address chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="addressChart"></canvas>
@@ -100,7 +100,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load volume chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="volumeChart"></canvas>
@@ -115,7 +115,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load contract chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="contractChart"></canvas>
@@ -130,7 +130,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load token volume chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="tokenVolumeChart"></canvas>
@@ -145,7 +145,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load gas price chart" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('common.failedToLoadChart')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="gasPriceChart"></canvas>
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -164,9 +164,11 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
 import { formatNumber } from "@/utils/explorerFormat";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
+import { useTheme } from "@/composables/useTheme";
 
 // --- State ---
 const { t } = useI18n();
+const { isDark } = useTheme();
 const loading = ref(true);
 const error = ref(null);
 const selectedDays = ref(30);
@@ -192,6 +194,7 @@ let tokenVolumeChartInstance = null;
 let gasPriceChartInstance = null;
 let addressChartInstance = null;
 let volumeChartInstance = null;
+let renderGeneration = 0;
 
 // --- Computed stats ---
 const totalTxns = computed(() => {
@@ -264,6 +267,7 @@ function normalizeChartData(raw, days) {
 async function createChart(canvasRef, { type, label, color, bgColor, tooltipLabel, data }) {
   if (!canvasRef.value) return null;
   const Chart = (await import("chart.js")).default;
+  if (!canvasRef.value) return null;
   const ctx = canvasRef.value.getContext("2d");
   const colors = getChartColors();
 
@@ -337,6 +341,7 @@ function destroyCharts() {
 }
 
 async function renderCharts() {
+  const myGeneration = ++renderGeneration;
   const txValues = chartData.value.map((d) => d.transactions);
   const addrGrowthValues = addressGrowthData.value.map((d) =>
     Number(d.value ?? d.NewAddresses ?? d.count ?? d.total ?? 0),
@@ -347,6 +352,7 @@ async function renderCharts() {
 
   destroyCharts();
   await nextTick();
+  if (myGeneration !== renderGeneration) return;
 
   txChartInstance = await createChart(txChart, {
     type: "line",
@@ -356,6 +362,7 @@ async function renderCharts() {
     tooltipLabel: "Transactions",
     data: txValues,
   });
+  if (myGeneration !== renderGeneration) return;
 
   addressChartInstance = await createChart(addressChart, {
     type: "line",
@@ -365,6 +372,7 @@ async function renderCharts() {
     tooltipLabel: "New Addresses",
     data: addrGrowthValues,
   });
+  if (myGeneration !== renderGeneration) return;
 
   volumeChartInstance = await createChart(volumeChart, {
     type: "bar",
@@ -374,6 +382,7 @@ async function renderCharts() {
     tooltipLabel: "Volume",
     data: txValues,
   });
+  if (myGeneration !== renderGeneration) return;
 
   contractChartInstance = await createChart(contractChart, {
     type: "line",
@@ -383,6 +392,7 @@ async function renderCharts() {
     tooltipLabel: "Deployments",
     data: contractValues,
   });
+  if (myGeneration !== renderGeneration) return;
 
   tokenVolumeChartInstance = await createChart(tokenVolumeChart, {
     type: "line",
@@ -392,6 +402,7 @@ async function renderCharts() {
     tooltipLabel: "Volume",
     data: tokenVolValues,
   });
+  if (myGeneration !== renderGeneration) return;
 
   gasPriceChartInstance = await createChart(gasPriceChart, {
     type: "line",
@@ -449,6 +460,13 @@ function changeDays(days) {
   selectedDays.value = days;
   loadData();
 }
+
+// --- Theme reactivity ---
+watch(isDark, () => {
+  if (!loading.value && chartData.value.length) {
+    renderCharts().catch(() => {});
+  }
+});
 
 // --- Lifecycle ---
 onMounted(() => {

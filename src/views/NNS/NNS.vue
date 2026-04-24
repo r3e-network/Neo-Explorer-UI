@@ -6,7 +6,7 @@
       <div class="page-container relative z-30 py-10 md:py-14">
         <div class="mx-auto max-w-4xl text-center">
           <Breadcrumb
-            :items="[{ label: 'Home', to: '/homepage' }, { label: 'Neo Name Service' }]"
+            :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.nns') }]"
             class="mb-6 justify-center !text-white/70"
           />
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-5xl mb-4">
@@ -54,7 +54,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Find your perfect domain (e.g. alice.neo)..."
+            :placeholder="$t('common.searchByDomain')"
             class="w-full bg-transparent border-none px-4 py-4 text-high font-semibold text-lg placeholder:text-mid focus:outline-none focus:ring-0"
             @keyup.enter="handleSearch"
           />
@@ -70,10 +70,30 @@
 
       <p class="text-sm text-mid mt-4 text-center">Only exact searches are supported (must end with .neo)</p>
 
+      <!-- Search Error -->
+      <transition name="fade">
+        <div
+          v-if="searchError"
+          class="mt-8 overflow-hidden rounded-2xl shadow-lg border border-red-200 bg-red-50/50 dark:border-red-800/50 dark:bg-red-950/20"
+        >
+          <div class="p-6 md:p-8 flex items-center gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-lg font-bold text-red-700 dark:text-red-400">Search failed</p>
+              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-0.5">Unable to check domain status. Please try again.</p>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- Search Result -->
       <transition name="fade">
         <div
-          v-if="searchResult"
+          v-if="searchResult && !searchError"
           class="mt-8 overflow-hidden rounded-2xl shadow-lg border"
           :class="
             searchResult.available
@@ -186,14 +206,20 @@
       <!-- Transfer Modal -->
       <div
         v-if="showTransferModal"
+        ref="transferModalRef"
+        role="dialog"
+        tabindex="0"
+        aria-modal="true"
+        aria-label="Transfer Domain"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        @keydown.escape="showTransferModal = false"
       >
         <div
           class="bg-surface-base border border-line-soft rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all"
         >
           <div class="px-6 py-5 border-b soft-divider flex items-center justify-between bg-surface-muted/50">
             <h3 class="text-lg font-bold text-high">Transfer Domain</h3>
-            <button @click="showTransferModal = false" class="text-mid hover:text-high transition-colors">
+            <button @click="showTransferModal = false" class="text-mid hover:text-high transition-colors" aria-label="Close transfer modal">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -248,8 +274,10 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import { useToast } from "vue-toastification";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from "@/utils/wallet";
@@ -258,15 +286,20 @@ import { safeRpc } from "@/services/api";
 import { scriptHashHexToAddress } from "@/utils/neoHelpers";
 import { NNS_HASH } from "@/constants";
 
+const { t } = useI18n();
 const toast = useToast();
 const account = connectedAccount;
 
 const searchQuery = ref("");
 const searching = ref(false);
 const searchResult = ref(null);
+const searchError = ref(false);
 
 const actionLoading = ref(false);
 const showTransferModal = ref(false);
+const transferModalRef = ref(null);
+const { activate: activateTransferTrap, deactivate: deactivateTransferTrap } = useFocusTrap(transferModalRef, { immediate: false });
+watch(showTransferModal, (v) => v ? nextTick(activateTransferTrap) : deactivateTransferTrap());
 const transferRecipient = ref("");
 
 const NNS_CONTRACT_HASH = NNS_HASH;
@@ -291,8 +324,15 @@ async function handleSearch() {
     searchQuery.value = query;
   }
 
+  // Validate domain characters to prevent btoa() crashes with non-Latin characters
+  if (!/^[a-z0-9.-]+$/.test(query.replace(/\.neo$/, ""))) {
+    toast.error(t('nns.toasts.invalidDomainChars'));
+    return;
+  }
+
   searching.value = true;
   searchResult.value = null;
+  searchError.value = false;
 
   try {
     const resolvedAddress = await nnsService.resolveDomain(query);
@@ -405,11 +445,9 @@ async function handleSearch() {
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error("Search NNS failed", e);
-    toast.error("Failed to query domain. It might be available.");
-    searchResult.value = {
-      domain: query,
-      available: true,
-    };
+    toast.error(t('nns.toasts.queryFailed'));
+    searchError.value = true;
+    searchResult.value = { domain: query };
   } finally {
     searching.value = false;
   }
@@ -421,7 +459,7 @@ const hexToBytes = (hex) => Uint8Array.from((hex.startsWith("0x") ? hex.slice(2)
 
 async function registerDomain() {
   if (!account.value) {
-    toast.info("Please connect your wallet first");
+    toast.info(t('common.connectWalletFirst'));
     return;
   }
 
@@ -437,13 +475,13 @@ async function registerDomain() {
     ]);
 
     if (txid) {
-      toast.success(`Registration transaction sent: ${txid}`);
+      toast.success(t('nns.toasts.registrationSent', { txid }));
       searchResult.value.available = false;
       searchResult.value.owner = account.value;
     }
   } catch (e) {
-    console.error("Register failed", e);
-    toast.error("Registration failed or was rejected");
+    if (import.meta.env.DEV) console.error("Register failed", e);
+    toast.error(t('nns.toasts.registrationFailed'));
   } finally {
     actionLoading.value = false;
   }
@@ -451,6 +489,13 @@ async function registerDomain() {
 
 async function transferDomain() {
   if (!account.value || !transferRecipient.value) return;
+
+  // Validate recipient address format
+  const recipient = transferRecipient.value.trim();
+  if (!recipient.startsWith("N") || recipient.length !== 34) {
+    toast.error(t('nns.toasts.invalidRecipient'));
+    return;
+  }
 
   actionLoading.value = true;
   try {
@@ -469,14 +514,14 @@ async function transferDomain() {
     ]);
 
     if (txid) {
-      toast.success(`Transfer transaction sent: ${txid}`);
+      toast.success(t('nns.toasts.transferSent', { txid }));
       showTransferModal.value = false;
       searchResult.value.owner = transferRecipient.value;
       transferRecipient.value = "";
     }
   } catch (e) {
-    console.error("Transfer failed", e);
-    toast.error("Transfer failed or was rejected");
+    if (import.meta.env.DEV) console.error("Transfer failed", e);
+    toast.error(t('nns.toasts.transferFailed'));
   } finally {
     actionLoading.value = false;
   }

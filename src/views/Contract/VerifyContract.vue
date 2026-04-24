@@ -27,7 +27,7 @@
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
       <!-- Breadcrumb -->
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Contracts', to: '/contracts/1' }, { label: 'Verify' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.contracts'), to: '/contracts/1' }, { label: $t('breadcrumb.verifyContract') }]"
       />
 
       <div class="mb-6 flex items-center gap-3">
@@ -53,40 +53,56 @@
           <form @submit.prevent="submitVerification" class="space-y-5">
             <!-- Contract Hash -->
             <div>
-              <label class="form-label">Contract Hash <span class="text-red-500">*</span></label>
+              <label for="verify-hash" class="form-label">Contract Hash <span class="text-red-500">*</span></label>
               <input
+                id="verify-hash"
                 v-model="form.hash"
                 type="text"
                 placeholder="0x..."
                 required
-                aria-label="Contract hash"
+                :aria-invalid="!!errors.hash"
+                :aria-describedby="errors.hash ? 'verify-hash-error' : undefined"
                 class="form-input"
               />
-              <p v-if="errors.hash" class="form-error">{{ errors.hash }}</p>
+              <p v-if="errors.hash" id="verify-hash-error" class="form-error" role="alert">{{ errors.hash }}</p>
             </div>
 
             <!-- Compiler Version -->
             <div>
-              <label class="form-label">Compiler Version <span class="text-red-500">*</span></label>
-              <select v-model="form.version" required class="form-input">
+              <label for="verify-version" class="form-label">Compiler Version <span class="text-red-500">*</span></label>
+              <select
+                id="verify-version"
+                v-model="form.version"
+                required
+                :aria-invalid="!!errors.version"
+                :aria-describedby="errors.version ? 'verify-version-error' : undefined"
+                class="form-input"
+              >
                 <option value="" disabled>Select your compiler version</option>
                 <option v-for="option in compilerVersionOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
-              <p v-if="errors.version" class="form-error">{{ errors.version }}</p>
+              <p v-if="errors.version" id="verify-version-error" class="form-error" role="alert">{{ errors.version }}</p>
             </div>
 
             <!-- Compile Command (conditional) -->
             <div v-if="showCompileCommand">
-              <label class="form-label">Compile Command <span class="text-red-500">*</span></label>
-              <select v-model="form.command" required class="form-input">
+              <label for="verify-command" class="form-label">Compile Command <span class="text-red-500">*</span></label>
+              <select
+                id="verify-command"
+                v-model="form.command"
+                required
+                :aria-invalid="!!errors.command"
+                :aria-describedby="errors.command ? 'verify-command-error' : undefined"
+                class="form-input"
+              >
                 <option value="" disabled>Select your compile command</option>
                 <option v-for="option in compileCommandOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
-              <p v-if="errors.command" class="form-error">{{ errors.command }}</p>
+              <p v-if="errors.command" id="verify-command-error" class="form-error" role="alert">{{ errors.command }}</p>
             </div>
 
             <!-- Java Package Name (conditional) -->
@@ -265,8 +281,34 @@ function showNotification(type, message) {
   }, 8000);
 }
 
+const MAX_FILE_COUNT = 30;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB per file
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50 MB total
+
 function onFilesSelected(event) {
   const files = Array.from(event.target.files || []);
+  const currentSize = fileList.value.reduce((sum, f) => sum + f.size, 0);
+  const incomingSize = files.reduce((sum, f) => sum + f.size, 0);
+
+  if (fileList.value.length + files.length > MAX_FILE_COUNT) {
+    showNotification("error", `Maximum ${MAX_FILE_COUNT} files allowed.`);
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  const oversized = files.find((f) => f.size > MAX_FILE_SIZE);
+  if (oversized) {
+    showNotification("error", `"${oversized.name}" exceeds the 10 MB per-file limit.`);
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  if (currentSize + incomingSize > MAX_TOTAL_SIZE) {
+    showNotification("error", "Total file size exceeds the 50 MB limit.");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
   fileList.value = [...fileList.value, ...files];
   if (fileInputRef.value) fileInputRef.value.value = "";
 }

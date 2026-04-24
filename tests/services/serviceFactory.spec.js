@@ -9,8 +9,8 @@ vi.mock("@/services/cache", () => ({
   getCacheKey: vi.fn((method, params) => `${method}:${JSON.stringify(params)}`),
   CACHE_TTL: { block: 15000, chart: 300000 },
 }));
-vi.mock("../utils/env", () => ({
-  getNetworkRefreshIntervalMs: () => 15000,
+vi.mock("@/utils/env", () => ({
+  getNetworkRefreshIntervalMs: () => 3000,
 }));
 
 import {
@@ -25,7 +25,7 @@ describe("serviceFactory", () => {
     it("returns SWR defaults", () => {
       const opts = getRealtimeListCacheOptions();
       expect(opts.staleWhileRevalidate).toBe(true);
-      expect(opts.softTtl).toBe(15000);
+      expect(opts.softTtl).toBe(3000);
       expect(opts.throwOnError).toBe(true);
     });
 

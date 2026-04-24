@@ -1,5 +1,11 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
 import { ref } from "vue";
 
 const invokeMock = vi.fn();
@@ -28,6 +34,10 @@ vi.mock("vue-toastification", () => ({
   }),
 }));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (value) => value }),
+}));
+
 class MockFileReader {
   readAsArrayBuffer() {
     const nefBytes = new Uint8Array([0x4e, 0x45, 0x46, 0x33, 0x00]).buffer; // "NEF3"
@@ -48,7 +58,7 @@ function mockInputFile(inputEl, fileName, mime = "application/octet-stream") {
 }
 
 function getDeployButton(wrapper) {
-  return wrapper.findAll("button").find((b) => b.text().includes("Deploy Contract"));
+  return wrapper.findAll("button").find((b) => b.text().includes("tools.contractDeployer.deployContract"));
 }
 
 describe("ContractDeployerTool", () => {
@@ -63,6 +73,7 @@ describe("ContractDeployerTool", () => {
     const ContractDeployerTool = (await import("@/views/Tools/ContractDeployerTool.vue")).default;
     const wrapper = mount(ContractDeployerTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           RouterLink: true,
@@ -93,6 +104,7 @@ describe("ContractDeployerTool", () => {
     const ContractDeployerTool = (await import("@/views/Tools/ContractDeployerTool.vue")).default;
     const wrapper = mount(ContractDeployerTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           RouterLink: true,

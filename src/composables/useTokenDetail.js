@@ -166,7 +166,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
 
     function loadAllData() {
     activeName.value = defaultTab;
-    manifest.value = null;
+    manifest.value = {};
     manifestError.value = null;
     updateCounter.value = 0;
     executeTokenFetch(tokenId.value);

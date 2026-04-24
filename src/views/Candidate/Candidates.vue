@@ -1,7 +1,7 @@
 <template>
   <div class="candidates-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Candidates' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.candidates') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300">
@@ -43,7 +43,7 @@
 
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[760px]">
+          <table class="w-full min-w-[760px]" aria-label="Consensus candidates">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>

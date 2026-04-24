@@ -4,10 +4,10 @@
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Transactions', to: '/transactions/1' },
-          { label: 'Transaction', to: `/transaction-info/${txHash}` },
-          { label: 'Execution Trace' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.transactions'), to: '/transactions/1' },
+          { label: $t('breadcrumb.txDetail'), to: `/transaction-info/${txHash}` },
+          { label: $t('breadcrumb.executionTrace') },
         ]"
       />
 

@@ -1,8 +1,14 @@
 <template>
   <div
     v-if="request"
+    ref="dialogRef"
+    role="dialog"
+    tabindex="0"
+    aria-modal="true"
+    aria-label="Add Witness"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
+    @keydown.escape="$emit('close')"
   >
     <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
       <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
@@ -65,7 +71,12 @@
 
 <script setup>
 import { ref, watch, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import CopyButton from "@/components/common/CopyButton.vue";
+import { useFocusTrap } from "@/composables/useFocusTrap";
+
+const dialogRef = ref(null);
+useFocusTrap(dialogRef);
 import { supabaseService } from "@/services/supabaseService";
 import { walletService } from "@/services/walletService";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
@@ -78,6 +89,7 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "signed"]);
 const toast = useToast();
+const { t } = useI18n();
 
 const signingPayload = ref(null);
 const signerPublicKey = ref("");
@@ -161,7 +173,7 @@ watch(() => props.request, async (req) => {
     try {
       signingPayload.value = await walletService.getRawTransactionSigningPayload(req.params.unsigned_tx);
     } catch (e) {
-      console.error("Failed to prepare signing payload:", e);
+      if (import.meta.env.DEV) console.error("Failed to prepare signing payload:", e);
     }
   }
 }, { immediate: true });
@@ -239,7 +251,7 @@ async function submitWitness() {
     );
 
     if (!res.success) throw new Error(res.error);
-    toast.success("Signature added!");
+    toast.success(t('tools.governance.signModalToasts.signatureAdded'));
     emit("signed", { requestId: props.request.id });
     emit("close");
   } catch (e) {

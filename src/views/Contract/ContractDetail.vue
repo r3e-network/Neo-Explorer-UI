@@ -4,9 +4,9 @@
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[
-          { label: 'Home', to: '/homepage' },
-          { label: 'Contracts', to: '/contracts/1' },
-          { label: contract.name || 'Contract' },
+          { label: $t('breadcrumb.home'), to: '/homepage' },
+          { label: $t('breadcrumb.contracts'), to: '/contracts/1' },
+          { label: contract.name || $t('breadcrumb.contractDetail') },
         ]"
       />
 
@@ -144,6 +144,13 @@ const walletConnecting = ref(false);
 const walletError = ref("");
 const wcUri = ref("");
 const { txStatuses, track: trackTx } = useTransactionTracker();
+
+// Restore wallet state if already connected
+if (walletService.isConnected) {
+  walletConnected.value = true;
+  walletAccount.value = walletService.account;
+  walletProvider.value = walletService.provider;
+}
 
 // Computed - source code link
 const sourceCodeLocation = computed(() =>

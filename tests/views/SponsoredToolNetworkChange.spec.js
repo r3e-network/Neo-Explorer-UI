@@ -2,6 +2,13 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
 const sharedConnectedAccount = ref("");
 const envState = { value: "Mainnet" };
 const cachedRequestMock = vi.fn();

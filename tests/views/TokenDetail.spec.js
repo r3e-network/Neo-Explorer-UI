@@ -2,6 +2,12 @@ import { mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
+
 vi.mock("@/composables/useTokenDetail", () => ({
   useTokenDetail: () => ({
     isLoading: computed(() => false),
@@ -25,6 +31,7 @@ describe("TokenDetail view", () => {
     const TokenDetail = (await import("@/views/Token/TokenDetail.vue")).default;
     const wrapper = mount(TokenDetail, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           InfoRow: true,

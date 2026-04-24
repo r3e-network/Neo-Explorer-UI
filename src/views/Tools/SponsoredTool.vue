@@ -230,6 +230,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
@@ -240,6 +241,7 @@ import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 
+const { t } = useI18n();
 const toast = useToast();
 const gasBalance = ref("0");
 const operation = ref("claim");
@@ -345,7 +347,7 @@ async function executeSponsoredTx() {
   const activeProvider = walletService.provider;
   const requiresNeoLine = activeProvider === walletService.PROVIDERS.NEOLINE;
   if (requiresNeoLine && !window.NEOLineN3) {
-    toast.error("NeoLine N3 wallet not found.");
+    toast.error(t("tools.sponsored.toasts.neoLineNotFound"));
     return;
   }
 
@@ -369,10 +371,10 @@ async function executeSponsoredTx() {
     const userScriptHash = createAccount(connectedAccount.value).scriptHash;
 
     // 2. Ask the connected wallet to build and sign the transaction (but do NOT broadcast)
-    toast.info("Please sign the transaction in your connected wallet...");
+    toast.info(t("tools.sponsored.toasts.signPrompt"));
     // Ensure wallet connected via service
     if (!walletService.isConnected) {
-      toast.error("Please connect your wallet first via the header.");
+      toast.error(t("tools.sponsored.toasts.connectWalletFirst"));
       isProcessing.value = false;
       return;
     }
@@ -415,7 +417,7 @@ async function executeSponsoredTx() {
     }
 
     // 3. Send the partially signed transaction to Vercel backend to get Sponsor signature & broadcast
-    toast.info("Verifying and broadcasting sponsored transaction...");
+    toast.info(t("tools.sponsored.toasts.broadcasting"));
 
     const signRes = await fetch("/api/sponsor", {
       method: "POST",
@@ -435,11 +437,11 @@ async function executeSponsoredTx() {
     const finalResult = await signRes.json();
     txHash.value = finalResult.txid;
 
-    toast.success("Sponsored transaction successful!");
+    toast.success(t("tools.sponsored.toasts.success"));
     setTimeout(fetchBalance, 3000); // refresh balance
   } catch (e) {
-    console.error(e);
-    toast.error("Transaction failed: " + (e.message || "Unknown error"));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.sponsored.toasts.failed", { reason: e.message || t("tools.sponsored.toasts.unknownError") }));
   } finally {
     isProcessing.value = false;
   }

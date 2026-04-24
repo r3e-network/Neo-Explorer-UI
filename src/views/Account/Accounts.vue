@@ -1,7 +1,7 @@
 <template>
   <div class="accounts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'Accounts' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.accounts') }]" />
 
       <div class="mb-6 flex items-center gap-3">
         <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -15,18 +15,18 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">{{ $t("nav.accounts") || "Top Accounts" }}</h1>
-          <p class="page-subtitle">Neo N3 accounts ranked by balance</p>
+          <h1 class="page-title">{{ $t("accounts.title") }}</h1>
+          <p class="page-subtitle">{{ $t("accounts.subtitle") }}</p>
         </div>
       </div>
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
           <p class="text-mid text-sm">
-            <span v-if="!loading && total > 0"> More than {{ formatNumber(total) }} addresses found </span>
-            <span v-else>Loading addresses...</span>
+            <span v-if="!loading && total > 0">{{ $t("accounts.moreThanFound", { count: formatNumber(total) }) }}</span>
+            <span v-else>{{ $t("accounts.loadingAddresses") }}</span>
           </p>
-          <p class="text-low text-sm">Page {{ currentPage }} of {{ totalPages }}</p>
+          <p class="text-low text-sm">{{ $t("accounts.pageOf", { current: currentPage, total: totalPages }) }}</p>
         </div>
 
         <!-- Loading state -->
@@ -36,25 +36,25 @@
 
         <!-- Error state -->
         <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load accounts" :message="error" @retry="loadPage" />
+          <ErrorState :title="$t('accounts.failedToLoad')" :message="error" @retry="loadPage" />
         </div>
 
         <!-- Empty state -->
         <div v-else-if="accounts.length === 0" class="p-4">
-          <EmptyState message="No accounts found" description="No indexed addresses available yet." />
+          <EmptyState :message="$t('accounts.emptyTitle')" :description="$t('accounts.emptyDescription')" />
         </div>
 
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[900px]">
+          <table class="w-full min-w-[900px]" :aria-label="$t('accounts.tableAriaLabel')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell w-16">Rank</th>
-                <th class="table-header-cell">Address</th>
-                <th class="table-header-cell-right">NEO Balance</th>
-                <th class="table-header-cell-right">GAS Balance</th>
-                <th class="table-header-cell-right">Txn Count</th>
-                <th class="table-header-cell-right">Last Active</th>
+                <th class="table-header-cell w-16">{{ $t("accounts.colRank") }}</th>
+                <th class="table-header-cell">{{ $t("accounts.colAddress") }}</th>
+                <th class="table-header-cell-right">{{ $t("accounts.colNeoBalance") }}</th>
+                <th class="table-header-cell-right">{{ $t("accounts.colGasBalance") }}</th>
+                <th class="table-header-cell-right">{{ $t("accounts.colTxnCount") }}</th>
+                <th class="table-header-cell-right">{{ $t("accounts.colLastActive") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

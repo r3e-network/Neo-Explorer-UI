@@ -1,6 +1,14 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("vue-i18n", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useI18n: () => ({ t: (key) => key }),
+  };
+});
+
 const pushMock = vi.fn();
 const fetchPricesMock = vi.fn();
 const initWalletMock = vi.fn();
@@ -113,7 +121,7 @@ describe("AppHeader wallet CTA", () => {
 
     const button = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     expect(button).toBeTruthy();
     expect(button.attributes("class")).toContain("shrink-0");
@@ -149,7 +157,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     await connectButton.trigger("click");
     await flushPromises();
@@ -191,7 +199,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     await connectButton.trigger("click");
     await flushPromises();
@@ -236,7 +244,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     await connectButton.trigger("click");
     await flushPromises();
@@ -296,7 +304,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
     await connectButton.trigger("click");
     await flushPromises();
 
@@ -307,7 +315,7 @@ describe("AppHeader wallet CTA", () => {
     const input = wrapper.find('input[type="password"]');
     await input.setValue(directWif);
 
-    const confirmButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("Connect Testnet WIF"));
+    const confirmButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("header.connectTestnetWif"));
     await confirmButton.trigger("click");
     await flushPromises();
 
@@ -345,7 +353,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     await connectButton.trigger("click");
     await flushPromises();
@@ -385,7 +393,7 @@ describe("AppHeader wallet CTA", () => {
 
     const connectButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().trim() === "Connect Wallet");
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
 
     await connectButton.trigger("click");
     await flushPromises();

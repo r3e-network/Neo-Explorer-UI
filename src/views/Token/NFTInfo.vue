@@ -2,7 +2,7 @@
   <div class="nft-info">
     <div class="mx-auto max-w-[1400px] px-4 py-6">
       <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: 'Home', to: '/homepage' }, { label: 'NFT Detail' }]" />
+      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.nftDetail') }]" />
 
       <!-- Page Header -->
       <div class="detail-hero">

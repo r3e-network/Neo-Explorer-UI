@@ -2,7 +2,7 @@
   <div class="tool-page">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
-        :items="[{ label: 'Home', to: '/homepage' }, { label: 'Tools', to: '/tools' }, { label: 'On-Chain Message' }]"
+        :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.broadcast') }]"
       />
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -18,8 +18,8 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">On-Chain Message</h1>
-            <p class="page-subtitle">Send arbitrary data to the Neo N3 blockchain using Transaction Remarks</p>
+            <h1 class="page-title">{{ $t('tools.broadcastMessage.pageTitle') }}</h1>
+            <p class="page-subtitle">{{ $t('tools.broadcastMessage.pageSubtitle') }}</p>
           </div>
         </div>
 
@@ -29,7 +29,7 @@
             disabled
             class="inline-flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-low cursor-not-allowed"
           >
-            Connect in Header
+            {{ $t('tools.broadcastMessage.connectInHeader') }}
           </button>
           <button
             v-else
@@ -53,7 +53,7 @@
                 d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
               ></path>
             </svg>
-            {{ isSending ? "Sending..." : "Broadcast to N3" }}
+            {{ isSending ? $t('tools.broadcastMessage.sending') : $t('tools.broadcastMessage.broadcastToN3') }}
           </button>
         </div>
       </div>
@@ -73,31 +73,26 @@
                 ></path>
               </svg>
               <div class="text-sm">
-                <p class="font-bold mb-1">What is a Transaction Remark?</p>
-                <p>
-                  Remarks (Attribute Type 0x81) allow you to append custom text or binary data directly to a
-                  transaction. This data will be permanently recorded on the Neo N3 blockchain but does not affect the
-                  contract execution state. It is perfect for leaving a permanent message, a proof-of-existence document
-                  hash, or associating metadata with a transaction.
-                </p>
+                <p class="font-bold mb-1">{{ $t('tools.broadcastMessage.infoTitle') }}</p>
+                <p>{{ $t('tools.broadcastMessage.infoDescription') }}</p>
               </div>
             </div>
           </div>
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-semibold text-high">Message Payload (UTF-8)</label>
+              <label class="block text-sm font-semibold text-high">{{ $t('tools.broadcastMessage.payloadLabel') }}</label>
               <span class="text-xs font-mono" :class="messageBytes > 65535 ? 'text-red-500 font-bold' : 'text-mid'"
-                >{{ messageBytes }} / 65535 Bytes</span
+                >{{ $t('tools.broadcastMessage.bytesCounter', { bytes: messageBytes }) }}</span
               >
             </div>
             <textarea
               v-model="message"
               class="form-input w-full h-40 resize-y bg-surface text-high placeholder:text-mid/60 font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none"
-              placeholder="Enter the message or arbitrary data you want to permanently store on the blockchain... (e.g. 'Hello Neo', JSON data, or a document hash)"
+              :placeholder="$t('tools.broadcastMessage.payloadPlaceholder')"
             ></textarea>
             <p v-if="messageBytes > 65535" class="text-xs text-red-500 mt-2 font-medium">
-              Message exceeds maximum remark payload size (65535 bytes).
+              {{ $t('tools.broadcastMessage.payloadTooLarge') }}
             </p>
           </div>
 
@@ -107,14 +102,14 @@
               class="p-4 rounded-xl border border-green-200 bg-green-50 dark:border-green-900/30 dark:bg-green-900/10 text-green-800 dark:text-green-400 flex items-center justify-between"
             >
               <div>
-                <p class="text-sm font-bold mb-1">Transaction Broadcasted Successfully!</p>
+                <p class="text-sm font-bold mb-1">{{ $t('tools.broadcastMessage.txSuccess') }}</p>
                 <p class="text-xs break-all font-mono opacity-80">{{ txHash }}</p>
               </div>
               <router-link
                 :to="`/transaction-info/${txHash}`"
                 class="text-sm font-semibold hover:underline flex items-center gap-1.5 whitespace-nowrap bg-green-200/50 dark:bg-green-800/50 px-3 py-1.5 rounded-lg transition-colors hover:bg-green-300/50 dark:hover:bg-green-700/50"
               >
-                View Tx
+                {{ $t('tools.broadcastMessage.viewTx') }}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -134,12 +129,14 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { GAS_HASH } from "@/constants";
 import { useToast } from "vue-toastification";
 
+const { t } = useI18n();
 const toast = useToast();
 const message = ref("");
 const isSending = ref(false);
@@ -153,7 +150,7 @@ async function broadcastMessage() {
   if (!message.value.trim() || messageBytes.value > 65535) return;
 
   if (!walletService.isConnected) {
-    toast.error("Please connect your wallet first via the header.");
+    toast.error(t("tools.broadcastMessage.errorWalletNotConnected"));
     return;
   }
 
@@ -162,7 +159,7 @@ async function broadcastMessage() {
 
   try {
     const fromAddress = connectedAccount.value;
-    toast.info("Preparing transaction for wallet signature...");
+    toast.info(t("tools.broadcastMessage.infoPreparing"));
 
     const result = await walletService.invoke({
       scriptHash: GAS_HASH,
@@ -177,11 +174,14 @@ async function broadcastMessage() {
     });
 
     txHash.value = result.txid;
-    toast.success("Message broadcasted to Neo N3!");
+    toast.success(t("tools.broadcastMessage.successBroadcast"));
     message.value = "";
   } catch (e) {
-    console.error(e);
-    toast.error("Failed to broadcast message: " + (e.description || e.message || "User rejected"));
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(
+      t("tools.broadcastMessage.errorBroadcastPrefix") +
+        (e.description || e.message || t("tools.broadcastMessage.errorUserRejected")),
+    );
   } finally {
     isSending.value = false;
   }

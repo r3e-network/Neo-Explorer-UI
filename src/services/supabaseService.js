@@ -74,7 +74,9 @@ const flushContractMetadataBatch = async (network) => {
     const cacheKey = `${network}:${hash}`;
     const resolvers = requests.get(hash) || [];
     const cached = contractMetadataCache.get(cacheKey);
-    resolvers.forEach(({ resolve }) => resolve(cached ?? null));
+    try {
+      resolvers.forEach(({ resolve }) => resolve(cached ?? null));
+    } catch { /* resolver threw — still clean up pending entry */ }
     contractMetadataPending.delete(cacheKey);
   });
 };

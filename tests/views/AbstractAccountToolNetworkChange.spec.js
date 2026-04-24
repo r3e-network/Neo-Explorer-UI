@@ -1,5 +1,18 @@
 import { mount, flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key) => key,
+    locale: { value: "en" },
+  }),
+}));
+
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key) => key;
+  },
+};
 import { ref } from "vue";
 
 const envState = { value: "Mainnet" };
@@ -70,6 +83,7 @@ describe("AbstractAccountTool network changes", () => {
     const AbstractAccountTool = (await import("@/views/Tools/AbstractAccountTool.vue")).default;
     const wrapper = mount(AbstractAccountTool, {
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           Breadcrumb: true,
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
