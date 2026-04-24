@@ -479,7 +479,6 @@ const fr = {
         broadcastFailed: "Échec de la diffusion : {reason}",
         proposalBroadcasted: "Proposition diffusée : {txid}",
         broadcastedStatusUpdateFailed: "Proposition diffusée mais la mise à jour du statut a échoué : {reason}",
-        broadcastFailedShort: "Échec de la diffusion : {reason}",
       },
       signModalToasts: {
         preparePayloadFailed: "Échec de la préparation de la charge utile de signature : {reason}",

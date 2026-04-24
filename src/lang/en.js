@@ -480,7 +480,6 @@ const en = {
         broadcastFailed: "Failed to broadcast: {reason}",
         proposalBroadcasted: "Proposal broadcasted: {txid}",
         broadcastedStatusUpdateFailed: "Proposal broadcasted but status update failed: {reason}",
-        broadcastFailedShort: "Broadcast failed: {reason}",
       },
       signModalToasts: {
         preparePayloadFailed: "Failed to prepare signing payload: {reason}",

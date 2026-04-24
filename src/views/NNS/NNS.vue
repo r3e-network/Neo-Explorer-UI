@@ -283,6 +283,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from "@/utils/wallet";
 import nnsService from "@/services/nnsService";
 import { safeRpc } from "@/services/api";
+import { isValidNeoAddress, truncateHash } from "@/utils/addressFormat";
 import { scriptHashHexToAddress } from "@/utils/neoHelpers";
 import { NNS_HASH } from "@/constants";
 
@@ -305,8 +306,7 @@ const transferRecipient = ref("");
 const NNS_CONTRACT_HASH = NNS_HASH;
 
 function formatAccount(addr) {
-  if (!addr) return "";
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  return truncateHash(addr, 6, 4);
 }
 
 function formatDate(timestampMs) {
@@ -490,9 +490,7 @@ async function registerDomain() {
 async function transferDomain() {
   if (!account.value || !transferRecipient.value) return;
 
-  // Validate recipient address format
-  const recipient = transferRecipient.value.trim();
-  if (!recipient.startsWith("N") || recipient.length !== 34) {
+  if (!isValidNeoAddress(transferRecipient.value.trim())) {
     toast.error(t('nns.toasts.invalidRecipient'));
     return;
   }

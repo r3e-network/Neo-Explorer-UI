@@ -480,7 +480,6 @@ const ja = {
         broadcastFailed: "ブロードキャストに失敗しました: {reason}",
         proposalBroadcasted: "提案がブロードキャストされました: {txid}",
         broadcastedStatusUpdateFailed: "提案はブロードキャストされましたが、ステータスの更新に失敗しました: {reason}",
-        broadcastFailedShort: "ブロードキャストに失敗しました: {reason}",
       },
       signModalToasts: {
         preparePayloadFailed: "署名ペイロードの準備に失敗しました: {reason}",

@@ -454,6 +454,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from "@/utils/wallet";
 import nnsService from "@/services/nnsService";
 import { getCurrentEnv, NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { isValidNeoAddress } from "@/utils/addressFormat";
 import { MATRIX_HASH_TESTNET, MATRIX_HASH_MAINNET } from "@/constants";
 
 const { t } = useI18n();
@@ -647,9 +648,7 @@ async function registerDomain() {
 async function transferDomain() {
   if (!account.value || !transferRecipient.value) return;
 
-  // Validate recipient address format
-  const recipient = transferRecipient.value.trim();
-  if (!recipient.startsWith("N") || recipient.length !== 34) {
+  if (!isValidNeoAddress(transferRecipient.value.trim())) {
     toast.error(t('nns.toasts.invalidRecipient'));
     return;
   }

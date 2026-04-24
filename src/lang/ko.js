@@ -480,7 +480,6 @@ const ko = {
         broadcastFailed: "브로드캐스트 실패: {reason}",
         proposalBroadcasted: "제안이 브로드캐스트되었습니다: {txid}",
         broadcastedStatusUpdateFailed: "제안이 브로드캐스트되었지만 상태 업데이트에 실패했습니다: {reason}",
-        broadcastFailedShort: "브로드캐스트 실패: {reason}",
       },
       signModalToasts: {
         preparePayloadFailed: "서명 페이로드 준비 실패: {reason}",

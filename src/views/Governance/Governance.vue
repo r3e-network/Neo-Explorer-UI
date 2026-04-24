@@ -273,6 +273,7 @@ import { useI18n } from "vue-i18n";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { publicKeyToAddress, addressToScriptHash } from "@/utils/neoHelpers";
+import { truncateHash } from "@/utils/addressFormat";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { NEO_HASH } from "@/constants";
@@ -567,8 +568,7 @@ async function loadCurrentVoteState() {
 }
 
 function formatAccount(addr) {
-  if (!addr) return "";
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  return truncateHash(addr, 6, 4);
 }
 
 function formatVotes(votes) {

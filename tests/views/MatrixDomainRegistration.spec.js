@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
-    t: (key) => key,
+    t: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key),
     locale: { value: "en" },
   }),
 }));
@@ -96,7 +96,7 @@ describe("MatrixDomain registration", () => {
       ],
       [{ account: "13ef519c362973f9a34648a9eac5b71250b2a80a", scopes: "CalledByEntry" }]
     );
-    expect(successToast).toHaveBeenCalledWith("nns.toasts.registrationSent");
+    expect(successToast).toHaveBeenCalledWith('nns.toasts.registrationSent:{"txid":"0xtesttxid"}');
   });
 
   it("wraps long available domains so the register panel stays visible", async () => {
@@ -160,6 +160,8 @@ describe("MatrixDomain registration", () => {
     await registerButton.trigger("click");
     await flushPromises();
 
-    expect(errorToast).toHaveBeenCalledWith("nns.toasts.registrationFailedWithReason");
+    expect(errorToast).toHaveBeenCalledWith(
+      'nns.toasts.registrationFailedWithReason:{"reason":"The dAPI provider refused to process this request"}',
+    );
   });
 });

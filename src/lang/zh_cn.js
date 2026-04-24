@@ -480,7 +480,6 @@ const zh = {
         broadcastFailed: "广播失败：{reason}",
         proposalBroadcasted: "提案已广播：{txid}",
         broadcastedStatusUpdateFailed: "提案已广播，但状态更新失败：{reason}",
-        broadcastFailedShort: "广播失败：{reason}",
       },
       signModalToasts: {
         preparePayloadFailed: "准备签名载荷失败：{reason}",

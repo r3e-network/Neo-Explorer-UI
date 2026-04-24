@@ -271,6 +271,7 @@ import {
   setCurrentEnv,
 } from "@/utils/env";
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
+import { truncateHash } from "@/utils/addressFormat";
 import { loadWalletService } from "@/utils/lazyServices";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
 import { PROVIDERS } from "@/constants/walletProviders";
@@ -314,12 +315,12 @@ const chatNotificationsOpen = ref(false);
 const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value));
 const walletButtonLabel = computed(() => {
   if (!connectedAccount.value) return t("header.connectWallet");
-  return `${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`;
+  return truncateHash(connectedAccount.value, 6, 4);
 });
 const mobileWalletLabel = computed(() => (connectedAccount.value ? t("header.disconnect") : t("header.connectWallet")));
 const mobilePanelWalletLabel = computed(() =>
   connectedAccount.value
-    ? `${t("header.disconnect")} ${connectedAccount.value.slice(0, 6)}...${connectedAccount.value.slice(-4)}`
+    ? `${t("header.disconnect")} ${truncateHash(connectedAccount.value, 6, 4)}`
     : t("header.connectWallet")
 );
 
@@ -438,10 +439,10 @@ async function handleConnect(provider) {
           localStorage.setItem("connectedWallet", account.address);
           localStorage.setItem("walletProvider", provider);
           await bootstrapChatSession();
-          toast.success(t('header.connectedAs', { address: `${account.address.slice(0, 6)}...${account.address.slice(-4)}` }));
+          toast.success(t("header.connectedAs", { address: truncateHash(account.address, 6, 4) }));
         } catch(e) {
           wcUri.value = "";
-          toast.error(e?.message || t('header.walletConnectRejected'));
+          toast.error(e?.message || t("header.walletConnectRejected"));
         }
         return;
      }
@@ -459,13 +460,13 @@ async function handleConnect(provider) {
        resetDevWifForm();
        showWalletModal.value = false;
        await bootstrapChatSession();
-       toast.success(t('header.connectedAs', { address: `${result.address.slice(0, 6)}...${result.address.slice(-4)}` }));
+       toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
      }
   } catch (err) {
      let errMsg = err?.message;
      if (!errMsg && err?.description) errMsg = err.description;
      if (!errMsg && err?.error?.message) errMsg = err.error.message;
-     toast.error(errMsg || t('header.connectWalletFailed'));
+     toast.error(errMsg || t("header.connectWalletFailed"));
   } finally {
      walletLoading.value = false;
   }
@@ -488,10 +489,10 @@ async function handleDevWifConnect() {
       resetDevWifForm();
       showWalletModal.value = false;
       await bootstrapChatSession();
-      toast.success(t('header.connectedAs', { address: `${result.address.slice(0, 6)}...${result.address.slice(-4)}` }));
+      toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
     }
   } catch (err) {
-    const errMsg = err?.message || err?.description || t('header.connectWalletFailed');
+    const errMsg = err?.message || err?.description || t("header.connectWalletFailed");
     toast.error(errMsg);
   } finally {
     walletLoading.value = false;

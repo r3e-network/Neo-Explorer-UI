@@ -755,7 +755,7 @@ async function handleBroadcast(currentProposal) {
     }
     await loadProposal();
   } catch (error) {
-    toast.error(t('tools.governance.toasts.broadcastFailedShort', { reason: error.message }));
+    toast.error(t('tools.governance.toasts.broadcastFailed', { reason: error.message }));
   }
 }
 
