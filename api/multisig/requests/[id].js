@@ -1,4 +1,5 @@
 const { query } = require("../../lib/db");
+const { enforceMultisigMutationPolicy } = require("../../lib/multisigMutations");
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -64,6 +65,13 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "PATCH") {
       const body = req.body || {};
+      if (!enforceMultisigMutationPolicy(req, res, {
+        operation: "update-request",
+        key: `${id}:${body.status || "status"}`,
+      })) {
+        return;
+      }
+
       const sets = [];
       const values = [id];
 

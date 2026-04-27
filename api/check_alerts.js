@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
+const { isCronAuthorized, unauthorizedCronResponse } = require('./lib/cronAuth');
 
 module.exports.config = {
   runtime: 'edge',
@@ -7,8 +8,12 @@ module.exports.config = {
 
 // Initialization
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY; // You need to add this in Vercel Dashboard
 
@@ -43,6 +48,15 @@ const postRpc = async (url, method, params = []) => {
 
 const rpcCall = (network, method, params = []) =>
   callWithRpcEndpointFallback(network, (url) => postRpc(url, method, params));
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const indexedRpcCall = async (network, method, params = {}) => {
   const candidates = getIndexedRpcCandidates(network);
@@ -121,7 +135,7 @@ async function checkNetworkAlerts(network) {
         const thresholdMs = alert.threshold * 1000;
         if (timeSinceLastBlock > thresholdMs) {
           triggered = true;
-          subject = `⚠️ Neo ${network.toUpperCase()} Alert: Consensus Delayed`;
+          subject = `Neo ${network.toUpperCase()} Alert: Consensus Delayed`;
           message = `
             <h2>Neo Network Alert</h2>
             <p>The Neo ${network} network has not generated a block for over <strong>${alert.threshold} seconds</strong>.</p>
@@ -167,10 +181,10 @@ async function checkNetworkAlerts(network) {
             // Trigger if miss count reaches threshold (e.g. 3)
             if (currentMissCount >= 3) {
               triggered = true;
-              subject = `🚨 Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
+              subject = `Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
               message = `
                 <h2>Consensus Node Alert</h2>
-                <p>The node with public key <strong>${targetPubKey}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
+                <p>The node with public key <strong>${escapeHtml(targetPubKey)}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
                 <p>Last Block Height: ${blockCount - 1}</p>
               `;
             }
@@ -198,12 +212,12 @@ async function checkNetworkAlerts(network) {
             if (lastSeenHash && txHash !== lastSeenHash) {
               // We have a new transaction!
               triggered = true;
-              subject = `🔔 Neo ${network.toUpperCase()} Alert: New Account Activity`;
+              subject = `Neo ${network.toUpperCase()} Alert: New Account Activity`;
               message = `
                 <h2>Account Activity Detected</h2>
-                <p>A new transaction has occurred involving your tracked address: <strong>${targetAddress}</strong></p>
-                <p>Transaction Hash: <strong>${txHash}</strong></p>
-                <p>View it on the explorer: <a href="https://explorer.neo.org/transaction/${txHash}">https://explorer.neo.org/transaction/${txHash}</a></p>
+                <p>A new transaction has occurred involving your tracked address: <strong>${escapeHtml(targetAddress)}</strong></p>
+                <p>Transaction Hash: <strong>${escapeHtml(txHash)}</strong></p>
+                <p>View it on the explorer: <a href="https://explorer.neo.org/transaction/${encodeURIComponent(txHash)}">https://explorer.neo.org/transaction/${escapeHtml(txHash)}</a></p>
               `;
             }
 
@@ -248,6 +262,10 @@ async function checkNetworkAlerts(network) {
 }
 
 module.exports = async function handler(req) {
+  if (!isCronAuthorized(req)) {
+    return unauthorizedCronResponse();
+  }
+
   try {
     const mainnetCount = await checkNetworkAlerts('mainnet');
     const testnetCount = await checkNetworkAlerts('testnet');

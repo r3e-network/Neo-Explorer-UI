@@ -55,4 +55,12 @@ describe("chatAuth helpers", () => {
       })
     ).resolves.toBe(true);
   });
+
+  it("rejects JSON bodies above the configured limit", async () => {
+    const { readJsonBody } = await import("../../api/lib/chatAuth.js");
+
+    await expect(
+      readJsonBody({ body: JSON.stringify({ body: "x".repeat(32) }) }, { maxBytes: 16 })
+    ).rejects.toThrow(/too large/i);
+  });
 });

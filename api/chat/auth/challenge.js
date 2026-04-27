@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { CHALLENGE_TTL_MS, createChallengeMessage, json, normalizeAddress, readJsonBody } = require("../../lib/chatAuth");
+const { enforceSimpleRateLimit } = require("../../lib/simpleRateLimit");
 const { createChallenge, updateChallengeMessage } = require("../../lib/chatSupabase");
 const { withApiTelemetry } = require("../../lib/telemetry");
 
@@ -9,7 +10,17 @@ async function handler(req, res) {
   }
 
   try {
-    const body = await readJsonBody(req);
+    if (!enforceSimpleRateLimit({
+      req,
+      res,
+      prefix: "chat-challenge",
+      key: "create",
+      windowMs: 60_000,
+      maxRequests: Number(process.env.CHAT_CHALLENGE_RATE_LIMIT_PER_MINUTE || 10),
+    })) {
+      return;
+    }
+    const body = await readJsonBody(req, { maxBytes: 2048 });
     const address = normalizeAddress(body.address);
     const nonce = crypto.randomBytes(16).toString("hex");
     const issuedAt = new Date().toISOString();

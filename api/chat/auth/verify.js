@@ -8,6 +8,7 @@ const {
   serializeSessionCookie,
   verifyChallengeSignature,
 } = require("../../lib/chatAuth");
+const { enforceSimpleRateLimit } = require("../../lib/simpleRateLimit");
 const { consumeChallenge, getChallengeById } = require("../../lib/chatSupabase");
 const { withApiTelemetry } = require("../../lib/telemetry");
 
@@ -17,7 +18,17 @@ async function handler(req, res) {
   }
 
   try {
-    const body = await readJsonBody(req);
+    if (!enforceSimpleRateLimit({
+      req,
+      res,
+      prefix: "chat-verify",
+      key: "verify",
+      windowMs: 60_000,
+      maxRequests: Number(process.env.CHAT_VERIFY_RATE_LIMIT_PER_MINUTE || 20),
+    })) {
+      return;
+    }
+    const body = await readJsonBody(req, { maxBytes: 4096 });
     const challengeId = String(body.challengeId || "").trim();
     const address = normalizeAddress(body.address);
     const publicKey = String(body.publicKey || "").trim();

@@ -1,3 +1,5 @@
+const net = require('node:net');
+
 const DEFAULT_POLICIES = Object.freeze({
     info: Object.freeze({ windowMs: 60_000, maxRequests: 60 }),
     prepare: Object.freeze({ windowMs: 60_000, maxRequests: 30 }),
@@ -28,8 +30,7 @@ function sanitizeHex(hexStr) {
 function isValidIpCandidate(value) {
     const ip = String(value || '').trim();
     if (!ip || ip.length > 64) return false;
-    if (!/^[0-9a-fA-F:.]+$/.test(ip)) return false;
-    return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip) || /^[0-9a-fA-F:]+$/.test(ip);
+    return net.isIP(ip) !== 0;
 }
 
 function getClientIp(req, { trustProxy = false } = {}) {

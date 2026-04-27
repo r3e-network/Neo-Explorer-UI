@@ -79,6 +79,7 @@ import { formatNumber } from "@/utils/explorerFormat";
 import { nepBadgeClass } from "@/utils/nepBadges";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { sanitizeEmailAddress, sanitizeHttpUrl } from "@/utils/urlSafety";
 
 const props = defineProps({
   contract: { type: Object, required: true },
@@ -93,7 +94,7 @@ const props = defineProps({
 const manifestExtra = computed(() => props.manifest?.extra || {});
 const displayName = computed(() => props.metadata?.name || props.manifest?.name || props.contract.name || '-');
 const developerName = computed(() => manifestExtra.value?.Author || manifestExtra.value?.author || '');
-const developerEmail = computed(() => manifestExtra.value?.Email || manifestExtra.value?.email || '');
+const developerEmail = computed(() => sanitizeEmailAddress(manifestExtra.value?.Email || manifestExtra.value?.email || ''));
 const contractDescription = computed(() => manifestExtra.value?.Description || manifestExtra.value?.description || '');
-const sourceCodeUrl = computed(() => manifestExtra.value?.Sourcecode || manifestExtra.value?.sourcecode || '');
+const sourceCodeUrl = computed(() => sanitizeHttpUrl(manifestExtra.value?.Sourcecode || manifestExtra.value?.sourcecode || ''));
 </script>

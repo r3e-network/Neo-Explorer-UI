@@ -135,6 +135,10 @@ export async function initWallet() {
   } else if (provider === PROVIDERS.TESTNET_WIF) {
     try {
       const wif = sessionStorage.getItem("devTestWif") || "";
+      if (!wif) {
+        clearStoredWalletState();
+        return;
+      }
       const account = await walletService.restoreSession(PROVIDERS.TESTNET_WIF, { wif });
       if (account && account.address) {
         connectedAccount.value = account.address;

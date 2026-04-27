@@ -1,4 +1,5 @@
 const { json, normalizeAddress, readJsonBody, readSessionFromRequest } = require("../lib/chatAuth");
+const { enforceSimpleRateLimit } = require("../lib/simpleRateLimit");
 const { withApiTelemetry } = require("../lib/telemetry");
 const {
   findRoomByParticipants,
@@ -33,9 +34,10 @@ async function handler(req, res) {
       if (room.participant_low_address !== session.address && room.participant_high_address !== session.address) {
         throw new Error("Unauthorized chat room access.");
       }
+      const requestedLimit = Number(req.query.limit || 50);
       const messages = await listMessagesForRoom(roomId, {
         before: req.query.before ? String(req.query.before) : "",
-        limit: req.query.limit ? Number(req.query.limit) : 50,
+        limit: Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50,
       });
       return json(res, 200, { messages });
     }
@@ -44,7 +46,17 @@ async function handler(req, res) {
       return json(res, 405, { error: "Method not allowed." });
     }
 
-    const body = await readJsonBody(req);
+    if (!enforceSimpleRateLimit({
+      req,
+      res,
+      prefix: "chat-message",
+      key: session?.address || "unknown",
+      windowMs: 60_000,
+      maxRequests: Number(process.env.CHAT_MESSAGE_RATE_LIMIT_PER_MINUTE || 30),
+    })) {
+      return;
+    }
+    const body = await readJsonBody(req, { maxBytes: 4096 });
     const recipientAddress = normalizeAddress(body.recipientAddress);
     const recipientLabel = String(body.recipientLabel || "").trim();
     const messageBody = sanitizeMessageBody(body.body);

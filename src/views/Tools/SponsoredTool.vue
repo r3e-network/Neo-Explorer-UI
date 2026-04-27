@@ -426,6 +426,9 @@ async function executeSponsoredTx() {
         action: "sign",
         transactionHex: signedTxRes.signedTx,
         network: networkMode,
+        operation: operation.value,
+        userAddress: connectedAccount.value,
+        ...(operation.value === "vote" ? { candidatePubKey: candidatePubKey.value.trim() } : {}),
       }),
     });
 

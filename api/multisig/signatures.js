@@ -1,5 +1,6 @@
 const { query } = require("../lib/db");
 const { verifyGovernanceWitness } = require("../lib/governanceSignature");
+const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -26,6 +27,12 @@ module.exports = async function handler(req, res) {
     }
     if (!signature || signature.length < 128) {
       return res.status(400).json({ error: "Valid signature is required (at least 128 hex chars)." });
+    }
+    if (!enforceMultisigMutationPolicy(req, res, {
+      operation: "add-signature",
+      key: `${requestId}:${signerAddress}`,
+    })) {
+      return;
     }
 
     const { rows: requestRows } = await query(

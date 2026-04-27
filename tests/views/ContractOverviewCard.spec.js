@@ -116,6 +116,44 @@ describe("ContractOverviewCard", () => {
     expect(sourceRow.attributes("href")).toBe("https://github.com/neo-project/non-native-contracts");
   });
 
+  it("does not render unsafe manifest source code or email links", () => {
+    const wrapper = mount(ContractOverviewCard, {
+      props: {
+        contract: {
+          hash: "0x0123456789abcdef0123456789abcdef01234567",
+          name: "ContractFromIndex",
+          sender: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+          totalsccall: 12,
+          updatecounter: 1,
+        },
+        metadata: null,
+        manifest: {
+          name: "ManifestContractName",
+          extra: {
+            Sourcecode: "javascript:alert(1)",
+            Email: "dev@example.com?subject=<script>",
+          },
+        },
+        isVerified: true,
+        supportedStandards: [],
+        methodsCount: 4,
+        eventsCount: 2,
+      },
+      global: {
+        stubs: {
+          InfoRow: {
+            props: ["label", "value", "tooltip", "copyable", "copyValue"],
+            template: '<div :data-label="label"><slot>{{ value }}</slot></div>',
+          },
+          HashLink: true,
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-label="Source Code"]').exists()).toBe(false);
+    expect(wrapper.find('[data-label="Developer Email"]').exists()).toBe(false);
+  });
+
   it("renders known contract branding when the creator address belongs to a known contract", async () => {
     const wrapper = mount(ContractOverviewCard, {
       props: {

@@ -9,19 +9,6 @@
     "approve",
     "getNonce",
     "getNonceForAccount",
-    "getNonceForAddress",
-    "setWhitelistByAddress",
-    "setWhitelistModeByAddress",
-    "setWhitelist",
-    "setWhitelistMode",
-    "setBlacklistByAddress",
-    "setBlacklist",
-    "setMaxTransferByAddress",
-    "setMaxTransfer",
-    "setAdminsByAddress",
-    "setAdmins",
-    "setManagersByAddress",
-    "setManagers",
-    "bindAccountAddress"
+    "getNonceForAddress"
   ]
 }

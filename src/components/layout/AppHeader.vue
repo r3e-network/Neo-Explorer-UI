@@ -452,7 +452,6 @@ async function handleConnect(provider) {
        if (result.persistSession === "session") {
          sessionStorage.setItem("connectedWallet", result.address);
          sessionStorage.setItem("walletProvider", provider);
-         sessionStorage.setItem("devTestWif", devWifInput.value.trim());
        } else if (result.persistSession !== false) {
          localStorage.setItem("connectedWallet", result.address);
          localStorage.setItem("walletProvider", provider);
@@ -484,7 +483,6 @@ async function handleDevWifConnect() {
       if (result.persistSession === "session") {
         sessionStorage.setItem("connectedWallet", result.address);
         sessionStorage.setItem("walletProvider", PROVIDERS.TESTNET_WIF);
-        sessionStorage.setItem("devTestWif", devWifInput.value.trim());
       }
       resetDevWifForm();
       showWalletModal.value = false;

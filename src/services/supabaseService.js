@@ -1,29 +1,14 @@
-import { createClient } from '@supabase/supabase-js'
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { optimizeLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 import { decodeStackItem } from "@/utils/resultDecoder";
 import { rpc } from "@/services/api";
+import { sanitizeHttpUrl } from "@/utils/urlSafety";
 
 const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
-const LEGACY_HOSTED_SUPABASE_URL_PATTERN = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i;
-const PUBLIC_SUPABASE_WORKER_BASE_URL = "https://api.n3index.dev";
-const resolvePublicSupabaseUrl = (value) => {
-  const normalized = normalizeBaseUrl(value);
-  if (!normalized) return "";
-  if (LEGACY_HOSTED_SUPABASE_URL_PATTERN.test(normalized)) {
-    return PUBLIC_SUPABASE_WORKER_BASE_URL;
-  }
-  return normalized;
-};
 
-const supabaseUrl = resolvePublicSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-// Create a single supabase client for interacting with your database
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// Deprecated compatibility export. The browser no longer owns direct Supabase table access.
+export const supabase = null;
 
 // In-memory caches to avoid redundant requests during a session
 const contractMetadataCache = new Map();
@@ -349,6 +334,7 @@ const normalizeContractMetadata = (item = {}) => {
     display_name: displayName,
     name: displayName || symbol || contractHash,
     symbol,
+    website: sanitizeHttpUrl(item.website || item.url || ""),
     logo_url: optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "contract" }),
     is_verified: Boolean(item.is_verified),
   };
@@ -400,22 +386,6 @@ const getAddressTagCacheEntry = (network, address) => {
   return (
     addressTagCache.get(`${network}:${normalized}`) ??
     addressTagCache.get(`${network}:${normalized.toLowerCase()}`)
-  );
-};
-
-const isMissingSupabaseColumnError = (error, column) => {
-  const normalizedColumn = String(column || "").trim().toLowerCase();
-  if (!normalizedColumn) return false;
-
-  const details = [error?.message, error?.details, error?.hint, error?.code]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return Boolean(
-    details &&
-      details.includes(normalizedColumn) &&
-      (details.includes("column") || details.includes("schema") || details.includes("does not exist"))
   );
 };
 
@@ -473,24 +443,6 @@ const hydrateRequestSignatures = (request) => {
   };
 };
 
-const fetchSupabaseRowsForNetwork = async (queryFactory, network) => {
-  for (const column of ["network", "network_mode"]) {
-    try {
-      const { data, error } = await queryFactory().eq(column, network);
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      if (!isMissingSupabaseColumnError(error, column)) {
-        throw error;
-      }
-    }
-  }
-
-  const { data, error } = await queryFactory();
-  if (error) throw error;
-  return data || [];
-};
-
 export const supabaseService = {
   async getContractMetadata(hash, networkMode) {
     if (!hash) return null;
@@ -535,8 +487,6 @@ export const supabaseService = {
     const toFetch = normalizedHashes.filter((hash) => !contractMetadataCache.has(`${network}:${hash}`));
 
     if (toFetch.length > 0) {
-      let loadedFromIndexer = false;
-      let indexerError = null;
       try {
         const query = `?hashes=${encodeURIComponent(toFetch.join(","))}&limit=${Math.min(
           Math.max(toFetch.length, 1),
@@ -553,33 +503,9 @@ export const supabaseService = {
           if (!normalized) return;
           contractMetadataCache.set(`${network}:${normalized.contract_hash}`, normalized);
         });
-        loadedFromIndexer = true;
       } catch (err) {
-        indexerError = err;
+        toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
         if (import.meta.env.DEV) console.warn("Indexer contract metadata fetch failed:", err);
-      }
-
-      if (!loadedFromIndexer && supabase && !isTransientIndexerMetadataError(indexerError)) {
-        try {
-          const data = await fetchSupabaseRowsForNetwork(
-            () => supabase
-              .from("contract_metadata")
-              .select("*")
-              .in("contract_hash", toFetch),
-            network
-          );
-
-          toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
-          if (data) {
-            data.forEach((item) => {
-              const normalized = normalizeContractMetadata(item);
-              if (!normalized) return;
-              contractMetadataCache.set(`${network}:${normalized.contract_hash}`, normalized);
-            });
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) console.error("Supabase batch fetch error:", err);
-        }
       }
     }
 
@@ -647,8 +573,6 @@ export const supabaseService = {
     const toFetch = queryAddresses.filter((addr) => getAddressTagCacheEntry(network, addr) === undefined);
 
     if (toFetch.length > 0) {
-      let loadedFromIndexer = false;
-      let indexerError = null;
       try {
         const query = `?addresses=${encodeURIComponent(toFetch.join(","))}&limit=${Math.min(
           Math.max(toFetch.length, 1),
@@ -667,36 +591,9 @@ export const supabaseService = {
           const aliases = requestedAliases.get(normalized.address) || [];
           aliases.forEach((alias) => setAddressTagCacheEntry(network, alias, normalized));
         });
-        loadedFromIndexer = true;
       } catch (err) {
-        indexerError = err;
+        toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
         if (import.meta.env.DEV) console.warn("Indexer address metadata fetch failed:", err);
-      }
-
-      if (!loadedFromIndexer && supabase && !isTransientIndexerMetadataError(indexerError)) {
-        try {
-          const data = await fetchSupabaseRowsForNetwork(
-            () => supabase
-              .from("address_tags")
-              .select("address, label, category")
-              .in("address", toFetch),
-            network
-          );
-
-          toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
-
-          if (data) {
-            data.forEach((item) => {
-              const normalized = normalizeAddressMetadata(item);
-              if (!normalized) return;
-              setAddressTagCacheEntry(network, normalized.address, normalized);
-              const aliases = requestedAliases.get(normalized.address) || [];
-              aliases.forEach((alias) => setAddressTagCacheEntry(network, alias, normalized));
-            });
-          }
-        } catch (err) {
-          if (import.meta.env.DEV) console.error("Supabase batch tag fetch error:", err);
-        }
       }
     }
 
@@ -861,29 +758,32 @@ export const supabaseService = {
   },
 
   async getMempoolTransactions(network, limit = 1000) {
-    if (!supabase) return [];
     try {
-      const { data, error } = await supabase
-        .from('mempool_transactions')
-        .select('*')
-        .eq('network', network)
-        .order('timestamp', { ascending: false })
-        .limit(limit);
-      if (error) return [];
-      return data || [];
+      const params = new URLSearchParams({
+        network: getNetworkMode(network),
+        limit: String(Math.min(Math.max(Number(limit) || 1000, 1), 1000)),
+      });
+      const res = await fetch(`/api/mempool?${params.toString()}`);
+      if (!res.ok) return [];
+      const payload = await res.json().catch(() => ({}));
+      return Array.isArray(payload.data) ? payload.data : [];
     } catch {
       return [];
     }
   },
 
   async saveNetworkAlert(alertData) {
-    if (!supabase) return { success: false, error: 'Supabase not configured' };
     try {
-      const { data, error } = await supabase
-        .from('network_alerts')
-        .insert([alertData]);
-      if (error) throw error;
-      return { success: true, data };
+      const res = await fetch("/api/network_alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(alertData || {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return { success: true, data: data.data };
     } catch (err) {
       return { success: false, error: err.message };
     }

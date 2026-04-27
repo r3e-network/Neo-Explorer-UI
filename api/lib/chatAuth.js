@@ -183,15 +183,29 @@ function json(res, status, payload, extraHeaders = {}) {
   return res.status(status).json(payload);
 }
 
-async function readJsonBody(req) {
-  if (req?.body && typeof req.body === "object") return req.body;
+async function readJsonBody(req, { maxBytes = 8192 } = {}) {
+  if (req?.body && typeof req.body === "object") {
+    if (Buffer.byteLength(JSON.stringify(req.body), "utf8") > maxBytes) {
+      throw new Error("Request body is too large.");
+    }
+    return req.body;
+  }
   if (typeof req?.body === "string" && req.body) {
+    if (Buffer.byteLength(req.body, "utf8") > maxBytes) {
+      throw new Error("Request body is too large.");
+    }
     return JSON.parse(req.body);
   }
 
   const chunks = [];
+  let size = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > maxBytes) {
+      throw new Error("Request body is too large.");
+    }
+    chunks.push(buffer);
   }
   const text = Buffer.concat(chunks).toString("utf8").trim();
   return text ? JSON.parse(text) : {};

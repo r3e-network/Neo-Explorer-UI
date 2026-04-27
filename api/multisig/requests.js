@@ -1,4 +1,5 @@
 const { query } = require("../lib/db");
+const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -57,6 +58,13 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "POST") {
       const body = req.body || {};
+      if (!enforceMultisigMutationPolicy(req, res, {
+        operation: "create-request",
+        key: `${body.network || body.network_mode || "unknown"}:${body.creator_address || "unknown"}`,
+      })) {
+        return;
+      }
+
       const columns = [];
       const values = [];
       const placeholders = [];

@@ -2,6 +2,86 @@ const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndp
 const { captureApiException, withApiTelemetry } = require('./lib/telemetry');
 
 const loadSdk = () => import("@r3e/neo-js-sdk/browser");
+const NEO_CONTRACT_HASH = "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const DEFAULT_MAX_NETWORK_FEE = 50000000n; // 0.5 GAS
+const SPONSOR_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const SPONSOR_RATE_LIMIT_MAX = 10;
+const sponsorRateLimits = new Map();
+
+const normalizeHex = (value = "") => String(value || "").trim().replace(/^0x/i, "").toLowerCase();
+
+const isSponsorEnabled = () => {
+  const value = String(process.env.SPONSOR_ENABLED || process.env.SPONSORED_ENABLED || "").trim().toLowerCase();
+  return value === "true" || value === "1";
+};
+
+const getClientKey = (req) =>
+  String(
+    req.headers["x-forwarded-for"] ||
+      req.headers["x-real-ip"] ||
+      req.socket?.remoteAddress ||
+      "unknown",
+  )
+    .split(",")[0]
+    .trim();
+
+const checkRateLimit = (key) => {
+  const now = Date.now();
+  const current = sponsorRateLimits.get(key);
+  if (!current || now - current.startedAt > SPONSOR_RATE_LIMIT_WINDOW_MS) {
+    sponsorRateLimits.set(key, { startedAt: now, count: 1 });
+    return true;
+  }
+
+  current.count += 1;
+  return current.count <= SPONSOR_RATE_LIMIT_MAX;
+};
+
+const getSignerScope = (signer) => Number(signer?.scopes ?? signer?.scope ?? 0);
+
+const getMaxNetworkFee = () => {
+  try {
+    const configured = BigInt(String(process.env.SPONSOR_MAX_NETWORK_FEE || DEFAULT_MAX_NETWORK_FEE));
+    return configured > 0n ? configured : DEFAULT_MAX_NETWORK_FEE;
+  } catch {
+    return DEFAULT_MAX_NETWORK_FEE;
+  }
+};
+
+function expectedSponsoredScript(sdk, { operation, userAddress, candidatePubKey }) {
+  const userScriptHash = normalizeHex(new sdk.wallet.Account(userAddress).scriptHash);
+  const normalizedOperation = String(operation || "").trim().toLowerCase();
+
+  if (normalizedOperation === "claim") {
+    return sdk.sc.createScript({
+      scriptHash: NEO_CONTRACT_HASH,
+      operation: "transfer",
+      args: [
+        sdk.sc.ContractParam.hash160(userScriptHash),
+        sdk.sc.ContractParam.hash160(userScriptHash),
+        sdk.sc.ContractParam.integer(0),
+        sdk.sc.ContractParam.any(null),
+      ],
+    });
+  }
+
+  if (normalizedOperation === "vote") {
+    const pubKey = normalizeHex(candidatePubKey);
+    if (!/^(02|03)[0-9a-f]{64}$/.test(pubKey)) {
+      throw new Error("A valid candidate public key is required for sponsored votes.");
+    }
+    return sdk.sc.createScript({
+      scriptHash: NEO_CONTRACT_HASH,
+      operation: "vote",
+      args: [
+        sdk.sc.ContractParam.hash160(userScriptHash),
+        sdk.sc.ContractParam.publicKey(pubKey),
+      ],
+    });
+  }
+
+  throw new Error("Unsupported sponsored operation.");
+}
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,8 +89,17 @@ async function handler(req, res) {
   }
 
   try {
-    const { tx, wallet, rpc } = await loadSdk();
-    const { action, transactionHex, network } = req.body;
+    const sdk = await loadSdk();
+    const { tx, wallet, rpc } = sdk;
+    const { action, transactionHex, network, operation, userAddress, candidatePubKey } = req.body;
+
+    if (!isSponsorEnabled()) {
+      return res.status(503).json({ error: "Sponsored transactions are disabled." });
+    }
+
+    if (!checkRateLimit(getClientKey(req))) {
+      return res.status(429).json({ error: "Too many sponsored transaction requests." });
+    }
     
     const sponsorWif = process.env.SPONSORED_WIF;
     if (!sponsorWif) {
@@ -39,16 +128,22 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'First signer must be the sponsor account' });
     }
 
-    // Security check: Ensure the transaction script is only doing a safe operation (vote or self-transfer)
-    // For a real production app, we would parse `transaction.script` and verify it strictly matches:
-    // 1. NEO transfer to self
-    // 2. NEO vote
-    // To keep it simple but safe-ish, we just restrict to NEO contract hash inside the script.
-    // The NEO script hash is 0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5 (little endian: f563ea40bc283d4d0e05a33805f2a07340ef)
-    // If the script contains any other contract hash, we reject it.
+    const expectedScript = normalizeHex(expectedSponsoredScript(sdk, { operation, userAddress, candidatePubKey }));
+    const actualScript = normalizeHex(transaction.script?.toString?.() || transaction.script);
+    if (!expectedScript || actualScript !== expectedScript) {
+      return res.status(400).json({ error: "Transaction script is not an allowed sponsored operation." });
+    }
+
+    const userScriptHash = normalizeHex(new wallet.Account(userAddress).scriptHash);
+    if (normalizeHex(transaction.signers[1].account) !== userScriptHash) {
+      return res.status(400).json({ error: "Second signer must be the requesting account." });
+    }
+    if (getSignerScope(transaction.signers[0]) !== 0 || getSignerScope(transaction.signers[1]) !== 1) {
+      return res.status(400).json({ error: "Unexpected signer scopes for sponsored transaction." });
+    }
     
     // Check fee limit (e.g. max network fee 0.5 GAS)
-    if (transaction.networkFee > 50000000) { // 0.5 GAS
+    if (BigInt(String(transaction.networkFee || 0)) > getMaxNetworkFee()) {
        return res.status(400).json({ error: 'Network fee too high' });
     }
 
@@ -84,8 +179,7 @@ async function handler(req, res) {
     let userWitness = originalTx.witnesses.find(w => w.invocation && w.invocation.length > 0);
     
     if (!userWitness) {
-        // Fallback if NeoLine appended it in a weird way
-        userWitness = originalTx.witnesses[0];
+        return res.status(400).json({ error: "User witness is required." });
     }
     
     transaction.witnesses = sponsorWitnessObj ? [sponsorWitnessObj, userWitness] : [userWitness];

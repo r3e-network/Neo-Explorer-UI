@@ -1,4 +1,5 @@
 const { json, normalizeAddress, readJsonBody, readSessionFromRequest } = require("../lib/chatAuth");
+const { enforceSimpleRateLimit } = require("../lib/simpleRateLimit");
 const { findRoomByParticipants, shapeRoomForAddress, upsertRoom } = require("../lib/chatSupabase");
 const { withApiTelemetry } = require("../lib/telemetry");
 
@@ -9,7 +10,17 @@ async function handler(req, res) {
 
   try {
     const session = readSessionFromRequest(req);
-    const body = await readJsonBody(req);
+    if (!enforceSimpleRateLimit({
+      req,
+      res,
+      prefix: "chat-room",
+      key: session?.address || "unknown",
+      windowMs: 60_000,
+      maxRequests: Number(process.env.CHAT_ROOM_RATE_LIMIT_PER_MINUTE || 20),
+    })) {
+      return;
+    }
+    const body = await readJsonBody(req, { maxBytes: 2048 });
     const peerAddress = normalizeAddress(body.peerAddress);
     const peerLabel = String(body.peerLabel || "").trim();
 

@@ -322,7 +322,7 @@ describe("AppHeader wallet CTA", () => {
     expect(walletServiceMock.connect).toHaveBeenCalledWith("Testnet WIF (Local Dev)", { wif: directWif });
     expect(localStorage.getItem("walletProvider")).toBeNull();
     expect(sessionStorage.getItem("walletProvider")).toBe("Testnet WIF (Local Dev)");
-    expect(sessionStorage.getItem("devTestWif")).toBe(directWif);
+    expect(sessionStorage.getItem("devTestWif")).toBeNull();
   });
 
   it("redirects unavailable wallets to their install pages", async () => {

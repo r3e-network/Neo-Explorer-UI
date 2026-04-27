@@ -106,7 +106,7 @@
                   <button
                     @click="triggerLogoInput(field.id)"
                     class="shrink-0 btn-outline flex items-center justify-center gap-2 text-sm px-4 py-2"
-                    :disabled="isUploadingLogo"
+                    :disabled="isUploadingLogo || !isFactoryMockEnabled"
                   >
                     <svg v-if="isUploadingLogo" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -157,7 +157,7 @@
             <div class="pt-6 mt-6 border-t border-line-soft flex items-center justify-end">
               <button
                 @click="deployFactoryContract"
-                :disabled="!connectedAccount || isDeploying || !isFormValid"
+                :disabled="!connectedAccount || isDeploying || !isFormValid || !isFactoryMockEnabled"
                 class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-8 py-2.5 text-sm font-bold text-white hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95"
               >
                 <svg v-if="isDeploying" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -221,6 +221,9 @@ const isDeploying = ref(false);
 const isUploadingLogo = ref(false);
 const txHash = ref("");
 const formData = ref({});
+const isFactoryMockEnabled = computed(
+  () => Boolean(import.meta.env.DEV) || import.meta.env.VITE_ENABLE_CONTRACT_FACTORY_MOCK === "true",
+);
 
 const templates = computed(() => ({
   nep17: {
@@ -374,6 +377,10 @@ function setLogoInputRef(id) {
   };
 }
 function triggerLogoInput(id) {
+  if (!isFactoryMockEnabled.value) {
+    toast.error("Contract factory demo actions are disabled in this deployment.");
+    return;
+  }
   const el = inputRefs.value[id];
   if (el) el.click();
 }
@@ -381,6 +388,12 @@ function triggerLogoInput(id) {
 async function uploadLogoToNeoFS(e, fieldId) {
   const file = e.target.files[0];
   if (!file) return;
+
+  if (!isFactoryMockEnabled.value) {
+    toast.error("Contract factory demo actions are disabled in this deployment.");
+    e.target.value = null;
+    return;
+  }
 
   if (!walletService.isConnected) {
     toast.error(t("tools.contractFactory.toasts.connectFirst"));
@@ -415,6 +428,11 @@ async function uploadLogoToNeoFS(e, fieldId) {
 
 async function deployFactoryContract() {
   if (!connectedAccount.value || !isFormValid.value) return;
+
+  if (!isFactoryMockEnabled.value) {
+    toast.error("Contract factory demo actions are disabled in this deployment.");
+    return;
+  }
 
   if (!walletService.isConnected) {
     toast.error(t("tools.contractFactory.toasts.connectFirst"));

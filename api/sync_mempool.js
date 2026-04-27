@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback } = require('./lib/rpcEndpoints');
+const { isCronAuthorized, unauthorizedCronResponse } = require('./lib/cronAuth');
 
 module.exports.config = {
   runtime: 'edge',
@@ -7,8 +8,12 @@ module.exports.config = {
 
 // Supabase client initialization
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function postRpc(url, method, params = []) {
   const res = await fetch(url, {
@@ -96,6 +101,10 @@ async function syncNetwork(network) {
 }
 
 module.exports = async function handler(req) {
+  if (!isCronAuthorized(req)) {
+    return unauthorizedCronResponse();
+  }
+
   try {
     const mainnetResult = await syncNetwork('mainnet');
     const testnetResult = await syncNetwork('testnet');

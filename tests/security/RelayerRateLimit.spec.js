@@ -190,6 +190,44 @@ describe("relayer rate-limit behavior", () => {
     expect(secondCallKeys).toContain("198.51.100.50");
   });
 
+  it("rejects malformed trusted proxy IP headers", async () => {
+    const consumedKeys = [];
+    const limiter = {
+      consume({ key }) {
+        consumedKeys.push(key);
+        return {
+          allowed: true,
+          limit: 10,
+          remaining: 9,
+          resetAtMs: 2000,
+          retryAfterSeconds: 1,
+        };
+      },
+    };
+
+    await enforceRelayerRateLimit({
+      req: {
+        headers: {
+          "x-forwarded-for": "999.999.999.999",
+          "cf-connecting-ip": "not-an-ip",
+        },
+        socket: { remoteAddress: "203.0.113.90" },
+      },
+      res: createMockRes(),
+      accountId: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      action: "execute",
+      network: "testnet",
+      limiter,
+      policy: { windowMs: 60_000, maxRequests: 10 },
+      trustProxy: true,
+      nowMs: 1000,
+    });
+
+    expect(consumedKeys.join("|")).toContain("203.0.113.90");
+    expect(consumedKeys.join("|")).not.toContain("999.999.999.999");
+    expect(consumedKeys.join("|")).not.toContain("not-an-ip");
+  });
+
   it("resolves upstash config from environment aliases", () => {
     const cfg = resolveUpstashConfig({
       KV_REST_API_URL: "https://demo.upstash.io",

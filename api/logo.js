@@ -5,6 +5,7 @@ const { withApiTelemetry } = require("./lib/telemetry");
 
 const MAX_SOURCE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8000;
+const MAX_REDIRECTS = 4;
 const FALLBACK_LOGO_REDIRECT = "/favicon.ico";
 
 const clampInteger = (value, min, max, fallback) => {
@@ -67,6 +68,39 @@ const isDisallowedHostname = async (hostname) => {
   }
 };
 
+const isSupportedSourceUrl = async (url) => {
+  if (!["http:", "https:"].includes(url.protocol)) return false;
+  return !(await isDisallowedHostname(url.hostname));
+};
+
+async function fetchWithValidatedRedirects(sourceUrl, options, maxRedirects = MAX_REDIRECTS) {
+  let currentUrl = sourceUrl;
+
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    if (!(await isSupportedSourceUrl(currentUrl))) {
+      throw new Error("Blocked host");
+    }
+
+    const response = await fetch(currentUrl.toString(), {
+      ...options,
+      redirect: "manual",
+    });
+
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      return { response, finalUrl: currentUrl };
+    }
+
+    const location = response.headers.get("location");
+    if (!location) {
+      return { response, finalUrl: currentUrl };
+    }
+
+    currentUrl = new URL(location, currentUrl);
+  }
+
+  throw new Error("Too many redirects");
+}
+
 async function handler(req, res) {
   const respondWithFallbackLogo = () => {
     res.setHeader(
@@ -97,7 +131,7 @@ async function handler(req, res) {
     return res.status(400).json({ error: "Only http/https URLs are supported" });
   }
 
-  if (await isDisallowedHostname(sourceUrl.hostname)) {
+  if (!(await isSupportedSourceUrl(sourceUrl))) {
     return res.status(400).json({ error: "Blocked host" });
   }
 
@@ -109,15 +143,17 @@ async function handler(req, res) {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   let upstream;
+  let finalUrl = sourceUrl;
   try {
-    upstream = await fetch(sourceUrl.toString(), {
-      redirect: "follow",
+    const result = await fetchWithValidatedRedirects(sourceUrl, {
       signal: controller.signal,
       headers: {
         Accept: "image/*,*/*;q=0.8",
         "User-Agent": "neo-explorer-logo-proxy/1.0",
       },
     });
+    upstream = result.response;
+    finalUrl = result.finalUrl;
   } catch {
     clearTimeout(timeout);
     return respondWithFallbackLogo();
@@ -179,7 +215,7 @@ async function handler(req, res) {
       "Cache-Control",
       "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
     );
-    return res.redirect(302, sourceUrl.toString());
+    return res.redirect(302, finalUrl.toString());
   }
 }
 

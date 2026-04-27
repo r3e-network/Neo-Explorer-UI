@@ -4,9 +4,17 @@ module.exports.config = {
   runtime: 'edge',
 };
 
+const VALID_NETWORKS = new Set(['mainnet', 'testnet']);
+
 module.exports = async function handler(req) {
   const url = new URL(req.url);
-  const network = url.searchParams.get('network') || 'mainnet';
+  const network = String(url.searchParams.get('network') || 'mainnet').trim().toLowerCase();
+  if (!VALID_NETWORKS.has(network)) {
+    return new Response(JSON.stringify({ success: false, error: 'Unsupported network' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
   
   try {
     const key = `liveness_${network}`;
@@ -33,4 +41,3 @@ module.exports = async function handler(req) {
     });
   }
 }
-
