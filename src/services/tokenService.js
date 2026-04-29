@@ -2,6 +2,58 @@ import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
+import { base64ToBytes, bytesToHex, scriptHashToAddress } from "@/utils/neoHelpers";
+
+// Indexer contract notifications carry Transfer events as a JSON-encoded
+// stack: state.value = [from, to, amount]. Both addresses are 20-byte
+// little-endian script hashes wrapped in base64 ByteString; the amount
+// is an Integer (raw, decimal-unscaled). Decode them into the shape the
+// shared TransferTable component expects: { txid, from, to, amount,
+// timestamp, blockindex }. A null `from` denotes a mint, null `to` a
+// burn — TransferTable styles those with the success/error variants.
+function _decodeAddressFromState(item) {
+  if (!item || item.type === "Any") return null;
+  if (typeof item.value !== "string" || !item.value) return null;
+  try {
+    const bytes = base64ToBytes(item.value);
+    if (bytes.length !== 20) return null;
+    // ByteString from a Neo state value is little-endian; reverse to BE
+    // before formatting.
+    const reversed = new Uint8Array(bytes).reverse();
+    const hex = "0x" + bytesToHex(reversed);
+    return scriptHashToAddress(hex) || null;
+  } catch {
+    return null;
+  }
+}
+
+function decodeTransferNotification(row) {
+  let state = row.state_json;
+  if (typeof state === "string") {
+    try {
+      state = JSON.parse(state);
+    } catch {
+      state = null;
+    }
+  }
+  const items = Array.isArray(state?.value) ? state.value : [];
+  const rawAmount = items[2]?.value || "0";
+  return {
+    txid: row.txid,
+    hash: row.txid,
+    blockindex: row.block_index,
+    blockIndex: row.block_index,
+    timestamp: row.block_time_ms,
+    time: row.block_time_ms,
+    from: _decodeAddressFromState(items[0]),
+    to: _decodeAddressFromState(items[1]),
+    // TransferTable's template reads `item.value`. Keep `amount` too as
+    // a friendlier alias for any other consumer.
+    value: rawAmount,
+    amount: rawAmount,
+    contract: row.contract_hash,
+  };
+}
 
 /**
  * Token Service - Neo3 代币相关 API 调用
@@ -163,6 +215,48 @@ export const tokenService = createService(
     },
   },
   {
+    // Override the default getNep17Transfers (legacy GetNep17TransferByContractHash
+    // RPC) which returns empty for nearly every contract. Derive from the
+    // indexer's contract notifications endpoint instead, decoding the
+    // Transfer event state into {from, to, amount}.
+    async getNep17Transfers(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const notifications = await indexerReadService.getContractNotifications(
+          hash,
+          // Transfer events are interleaved with other event names. Pull a
+          // generous window and filter client-side; if filtering leaves us
+          // short, the next page will fetch more.
+          Math.max(limit * 3, 50),
+          skip,
+          options,
+        );
+        const rows = Array.isArray(notifications?.data) ? notifications.data : [];
+        const transfers = rows
+          .filter((row) => String(row.event_name || "").toLowerCase() === "transfer")
+          .slice(0, limit)
+          .map((row) => decodeTransferNotification(row));
+        if (transfers.length > 0) {
+          return {
+            result: transfers,
+            // Best-available total — see transactionService.getByAddress
+            // for the same heuristic.
+            totalCount: Number(
+              notifications?.paging?.total
+                ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
+            ),
+          };
+        }
+      } catch {
+        // Indexer unreachable — fall through.
+      }
+      return safeRpcList(
+        "GetNep17TransferByContractHash",
+        { ContractHash: hash, Limit: limit, Skip: skip },
+        "get NEP17 transfers",
+        options,
+      );
+    },
+
     /** @see getTokenList */
     async getNep17List(limit = 20, skip = 0, options = {}) {
       return tokenService.getTokenList("NEP17", limit, skip, options);
