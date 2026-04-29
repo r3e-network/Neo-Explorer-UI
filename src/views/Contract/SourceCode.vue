@@ -22,10 +22,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Verified Source Code</h1>
-          <p class="page-subtitle">
-            Browse verified contract source files and compare with deployed bytecode.
-          </p>
+          <h1 class="page-title">{{ $t("pages.sourceCode.title") }}</h1>
+          <p class="page-subtitle">{{ $t("pages.sourceCode.subtitle") }}</p>
         </div>
       </div>
 

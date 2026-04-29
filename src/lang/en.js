@@ -41,6 +41,36 @@ const en = {
     miniNetworkFee: "Network Fee",
     miniEstFeeCost: "Est. Fee Cost",
   },
+  pages: {
+    charts: {
+      title: "Neo N3 Blockchain Charts & Statistics",
+      subtitle: "Network activity, address growth, and transaction volume analytics",
+      timeRange: "Time Range:",
+    },
+    advancedSearch: {
+      title: "Advanced Search",
+      subtitle: "Filter and search across the Neo N3 blockchain",
+      submitLabel: "Search",
+      submittingLabel: "Searching...",
+      typeAll: "All Types",
+      typeAddress: "Address",
+      typeTransaction: "Transaction",
+      typeBlock: "Block",
+      typeContract: "Contract",
+      hintBlock: "Block: height or hash",
+      hintTx: "Tx: 0x + 64 hex chars",
+      hintAddress: "Address: starts with N or ends with .neo",
+      hintContract: "Contract: script hash",
+    },
+    verifyContract: {
+      title: "Verify Contract",
+      subtitle: "Submit contract source code for verification",
+    },
+    sourceCode: {
+      title: "Verified Source Code",
+      subtitle: "Browse verified contract source files and compare with deployed bytecode.",
+    },
+  },
   footer: {
     description: "A Block Explorer and Analytics Platform for Neo N3, powered by dBFT consensus with ~3s finality.",
     poweredBy: "Powered by",

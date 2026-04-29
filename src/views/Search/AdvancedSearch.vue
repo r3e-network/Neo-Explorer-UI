@@ -17,8 +17,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Advanced Search</h1>
-          <p class="page-subtitle">Filter and search across the Neo N3 blockchain</p>
+          <h1 class="page-title">{{ $t("pages.advancedSearch.title") }}</h1>
+          <p class="page-subtitle">{{ $t("pages.advancedSearch.subtitle") }}</p>
         </div>
       </div>
 
@@ -28,11 +28,11 @@
           <!-- Type Filter + Input Row -->
           <div class="flex flex-col gap-3 sm:flex-row">
             <select v-model="searchType" aria-label="Search type filter" class="form-input sm:w-48">
-              <option value="all">All Types</option>
-              <option value="address">Address</option>
-              <option value="transaction">Transaction</option>
-              <option value="block">Block</option>
-              <option value="contract">Contract</option>
+              <option value="all">{{ $t("pages.advancedSearch.typeAll") }}</option>
+              <option value="address">{{ $t("pages.advancedSearch.typeAddress") }}</option>
+              <option value="transaction">{{ $t("pages.advancedSearch.typeTransaction") }}</option>
+              <option value="block">{{ $t("pages.advancedSearch.typeBlock") }}</option>
+              <option value="contract">{{ $t("pages.advancedSearch.typeContract") }}</option>
             </select>
 
             <div class="relative flex-1">
@@ -67,7 +67,7 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span>{{ searching ? "Searching..." : "Search" }}</span>
+              <span>{{ searching ? $t("pages.advancedSearch.submittingLabel") : $t("pages.advancedSearch.submitLabel") }}</span>
             </button>
           </div>
 
@@ -78,10 +78,10 @@
 
           <!-- Search Hints -->
           <div class="text-low flex flex-wrap gap-2 text-xs">
-            <span class="badge-soft rounded px-2 py-1"> Block: height or hash </span>
-            <span class="badge-soft rounded px-2 py-1"> Tx: 0x + 64 hex chars </span>
-            <span class="badge-soft rounded px-2 py-1"> Address: starts with N or ends with .neo </span>
-            <span class="badge-soft rounded px-2 py-1"> Contract: script hash </span>
+            <span class="badge-soft rounded px-2 py-1">{{ $t("pages.advancedSearch.hintBlock") }}</span>
+            <span class="badge-soft rounded px-2 py-1">{{ $t("pages.advancedSearch.hintTx") }}</span>
+            <span class="badge-soft rounded px-2 py-1">{{ $t("pages.advancedSearch.hintAddress") }}</span>
+            <span class="badge-soft rounded px-2 py-1">{{ $t("pages.advancedSearch.hintContract") }}</span>
           </div>
         </form>
       </div>

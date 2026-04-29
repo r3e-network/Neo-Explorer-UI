@@ -42,8 +42,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Verify Contract</h1>
-          <p class="page-subtitle">Submit contract source code for verification</p>
+          <h1 class="page-title">{{ $t("pages.verifyContract.title") }}</h1>
+          <p class="page-subtitle">{{ $t("pages.verifyContract.subtitle") }}</p>
         </div>
       </div>
 

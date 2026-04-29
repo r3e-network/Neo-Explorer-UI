@@ -17,14 +17,14 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Neo N3 Blockchain Charts &amp; Statistics</h1>
-          <p class="page-subtitle">Network activity, address growth, and transaction volume analytics</p>
+          <h1 class="page-title">{{ $t("pages.charts.title") }}</h1>
+          <p class="page-subtitle">{{ $t("pages.charts.subtitle") }}</p>
         </div>
       </div>
 
       <!-- Day Range Toggle -->
       <div class="mb-6 flex flex-wrap items-center gap-2">
-        <span class="text-mid text-sm font-medium">Time Range:</span>
+        <span class="text-mid text-sm font-medium">{{ $t("pages.charts.timeRange") }}</span>
         <button
           v-for="option in dayOptions"
           :key="option"
