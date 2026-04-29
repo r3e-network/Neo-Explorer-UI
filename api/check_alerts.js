@@ -73,10 +73,18 @@ const indexedRpcCall = async (network, method, params = {}) => {
   throw lastError || new Error('No indexed RPC endpoint candidates available');
 };
 
+const ALERT_FROM_ADDRESS = String(
+  process.env.ALERT_EMAIL_FROM || ""
+).trim();
+
 // Helper to send email via Resend API
 async function sendEmailAlert(emailAddress, subject, htmlContent) {
   if (!RESEND_API_KEY) {
     // Fail silently in dev without throwing if no API key is provided
+    return false;
+  }
+  if (!ALERT_FROM_ADDRESS) {
+    console.error("Alert email send skipped: ALERT_EMAIL_FROM env var is not configured.");
     return false;
   }
 
@@ -87,7 +95,7 @@ async function sendEmailAlert(emailAddress, subject, htmlContent) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: 'Neo Explorer Alerts <alerts@yourdomain.com>',
+      from: ALERT_FROM_ADDRESS,
       to: emailAddress,
       subject: subject,
       html: htmlContent
@@ -118,9 +126,19 @@ async function checkNetworkAlerts(network) {
 
     // Pre-fetch global state to avoid redundant calls inside the loop
     const blockCount = await rpcCall(network, 'getblockcount', []);
+    if (!Number.isFinite(blockCount) || blockCount <= 0) {
+      console.warn(`[check_alerts] invalid blockcount for ${network}:`, blockCount);
+      return 0;
+    }
     const latestBlock = await rpcCall(network, 'getblock', [blockCount - 1, 1]);
-    const currentBlockTime = latestBlock.time * 1000; // ms
-    const timeSinceLastBlock = Date.now() - currentBlockTime;
+    // neo-go returns block.time in milliseconds (Neo N3 protocol), but historical neo-cli
+    // returned seconds. Detect by magnitude (>1e12 ⇒ already ms) so the alert path is
+    // robust across RPC providers instead of always assuming one unit.
+    const blockTimeRaw = Number(latestBlock?.time);
+    const currentBlockTime = !Number.isFinite(blockTimeRaw) || blockTimeRaw <= 0
+      ? 0
+      : blockTimeRaw > 1e12 ? blockTimeRaw : blockTimeRaw * 1000;
+    const timeSinceLastBlock = currentBlockTime > 0 ? Date.now() - currentBlockTime : 0;
 
     let committee = null;
 

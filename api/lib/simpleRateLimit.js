@@ -4,6 +4,16 @@ const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_MAX_REQUESTS = 30;
 
 const buckets = new Map();
+const BUCKET_CLEANUP_EVERY = 256;
+let bucketWriteCounter = 0;
+
+function pruneExpiredBuckets(nowMs) {
+  for (const [key, entry] of buckets) {
+    if (!entry || nowMs >= entry.resetAtMs) {
+      buckets.delete(key);
+    }
+  }
+}
 
 function isValidIpCandidate(value) {
   const ip = String(value || "").trim();
@@ -41,6 +51,12 @@ function consumeRateLimit(key, { windowMs = DEFAULT_WINDOW_MS, maxRequests = DEF
   const safeKey = String(key || "unknown").trim() || "unknown";
   const safeWindow = Number.isFinite(windowMs) && windowMs > 0 ? windowMs : DEFAULT_WINDOW_MS;
   const safeMax = Number.isFinite(maxRequests) && maxRequests > 0 ? maxRequests : DEFAULT_MAX_REQUESTS;
+
+  bucketWriteCounter += 1;
+  if (bucketWriteCounter % BUCKET_CLEANUP_EVERY === 0) {
+    pruneExpiredBuckets(nowMs);
+  }
+
   const current = buckets.get(safeKey);
 
   if (!current || nowMs >= current.resetAtMs) {

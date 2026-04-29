@@ -6,7 +6,9 @@ const NEO_CONTRACT_HASH = "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const DEFAULT_MAX_NETWORK_FEE = 50000000n; // 0.5 GAS
 const SPONSOR_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const SPONSOR_RATE_LIMIT_MAX = 10;
+const SPONSOR_RATE_LIMIT_CLEANUP_EVERY = 128;
 const sponsorRateLimits = new Map();
+let sponsorRateLimitCalls = 0;
 
 const normalizeHex = (value = "") => String(value || "").trim().replace(/^0x/i, "").toLowerCase();
 
@@ -27,6 +29,14 @@ const getClientKey = (req) =>
 
 const checkRateLimit = (key) => {
   const now = Date.now();
+  sponsorRateLimitCalls += 1;
+  if (sponsorRateLimitCalls % SPONSOR_RATE_LIMIT_CLEANUP_EVERY === 0) {
+    for (const [k, v] of sponsorRateLimits) {
+      if (!v || now - v.startedAt > SPONSOR_RATE_LIMIT_WINDOW_MS) {
+        sponsorRateLimits.delete(k);
+      }
+    }
+  }
   const current = sponsorRateLimits.get(key);
   if (!current || now - current.startedAt > SPONSOR_RATE_LIMIT_WINDOW_MS) {
     sponsorRateLimits.set(key, { startedAt: now, count: 1 });
@@ -147,28 +157,12 @@ async function handler(req, res) {
        return res.status(400).json({ error: 'Network fee too high' });
     }
 
-    // Sign the transaction with Sponsor
+    // Sign the transaction with Sponsor — neon-js appends the sponsor's witness.
     transaction.sign(sponsorAccount, magic);
 
-    // NeoLine attached the user's witness. Because NeoLine only signed for the user (Signer 1), 
-    // it probably put it at index 0 of the witnesses array since it didn't have the sponsor's signature.
-    // We need to re-order the witnesses to match the signers array: [SponsorWitness, UserWitness]
-    
-    // Extract the user's witness (which should be the only one attached by NeoLine)
-    // Wait, some versions of NeoLine might insert an empty witness for the missing signer?
-    // Let's filter out empty witnesses.
-    const userWitnesses = transaction.witnesses.filter(w => w.invocation !== '' || w.verification !== '');
-    
-    if (userWitnesses.length === 0) {
-      // If the sponsor just signed, it was added to transaction.witnesses by neon-js. 
-      // neon-js `.sign()` adds the witness. But wait, `transaction.sign()` appends to the witnesses array?
-      // Actually `transaction.sign` replaces or appends depending on neon-js internal logic.
-      // Let's manually construct the sponsor witness and put it at index 0.
-    }
-
-    // Let's clear and rebuild witnesses explicitly to be safe
-    // The user's witness was passed in from frontend.
-    // Deserialize a fresh copy to extract it safely, then keep the newly added sponsor witness first.
+    // Rebuild witnesses in the order the signers array expects: [sponsor, user].
+    // The user's witness comes from the original (frontend-signed) transaction;
+    // the sponsor's witness is whichever entry is present after sign() but absent before.
     const originalTx = tx.Transaction.deserialize(transactionHex);
     const sponsorWitnessObj = transaction.witnesses.find((w) =>
       !originalTx.witnesses.some(
@@ -176,13 +170,16 @@ async function handler(req, res) {
           originalWitness.invocation === w.invocation && originalWitness.verification === w.verification,
       ),
     );
-    let userWitness = originalTx.witnesses.find(w => w.invocation && w.invocation.length > 0);
-    
+    const userWitness = originalTx.witnesses.find((w) => w.invocation && w.invocation.length > 0);
+
     if (!userWitness) {
-        return res.status(400).json({ error: "User witness is required." });
+      return res.status(400).json({ error: "User witness is required." });
     }
-    
-    transaction.witnesses = sponsorWitnessObj ? [sponsorWitnessObj, userWitness] : [userWitness];
+    if (!sponsorWitnessObj) {
+      return res.status(500).json({ error: "Sponsor witness was not produced." });
+    }
+
+    transaction.witnesses = [sponsorWitnessObj, userWitness];
 
     // Broadcast
     const fullySignedHex = transaction.serialize(true);
