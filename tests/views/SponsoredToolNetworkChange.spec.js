@@ -74,9 +74,11 @@ vi.mock("@cityofzion/neon-js", () => {
       this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
     }
   };
+  const Transaction = class { static deserialize() { return new Transaction(); } };
   const neonMock = {
-    RpcClient: MockRpcClient,
-    Account,
+    rpc: { RPCClient: MockRpcClient },
+    tx: { Transaction },
+    wallet: { Account },
   };
   neonMock.default = neonMock;
   return neonMock;

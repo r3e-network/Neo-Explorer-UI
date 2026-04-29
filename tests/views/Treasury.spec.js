@@ -52,12 +52,23 @@ vi.mock("@/composables/useNetworkChange", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
-  const RpcClient = class {
-    async getNep17Balances(input) {
-      return getNep17BalancesMock(input);
+  // @/utils/neonLoader's findNeonJs only accepts modules whose `tx.Transaction.deserialize`
+  // and `rpc.RPCClient` are both present. Provide that shape so loadNeonJs() picks
+  // this mock instead of returning null and falling back to the test's window.Neon.
+  const RPCClient = class {
+    async getNep17Balances(addr) {
+      return getNep17BalancesMock(addr);
     }
   };
-  const neonMock = { RpcClient };
+  const Transaction = class {
+    static deserialize() {
+      return new Transaction();
+    }
+  };
+  const neonMock = {
+    rpc: { RPCClient },
+    tx: { Transaction },
+  };
   neonMock.default = neonMock;
   return neonMock;
 });
@@ -75,8 +86,8 @@ describe("Treasury view", () => {
       },
     };
     getNep17BalancesMock.mockImplementation(async (input) => {
-      if (!input || typeof input !== "object" || !input.account) {
-        throw new Error("expected { account } input");
+      if (typeof input !== "string" || !input) {
+        throw new Error("expected positional address string input");
       }
 
       return {
@@ -103,7 +114,7 @@ describe("Treasury view", () => {
 
     await flushPromises();
 
-    expect(getNep17BalancesMock).toHaveBeenCalledWith({ account: "NtestTreasuryAddress" });
+    expect(getNep17BalancesMock).toHaveBeenCalledWith("NtestTreasuryAddress");
     expect(wrapper.text()).toContain("12");
     expect(wrapper.text()).toContain("1.5");
   });

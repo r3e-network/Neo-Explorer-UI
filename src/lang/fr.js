@@ -762,7 +762,7 @@ const fr = {
         tickerSymbolPlaceholder: "ex. DNEO",
         totalSupply: "Offre totale",
         twitter: "Identifiant Twitter / X",
-        twitterPlaceholder: "ex. @DogeNeo",
+        twitterPlaceholder: "Nom d'utilisateur Twitter, ex. DogeNeo",
         telegram: "Groupe Telegram",
         telegramPlaceholder: "ex. t.me/DogeNeo",
         memeLogo: "Logo de la mascotte Meme (NeoFS)",

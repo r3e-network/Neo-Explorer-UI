@@ -374,8 +374,35 @@ export const accountService = createService(
     },
 
     async getByAddress(address, options = {}) {
+      // Prefer the indexer's canonical per-account record. The legacy
+      // GetAssetsHeldByAddress RPC the explorer originally relied on
+      // returns { result: [], totalCount: 0 } for most addresses now,
+      // so without this path AddressDetail showed 0 NEO / 0 GAS / 0 tx
+      // even for active accounts that the indexer fully tracks.
+      try {
+        const indexerAcc = await indexerReadService.getAccount(address, options);
+        if (indexerAcc && (indexerAcc.tx_sent || indexerAcc.tx_signed || indexerAcc.contracts_interacted)) {
+          return {
+            address: indexerAcc.address || address,
+            txCount: Number(indexerAcc.tx_sent || 0) + Number(indexerAcc.tx_signed || 0),
+            tokenCount: undefined, // populated from assets call separately
+            nep17NetRaw: indexerAcc.nep17_net_raw,
+            firstTxMs: indexerAcc.first_tx_ms,
+            lastTxMs: indexerAcc.last_tx_ms,
+            contractsInteracted: indexerAcc.contracts_interacted,
+            _source: "indexer",
+          };
+        }
+      } catch {
+        // Indexer down / metadata path unavailable — fall through to RPC.
+      }
+
       const primary = await this._getByAddressRpc(address, options);
-      if (primary) return primary;
+      // The legacy RPC returns a truthy {result:[], totalCount:0} envelope
+      // even when the address has no on-chain activity according to its
+      // table. Treat that as "no data" so the downstream native fallback
+      // below can run; otherwise the page renders zeros for active wallets.
+      if (primary && Number(primary.totalCount || 0) > 0) return primary;
 
       const normalizedAddress = this._normalizeAddress(address);
       if (!normalizedAddress) return primary;

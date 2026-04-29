@@ -766,7 +766,7 @@ const zh = {
         tickerSymbolPlaceholder: "例如 DNEO",
         totalSupply: "总供应量",
         twitter: "Twitter / X 账号",
-        twitterPlaceholder: "例如 @DogeNeo",
+        twitterPlaceholder: "Twitter 用户名，例如 DogeNeo",
         telegram: "Telegram 群组",
         telegramPlaceholder: "例如 t.me/DogeNeo",
         memeLogo: "Meme 吉祥物 Logo（NeoFS）",

@@ -76,9 +76,12 @@ vi.mock("@/utils/rpcEndpoints", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
+  // findNeonJs requires rpc.RPCClient + tx.Transaction.deserialize.
+  const Transaction = class { static deserialize() { return new Transaction(); } };
   const neonMock = {
-    RpcClient: MockRpcClient,
-    Account: MockAccount,
+    rpc: { RPCClient: MockRpcClient },
+    tx: { Transaction },
+    wallet: { Account: MockAccount },
   };
   neonMock.default = neonMock;
   return neonMock;

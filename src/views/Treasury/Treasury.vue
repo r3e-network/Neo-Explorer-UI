@@ -288,6 +288,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
@@ -331,8 +332,13 @@ const groups = computed(() => {
   return [da, erik, ops].sort((a, b) => b.neo - a.neo);
 });
 
-function createRpcClient(endpoint) {
-  const RpcClient = window.Neon?.rpc?.RPCClient;
+async function createRpcClient(endpoint) {
+  // Match the Governance fix: don't read window.Neon directly — on a cold
+  // /treasury mount the SDK chunk hasn't finished loading yet, and the
+  // page fails with "Neo RPC client is not available." loadNeonJs()
+  // resolves the same module the rest of the app uses.
+  const sdk = await loadNeonJs();
+  const RpcClient = sdk?.rpc?.RPCClient;
   if (typeof RpcClient !== "function") {
     throw new Error("Neo RPC client is not available.");
   }
@@ -365,13 +371,16 @@ async function fetchTreasuryDataFromRpc() {
   const BATCH_SIZE = 5;
 
   return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-    const rpcClient = createRpcClient(endpoint);
+    const rpcClient = await createRpcClient(endpoint);
     const results = [];
 
     for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
       const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
       const responses = await Promise.allSettled(
-        batch.map((item) => rpcClient.getNep17Balances({ account: item.address })),
+        // neon-js's getNep17Balances takes a positional address string,
+        // not an object. The previous { account: addr } shape stringified
+        // to "[object Object]" inside the call, returning empty results.
+        batch.map((item) => rpcClient.getNep17Balances(item.address)),
       );
 
       batch.forEach((item, index) => {

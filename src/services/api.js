@@ -7,8 +7,14 @@ const parseTimeout = (value, fallbackMs) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
 };
-const DEFAULT_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_TIMEOUT_MS, 5000);
-const FAILOVER_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_FAILOVER_TIMEOUT_MS, 5000);
+// 10s default. Deep-skip list queries against the indexer (e.g., /blocks/2+,
+// /transactions/2+, /tokens/.../2+) routinely take 4–7s on a cold path,
+// and the previous 5s ceiling caused page-2 loads to fail with
+// "AxiosError: timeout of 5000ms exceeded" while the request was about
+// to succeed. Point lookups (getblock, getrawtransaction, etc.) still
+// return in well under 1s, so this longer ceiling is invisible to them.
+const DEFAULT_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_TIMEOUT_MS, 10000);
+const FAILOVER_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_FAILOVER_TIMEOUT_MS, 8000);
 const NETWORK_VALIDATION_TIMEOUT_MS = Number(import.meta.env.VITE_RPC_NETWORK_VALIDATION_TIMEOUT_MS || 350);
 const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
   import.meta.env.VITE_RPC_STARTUP_WAIT_MS,

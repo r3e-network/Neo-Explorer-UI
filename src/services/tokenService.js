@@ -211,13 +211,50 @@ export const tokenService = createService(
       const item = await indexerReadService.getToken(hash, options);
       if (!item) return null;
 
+      // Indexer currently mis-reports decimals/symbol as 0/"" for some
+      // NEP-17 contracts (notably the GAS native, which has 8 decimals).
+      // Fall back to the on-chain manifest via invokefunction to recover
+      // the correct values when both look empty.
+      let decimals = Number(item.decimals || 0);
+      let symbol = String(item.symbol || "");
+      const isNep17 = String(item.standard || "NEP17").toUpperCase() === "NEP17";
+      if (isNep17 && (!symbol || decimals === 0)) {
+        try {
+          const [decRes, symRes] = await Promise.all([
+            decimals === 0
+              ? safeRpc("invokefunction", [item.contract_hash, "decimals", []], null, options)
+              : Promise.resolve(null),
+            !symbol
+              ? safeRpc("invokefunction", [item.contract_hash, "symbol", []], null, options)
+              : Promise.resolve(null),
+          ]);
+          if (decRes?.state === "HALT") {
+            const d = Number(decRes?.stack?.[0]?.value);
+            if (Number.isFinite(d) && d >= 0) decimals = d;
+          }
+          if (symRes?.state === "HALT") {
+            const raw = symRes?.stack?.[0]?.value;
+            if (typeof raw === "string" && raw) {
+              try {
+                const decoded = atob(raw);
+                if (decoded) symbol = decoded;
+              } catch {
+                symbol = raw;
+              }
+            }
+          }
+        } catch {
+          // Indexer values stand if invokefunction fails.
+        }
+      }
+
       return {
         hash: item.contract_hash,
         tokenname: item.display_name || item.contract_hash,
-        symbol: item.symbol || "",
+        symbol,
         holders: item.holder_count || 0,
         totalsupply: item.total_supply_raw || "0",
-        decimals: Number(item.decimals || 0),
+        decimals,
         type: item.standard || "NEP17",
         standard: item.standard || "NEP17",
       };

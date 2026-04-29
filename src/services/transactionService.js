@@ -4,6 +4,7 @@ import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { executionService } from "./executionService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { accountService } from "./accountService";
+import { indexerReadService } from "./indexerReadService";
 import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
@@ -330,23 +331,58 @@ export const transactionService = createService(
 
     async getByAddress(address, limit = 20, skip = 0, options = {}) {
       const { enrichMissingFields = false, ...requestOptions } = options;
-      const res = await this._getByAddress(address, limit, skip, requestOptions);
-      if (!res || !res.result) return res;
 
-      let response = res;
-      if (Array.isArray(res.result) && res.result.length === 0 && Number(res.totalCount || 0) === 0) {
-        try {
-          const transferFallback = await this._getAddressTransactionsFromTransferFallback(
-            address,
-            limit,
-            skip,
-            requestOptions,
-          );
-          if (transferFallback?.result?.length) {
-            response = transferFallback;
+      // Prefer the indexer's per-account transaction list — the legacy
+      // GetRawTransactionByAddress RPC returns empty for many wallets
+      // even when the indexer has full coverage.
+      let response = null;
+      try {
+        const indexerRes = await indexerReadService.getAccountTransactions(
+          address,
+          limit,
+          skip,
+          requestOptions,
+        );
+        if (Array.isArray(indexerRes?.data) && indexerRes.data.length > 0) {
+          response = {
+            result: indexerRes.data.map((row) => ({
+              hash: row.txid,
+              txid: row.txid,
+              blockindex: row.block_index,
+              blockIndex: row.block_index,
+              blocktime: row.block_time_ms,
+              timestamp: row.block_time_ms,
+              sender: row.sender_address,
+              sender_address: row.sender_address,
+              sysfee: row.sys_fee,
+              netfee: row.net_fee,
+              vmstate: row.vmstate || row.vm_state,
+            })),
+            totalCount: Number(indexerRes?.paging?.total ?? indexerRes.data.length),
+          };
+        }
+      } catch {
+        // Indexer unavailable — fall through to RPC.
+      }
+
+      if (!response) {
+        const res = await this._getByAddress(address, limit, skip, requestOptions);
+        if (!res || !res.result) return res;
+        response = res;
+        if (Array.isArray(res.result) && res.result.length === 0 && Number(res.totalCount || 0) === 0) {
+          try {
+            const transferFallback = await this._getAddressTransactionsFromTransferFallback(
+              address,
+              limit,
+              skip,
+              requestOptions,
+            );
+            if (transferFallback?.result?.length) {
+              response = transferFallback;
+            }
+          } catch (error) {
+            // Keep primary response when fallback retrieval fails.
           }
-        } catch (error) {
-          // Keep primary response when fallback retrieval fails.
         }
       }
 

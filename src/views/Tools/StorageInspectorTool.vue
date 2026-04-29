@@ -141,6 +141,7 @@ const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/.
 const reverseHex = (hex) => hex.match(/../g).reverse().join("");
 const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
 import { base642hex, BigInteger } from "@/utils/sdkCompat";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
@@ -204,14 +205,18 @@ async function fetchStorage() {
 
     const hash = contractHash.value.startsWith("0x") ? contractHash.value : "0x" + contractHash.value;
 
-    const RpcClient = window.Neon?.rpc?.RPCClient;
-    if (!RpcClient) {
+    // window.Neon isn't reliably populated on a cold tool mount —
+    // loadNeonJs resolves the same SDK module the rest of the app uses.
+    const sdk = await loadNeonJs();
+    const RpcClient = sdk?.rpc?.RPCClient;
+    if (typeof RpcClient !== "function") {
       toast.error(t("tools.storageInspector.runtimeUnavailable"));
       return;
     }
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);
-      return rpcClient.getStorage({ scriptHash: hash, key: keyHex });
+      // neon-js's getStorage is positional: (scriptHash, key)
+      return rpcClient.getStorage(hash, keyHex);
     });
     rawBase64Result.value = result || "";
     hasQueried.value = true;

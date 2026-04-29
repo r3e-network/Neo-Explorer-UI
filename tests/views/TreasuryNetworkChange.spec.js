@@ -40,7 +40,13 @@ vi.mock("@/constants/knownAddresses", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
-  const neonMock = { RpcClient: class {} };
+  // Match the shape findNeonJs requires (rpc.RPCClient + tx.Transaction.deserialize)
+  // so loadNeonJs() resolves to this mock.
+  const RPCClient = class {};
+  const Transaction = class {
+    static deserialize() { return new Transaction(); }
+  };
+  const neonMock = { rpc: { RPCClient }, tx: { Transaction } };
   neonMock.default = neonMock;
   return neonMock;
 });

@@ -249,6 +249,7 @@ import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
 import { base642hex, hex2base64 } from "@/utils/sdkCompat";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
@@ -260,8 +261,12 @@ const signers = ref([]);
 const isEstimating = ref(false);
 const result = ref(null);
 
-function getNeonRuntime() {
-  const runtime = window.Neon;
+async function getNeonRuntime() {
+  // window.Neon is set lazily by the app entry; on a cold mount of this
+  // tool the SDK chunk hasn't finished loading yet. loadNeonJs() resolves
+  // the same module the rest of the app uses and never returns null on
+  // a fully-bundled build.
+  const runtime = (await loadNeonJs()) || window.Neon;
   if (!runtime?.rpc?.RPCClient || !runtime?.tx?.Transaction || !runtime?.wallet?.Account) {
     throw new Error(t("tools.gasEstimator.runtimeUnavailable"));
   }
@@ -289,7 +294,7 @@ async function estimateGas() {
   result.value = null;
 
   try {
-    const { rpc, tx, wallet } = getNeonRuntime();
+    const { rpc, tx, wallet } = await getNeonRuntime();
     // Normalize Script
     let hexScript = "";
     if (scriptFormat.value === "hex") {

@@ -211,6 +211,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { useToast } from "vue-toastification";
 import { walletService } from "@/services/walletService";
+import { loadNeonJs } from "@/utils/neonLoader";
 // Account is resolved lazily to avoid crashes if Neon SDK loads after module evaluation
 import { GAS_HASH } from "@/constants";
 
@@ -453,7 +454,8 @@ async function deployFactoryContract() {
     // For this demonstration, we simulate the factory deployment signature payload.
     // Let's do a self-transfer with a remark containing the template instructions to simulate deployment on-chain.
 
-    const Account = window.Neon?.wallet?.Account;
+    const sdk = (await loadNeonJs()) || window.Neon;
+    const Account = sdk?.wallet?.Account;
     if (!Account) {
       toast.error(t("tools.contractFactory.toasts.neonNotLoaded"));
       return;

@@ -239,6 +239,7 @@ import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 
 const { t } = useI18n();
@@ -260,16 +261,18 @@ const isEligible = computed(() => {
   return Number(gasBalance.value) < eligibilityThreshold;
 });
 
-function createRpcClient(endpoint) {
-  const RpcClient = window.Neon?.rpc?.RPCClient;
+async function createRpcClient(endpoint) {
+  const sdk = (await loadNeonJs()) || window.Neon;
+  const RpcClient = sdk?.rpc?.RPCClient;
   if (typeof RpcClient !== "function") {
     throw new Error("Neo RPC client is not available.");
   }
   return new RpcClient(endpoint);
 }
 
-function createAccount(value) {
-  const Account = window.Neon?.wallet?.Account;
+async function createAccount(value) {
+  const sdk = (await loadNeonJs()) || window.Neon;
+  const Account = sdk?.wallet?.Account;
   if (typeof Account !== "function") {
     throw new Error("Neo account helper is not available.");
   }
@@ -284,7 +287,7 @@ async function fetchBalance() {
 
   try {
     const result = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = createRpcClient(endpoint);
+      const rpcClient = await createRpcClient(endpoint);
       return rpcClient.getNep17Balances({ account: connectedAccount.value });
     });
     const gasAsset = result.balance.find((b) => b.assethash === GAS_HASH);
@@ -374,8 +377,8 @@ async function executeSponsoredTx() {
 
     if (!sponsorInfoRes.ok) throw new Error("Could not fetch sponsor info. Backend might not be configured.");
     const sponsorInfo = await sponsorInfoRes.json();
-    const sponsorScriptHash = createAccount(sponsorInfo.sponsorAddress).scriptHash;
-    const userScriptHash = createAccount(connectedAccount.value).scriptHash;
+    const sponsorScriptHash = (await createAccount(sponsorInfo.sponsorAddress)).scriptHash;
+    const userScriptHash = (await createAccount(connectedAccount.value)).scriptHash;
 
     // 2. Ask the connected wallet to build and sign the transaction (but do NOT broadcast)
     toast.info(t("tools.sponsored.toasts.signPrompt"));

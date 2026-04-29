@@ -227,6 +227,39 @@ export const indexerReadService = {
     );
   },
 
+  // Fetch the canonical per-account activity summary from the indexer.
+  // Authoritative source for tx_sent / tx_signed / nep17 totals — the
+  // legacy GetAssetsHeldByAddress RPC returns empty for many addresses
+  // and isn't a substitute.
+  async getAccount(address, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(address || "").trim());
+    if (!safe) return null;
+    const payload = await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `accounts/${safe}`),
+      options,
+    );
+    return payload?.data || null;
+  },
+
+  // Per-account transaction list. The legacy GetRawTransactionByAddress
+  // RPC also returns empty for active wallets; the indexer is the only
+  // reliable source. Returns the raw `{ data, paging }` payload so the
+  // caller can derive totalCount from `paging.total`.
+  async getAccountTransactions(address, limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(address || "").trim());
+    if (!safe) return null;
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    return await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `accounts/${safe}/transactions?${params.toString()}`),
+      options,
+    );
+  },
+
   async getContracts(limit = 20, offset = 0, { search = "", ...options } = {}) {
     const network = resolveIndexerNetworkPath();
     const params = new URLSearchParams({

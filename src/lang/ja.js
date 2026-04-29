@@ -766,7 +766,7 @@ const ja = {
         tickerSymbolPlaceholder: "例：DNEO",
         totalSupply: "総供給量",
         twitter: "Twitter / X ハンドル",
-        twitterPlaceholder: "例：@DogeNeo",
+        twitterPlaceholder: "Twitterユーザー名、例：DogeNeo",
         telegram: "Telegram グループ",
         telegramPlaceholder: "例：t.me/DogeNeo",
         memeLogo: "ミームマスコットロゴ（NeoFS）",

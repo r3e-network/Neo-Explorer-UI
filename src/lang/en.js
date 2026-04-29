@@ -766,7 +766,7 @@ const en = {
         tickerSymbolPlaceholder: "e.g. DNEO",
         totalSupply: "Total Supply",
         twitter: "Twitter / X Handle",
-        twitterPlaceholder: "e.g. @DogeNeo",
+        twitterPlaceholder: "Twitter username, e.g. DogeNeo",
         telegram: "Telegram Group",
         telegramPlaceholder: "e.g. t.me/DogeNeo",
         memeLogo: "Meme Mascot Logo (NeoFS)",

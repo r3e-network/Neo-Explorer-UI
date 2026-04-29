@@ -766,7 +766,7 @@ const ko = {
         tickerSymbolPlaceholder: "예: DNEO",
         totalSupply: "총 공급량",
         twitter: "Twitter / X 핸들",
-        twitterPlaceholder: "예: @DogeNeo",
+        twitterPlaceholder: "Twitter 사용자명, 예: DogeNeo",
         telegram: "Telegram 그룹",
         telegramPlaceholder: "예: t.me/DogeNeo",
         memeLogo: "밈 마스코트 로고 (NeoFS)",
