@@ -303,8 +303,17 @@ const gasPrice = ref(0);
 
 // Neo N3 specific constants
 const TOTAL_NEO_SUPPLY = 100_000_000;
-const BLOCKS_PER_YEAR = 10_512_000; // Assuming exactly 3 seconds per block
+const BLOCKS_PER_YEAR = 10_512_000; // 3 seconds per block (msperblock=3000 on N3)
 const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
+// GAS minted per block, in whole GAS. The NEO native contract returns this
+// in raw units (1e8 = 1 GAS) and the figure decays via setGasPerBlock
+// governance action. Live-loaded in fetchGasPerBlock(); the literal 1.0
+// here is the present mainnet value and a safe fallback if the call fails.
+// The previous hardcoded value was 5, which inflated every APR/monthlyGas
+// number on this page by 5×.
+const GAS_DECIMALS = 100_000_000;
+const DEFAULT_GAS_PER_BLOCK = 1.0;
+const gasPerBlock = ref(DEFAULT_GAS_PER_BLOCK);
 
 const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
@@ -396,29 +405,35 @@ function calculateMonthlyGas(candidateVotesStr, index) {
 
   const candidateVotes = Number(candidateVotesStr) || 0;
 
-  // Total GAS minted per block is 5
-  // - 10% (0.5 GAS) goes to all NEO holders evenly (regardless of voting)
-  // - 10% (0.5 GAS) goes to the 21 Neo Council members directly
-  // - 80% (4.0 GAS) goes to voters of the 21 Neo Council members:
-  //    - 40% (2.0 GAS) split among voters of the Top 7 (Consensus Nodes)
-  //    - 40% (2.0 GAS) split among voters of the Next 14 (Council Members)
+  // Per-block GAS distribution (from the NeoToken native contract):
+  // - 10% goes to all NEO holders proportionally (regardless of voting)
+  // - 10% goes to the 21 committee members directly (paid to the node)
+  // - 80% goes to voters of the 21 committee members, split such that
+  //     the top 7 (consensus) and next 14 (council) each receive 50% of
+  //     this pool. Within each tier, the per-candidate reward is divided
+  //     equally across voters, weighted by their NEO vote.
+  // The TOTAL_GAS_PER_BLOCK figure is read live from
+  // NeoToken.getGasPerBlock() in fetchGasPerBlock(); it can change via
+  // a setGasPerBlock governance action and at present equals 1 GAS.
+  const total = gasPerBlock.value;
+  const baseSharePerBlock = total * 0.1;       // 10% — paid to NEO holders
+  const consensusPoolPerBlock = total * 0.4;   // 40% — split across 7 consensus voter pools
+  const councilPoolPerBlock = total * 0.4;     // 40% — split across 14 council voter pools
 
   const isConsensusNode = index < 7;
   const isCouncilNode = index >= 7 && index < 21;
 
-  // Base generation: 10% of 5 GAS per block is divided across all 100M NEO
-  const baseRewardPerBlock = amount * (0.5 / TOTAL_NEO_SUPPLY);
+  // Base generation: 10% of GAS per block is divided across all 100M NEO
+  const baseRewardPerBlock = amount * (baseSharePerBlock / TOTAL_NEO_SUPPLY);
 
   // Voter generation
   let voterRewardPerBlock = 0;
   if (candidateVotes > 0) {
     if (isConsensusNode) {
-      // 2.0 GAS split equally among 7 nodes = ~0.2857 GAS per node per block
-      const candidateBlockReward = 2.0 / 7;
+      const candidateBlockReward = consensusPoolPerBlock / 7;
       voterRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
     } else if (isCouncilNode) {
-      // 2.0 GAS split equally among 14 nodes = ~0.1428 GAS per node per block
-      const candidateBlockReward = 2.0 / 14;
+      const candidateBlockReward = councilPoolPerBlock / 14;
       voterRewardPerBlock = amount * (candidateBlockReward / candidateVotes);
     }
   }
@@ -446,6 +461,30 @@ async function loadPrices() {
     gasPrice.value = data.gas || 0;
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load prices", err);
+  }
+}
+
+// Read NeoToken.getGasPerBlock() so APR estimates track the live protocol
+// value rather than a stale hardcoded constant. Returns raw integer; we
+// divide by 1e8 to convert to whole GAS. Failure leaves the default in
+// place — no toast, since the rest of the page is still informative.
+async function loadGasPerBlock() {
+  try {
+    const rpcClient = await createRpcClient();
+    const Query = rpcClient._sdk?.rpc?.Query;
+    if (typeof Query !== "function") return;
+    const result = await rpcClient.execute(
+      new Query({ method: "invokefunction", params: [NEO_HASH, "getGasPerBlock", []] }),
+    );
+    if (result?.state !== "HALT") return;
+    const raw = result?.stack?.[0]?.value;
+    if (raw === undefined || raw === null) return;
+    const numeric = Number(raw) / GAS_DECIMALS;
+    if (Number.isFinite(numeric) && numeric > 0) {
+      gasPerBlock.value = numeric;
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[Governance] getGasPerBlock failed:", err);
   }
 }
 
@@ -620,12 +659,16 @@ async function handleVoteAction(candidate) {
 }
 
 function handleNetworkChange() {
+  // gasPerBlock is set by governance per-network, refresh on switch.
+  gasPerBlock.value = DEFAULT_GAS_PER_BLOCK;
+  loadGasPerBlock();
   loadCandidates();
   loadCurrentVoteState();
 }
 
 onMounted(() => {
   loadPrices();
+  loadGasPerBlock();
   loadCandidates();
   loadCurrentVoteState();
 });

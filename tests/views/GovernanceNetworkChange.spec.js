@@ -98,7 +98,15 @@ describe("Governance network changes", () => {
     };
     envState.value = "MainNet";
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
-    executeMock.mockResolvedValue([{ publickey: "PUBKEY1", votes: "100", active: true }]);
+    executeMock.mockImplementation((query) => {
+      const method = query?.config?.method;
+      if (method === "invokefunction") {
+        // NeoToken.getGasPerBlock — returns raw integer (1e8 = 1 GAS).
+        return { state: "HALT", stack: [{ type: "Integer", value: "100000000" }] };
+      }
+      // getcandidates
+      return [{ publickey: "PUBKEY1", votes: "100", active: true }];
+    });
     getValidatorMetadataMock.mockResolvedValue([]);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -122,14 +130,16 @@ describe("Governance network changes", () => {
 
     await flushPromises();
     await flushPromises();
-    expect(executeMock).toHaveBeenCalledTimes(1);
+    const candidateCalls = () =>
+      executeMock.mock.calls.filter(([q]) => q?.config?.method === "getcandidates").length;
+    expect(candidateCalls()).toBe(1);
 
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
     await flushPromises();
     await flushPromises();
 
-    expect(executeMock).toHaveBeenCalledTimes(2);
+    expect(candidateCalls()).toBe(2);
     wrapper.unmount();
   });
 });

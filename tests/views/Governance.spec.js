@@ -219,4 +219,54 @@ describe("Governance view", () => {
 
     expect(wrapper.text()).toContain("Unvote");
   });
+
+  it("scales APR to live gasPerBlock (regression: prior 5 GAS/block hardcode inflated 5x)", async () => {
+    // Drive the page with a single rank-1 (consensus) candidate that has
+    // a clean round number of votes and a NeoToken.getGasPerBlock that
+    // returns 1.0 (the live mainnet value). With NEO=$1, GAS=$1, and
+    // 1000 NEO voting:
+    //   per-block voter share = 1000 * (0.4 / 7) / 1_000_000_000 = 5.71e-8
+    //   plus base = 1000 * (0.1 / 1e8) = 1e-6 GAS/block
+    //   monthly  = (5.71e-8 + 1e-6) * 876_000 ≈ 0.926 GAS
+    //   annual   ≈ 11.11 GAS = $11.11 yield on a $1000 stake
+    //   APR      ≈ 1.11 %
+    // The pre-fix formula would have yielded ~5.55 % at the same prices,
+    // so any number above 2.0 % means the regression is back.
+    executeMock.mockImplementation((query) => {
+      const method = query?.config?.method;
+      const params = query?.config?.params || [];
+      if (method === "getcandidates") {
+        return [{ publickey: CANDIDATE_PUBKEY, votes: "1000000000", active: true }];
+      }
+      if (method === "invokefunction" && params[1] === "getGasPerBlock") {
+        return { state: "HALT", stack: [{ type: "Integer", value: "100000000" }] };
+      }
+      if (method === "invokefunction") {
+        return { stack: [{ type: "Any" }] };
+      }
+      return [];
+    });
+
+    const Governance = (await import("@/views/Governance/Governance.vue")).default;
+    const wrapper = mount(Governance, {
+      global: {
+        mocks: { $t: (value) => value },
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          ErrorState: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    const aprMatch = wrapper.text().match(/(\d+(?:\.\d+)?)\s*%/);
+    expect(aprMatch).not.toBeNull();
+    const aprPercent = Number(aprMatch[1]);
+    expect(aprPercent).toBeGreaterThan(0);
+    expect(aprPercent).toBeLessThan(2.0);
+  });
 });
