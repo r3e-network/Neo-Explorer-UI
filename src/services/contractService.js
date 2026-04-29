@@ -1,8 +1,20 @@
 import axios from "axios";
-import { safeRpc } from "./api";
+import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
+
+// state_json arrives from the indexer as a JSON-encoded string; the
+// table renderer expects the parsed object. Fall back to the original
+// string if it's malformed so the row still surfaces.
+function tryParseStateJson(value) {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
 
 /**
  * Contract Service - Neo3 合约相关 API 调用
@@ -91,6 +103,44 @@ export const contractService = createService(
     },
   },
   {
+    // Override the auto-generated getNotifications: route through the
+    // indexer REST endpoint, which has actual data, then fall back to
+    // the legacy RPC when the indexer is unreachable.
+    async getNotifications(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const indexerRes = await indexerReadService.getContractNotifications(hash, limit, skip, options);
+        if (Array.isArray(indexerRes?.data) && indexerRes.data.length > 0) {
+          return {
+            result: indexerRes.data.map((row) => ({
+              txid: row.txid,
+              hash: row.txid,
+              eventname: row.event_name,
+              event_name: row.event_name,
+              blockindex: row.block_index,
+              blockIndex: row.block_index,
+              // Legacy RPC field name kept for the table renderer.
+              index: row.block_index,
+              executionindex: row.execution_index,
+              notificationindex: row.notification_index,
+              state: tryParseStateJson(row.state_json),
+              vmstate: row.vmstate || row.vm_state || "HALT",
+              // Capital-V alias because EventsTable reads item.Vmstate.
+              Vmstate: row.vmstate || row.vm_state || "HALT",
+              time: row.block_time_ms,
+              timestamp: row.block_time_ms,
+            })),
+            totalCount: Number(
+              indexerRes?.paging?.total
+                ?? (indexerRes.data.length === limit ? skip + indexerRes.data.length + 1 : skip + indexerRes.data.length),
+            ),
+          };
+        }
+      } catch {
+        // Indexer down — let legacy RPC try.
+      }
+      return safeRpcList("GetNotificationByContractHash", { ContractHash: hash, Limit: limit, Skip: skip }, "get contract notifications", options);
+    },
+
     async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
       const legacy = search
         ? await contractService.searchByName(search, limit, skip, { forceRefresh }).catch(() => null)

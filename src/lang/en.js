@@ -917,6 +917,7 @@ const en = {
     loadChartData: "Failed to load chart data. Please try again.",
     loadBurnMetrics: "Unable to load burn metrics. Please try again.",
     blockNotFound: "Block not found. The hash may be invalid.",
+    txNotFound: "Transaction not found. The hash may be invalid.",
     tokenLoadFailed: "Failed to load token information. Please try again.",
     generic: "Something went wrong. Please try again.",
   },

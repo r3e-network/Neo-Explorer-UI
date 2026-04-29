@@ -917,6 +917,7 @@ const zh = {
     loadChartData: "加载图表数据失败，请重试。",
     loadBurnMetrics: "加载销毁指标失败，请重试。",
     blockNotFound: "未找到区块，哈希可能无效。",
+    txNotFound: "未找到交易，哈希可能无效。",
     tokenLoadFailed: "加载代币信息失败，请重试。",
     generic: "出现错误，请重试。",
   },

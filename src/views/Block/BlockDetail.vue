@@ -12,6 +12,7 @@
       />
 
       <BlockHeader
+        v-if="!error"
         :block="block"
         :loading="loading"
         :latest-block-height="latestBlockHeight"

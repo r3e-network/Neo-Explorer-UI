@@ -912,6 +912,7 @@ const fr = {
     loadChartData: "Impossible de charger les données du graphique. Veuillez réessayer.",
     loadBurnMetrics: "Impossible de charger les métriques de destruction. Veuillez réessayer.",
     blockNotFound: "Bloc introuvable. Le hash est peut-être invalide.",
+    txNotFound: "Transaction introuvable. Le hash est peut-être invalide.",
     tokenLoadFailed: "Impossible de charger les informations du jeton. Veuillez réessayer.",
     generic: "Une erreur est survenue. Veuillez réessayer.",
     loadTokensUnavailable: "Le service de jetons est temporairement indisponible.",

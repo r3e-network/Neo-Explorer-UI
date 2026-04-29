@@ -4,8 +4,10 @@
       <!-- Breadcrumb -->
       <Breadcrumb :items="breadcrumbs" />
 
-      <!-- Page Header -->
-      <TxHeader :is-success="isSuccess" :tx-status="txStatus" :failure-reason="failureReason" />
+      <!-- Page Header — hide while we have a not-found error so the
+           "Pending" placeholder badge doesn't sit alongside the
+           error banner. -->
+      <TxHeader v-if="!error" :is-success="isSuccess" :tx-status="txStatus" :failure-reason="failureReason" />
 
       <!-- Action Summary Banner -->
       <div
@@ -394,7 +396,15 @@ async function loadTx(hash) {
   try {
     const fetched = await transactionService.getByHash(hash);
     if (myGeneration !== fetchGeneration) return;
-    tx.value = fetched || {};
+    // Reject obviously-empty payloads. The legacy RPC returns null for an
+    // unknown hash and the indexer returns {} — both leave the page
+    // rendering the "Pending" skeleton with no error indication. Surface
+    // it as a not-found instead.
+    if (!fetched || !(fetched.hash || fetched.txid || fetched.block_index || fetched.blockindex)) {
+      error.value = t("errors.txNotFound");
+      return;
+    }
+    tx.value = fetched;
     // Fire secondary loads in parallel
     loadTransfers(hash, myGeneration).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadTransfers failed:", err);

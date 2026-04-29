@@ -337,13 +337,31 @@ export const transactionService = createService(
       // even when the indexer has full coverage.
       let response = null;
       try {
-        const indexerRes = await indexerReadService.getAccountTransactions(
-          address,
-          limit,
-          skip,
-          requestOptions,
-        );
+        // Pull the per-account summary in parallel so we can derive a
+        // truthful pagination total — the transactions endpoint's
+        // paging response only carries count/limit/offset, not total.
+        const [indexerRes, accSummary] = await Promise.all([
+          indexerReadService.getAccountTransactions(address, limit, skip, requestOptions),
+          indexerReadService.getAccount(address, requestOptions).catch(() => null),
+        ]);
         if (Array.isArray(indexerRes?.data) && indexerRes.data.length > 0) {
+          // Best-available total: explicit `total` if the indexer ever
+          // adds it; else max(tx_sent, tx_signed) from the account row
+          // (these are the upper bound on the address's appearance count
+          // and double-counting is rarer than under-counting); else fall
+          // back to (offset + count + 1) so Next stays enabled until we
+          // hit an empty page.
+          const summaryMax = Math.max(
+            Number(accSummary?.tx_sent || 0),
+            Number(accSummary?.tx_signed || 0),
+          );
+          const fallbackTotal = indexerRes.data.length === limit
+            ? skip + indexerRes.data.length + 1
+            : skip + indexerRes.data.length;
+          const total = Number(
+            indexerRes?.paging?.total
+              ?? (summaryMax > 0 ? summaryMax : fallbackTotal),
+          );
           response = {
             result: indexerRes.data.map((row) => ({
               hash: row.txid,
@@ -358,7 +376,7 @@ export const transactionService = createService(
               netfee: row.net_fee,
               vmstate: row.vmstate || row.vm_state,
             })),
-            totalCount: Number(indexerRes?.paging?.total ?? indexerRes.data.length),
+            totalCount: total,
           };
         }
       } catch {

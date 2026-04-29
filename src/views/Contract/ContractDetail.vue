@@ -10,8 +10,11 @@
         ]"
       />
 
-      <!-- Contract Header -->
+      <!-- Contract Header — hidden on error so the placeholder
+           "Unknown Contract / -" row doesn't sit alongside the
+           not-found banner. -->
       <ContractHeader
+        v-if="!error"
         :contract="contract" :metadata="contractMetadata"
         :is-verified="isVerified"
         :supported-standards="supportedStandards"

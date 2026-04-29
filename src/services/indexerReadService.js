@@ -242,6 +242,23 @@ export const indexerReadService = {
     return payload?.data || null;
   },
 
+  // Per-contract notifications stream (events). The legacy
+  // GetNotificationByContractHash RPC returns empty for many contracts;
+  // the indexer's REST endpoint is authoritative.
+  async getContractNotifications(contractHash, limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(contractHash || "").trim());
+    if (!safe) return null;
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    return await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `contracts/${safe}/notifications?${params.toString()}`),
+      options,
+    );
+  },
+
   // Per-account transaction list. The legacy GetRawTransactionByAddress
   // RPC also returns empty for active wallets; the indexer is the only
   // reliable source. Returns the raw `{ data, paging }` payload so the
