@@ -14,10 +14,6 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const network = String(req.query.network || "").trim() || null;
-      const rawLimit = Number(req.query.limit);
-      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 100) : 50;
-      const rawOffset = Number(req.query.offset);
-      const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset) : 0;
 
       let sql = `
         SELECT r.*,
@@ -48,9 +44,7 @@ module.exports = async function handler(req, res) {
         sql += ` WHERE (r.network = $1 OR r.network_mode = $1)`;
       }
 
-      params.push(limit);
-      params.push(offset);
-      sql += ` GROUP BY r.id ORDER BY r.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+      sql += ` GROUP BY r.id ORDER BY r.created_at DESC LIMIT 500`;
 
       const { rows } = await query(sql, params);
       // Parse the JSON-aggregated signatures
