@@ -13,6 +13,13 @@
       <ErrorState :message="error" @retry="reloadToken" />
     </div>
 
+    <!-- Token-not-found: load completed but the indexer / RPC returned
+         no record. Without this the v-else block below tries to read
+         tokenInfo.totalsupply on a null and the page render-faults. -->
+    <div v-else-if="!tokenInfo || !tokenInfo.hash" class="py-12">
+      <ErrorState :title="$t('errors.tokenLoadFailed')" message="" @retry="reloadToken" />
+    </div>
+
     <template v-else>
       <!-- Page Header -->
       <div class="detail-hero">
@@ -76,7 +83,7 @@
         <!-- Tab: NFT Tokens -->
         <div v-show="activeName === 'nfts'">
           <nft-token
-            v-if="tokenInfo['totalsupply'] !== 0"
+            v-if="tokenInfo && tokenInfo.totalsupply !== 0"
             :contract-hash="tokenId"
             :decimal="decimal === '' ? 0 : decimal"
           />
@@ -85,7 +92,7 @@
 
         <!-- Tab: Top Holders -->
         <div v-show="activeName === 'holders'">
-          <token-holder v-if="tokenInfo['holders']" :contract-hash="tokenId" :format-balance="false" />
+          <token-holder v-if="tokenInfo && tokenInfo.holders" :contract-hash="tokenId" :format-balance="false" />
           <div v-else class="etherscan-card p-6 text-center text-sm text-mid">No holders found</div>
         </div>
 

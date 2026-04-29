@@ -276,7 +276,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -286,6 +286,7 @@ import { searchService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
 const route = useRoute();
+const router = useRouter();
 
 const searchInput = ref(null);
 const query = ref("");
@@ -385,6 +386,34 @@ async function performSearch() {
   try {
     const res = await searchService.search(query.value.trim());
     if (myGeneration !== searchGeneration) return;
+
+    // The legacy lookup endpoints return null for many valid wallets
+    // and tx hashes. If the query shape unambiguously matches one
+    // entity type, route to its detail page directly — those pages
+    // load through the indexer and render even when the legacy
+    // search endpoint is empty.
+    if ((!res || !res.type) && validate()) {
+      const q = query.value.trim();
+      if (/^N[A-Za-z0-9]{33}$/.test(q)) {
+        router.push(`/account-profile/${q}`).catch(() => {});
+        return;
+      }
+      if (/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {
+        const hash = q.startsWith("0x") ? q : `0x${q}`;
+        router.push(`/transaction-info/${hash}`).catch(() => {});
+        return;
+      }
+      if (/^(0x)?[a-fA-F0-9]{40}$/.test(q)) {
+        const hash = q.startsWith("0x") ? q : `0x${q}`;
+        router.push(`/contract-info/${hash}`).catch(() => {});
+        return;
+      }
+      if (/^\d+$/.test(q)) {
+        router.push(`/block-info/${q}`).catch(() => {});
+        return;
+      }
+    }
+
     result.value = res || { type: null, data: null };
   } catch (e) {
     if (myGeneration !== searchGeneration) return;
