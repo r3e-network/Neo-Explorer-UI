@@ -497,6 +497,9 @@ export const supabaseService = {
         );
         const rows = Array.isArray(payload?.data) ? payload.data : [];
 
+        // Cache null only for hashes the indexer confirmed are missing — separating
+        // "not in DB" (legitimate negative cache) from "fetch failed" (transient,
+        // must not poison the cache) so a single network blip does not blank metadata.
         toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
         rows.forEach((item) => {
           const normalized = normalizeContractMetadata(item);
@@ -504,7 +507,6 @@ export const supabaseService = {
           contractMetadataCache.set(`${network}:${normalized.contract_hash}`, normalized);
         });
       } catch (err) {
-        toFetch.forEach((hash) => contractMetadataCache.set(`${network}:${hash}`, null));
         if (import.meta.env.DEV) console.warn("Indexer contract metadata fetch failed:", err);
       }
     }
@@ -592,7 +594,8 @@ export const supabaseService = {
           aliases.forEach((alias) => setAddressTagCacheEntry(network, alias, normalized));
         });
       } catch (err) {
-        toFetch.forEach((addr) => setAddressTagCacheEntry(network, addr, null));
+        // Do not poison the cache on transient fetch failures; only the success
+        // branch above caches null for confirmed-missing addresses.
         if (import.meta.env.DEV) console.warn("Indexer address metadata fetch failed:", err);
       }
     }

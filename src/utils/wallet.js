@@ -50,15 +50,37 @@ function setupNeoLineEventListeners() {
   if (typeof window === "undefined" || _neoLineListenersSetup) return;
   _neoLineListenersSetup = true;
 
-  const handleAccountChange = (data) => {
+  const handleAccountChange = async (data) => {
     if (!isNeoLineSessionActive()) return;
 
     if (data && data.detail && data.detail.address) {
-      connectedAccount.value = data.detail.address;
-      localStorage.setItem("connectedWallet", data.detail.address);
+      const newAddress = data.detail.address;
+      connectedAccount.value = newAddress;
+      localStorage.setItem("connectedWallet", newAddress);
+      // walletService caches its own _account.address used for signer
+      // derivation in invoke(). Keep it in lockstep with connectedAccount
+      // — otherwise after a NeoLine account switch the next invoke would
+      // ask the wallet to sign for the previous account, which the wallet
+      // ignores and the explorer can't tell why the request failed.
+      try {
+        const walletService = await loadWalletService();
+        walletService.hydrateSession(PROVIDERS.NEOLINE, {
+          address: newAddress,
+          label: PROVIDERS.NEOLINE,
+        });
+      } catch {
+        // Best-effort: if walletService hasn't loaded yet, the next
+        // explicit connect() will set the right account anyway.
+      }
     } else {
       connectedAccount.value = "";
       localStorage.removeItem("connectedWallet");
+      try {
+        const walletService = await loadWalletService();
+        walletService.disconnect();
+      } catch {
+        // Best-effort cleanup.
+      }
     }
   };
 
@@ -81,7 +103,10 @@ export async function initWallet() {
   const walletService = await loadWalletService();
 
   if (provider === "NeoLine") {
-    const hasNeoLine = await waitForNeoLineN3(1000);
+    // 3s matches the timeout used by the interactive connect path in
+    // walletService — NeoLine sometimes takes >1s to inject on a cold
+    // reload, and the prior 1s window dropped sessions we could keep.
+    const hasNeoLine = await waitForNeoLineN3(3000);
     if (!hasNeoLine) {
       clearStoredWalletState();
       return;

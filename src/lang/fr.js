@@ -20,6 +20,7 @@ const fr = {
     apiDocs: "Documentation API",
     verifyContract: "Vérifier le Contrat",
     sourceCode: "Code Source",
+    tools: "Outils",
   },
   homePage: {
     heroTitle: "L'explorateur de la blockchain Neo N3",
@@ -155,6 +156,12 @@ const fr = {
     validator: {
       fallback: "Validateur",
       consensusNode: "Nœud de consensus",
+    },
+    detail: {
+      tabTransactions: "Transactions",
+      tabLogs: "Journaux de bloc",
+      txStillIndexing: "Les transactions de ce bloc sont encore en cours d'indexation. Réessayez dans quelques secondes.",
+      noTransactions: "Aucune transaction dans ce bloc",
     },
   },
   tools: {
@@ -850,6 +857,24 @@ const fr = {
     mempool: {
       title: "Recherche Mempool",
       description: "Recherchez et affichez la liste complète des transactions en attente en mémoire sur le réseau Neo.",
+      pageSubtitle: "Affichez et recherchez les transactions actuellement en attente en mémoire sur le réseau Neo.",
+      pendingHeading: "Transactions en attente",
+      networkLabel: "Réseau :",
+      refresh: "Actualiser",
+      refreshing: "Actualisation",
+      searchAriaLabel: "Rechercher dans le mempool par hash de transaction ou adresse d'expéditeur",
+      tableAriaLabel: "Transactions en attente",
+      loading: "Chargement des transactions du mempool…",
+      failedToLoad: "Échec du chargement du mempool",
+      failedToLoadHelp: "Impossible de récupérer les transactions en attente. Le réseau peut être indisponible.",
+      empty: "Le mempool est vide",
+      emptyHelp: "Aucune transaction en attente ne correspond à vos critères.",
+      tableHash: "Hash de transaction",
+      tableTime: "Temps dans le mempool",
+      tableSender: "Expéditeur",
+      tableFee: "Frais (GAS)",
+      tableSize: "Taille",
+      sizeBytes: "{count} octets",
     },
     alerts: {
       title: "Alertes Réseau",

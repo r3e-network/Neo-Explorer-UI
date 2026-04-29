@@ -611,6 +611,45 @@ describe("walletService", () => {
     ]);
   });
 
+  it("coerces Boolean string and Array JSON args from the contract write tab UI", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    await walletService.invoke({
+      scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+      operation: "configure",
+      args: [
+        // ParamInput stores the toggle as the literal string "true"
+        { type: "Boolean", value: "true" },
+        // Array textarea hands us a JSON string
+        { type: "Array", value: '[1,"ok"]' },
+      ],
+    });
+
+    const [params] = neoLineInvokeMock.mock.calls.at(-1);
+    expect(params.args).toEqual([
+      { type: "Boolean", value: true },
+      {
+        type: "Array",
+        value: [
+          { type: "Integer", value: "1" },
+          { type: "String", value: "ok" },
+        ],
+      },
+    ]);
+  });
+
   it("does not retry NeoLine invoke with a legacy network alias while authorization is pending", async () => {
     vi.useFakeTimers();
     try {

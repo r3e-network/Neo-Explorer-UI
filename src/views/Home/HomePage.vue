@@ -89,6 +89,13 @@ const marketCap = ref(0);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
+// Generation counter for fire-and-forget summary updates. The summary
+// promise is intentionally NOT awaited inside loadLatestData (so blocks +
+// transactions can render before the summary count lands), but that
+// means a slow summary from refresh N can resolve after refresh N+1
+// already finished. The counter lets each handler bail if a newer
+// refresh has run since.
+let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
 const blockDetailsByHash = new Map();
 
@@ -310,6 +317,7 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
+    const mySummaryGen = ++summaryGeneration;
     // Single fast path: indexer summary + blocks + transactions in parallel.
     const summaryPromise = indexerReadService.getSummary(requestOptions).catch(() => null);
 
@@ -386,6 +394,7 @@ async function loadLatestData(forceRefresh = false) {
       });
 
     void summaryPromise.then((summary) => {
+      if (mySummaryGen !== summaryGeneration) return;
       if (!summary || !isFreshHomepageSummary(summary)) return;
       blockCount.value = resolveLiveBlockHeight(Number(summary.total_block_count || 0));
       txCount.value = Number(summary.total_tx_count || 0);

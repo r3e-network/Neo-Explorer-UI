@@ -55,12 +55,31 @@ vi.mock("@/services/supabaseService", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
-  const RpcClient = class {
-    async getCandidates() {
-      return executeMock({ config: { method: "getcandidates" } });
+  // Mirror the shape that @/utils/neonLoader's findNeonJs guard checks for
+  // (tx.Transaction.deserialize + rpc.RPCClient) so loadNeonJs() resolves
+  // to this mock instead of returning null.
+  const Query = class {
+    constructor(config) {
+      this.config = config || {};
+    }
+    static invokeFunction(scriptHash, method, params, signers) {
+      return new Query({ method: "invokefunction", params: [scriptHash, method, params, signers] });
     }
   };
-  const neonMock = { RpcClient };
+  const RPCClient = class {
+    async execute(query) {
+      return executeMock(query);
+    }
+  };
+  const Transaction = class {
+    static deserialize() {
+      return new Transaction();
+    }
+  };
+  const neonMock = {
+    rpc: { RPCClient, Query },
+    tx: { Transaction },
+  };
   neonMock.default = neonMock;
   return neonMock;
 });

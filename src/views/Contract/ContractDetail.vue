@@ -104,15 +104,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
-import { walletService } from "@/services/walletService";
+import { walletService, WALLET_STATE_EVENT } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
 import { useTransactionTracker } from "@/composables/useTransactionTracker";
+import { invokeContractFunction } from "@/utils/contractInvocation";
+import { normalizeHash160 } from "@/utils/walletNormalization";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import EventsTable from "@/views/Contract/EventsTable.vue";
@@ -146,10 +148,21 @@ const wcUri = ref("");
 const { txStatuses, track: trackTx } = useTransactionTracker();
 
 // Restore wallet state if already connected
-if (walletService.isConnected) {
-  walletConnected.value = true;
-  walletAccount.value = walletService.account;
-  walletProvider.value = walletService.provider;
+function syncWalletStateFromService() {
+  walletConnected.value = walletService.isConnected;
+  walletAccount.value = walletService.isConnected ? walletService.account : null;
+  walletProvider.value = walletService.isConnected ? walletService.provider : null;
+}
+
+syncWalletStateFromService();
+
+if (typeof window !== "undefined") {
+  onMounted(() => {
+    window.addEventListener(WALLET_STATE_EVENT, syncWalletStateFromService);
+  });
+  onBeforeUnmount(() => {
+    window.removeEventListener(WALLET_STATE_EVENT, syncWalletStateFromService);
+  });
 }
 
 // Computed - source code link
@@ -179,15 +192,30 @@ const eventsCount = computed(() => abiEvents.value.length);
 const readMethods = computed(() => abiMethods.value.filter((m) => m.safe === true));
 const writeMethods = computed(() => abiMethods.value.filter((m) => m.safe !== true));
 
+// Build the optional signers array used for read-only simulations.
+// When a wallet is connected we pass the connected account so contract
+// methods that gate on Runtime.CheckWitness still simulate accurately —
+// matches what the explorer would send for a real transaction.
+function readSimulationSigners() {
+  const address = walletAccount.value?.address;
+  if (!walletConnected.value || !address) return null;
+  const account = normalizeHash160(address);
+  if (!account || account === address) return null;
+  return [{ account, scopes: 1 }];
+}
+
 // Read contract interaction via composable
 const {
   methodState: readMethodState,
   toggleMethod: toggleReadMethod,
   updateParam: updateReadParam,
   invokeMethod: invokeReadMethod,
-} = useMethodInteraction(readMethods, (name, params) => contractService.invokeRead(contract.value.hash, name, params), {
-  errorFallback: t("contract.invocationFailed"),
-});
+} = useMethodInteraction(
+  readMethods,
+  (name, params) =>
+    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners()),
+  { errorFallback: t("contract.invocationFailed") },
+);
 
 // Write contract interaction via composable
 const {
@@ -217,7 +245,9 @@ function invokeWriteMethod(idx, method, scope) {
 }
 
 function estimateGas(idx, method) {
-  estimateWriteGas(idx, method, (name, params) => contractService.invokeRead(contract.value.hash, name, params));
+  estimateWriteGas(idx, method, (name, params) =>
+    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners()),
+  );
 }
 
 // Data loading
@@ -226,9 +256,15 @@ async function loadContract(hash) {
   loading.value = true;
   error.value = null;
   manifest.value = null;
+  // Clear contract.value so the previous contract's header doesn't flash
+  // while the new fetch resolves; also drop verification state so the prior
+  // green badge doesn't linger across navigation.
+  contract.value = {};
+  isVerified.value = false;
   try {
-    contract.value = (await contractService.getByHashWithFallback(hash)) || {};
+    const fetched = await contractService.getByHashWithFallback(hash);
     if (myGeneration !== fetchGeneration) return;
+    contract.value = fetched || {};
     if (!contract.value?.hash) {
       error.value = t("errors.loadContractDetails");
       return;

@@ -150,8 +150,8 @@ const blockLogNotificationCount = computed(() => {
 
 const emptyTransactionsMessage = computed(() =>
   blockTransactionCount.value > 0
-    ? "Transactions are still indexing for this block. Please retry in a few seconds."
-    : "No transactions in this block"
+    ? t("blocks.detail.txStillIndexing")
+    : t("blocks.detail.noTransactions")
 );
 
 const timeAgo = computed(() => {
@@ -162,12 +162,12 @@ const timeAgo = computed(() => {
 const tabs = computed(() => [
   {
     key: "transactions",
-    label: "Transactions",
+    label: t("blocks.detail.tabTransactions"),
     count: blockTransactionCount.value || null,
   },
   {
     key: "logs",
-    label: "Block Logs",
+    label: t("blocks.detail.tabLogs"),
     count: blockLogNotificationCount.value || null,
   },
 ]);
@@ -215,6 +215,9 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
     abortController.value = new AbortController();
     loading.value = true;
     error.value = null;
+    // Clear block.value so the prior block's header doesn't flash next to
+    // the new block's loading skeleton on rapid navigation.
+    block.value = {};
     reward.value = null;
     transactions.value = [];
     showWitnesses.value = false;

@@ -169,12 +169,20 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
     manifest.value = {};
     manifestError.value = null;
     updateCounter.value = 0;
+    // Reset metadata so fast token-to-token navigation doesn't flash the
+    // previous token's overlay while the next metadata fetch resolves.
+    tokenMetadata.value = null;
     executeTokenFetch(tokenId.value);
     executeContractFetch(tokenId.value);
-    
-    // Supabase optional metadata fetch
-    supabaseService.getContractMetadata(tokenId.value).then(meta => {
-      if (meta) tokenMetadata.value = meta;
+
+    // Supabase optional metadata fetch — capture the token under
+    // resolution so a slower fetch from token A can't overwrite the
+    // freshly-set metadata for token B.
+    const requestedToken = tokenId.value;
+    supabaseService.getContractMetadata(requestedToken).then(meta => {
+      if (meta && tokenId.value === requestedToken) {
+        tokenMetadata.value = meta;
+      }
     }).catch(()=>{});
   }
 

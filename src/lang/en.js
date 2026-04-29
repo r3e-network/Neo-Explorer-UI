@@ -20,6 +20,7 @@ const en = {
     apiDocs: "API Docs",
     verifyContract: "Verify Contract",
     sourceCode: "Source Code",
+    tools: "Tools",
   },
 
   homePage: {
@@ -156,6 +157,12 @@ const en = {
     validator: {
       fallback: "Validator",
       consensusNode: "Consensus Node",
+    },
+    detail: {
+      tabTransactions: "Transactions",
+      tabLogs: "Block Logs",
+      txStillIndexing: "Transactions are still indexing for this block. Please retry in a few seconds.",
+      noTransactions: "No transactions in this block",
     },
   },
   tools: {
@@ -854,6 +861,24 @@ const en = {
     mempool: {
       title: "Mempool Search",
       description: "Search and view the full list of in-memory pending transactions on the Neo network.",
+      pageSubtitle: "View and search the current in-memory pending transactions on the Neo network.",
+      pendingHeading: "Pending Transactions",
+      networkLabel: "Network:",
+      refresh: "Refresh",
+      refreshing: "Refreshing",
+      searchAriaLabel: "Search mempool by transaction hash or sender address",
+      tableAriaLabel: "Pending transactions",
+      loading: "Loading mempool transactions…",
+      failedToLoad: "Failed to Load Mempool",
+      failedToLoadHelp: "Unable to fetch pending transactions. The network may be unavailable.",
+      empty: "Mempool is Empty",
+      emptyHelp: "No pending transactions found matching your criteria.",
+      tableHash: "Tx Hash",
+      tableTime: "Time in Mempool",
+      tableSender: "Sender",
+      tableFee: "Fee (GAS)",
+      tableSize: "Size",
+      sizeBytes: "{count} bytes",
     },
     alerts: {
       title: "Network Alerts",

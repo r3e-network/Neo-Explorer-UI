@@ -45,6 +45,7 @@ vi.mock("@/services/walletService", () => ({
     disconnect,
     invoke,
   },
+  WALLET_STATE_EVENT: "neo-explorer:wallet-state-changed",
 }));
 
 vi.mock("@/composables/useMethodInteraction", () => ({

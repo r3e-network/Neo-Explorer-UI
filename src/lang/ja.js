@@ -20,6 +20,7 @@ const ja = {
     apiDocs: "APIドキュメント",
     verifyContract: "コントラクト検証",
     sourceCode: "ソースコード",
+    tools: "ツール",
   },
 
   homePage: {
@@ -156,6 +157,12 @@ const ja = {
     validator: {
       fallback: "検証者",
       consensusNode: "コンセンサスノード",
+    },
+    detail: {
+      tabTransactions: "トランザクション",
+      tabLogs: "ブロックログ",
+      txStillIndexing: "このブロックのトランザクションはまだインデックス中です。数秒後に再試行してください。",
+      noTransactions: "このブロックにはトランザクションがありません",
     },
   },
   tools: {
@@ -854,6 +861,24 @@ const ja = {
     mempool: {
       title: "メモリプール検索",
       description: "Neo ネットワーク上のメモリ内保留トランザクションの完全なリストを検索して表示します。",
+      pageSubtitle: "Neo ネットワークの現在のメモリ内保留トランザクションを表示・検索します。",
+      pendingHeading: "保留トランザクション",
+      networkLabel: "ネットワーク:",
+      refresh: "更新",
+      refreshing: "更新中",
+      searchAriaLabel: "トランザクションハッシュまたは送信元アドレスでメモリプールを検索",
+      tableAriaLabel: "保留トランザクション",
+      loading: "メモリプールのトランザクションを読み込み中…",
+      failedToLoad: "メモリプールの読み込みに失敗しました",
+      failedToLoadHelp: "保留トランザクションを取得できません。ネットワークが利用できない可能性があります。",
+      empty: "メモリプールは空です",
+      emptyHelp: "条件に一致する保留トランザクションが見つかりませんでした。",
+      tableHash: "トランザクションハッシュ",
+      tableTime: "メモリプール滞在時間",
+      tableSender: "送信元",
+      tableFee: "手数料 (GAS)",
+      tableSize: "サイズ",
+      sizeBytes: "{count} バイト",
     },
     alerts: {
       title: "ネットワークアラート",

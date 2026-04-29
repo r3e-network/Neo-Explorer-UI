@@ -136,4 +136,28 @@ describe("formatTokenAmount", () => {
     expect(formatTokenAmount("abc")).toBe("0");
     expect(formatTokenAmount(Infinity)).toBe("0");
   });
+
+  it("preserves integer precision for amounts beyond Number.MAX_SAFE_INTEGER", () => {
+    // 1e25 raw with 18 decimals = 10,000,000 tokens. Number(1e25) loses
+    // trailing digits; the BigInt path should emit the exact integer part.
+    const result = formatTokenAmount("10000000000000000000000000", 18, 8);
+    expect(result.replace(/,/g, "")).toBe("10000000");
+  });
+
+  it("preserves fractional digits when integer part fits but raw exceeds Number range", () => {
+    // 1234567890123456789 raw with 8 decimals → 12345678901.23456789
+    const result = formatTokenAmount("1234567890123456789", 8, 8);
+    expect(result.endsWith(".23456789")).toBe(true);
+    expect(result.replace(/,/g, "").startsWith("12345678901")).toBe(true);
+  });
+
+  it("rounds-down fractional digits to displayDecimals on the BigInt path", () => {
+    const result = formatTokenAmount("1234567890123456789", 8, 2);
+    expect(result.endsWith(".23")).toBe(true);
+  });
+
+  it("handles negative very-large amounts on the BigInt path", () => {
+    const result = formatTokenAmount("-10000000000000000000000000", 18, 8);
+    expect(result.replace(/,/g, "")).toBe("-10000000");
+  });
 });

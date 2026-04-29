@@ -28,6 +28,7 @@ import {
 } from "@/utils/walletNormalization";
 import { bytesToHex, publicKeyToAddress } from "@/utils/neoHelpers";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
+import { buildContractParam } from "@/utils/contractParam";
 import aaMethodPolicy from "@/constants/aaMethodPolicy.json";
 
 /** Internal state */
@@ -35,6 +36,23 @@ let _connectedProvider = null;
 let _account = null;
 let _neolineN3 = null;
 let _directWifAccount = null;
+
+export const WALLET_STATE_EVENT = "neo-explorer:wallet-state-changed";
+
+function broadcastWalletStateChange() {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent(WALLET_STATE_EVENT, {
+      detail: {
+        connected: !!_account,
+        provider: _connectedProvider,
+        account: _account ? { ...(_account || {}) } : null,
+      },
+    }));
+  } catch {
+    // CustomEvent may not be available in some non-browser environments — best-effort only.
+  }
+}
 const AA_ALLOWED_META_METHODS = new Set(
   Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : [],
 );
@@ -688,6 +706,7 @@ async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switch
   }
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
+  broadcastWalletStateChange();
   return _account;
 }
 
@@ -834,6 +853,7 @@ export const walletService = {
         label: PROVIDERS.TESTNET_WIF,
         persistSession: "session",
       };
+      broadcastWalletStateChange();
       return _account;
     }
 
@@ -853,6 +873,7 @@ export const walletService = {
             ...(walletConnectService.account || {}),
             label: providerName,
           };
+          broadcastWalletStateChange();
           return _account;
         }),
       };
@@ -863,6 +884,7 @@ export const walletService = {
       const account = await web3authService.connect();
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
+      broadcastWalletStateChange();
       return _account;
     }
 
@@ -900,6 +922,7 @@ export const walletService = {
 
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
+      broadcastWalletStateChange();
       return _account;
     }
 
@@ -912,6 +935,7 @@ export const walletService = {
     }
     _connectedProvider = providerName;
     _account = account;
+    broadcastWalletStateChange();
   },
 
   async restoreSession(providerName, options = {}) {
@@ -929,6 +953,7 @@ export const walletService = {
 
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
+      broadcastWalletStateChange();
       return _account;
     }
 
@@ -947,6 +972,7 @@ export const walletService = {
       ...account,
       label: providerName,
     };
+    broadcastWalletStateChange();
     return _account;
   },
 
@@ -966,6 +992,7 @@ export const walletService = {
     _account = null;
     _neolineN3 = null;
     _directWifAccount = null;
+    broadcastWalletStateChange();
   },
 
   /**
@@ -1119,6 +1146,7 @@ export const walletService = {
         address: nextAccount.address,
         label: String(nextAccount.label || PROVIDERS.NEOLINE).trim() || PROVIDERS.NEOLINE,
       };
+      broadcastWalletStateChange();
       return _account;
     }
 
@@ -1448,12 +1476,16 @@ export const walletService = {
         throw new Error("Unable to derive abstract account address.");
       }
 
+      // Snapshot the network so a mid-flight switch can't ship a payload
+      // intended for one chain to another.
+      const startNetwork = getCurrentEnv();
+
       const prepareResponse = await fetch("/api/relayer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "prepare",
-          network: getCurrentEnv(),
+          network: startNetwork,
           aaHash,
           accountAddress,
           accountId,
@@ -1476,19 +1508,46 @@ export const walletService = {
       if (!prepared?.message?.argsHash || !prepared?.message?.deadline) {
         throw new Error("Relayer prepare payload is missing signed message fields.");
       }
+      if (prepared?.message?.nonce === undefined || prepared?.message?.nonce === null) {
+        // The execute call below sends `nonce` to the relayer; if the relayer
+        // omitted it from prepare, every retry gets a non-deterministic nonce
+        // and signature replay protection is moot.
+        throw new Error("Relayer prepare payload is missing nonce.");
+      }
       if (!prepared?.signerAddress) {
         throw new Error("Relayer prepare payload is missing signerAddress.");
       }
+      // Reject obviously-stale deadlines so the user isn't asked to sign a
+      // payload that can't be executed. Deadlines look like Unix seconds in
+      // the AA EIP-712 schema — anything before now is unusable.
+      const deadlineSeconds = Number(prepared.message.deadline);
+      if (!Number.isFinite(deadlineSeconds) || deadlineSeconds <= Math.floor(Date.now() / 1000)) {
+        throw new Error("Relayer returned an expired deadline.");
+      }
+      // Defence-in-depth: the relayer signs the prepare response with our
+      // input, but a compromised relayer could swap signerAddress. Compare
+      // against the wallet we just queried; the wallet will display its own
+      // chain anyway when it pops up to sign typed data.
+      if (String(prepared.signerAddress).toLowerCase() !== signerAddress) {
+        throw new Error("Relayer signerAddress did not match connected wallet.");
+      }
+
       const signature = await signer.signTypedData(prepared.domain, prepared.types, prepared.message);
       const digest = ethers.TypedDataEncoder.hash(prepared.domain, prepared.types, prepared.message);
       const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
+
+      // If the user switched networks while the wallet popup was open, abort
+      // before broadcasting a payload bound to the previous network.
+      if (getCurrentEnv() !== startNetwork) {
+        throw new Error("Network changed during signing; please retry.");
+      }
 
       const executeResponse = await fetch("/api/relayer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "execute",
-          network: getCurrentEnv(),
+          network: startNetwork,
           aaHash,
           accountAddress,
           accountId,
@@ -1510,6 +1569,9 @@ export const walletService = {
       }
 
       const data = await executeResponse.json();
+      if (!data || typeof data.txid !== "string" || !data.txid) {
+        throw new Error("Relayer returned no txid.");
+      }
       return { txid: data.txid };
     }
 
@@ -1604,6 +1666,22 @@ function normalizeArgValueForDapi(type, value) {
   if (!value || typeof value !== "object") {
     if (type === "Hash160" && typeof value === "string") {
       return normalizeHash160(value);
+    }
+    if (type === "Boolean" && typeof value === "string") {
+      const text = value.trim().toLowerCase();
+      if (text === "true" || text === "1") return true;
+      if (text === "false" || text === "0") return false;
+    }
+    if ((type === "Array" || type === "Map") && typeof value === "string") {
+      // Plain text from the manifest write tab — defer JSON parsing to the
+      // shared buildContractParam path so error messages stay consistent
+      // between read and write flows.
+      try {
+        const built = buildContractParam(type, value);
+        return built.value;
+      } catch {
+        return value;
+      }
     }
     return value;
   }

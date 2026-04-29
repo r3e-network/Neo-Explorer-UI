@@ -223,7 +223,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { truncateHash } from "@/utils/explorerFormat";
 import ParamInput from "@/components/contract/ContractParamInput.vue";
 import WalletConnectModal from "./WalletConnectModal.vue";
@@ -251,7 +251,17 @@ const emit = defineEmits([
   "estimateGas",
 ]);
 
+// Index-keyed scope state must be cleared when the underlying method list
+// changes (contract navigation, manifest reload) — otherwise the scope
+// previously chosen for method #0 on contract A leaks onto whatever method
+// #0 turns out to be on contract B.
 const signerScopes = ref({});
+watch(
+  () => props.writeMethods,
+  () => {
+    signerScopes.value = {};
+  },
+);
 
 function getTxStatus(txid) {
   if (!txid) return null;

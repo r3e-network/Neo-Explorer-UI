@@ -20,6 +20,7 @@ const ko = {
     apiDocs: "API 문서",
     verifyContract: "컨트랙트 검증",
     sourceCode: "소스 코드",
+    tools: "도구",
   },
 
   homePage: {
@@ -156,6 +157,12 @@ const ko = {
     validator: {
       fallback: "검증자",
       consensusNode: "합의 노드",
+    },
+    detail: {
+      tabTransactions: "트랜잭션",
+      tabLogs: "블록 로그",
+      txStillIndexing: "이 블록의 트랜잭션이 아직 인덱싱 중입니다. 몇 초 후에 다시 시도하세요.",
+      noTransactions: "이 블록에는 트랜잭션이 없습니다",
     },
   },
   tools: {
@@ -854,6 +861,24 @@ const ko = {
     mempool: {
       title: "멤풀 검색",
       description: "Neo 네트워크의 메모리 내 대기 트랜잭션 전체 목록을 검색하고 확인합니다.",
+      pageSubtitle: "Neo 네트워크의 현재 메모리 내 대기 트랜잭션을 보고 검색합니다.",
+      pendingHeading: "대기 트랜잭션",
+      networkLabel: "네트워크:",
+      refresh: "새로고침",
+      refreshing: "새로고침 중",
+      searchAriaLabel: "트랜잭션 해시 또는 발신자 주소로 멤풀 검색",
+      tableAriaLabel: "대기 트랜잭션",
+      loading: "멤풀 트랜잭션을 불러오는 중…",
+      failedToLoad: "멤풀을 불러오지 못했습니다",
+      failedToLoadHelp: "대기 트랜잭션을 가져올 수 없습니다. 네트워크를 사용할 수 없습니다.",
+      empty: "멤풀이 비어 있습니다",
+      emptyHelp: "조건에 맞는 대기 트랜잭션이 없습니다.",
+      tableHash: "트랜잭션 해시",
+      tableTime: "멤풀 체류 시간",
+      tableSender: "발신자",
+      tableFee: "수수료 (GAS)",
+      tableSize: "크기",
+      sizeBytes: "{count} 바이트",
     },
     alerts: {
       title: "네트워크 알림",

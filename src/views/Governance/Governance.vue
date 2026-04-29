@@ -261,6 +261,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
@@ -330,12 +331,21 @@ const neoBurgerMonthlyGas = computed(() => {
   return maxGas;
 });
 
-function createRpcClient(url = getRpcClientUrl()) {
-  const RpcClient = window.Neon?.rpc?.RPCClient;
+async function createRpcClient(url = getRpcClientUrl()) {
+  // Don't depend on window.Neon being eagerly populated by the app entry —
+  // on a cold mount of /governance the SDK chunk hasn't finished loading
+  // yet, and the page would error out with "Neo RPC client is not
+  // available". loadNeonJs() resolves the same module the rest of the app
+  // uses and works on first call.
+  const sdk = await loadNeonJs();
+  const RpcClient = sdk?.rpc?.RPCClient;
   if (typeof RpcClient !== "function") {
     throw new Error("Neo RPC client is not available.");
   }
-  return new RpcClient(url);
+  const client = new RpcClient(url);
+  // Stash the Query constructor so callers don't have to re-resolve sdk.
+  client._sdk = sdk;
+  return client;
 }
 
 const sortedCandidates = computed(() => {
@@ -443,7 +453,7 @@ async function loadCandidates() {
   loading.value = true;
   error.value = "";
   try {
-    const rpcClient = createRpcClient();
+    const rpcClient = await createRpcClient();
 
     // Determine the environment string for Dora API
     const env = getCurrentEnv().toLowerCase();
@@ -451,7 +461,14 @@ async function loadCandidates() {
 
     const isTestnet = doraEnv !== "mainnet";
 
-    const rpcRes = await rpcClient.getCandidates();
+    // neon-js's RPCClient doesn't expose getCandidates as a typed helper.
+    // Route through `execute(new Query(...))` to invoke the JSON-RPC
+    // method directly using the same client instance.
+    const Query = rpcClient._sdk?.rpc?.Query;
+    if (typeof Query !== "function") {
+      throw new Error("Neo RPC Query class is not available.");
+    }
+    const rpcRes = await rpcClient.execute(new Query({ method: "getcandidates", params: [] }));
 
     let rawCandidates = [];
     if (rpcRes && rpcRes.length > 0) {
@@ -538,17 +555,18 @@ async function loadCurrentVoteState() {
   }
 
   try {
-    const rpcClient = createRpcClient();
+    const rpcClient = await createRpcClient();
     const scriptHash = addressToScriptHash(account.value);
     if (!scriptHash) {
       currentVotePublicKey.value = "";
       return;
     }
-    const result = await rpcClient.invokeFunction({
-      contractHash: NEO_HASH,
-      method: "getAccountState",
-      args: [{ type: "Hash160", value: scriptHash }],
-    });
+    // neon-js's invokeFunction is positional: (scriptHash, operation, params, signers).
+    const result = await rpcClient.invokeFunction(
+      NEO_HASH,
+      "getAccountState",
+      [{ type: "Hash160", value: scriptHash }],
+    );
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;
     const structValues = Array.isArray(item?.value) ? item.value : [];

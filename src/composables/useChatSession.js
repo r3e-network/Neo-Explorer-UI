@@ -43,11 +43,16 @@ async function restoreChatSession() {
 }
 
 async function ensureInteractiveChatSession() {
-  if (!connectedAccount.value) throw new Error("Wallet not connected");
+  // Snapshot the address at the start of the flow. The user can switch
+  // accounts in NeoLine while we're awaiting requestChallenge / signMessage,
+  // and we must not request a challenge for one address and then verify
+  // it as another — the backend would reject it as mismatched.
+  const requestedAddress = String(connectedAccount.value || "").trim();
+  if (!requestedAddress) throw new Error("Wallet not connected");
   const walletService = await loadWalletService();
 
   const existing = await restoreChatSession();
-  if (existing?.address === connectedAccount.value) {
+  if (existing?.address === requestedAddress) {
     return existing;
   }
 
@@ -59,8 +64,16 @@ async function ensureInteractiveChatSession() {
     throw new Error(chatAuthSupport.reason || "This wallet is not supported for NeoChat login.");
   }
 
-  const challenge = await chatService.requestChallenge(connectedAccount.value);
+  const challenge = await chatService.requestChallenge(requestedAddress);
   const signed = await walletService.signMessage(challenge.message);
+
+  // Verify that the address didn't change while we awaited the wallet
+  // signature. If it did, abort instead of associating the new wallet's
+  // identity with the previous account's challenge.
+  if (connectedAccount.value && connectedAccount.value !== requestedAddress) {
+    throw new Error("Wallet account changed during chat sign-in. Please retry.");
+  }
+
   const signature = String(signed?.signature || signed?.data || "").trim();
   const publicKey =
     normalizePublicKey(signed?.publicKey) ||
@@ -75,7 +88,7 @@ async function ensureInteractiveChatSession() {
 
   const session = await chatService.verifyChallenge({
     challengeId: challenge.challengeId,
-    address: connectedAccount.value,
+    address: requestedAddress,
     signature,
     publicKey,
   });

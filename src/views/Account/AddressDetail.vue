@@ -610,6 +610,14 @@ async function initializeData(addr) {
   txPage.value = 1;
   isCandidate.value = false;
   candidateData.value = null;
+  // Reset balances and counts so the previous address's numbers don't
+  // linger in the header while the new summary loads. Loaders below set
+  // these on success; on failure they need to start from a clean slate.
+  neoBalance.value = "0";
+  gasBalance.value = "0";
+  txCount.value = 0;
+  tokenCount.value = 0;
+  isContract.value = false;
   if (activeTab.value === "voters") {
     activeTab.value = "transactions";
   }

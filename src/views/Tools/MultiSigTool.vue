@@ -617,10 +617,10 @@
               />
               <button
                 @click="submitManualSignature"
-                :disabled="!manualSignature || manualSignature.length < 128"
+                :disabled="!manualSignature || manualSignature.length < 128 || isSigning"
                 class="w-full px-4 py-3 bg-surface-muted text-high border border-line-soft rounded-xl font-bold hover:bg-surface transition-all active:scale-95 hover:border-line disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ $t("tools.multisig.submitManualSig") }}
+                {{ isSigning ? $t("tools.multisig.awaitingWallet") : $t("tools.multisig.submitManualSig") }}
               </button>
             </div>
           </div>
@@ -928,7 +928,19 @@ async function autoSignTx() {
 
 async function submitManualSignature() {
   if (!manualSignature.value) return;
-  await submitSig(manualSignature.value.trim());
+  // Guard re-entrancy: the input has no in-flight binding, so a double-
+  // click would otherwise call addMultisigSignature twice with identical
+  // payload and rely on the backend to dedupe.
+  if (isSigning.value) return;
+  isSigning.value = true;
+  try {
+    await submitSig(manualSignature.value.trim());
+  } catch (e) {
+    if (import.meta.env.DEV) console.error(e);
+    toast.error(t("tools.multisig.toasts.signingFailed", { reason: e?.message || "submit failed" }));
+  } finally {
+    isSigning.value = false;
+  }
 }
 
 async function submitSig(signatureHex) {

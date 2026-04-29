@@ -1,8 +1,10 @@
 function escapeCsvValue(value) {
   if (value === null || value === undefined) return "";
   const str = String(value);
-  // Escape formula injection: prefix with single quote if starts with dangerous char
-  if (/^[=+@-]/.test(str)) {
+  // Escape formula injection: prefix with single quote if starts with a
+  // dangerous char. Tab and CR can also kick Excel into formula mode when
+  // they're the first non-whitespace byte of a cell, so include them too.
+  if (/^[=+@\-\t\r]/.test(str)) {
     return `"'${str.replace(/"/g, '""')}"`;
   }
   // Escape values containing commas, quotes, or newlines

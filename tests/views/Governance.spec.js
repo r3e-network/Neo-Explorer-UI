@@ -69,15 +69,35 @@ vi.mock("@/utils/logoOptimization", () => ({
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
-  const RpcClient = class {
-    async getCandidates() {
-      return executeMock({ config: { method: "getcandidates" } });
+  // The Governance view now resolves neon-js via @/utils/neonLoader, which
+  // only treats a value as the SDK when both `tx.Transaction.deserialize`
+  // and `rpc.RPCClient` are present. Provide both so loadNeonJs() returns
+  // this mock instead of falling back to null.
+  const Query = class {
+    constructor(config) {
+      this.config = config || {};
     }
-    async invokeFunction(_scriptHash, _method, _params, _signers) {
-      return executeMock({ config: { method: "invokefunction" } });
+    static invokeFunction(scriptHash, method, params, signers) {
+      return new Query({ method: "invokefunction", params: [scriptHash, method, params, signers] });
     }
   };
-  const neonMock = { RpcClient };
+  const RPCClient = class {
+    async execute(query) {
+      return executeMock(query);
+    }
+    async invokeFunction(scriptHash, method, params, signers) {
+      return executeMock(Query.invokeFunction(scriptHash, method, params, signers));
+    }
+  };
+  const Transaction = class {
+    static deserialize() {
+      return new Transaction();
+    }
+  };
+  const neonMock = {
+    rpc: { RPCClient, Query },
+    tx: { Transaction },
+  };
   neonMock.default = neonMock;
   return neonMock;
 });

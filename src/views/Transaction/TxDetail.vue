@@ -371,6 +371,10 @@ function buildActionSummary() {
 
 // --- Data Loading ---
 function resetState() {
+  // Clear tx.value too — otherwise navigating from one tx to another that
+  // fails to load shows the previous tx's overview alongside the new error
+  // banner.
+  tx.value = {};
   appLog.value = null;
   appLogError.value = "";
   nep17Transfers.value = [];
@@ -388,8 +392,9 @@ async function loadTx(hash) {
   loading.value = true;
   resetState();
   try {
-    tx.value = (await transactionService.getByHash(hash)) || {};
+    const fetched = await transactionService.getByHash(hash);
     if (myGeneration !== fetchGeneration) return;
+    tx.value = fetched || {};
     // Fire secondary loads in parallel
     loadTransfers(hash, myGeneration).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadTransfers failed:", err);
@@ -426,6 +431,9 @@ async function loadEnrichedTrace(hash, gen) {
       if (gen !== fetchGeneration) return;
       appLog.value = fallback;
     } catch {
+      // Drop the error if a newer load has superseded this one — otherwise
+      // the user sees the stale "failed to load" banner on the new tx.
+      if (gen !== fetchGeneration) return;
       appLogError.value = t("errors.loadAppLog");
     }
   } finally {
@@ -497,6 +505,10 @@ watch(
   { immediate: true }
 );
 
+// Don't fire on the initial mount: txStatus starts as the resolved
+// status of the page-load tx (often "confirmed"), so `immediate: true`
+// would either no-op or — for a confirmed tx — try to clearPolling
+// before any interval was scheduled. Watching after mount is enough.
 watch(txStatus, (newStatus) => {
   if (newStatus === 'pending') {
     if (!pollInterval) {
@@ -510,7 +522,7 @@ watch(txStatus, (newStatus) => {
   } else {
     clearPolling();
   }
-}, { immediate: true });
+});
 
 onUnmounted(() => {
   clearPolling();

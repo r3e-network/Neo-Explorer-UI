@@ -252,9 +252,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";
 import UtilityBar from "@/components/layout/UtilityBar.vue";
 import DesktopNav from "@/components/layout/DesktopNav.vue";
@@ -280,6 +280,7 @@ import { useChatSession } from "@/composables/useChatSession";
 
 
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
 const toast = useToast();
@@ -338,6 +339,13 @@ function closeDropdown(name) {
 function closeMobile() {
   mobileMenuOpen.value = false;
 }
+
+// Close the mobile drawer on any route change — including history nav and
+// router.push from inside other components — so it can never end up stuck
+// open behind the freshly-rendered page.
+watch(() => route.fullPath, (next, prev) => {
+  if (next !== prev && mobileMenuOpen.value) closeMobile();
+});
 
 const showWalletModal = ref(false);
 const availableProviders = ref([]);

@@ -36,6 +36,7 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: pushMock,
   }),
+  useRoute: () => ({ fullPath: "/homepage", params: {}, query: {} }),
 }));
 
 vi.mock("@/composables/usePriceCache", () => ({

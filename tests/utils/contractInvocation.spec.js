@@ -56,4 +56,41 @@ describe("contractInvocation", () => {
       ],
     ]);
   });
+
+  it("normalizes a base58 N-address Hash160 param to hex", () => {
+    // Known mainnet vector — keep in sync with installer self-test
+    expect(buildContractParam("Hash160", "NNqXaTyKBAbG1SZHYrbycW1HQJjmcdcSMa")).toEqual({
+      type: "Hash160",
+      value: "408b58900a52b5c2eb599c6cc5c538752e561120",
+    });
+  });
+
+  it("preserves an already-hex Hash160 param (sans 0x)", () => {
+    expect(buildContractParam("Hash160", "0xABCDEF1234567890ABCDEF1234567890ABCDEF12")).toEqual({
+      type: "Hash160",
+      value: "abcdef1234567890abcdef1234567890abcdef12",
+    });
+  });
+
+  it("appends signers array to invokefunction when provided", async () => {
+    api.rpc.mockResolvedValueOnce({ stack: [] });
+
+    const signers = [{ account: "deadbeef", scopes: 1 }];
+    await invokeContractFunction("0xabc", "balanceOf", [{ type: "Integer", value: "1" }], signers);
+
+    expect(api.rpc).toHaveBeenCalledWith("invokefunction", [
+      "0xabc",
+      "balanceOf",
+      [{ type: "Integer", value: "1" }],
+      signers,
+    ]);
+  });
+
+  it("omits signers array when none are provided", async () => {
+    api.rpc.mockResolvedValueOnce({ stack: [] });
+
+    await invokeContractFunction("0xabc", "decimals", []);
+
+    expect(api.rpc).toHaveBeenCalledWith("invokefunction", ["0xabc", "decimals", []]);
+  });
 });

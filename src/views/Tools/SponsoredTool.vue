@@ -354,6 +354,13 @@ async function executeSponsoredTx() {
   isProcessing.value = true;
   txHash.value = "";
 
+  // Snapshot the request shape at the moment the user clicks. The radio
+  // buttons remain interactive while the wallet popup is open, so without
+  // this, switching from Vote to Claim mid-flight would mix a Vote
+  // wallet-signature with a Claim relay payload (or vice-versa).
+  const requestedOperation = operation.value;
+  const requestedCandidatePubKey = String(candidatePubKey.value || "").trim();
+
   try {
     const env = getCurrentEnv().toLowerCase();
     const networkMode = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
@@ -381,7 +388,7 @@ async function executeSponsoredTx() {
 
     let signedTxRes;
     try {
-      if (operation.value === "claim") {
+      if (requestedOperation === "claim") {
         signedTxRes = await walletService.invoke({
           scriptHash: NEO_HASH,
           operation: "transfer",
@@ -403,7 +410,7 @@ async function executeSponsoredTx() {
           operation: "vote",
           args: [
             { type: "Hash160", value: userScriptHash },
-            { type: "PublicKey", value: candidatePubKey.value.trim() },
+            { type: "PublicKey", value: requestedCandidatePubKey },
           ],
           signers: [
             { account: sponsorScriptHash, scopes: 0 },
@@ -426,9 +433,9 @@ async function executeSponsoredTx() {
         action: "sign",
         transactionHex: signedTxRes.signedTx,
         network: networkMode,
-        operation: operation.value,
+        operation: requestedOperation,
         userAddress: connectedAccount.value,
-        ...(operation.value === "vote" ? { candidatePubKey: candidatePubKey.value.trim() } : {}),
+        ...(requestedOperation === "vote" ? { candidatePubKey: requestedCandidatePubKey } : {}),
       }),
     });
 

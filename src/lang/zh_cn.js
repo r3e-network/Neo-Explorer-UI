@@ -20,6 +20,7 @@ const zh = {
     apiDocs: "API 文档",
     verifyContract: "验证合约",
     sourceCode: "源代码",
+    tools: "工具",
   },
 
   homePage: {
@@ -156,6 +157,12 @@ const zh = {
     validator: {
       fallback: "验证者",
       consensusNode: "共识节点",
+    },
+    detail: {
+      tabTransactions: "交易",
+      tabLogs: "区块日志",
+      txStillIndexing: "该区块的交易仍在索引中,请稍后重试。",
+      noTransactions: "此区块中没有交易",
     },
   },
   tools: {
@@ -854,6 +861,24 @@ const zh = {
     mempool: {
       title: "内存池搜索",
       description: "搜索并查看 Neo 网络上内存中待处理交易的完整列表。",
+      pageSubtitle: "查看并搜索 Neo 网络当前内存中的待处理交易。",
+      pendingHeading: "待处理交易",
+      networkLabel: "网络:",
+      refresh: "刷新",
+      refreshing: "刷新中",
+      searchAriaLabel: "按交易哈希或发送方地址搜索内存池",
+      tableAriaLabel: "待处理交易",
+      loading: "正在加载内存池交易…",
+      failedToLoad: "加载内存池失败",
+      failedToLoadHelp: "无法获取待处理交易,网络可能不可用。",
+      empty: "内存池为空",
+      emptyHelp: "未找到符合条件的待处理交易。",
+      tableHash: "交易哈希",
+      tableTime: "在内存池中的时间",
+      tableSender: "发送方",
+      tableFee: "手续费 (GAS)",
+      tableSize: "大小",
+      sizeBytes: "{count} 字节",
     },
     alerts: {
       title: "网络告警",

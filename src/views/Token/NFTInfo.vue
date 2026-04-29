@@ -125,10 +125,21 @@ function handleImageError() {
 }
 
 async function loadNFT() {
+  // Skip if either route param is missing — this can happen on first
+  // mount before vue-router has resolved params, or during a soft route
+  // change. Calling the RPC with undefined would either 400 or return an
+  // unrelated NFT depending on backend.
+  if (!contractHash.value || !tokenId.value) return;
+
   const myGeneration = ++fetchGeneration;
 
   loading.value = true;
   error.value = null;
+  // Reset display fields so the previous NFT's name/image don't linger
+  // while the next fetch resolves.
+  nftName.value = "";
+  image.value = "";
+  description.value = "";
   try {
     const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value]);
     if (myGeneration !== fetchGeneration) return;

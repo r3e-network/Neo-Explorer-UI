@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import FeeEstimateCards from "./components/FeeEstimateCards.vue";
 import FeeSummary from "./components/FeeSummary.vue";
@@ -79,14 +79,13 @@ import FeeTrendChart from "./components/FeeTrendChart.vue";
 import BlockFeeTable from "./components/BlockFeeTable.vue";
 import { statsService, blockService } from "@/services";
 import { BURN_RATE } from "@/constants";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 // --- State ---
 const loading = ref(true);
 const blocksLoading = ref(true);
 const blocksError = ref(null);
 const gasError = ref(false);
-const autoRefreshActive = ref(true);
 
 const gasData = ref({
   latestNetworkFee: "0",
@@ -97,7 +96,6 @@ const gasData = ref({
 const feeEstimates = ref({ low: 0, average: 0, high: 0 });
 const blocks = ref([]);
 
-let refreshTimer = null;
 let isRefreshing = false;
 
 // --- Fee estimation from block data ---
@@ -162,31 +160,19 @@ async function loadData(forceRefresh = false) {
 }
 
 // --- Auto-refresh (network-aware) ---
-function startAutoRefresh() {
-  stopAutoRefresh();
-  refreshTimer = setInterval(() => {
+// useAutoRefresh handles visibility pause, network-change retick, and
+// keep-alive deactivation — replacing the prior raw setInterval which
+// kept hitting the network with the tab hidden.
+const { isActive: autoRefreshActive, start: startAutoRefresh } = useAutoRefresh(
+  () =>
     loadData(true).catch((err) => {
       if (import.meta.env.DEV) console.warn("[GasTracker] auto-refresh failed:", err);
-    });
-  }, getNetworkRefreshIntervalMs());
-  autoRefreshActive.value = true;
-}
-
-function stopAutoRefresh() {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-    refreshTimer = null;
-  }
-  autoRefreshActive.value = false;
-}
+    }),
+);
 
 // --- Lifecycle ---
 onMounted(() => {
   loadData();
   startAutoRefresh();
-});
-
-onBeforeUnmount(() => {
-  stopAutoRefresh();
 });
 </script>

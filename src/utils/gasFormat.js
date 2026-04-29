@@ -75,13 +75,71 @@ export function formatGasBalance(balance, divisor = GAS_DIVISOR) {
  * @returns {string}
  */
 export function formatTokenAmount(rawAmount, decimals = 0, displayDecimals = 8) {
-  if (!rawAmount && rawAmount !== 0) return "0";
+  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return "0";
+
+  const decimalsNum = Number(decimals) || 0;
+  const displayMax = Math.min(decimalsNum, Math.max(0, Number(displayDecimals) || 0));
+
+  // For values that fit safely in a JS Number, the fast path keeps the
+  // existing locale-aware formatting cheap. This covers the vast majority
+  // of explorer-displayed amounts.
   const num = Number(rawAmount);
-  if (!Number.isFinite(num)) return "0";
-  if (decimals === 0) return num.toLocaleString();
-  const adjusted = num / Math.pow(10, decimals);
-  return adjusted.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: Math.min(decimals, displayDecimals),
-  });
+  const fitsInNumber =
+    Number.isFinite(num) && Math.abs(num) <= Number.MAX_SAFE_INTEGER;
+  if (fitsInNumber) {
+    if (decimalsNum === 0) return num.toLocaleString();
+    const adjusted = num / Math.pow(10, decimalsNum);
+    return adjusted.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: displayMax,
+    });
+  }
+
+  // Slow path: large integer amounts (whale-sized, or 18-decimal tokens)
+  // lose precision via Number(). Format via BigInt-safe string math so the
+  // displayed integer part stays exact and the fractional part is rounded
+  // to `displayMax` digits.
+  let raw;
+  try {
+    raw = BigInt(String(rawAmount).split(".")[0]);
+  } catch {
+    return "0";
+  }
+  const negative = raw < 0n;
+  const abs = negative ? -raw : raw;
+
+  if (decimalsNum === 0) {
+    const grouped = Number(abs <= BigInt(Number.MAX_SAFE_INTEGER) ? abs : 0).toLocaleString();
+    if (abs <= BigInt(Number.MAX_SAFE_INTEGER)) return negative ? `-${grouped}` : grouped;
+    // Manually group large bigints from the right.
+    const digits = abs.toString();
+    const groups = [];
+    for (let i = digits.length; i > 0; i -= 3) {
+      groups.unshift(digits.slice(Math.max(0, i - 3), i));
+    }
+    return (negative ? "-" : "") + groups.join(",");
+  }
+
+  const divisor = 10n ** BigInt(decimalsNum);
+  const intPart = abs / divisor;
+  const fracPart = abs % divisor;
+  const fracStr = fracPart.toString().padStart(decimalsNum, "0").slice(0, displayMax).replace(/0+$/, "");
+
+  // Group the integer part with thousands separators using the same
+  // locale formatter — at the integer scale we expect, it's safe to take
+  // the digit string and re-group manually if it overflows.
+  const intDigits = intPart.toString();
+  let intGrouped;
+  if (intPart <= BigInt(Number.MAX_SAFE_INTEGER)) {
+    intGrouped = Number(intPart).toLocaleString();
+  } else {
+    const groups = [];
+    for (let i = intDigits.length; i > 0; i -= 3) {
+      groups.unshift(intDigits.slice(Math.max(0, i - 3), i));
+    }
+    intGrouped = groups.join(",");
+  }
+
+  const sign = negative ? "-" : "";
+  return fracStr ? `${sign}${intGrouped}.${fracStr}` : `${sign}${intGrouped}`;
 }

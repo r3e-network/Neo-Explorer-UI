@@ -122,7 +122,15 @@ export const walletConnectService = {
         params: { scriptHash, operation, args, signers: [{ scopes: signerScope }] },
       },
     });
-    return { txid: result.txid || result };
+    // Different WalletConnect-bridged wallets return either a bare txid
+    // string or an object containing { txid, ... }. Pick the string form
+    // so consumers always see { txid: "..." } rather than ending up with
+    // { txid: { status: "ok" } } when a non-conforming wallet replies.
+    if (typeof result === "string") return { txid: result };
+    if (result && typeof result === "object" && typeof result.txid === "string") {
+      return { txid: result.txid };
+    }
+    throw new Error("WalletConnect returned no txid for invoke.");
   },
 
   disconnect() {
