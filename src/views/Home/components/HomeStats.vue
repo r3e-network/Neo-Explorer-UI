@@ -89,14 +89,14 @@
               </svg>
             </div>
             <div>
-              <div class="stat-label">Transactions</div>
+              <div class="stat-label">{{ $t("homePage.statTransactions") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !txCount" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>{{ formatNumber(txCount) }}</span>
               </div>
             </div>
           </div>
-          <div class="mt-1 text-xs text-mid">{{ tps.toFixed(2) }} TPS</div>
+          <div class="mt-1 text-xs text-mid">{{ tps.toFixed(2) }} {{ $t("homePage.statTps") }}</div>
         </div>
 
         <!-- Block Height -->
@@ -119,7 +119,7 @@
               </svg>
             </div>
             <div>
-              <div class="stat-label">Block Height</div>
+              <div class="stat-label">{{ $t("homePage.statBlockHeight") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !blockCount" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>{{ formatNumber(blockCount) }}</span>
@@ -127,14 +127,14 @@
             </div>
           </div>
           <div class="mt-1 flex items-center justify-between text-xs text-mid">
-            <span>~{{ targetTime }}s block time</span>
+            <span>~{{ targetTime }}s {{ $t("homePage.blockTimeSuffix") }}</span>
             <span
               v-if="nextBlockCountdown !== null"
               class="font-medium whitespace-nowrap"
               :class="nextBlockCountdown > 0 ? 'text-status-success' : 'text-warning'"
             >
-              <span v-if="nextBlockCountdown > 0">Next in {{ nextBlockCountdown }}s</span>
-              <span v-else>Refreshing...</span>
+              <span v-if="nextBlockCountdown > 0">{{ $t("homePage.nextBlockIn", { seconds: nextBlockCountdown }) }}</span>
+              <span v-else>{{ $t("homePage.refreshing") }}</span>
             </span>
           </div>
         </div>
@@ -144,21 +144,21 @@
       <div class="mt-4 border-t pt-4 soft-divider">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="mini-stat">
-            <span class="mini-label">Market Cap</span>
+            <span class="mini-label">{{ $t("homePage.miniMarketCap") }}</span>
             <span class="mini-value">${{ formatLargeNumber(marketCap) }}</span>
           </div>
           <div class="mini-stat">
-            <span class="mini-label">Last Finalized Block</span>
+            <span class="mini-label">{{ $t("homePage.miniLastFinalized") }}</span>
             <router-link to="/blocks/1" class="mini-value-link etherscan-link">{{
               formatNumber(blockCount)
             }}</router-link>
           </div>
           <div class="mini-stat">
-            <span class="mini-label">Network Fee</span>
+            <span class="mini-label">{{ $t("homePage.miniNetworkFee") }}</span>
             <span class="mini-value">{{ networkFeeDisplay }} GAS</span>
           </div>
           <div class="mini-stat">
-            <span class="mini-label">Est. Fee Cost</span>
+            <span class="mini-label">{{ $t("homePage.miniEstFeeCost") }}</span>
             <span class="mini-value">~${{ gasCostUsd }}</span>
           </div>
         </div>

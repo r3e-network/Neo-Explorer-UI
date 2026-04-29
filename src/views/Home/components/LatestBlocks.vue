@@ -1,8 +1,8 @@
 <template>
   <article class="etherscan-card overflow-hidden">
     <header class="card-header">
-      <h2 class="text-high text-base font-semibold">Latest Blocks</h2>
-      <router-link to="/blocks/1" class="btn-outline text-xs">View all</router-link>
+      <h2 class="text-high text-base font-semibold">{{ $t("homePage.recentBlocks") }}</h2>
+      <router-link to="/blocks/1" class="btn-outline text-xs">{{ $t("homePage.viewAll") }}</router-link>
     </header>
 
     <div v-if="loading && !blocks.length" class="space-y-2 p-4">

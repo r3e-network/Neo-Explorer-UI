@@ -9,6 +9,22 @@ vi.mock("@/utils/env", async () => {
   };
 });
 
+// HomeStats now uses $t for stat labels — provide a passthrough so the
+// keys render and the countdown emits assertions still apply.
+const i18nPlugin = {
+  install(app) {
+    app.config.globalProperties.$t = (key, params) => {
+      if (params && typeof params === "object") {
+        return Object.entries(params).reduce(
+          (acc, [k, v]) => acc.replace(new RegExp(`{${k}}`, "g"), String(v)),
+          key,
+        );
+      }
+      return key;
+    };
+  },
+};
+
 describe("HomeStats countdown refresh behavior", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -27,6 +43,7 @@ describe("HomeStats countdown refresh behavior", () => {
         latestBlockTimestamp: overdueTimestamp,
       },
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           "router-link": true,
         },
@@ -52,6 +69,7 @@ describe("HomeStats countdown refresh behavior", () => {
         latestBlockTimestamp: firstTimestamp,
       },
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           "router-link": true,
         },
@@ -73,6 +91,7 @@ describe("HomeStats countdown refresh behavior", () => {
         latestBlockTimestamp: nearTipTimestamp,
       },
       global: {
+        plugins: [i18nPlugin],
         stubs: {
           "router-link": true,
         },

@@ -24,6 +24,17 @@ const zh = {
   },
 
   homePage: {
+    viewAll: "查看全部",
+    statTransactions: "交易",
+    statBlockHeight: "区块高度",
+    statTps: "TPS",
+    blockTimeSuffix: "出块时间",
+    nextBlockIn: "下一个 {seconds}s",
+    refreshing: "刷新中...",
+    miniMarketCap: "市值",
+    miniLastFinalized: "最新最终化区块",
+    miniNetworkFee: "网络费用",
+    miniEstFeeCost: "预估费用",
     heroTitle: "Neo N3 区块链浏览器",
     heroSubtitle: "搜索 Neo N3 上的交易、区块、地址、代币等信息",
     recentBlocks: "区块",

@@ -24,6 +24,17 @@ const ko = {
   },
 
   homePage: {
+    viewAll: "전체 보기",
+    statTransactions: "트랜잭션",
+    statBlockHeight: "블록 높이",
+    statTps: "TPS",
+    blockTimeSuffix: "블록 시간",
+    nextBlockIn: "다음 {seconds}초",
+    refreshing: "새로고침 중...",
+    miniMarketCap: "시가 총액",
+    miniLastFinalized: "최종 확정 블록",
+    miniNetworkFee: "네트워크 수수료",
+    miniEstFeeCost: "예상 수수료",
     heroTitle: "Neo N3 블록체인 탐색기",
     heroSubtitle: "Neo N3의 트랜잭션, 블록, 주소, 토큰 등을 검색하세요",
     recentBlocks: "최근 블록",

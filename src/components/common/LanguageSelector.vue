@@ -40,11 +40,15 @@ const { locale } = useI18n({ useScope: "global" });
 const dropdownOpen = ref(false);
 const langDropdown = ref(null);
 
+// Keep this list in sync with src/lang/i18n.js SUPPORTED_LOCALES.
+// French had been merged at the locale-file level but never wired here,
+// so users couldn't actually pick it from the menu.
 const supportedLangs = [
   { value: "en", label: "EN" },
   { value: "cn", label: "ZH" },
   { value: "ja", label: "JA" },
   { value: "ko", label: "KO" },
+  { value: "fr", label: "FR" },
 ];
 
 const currentLang = computed(() => locale.value);

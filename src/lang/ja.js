@@ -24,6 +24,17 @@ const ja = {
   },
 
   homePage: {
+    viewAll: "すべて表示",
+    statTransactions: "トランザクション",
+    statBlockHeight: "ブロック高",
+    statTps: "TPS",
+    blockTimeSuffix: "ブロック時間",
+    nextBlockIn: "次は {seconds}秒",
+    refreshing: "更新中...",
+    miniMarketCap: "時価総額",
+    miniLastFinalized: "最終確定ブロック",
+    miniNetworkFee: "ネットワーク手数料",
+    miniEstFeeCost: "推定費用",
     heroTitle: "Neo N3 ブロックチェーンエクスプローラー",
     heroSubtitle: "Neo N3のトランザクション、ブロック、アドレス、トークンなどを検索",
     recentBlocks: "最新のブロック",
