@@ -641,7 +641,9 @@ function openUploadForContainer(id) {
   showUploadModal.value = true;
 }
 
+let viewObjectsGen = 0;
 async function viewObjects(container) {
+  const gen = ++viewObjectsGen;
   activeContainer.value = container;
   showObjectsModal.value = true;
   isLoadingObjects.value = true;
@@ -653,19 +655,22 @@ async function viewObjects(container) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filters: [] }),
     });
+    if (gen !== viewObjectsGen) return;
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
+    if (gen !== viewObjectsGen) return;
     containerObjects.value = (data.objects || []).map((obj) => ({
       name: obj.attributes?.FileName || obj.objectId.slice(0, 12) + "...",
       id: obj.objectId,
       size: obj.attributes?.ContentLength ? formatBytes(Number(obj.attributes.ContentLength)) : "—",
     }));
   } catch (error) {
+    if (gen !== viewObjectsGen) return;
     if (import.meta.env.DEV) console.error("Failed to fetch objects:", error);
     toast.error(t("tools.neofs.toasts.fetchObjectsFailed"));
     containerObjects.value = [];
   } finally {
-    isLoadingObjects.value = false;
+    if (gen === viewObjectsGen) isLoadingObjects.value = false;
   }
 }
 
@@ -773,8 +778,10 @@ async function handleUpload() {
   }
 }
 
+let searchGen = 0;
 function handleSearch() {
   if (!searchUrl.value.trim()) return;
+  const gen = ++searchGen;
   isSearching.value = true;
   searchResult.value = null;
 
@@ -815,6 +822,7 @@ function handleSearch() {
         return resp.json();
       })
       .then((data) => {
+        if (gen !== searchGen) return;
         const attrs = (data.attributes || []).reduce((acc, a) => { acc[a.key] = a.value; return acc; }, {});
         searchResult.value = {
           type: "container",
@@ -827,11 +835,12 @@ function handleSearch() {
         toast.success(t("tools.neofs.toasts.containerFound"));
       })
       .catch((error) => {
+        if (gen !== searchGen) return;
         toast.error(error.message || t("tools.neofs.toasts.containerNotFound"));
         searchResult.value = null;
       })
       .finally(() => {
-        isSearching.value = false;
+        if (gen === searchGen) isSearching.value = false;
       });
     return;
   }

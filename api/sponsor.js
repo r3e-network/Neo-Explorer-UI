@@ -197,7 +197,7 @@ async function handler(req, res) {
   } catch (e) {
     await captureApiException(e, { route: "sponsor", req });
     console.error(e);
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: "Internal sponsor error." });
   }
 }
 

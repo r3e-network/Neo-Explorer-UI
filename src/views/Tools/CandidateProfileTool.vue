@@ -436,9 +436,7 @@ async function loadExistingProfile(address) {
     // Candidate exists but profile does not: keep fields blank to avoid accidental overwrite.
     profileStatus.value = "";
   } catch (error) {
-    if (import.meta.env.DEV) {
-      if (import.meta.env.DEV) console.warn("Failed to load candidate profile metadata", error);
-    }
+    if (import.meta.env.DEV) console.warn("Failed to load candidate profile metadata", error);
     isCandidate.value = false;
     profileStatus.value = t("tools.candidateProfile.statusFailed");
     resetProfileFields({ keepPublicKey: false });

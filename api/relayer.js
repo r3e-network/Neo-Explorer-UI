@@ -202,23 +202,6 @@ function buildTypedDataEnvelope({ chainId, verifyingContract, accountId, targetC
     return { domain, types, message };
 }
 
-async function computeArgsHash(rpcClient, aaHash, args) {
-    const { sc } = getSc();
-    const parsedArgs = Array.isArray(args) ? args : [];
-    const script = sc.createScript({
-        scriptHash: aaHash,
-        operation: 'computeArgsHash',
-        args: [sc.ContractParam.array(parsedArgs.map(parseToContractParam))]
-    });
-
-    const invokeRes = await rpcClient.invokeScript({ script: u.HexString.fromHex(script), signers: [] });
-    if (invokeRes.state === 'FAULT') {
-        const exceptionMsg = String(invokeRes.exception || 'Unknown VM fault').split('\\n')[0];
-        throw new Error(`computeArgsHash fault: ${exceptionMsg}`);
-    }
-    return parseStackByteArrayHex(invokeRes);
-}
-
 async function computeMetaArgsHash(rpcClient, {
     aaHash,
     hasAddressBinding,
@@ -392,7 +375,7 @@ async function handler(req, res) {
     } = body;
 
     try {
-        const { tx, wallet, rpc } = await loadSdk();
+        const { tx, wallet, rpc, sc, u } = await loadSdk();
         const relayerWif = process.env.SPONSORED_WIF || process.env.RELAYER_WIF;
         if (!relayerWif) {
             console.error('[Relayer API] Missing WIF configuration in environment variables.');
