@@ -1488,6 +1488,16 @@ const ja = {
     in: "受信",
     out: "送信",
   },
+  transferTypes: {
+    blockReward: "ブロック報酬",
+    oracleFeeReward: "オラクル手数料報酬",
+    networkFeeReward: "ネットワーク手数料報酬",
+    feeBurn: "手数料バーン",
+    transferReward: "転送報酬",
+    mint: "ミント",
+    burn: "バーン",
+    transfer: "転送",
+  },
   operationTypes: {
     transfer: "転送",
     deploy: "デプロイ",

@@ -82,7 +82,7 @@
                   :class="getTypeBadge(item, type, contractHash)"
                   class="inline-block rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide font-semibold"
                 >
-                  {{ getTypeLabel(item, type, contractHash) }}
+                  {{ $t(getTypeLabelKey(item, type, contractHash)) }}
                 </span>
               </td>
               <!-- From -->
@@ -156,7 +156,7 @@ import { tokenService } from "@/services";
 import { formatNumber } from "@/utils/explorerFormat";
 import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
 import { formatAge, formatDateTime } from "@/utils/timeFormat";
-import { isNullTx, getTypeLabel, getTypeBadge } from "@/utils/transferTypeUtils";
+import { isNullTx, getTypeLabelKey, getTypeBadge } from "@/utils/transferTypeUtils";
 import { usePagination } from "@/composables/usePagination";
 import { hexToBase64 } from "@/utils/neoHelpers";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";

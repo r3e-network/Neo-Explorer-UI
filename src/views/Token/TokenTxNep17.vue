@@ -65,8 +65,8 @@
               </td>
               <!-- Type -->
               <td class="px-4 py-3">
-                <span :class="getTypeBadge(item)" class="inline-block rounded-full px-2 py-0.5 text-xs font-medium">
-                  {{ getTypeLabel(item) }}
+                <span :class="getTypeBadge(item, 'nep17', contractHash)" class="inline-block rounded-full px-2 py-0.5 text-xs font-medium">
+                  {{ $t(getTypeLabelKey(item, 'nep17', contractHash)) }}
                 </span>
               </td>
               <!-- From -->
@@ -162,19 +162,17 @@
 <script setup>
 import { ref, watch } from "vue";
 import { tokenService } from "@/services";
-import { GAS_HASH } from "@/constants";
 import { truncateHash } from "@/utils/explorerFormat";
 import { convertToken } from "@/utils/neoHelpers";
 import { formatAge, formatDateTime } from "@/utils/timeFormat";
 import { formatNumber } from "@/utils/explorerFormat";
-import isOracleReward from "@/utils/isOracleReward";
+import { isNullTx, getTypeLabelKey, getTypeBadge } from "@/utils/transferTypeUtils";
 import { usePagination } from "@/composables/usePagination";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import { NULL_TX_HASH } from "@/constants";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -196,36 +194,6 @@ const {
   loadPage,
   goToPage: handlePageChange,
 } = usePagination((limit, skip) => tokenService.getNep17Transfers(props.contractHash, limit, skip));
-
-function isNullTx(txid) {
-  return txid === NULL_TX_HASH;
-}
-
-function getTypeLabel(item) {
-  if (isNullTx(item.txid) && item.from === null && item.value === "50000000") return "Block Reward";
-  if (isOracleReward(item)) return "Oracle Fee Reward";
-  if (isNullTx(item.txid) && item.from === null) return "Network Fee Reward";
-  if (isNullTx(item.txid) && item.to === null) return "Fee Burn";
-  if (item.from === null && props.contractHash === GAS_HASH) return "Transfer Reward";
-  if (item.from === null) return "Mint";
-  if (item.to === null) return "Burn";
-  return "Transfer";
-}
-
-function getTypeBadge(item) {
-  const label = getTypeLabel(item);
-  const map = {
-    "Block Reward": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    "Oracle Fee Reward": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    "Network Fee Reward": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    "Fee Burn": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    "Transfer Reward": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    Mint: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    Burn: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    Transfer: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  };
-  return map[label] || "";
-}
 
 watch(
   () => props.contractHash,

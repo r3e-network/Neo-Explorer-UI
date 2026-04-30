@@ -1488,6 +1488,16 @@ const ko = {
     in: "수신",
     out: "송신",
   },
+  transferTypes: {
+    blockReward: "블록 보상",
+    oracleFeeReward: "오라클 수수료 보상",
+    networkFeeReward: "네트워크 수수료 보상",
+    feeBurn: "수수료 소각",
+    transferReward: "전송 보상",
+    mint: "발행",
+    burn: "소각",
+    transfer: "전송",
+  },
   operationTypes: {
     transfer: "전송",
     deploy: "배포",

@@ -1488,6 +1488,16 @@ const en = {
     in: "IN",
     out: "OUT",
   },
+  transferTypes: {
+    blockReward: "Block Reward",
+    oracleFeeReward: "Oracle Fee Reward",
+    networkFeeReward: "Network Fee Reward",
+    feeBurn: "Fee Burn",
+    transferReward: "Transfer Reward",
+    mint: "Mint",
+    burn: "Burn",
+    transfer: "Transfer",
+  },
   operationTypes: {
     transfer: "Transfer",
     deploy: "Deploy",

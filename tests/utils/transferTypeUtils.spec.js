@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { isNullTx, getTypeLabel, getTypeBadge } from "@/utils/transferTypeUtils";
+import { isNullTx, getTypeLabelKey, getTypeBadge } from "@/utils/transferTypeUtils";
 
 vi.mock("@/utils/isOracleReward", () => ({ default: () => false }));
 vi.mock("@/utils/env", () => ({
@@ -18,26 +18,26 @@ describe("transferTypeUtils", () => {
     });
   });
 
-  describe("getTypeLabel", () => {
-    it("returns Block Reward for 50000000 system mint", () => {
+  describe("getTypeLabelKey", () => {
+    it("returns blockReward key for 50000000 system mint", () => {
       expect(
-        getTypeLabel(
+        getTypeLabelKey(
           { txid: "0x0000000000000000000000000000000000000000000000000000000000000000", from: null, value: "50000000" },
           "nep17",
         ),
-      ).toBe("Block Reward");
+      ).toBe("transferTypes.blockReward");
     });
 
-    it("returns Mint for null from", () => {
-      expect(getTypeLabel({ from: null, txid: "0xabc" }, "nep11")).toBe("Mint");
+    it("returns mint key for null from", () => {
+      expect(getTypeLabelKey({ from: null, txid: "0xabc" }, "nep11")).toBe("transferTypes.mint");
     });
 
-    it("returns Burn for null to", () => {
-      expect(getTypeLabel({ from: "addr", to: null, txid: "0xabc" }, "nep17")).toBe("Burn");
+    it("returns burn key for null to", () => {
+      expect(getTypeLabelKey({ from: "addr", to: null, txid: "0xabc" }, "nep17")).toBe("transferTypes.burn");
     });
 
-    it("returns Transfer for normal transfer", () => {
-      expect(getTypeLabel({ from: "a", to: "b", txid: "0xabc" }, "nep17")).toBe("Transfer");
+    it("returns transfer key for normal transfer", () => {
+      expect(getTypeLabelKey({ from: "a", to: "b", txid: "0xabc" }, "nep17")).toBe("transferTypes.transfer");
     });
   });
 

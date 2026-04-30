@@ -1488,6 +1488,16 @@ const zh = {
     in: "收入",
     out: "支出",
   },
+  transferTypes: {
+    blockReward: "区块奖励",
+    oracleFeeReward: "Oracle 手续费奖励",
+    networkFeeReward: "网络费奖励",
+    feeBurn: "费用销毁",
+    transferReward: "转账奖励",
+    mint: "铸造",
+    burn: "销毁",
+    transfer: "转账",
+  },
   operationTypes: {
     transfer: "转账",
     deploy: "部署",

@@ -1484,6 +1484,16 @@ const fr = {
     in: "ENTRÉE",
     out: "SORTIE",
   },
+  transferTypes: {
+    blockReward: "Récompense de bloc",
+    oracleFeeReward: "Récompense Oracle",
+    networkFeeReward: "Récompense de frais réseau",
+    feeBurn: "Brûlage de frais",
+    transferReward: "Récompense de transfert",
+    mint: "Émission",
+    burn: "Brûlage",
+    transfer: "Transfert",
+  },
   operationTypes: {
     transfer: "Transfert",
     deploy: "Déploiement",
