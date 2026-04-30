@@ -6,14 +6,23 @@ module.exports.config = {
   runtime: 'edge',
 };
 
-// Supabase client initialization
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Lazy-init the Supabase client so a missing env var does not crash the
+// edge module on cold start (which would 500 every cron fire).
+let supabaseClient = null;
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error("Mempool sync storage is not configured.");
+  }
+  supabaseClient = createClient(url, key);
+  return supabaseClient;
+}
 
 async function postRpc(url, method, params = []) {
   const res = await fetch(url, {
@@ -31,9 +40,10 @@ const rpcCall = (network, method, params = []) =>
 
 async function syncNetwork(network) {
   try {
+    const supabase = getSupabaseClient();
     const mempoolData = await rpcCall(network, 'getrawmempool', [true]);
     const hashes = [...mempoolData.verified, ...mempoolData.unverified].slice(0, 1000);
-    
+
     // Fetch currently stored hashes to find what's missing
     const { data: storedTxs } = await supabase
       .from('mempool_transactions')
