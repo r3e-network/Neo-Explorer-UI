@@ -1468,6 +1468,16 @@ const ja = {
     internalContractCalls: "内部コントラクト呼び出し",
     advancedReturnStack: "詳細: 戻り値スタック",
   },
+  operationTypes: {
+    transfer: "転送",
+    deploy: "デプロイ",
+    vote: "投票",
+    destroy: "破棄",
+    approval: "承認",
+    mint: "ミント",
+    burn: "バーン",
+    custom: "コントラクト呼び出し",
+  },
   pageTitles: {
     homepage: "Neo エクスプローラー",
     nns: "Neo ネームサービス",

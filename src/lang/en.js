@@ -1468,6 +1468,16 @@ const en = {
     internalContractCalls: "Internal Contract Calls",
     advancedReturnStack: "Advanced: Return Stack",
   },
+  operationTypes: {
+    transfer: "Transfer",
+    deploy: "Deploy",
+    vote: "Vote",
+    destroy: "Destroy",
+    approval: "Approval",
+    mint: "Mint",
+    burn: "Burn",
+    custom: "Contract Call",
+  },
   pageTitles: {
     homepage: "Neo Explorer",
     nns: "Neo Name Service",

@@ -193,6 +193,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -200,6 +201,8 @@ import { MAX_INLINE_OPERATIONS, OPERATION_TYPES } from "@/constants";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { tokenService } from "@/services/tokenService";
 import { NATIVE_CONTRACTS } from "@/constants";
+
+const { t } = useI18n();
 
 const props = defineProps({
   enrichedTrace: {
@@ -316,7 +319,8 @@ function opTypeBadge(opType) {
 }
 
 function opTypeLabel(opType) {
-  return OPERATION_TYPES[opType]?.label ?? "Contract Call";
+  const labelKey = OPERATION_TYPES[opType]?.labelKey;
+  return labelKey ? t(labelKey) : t("operationTypes.custom");
 }
 
 function formatAmount(op) {

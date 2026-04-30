@@ -74,14 +74,14 @@ export const NATIVE_CONTRACTS = {
 };
 
 export const OPERATION_TYPES = {
-  transfer: { label: "Transfer", color: "emerald" },
-  deploy: { label: "Deploy", color: "blue" },
-  vote: { label: "Vote", color: "purple" },
-  destroy: { label: "Destroy", color: "red" },
-  approval: { label: "Approval", color: "amber" },
-  mint: { label: "Mint", color: "teal" },
-  burn: { label: "Burn", color: "orange" },
-  custom: { label: "Contract Call", color: "gray" },
+  transfer: { labelKey: "operationTypes.transfer", color: "emerald" },
+  deploy: { labelKey: "operationTypes.deploy", color: "blue" },
+  vote: { labelKey: "operationTypes.vote", color: "purple" },
+  destroy: { labelKey: "operationTypes.destroy", color: "red" },
+  approval: { labelKey: "operationTypes.approval", color: "amber" },
+  mint: { labelKey: "operationTypes.mint", color: "teal" },
+  burn: { labelKey: "operationTypes.burn", color: "orange" },
+  custom: { labelKey: "operationTypes.custom", color: "gray" },
 };
 
 export const MAX_INLINE_OPERATIONS = 20;

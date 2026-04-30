@@ -1468,6 +1468,16 @@ const zh = {
     internalContractCalls: "内部合约调用",
     advancedReturnStack: "高级：返回栈",
   },
+  operationTypes: {
+    transfer: "转账",
+    deploy: "部署",
+    vote: "投票",
+    destroy: "销毁",
+    approval: "授权",
+    mint: "铸造",
+    burn: "燃烧",
+    custom: "合约调用",
+  },
   pageTitles: {
     homepage: "Neo 浏览器",
     nns: "Neo 域名服务",

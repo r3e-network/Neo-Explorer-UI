@@ -1468,6 +1468,16 @@ const ko = {
     internalContractCalls: "내부 컨트랙트 호출",
     advancedReturnStack: "고급: 반환 스택",
   },
+  operationTypes: {
+    transfer: "전송",
+    deploy: "배포",
+    vote: "투표",
+    destroy: "파괴",
+    approval: "승인",
+    mint: "민트",
+    burn: "소각",
+    custom: "컨트랙트 호출",
+  },
   pageTitles: {
     homepage: "Neo 탐색기",
     nns: "Neo 네임 서비스",
