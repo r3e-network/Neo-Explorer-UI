@@ -7,21 +7,21 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load events" :message="error" @retry="() => loadPage(currentPage)" />
+      <ErrorState :title="$t('contractDetail.eventsLoadFail')" :message="error" @retry="() => loadPage(currentPage)" />
     </div>
 
     <template v-else>
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[750px]" aria-label="Contract events">
+        <table class="w-full min-w-[750px]" :aria-label="$t('contractDetail.eventsAria')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Txn Hash</th>
-              <th class="table-header-cell">Event Name</th>
-              <th class="table-header-cell">VM State</th>
-              <th class="table-header-cell">Index</th>
+              <th class="table-header-cell">{{ $t('contractDetail.eventsColTxnHash') }}</th>
+              <th class="table-header-cell">{{ $t('contractDetail.eventsColEventName') }}</th>
+              <th class="table-header-cell">{{ $t('contractDetail.eventsColVmState') }}</th>
+              <th class="table-header-cell">{{ $t('contractDetail.eventsColIndex') }}</th>
               <th class="table-header-cell">
-                Time
-                <button class="btn-mini ml-1" aria-label="Toggle time format" @click="toggleTimeFormat">Format</button>
+                {{ $t('contractDetail.eventsColTime') }}
+                <button class="btn-mini ml-1" :aria-label="$t('contractDetail.eventsToggleTimeAria')" @click="toggleTimeFormat">{{ $t('contractDetail.eventsToggleTimeButton') }}</button>
               </th>
             </tr>
           </thead>
@@ -33,7 +33,7 @@
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> Null Transaction </span>
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> {{ $t('contractDetail.eventsNullTransaction') }} </span>
                   <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
@@ -66,7 +66,7 @@
       </div>
 
       <div v-if="items.length === 0" class="p-4">
-        <EmptyState message="No events found" />
+        <EmptyState :message="$t('contractDetail.eventsEmpty')" />
       </div>
     </template>
 

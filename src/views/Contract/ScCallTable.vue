@@ -7,23 +7,23 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load contract calls" :message="error" @retry="() => loadPage(currentPage)" />
+      <ErrorState :title="$t('contractDetail.scCallsLoadFail')" :message="error" @retry="() => loadPage(currentPage)" />
     </div>
 
     <template v-else>
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]" aria-label="Contract invocations">
+        <table class="w-full min-w-[700px]" :aria-label="$t('contractDetail.scCallsAria')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Txn Hash</th>
+              <th class="table-header-cell">{{ $t('contractDetail.scCallsColTxnHash') }}</th>
               <th class="table-header-cell">
-                Sender
-                <button class="btn-mini ml-1" aria-label="Toggle sender address format" @click="toggleAddressFormat">
-                  {{ showAddress ? "Hash" : "Addr" }}
+                {{ $t('contractDetail.scCallsColSender') }}
+                <button class="btn-mini ml-1" :aria-label="$t('contractDetail.scCallsToggleAddrAria')" @click="toggleAddressFormat">
+                  {{ showAddress ? $t('contractDetail.scCallsAddrToggleHash') : $t('contractDetail.scCallsAddrToggleAddr') }}
                 </button>
               </th>
-              <th class="table-header-cell">Method</th>
-              <th class="table-header-cell">Call Flags</th>
+              <th class="table-header-cell">{{ $t('contractDetail.scCallsColMethod') }}</th>
+              <th class="table-header-cell">{{ $t('contractDetail.scCallsColCallFlags') }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">
@@ -34,7 +34,7 @@
             >
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> Null Transaction </span>
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm"> {{ $t('contractDetail.scCallsNullTransaction') }} </span>
                   <router-link v-else :to="`/transaction-info/${item.txid}`" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>
@@ -42,7 +42,7 @@
               </td>
               <td class="table-cell">
                 <div class="max-w-[200px] truncate">
-                  <span v-if="!item.originSender" class="text-low text-sm">Null Address</span>
+                  <span v-if="!item.originSender" class="text-low text-sm">{{ $t('contractDetail.scCallsNullAddress') }}</span>
                   <HashLink
                     v-else-if="showAddress"
                     :hash="item.originSender"
@@ -72,7 +72,7 @@
       </div>
 
       <div v-if="items.length === 0" class="p-4">
-        <EmptyState message="No contract calls found" />
+        <EmptyState :message="$t('contractDetail.scCallsEmpty')" />
       </div>
     </template>
 
