@@ -1433,6 +1433,8 @@ const fr = {
     proposalDetails: "Détails de la proposition",
     closeModal: "Fermer",
     connectWallet: "Connecter le portefeuille",
+    closeWalletConnectModal: "Fermer la fenêtre WalletConnect",
+    walletConnectUri: "URI WalletConnect",
   },
   stateChange: {
     contracts: "Contrats",

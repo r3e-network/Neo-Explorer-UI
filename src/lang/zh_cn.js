@@ -1437,6 +1437,8 @@ const zh = {
     proposalDetails: "提案详情",
     closeModal: "关闭",
     connectWallet: "连接钱包",
+    closeWalletConnectModal: "关闭 WalletConnect 模态",
+    walletConnectUri: "WalletConnect URI",
   },
   stateChange: {
     contracts: "合约",

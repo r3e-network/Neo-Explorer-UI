@@ -13,7 +13,7 @@
     <div class="panel-muted mx-4 w-full max-w-md p-6 shadow-xl">
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-high text-sm font-semibold">WalletConnect</h3>
-        <button class="text-low transition-colors hover:text-high" @click="$emit('close')" aria-label="Close WalletConnect modal">
+        <button class="text-low transition-colors hover:text-high" @click="$emit('close')" :aria-label="$t('aria.closeWalletConnectModal')">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -23,7 +23,7 @@
         Copy this URI and paste it into your WalletConnect-compatible wallet.
       </p>
       <div class="flex items-center gap-2">
-        <input :value="uri" readonly aria-label="WalletConnect URI" class="form-input flex-1 font-mono text-xs" @focus="$event.target.select()" />
+        <input :value="uri" readonly :aria-label="$t('aria.walletConnectUri')" class="form-input flex-1 font-mono text-xs" @focus="$event.target.select()" />
         <button
           class="btn-primary shrink-0 !py-2 !text-xs"
           @click="copyUri"

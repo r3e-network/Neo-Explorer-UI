@@ -1437,6 +1437,8 @@ const ja = {
     proposalDetails: "提案の詳細",
     closeModal: "閉じる",
     connectWallet: "ウォレットを接続",
+    closeWalletConnectModal: "WalletConnect モーダルを閉じる",
+    walletConnectUri: "WalletConnect URI",
   },
   stateChange: {
     contracts: "コントラクト",

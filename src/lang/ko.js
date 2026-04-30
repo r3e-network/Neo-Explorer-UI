@@ -1437,6 +1437,8 @@ const ko = {
     proposalDetails: "제안 세부 정보",
     closeModal: "닫기",
     connectWallet: "지갑 연결",
+    closeWalletConnectModal: "WalletConnect 모달 닫기",
+    walletConnectUri: "WalletConnect URI",
   },
   stateChange: {
     contracts: "컨트랙트",

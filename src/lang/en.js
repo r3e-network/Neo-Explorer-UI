@@ -1437,6 +1437,8 @@ const en = {
     proposalDetails: "Proposal Details",
     closeModal: "Close",
     connectWallet: "Connect Wallet",
+    closeWalletConnectModal: "Close WalletConnect modal",
+    walletConnectUri: "WalletConnect URI",
   },
   stateChange: {
     contracts: "Contracts",
