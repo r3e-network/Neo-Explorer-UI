@@ -32,7 +32,7 @@
     <EmptyState
       v-else-if="!contractHash"
       :message="$t('emptyMessages.noContractSelected')"
-      description="Provide a valid contract hash to inspect verified source files."
+      :description="$t('inline.contractHashHintForSource')"
     />
 
     <div v-else-if="isLoading" class="space-y-4">
@@ -42,7 +42,7 @@
     <EmptyState
       v-else-if="!sourceCodeList.length"
       :message="$t('emptyMessages.noVerifiedSource')"
-      description="This contract may not be verified yet."
+      :description="$t('inline.contractMayNotBeVerified')"
     />
 
     <div v-else class="space-y-4">

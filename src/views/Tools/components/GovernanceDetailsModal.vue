@@ -41,8 +41,8 @@
         <div v-if="request?.params?.unsigned_tx" class="mt-6 whitespace-normal font-sans">
           <UnsignedTransactionViewer
             :transaction-hex="request.params.unsigned_tx"
-            label="Unsigned Transaction Packet"
-            description="Decoded transaction envelope and embedded execution script for this proposal."
+            :label="$t('inline.unsignedTxPacket')"
+            :description="$t('inline.unsignedTxPacketDescShort')"
           />
         </div>
       </div>

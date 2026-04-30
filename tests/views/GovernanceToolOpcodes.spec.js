@@ -175,7 +175,7 @@ describe("GovernanceTool opcode display", () => {
     await detailsButton.trigger("click");
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Unsigned Transaction Packet");
+    expect(wrapper.text()).toContain("inline.unsignedTxPacket");
     expect(wrapper.text()).toContain("unsignedTx.embeddedExecutionScript");
   });
 });

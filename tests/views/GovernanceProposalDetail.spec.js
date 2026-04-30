@@ -295,11 +295,11 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Council Alpha");
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
-    expect(wrapper.text()).toContain("Unsigned Transaction Packet");
+    expect(wrapper.text()).toContain("inline.unsignedTxPacket");
     expect(wrapper.text()).toContain("unsignedTx.transactionEnvelope");
     expect(wrapper.text()).toContain("unsignedTx.embeddedExecutionScript");
     expect(wrapper.text()).toContain("tools.governance.collectedSignatures");
-    expect(wrapper.html().indexOf("Unsigned Transaction Packet")).toBeLessThan(
+    expect(wrapper.html().indexOf("inline.unsignedTxPacket")).toBeLessThan(
       wrapper.html().indexOf("tools.governance.collectedSignatures"),
     );
     expect(wrapper.text()).toContain("Stored ECDSA Signature");

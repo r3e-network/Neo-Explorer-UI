@@ -1,7 +1,7 @@
 <template>
   <div class="etherscan-card mb-6">
     <div class="card-header">
-      <h2 class="text-base font-semibold text-high">Overview</h2>
+      <h2 class="text-base font-semibold text-high">{{ $t("tokenDetail.overviewTitle") }}</h2>
     </div>
 
     <!-- Token Image -->
@@ -15,7 +15,7 @@
 
     <div class="soft-divider divide-y px-4 md:px-5 pb-2">
       <!-- Name -->
-      <InfoRow label="Name">
+      <InfoRow :label="$t('tokenDetail.overviewName')">
         <span>
           {{ tokenInfo["tokenname"] }}
           <span v-if="tokenInfo.ispopular" class="ml-1" :title="$t('aria.popularToken')">&#x1F525;</span>
@@ -23,7 +23,7 @@
       </InfoRow>
       <!-- Hash -->
       <InfoRow
-        label="Hash"
+        :label="$t('tokenDetail.overviewHash')"
         :value="tokenInfo['hash']"
         :copyable="!!tokenInfo['hash']"
         :copy-value="tokenInfo['hash']"
@@ -31,22 +31,22 @@
         <span class="font-hash text-primary-500 break-all">{{ tokenInfo["hash"] }}</span>
       </InfoRow>
       <!-- Symbol -->
-      <InfoRow label="Symbol" :value="tokenInfo['symbol']" />
+      <InfoRow :label="$t('tokenDetail.overviewSymbol')" :value="tokenInfo['symbol']" />
       <!-- Decimals -->
-      <InfoRow label="Decimals" :value="String(tokenInfo['decimals'] ?? 0)" />
+      <InfoRow :label="$t('tokenDetail.statDecimals')" :value="String(tokenInfo['decimals'] ?? 0)" />
       <!-- Standard -->
-      <InfoRow label="Standard" :value="`NEP-${tokenInfo['type']}`" />
+      <InfoRow :label="$t('tokenDetail.overviewStandard')" :value="`NEP-${tokenInfo['type']}`" />
       <!-- First Transfer -->
-      <InfoRow label="First Transfer">
+      <InfoRow :label="$t('tokenDetail.overviewFirstTransfer')">
         <span v-if="tokenInfo.firsttransfertime">
           {{ formatTime(tokenInfo["firsttransfertime"]) }}
         </span>
         <span v-else class="text-mid">&mdash;</span>
       </InfoRow>
       <!-- Total Supply -->
-      <InfoRow label="Total Supply" :value="convertToken(tokenInfo['totalsupply'], decimal)" />
+      <InfoRow :label="$t('tokenDetail.statTotalSupply')" :value="convertToken(tokenInfo['totalsupply'], decimal)" />
       <!-- Holders -->
-      <InfoRow label="Holders" :value="String(tokenInfo['holders'] ?? 0)" />
+      <InfoRow :label="$t('tokenDetail.statHolders')" :value="String(tokenInfo['holders'] ?? 0)" />
     </div>
   </div>
 </template>

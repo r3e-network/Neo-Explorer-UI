@@ -126,8 +126,8 @@
         :context-json="proposalContextJson"
         :current-block-height="currentBlockHeight"
         :milliseconds-per-block="millisecondsPerBlock"
-        label="Unsigned Transaction Packet"
-        description="The full transaction envelope council wallets sign, including fees, signer scopes, and the embedded execution script."
+        :label="$t('inline.unsignedTxPacket')"
+        :description="$t('inline.unsignedTxPacketDesc')"
       />
 
       <!-- How to Sign Guide -->
