@@ -21,6 +21,7 @@ const en = {
     verifyContract: "Verify Contract",
     sourceCode: "Source Code",
     tools: "Tools",
+    nnsDotNeo: "Neo Name Service (.neo)",
   },
 
   gasTracker: {
@@ -1394,6 +1395,18 @@ const en = {
     cancelButton: "Cancel",
     sendingButton: "Sending...",
     confirmTransfer: "Confirm Transfer",
+  },
+  stateChange: {
+    contracts: "Contracts",
+    transfers: "Transfers",
+    events: "Events",
+    gasUsed: "GAS Used",
+    eventState: "Event State:",
+    rawInternalCalls: "Raw Internal Contract Calls",
+    returnType: "Return Type",
+    noNftTokens: "No NFT tokens found",
+    proposalDetailsJson: "Proposal Details JSON",
+    councilVoteStatus: "Council Vote Status",
   },
   enrichedNotif: {
     eventUnknown: "Unknown",

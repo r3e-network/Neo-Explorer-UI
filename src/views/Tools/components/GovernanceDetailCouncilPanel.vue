@@ -3,7 +3,7 @@
     <div class="border-b border-line-soft bg-surface/30 px-6 py-6">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <h2 class="text-lg font-black text-high tracking-tight">Council Vote Status</h2>
+          <h2 class="text-lg font-black text-high tracking-tight">{{ $t('stateChange.councilVoteStatus') }}</h2>
           <p class="mt-1.5 text-xs text-mid max-w-[250px] leading-relaxed">
             Track which eligible council members have signed the governance payload.
           </p>

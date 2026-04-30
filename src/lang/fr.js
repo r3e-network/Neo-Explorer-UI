@@ -21,6 +21,7 @@ const fr = {
     verifyContract: "Vérifier le Contrat",
     sourceCode: "Code Source",
     tools: "Outils",
+    nnsDotNeo: "Neo Name Service (.neo)",
   },
   gasTracker: {
     pageTitle: "Suivi du GAS Neo N3",
@@ -1390,6 +1391,18 @@ const fr = {
     cancelButton: "Annuler",
     sendingButton: "Envoi...",
     confirmTransfer: "Confirmer le transfert",
+  },
+  stateChange: {
+    contracts: "Contrats",
+    transfers: "Transferts",
+    events: "Événements",
+    gasUsed: "GAS utilisé",
+    eventState: "État de l'événement :",
+    rawInternalCalls: "Appels de contrat internes bruts",
+    returnType: "Type de retour",
+    noNftTokens: "Aucun jeton NFT trouvé",
+    proposalDetailsJson: "Détails JSON de la proposition",
+    councilVoteStatus: "Statut du vote du conseil",
   },
   enrichedNotif: {
     eventUnknown: "Inconnu",

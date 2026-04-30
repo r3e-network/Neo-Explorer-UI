@@ -21,7 +21,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-high text-lg font-bold leading-tight">{{ contractCount }}</p>
-          <p class="text-mid text-xs">Contracts</p>
+          <p class="text-mid text-xs">{{ $t('stateChange.contracts') }}</p>
         </div>
       </div>
 
@@ -41,7 +41,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-high text-lg font-bold leading-tight">{{ transferCount }}</p>
-          <p class="text-mid text-xs">Transfers</p>
+          <p class="text-mid text-xs">{{ $t('stateChange.transfers') }}</p>
         </div>
       </div>
 
@@ -61,7 +61,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-high text-lg font-bold leading-tight">{{ eventCount }}</p>
-          <p class="text-mid text-xs">Events</p>
+          <p class="text-mid text-xs">{{ $t('stateChange.events') }}</p>
         </div>
       </div>
 
@@ -81,7 +81,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-high text-lg font-bold leading-tight">{{ formattedGas }}</p>
-          <p class="text-mid text-xs">GAS Used</p>
+          <p class="text-mid text-xs">{{ $t('stateChange.gasUsed') }}</p>
         </div>
       </div>
     </div>

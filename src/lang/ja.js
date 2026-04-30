@@ -21,6 +21,7 @@ const ja = {
     verifyContract: "コントラクト検証",
     sourceCode: "ソースコード",
     tools: "ツール",
+    nnsDotNeo: "Neo ネームサービス (.neo)",
   },
 
   gasTracker: {
@@ -1394,6 +1395,18 @@ const ja = {
     cancelButton: "キャンセル",
     sendingButton: "送信中...",
     confirmTransfer: "転送を確認",
+  },
+  stateChange: {
+    contracts: "コントラクト",
+    transfers: "転送",
+    events: "イベント",
+    gasUsed: "使用 GAS",
+    eventState: "イベント状態:",
+    rawInternalCalls: "生の内部コントラクト呼び出し",
+    returnType: "戻り値型",
+    noNftTokens: "NFT トークンが見つかりません",
+    proposalDetailsJson: "提案の詳細 JSON",
+    councilVoteStatus: "委員会投票ステータス",
   },
   enrichedNotif: {
     eventUnknown: "不明",

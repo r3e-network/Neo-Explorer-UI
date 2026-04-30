@@ -91,7 +91,7 @@
             :contract-hash="tokenId"
             :decimal="decimal === '' ? 0 : decimal"
           />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">No NFT tokens found</div>
+          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">{{ $t('stateChange.noNftTokens') }}</div>
         </div>
 
         <!-- Tab: Top Holders -->

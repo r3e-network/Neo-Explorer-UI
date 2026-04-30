@@ -78,7 +78,7 @@
 
     <!-- Raw state fallback -->
     <div v-else-if="notification.state" class="mt-1">
-      <div class="text-mid mb-1 text-xs">Event State:</div>
+      <div class="text-mid mb-1 text-xs">{{ $t('stateChange.eventState') }}</div>
       <div class="space-y-1">
         <div
           v-for="(param, i) in stateParams"

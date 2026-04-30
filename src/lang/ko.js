@@ -21,6 +21,7 @@ const ko = {
     verifyContract: "컨트랙트 검증",
     sourceCode: "소스 코드",
     tools: "도구",
+    nnsDotNeo: "Neo 네임 서비스 (.neo)",
   },
 
   gasTracker: {
@@ -1394,6 +1395,18 @@ const ko = {
     cancelButton: "취소",
     sendingButton: "전송 중...",
     confirmTransfer: "전송 확인",
+  },
+  stateChange: {
+    contracts: "컨트랙트",
+    transfers: "전송",
+    events: "이벤트",
+    gasUsed: "사용된 GAS",
+    eventState: "이벤트 상태:",
+    rawInternalCalls: "원시 내부 컨트랙트 호출",
+    returnType: "반환 유형",
+    noNftTokens: "NFT 토큰을 찾을 수 없습니다",
+    proposalDetailsJson: "제안 세부 JSON",
+    councilVoteStatus: "위원회 투표 상태",
   },
   enrichedNotif: {
     eventUnknown: "알 수 없음",

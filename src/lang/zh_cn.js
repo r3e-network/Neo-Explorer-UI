@@ -21,6 +21,7 @@ const zh = {
     verifyContract: "验证合约",
     sourceCode: "源代码",
     tools: "工具",
+    nnsDotNeo: "Neo 域名服务（.neo）",
   },
 
   gasTracker: {
@@ -1394,6 +1395,18 @@ const zh = {
     cancelButton: "取消",
     sendingButton: "发送中...",
     confirmTransfer: "确认转移",
+  },
+  stateChange: {
+    contracts: "合约",
+    transfers: "转账",
+    events: "事件",
+    gasUsed: "已使用 GAS",
+    eventState: "事件状态：",
+    rawInternalCalls: "原始内部合约调用",
+    returnType: "返回类型",
+    noNftTokens: "未找到 NFT 代币",
+    proposalDetailsJson: "提案详情 JSON",
+    councilVoteStatus: "委员会投票状态",
   },
   enrichedNotif: {
     eventUnknown: "未知",

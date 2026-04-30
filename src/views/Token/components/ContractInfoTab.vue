@@ -117,7 +117,7 @@
               </div>
               <!-- Return Type -->
               <div>
-                <div class="text-xs font-medium uppercase text-text-secondary mb-1">Return Type</div>
+                <div class="text-xs font-medium uppercase text-text-secondary mb-1">{{ $t('stateChange.returnType') }}</div>
                 <div class="text-sm text-text-primary dark:text-gray-300">
                   {{ item["returntype"] }}
                 </div>

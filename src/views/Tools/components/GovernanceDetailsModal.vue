@@ -24,7 +24,7 @@
               ></path>
             </svg>
           </div>
-          <h2 class="text-xl font-bold text-high tracking-tight">Proposal Details JSON</h2>
+          <h2 class="text-xl font-bold text-high tracking-tight">{{ $t('stateChange.proposalDetailsJson') }}</h2>
         </div>
         <button
           @click="$emit('close')"

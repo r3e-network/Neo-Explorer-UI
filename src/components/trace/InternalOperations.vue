@@ -47,7 +47,7 @@
     <!-- Empty state -->
     <!-- Fallback if only internal calls exist but no discrete parsed 'operations' -->
     <div v-if="!loading && operations.length === 0 && internalContractCalls.length > 0" class="space-y-2 mt-4">
-      <h3 class="text-sm font-semibold text-high mb-3 px-4">Raw Internal Contract Calls</h3>
+      <h3 class="text-sm font-semibold text-high mb-3 px-4">{{ $t('stateChange.rawInternalCalls') }}</h3>
       <div
         v-for="(call, ci) in internalContractCalls"
         :key="'raw-call-' + ci"
