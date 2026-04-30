@@ -9,8 +9,8 @@
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
           </div>
           <div>
-            <h1 class="page-title">Abstract Account Creator</h1>
-            <p class="page-subtitle">Deploy your cross-chain Neo identity with multi-sig and recovery controls.</p>
+            <h1 class="page-title">{{ $t("tools.abstractAccount.title") }}</h1>
+            <p class="page-subtitle">{{ $t("tools.abstractAccount.pageSubtitle") }}</p>
           </div>
         </div>
       </div>
@@ -19,24 +19,24 @@
         <div class="lg:col-span-4 space-y-4">
           <div v-if="!connectedAccount" class="etherscan-card p-5 bg-surface-muted border-dashed text-center">
              <svg class="h-8 w-8 text-mid mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-             <p class="text-sm font-semibold text-high mb-1">Wallet Not Connected</p>
-             <p class="text-xs text-mid">Connect your Neo wallet to register a new Abstract Account.</p>
+             <p class="text-sm font-semibold text-high mb-1">{{ $t("tools.abstractAccount.walletNotConnected") }}</p>
+             <p class="text-xs text-mid">{{ $t("tools.abstractAccount.walletNotConnectedHint") }}</p>
           </div>
           
           <div v-if="connectedAccount" class="etherscan-card p-5">
-            <h4 class="text-base font-bold text-high mb-4">Account ID Status</h4>
+            <h4 class="text-base font-bold text-high mb-4">{{ $t("tools.abstractAccount.accountIdStatus") }}</h4>
             <div class="space-y-4">
               <div v-if="isEvmWallet" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30 text-emerald-800 dark:text-emerald-400">
                 <div class="flex items-center gap-2 mb-2">
                   <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  <p class="font-bold text-sm">EVM Public Key Active</p>
+                  <p class="font-bold text-sm">{{ $t("tools.abstractAccount.evmPubKeyActive") }}</p>
                 </div>
                 <p class="text-xs opacity-90 break-all">{{ uuid }}</p>
               </div>
               <div v-else>
                 <div class="flex items-center justify-between mb-2">
-                  <label for="account-uuid" class="block text-sm font-bold text-high">Account UUID</label>
-                  <button @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">Regenerate</button>
+                  <label for="account-uuid" class="block text-sm font-bold text-high">{{ $t("tools.abstractAccount.accountUuid") }}</label>
+                  <button @click="generateUUID" class="text-xs text-indigo-600 font-semibold hover:underline">{{ $t("tools.abstractAccount.regenerate") }}</button>
                 </div>
                 <input id="account-uuid" type="text" v-model="uuid" class="form-input w-full bg-surface text-high font-mono text-xs rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
               </div>
@@ -45,7 +45,7 @@
               <transition name="fade">
                 <div v-if="uuid && computedAddress" class="p-4 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white dark:border-indigo-900/30 dark:from-indigo-900/10 dark:to-slate-900 shadow-sm space-y-3">
                   <div>
-                    <p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest mb-1">Derived Address</p>
+                    <p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest mb-1">{{ $t("tools.abstractAccount.derivedAddress") }}</p>
                     <p class="text-sm text-high font-bold font-mono break-all">{{ computedAddress }}</p>
                   </div>
                 </div>
@@ -58,7 +58,7 @@
               <div class="p-2 bg-indigo-100 dark:bg-indigo-800/40 rounded-lg shrink-0">
                 <svg class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
               </div>
-              <h4 class="font-bold text-high">Protocol Features</h4>
+              <h4 class="font-bold text-high">{{ $t("tools.abstractAccount.protocolFeatures") }}</h4>
             </div>
             <ol class="space-y-3 text-sm text-mid list-decimal list-inside ml-1">
               <li><strong>Zero Deploy Cost:</strong> Proxy Verification Script binds your EVM/UUID identity to the Master Contract off-chain.</li>
@@ -78,14 +78,14 @@
                 :class="activeTab === 'create' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent text-mid hover:text-high'"
                 @click="activeTab = 'create'"
               >
-                Configuration
+                {{ $t("tools.abstractAccount.tabConfiguration") }}
               </button>
               <button 
                 class="pb-3 text-sm font-bold border-b-2 transition-colors"
                 :class="activeTab === 'source' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent text-mid hover:text-high'"
                 @click="activeTab = 'source'"
               >
-                Contract Source
+                {{ $t("tools.abstractAccount.tabContractSource") }}
               </button>
             </div>
 
@@ -93,9 +93,9 @@
               <div class="space-y-4">
                 <h3 class="text-base font-bold text-high border-b border-line-soft pb-2 flex items-center gap-2">
                   <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-xs">1</span>
-                  Mandatory Admins
+                  {{ $t("tools.abstractAccount.mandatoryAdmins") }}
                 </h3>
-                <p class="text-xs text-mid">Admins have full execution and configuration authority.</p>
+                <p class="text-xs text-mid">{{ $t("tools.abstractAccount.adminsHint") }}</p>
                 <div v-for="(admin, index) in admins" :key="'admin-'+index" class="flex items-center gap-2">
                   <input type="text" v-model="admins[index]" :aria-label="'Admin address ' + (index + 1)" class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-indigo-500/20 hover:border-indigo-400 focus:border-indigo-400 transition-all outline-none" placeholder="N... or 0x..." />
                   <button @click="admins.splice(index, 1)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0" aria-label="Remove admin">
