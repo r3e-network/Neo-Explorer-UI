@@ -133,7 +133,7 @@
       </div>
 
       <div v-if="tableData.length === 0" class="p-4">
-        <EmptyState message="No NFT tokens found" />
+        <EmptyState :message="$t('emptyMessages.noNftTokensFound')" />
       </div>
     </template>
 

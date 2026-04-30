@@ -11,12 +11,12 @@
     <div v-else-if="error && !transactions.length" class="p-4">
       <ErrorState
         :title="$t('errorTitles.unableToLoadLatestTransactions')"
-        message="Please try again in a moment."
+        :message="$t('emptyMessages.tryAgainMoment')"
         @retry="$emit('retry')"
       />
     </div>
     <div v-else-if="!transactions.length" class="p-4">
-      <EmptyState message="No transactions found" />
+      <EmptyState :message="$t('emptyMessages.noTransactionsFound')" />
     </div>
     <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
       <TxListItem

@@ -11,12 +11,12 @@
     <div v-else-if="error && !blocks.length" class="p-4">
       <ErrorState
         :title="$t('errorTitles.unableToLoadLatestBlocks')"
-        message="Please try again in a moment."
+        :message="$t('emptyMessages.tryAgainMoment')"
         @retry="$emit('retry')"
       />
     </div>
     <div v-else-if="!blocks.length" class="p-4">
-      <EmptyState message="No blocks found" />
+      <EmptyState :message="$t('emptyMessages.noBlocksFound')" />
     </div>
     <TransitionGroup v-else name="list" tag="div" class="relative overflow-hidden">
       <BlockListItem v-for="block in blocks" :key="block.hash" :block="block" class="w-full bg-surface-elevated" />

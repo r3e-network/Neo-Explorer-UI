@@ -25,13 +25,13 @@
     <ErrorState
       v-if="loadError"
       :title="$t('errorTitles.unableToLoadSource')"
-      message="Please try again in a moment."
+      :message="$t('emptyMessages.tryAgainMoment')"
       @retry="loadSourceCode"
     />
 
     <EmptyState
       v-else-if="!contractHash"
-      message="No contract selected"
+      :message="$t('emptyMessages.noContractSelected')"
       description="Provide a valid contract hash to inspect verified source files."
     />
 
@@ -41,7 +41,7 @@
 
     <EmptyState
       v-else-if="!sourceCodeList.length"
-      message="No verified source code found"
+      :message="$t('emptyMessages.noVerifiedSource')"
       description="This contract may not be verified yet."
     />
 

@@ -79,7 +79,7 @@
     <EmptyState
       v-else-if="!loading && operations.length === 0 && internalContractCalls.length === 0"
       icon="tx"
-      message="No internal operations — this is a simple transfer."
+      :message="$t('emptyMessages.noInternalOps')"
     />
 
     <!-- Timeline -->

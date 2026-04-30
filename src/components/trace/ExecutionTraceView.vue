@@ -16,7 +16,7 @@
     <EmptyState
       v-else-if="appLog && !isComplex"
       icon="tx"
-      message="Simple transfer — no complex execution trace for this transaction."
+      :message="$t('emptyMessages.simpleTransferTrace')"
     />
 
     <!-- Complex trace -->
@@ -209,7 +209,7 @@
     <EmptyState
       v-else-if="!loading"
       icon="tx"
-      message="No execution data — application log not available for this transaction."
+      :message="$t('emptyMessages.noExecutionData')"
     />
   </div>
 </template>

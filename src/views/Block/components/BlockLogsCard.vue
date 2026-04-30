@@ -99,7 +99,7 @@ function triggerDescription(trigger) {
       <!-- Empty -->
       <EmptyState
         v-else-if="!appLog || !appLog.executions || appLog.executions.length === 0"
-        message="No system execution logs for this block"
+        :message="$t('emptyMessages.noBlockLogs')"
         icon="log"
       />
 

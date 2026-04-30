@@ -138,7 +138,7 @@
       </div>
 
       <div v-if="transfers.length === 0" class="p-4">
-        <EmptyState message="No transfers found" />
+        <EmptyState :message="$t('emptyMessages.noTransfersFound')" />
       </div>
     </template>
 

@@ -6,7 +6,7 @@
     </div>
 
     <!-- Empty -->
-    <EmptyState v-else-if="!transfers || transfers.length === 0" icon="token" message="No token transfers detected" />
+    <EmptyState v-else-if="!transfers || transfers.length === 0" icon="token" :message="$t('emptyMessages.noTokenTransfersDetected')" />
 
     <!-- Transfer cards -->
     <div v-else class="space-y-3">
