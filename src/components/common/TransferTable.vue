@@ -88,7 +88,7 @@
               <!-- From -->
               <td class="table-cell">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.from === null" class="text-low">Null Address</span>
+                  <span v-if="item.from === null" class="text-low">{{ $t('tokenDetail.nullAddress') }}</span>
                   <HashLink v-else :hash="showAddress ? scriptHashToAddress(item.from) : item.from" type="address" :truncated="true" />
                 </div>
               </td>
@@ -118,7 +118,7 @@
               <!-- To -->
               <td class="table-cell">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="item.to === null" class="text-low">Null Address</span>
+                  <span v-if="item.to === null" class="text-low">{{ $t('tokenDetail.nullAddress') }}</span>
                   <HashLink v-else :hash="showAddress ? scriptHashToAddress(item.to) : item.to" type="address" :truncated="true" />
                 </div>
               </td>
