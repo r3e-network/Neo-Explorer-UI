@@ -1489,6 +1489,7 @@ const ja = {
     howToSignNeoCli: "neo-cli で署名する方法",
     validatorLogoAlt: "バリデーターロゴ",
     tokenLogoAlt: "トークンロゴ",
+    blockSystemExecCaption: "ブロックシステム実行通知",
   },
   stateChange: {
     contracts: "コントラクト",

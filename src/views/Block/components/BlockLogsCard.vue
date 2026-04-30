@@ -185,13 +185,13 @@ function triggerDescription(trigger) {
                 <!-- Raw fallback -->
                 <div v-else class="overflow-x-auto">
                   <table class="w-full text-sm">
-                    <caption class="sr-only">Block system execution notifications</caption>
+                    <caption class="sr-only">{{ $t('inline.blockSystemExecCaption') }}</caption>
                     <thead class="table-head">
                       <tr class="soft-divider border-b">
                         <th class="table-header-cell">#</th>
-                        <th class="table-header-cell">Contract</th>
-                        <th class="table-header-cell">Event</th>
-                        <th class="table-header-cell">State</th>
+                        <th class="table-header-cell">{{ $t('blockDetail.logsColContract') }}</th>
+                        <th class="table-header-cell">{{ $t('blockDetail.logsColEvent') }}</th>
+                        <th class="table-header-cell">{{ $t('blockDetail.logsColState') }}</th>
                       </tr>
                     </thead>
                     <tbody class="soft-divider divide-y">

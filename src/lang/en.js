@@ -1489,6 +1489,7 @@ const en = {
     howToSignNeoCli: "How to Sign with neo-cli",
     validatorLogoAlt: "Validator logo",
     tokenLogoAlt: "Token Logo",
+    blockSystemExecCaption: "Block system execution notifications",
   },
   stateChange: {
     contracts: "Contracts",

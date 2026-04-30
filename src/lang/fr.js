@@ -1485,6 +1485,7 @@ const fr = {
     howToSignNeoCli: "Comment signer avec neo-cli",
     validatorLogoAlt: "Logo du validateur",
     tokenLogoAlt: "Logo du jeton",
+    blockSystemExecCaption: "Notifications d'exécution système du bloc",
   },
   stateChange: {
     contracts: "Contrats",

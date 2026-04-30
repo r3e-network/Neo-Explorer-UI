@@ -1489,6 +1489,7 @@ const zh = {
     howToSignNeoCli: "如何使用 neo-cli 签名",
     validatorLogoAlt: "验证者标志",
     tokenLogoAlt: "代币标志",
+    blockSystemExecCaption: "区块系统执行通知",
   },
   stateChange: {
     contracts: "合约",
