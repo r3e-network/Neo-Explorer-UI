@@ -22,9 +22,9 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">ABI Encoder & Decoder</h1>
+            <h1 class="page-title">{{ $t('tools.abiEncoder.pageTitle') }}</h1>
             <p class="page-subtitle">
-              Encode smart contract methods into executable scripts or decode raw hex transactions.
+              {{ $t('tools.abiEncoder.pageSubtitle') }}
             </p>
           </div>
         </div>
@@ -42,7 +42,7 @@
                 : 'border-transparent text-mid hover:text-high hover:bg-surface'
             "
           >
-            Encode Payload
+            {{ $t('tools.abiEncoder.tabEncode') }}
           </button>
           <button
             @click="activeMode = 'decode'"
@@ -53,7 +53,7 @@
                 : 'border-transparent text-mid hover:text-high hover:bg-surface'
             "
           >
-            Decode Script
+            {{ $t('tools.abiEncoder.tabDecode') }}
           </button>
         </div>
 
@@ -62,33 +62,33 @@
           <template v-if="activeMode === 'encode'">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div class="space-y-2">
-                <label class="block text-sm font-bold text-high tracking-tight">Contract Hash</label>
+                <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.abiEncoder.contractHashLabel') }}</label>
                 <input
                   type="text"
                   v-model="encodeForm.contractHash"
                   class="form-input w-full bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="e.g. 0xef4073a0..."
+                  :placeholder="$t('tools.abiEncoder.contractHashPlaceholder')"
                 />
               </div>
               <div class="space-y-2">
-                <label class="block text-sm font-bold text-high tracking-tight">Method Name</label>
+                <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.abiEncoder.methodLabel') }}</label>
                 <input
                   type="text"
                   v-model="encodeForm.method"
                   class="form-input w-full bg-surface text-high text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                  placeholder="e.g. transfer"
+                  :placeholder="$t('tools.abiEncoder.methodPlaceholder')"
                 />
               </div>
             </div>
 
             <div class="space-y-4">
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-bold text-high tracking-tight">Parameters</label>
+                <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.abiEncoder.paramsLabel') }}</label>
                 <button
                   @click="addParam"
                   class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100 px-3 py-1.5 rounded-lg dark:bg-fuchsia-900/30 dark:hover:bg-fuchsia-900/50 dark:text-fuchsia-400 transition-all duration-300 shadow-sm"
                 >
-                  + Add Param
+                  {{ $t('tools.abiEncoder.addParam') }}
                 </button>
               </div>
 
@@ -96,8 +96,7 @@
                 v-if="encodeForm.params.length === 0"
                 class="p-6 text-center border-2 border-dashed border-line-soft rounded-2xl bg-surface-muted/50 text-mid text-sm"
               >
-                No parameters added. Click <span class="font-bold text-fuchsia-500">"+ Add Param"</span> if the method
-                requires arguments.
+                {{ $t('tools.abiEncoder.noParamsHint') }} <span class="font-bold text-fuchsia-500">{{ $t('tools.abiEncoder.addParamHinted') }}</span> {{ $t('tools.abiEncoder.noParamsHintTrailing') }}
               </div>
 
               <transition-group name="list" tag="div" class="space-y-3">
@@ -114,9 +113,9 @@
                     >
                       <option value="String">String</option>
                       <option value="Integer">Integer</option>
-                      <option value="Hash160">Hash160 (Address)</option>
+                      <option value="Hash160">{{ $t('tools.abiEncoder.typeStringHash160') }}</option>
                       <option value="Hash256">Hash256</option>
-                      <option value="ByteArray">ByteArray (Hex)</option>
+                      <option value="ByteArray">{{ $t('tools.abiEncoder.typeByteArrayHex') }}</option>
                       <option value="PublicKey">PublicKey</option>
                       <option value="Boolean">Boolean</option>
                       <option value="Any">Any</option>
@@ -127,12 +126,12 @@
                       type="text"
                       v-model="param.value"
                       class="form-input w-full bg-surface font-mono text-sm pr-10 border-transparent rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                      placeholder="Value..."
+                      :placeholder="$t('tools.abiEncoder.paramValuePlaceholder')"
                     />
                     <button
                       @click="removeParam(i)"
                       class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-md transition-colors"
-                      title="Remove param"
+                      :title="$t('tools.abiEncoder.removeParamTitle')"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -154,7 +153,7 @@
                 :disabled="!encodeForm.contractHash || !encodeForm.method"
                 class="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-8 py-3 text-sm font-bold text-white hover:bg-fuchsia-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
               >
-                Encode to Base64
+                {{ $t('tools.abiEncoder.encodeButton') }}
               </button>
             </div>
 
@@ -167,7 +166,7 @@
                   <p
                     class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1.5"
                   >
-                    Base64 Script
+                    {{ $t('tools.abiEncoder.base64ScriptHeading') }}
                   </p>
                   <p
                     class="text-sm text-high font-mono break-all p-3 bg-surface-muted rounded-xl border border-line-soft shadow-inner"
@@ -179,7 +178,7 @@
                   <p
                     class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1.5"
                   >
-                    Hex Script
+                    {{ $t('tools.abiEncoder.hexScriptHeading') }}
                   </p>
                   <p
                     class="text-sm text-high font-mono break-all p-3 bg-surface-muted rounded-xl border border-line-soft shadow-inner"
@@ -195,19 +194,19 @@
           <template v-if="activeMode === 'decode'">
             <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <label class="block text-sm font-bold text-high tracking-tight">Compiled Script</label>
+                <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.abiEncoder.compiledScriptLabel') }}</label>
                 <select
                   v-model="decodeFormat"
                   class="form-input bg-surface text-xs py-1.5 px-3 border-line-soft transition-colors cursor-pointer rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
                 >
                   <option value="base64">Base64</option>
-                  <option value="hex">Hex String</option>
+                  <option value="hex">{{ $t('tools.abiEncoder.formatHex') }}</option>
                 </select>
               </div>
               <textarea
                 v-model="decodeInput"
                 class="form-input w-full h-40 bg-surface text-high font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-fuchsia-500/20 hover:border-fuchsia-400 focus:border-fuchsia-400 transition-all outline-none"
-                placeholder="Paste raw transaction script payload here..."
+                :placeholder="$t('tools.abiEncoder.decodeInputPlaceholder')"
               ></textarea>
             </div>
 
@@ -217,7 +216,7 @@
                 :disabled="!decodeInput.trim()"
                 class="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-8 py-3 text-sm font-bold text-white hover:bg-fuchsia-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
               >
-                Decode Script
+                {{ $t('tools.abiEncoder.decodeButton') }}
               </button>
             </div>
 
@@ -245,7 +244,7 @@
                       <p
                         class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1"
                       >
-                        Contract Invoked
+                        {{ $t('tools.abiEncoder.contractInvokedHeading') }}
                       </p>
                       <p class="text-sm font-mono text-high font-semibold break-all">
                         {{ decodedResult.contractHash }}
@@ -255,13 +254,13 @@
                       <p
                         class="text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold uppercase tracking-widest mb-1"
                       >
-                        Method Name
+                        {{ $t('tools.abiEncoder.methodNameHeading') }}
                       </p>
                       <p class="text-sm font-bold text-high">{{ decodedResult.method }}</p>
                     </div>
                   </div>
                   <div class="p-5">
-                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-3">Instructions (Opcodes)</p>
+                    <p class="text-[10px] text-mid font-bold uppercase tracking-widest mb-3">{{ $t('tools.abiEncoder.instructionsHeading') }}</p>
                     <div
                       class="max-h-80 overflow-y-auto rounded-xl border border-line-soft bg-surface p-4 text-xs font-mono text-high space-y-1.5 shadow-inner dark:border-white/10 dark:bg-slate-900 dark:text-slate-300"
                     >
@@ -557,8 +556,7 @@ function decodeScript() {
 
     if (!invocation) {
       decodedResult.value = {
-        error:
-          "Script successfully disassembled, but no primary contract invocation (SYSCALL System.Contract.Call) was found.",
+        error: t("tools.abiEncoder.noInvocationFound"),
         instructions,
       };
     } else {
@@ -572,7 +570,7 @@ function decodeScript() {
     toast.success(t("tools.abiEncoder.toasts.decodeSuccess"));
   } catch (err) {
     if (import.meta.env.DEV) console.error(err);
-    decodedResult.value = { error: "Failed to decode script. Ensure it is valid Hex or Base64." };
+    decodedResult.value = { error: t("tools.abiEncoder.decodeGenericError") };
     toast.error(t("tools.abiEncoder.toasts.decodeFailed", { reason: err.message }));
   }
 }
