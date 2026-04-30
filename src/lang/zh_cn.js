@@ -739,6 +739,9 @@ const zh = {
       submittingButton: "提交中...",
       submitButtonShort: "提交",
       orEmailSignatureHint: "或通过电子邮件发送您的公钥和签名：",
+      createProposalAria: "创建提案",
+      createModalCloseAria: "关闭",
+      labPubkeysPlaceholder: "每行一个压缩公钥，或用逗号分隔",
       signatureStoredNote:
         "把签名或 witness 粘贴回提案页面进行收集。所有片段会先离线保存，直到最终 multisig witness 组装完成。",
       broadcastThresholdSigned: "广播阈值签名提案",

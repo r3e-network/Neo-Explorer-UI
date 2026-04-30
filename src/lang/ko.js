@@ -739,6 +739,9 @@ const ko = {
       submittingButton: "제출 중...",
       submitButtonShort: "제출",
       orEmailSignatureHint: "또는 공개 키와 서명을 이메일로 전송:",
+      createProposalAria: "제안 생성",
+      createModalCloseAria: "닫기",
+      labPubkeysPlaceholder: "줄당 하나의 압축 공개 키 또는 쉼표 구분",
       signatureStoredNote:
         "수집된 서명 또는 가져온 증인은 Supabase에 저장되며 최종 다중서명 증인을 조립하는 데 사용됩니다.",
       broadcastThresholdSigned: "임계값 서명된 제안 브로드캐스트",

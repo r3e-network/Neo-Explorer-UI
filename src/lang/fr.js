@@ -738,6 +738,9 @@ const fr = {
       submittingButton: "Soumission...",
       submitButtonShort: "Soumettre",
       orEmailSignatureHint: "Ou envoyez votre clé publique et signature par email :",
+      createProposalAria: "Créer une proposition",
+      createModalCloseAria: "Fermer",
+      labPubkeysPlaceholder: "Une clé publique compressée par ligne, ou séparées par des virgules",
       signatureStoredNote:
         "La signature collectée ou le témoin importé est stocké dans Supabase et sera utilisé pour assembler le témoin multisig final.",
       broadcastThresholdSigned: "Diffuser la proposition signée au seuil",

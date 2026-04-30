@@ -739,6 +739,9 @@ const en = {
       submittingButton: "Submitting...",
       submitButtonShort: "Submit",
       orEmailSignatureHint: "Or send your public key and signature via email:",
+      createProposalAria: "Create Proposal",
+      createModalCloseAria: "Close",
+      labPubkeysPlaceholder: "One compressed public key per line, or comma-separated",
       signatureStoredNote:
         "Paste the signature or witness back into the proposal page for collection. Stored fragments are kept off-chain until the final multisig witness is assembled.",
       broadcastThresholdSigned: "Broadcast Threshold-Signed Proposal",

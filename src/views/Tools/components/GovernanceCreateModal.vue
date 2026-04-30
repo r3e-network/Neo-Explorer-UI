@@ -5,7 +5,7 @@
     role="dialog"
     tabindex="0"
     aria-modal="true"
-    aria-label="Create Proposal"
+    :aria-label="$t('tools.governance.createProposalAria')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @keydown.escape="$emit('close')"
   >
@@ -23,7 +23,7 @@
         </div>
         <button
           @click="$emit('close')"
-          aria-label="Close"
+          :aria-label="$t('tools.governance.createModalCloseAria')"
           class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +75,7 @@
                 v-model="createForm.labSignerPubkeys"
                 rows="5"
                 class="form-input w-full bg-surface text-sm py-2 px-3 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none font-mono"
-                placeholder="One compressed public key per line, or comma-separated"
+                :placeholder="$t('tools.governance.labPubkeysPlaceholder')"
               ></textarea>
               <p class="text-xs text-mid">
                 {{ $t("tools.governance.signerPubkeysDesc") }}

@@ -739,6 +739,9 @@ const ja = {
       submittingButton: "送信中...",
       submitButtonShort: "送信",
       orEmailSignatureHint: "または公開鍵と署名をメールで送信:",
+      createProposalAria: "提案を作成",
+      createModalCloseAria: "閉じる",
+      labPubkeysPlaceholder: "1 行に 1 つの圧縮公開鍵、またはカンマ区切り",
       signatureStoredNote:
         "収集した署名またはインポートされたウィットネスは Supabase に保存され、最終マルチシグウィットネスの組み立てに使用されます。",
       broadcastThresholdSigned: "閾値署名済み提案をブロードキャスト",
