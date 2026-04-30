@@ -87,7 +87,7 @@ describe("NFTInfo owner identity", () => {
 
     await flushPromises();
 
-    expect(wrapper.find('[data-label="Owner"]').text()).toContain("OracleProxy");
+    expect(wrapper.find('[data-label="tokenDetail.nftDetailRowOwner"]').text()).toContain("OracleProxy");
     expect(wrapper.find('img[alt="OracleProxy"]').attributes("src")).toBe("https://x.neo.org/favicon.ico");
   });
 });

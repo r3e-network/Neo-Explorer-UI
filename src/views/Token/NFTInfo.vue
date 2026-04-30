@@ -18,8 +18,8 @@
             </svg>
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="page-title">{{ nftName || "NFT Detail" }}</h1>
-            <p class="page-subtitle">Non-Fungible Token</p>
+            <h1 class="page-title">{{ nftName || $t("tokenDetail.nftDetailTitle") }}</h1>
+            <p class="page-subtitle">{{ $t("tokenDetail.nftDetailSubtitle") }}</p>
           </div>
         </div>
       </div>
@@ -33,7 +33,7 @@
 
       <!-- Error State -->
       <div v-else-if="error" class="p-6">
-        <ErrorState title="NFT not found" :message="error" @retry="loadNFT" />
+        <ErrorState :title="$t('tokenDetail.nftDetailNotFound')" :message="error" @retry="loadNFT" />
       </div>
 
       <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -43,7 +43,7 @@
               <img
                 v-if="image"
                 v-lazy-image="image"
-                :alt="nftName || 'NFT image'"
+                :alt="nftName || $t('tokenDetail.nftDetailImageAlt')"
                 class="h-full w-full object-cover"
                 @error="handleImageError"
               />
@@ -64,21 +64,21 @@
         <div class="space-y-6 lg:col-span-2">
           <div class="etherscan-card overflow-hidden">
             <div class="card-header">
-              <h2 class="text-base font-semibold text-high">Details</h2>
+              <h2 class="text-base font-semibold text-high">{{ $t("tokenDetail.nftDetailSection") }}</h2>
             </div>
             <div class="soft-divider divide-y">
-              <InfoRow label="Token ID">
+              <InfoRow :label="$t('tokenDetail.nftDetailRowTokenId')">
                 <span class="break-all font-hash text-sm">{{ tokenId }}</span>
               </InfoRow>
-              <InfoRow label="Contract">
+              <InfoRow :label="$t('tokenDetail.nftDetailRowContract')">
                 <router-link :to="`/contract-info/${contractHash}`" class="break-all font-hash text-sm etherscan-link">
                   {{ contractHash }}
                 </router-link>
               </InfoRow>
-              <InfoRow label="Owner">
+              <InfoRow :label="$t('tokenDetail.nftDetailRowOwner')">
                 <HashLink :hash="address" type="address" :truncated="false" :copyable="false" />
               </InfoRow>
-              <InfoRow v-if="description" label="Description">
+              <InfoRow v-if="description" :label="$t('tokenDetail.nftDetailRowDescription')">
                 <p>{{ description }}</p>
               </InfoRow>
             </div>
@@ -145,7 +145,7 @@ async function loadNFT() {
     if (myGeneration !== fetchGeneration) return;
     const data = result?.result?.[0];
     if (data) {
-      nftName.value = data.name || "Unknown NFT";
+      nftName.value = data.name || t("tokenDetail.nftDetailUnknown");
       image.value = resolveImageUrl(data.image);
       description.value = data.description || "";
     }
