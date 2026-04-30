@@ -15,7 +15,7 @@
           <p class="flex-1 text-sm">{{ notification.message }}</p>
           <button
             class="text-current opacity-60 hover:opacity-100"
-            aria-label="Dismiss notification"
+            :aria-label="$t('verifyPage.dismissNotificationAria')"
             @click="notification = null"
           >
             &times;
@@ -53,12 +53,12 @@
           <form @submit.prevent="submitVerification" class="space-y-5">
             <!-- Contract Hash -->
             <div>
-              <label for="verify-hash" class="form-label">Contract Hash <span class="text-red-500">*</span></label>
+              <label for="verify-hash" class="form-label">{{ $t('verifyPage.contractHashLabel') }} <span class="text-red-500">*</span></label>
               <input
                 id="verify-hash"
                 v-model="form.hash"
                 type="text"
-                placeholder="0x..."
+                :placeholder="$t('verifyPage.contractHashPlaceholder')"
                 required
                 :aria-invalid="!!errors.hash"
                 :aria-describedby="errors.hash ? 'verify-hash-error' : undefined"
@@ -69,7 +69,7 @@
 
             <!-- Compiler Version -->
             <div>
-              <label for="verify-version" class="form-label">Compiler Version <span class="text-red-500">*</span></label>
+              <label for="verify-version" class="form-label">{{ $t('verifyPage.compilerVersionLabel') }} <span class="text-red-500">*</span></label>
               <select
                 id="verify-version"
                 v-model="form.version"
@@ -78,7 +78,7 @@
                 :aria-describedby="errors.version ? 'verify-version-error' : undefined"
                 class="form-input"
               >
-                <option value="" disabled>Select your compiler version</option>
+                <option value="" disabled>{{ $t('verifyPage.selectCompilerVersion') }}</option>
                 <option v-for="option in compilerVersionOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
@@ -88,7 +88,7 @@
 
             <!-- Compile Command (conditional) -->
             <div v-if="showCompileCommand">
-              <label for="verify-command" class="form-label">Compile Command <span class="text-red-500">*</span></label>
+              <label for="verify-command" class="form-label">{{ $t('verifyPage.compileCommandLabel') }} <span class="text-red-500">*</span></label>
               <select
                 id="verify-command"
                 v-model="form.command"
@@ -97,7 +97,7 @@
                 :aria-describedby="errors.command ? 'verify-command-error' : undefined"
                 class="form-input"
               >
-                <option value="" disabled>Select your compile command</option>
+                <option value="" disabled>{{ $t('verifyPage.selectCompileCommand') }}</option>
                 <option v-for="option in compileCommandOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
@@ -107,29 +107,29 @@
 
             <!-- Java Package Name (conditional) -->
             <div v-if="form.version === JAVA_COMPILER_VERSION" class="space-y-1">
-              <label class="form-label mb-0">Java Package Name</label>
+              <label class="form-label mb-0">{{ $t('verifyPage.javaPackageLabel') }}</label>
               <input
                 v-model="form.javaPackage"
                 type="text"
-                placeholder="e.g., io.examples.HelloWorld"
+                :placeholder="$t('verifyPage.javaPackagePlaceholder')"
                 class="form-input"
               />
             </div>
 
             <!-- File Upload -->
             <div>
-              <label class="form-label">Source Code Files <span class="text-red-500">*</span></label>
+              <label class="form-label">{{ $t('verifyPage.sourceCodeFilesLabel') }} <span class="text-red-500">*</span></label>
               <div class="flex flex-wrap items-center gap-3">
                 <label
                   class="btn-outline inline-flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                 >
-                  Select Files
+                  {{ $t('verifyPage.selectFilesButton') }}
                   <input
                     ref="fileInputRef"
                     type="file"
                     :accept="acceptedExtensions"
                     multiple
-                    aria-label="Select source code files"
+                    :aria-label="$t('verifyPage.selectFilesAria')"
                     class="hidden"
                     @change="onFilesSelected"
                   />
@@ -139,7 +139,7 @@
                   :disabled="!canSubmit"
                   class="btn-primary gap-1.5"
                 >
-                  Upload & Verify
+                  {{ $t('verifyPage.uploadAndVerifyButton') }}
                 </button>
               </div>
 
@@ -162,7 +162,7 @@
                   <button
                     type="button"
                     @click="removeFile(idx)"
-                    :aria-label="`Remove file ${file.name}`"
+                    :aria-label="$t('verifyPage.removeFileAria', { name: file.name })"
                     class="text-red-400 hover:text-red-600"
                   >
                     &times;
@@ -174,13 +174,12 @@
 
           <!-- Sidebar Tips -->
           <aside class="panel-muted p-4 text-sm">
-            <h2 class="text-high mb-3 font-semibold">Submission Tips</h2>
+            <h2 class="text-high mb-3 font-semibold">{{ $t('verifyPage.submissionTipsHeading') }}</h2>
             <ul class="text-mid space-y-2">
               <li>{{ compilerUploadHint }}</li>
-              <li>Contract hash must be a 40-character hex string.</li>
+              <li>{{ $t('verifyPage.tipHashHexCharacters') }}</li>
               <li>
-                Keep source files unchanged from deployment build. Any source or compiler mismatch causes verification
-                failure.
+                {{ $t('verifyPage.tipSourceUnchanged') }}
               </li>
             </ul>
 
@@ -188,8 +187,7 @@
               v-if="form.version === JAVA_COMPILER_VERSION"
               class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-200"
             >
-              The <span class="font-semibold">className</span> property in
-              <span class="font-semibold">build.gradle</span> must match the contract's fully-qualified Java class name.
+              {{ $t('verifyPage.classNameMatchHint') }}
             </div>
           </aside>
         </div>
