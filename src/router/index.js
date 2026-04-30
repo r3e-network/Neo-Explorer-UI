@@ -96,121 +96,121 @@ const routes = [
       {
         path: "/homepage",
         name: "homepage",
-        meta: { title: "Neo Explorer" },
+        meta: { titleKey: "pageTitles.homepage" },
         component: HomePage,
       },
       {
         path: "/nns",
         name: "nns",
-        meta: { title: "Neo Name Service" },
+        meta: { titleKey: "pageTitles.nns" },
         component: NNS,
       },
       {
         path: "/matrix",
         name: "matrix",
-        meta: { title: "Matrix Domain Service" },
+        meta: { titleKey: "pageTitles.matrix" },
         component: MatrixDomain,
       },
       {
         path: "/tools",
         name: "tools",
-        meta: { title: "Tools" },
+        meta: { titleKey: "pageTitles.tools" },
         component: ToolsIndex,
       },
       {
         path: "/tools/multisig",
         name: "multisig",
-        meta: { title: "Multi-Sig Tool" },
+        meta: { titleKey: "pageTitles.multisig" },
         component: MultiSigTool,
       },
       {
         path: "/tools/governance",
         name: "governanceTool",
-        meta: { title: "Council Governance" },
+        meta: { titleKey: "pageTitles.councilGovernance" },
         component: GovernanceTool,
       },
       {
         path: "/tools/governance/:id",
         name: "governanceProposalDetail",
-        meta: { title: "Council Proposal Detail" },
+        meta: { titleKey: "pageTitles.councilProposalDetail" },
         component: GovernanceProposalDetail,
       },
       {
         path: "/tools/b64",
         name: "formatConverter",
-        meta: { title: "Format Converter" },
+        meta: { titleKey: "pageTitles.formatConverter" },
         component: FormatConverterTool,
       },
       {
         path: "/tools/neofs",
         name: "neofsGateway",
-        meta: { title: "NeoFS Gateway" },
+        meta: { titleKey: "pageTitles.neofs" },
         component: NeoFSTool,
       },
       {
         path: "/tools/candidate-profile",
         name: "candidateProfileManager",
-        meta: { title: "Candidate Profile Manager" },
+        meta: { titleKey: "pageTitles.candidateProfile" },
         component: CandidateProfileTool,
       },
       {
         path: "/tools/broadcast",
         name: "broadcastMessage",
-        meta: { title: "On-Chain Message" },
+        meta: { titleKey: "pageTitles.onChainMessage" },
         component: BroadcastMessageTool,
       },
       {
         path: "/tools/sponsored",
         name: "sponsoredTransactions",
-        meta: { title: "Sponsored Transactions" },
+        meta: { titleKey: "pageTitles.sponsored" },
         component: SponsoredTool,
       },
       {
         path: "/tools/deployer",
         name: "contractDeployer",
-        meta: { title: "Contract Deployer" },
+        meta: { titleKey: "pageTitles.contractDeployer" },
         component: ContractDeployerTool,
       },
       {
         path: "/tools/factory",
         name: "contractFactory",
-        meta: { title: "Contract Factory" },
+        meta: { titleKey: "pageTitles.contractFactory" },
         component: ContractFactoryTool,
       },
       {
         path: "/tools/abi",
         name: "abiEncoder",
-        meta: { title: "ABI Encoder" },
+        meta: { titleKey: "pageTitles.abiEncoder" },
         component: AbiEncoderTool,
       },
       {
         path: "/tools/storage",
         name: "storageInspector",
-        meta: { title: "Storage Inspector" },
+        meta: { titleKey: "pageTitles.storageInspector" },
         component: StorageInspectorTool,
       },
       {
         path: "/tools/gas",
         name: "gasEstimator",
-        meta: { title: "Gas Estimator" },
+        meta: { titleKey: "pageTitles.gasEstimator" },
         component: GasEstimatorTool,
       },
       {
         path: "/tools/mempool",
         name: "mempoolTool",
-        meta: { title: "Mempool Search" },
+        meta: { titleKey: "pageTitles.mempool" },
         component: MempoolTool,
       },
       {
         path: "/tools/alerts",
         name: "networkAlerts",
-        meta: { title: "Network Alerts" },
+        meta: { titleKey: "pageTitles.networkAlerts" },
         component: NetworkAlertsTool,
       },
       {
         path: "/tools/abstract-account",
         name: "abstractAccountDeployer",
-        meta: { title: "Abstract Account" },
+        meta: { titleKey: "pageTitles.abstractAccount" },
         component: AbstractAccountTool,
       },
       {
@@ -220,13 +220,13 @@ const routes = [
       {
         path: "/blocks/:page",
         name: "blocks",
-        meta: { title: "Blocks" },
+        meta: { titleKey: "pageTitles.blocks" },
         component: Blocks,
       },
       {
         path: "/block-info/:hash",
         name: "blockDetail",
-        meta: { title: "Block Detail" },
+        meta: { titleKey: "pageTitles.blockDetail" },
         component: BlockDetail,
       },
       {
@@ -236,13 +236,13 @@ const routes = [
       {
         path: "/transactions/:page",
         name: "transactions",
-        meta: { title: "Transactions" },
+        meta: { titleKey: "pageTitles.transactions" },
         component: Transactions,
       },
       {
         path: "/transaction-info/:txhash",
         name: "transactionDetail",
-        meta: { title: "Transaction Detail" },
+        meta: { titleKey: "pageTitles.transactionDetail" },
         component: TxDetail,
       },
       {
@@ -252,133 +252,133 @@ const routes = [
       {
         path: "/contracts/:page",
         name: "contracts",
-        meta: { title: "Contracts" },
+        meta: { titleKey: "pageTitles.contracts" },
         component: Contracts,
       },
       {
         path: "/contract-info/:hash",
         name: "contractDetail",
-        meta: { title: "Contract Detail" },
+        meta: { titleKey: "pageTitles.contractDetail" },
         component: ContractDetail,
       },
       {
         path: "/account/:page",
         name: "accounts",
-        meta: { title: "Accounts" },
+        meta: { titleKey: "pageTitles.accounts" },
         component: Accounts,
       },
       {
         path: "/treasury",
         name: "treasury",
-        meta: { title: "Treasury" },
+        meta: { titleKey: "pageTitles.treasury" },
         component: Treasury,
       },
       {
         path: "/account-profile/:accountAddress",
         name: "accountProfile",
-        meta: { title: "Address Detail" },
+        meta: { titleKey: "pageTitles.addressDetail" },
         component: AddressDetail,
       },
       {
         path: "/tokens/:tab/:page",
         name: "tokens",
-        meta: { title: "Tokens" },
+        meta: { titleKey: "pageTitles.tokens" },
         component: Tokens,
       },
       {
         path: "/nep17-token-info/:hash",
         name: "nep17TokenDetail",
-        meta: { title: "NEP-17 Token" },
+        meta: { titleKey: "pageTitles.nep17Token" },
         component: TokenDetail,
       },
       {
         path: "/nft-token-info/:hash",
         name: "nep11TokenDetail",
-        meta: { title: "NFT Collection" },
+        meta: { titleKey: "pageTitles.nftCollection" },
         component: TokenInfoNep11,
       },
       {
         path: "/candidates/:page",
         name: "candidates",
-        meta: { title: "Consensus Nodes" },
+        meta: { titleKey: "pageTitles.consensusNodes" },
         component: Candidates,
       },
       {
         path: "/burn",
         name: "burn",
-        meta: { title: "Burned GAS" },
+        meta: { titleKey: "pageTitles.burnedGas" },
         component: BurnFee,
       },
       {
         path: "/verify-contract/:contractHash?",
         name: "verifyContract",
-        meta: { title: "Verify Contract" },
+        meta: { titleKey: "pageTitles.verifyContract" },
         component: VerifyContract,
       },
       {
         path: "/source-code",
         name: "sourceCode",
-        meta: { title: "Source Code" },
+        meta: { titleKey: "pageTitles.sourceCode" },
         component: SourceCode,
       },
       {
         path: "/echarts",
         name: "charts",
-        meta: { title: "Charts & Statistics" },
+        meta: { titleKey: "pageTitles.chartsStatistics" },
         component: ChartsPage,
       },
       {
         path: "/api-docs",
         name: "apiDocs",
-        meta: { title: "API Documentation" },
+        meta: { titleKey: "pageTitles.apiDocumentation" },
         component: ApiDocs,
       },
       {
         path: "/nft-info/:contractHash/:address/:tokenId",
         name: "nftDetail",
-        meta: { title: "NFT Detail" },
+        meta: { titleKey: "pageTitles.nftDetail" },
         component: NFTInfo,
       },
       {
         path: "/gas-tracker",
         name: "gasTracker",
-        meta: { title: "Gas Tracker" },
+        meta: { titleKey: "pageTitles.gasTracker" },
         component: GasTracker,
       },
       {
         path: "/advanced-search",
         name: "advancedSearch",
-        meta: { title: "Advanced Search" },
+        meta: { titleKey: "pageTitles.advancedSearch" },
         component: AdvancedSearch,
       },
       {
         path: "/governance",
         name: "governance",
-        meta: { title: "Governance" },
+        meta: { titleKey: "pageTitles.governance" },
         component: Governance,
       },
       {
         path: "/chat",
         name: "chat",
-        meta: { title: "NeoChat" },
+        meta: { titleKey: "pageTitles.neoChat" },
         component: ChatPage,
       },
       {
         path: "/tx/:txhash/trace",
         name: "txExecutionTrace",
-        meta: { title: "Execution Trace" },
+        meta: { titleKey: "pageTitles.executionTrace" },
         component: TxExecutionTrace,
       },
       {
         path: "search",
         name: "search",
-        meta: { title: "Search Results" },
+        meta: { titleKey: "pageTitles.searchResults" },
         component: Search,
       },
       {
         path: "/:pathMatch(.*)*",
         name: "notFound",
-        meta: { title: "Page Not Found" },
+        meta: { titleKey: "pageTitles.pageNotFound" },
         component: PageNotFound,
       },
     ],
@@ -410,11 +410,21 @@ router.beforeEach((to, _from, next) => {
   next();
 });
 
+function resolveRouteTitle(meta) {
+  const titleKey = meta?.titleKey;
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (titleKey && i18n?.global?.t) {
+    const translated = i18n.global.t(titleKey);
+    if (translated && translated !== titleKey) return translated;
+  }
+  return meta?.title || "";
+}
+
 // Clear chunk reload flag on successful navigation & set document title
 router.afterEach((to) => {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
   sessionStorage.removeItem(CHUNK_RELOAD_TARGET_KEY);
-  const title = to.meta?.title;
+  const title = resolveRouteTitle(to.meta);
   document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
 });
 
