@@ -433,7 +433,7 @@ describe("GovernanceProposalDetail", () => {
 
     await flushPromises();
     await flushPromises();
-    expect(wrapper.text()).toContain("Proposal Not Found");
+    expect(wrapper.text()).toContain("tools.governance.proposalNotFound");
 
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));

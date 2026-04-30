@@ -167,7 +167,7 @@
                     <textarea
                       v-model="createForm.pubkeys"
                       class="form-input w-full font-mono text-xs h-20 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                      placeholder="03..., 02..."
+                      :placeholder="$t('tools.multisig.pubkeysPlaceholder')"
                     ></textarea>
                   </div>
 
@@ -235,7 +235,7 @@
                       v-model="createForm.description"
                       type="text"
                       class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                      placeholder="e.g. Monthly Payroll Transfer"
+                      :placeholder="$t('tools.multisig.descriptionPlaceholder')"
                     />
                   </div>
 
@@ -247,7 +247,7 @@
                       v-model="createForm.targetContract"
                       type="text"
                       class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                      placeholder="0x..."
+                      :placeholder="$t('tools.multisig.contractHashPlaceholder')"
                       list="fast-contracts"
                     />
                     <datalist id="fast-contracts">
@@ -265,7 +265,7 @@
                         v-model="createForm.method"
                         type="text"
                         class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                        placeholder="e.g. transfer"
+                        :placeholder="$t('tools.multisig.methodPlaceholder')"
                       />
                     </div>
                   </div>
@@ -277,7 +277,7 @@
                     <textarea
                       v-model="createForm.argsStr"
                       class="form-input w-full font-mono text-xs h-24 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
-                      placeholder='[{"type":"Hash160","value":"0x..."}]'
+                      :placeholder="$t('tools.multisig.argsPlaceholder')"
                     ></textarea>
                   </div>
                 </div>
@@ -526,7 +526,7 @@
         role="dialog"
         tabindex="0"
         aria-modal="true"
-        aria-label="Sign Transaction"
+        :aria-label="$t('tools.multisig.signTransactionAria')"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
         @keydown.escape="signModalReq = null"
       >
@@ -549,7 +549,7 @@
             </div>
             <button
               @click="signModalReq = null"
-              aria-label="Close"
+              :aria-label="$t('tools.multisig.closeAria')"
               class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -634,7 +634,7 @@
         role="dialog"
         tabindex="0"
         aria-modal="true"
-        aria-label="Transaction Details"
+        :aria-label="$t('tools.multisig.transactionDetailsAria')"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
         @keydown.escape="detailsModalReq = null"
       >
@@ -657,7 +657,7 @@
             </div>
             <button
               @click="detailsModalReq = null"
-              aria-label="Close"
+              :aria-label="$t('tools.multisig.closeAria')"
               class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

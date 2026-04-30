@@ -6,7 +6,7 @@
           { label: $t('breadcrumb.home'), to: '/homepage' },
           { label: $t('breadcrumb.tools'), to: '/tools' },
           { label: $t('tools.governance.breadcrumb'), to: '/tools/governance' },
-          { label: proposal?.description || 'Proposal Detail' },
+          { label: proposal?.description || $t('tools.governance.proposalDetail') },
         ]"
       />
 
@@ -17,13 +17,13 @@
       </div>
 
       <div v-else-if="!proposal" class="etherscan-card p-8 text-center">
-        <h1 class="page-title mb-2">Proposal Not Found</h1>
-        <p class="page-subtitle">This governance proposal could not be loaded for the active network.</p>
+        <h1 class="page-title mb-2">{{ $t('tools.governance.proposalNotFound') }}</h1>
+        <p class="page-subtitle">{{ $t('tools.governance.proposalNotFoundDesc') }}</p>
         <RouterLink
           to="/tools/governance"
           class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors mt-4"
         >
-          Back to Council Governance
+          {{ $t('tools.governance.backToGovernance') }}
         </RouterLink>
       </div>
 
