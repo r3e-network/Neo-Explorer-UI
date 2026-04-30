@@ -1468,6 +1468,11 @@ const ko = {
     internalContractCalls: "내부 컨트랙트 호출",
     advancedReturnStack: "고급: 반환 스택",
   },
+  transferDirection: {
+    self: "자기",
+    in: "수신",
+    out: "송신",
+  },
   operationTypes: {
     transfer: "전송",
     deploy: "배포",

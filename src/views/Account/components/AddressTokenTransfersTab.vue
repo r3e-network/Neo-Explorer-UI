@@ -57,7 +57,7 @@
                   class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
                   :class="getDirection(transfer.from, transfer.to).cssClass"
                 >
-                  {{ getDirection(transfer.from, transfer.to).label }}
+                  {{ $t(getDirection(transfer.from, transfer.to).labelKey) }}
                 </span>
               </td>
               <td class="table-cell">

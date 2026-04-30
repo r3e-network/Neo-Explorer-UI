@@ -91,7 +91,7 @@
                   class="inline-block min-w-[40px] rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
                   :class="getDirection(tx.sender, tx.to).cssClass"
                 >
-                  {{ getDirection(tx.sender, tx.to).label }}
+                  {{ $t(getDirection(tx.sender, tx.to).labelKey) }}
                 </span>
               </td>
               <td class="table-cell">

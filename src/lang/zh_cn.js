@@ -1468,6 +1468,11 @@ const zh = {
     internalContractCalls: "内部合约调用",
     advancedReturnStack: "高级：返回栈",
   },
+  transferDirection: {
+    self: "自身",
+    in: "收入",
+    out: "支出",
+  },
   operationTypes: {
     transfer: "转账",
     deploy: "部署",

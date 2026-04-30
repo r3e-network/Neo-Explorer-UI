@@ -241,7 +241,7 @@ export function normalizeNep11Transfers(transfers = []) {
  * @param {string} from - Sender address
  * @param {string} to - Receiver address
  * @param {string} currentAddress - The address being viewed
- * @returns {{ label: string, cssClass: string }}
+ * @returns {{ labelKey: string, cssClass: string }}
  */
 export function getTransferDirection(from, to, currentAddress) {
   const addr = (currentAddress || "").toLowerCase();
@@ -249,15 +249,15 @@ export function getTransferDirection(from, to, currentAddress) {
   const t = (to || "").toLowerCase();
 
   if (f === addr && t === addr) {
-    return { label: "SELF", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
+    return { labelKey: "transferDirection.self", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
   }
   if (t === addr) {
-    return { label: "IN", cssClass: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300" };
+    return { labelKey: "transferDirection.in", cssClass: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300" };
   }
   if (f === addr) {
-    return { label: "OUT", cssClass: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" };
+    return { labelKey: "transferDirection.out", cssClass: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" };
   }
-  return { label: "SELF", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
+  return { labelKey: "transferDirection.self", cssClass: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" };
 }
 
 /**

@@ -1468,6 +1468,11 @@ const ja = {
     internalContractCalls: "内部コントラクト呼び出し",
     advancedReturnStack: "詳細: 戻り値スタック",
   },
+  transferDirection: {
+    self: "自己",
+    in: "受信",
+    out: "送信",
+  },
   operationTypes: {
     transfer: "転送",
     deploy: "デプロイ",

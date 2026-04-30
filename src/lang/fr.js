@@ -1464,6 +1464,11 @@ const fr = {
     internalContractCalls: "Appels de contrat internes",
     advancedReturnStack: "Avancé : Pile de retour",
   },
+  transferDirection: {
+    self: "AUTO",
+    in: "ENTRÉE",
+    out: "SORTIE",
+  },
   operationTypes: {
     transfer: "Transfert",
     deploy: "Déploiement",

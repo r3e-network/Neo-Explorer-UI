@@ -1468,6 +1468,11 @@ const en = {
     internalContractCalls: "Internal Contract Calls",
     advancedReturnStack: "Advanced: Return Stack",
   },
+  transferDirection: {
+    self: "SELF",
+    in: "IN",
+    out: "OUT",
+  },
   operationTypes: {
     transfer: "Transfer",
     deploy: "Deploy",
