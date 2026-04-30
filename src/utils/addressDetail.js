@@ -261,25 +261,6 @@ export function getTransferDirection(from, to, currentAddress) {
 }
 
 /**
- * Parse a transaction method/type into a human-readable badge label.
- * @param {Object} tx - Transaction object
- * @returns {string}
- */
-export function parseTxMethod(tx) {
-  const method = tx?.method || tx?.type || tx?.calltype || "";
-  if (!method) return "Transaction";
-
-  const lower = method.toLowerCase();
-  if (lower.includes("transfer")) return "Transfer";
-  if (lower.includes("vote")) return "Vote";
-  if (lower.includes("deploy")) return "Deploy";
-  if (lower.includes("invoke")) return "Invoke";
-  if (lower.includes("claim")) return "Claim";
-  if (lower.includes("register")) return "Register";
-  return method.length > 14 ? method.slice(0, 14) + "..." : method;
-}
-
-/**
  * Generate a CSV string from transaction data and trigger a download.
  * @param {Array} transactions - Array of transaction objects
  * @param {string} filename - Download filename
