@@ -20,6 +20,10 @@ vi.mock("@/utils/env", () => ({
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (k) => k }),
+}));
+
 describe("NetworkAlertsTool network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
