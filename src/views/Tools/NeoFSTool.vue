@@ -37,7 +37,7 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
               ></path>
             </svg>
-            Upload File
+            {{ $t('tools.neofs.uploadFile') }}
           </button>
         </div>
       </div>
@@ -105,7 +105,7 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <span v-else>Fetch</span>
+            <span v-else>{{ $t('tools.neofs.fetchButton') }}</span>
           </button>
         </div>
         <div
@@ -152,12 +152,12 @@
       <!-- My Files / Containers -->
       <div class="etherscan-card p-6 md:p-8">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-base font-semibold text-high">My NeoFS Assets</h2>
+          <h2 class="text-base font-semibold text-high">{{ $t('tools.neofs.myAssets') }}</h2>
           <div v-if="connectedAccount" class="flex items-center gap-2">
             <button
               @click="refreshAssets"
               class="p-1.5 rounded-lg hover:bg-surface-muted transition-colors text-mid"
-              title="Refresh assets"
+              :title="$t('tools.neofs.refreshAssets')"
             >
               <svg
                 :class="{ 'animate-spin': isRefreshing }"
@@ -194,9 +194,9 @@
               ></path>
             </svg>
           </div>
-          <p class="text-high font-medium mb-1">Wallet Not Connected</p>
+          <p class="text-high font-medium mb-1">{{ $t('tools.neofs.walletNotConnected') }}</p>
           <p class="text-sm text-mid mb-6 max-w-xs mx-auto">
-            Connect your wallet from the top header to view and manage your decentralized storage containers on NeoFS.
+            {{ $t('tools.neofs.walletNotConnectedDescription') }}
           </p>
         </div>
 
@@ -213,13 +213,13 @@
               />
             </svg>
           </div>
-          <p class="text-high font-medium mb-1">No containers found</p>
-          <p class="text-sm text-mid mb-6">You don't have any NeoFS containers associated with this account yet.</p>
+          <p class="text-high font-medium mb-1">{{ $t('tools.neofs.noContainersFound') }}</p>
+          <p class="text-sm text-mid mb-6">{{ $t('tools.neofs.noContainersHint') }}</p>
           <button
             @click="showUploadModal = true"
             class="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
           >
-            Create Your First Container
+            {{ $t('tools.neofs.createFirstContainer') }}
           </button>
         </div>
 
@@ -262,30 +262,30 @@
                       : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                   "
                 >
-                  {{ container.isPublic ? "Public" : "Private" }}
+                  {{ container.isPublic ? $t('tools.neofs.publicLabel') : $t('tools.neofs.privateLabel') }}
                 </span>
               </div>
 
               <div class="flex items-center justify-between pt-4 border-t border-line-soft/50">
                 <div class="flex gap-4">
                   <div v-if="container.objectCount != null" class="text-xs">
-                    <span class="text-low block uppercase tracking-tighter font-semibold">Objects</span>
+                    <span class="text-low block uppercase tracking-tighter font-semibold">{{ $t('tools.neofs.colObjects') }}</span>
                     <span class="text-high font-bold">{{ container.objectCount }}</span>
                   </div>
                   <div v-if="container.size" class="text-xs">
-                    <span class="text-low block uppercase tracking-tighter font-semibold">Size</span>
+                    <span class="text-low block uppercase tracking-tighter font-semibold">{{ $t('tools.neofs.colSize') }}</span>
                     <span class="text-high font-bold">{{ container.size }}</span>
                   </div>
                 </div>
                 <div class="flex gap-2">
                   <button @click="viewObjects(container)" class="btn-outline py-1 px-3 text-[11px]">
-                    View Objects
+                    {{ $t('tools.neofs.viewObjects') }}
                   </button>
                   <button
                     @click="openUploadForContainer(container.id)"
                     class="py-1 px-3 inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-cyan-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
                   >
-                    Upload
+                    {{ $t('tools.neofs.uploadButton') }}
                   </button>
                 </div>
               </div>
@@ -301,7 +301,7 @@
         role="dialog"
         tabindex="0"
         aria-modal="true"
-        aria-label="View Objects"
+        :aria-label="$t('tools.neofs.viewObjects')"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
         @keydown.escape="showObjectsModal = false"
       >
@@ -321,7 +321,7 @@
                 </svg>
               </div>
               <div>
-                <h2 class="text-xl font-bold text-high tracking-tight">Objects in Container</h2>
+                <h2 class="text-xl font-bold text-high tracking-tight">{{ $t('tools.neofs.objectsInContainer') }}</h2>
                 <p class="text-xs text-mid font-mono mt-0.5 opacity-80">
                   {{ activeContainer?.name || activeContainer?.id }}
                 </p>
@@ -329,7 +329,7 @@
             </div>
             <button
               @click="showObjectsModal = false"
-              aria-label="Close"
+              :aria-label="$t('tools.neofs.closeAria')"
               class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,7 +351,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              <p class="text-sm font-medium text-high">Fetching objects from NeoFS nodes...</p>
+              <p class="text-sm font-medium text-high">{{ $t('tools.neofs.fetchingObjects') }}</p>
             </div>
 
             <div
@@ -390,7 +390,7 @@
                   </div>
                   <div class="min-w-0">
                     <p class="text-sm font-semibold text-high truncate">{{ obj.name }}</p>
-                    <p class="text-xs text-mid font-mono truncate mt-0.5" title="Object ID">OID: {{ obj.id }}</p>
+                    <p class="text-xs text-mid font-mono truncate mt-0.5" :title="$t('tools.neofs.objectIdLabel')">OID: {{ obj.id }}</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-4 shrink-0 pl-4">
@@ -399,7 +399,7 @@
                     <button
                       @click="copyOid(obj.id)"
                       class="text-low hover:text-cyan-500 transition-colors p-1"
-                      aria-label="Copy Object ID"
+                      :aria-label="$t('tools.neofs.copyOidAria')"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -410,7 +410,7 @@
                         ></path>
                       </svg>
                     </button>
-                    <button class="text-low hover:text-cyan-500 transition-colors p-1" aria-label="Download">
+                    <button class="text-low hover:text-cyan-500 transition-colors p-1" :aria-label="$t('tools.neofs.downloadAria')">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           stroke-linecap="round"
@@ -436,7 +436,7 @@
         role="dialog"
         tabindex="0"
         aria-modal="true"
-        aria-label="Upload File"
+        :aria-label="$t('tools.neofs.uploadFile')"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
         @keydown.escape="showUploadModal = false"
       >
@@ -455,11 +455,11 @@
                   ></path>
                 </svg>
               </div>
-              <h2 class="text-xl font-bold text-high tracking-tight">Upload to NeoFS</h2>
+              <h2 class="text-xl font-bold text-high tracking-tight">{{ $t('tools.neofs.uploadSection') }}</h2>
             </div>
             <button
               @click="showUploadModal = false"
-              aria-label="Close"
+              :aria-label="$t('tools.neofs.closeAria')"
               class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,8 +488,8 @@
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                   ></path>
                 </svg>
-                <p class="text-sm font-bold text-high">Click to browse or drag file here</p>
-                <p class="text-xs text-mid mt-1">Supports images, JSON, and documents up to 10MB</p>
+                <p class="text-sm font-bold text-high">{{ $t('tools.neofs.clickToBrowse') }}</p>
+                <p class="text-xs text-mid mt-1">{{ $t('tools.neofs.supportedFiles') }}</p>
               </template>
               <template v-else>
                 <div class="p-3 rounded-xl bg-cyan-500/10 mb-3">
@@ -508,30 +508,30 @@
                   @click.stop="selectedFile = null"
                   class="mt-3 text-xs font-bold text-red-500 hover:text-red-600 transition-colors bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg"
                 >
-                  Remove file
+                  {{ $t('tools.neofs.removeFile') }}
                 </button>
               </template>
             </div>
 
             <div class="space-y-2">
-              <label class="block text-sm font-bold text-high tracking-tight">Target Container</label>
+              <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.neofs.targetContainer') }}</label>
               <select
                 v-model="uploadContainer"
                 class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all cursor-pointer outline-none"
               >
                 <option v-for="c in assets" :key="c.id" :value="c.id">{{ c.name }} ({{ c.id.slice(0, 8) }}...)</option>
-                <option value="new_public">Create New Public Container</option>
-                <option value="new_private">Create New Private Container</option>
+                <option value="new_public">{{ $t('tools.neofs.newContainerOptionPublic') }}</option>
+                <option value="new_private">{{ $t('tools.neofs.newContainerOptionPrivate') }}</option>
               </select>
             </div>
 
             <div v-if="uploadContainer.startsWith('new')" class="space-y-2">
-              <label class="block text-sm font-bold text-high tracking-tight">New Container Name</label>
+              <label class="block text-sm font-bold text-high tracking-tight">{{ $t('tools.neofs.newContainerName') }}</label>
               <input
                 type="text"
                 v-model="newContainerName"
                 class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-cyan-500/20 hover:border-cyan-400 focus:border-cyan-400 transition-all outline-none"
-                placeholder="e.g. My Website Assets"
+                :placeholder="$t('tools.neofs.containerNamePlaceholder')"
               />
             </div>
           </div>
@@ -540,7 +540,7 @@
               @click="showUploadModal = false"
               class="px-4 py-2 text-sm font-medium text-mid hover:text-high transition-colors"
             >
-              Cancel
+              {{ $t('tools.neofs.cancelButton') }}
             </button>
             <button
               @click="handleUpload"
@@ -551,7 +551,7 @@
                   !selectedFile || (uploadContainer.startsWith('new') && !newContainerName),
               }"
             >
-              {{ isUploading ? "Uploading..." : "Upload File" }}
+              {{ isUploading ? $t('tools.neofs.uploadingState') : $t('tools.neofs.uploadFile') }}
             </button>
           </div>
         </div>
