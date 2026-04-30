@@ -46,7 +46,7 @@ function getNetworkFee(tx) {
 
     <!-- Tx Table -->
     <div v-else class="surface-panel overflow-x-auto">
-      <table class="w-full min-w-[700px]" aria-label="Block transactions">
+      <table class="w-full min-w-[700px]" :aria-label="$t('aria.blockTransactionsTable')">
         <caption class="sr-only">
           Transactions included in this block
         </caption>

@@ -13,7 +13,7 @@
       </div>
       <button
         @click="$emit('close')"
-        aria-label="Close pending transaction panel"
+        :aria-label="$t('aria.closePendingTxPanel')"
         class="rounded-md p-1 text-low transition-colors hover:text-high"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

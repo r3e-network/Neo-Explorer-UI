@@ -2,7 +2,7 @@
   <div class="info-row">
     <div class="info-row-label">
       <span>{{ label }}</span>
-      <button v-if="tooltip" type="button" class="tooltip-trigger" :title="tooltip" aria-label="More info">?</button>
+      <button v-if="tooltip" type="button" class="tooltip-trigger" :title="tooltip" :aria-label="$t('aria.moreInfo')">?</button>
     </div>
     <div class="info-row-value">
       <slot>{{ value }}</slot>

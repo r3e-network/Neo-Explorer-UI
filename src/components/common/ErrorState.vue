@@ -16,8 +16,8 @@
       {{ title }}
     </p>
     <p class="mb-4 text-sm text-mid">{{ message }}</p>
-    <button v-if="showRetry" type="button" @click="$emit('retry')" aria-label="Retry" class="btn-primary mt-2">
-      Try Again
+    <button v-if="showRetry" type="button" @click="$emit('retry')" :aria-label="$t('aria.retry')" class="btn-primary mt-2">
+      {{ $t('aria.tryAgainButton') }}
     </button>
   </div>
 </template>

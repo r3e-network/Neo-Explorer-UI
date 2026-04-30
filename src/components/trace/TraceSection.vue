@@ -2,7 +2,7 @@
   <div class="trace-section">
     <button
       class="list-row flex w-full items-center justify-between px-4 py-3 text-left transition-colors"
-      aria-label="Toggle trace section"
+      :aria-label="$t('aria.toggleTraceSection')"
       :aria-expanded="open"
       @click="open = !open"
     >

@@ -88,7 +88,7 @@
           <div class="px-4 pb-4 pl-10">
             <!-- Query button for safe methods -->
             <div v-if="item['safe']" class="mb-3">
-              <button type="button" class="btn-outline text-xs" aria-label="Query method" @click="$emit('query', index)">
+              <button type="button" class="btn-outline text-xs" :aria-label="$t('aria.queryMethod')" @click="$emit('query', index)">
                 Query
               </button>
             </div>
@@ -157,7 +157,7 @@
             >
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-semibold text-text-primary dark:text-gray-100">Response</span>
-                <button type="button" class="btn-mini" aria-label="Decode response" @click="$emit('decode', index)">
+                <button type="button" class="btn-mini" :aria-label="$t('aria.decodeResponse')" @click="$emit('decode', index)">
                   {{ manifest["abi"]["methods"][index]["button"] }}
                 </button>
               </div>

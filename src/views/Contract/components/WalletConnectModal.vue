@@ -5,7 +5,7 @@
     role="dialog"
     tabindex="0"
     aria-modal="true"
-    aria-label="Connect Wallet"
+    :aria-label="$t('aria.connectWallet')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     @click.self="$emit('close')"
     @keydown.escape="$emit('close')"

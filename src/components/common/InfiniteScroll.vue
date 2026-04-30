@@ -5,7 +5,7 @@
         class="h-6 w-6 animate-spin text-primary-500"
         fill="none"
         viewBox="0 0 24 24"
-        aria-label="Loading more content"
+        :aria-label="$t('aria.loadingMoreContent')"
       >
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path

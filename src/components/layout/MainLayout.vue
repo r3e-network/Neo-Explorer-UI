@@ -74,7 +74,7 @@
         v-show="showBackToTop"
         @click="scrollToTop"
         class="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-card transition hover:-translate-y-0.5 hover:bg-primary-600"
-        aria-label="Back to top"
+        :aria-label="$t('aria.backToTop')"
       >
         <svg
           class="h-5 w-5"

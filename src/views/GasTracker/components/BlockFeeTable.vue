@@ -28,7 +28,7 @@
 
     <!-- Table -->
     <div v-else class="overflow-x-auto">
-      <table class="w-full min-w-[700px]" aria-label="Block fees">
+      <table class="w-full min-w-[700px]" :aria-label="$t('aria.blockFeesTable')">
         <thead class="table-head">
           <tr>
             <th class="table-header-cell">{{ $t("gasTracker.colBlock") }}</th>

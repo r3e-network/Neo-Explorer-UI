@@ -5,9 +5,27 @@ vi.mock("@/constants", () => ({ PAGE_SIZE_OPTIONS: [10, 25, 50, 100] }));
 
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
+function tStub(key, params) {
+  const dict = {
+    "aria.paginationShowing": ({ start, end, total }) => `Showing ${start} to ${end} of ${total} records`,
+    "aria.paginationFirst": () => "First page",
+    "aria.paginationPrevious": () => "Previous page",
+    "aria.paginationNext": () => "Next page",
+    "aria.paginationLast": () => "Last page",
+    "aria.paginationFirstButton": () => "First",
+    "aria.paginationLastButton": () => "Last",
+    "aria.paginationResultsPerPage": () => "Results per page",
+    "aria.paginationPerPage": ({ count }) => `${count} / page`,
+    "aria.pagination": () => "Pagination",
+  };
+  const fn = dict[key];
+  return fn ? fn(params || {}) : key;
+}
+
 const factory = (props = {}) =>
   mount(EtherscanPagination, {
     props: { page: 1, totalPages: 5, total: 100, ...props },
+    global: { mocks: { $t: tStub } },
   });
 
 describe("EtherscanPagination", () => {

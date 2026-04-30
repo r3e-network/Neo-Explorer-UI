@@ -13,7 +13,7 @@
         <span class="badge-soft rounded-full px-3 py-1"> Files: {{ totalCount }} </span>
         <button
           class="btn-outline px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="Refresh source code"
+          :aria-label="$t('aria.refreshSourceCode')"
           :disabled="!contractHash || isLoading"
           @click="loadSourceCode"
         >

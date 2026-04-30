@@ -41,7 +41,7 @@
         <div v-if="connectedAccount" class="relative ml-3 hidden lg:block">
           <button
             data-testid="chat-notifications-button"
-            aria-label="Chat notifications"
+            :aria-label="$t('aria.chatNotifications')"
             class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line-soft bg-surface-base text-high transition hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
             @click="toggleChatNotifications"
           >
@@ -181,7 +181,7 @@
         <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
           <div class="wallet-modal-header px-7 py-5 flex items-center justify-between border-b border-white/10">
             <h2 class="wallet-modal-title text-lg font-bold">{{ $t('header.connectWallet') }}</h2>
-            <button aria-label="Close wallet dialog" @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
+            <button :aria-label="$t('aria.closeWalletDialog')" @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>

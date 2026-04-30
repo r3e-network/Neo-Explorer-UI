@@ -1,5 +1,5 @@
 <template>
-  <nav aria-label="Breadcrumb" class="mb-4">
+  <nav :aria-label="$t('aria.breadcrumb')" class="mb-4">
     <ol class="surface-panel inline-flex flex-wrap items-center gap-1 px-2 py-1 text-sm">
       <li v-for="(item, index) in items" :key="index" class="flex items-center">
         <!-- Separator -->

@@ -2,7 +2,7 @@
   <div class="relative" ref="langDropdown">
     <button
       class="flex h-6 items-center justify-between rounded-md border border-white/25 bg-white/10 px-2 text-xs text-white transition hover:bg-white/20 uppercase"
-      aria-label="Select language"
+      :aria-label="$t('aria.selectLanguage')"
       aria-haspopup="true"
       :aria-expanded="dropdownOpen"
       @click="dropdownOpen = !dropdownOpen"

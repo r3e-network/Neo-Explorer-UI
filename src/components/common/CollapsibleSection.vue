@@ -2,7 +2,7 @@
   <div class="rounded-lg border soft-divider">
     <button
       class="flex w-full items-center justify-between p-4 text-left"
-      aria-label="Toggle section"
+      :aria-label="$t('aria.toggleSection')"
       :aria-expanded="isOpen"
       @click="isOpen = !isOpen"
     >

@@ -88,7 +88,7 @@
 
         <!-- Data Table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[900px]" aria-label="Contracts">
+          <table class="w-full min-w-[900px]" :aria-label="$t('aria.contractsTable')">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>

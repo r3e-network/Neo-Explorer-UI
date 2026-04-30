@@ -1,6 +1,6 @@
 <template>
   <div class="overflow-x-auto">
-    <table class="w-full min-w-[900px]" aria-label="Transactions">
+    <table class="w-full min-w-[900px]" :aria-label="$t('aria.transactionsTable')">
       <thead class="table-head">
         <tr>
           <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>

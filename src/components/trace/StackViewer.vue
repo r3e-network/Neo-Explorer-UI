@@ -12,7 +12,7 @@
       >
         <button
           class="list-row w-full rounded-lg px-3 py-2 text-left text-sm transition-colors"
-          aria-label="Toggle stack item details"
+          :aria-label="$t('aria.toggleStackItemDetails')"
           @click="toggle(index)"
         >
           <svg

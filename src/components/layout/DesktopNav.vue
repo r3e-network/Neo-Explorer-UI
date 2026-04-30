@@ -11,7 +11,7 @@
     >
       <button
         class="nav-link"
-        aria-label="Blockchain menu"
+        :aria-label="$t('aria.blockchainMenu')"
         aria-haspopup="true"
         :aria-expanded="activeDropdown === 'blockchain'"
         @click="$emit(activeDropdown === 'blockchain' ? 'close-dropdown' : 'open-dropdown', 'blockchain')"
@@ -52,7 +52,7 @@
     >
       <button
         class="nav-link"
-        aria-label="Tokens menu"
+        :aria-label="$t('aria.tokensMenu')"
         aria-haspopup="true"
         :aria-expanded="activeDropdown === 'tokens'"
         @click="$emit(activeDropdown === 'tokens' ? 'close-dropdown' : 'open-dropdown', 'tokens')"
@@ -92,7 +92,7 @@
     >
       <button
         class="nav-link"
-        aria-label="Resources menu"
+        :aria-label="$t('aria.resourcesMenu')"
         aria-haspopup="true"
         :aria-expanded="activeDropdown === 'resources'"
         @click="$emit(activeDropdown === 'resources' ? 'close-dropdown' : 'open-dropdown', 'resources')"
@@ -130,7 +130,7 @@
     >
       <button
         class="nav-link"
-        aria-label="Developers menu"
+        :aria-label="$t('aria.developersMenu')"
         aria-haspopup="true"
         :aria-expanded="activeDropdown === 'developers'"
         @click="$emit(activeDropdown === 'developers' ? 'close-dropdown' : 'open-dropdown', 'developers')"

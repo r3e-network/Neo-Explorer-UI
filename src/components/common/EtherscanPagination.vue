@@ -1,11 +1,11 @@
 <template>
-  <nav aria-label="Pagination" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="text-sm text-mid">Showing {{ startRecord }} to {{ endRecord }} of {{ total }} records</div>
+  <nav :aria-label="$t('aria.pagination')" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="text-sm text-mid">{{ $t('aria.paginationShowing', { start: startRecord, end: endRecord, total }) }}</div>
     <div class="flex items-center gap-1">
       <!-- First -->
-      <button class="btn-page" :disabled="page <= 1" aria-label="First page" @click="goTo(1)">First</button>
+      <button class="btn-page" :disabled="page <= 1" :aria-label="$t('aria.paginationFirst')" @click="goTo(1)">{{ $t('aria.paginationFirstButton') }}</button>
       <!-- Prev -->
-      <button class="btn-page" :disabled="page <= 1" aria-label="Previous page" @click="goTo(page - 1)">&lt;</button>
+      <button class="btn-page" :disabled="page <= 1" :aria-label="$t('aria.paginationPrevious')" @click="goTo(page - 1)">&lt;</button>
 
       <!-- Page numbers -->
       <template v-for="p in visiblePages" :key="p">
@@ -22,23 +22,23 @@
       </template>
 
       <!-- Next -->
-      <button class="btn-page" :disabled="page >= totalPages" aria-label="Next page" @click="goTo(page + 1)">
+      <button class="btn-page" :disabled="page >= totalPages" :aria-label="$t('aria.paginationNext')" @click="goTo(page + 1)">
         &gt;
       </button>
       <!-- Last -->
-      <button class="btn-page" :disabled="page >= totalPages" aria-label="Last page" @click="goTo(totalPages)">
-        Last
+      <button class="btn-page" :disabled="page >= totalPages" :aria-label="$t('aria.paginationLast')" @click="goTo(totalPages)">
+        {{ $t('aria.paginationLastButton') }}
       </button>
 
       <!-- Page size dropdown -->
       <select
         v-if="showPageSize"
         :value="pageSize"
-        aria-label="Results per page"
+        :aria-label="$t('aria.paginationResultsPerPage')"
         class="ml-2 rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 soft-divider bg-surface-elevated text-mid"
         @change="onPageSizeChange"
       >
-        <option v-for="s in pageSizes" :key="s" :value="s">{{ s }} / page</option>
+        <option v-for="s in pageSizes" :key="s" :value="s">{{ $t('aria.paginationPerPage', { count: s }) }}</option>
       </select>
     </div>
   </nav>

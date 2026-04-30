@@ -99,7 +99,7 @@
         <p class="hidden sm:block">{{ $t("footer.poweredBy") }} <strong class="text-neo-green">neo3fura</strong></p>
         <button
           class="text-mid font-medium transition-colors hover:text-primary-500 focus-visible:outline-none focus-visible:text-primary-500"
-          aria-label="Back to top"
+          :aria-label="$t('aria.backToTop')"
           @click="scrollTop"
         >
           {{ $t("footer.backToTop") }} &uarr;

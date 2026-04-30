@@ -5,7 +5,7 @@
     role="dialog"
     tabindex="0"
     aria-modal="true"
-    aria-label="Proposal Details"
+    :aria-label="$t('aria.proposalDetails')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @keydown.escape="$emit('close')"
   >
@@ -28,7 +28,7 @@
         </div>
         <button
           @click="$emit('close')"
-          aria-label="Close"
+          :aria-label="$t('aria.closeModal')"
           class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
