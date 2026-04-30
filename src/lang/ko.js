@@ -1176,6 +1176,7 @@ const ko = {
         noTxId: "트랜잭션 ID가 반환되지 않았습니다.",
         deployFailed: "배포 실패: {reason}",
         userRejected: "사용자가 거부함",
+        demoActionsDisabled: "이 배포에서는 컨트랙트 팩토리 데모 작업이 비활성화되어 있습니다.",
       },
     },
     abi: {

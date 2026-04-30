@@ -1176,6 +1176,7 @@ const zh = {
         noTxId: "未返回交易 ID。",
         deployFailed: "部署失败：{reason}",
         userRejected: "用户已拒绝",
+        demoActionsDisabled: "此部署中已禁用合约工厂演示操作。",
       },
     },
     abi: {

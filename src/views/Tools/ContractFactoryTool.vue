@@ -379,7 +379,7 @@ function setLogoInputRef(id) {
 }
 function triggerLogoInput(id) {
   if (!isFactoryMockEnabled.value) {
-    toast.error("Contract factory demo actions are disabled in this deployment.");
+    toast.error(t("tools.contractFactory.toasts.demoActionsDisabled"));
     return;
   }
   const el = inputRefs.value[id];
@@ -391,7 +391,7 @@ async function uploadLogoToNeoFS(e, fieldId) {
   if (!file) return;
 
   if (!isFactoryMockEnabled.value) {
-    toast.error("Contract factory demo actions are disabled in this deployment.");
+    toast.error(t("tools.contractFactory.toasts.demoActionsDisabled"));
     e.target.value = null;
     return;
   }
@@ -431,7 +431,7 @@ async function deployFactoryContract() {
   if (!connectedAccount.value || !isFormValid.value) return;
 
   if (!isFactoryMockEnabled.value) {
-    toast.error("Contract factory demo actions are disabled in this deployment.");
+    toast.error(t("tools.contractFactory.toasts.demoActionsDisabled"));
     return;
   }
 

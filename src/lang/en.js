@@ -1176,6 +1176,7 @@ const en = {
         noTxId: "No transaction ID returned.",
         deployFailed: "Deployment failed: {reason}",
         userRejected: "User rejected",
+        demoActionsDisabled: "Contract factory demo actions are disabled in this deployment.",
       },
     },
     abi: {

@@ -1172,6 +1172,7 @@ const fr = {
         noTxId: "Aucun ID de transaction retourné.",
         deployFailed: "Échec du déploiement : {reason}",
         userRejected: "Rejeté par l'utilisateur",
+        demoActionsDisabled: "Les actions de démonstration de la fabrique de contrats sont désactivées dans ce déploiement.",
       },
     },
     abi: {

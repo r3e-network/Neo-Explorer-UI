@@ -1176,6 +1176,7 @@ const ja = {
         noTxId: "トランザクション ID が返されませんでした。",
         deployFailed: "デプロイに失敗しました：{reason}",
         userRejected: "ユーザーが拒否しました",
+        demoActionsDisabled: "このデプロイではコントラクトファクトリーのデモアクションは無効化されています。",
       },
     },
     abi: {
