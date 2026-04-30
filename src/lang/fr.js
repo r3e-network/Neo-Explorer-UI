@@ -1924,6 +1924,10 @@ const fr = {
     overviewSymbol: "Symbole",
     overviewStandard: "Norme",
     overviewFirstTransfer: "Premier transfert",
+    tokenFallback: "Jeton",
+    nftUnnamed: "Sans nom",
+    verifiedBadge: "Vérifié",
+    nepTokenSubtitle: "Jeton NEP-{type}",
   },
   contractsPage: {
     pageSubtitle: "Contrats intelligents déployés sur Neo N3",

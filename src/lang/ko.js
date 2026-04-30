@@ -1928,6 +1928,10 @@ const ko = {
     overviewSymbol: "심볼",
     overviewStandard: "표준",
     overviewFirstTransfer: "첫 전송",
+    tokenFallback: "토큰",
+    nftUnnamed: "이름 없음",
+    verifiedBadge: "검증됨",
+    nepTokenSubtitle: "NEP-{type} 토큰",
   },
   contractsPage: {
     pageSubtitle: "Neo N3에 배포된 스마트 컨트랙트",

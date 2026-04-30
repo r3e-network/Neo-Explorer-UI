@@ -1928,6 +1928,10 @@ const en = {
     overviewSymbol: "Symbol",
     overviewStandard: "Standard",
     overviewFirstTransfer: "First Transfer",
+    tokenFallback: "Token",
+    nftUnnamed: "Unnamed",
+    verifiedBadge: "Verified",
+    nepTokenSubtitle: "NEP-{type} Token",
   },
   contractsPage: {
     pageSubtitle: "Smart contracts deployed on Neo N3",

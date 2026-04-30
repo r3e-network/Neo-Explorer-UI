@@ -84,7 +84,7 @@
           <!-- Info -->
           <div class="p-2.5">
             <p class="truncate text-sm font-medium text-high">
-              {{ item.nftname || "Unnamed" }}
+              {{ item.nftname || $t("tokenDetail.nftUnnamed") }}
             </p>
             <p class="mt-0.5 truncate font-hash text-xs text-low">#{{ item.tokenid }}</p>
           </div>
@@ -120,7 +120,7 @@
           </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium text-high">
-              {{ item.nftname || "Unnamed" }}
+              {{ item.nftname || $t("tokenDetail.nftUnnamed") }}
             </p>
             <p class="truncate font-hash text-xs text-low">#{{ item.tokenid }}</p>
           </div>

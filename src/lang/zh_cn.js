@@ -1928,6 +1928,10 @@ const zh = {
     overviewSymbol: "符号",
     overviewStandard: "标准",
     overviewFirstTransfer: "首次转账",
+    tokenFallback: "代币",
+    nftUnnamed: "未命名",
+    verifiedBadge: "已验证",
+    nepTokenSubtitle: "NEP-{type} 代币",
   },
   contractsPage: {
     pageSubtitle: "部署在 Neo N3 上的智能合约",

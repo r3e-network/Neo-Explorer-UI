@@ -34,7 +34,7 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <h1 class="page-title">
-                {{ tokenMetadata?.name || tokenValue?.tokenname || "Token" }} ({{
+                {{ tokenMetadata?.name || tokenValue?.tokenname || $t("tokenDetail.tokenFallback") }} ({{
                   tokenMetadata?.symbol || tokenValue?.symbol || "-"
                 }})
               </h1>
@@ -49,11 +49,11 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                Verified
+                {{ $t("tokenDetail.verifiedBadge") }}
               </span>
             </div>
             <p class="page-subtitle mt-1">
-              {{ tokenValue?.type ? `NEP-${tokenValue.type} Token` : "Token" }}
+              {{ tokenValue?.type ? $t("tokenDetail.nepTokenSubtitle", { type: tokenValue.type }) : $t("tokenDetail.tokenFallback") }}
               <a
                 v-if="tokenMetadata?.website"
                 :href="tokenMetadata.website"

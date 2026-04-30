@@ -1928,6 +1928,10 @@ const ja = {
     overviewSymbol: "シンボル",
     overviewStandard: "規格",
     overviewFirstTransfer: "最初の転送",
+    tokenFallback: "トークン",
+    nftUnnamed: "名前なし",
+    verifiedBadge: "認証済み",
+    nepTokenSubtitle: "NEP-{type} トークン",
   },
   contractsPage: {
     pageSubtitle: "Neo N3 にデプロイされたスマートコントラクト",

@@ -355,16 +355,16 @@ const proposalMethodSummary = computed(() => {
   const methods = proposalInvocations.value
     .map((invocation) => String(invocation.selectedMethod || "").trim())
     .filter(Boolean);
-  return methods.join(", ") || String(proposal.value?.method || "Unavailable");
+  return methods.join(", ") || String(proposal.value?.method || t("tools.governance.unavailable"));
 });
 const proposalTargetSummary = computed(() => {
   if (proposalInvocations.value.length > 1) {
-    return `${proposalInvocations.value.length} chained invocations`;
+    return t("tools.governance.chainedInvocations", { count: proposalInvocations.value.length });
   }
   return (
     proposalInvocations.value[0]?.targetHash ||
     String(proposal.value?.target_contract || proposal.value?.contract_hash || "").trim() ||
-    "Unavailable"
+    t("tools.governance.unavailable")
   );
 });
 const proposalSubtitle = computed(() => {
