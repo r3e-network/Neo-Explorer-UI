@@ -286,7 +286,7 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("0xef4073");
     expect(wrapper.text()).toContain("1 / 3");
     expect(wrapper.find('[data-testid="governance-hero"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Council Approval Timeline");
+    expect(wrapper.text()).toContain("tools.governance.councilApprovalTimeline");
     expect(wrapper.text()).toContain("2 more votes needed before broadcast");
     expect(wrapper.text()).toContain("Draft Created");
     expect(wrapper.text()).toContain("Collect Signatures");

@@ -18,12 +18,12 @@
               class="text-[10px] px-2.5 py-1 rounded-full uppercase tracking-[0.18em] font-semibold"
               :class="statusClasses"
             >
-              {{ proposal.status || "PENDING" }}
+              {{ proposal.status || $t('tools.governance.pending') }}
             </span>
             <span
               class="rounded-full border border-line-soft bg-white/80 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-low dark:bg-slate-950/60"
             >
-              Proposal #{{ proposal.id }}
+              {{ $t('tools.governance.proposalId', { id: proposal.id }) }}
             </span>
             <span
               v-if="proposal.params?.hash"
@@ -41,7 +41,7 @@
               v-if="isOffchainReviewPacket"
               class="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-400"
             >
-              Off-chain Review Packet
+              {{ $t('tools.governance.offchainReviewPacketBadge') }}
             </span>
           </div>
 
@@ -60,7 +60,7 @@
             </div>
 
             <div class="min-w-0">
-              <h1 class="page-title mb-2">{{ proposal.title || proposal.description || "Council Proposal" }}</h1>
+              <h1 class="page-title mb-2">{{ proposal.title || proposal.description || $t('tools.governance.councilProposal') }}</h1>
               <p v-if="proposal.title && proposal.description && proposal.title !== proposal.description" class="text-sm text-mid mb-1">
                 {{ proposal.description }}
               </p>
@@ -74,19 +74,19 @@
             <span
               class="inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:border-amber-900/40 dark:bg-slate-950/50"
             >
-              Method
+              {{ $t('tools.governance.method') }}
               <span class="font-mono text-low">{{ proposalMethodSummary }}</span>
             </span>
             <span
               class="inline-flex items-center gap-2 rounded-full border border-line-soft bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:bg-slate-950/50"
             >
-              Target
+              {{ $t('tools.governance.target') }}
               <span class="font-mono text-low">{{ proposalTargetSummary }}</span>
             </span>
             <span
               class="inline-flex items-center gap-2 rounded-full border border-line-soft bg-white/80 px-3 py-1.5 text-xs font-semibold text-high dark:bg-slate-950/50"
             >
-              Tx Hash
+              {{ $t('tools.governance.txHash') }}
               <span class="font-mono text-low">{{ formatCompactHash(proposalTxHash, 12, 8) }}</span>
             </span>
           </div>
@@ -96,7 +96,7 @@
           <div
             class="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
           >
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Current Votes</div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.currentVotes') }}</div>
             <div
               class="mt-2 text-3xl font-black tracking-tight"
               :class="thresholdMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary-600'"
@@ -108,20 +108,20 @@
             class="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
           >
             <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">
-              {{ isOffchainReviewPacket ? "Witnesses Needed" : thresholdMet ? "Ready to Cast" : "Signatures Needed" }}
+              {{ isOffchainReviewPacket ? $t('tools.governance.witnessesNeeded') : thresholdMet ? $t('tools.governance.readyToCast') : $t('tools.governance.signaturesNeeded') }}
             </div>
             <div class="mt-2 text-3xl font-black tracking-tight text-high">{{ thresholdMet ? 0 : remainingVotes }}</div>
           </div>
           <div
             class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
           >
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Created</div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.created') }}</div>
             <div class="mt-1 text-sm font-bold text-high tracking-tight">{{ formatDate(proposal.created_at) }}</div>
           </div>
           <div
             class="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
           >
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Broadcast State</div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.broadcastState') }}</div>
             <div
               class="mt-1 text-sm font-bold tracking-tight"
               :class="
@@ -145,7 +145,7 @@
           <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-5">
             <div class="min-w-0">
               <div class="text-[10px] uppercase tracking-[0.2em] font-black text-low mb-1.5">
-                Council Approval Timeline
+                {{ $t('tools.governance.councilApprovalTimeline') }}
               </div>
               <div class="text-xl font-black text-high tracking-tight">{{ progressHeadline }}</div>
               <p class="mt-1.5 max-w-2xl text-sm text-mid leading-relaxed">{{ progressDescription }}</p>
@@ -160,7 +160,7 @@
                   : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
               "
             >
-              {{ isOffchainReviewPacket ? "Off-chain review" : thresholdMet ? "Ready to broadcast" : "Signing in progress" }}
+              {{ isOffchainReviewPacket ? $t('tools.governance.offchainReviewBadge') : thresholdMet ? $t('tools.governance.readyToBroadcastBadge') : $t('tools.governance.signingInProgress') }}
             </span>
           </div>
 
@@ -199,18 +199,18 @@
         <div
           class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/70"
         >
-          <div class="text-[10px] uppercase tracking-[0.2em] font-black text-low mb-4">Quick Snapshot</div>
+          <div class="text-[10px] uppercase tracking-[0.2em] font-black text-low mb-4">{{ $t('tools.governance.quickSnapshot') }}</div>
           <div class="space-y-3">
             <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-              <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Target Method</div>
+              <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">{{ $t('tools.governance.targetMethod') }}</div>
               <div class="text-sm font-bold text-high tracking-tight">{{ proposalMethodSummary }}</div>
             </div>
             <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-              <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">Smart Contract</div>
+              <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-1">{{ $t('tools.governance.smartContract') }}</div>
               <div class="mt-1 font-mono text-xs break-all text-low">{{ proposalTargetSummary }}</div>
             </div>
             <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-              <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Tx Hash</div>
+              <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">{{ $t('tools.governance.txHash') }}</div>
               <div class="mt-1 font-mono text-xs break-all text-low">
                 {{ proposalTxHash }}
               </div>
