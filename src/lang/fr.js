@@ -44,6 +44,7 @@ const fr = {
     blocksRefresh: "Actualiser",
     blocksRefreshAria: "Actualiser les données",
     blocksEmpty: "Pas de données de bloc disponibles",
+    failedLoadBlocks: "Échec du chargement des blocs",
     colBlock: "Bloc",
     colAge: "Âge",
     colTxns: "Txns",
@@ -2291,6 +2292,8 @@ const fr = {
     txCountLine: "Dernières {count} sur un total de {total} transactions",
     csvExport: "Export CSV",
     votersCountLine: "Derniers {count} sur un total de {total} votants",
+    failedLoadVoters: "Échec du chargement des votants",
+    failedLoadTokenHoldings: "Échec du chargement des avoirs en jetons",
   },
   chat: {
     title: "NeoChat",

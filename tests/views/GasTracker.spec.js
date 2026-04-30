@@ -7,6 +7,14 @@ const i18nPlugin = {
   },
 };
 
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k }),
+  };
+});
+
 const getGasTrackerMock = vi.fn();
 const getBlockListMock = vi.fn();
 

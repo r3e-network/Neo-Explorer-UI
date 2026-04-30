@@ -296,7 +296,7 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: "Failed to load voters" },
+  { defaultPageSize: 10, errorMessage: t("addressDetail.failedLoadVoters") },
 );
 
 // --- Computed ---
@@ -593,7 +593,7 @@ async function loadAssets(addr) {
     tokenCount.value = assets.value.length;
   } catch {
     if (currentRequestId !== addressRequestId) return;
-    assetsError.value = "Failed to load token holdings";
+    assetsError.value = t("addressDetail.failedLoadTokenHoldings");
   } finally {
     if (currentRequestId === addressRequestId) {
       assetsLoading.value = false;

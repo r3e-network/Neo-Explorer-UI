@@ -45,6 +45,7 @@ const ko = {
     blocksRefresh: "새로고침",
     blocksRefreshAria: "데이터 새로고침",
     blocksEmpty: "블록 데이터가 없습니다",
+    failedLoadBlocks: "블록 로드 실패",
     colBlock: "블록",
     colAge: "경과",
     colTxns: "Tx 수",
@@ -2295,6 +2296,8 @@ const ko = {
     txCountLine: "총 {total}건 중 최근 {count}건의 트랜잭션",
     csvExport: "CSV 내보내기",
     votersCountLine: "총 {total}명 중 최근 {count}명의 투표자",
+    failedLoadVoters: "투표자 로드 실패",
+    failedLoadTokenHoldings: "토큰 보유 정보 로드 실패",
   },
   chat: {
     title: "NeoChat",

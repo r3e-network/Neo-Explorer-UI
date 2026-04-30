@@ -45,6 +45,7 @@ const zh = {
     blocksRefresh: "刷新",
     blocksRefreshAria: "刷新数据",
     blocksEmpty: "暂无区块数据",
+    failedLoadBlocks: "无法加载区块",
     colBlock: "区块",
     colAge: "时间",
     colTxns: "交易数",
@@ -2295,6 +2296,8 @@ const zh = {
     txCountLine: "共 {total} 笔中最近的 {count} 笔交易",
     csvExport: "CSV 导出",
     votersCountLine: "共 {total} 名中最近的 {count} 名投票者",
+    failedLoadVoters: "无法加载投票者",
+    failedLoadTokenHoldings: "无法加载代币持有信息",
   },
   chat: {
     title: "NeoChat",

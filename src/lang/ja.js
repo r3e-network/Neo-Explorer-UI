@@ -45,6 +45,7 @@ const ja = {
     blocksRefresh: "更新",
     blocksRefreshAria: "データを更新",
     blocksEmpty: "ブロックデータがありません",
+    failedLoadBlocks: "ブロックの読み込みに失敗しました",
     colBlock: "ブロック",
     colAge: "経過時間",
     colTxns: "Tx 数",
@@ -2295,6 +2296,8 @@ const ja = {
     txCountLine: "計 {total} 件中、直近 {count} 件のトランザクション",
     csvExport: "CSV エクスポート",
     votersCountLine: "計 {total} 名中、直近 {count} 名の投票者",
+    failedLoadVoters: "投票者の読み込みに失敗しました",
+    failedLoadTokenHoldings: "トークン保有の読み込みに失敗しました",
   },
   chat: {
     title: "NeoChat",

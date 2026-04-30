@@ -68,6 +68,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import FeeEstimateCards from "./components/FeeEstimateCards.vue";
 import FeeSummary from "./components/FeeSummary.vue";
@@ -79,6 +80,8 @@ import { BURN_RATE } from "@/constants";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 // --- State ---
+const { t } = useI18n();
+
 const loading = ref(true);
 const blocksLoading = ref(true);
 const blocksError = ref(null);
@@ -147,7 +150,7 @@ async function loadBlocks(forceRefresh = false) {
     blocks.value = blockRes?.result || [];
     computeFeeEstimatesFromTxs(recentTxs);
   } catch (e) {
-    blocksError.value = e.message || "Failed to load blocks";
+    blocksError.value = e.message || t("gasTracker.failedLoadBlocks");
   } finally {
     blocksLoading.value = false;
   }

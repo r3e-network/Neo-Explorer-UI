@@ -327,12 +327,12 @@
               </div>
               <div class="rounded-2xl border border-line-soft bg-surface p-4">
                 <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low mb-2">
-                  {{ row.witnessJson ? "Attached Witness Meta" : "Empty Fragment" }}
+                  {{ row.witnessJson ? $t("tools.governance.attachedWitnessMeta") : $t("tools.governance.emptyFragment") }}
                 </div>
                 <div
                   class="max-h-[80px] overflow-y-auto rounded-xl border border-line-soft bg-surface-muted/70 p-3 font-mono text-[10px] break-all text-high shadow-inner dark:bg-[#020617] dark:text-slate-300"
                 >
-                  {{ row.witnessJson || "Awaiting final multisig assembly..." }}
+                  {{ row.witnessJson || $t("tools.governance.awaitingAssembly") }}
                 </div>
               </div>
             </div>

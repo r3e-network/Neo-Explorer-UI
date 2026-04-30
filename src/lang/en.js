@@ -45,6 +45,7 @@ const en = {
     blocksRefresh: "Refresh",
     blocksRefreshAria: "Refresh data",
     blocksEmpty: "No block data available",
+    failedLoadBlocks: "Failed to load blocks",
     colBlock: "Block",
     colAge: "Age",
     colTxns: "Txns",
@@ -2295,6 +2296,8 @@ const en = {
     txCountLine: "Latest {count} from a total of {total} transactions",
     csvExport: "CSV Export",
     votersCountLine: "Latest {count} from a total of {total} voters",
+    failedLoadVoters: "Failed to load voters",
+    failedLoadTokenHoldings: "Failed to load token holdings",
   },
   chat: {
     title: "NeoChat",

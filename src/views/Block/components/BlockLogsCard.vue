@@ -78,7 +78,7 @@ function triggerDescription(trigger) {
             d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
           />
         </svg>
-        {{ showRawAppLog ? "Decoded View" : "Raw JSON" }}
+        {{ showRawAppLog ? $t("blockDetail.logsDecoded") : $t("blockDetail.logsRawJson") }}
       </button>
     </div>
 

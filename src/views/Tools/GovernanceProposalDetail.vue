@@ -221,19 +221,20 @@ const proposalTxHash = computed(() => {
       if (normalized.length === 64) return "0x" + normalized;
     } catch { /* fall through to stored values */ }
   }
+  const pendingLabel = t("tools.governance.pending");
   return String(
     proposal.value?.tx_hash ||
       proposal.value?.params?.hash ||
       proposal.value?.metadata?.tx_hash ||
       proposal.value?.broadcast_tx_hash ||
-      "Pending",
-  ).trim() || "Pending";
+      pendingLabel,
+  ).trim() || pendingLabel;
 });
 const proposalBroadcastState = computed(() => {
   const explicit = String(proposal.value?.metadata?.broadcast_state || "").trim();
   if (explicit) return explicit;
-  if (isOffchainReviewPacket.value) return "Off-chain Review";
-  return thresholdMet.value ? "Ready Now" : "Awaiting Quorum";
+  if (isOffchainReviewPacket.value) return t("tools.governance.offchainReviewBadge");
+  return thresholdMet.value ? t("tools.governance.readyNow") : t("tools.governance.awaitingQuorum");
 });
 const hasSigned = computed(() =>
   Boolean(
