@@ -174,6 +174,8 @@ const en = {
       aboutBurned: "burned",
       aboutPara1Post: "(permanently removed from circulation), creating deflationary pressure on the GAS token supply.",
       aboutPara2: "Per-transaction burn varies with transaction size and witness count. Over the last {days} days, the average is {avg} GAS per transaction across {txs} transactions.",
+      tooltipTotalBurned: "Total Burned: {value} GAS",
+      tooltipDailyBurned: "Burned: {value} GAS",
     },
     advancedSearch: {
       title: "Advanced Search",

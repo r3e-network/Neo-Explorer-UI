@@ -323,60 +323,60 @@ async function renderCharts() {
 
   txChartInstance = await createChart(txChart, {
     type: "line",
-    label: "Daily Transactions",
+    label: t("pages.charts.chartDailyTxsTitle"),
     color: "#165DFF",
     bgColor: "rgba(22, 93, 255, 0.08)",
-    tooltipLabel: "Transactions",
+    tooltipLabel: t("pages.charts.chartDailyTxsTitle"),
     data: txs,
   });
   if (myGeneration !== renderGeneration) return;
 
   addressChartInstance = await createChart(addressChart, {
     type: "line",
-    label: "Active Addresses",
+    label: t("pages.charts.chartActiveAddressesTitle"),
     color: "#00B42A",
     bgColor: "rgba(0, 180, 42, 0.08)",
-    tooltipLabel: "Active Addresses",
+    tooltipLabel: t("pages.charts.chartActiveAddressesTitle"),
     data: activeSigners,
   });
   if (myGeneration !== renderGeneration) return;
 
   volumeChartInstance = await createChart(volumeChart, {
     type: "bar",
-    label: "Transaction Volume",
+    label: t("pages.charts.chartVolumeTitle"),
     color: "#FF7D00",
     bgColor: "rgba(255, 125, 0, 0.6)",
-    tooltipLabel: "Transactions",
+    tooltipLabel: t("pages.charts.chartDailyTxsTitle"),
     data: txs,
   });
   if (myGeneration !== renderGeneration) return;
 
   contractChartInstance = await createChart(contractChart, {
     type: "line",
-    label: "NEP-11 Transfers",
+    label: t("pages.charts.chartNep11Title"),
     color: "#722ED1",
     bgColor: "rgba(114, 46, 209, 0.08)",
-    tooltipLabel: "NEP-11 Transfers",
+    tooltipLabel: t("pages.charts.chartNep11Title"),
     data: nep11,
   });
   if (myGeneration !== renderGeneration) return;
 
   tokenVolumeChartInstance = await createChart(tokenVolumeChart, {
     type: "line",
-    label: "NEP-17 Transfers",
+    label: t("pages.charts.chartNep17Title"),
     color: "#F5319D",
     bgColor: "rgba(245, 49, 157, 0.08)",
-    tooltipLabel: "NEP-17 Transfers",
+    tooltipLabel: t("pages.charts.chartNep17Title"),
     data: nep17,
   });
   if (myGeneration !== renderGeneration) return;
 
   gasPriceChartInstance = await createChart(gasPriceChart, {
     type: "line",
-    label: "GAS Burned",
+    label: t("pages.charts.chartGasBurnedTitle"),
     color: "#F7BA1E",
     bgColor: "rgba(247, 186, 30, 0.08)",
-    tooltipLabel: "GAS Burned",
+    tooltipLabel: t("pages.charts.chartGasBurnedTitle"),
     data: gasBurned,
     valueFormatter: (v) =>
       `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 4 })} GAS`,

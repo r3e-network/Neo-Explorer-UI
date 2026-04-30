@@ -180,7 +180,7 @@ function createCumulativeChart(Chart) {
       labels,
       datasets: [
         {
-          label: "Cumulative GAS Burned",
+          label: t("pages.burnGas.cumulativeTitle"),
           data: cumulative,
           fill: true,
           backgroundColor: "rgba(239, 68, 68, 0.1)",
@@ -202,7 +202,7 @@ function createCumulativeChart(Chart) {
       tooltips: {
         ...baseTooltipConfig(colors),
         callbacks: {
-          label: (item) => `Total Burned: ${Number(item.yLabel).toFixed(8)} GAS`,
+          label: (item) => t("pages.burnGas.tooltipTotalBurned", { value: Number(item.yLabel).toFixed(8) }),
         },
       },
       scales: {
@@ -241,7 +241,7 @@ function createDailyBurnChart(Chart) {
       labels,
       datasets: [
         {
-          label: "Daily GAS Burned",
+          label: t("pages.burnGas.dailyTitle"),
           data: values,
           backgroundColor: "rgba(249, 115, 22, 0.6)",
           borderColor: "#F97316",
@@ -257,7 +257,7 @@ function createDailyBurnChart(Chart) {
       tooltips: {
         ...baseTooltipConfig(colors),
         callbacks: {
-          label: (item) => `Burned: ${Number(item.yLabel).toFixed(8)} GAS`,
+          label: (item) => t("pages.burnGas.tooltipDailyBurned", { value: Number(item.yLabel).toFixed(8) }),
         },
       },
       scales: baseScalesConfig(colors),

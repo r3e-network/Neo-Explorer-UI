@@ -174,6 +174,8 @@ const ko = {
       aboutBurned: "소각",
       aboutPara1Post: "(영구적으로 유통에서 제거)되어 GAS 토큰 공급에 디플레이션 압력을 가합니다.",
       aboutPara2: "트랜잭션당 소각량은 트랜잭션 크기와 witness 수에 따라 달라집니다. 최근 {days}일 동안 {txs}건의 트랜잭션에서 평균은 {avg} GAS입니다.",
+      tooltipTotalBurned: "누적 소각: {value} GAS",
+      tooltipDailyBurned: "소각: {value} GAS",
     },
     advancedSearch: {
       title: "고급 검색",

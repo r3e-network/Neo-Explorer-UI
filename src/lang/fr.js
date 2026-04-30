@@ -173,6 +173,8 @@ const fr = {
       aboutBurned: "brûlés",
       aboutPara1Post: "(retirés définitivement de la circulation), créant une pression déflationniste sur l'offre de GAS.",
       aboutPara2: "La combustion par transaction varie selon la taille et le nombre de témoins. Sur les {days} derniers jours, la moyenne est de {avg} GAS par transaction sur {txs} transactions.",
+      tooltipTotalBurned: "Total brûlé : {value} GAS",
+      tooltipDailyBurned: "Brûlé : {value} GAS",
     },
     advancedSearch: {
       title: "Recherche avancée",

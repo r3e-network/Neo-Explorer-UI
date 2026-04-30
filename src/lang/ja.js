@@ -174,6 +174,8 @@ const ja = {
       aboutBurned: "バーン",
       aboutPara1Post: "（永久に流通から除去）され、GAS の供給量にデフレ圧力をかけます。",
       aboutPara2: "トランザクションごとのバーン量はトランザクションサイズと witness 数で変動します。直近 {days} 日では、{txs} 件のトランザクションで 1 件あたり平均 {avg} GAS です。",
+      tooltipTotalBurned: "累計バーン: {value} GAS",
+      tooltipDailyBurned: "バーン: {value} GAS",
     },
     advancedSearch: {
       title: "高度な検索",

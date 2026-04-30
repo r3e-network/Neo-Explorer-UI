@@ -174,6 +174,8 @@ const zh = {
       aboutBurned: "销毁",
       aboutPara1Post: "（永久从流通中移除），对 GAS 代币供应造成通缩压力。",
       aboutPara2: "每笔交易的销毁量随交易大小和见证人数量而变化。最近 {days} 天里，共 {txs} 笔交易，每笔平均 {avg} GAS。",
+      tooltipTotalBurned: "累计销毁：{value} GAS",
+      tooltipDailyBurned: "销毁：{value} GAS",
     },
     advancedSearch: {
       title: "高级搜索",
