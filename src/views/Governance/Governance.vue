@@ -17,7 +17,7 @@
           </div>
           <div>
             <h1 class="page-title">{{ $t("nav.governance") || "Governance" }}</h1>
-            <p class="page-subtitle">Participate in Neo N3 consensus by voting for a candidate node</p>
+            <p class="page-subtitle">{{ $t('governancePage.pageSubtitle') }}</p>
           </div>
         </div>
 
@@ -32,7 +32,7 @@
             v-else
             class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
           >
-            Connect wallet from header to vote
+            {{ $t('governancePage.connectWalletPrompt') }}
           </span>
         </div>
       </div>
@@ -41,7 +41,7 @@
       <div class="etherscan-card mb-6 overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 gap-4">
           <div class="flex items-center gap-4">
-            <label for="neo-amount" class="text-sm font-semibold text-high whitespace-nowrap"> My NEO to Vote: </label>
+            <label for="neo-amount" class="text-sm font-semibold text-high whitespace-nowrap"> {{ $t('governancePage.neoToVoteLabel') }} </label>
             <div class="relative max-wxs">
               <input
                 id="neo-amount"
@@ -53,7 +53,7 @@
               <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-mid">NEO</span>
             </div>
             <span class="hidden md:inline-block text-xs text-mid">
-              Estimated rewards based on network total votes and 3s block time.
+              {{ $t('governancePage.estimatedRewardsHint') }}
             </span>
           </div>
           <div v-if="neoPrice && gasPrice" class="flex items-center gap-4 text-xs font-semibold text-mid">
@@ -74,18 +74,18 @@
       <div class="etherscan-card overflow-hidden">
         <div class="card-header flex justify-between items-center flex-wrap gap-3">
           <div>
-            <p class="text-mid text-sm">Node Candidates</p>
-            <p class="text-low text-sm">Select a candidate below to cast your NEO votes</p>
+            <p class="text-mid text-sm">{{ $t('governancePage.nodeCandidatesTitle') }}</p>
+            <p class="text-low text-sm">{{ $t('governancePage.nodeCandidatesSubtitle') }}</p>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-mid font-medium uppercase tracking-wide">Sort by:</span>
+            <span class="text-xs text-mid font-medium uppercase tracking-wide">{{ $t('governancePage.sortByLabel') }}</span>
             <select
               v-model="sortBy"
-              aria-label="Sort candidates by"
+              :aria-label="$t('governancePage.sortByAria')"
               class="bg-surface-elevated border border-line-soft rounded-lg px-3 py-1.5 text-sm text-high focus:outline-none focus:border-primary-500 transition-colors"
             >
-              <option value="votes">Votes (High to Low)</option>
-              <option value="apr">APR (High to Low)</option>
+              <option value="votes">{{ $t('governancePage.sortVotesDesc') }}</option>
+              <option value="apr">{{ $t('governancePage.sortAprDesc') }}</option>
             </select>
           </div>
         </div>
@@ -99,16 +99,16 @@
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[960px]" aria-label="Council candidates">
+          <table class="w-full min-w-[960px]" :aria-label="$t('governancePage.tableAria')">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">Council Node</th>
-                <th class="table-header-cell-right">Votes</th>
-                <th class="table-header-cell-right">Liveness</th>
-                <th class="table-header-cell-right">Est. GAS / Month</th>
-                <th class="table-header-cell-right">APR</th>
-                <th class="table-header-cell-right">Action</th>
+                <th class="table-header-cell">{{ $t('governancePage.colCouncilNode') }}</th>
+                <th class="table-header-cell-right">{{ $t('governancePage.colVotes') }}</th>
+                <th class="table-header-cell-right">{{ $t('governancePage.colLiveness') }}</th>
+                <th class="table-header-cell-right">{{ $t('governancePage.colMonthlyGas') }}</th>
+                <th class="table-header-cell-right">{{ $t('governancePage.colApr') }}</th>
+                <th class="table-header-cell-right">{{ $t('governancePage.colAction') }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -122,7 +122,7 @@
                     <img
                       src="https://app.neoburger.io/favicon.ico"
                       class="h-6 w-6 rounded-full bg-white ring-1 ring-line-soft object-cover flex-shrink-0"
-                      alt="NeoBurger Logo"
+                      :alt="$t('governancePage.neoBurgerLogoAlt')"
                     />
                     <div class="min-w-0 flex flex-col gap-0.5">
                       <span class="inline-flex items-center gap-1.5 font-bold text-high text-sm">
@@ -130,21 +130,21 @@
                         <span
                           class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                         >
-                          Recommended
+                          {{ $t('governancePage.badgeRecommended') }}
                         </span>
                       </span>
-                      <span class="text-low text-[10px] font-medium break-all">Smart automated voting strategy</span>
+                      <span class="text-low text-[10px] font-medium break-all">{{ $t('governancePage.neoBurgerStrategy') }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="table-cell-right font-medium text-high">
-                  <span class="text-mid text-xs">Pooled</span>
+                  <span class="text-mid text-xs">{{ $t('governancePage.badgePooled') }}</span>
                 </td>
                 <td class="table-cell text-center">
                   <span
                     class="inline-block px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wide font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                   >
-                    Optimized
+                    {{ $t('governancePage.badgeOptimized') }}
                   </span>
                 </td>
                 <td class="table-cell-right font-medium text-high">
@@ -163,7 +163,7 @@
                     rel="noopener noreferrer"
                     class="btn-primary px-3 py-1.5 text-xs inline-flex items-center gap-1"
                   >
-                    Go to NeoBurger
+                    {{ $t('governancePage.goToNeoBurger') }}
                     <svg aria-hidden="true" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         stroke-linecap="round"
@@ -214,7 +214,7 @@
                           : 'bg-surface-elevated text-mid border border-line-soft',
                       ]"
                     >
-                      {{ candidate.active ? "Active" : "Standby" }}
+                      {{ candidate.active ? $t('governancePage.badgeActive') : $t('governancePage.badgeStandby') }}
                     </span>
                   </div>
                 </td>
@@ -247,7 +247,7 @@
                     :disabled="!account || voting"
                     class="btn-mini px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {{ isCurrentVote(candidate) ? "Unvote" : "Vote" }}
+                    {{ isCurrentVote(candidate) ? $t('governancePage.actionUnvote') : $t('governancePage.actionVote') }}
                   </button>
                 </td>
               </tr>

@@ -171,7 +171,7 @@ describe("Governance view", () => {
       "https://example.com/council-alpha.png",
     );
     expect(wrapper.text()).not.toContain("Public Key / Name");
-    expect(wrapper.text()).toContain("Council Node");
+    expect(wrapper.text()).toContain("governancePage.colCouncilNode");
   });
 
   it("shows Unvote for the candidate currently selected by the connected account", async () => {
