@@ -1439,6 +1439,8 @@ const ja = {
     connectWallet: "ウォレットを接続",
     closeWalletConnectModal: "WalletConnect モーダルを閉じる",
     walletConnectUri: "WalletConnect URI",
+    nep17TokensTable: "NEP-17 トークン",
+    nep11NftsTable: "NEP-11 NFT",
     githubTitle: "GitHub",
     neoOrgTitle: "Neo.org",
     gridView: "グリッドビュー",

@@ -87,7 +87,7 @@
 
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
-          <table class="w-full min-w-[920px]" aria-label="NEP-17 tokens">
+          <table class="w-full min-w-[920px]" :aria-label="$t('aria.nep17TokensTable')">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
@@ -167,7 +167,7 @@
 
         <!-- NEP-11 Table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[920px]" aria-label="NEP-11 NFTs">
+          <table class="w-full min-w-[920px]" :aria-label="$t('aria.nep11NftsTable')">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>

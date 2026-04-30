@@ -1435,6 +1435,8 @@ const fr = {
     connectWallet: "Connecter le portefeuille",
     closeWalletConnectModal: "Fermer la fenêtre WalletConnect",
     walletConnectUri: "URI WalletConnect",
+    nep17TokensTable: "Jetons NEP-17",
+    nep11NftsTable: "NFT NEP-11",
     githubTitle: "GitHub",
     neoOrgTitle: "Neo.org",
     gridView: "Vue grille",

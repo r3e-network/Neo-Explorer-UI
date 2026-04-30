@@ -1439,6 +1439,8 @@ const zh = {
     connectWallet: "连接钱包",
     closeWalletConnectModal: "关闭 WalletConnect 模态",
     walletConnectUri: "WalletConnect URI",
+    nep17TokensTable: "NEP-17 代币",
+    nep11NftsTable: "NEP-11 NFT",
     githubTitle: "GitHub",
     neoOrgTitle: "Neo.org",
     gridView: "网格视图",

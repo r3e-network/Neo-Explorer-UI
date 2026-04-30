@@ -1439,6 +1439,8 @@ const ko = {
     connectWallet: "지갑 연결",
     closeWalletConnectModal: "WalletConnect 모달 닫기",
     walletConnectUri: "WalletConnect URI",
+    nep17TokensTable: "NEP-17 토큰",
+    nep11NftsTable: "NEP-11 NFT",
     githubTitle: "GitHub",
     neoOrgTitle: "Neo.org",
     gridView: "그리드 보기",

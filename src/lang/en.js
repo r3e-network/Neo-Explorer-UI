@@ -1439,6 +1439,8 @@ const en = {
     connectWallet: "Connect Wallet",
     closeWalletConnectModal: "Close WalletConnect modal",
     walletConnectUri: "WalletConnect URI",
+    nep17TokensTable: "NEP-17 tokens",
+    nep11NftsTable: "NEP-11 NFTs",
     githubTitle: "GitHub",
     neoOrgTitle: "Neo.org",
     gridView: "Grid view",
