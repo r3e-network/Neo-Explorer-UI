@@ -27,7 +27,7 @@
         <form @submit.prevent="performSearch" class="space-y-4">
           <!-- Type Filter + Input Row -->
           <div class="flex flex-col gap-3 sm:flex-row">
-            <select v-model="searchType" aria-label="Search type filter" class="form-input sm:w-48">
+            <select v-model="searchType" :aria-label="$t('pages.advancedSearch.typeAria')" class="form-input sm:w-48">
               <option value="all">{{ $t("pages.advancedSearch.typeAll") }}</option>
               <option value="address">{{ $t("pages.advancedSearch.typeAddress") }}</option>
               <option value="transaction">{{ $t("pages.advancedSearch.typeTransaction") }}</option>
@@ -40,7 +40,7 @@
                 ref="searchInput"
                 v-model="query"
                 type="text"
-                aria-label="Search query input"
+                :aria-label="$t('pages.advancedSearch.queryAria')"
                 :placeholder="inputPlaceholder"
                 class="form-input pr-10"
                 @input="clearValidation"
@@ -49,7 +49,7 @@
                 v-if="query"
                 type="button"
                 @click="clearSearch"
-                aria-label="Clear search query"
+                :aria-label="$t('pages.advancedSearch.clearAria')"
                 class="text-low absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:text-mid"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +97,7 @@
 
       <!-- Error State -->
       <div v-else-if="searchError" class="etherscan-card p-4">
-        <ErrorState title="Search failed" :message="searchError" @retry="performSearch" />
+        <ErrorState :title="$t('pages.advancedSearch.errorTitle')" :message="searchError" @retry="performSearch" />
       </div>
 
       <!-- Results -->
@@ -105,7 +105,7 @@
         <!-- Result Found -->
         <template v-if="result.type">
           <div class="card-header">
-            <p class="text-high text-sm font-semibold">Search Result</p>
+            <p class="text-high text-sm font-semibold">{{ $t("pages.advancedSearch.resultHeader") }}</p>
             <span
               class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
               :class="resultBadgeClass"
@@ -124,7 +124,7 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-low text-sm">Block Height</p>
+                  <p class="text-low text-sm">{{ $t("pages.advancedSearch.blockHeightLabel") }}</p>
                   <p class="text-high font-semibold">
                     {{ formatNumber(result.data.index) }}
                   </p>
@@ -243,10 +243,15 @@
         <template v-else>
           <div class="p-4">
             <EmptyState
-              message="No results found"
-              :description="`No matching ${
-                searchType === 'all' ? 'records' : searchType + 's'
-              } found for '${query.trim()}'`"
+              :message="$t('pages.advancedSearch.noResults')"
+              :description="
+                $t('pages.advancedSearch.noResultsDescription', {
+                  type: searchType === 'all'
+                    ? $t('pages.advancedSearch.noResultsTypeAll')
+                    : $t('pages.advancedSearch.noResultsTypePlural', { type: searchType }),
+                  query: query.trim(),
+                })
+              "
             />
           </div>
         </template>
@@ -264,11 +269,8 @@
             />
           </svg>
         </div>
-        <h2 class="text-high mb-2 text-lg font-semibold">Search the Neo N3 Blockchain</h2>
-        <p class="text-mid mx-auto max-w-md text-sm">
-          Enter a block height, transaction hash, address, or contract hash above to search. Use the type filter to
-          narrow your search scope.
-        </p>
+        <h2 class="text-high mb-2 text-lg font-semibold">{{ $t("pages.advancedSearch.heroTitle") }}</h2>
+        <p class="text-mid mx-auto max-w-md text-sm">{{ $t("pages.advancedSearch.heroDescription") }}</p>
       </div>
     </section>
   </div>
@@ -277,6 +279,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -285,6 +288,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import { searchService } from "@/services";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -300,23 +304,23 @@ let searchGeneration = 0;
 
 const inputPlaceholder = computed(() => {
   const placeholders = {
-    all: "Search by address, tx hash, block height, or contract hash...",
-    address: "Enter Neo N3 address (starts with N) or NNS (.neo)...",
-    transaction: "Enter transaction hash (0x + 64 hex chars)...",
-    block: "Enter block height or block hash...",
-    contract: "Enter contract script hash...",
+    all: t("pages.advancedSearch.placeholderAll"),
+    address: t("pages.advancedSearch.placeholderAddress"),
+    transaction: t("pages.advancedSearch.placeholderTransaction"),
+    block: t("pages.advancedSearch.placeholderBlock"),
+    contract: t("pages.advancedSearch.placeholderContract"),
   };
   return placeholders[searchType.value] || placeholders.all;
 });
 
 const resultTypeLabel = computed(() => {
   const labels = {
-    block: "Block",
-    transaction: "Transaction",
-    address: "Address",
-    contract: "Contract",
+    block: t("pages.advancedSearch.resultBlock"),
+    transaction: t("pages.advancedSearch.resultTransaction"),
+    address: t("pages.advancedSearch.resultAddress"),
+    contract: t("pages.advancedSearch.resultContract"),
   };
-  return labels[result.value.type] || "Unknown";
+  return labels[result.value.type] || t("pages.advancedSearch.resultUnknown");
 });
 
 const resultBadgeClass = computed(() => {
@@ -345,28 +349,28 @@ function clearSearch() {
 function validate() {
   const q = query.value.trim();
   if (!q) {
-    validationError.value = "Please enter a search term.";
+    validationError.value = t("pages.advancedSearch.validateEmpty");
     return false;
   }
   if (q.length > 256) {
-    validationError.value = "Search query is too long (max 256 characters).";
+    validationError.value = t("pages.advancedSearch.validateTooLong");
     return false;
   }
 
   if (searchType.value === "address" && !/^N[A-Za-z0-9]{33}$/.test(q) && !(q.endsWith(".neo") && q.length > 4) && !(q.endsWith(".matrix") && q.length > 7)) {
-    validationError.value = "Invalid address format. Must be a 34-char address starting with N, or a .neo/.matrix domain.";
+    validationError.value = t("pages.advancedSearch.validateAddress");
     return false;
   }
   if (searchType.value === "transaction" && !/^(0x)?[a-fA-F0-9]{64}$/.test(q)) {
-    validationError.value = "Invalid transaction hash. Must be 64 hex characters (optionally prefixed with 0x).";
+    validationError.value = t("pages.advancedSearch.validateTransaction");
     return false;
   }
   if (searchType.value === "block" && !/^(\d+|(0x)?[a-fA-F0-9]{64})$/.test(q)) {
-    validationError.value = "Invalid block identifier. Enter a block height (number) or block hash.";
+    validationError.value = t("pages.advancedSearch.validateBlock");
     return false;
   }
   if (searchType.value === "contract" && !/^(0x)?[a-fA-F0-9]{40,64}$/.test(q)) {
-    validationError.value = "Invalid contract hash format.";
+    validationError.value = t("pages.advancedSearch.validateContract");
     return false;
   }
 
@@ -417,7 +421,7 @@ async function performSearch() {
     result.value = res || { type: null, data: null };
   } catch (e) {
     if (myGeneration !== searchGeneration) return;
-    searchError.value = e.message || "An unexpected error occurred during search.";
+    searchError.value = e.message || t("pages.advancedSearch.unexpectedError");
     result.value = { type: null, data: null };
   } finally {
     if (myGeneration === searchGeneration) searching.value = false;
