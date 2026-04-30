@@ -6,14 +6,24 @@ module.exports.config = {
   runtime: 'edge',
 };
 
-// Initialization
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Lazy-init the Supabase client so a missing env var does not crash module load.
+// (Edge functions import the module on every cold start; throwing here would
+// break the route entirely instead of letting handler() return a 500.)
+let supabaseClient = null;
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error("Network alerts storage is not configured.");
+  }
+  supabaseClient = createClient(url, key);
+  return supabaseClient;
+}
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY; // You need to add this in Vercel Dashboard
 
@@ -112,6 +122,8 @@ async function sendEmailAlert(emailAddress, subject, htmlContent) {
 
 async function checkNetworkAlerts(network) {
   let triggeredCount = 0;
+
+  const supabase = getSupabaseClient();
 
   try {
     // 1. Fetch active alerts for this network
