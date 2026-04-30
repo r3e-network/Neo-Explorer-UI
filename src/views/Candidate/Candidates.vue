@@ -15,15 +15,15 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">{{ $t("nav.consensusNodes") || "Consensus Candidates" }}</h1>
-          <p class="page-subtitle">Neo N3 consensus node candidates and voting</p>
+          <h1 class="page-title">{{ $t("nav.consensusNodes") || $t("candidatesPage.pageTitle") }}</h1>
+          <p class="page-subtitle">{{ $t('candidatesPage.pageSubtitle') }}</p>
         </div>
       </div>
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
-          <p class="text-mid text-sm">Candidate list</p>
-          <p class="text-low text-sm">Page {{ currentPage }} / {{ totalPages }}</p>
+          <p class="text-mid text-sm">{{ $t('candidatesPage.listTitle') }}</p>
+          <p class="text-low text-sm">{{ $t('candidatesPage.pageOfTotal', { current: currentPage, total: totalPages }) }}</p>
         </div>
 
         <!-- Loading state -->
@@ -33,23 +33,23 @@
 
         <!-- Error state -->
         <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load candidates" :message="error" @retry="() => loadPage(currentPage)" />
+          <ErrorState :title="$t('candidatesPage.failedToLoad')" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty state -->
         <div v-else-if="candidates.length === 0" class="p-4">
-          <EmptyState message="No candidates found" />
+          <EmptyState :message="$t('candidatesPage.noCandidates')" />
         </div>
 
         <!-- Data table -->
         <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[760px]" aria-label="Consensus candidates">
+          <table class="w-full min-w-[760px]" :aria-label="$t('candidatesPage.tableAria')">
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
-                <th class="table-header-cell">Candidate / Address</th>
-                <th class="table-header-cell-right">Votes</th>
-                <th class="table-header-cell text-center">Status</th>
+                <th class="table-header-cell">{{ $t('candidatesPage.colCandidate') }}</th>
+                <th class="table-header-cell-right">{{ $t('candidatesPage.colVotes') }}</th>
+                <th class="table-header-cell text-center">{{ $t('candidatesPage.colStatus') }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -63,7 +63,7 @@
                       v-if="getLogo(candidate)"
                       :src="getLogo(candidate)"
                       class="h-6 w-6 rounded-full bg-surface-elevated ring-1 ring-line-soft object-cover flex-shrink-0"
-                      alt="Logo"
+                      :alt="$t('candidatesPage.logoAlt')"
                       @error="$event.target.src = '/img/brand/neo.png'"
                     />
                     <div
@@ -99,7 +99,7 @@
                 <td class="table-cell text-center">
                   <StatusBadge
                     :status="candidate.isCommittee ? 'success' : 'pending'"
-                    :text="candidate.isCommittee ? 'Consensus' : 'Standby'"
+                    :text="candidate.isCommittee ? $t('candidatesPage.statusConsensus') : $t('candidatesPage.statusStandby')"
                   />
                 </td>
               </tr>
