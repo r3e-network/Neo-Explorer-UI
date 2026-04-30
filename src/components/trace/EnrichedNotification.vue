@@ -5,7 +5,7 @@
       class="table-head soft-divider flex items-center gap-2 border-b px-4 py-3"
     >
       <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold" :class="eventBadgeClass">
-        {{ notification.eventName ?? "Unknown" }}
+        {{ notification.eventName ?? $t('enrichedNotif.eventUnknown') }}
       </span>
       <HashLink
         v-if="notification.contract && notification.contract !== 'unknown'"
@@ -32,7 +32,7 @@
             d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
           />
         </svg>
-        {{ viewMode === "raw" ? "Raw" : "Decoded" }}
+        {{ viewMode === "raw" ? $t('enrichedNotif.rawToggle') : $t('enrichedNotif.decodedToggle') }}
       </button>
     </div>
 
@@ -51,7 +51,7 @@
           v-if="notification.tokenId"
           class="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
         >
-          <span class="text-xs font-medium text-purple-700 dark:text-purple-300">Token ID:</span>
+          <span class="text-xs font-medium text-purple-700 dark:text-purple-300">{{ $t('enrichedNotif.tokenIdLabel') }}</span>
           <span class="text-xs font-mono text-purple-600 dark:text-purple-400" :title="notification.tokenId">
             {{ notification.tokenId.length > 32 ? notification.tokenId.slice(0, 32) + "…" : notification.tokenId }}
           </span>
@@ -60,16 +60,16 @@
           <thead class="table-head">
             <tr>
               <th class="table-header-cell w-8">#</th>
-              <th v-if="hasParamNames" class="table-header-cell">Name</th>
-              <th class="table-header-cell w-28">Type</th>
-              <th class="table-header-cell">Decoded Value</th>
+              <th v-if="hasParamNames" class="table-header-cell">{{ $t('enrichedNotif.colName') }}</th>
+              <th class="table-header-cell w-28">{{ $t('enrichedNotif.colType') }}</th>
+              <th class="table-header-cell">{{ $t('enrichedNotif.colDecodedValue') }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">
             <tr v-for="param in decodedParams" :key="param.index" class="list-row group">
               <td class="table-cell-secondary">{{ param.index }}</td>
               <td v-if="hasParamNames" class="table-cell font-medium">
-                {{ param.name ?? "-" }}
+                {{ param.name ?? $t('enrichedNotif.paramNameDash') }}
               </td>
               <td class="table-cell">
                 <span class="inline-flex px-1.5 py-0.5 rounded text-xs" :class="typeBadgeClass(param.type)">
@@ -98,10 +98,10 @@
                   <button
                     v-if="param.decoded.rawValue"
                     class="text-primary-500 hover:text-primary-600 flex-shrink-0 text-xs font-semibold uppercase tracking-wide"
-                    :title="showHex[param.index] ? 'Show decoded' : 'Show hex'"
+                    :title="showHex[param.index] ? $t('enrichedNotif.showDecoded') : $t('enrichedNotif.showHex')"
                     @click="toggleHex(param.index)"
                   >
-                    {{ showHex[param.index] ? "txt" : "hex" }}
+                    {{ showHex[param.index] ? $t('enrichedNotif.txtToggle') : $t('enrichedNotif.hexToggle') }}
                   </button>
                 </span>
                 <!-- Default -->
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Empty state -->
-      <div v-else class="text-mid text-sm italic">No parameters</div>
+      <div v-else class="text-mid text-sm italic">{{ $t('enrichedNotif.noParameters') }}</div>
     </div>
   </div>
 </template>
