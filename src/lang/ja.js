@@ -1234,6 +1234,18 @@ const ja = {
     tokenLoadFailed: "トークン情報の読み込みに失敗しました。もう一度お試しください。",
     generic: "エラーが発生しました。もう一度お試しください。",
   },
+  notFoundPages: {
+    searchTitle: "結果が見つかりません",
+    searchHint: "トランザクションハッシュ、ブロックハッシュ/高さ、コントラクトハッシュ、または Neo アドレスで検索してください。",
+    searchTipBlock: "ブロック高さまたはハッシュ",
+    searchTipTx: "トランザクションハッシュ",
+    searchTipAddress: "Neo アドレス (N...)",
+    searchTipContract: "コントラクトハッシュ",
+    backToHomepage: "ホームに戻る",
+    pageTitle: "ページが見つかりません",
+    pageDesc: "リクエストされたページは存在しないか、移動された可能性があります。",
+    browseBlocks: "ブロックを閲覧",
+  },
   wallet: {
     networkMismatch: (env) => `ネットワークが一致しません。NeoLineウォレットを${env}に切り替えて再試行してください。`,
     noAccount: "NeoLineにアカウントが見つかりません。",

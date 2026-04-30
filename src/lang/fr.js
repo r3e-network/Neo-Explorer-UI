@@ -1230,6 +1230,18 @@ const fr = {
     generic: "Une erreur est survenue. Veuillez réessayer.",
     loadTokensUnavailable: "Le service de jetons est temporairement indisponible.",
   },
+  notFoundPages: {
+    searchTitle: "Aucun résultat",
+    searchHint: "Essayez avec un hash de transaction, un hash/numéro de bloc, un hash de contrat ou une adresse Neo.",
+    searchTipBlock: "Numéro ou hash de bloc",
+    searchTipTx: "Hash de transaction",
+    searchTipAddress: "Adresse Neo (N...)",
+    searchTipContract: "Hash de contrat",
+    backToHomepage: "Retour à l'accueil",
+    pageTitle: "Page introuvable",
+    pageDesc: "La page demandée n'existe pas ou a été déplacée.",
+    browseBlocks: "Parcourir les blocs",
+  },
   wallet: {
     networkMismatch: (env) => `Réseau incompatible. Veuillez basculer votre portefeuille NeoLine vers ${env} et réessayer.`,
     noAccount: "Aucun compte trouvé dans NeoLine.",

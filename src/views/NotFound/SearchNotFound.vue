@@ -12,17 +12,17 @@
             />
           </svg>
         </div>
-        <h1 class="page-title">No Results Found</h1>
+        <h1 class="page-title">{{ $t('notFoundPages.searchTitle') }}</h1>
         <p class="text-mid mx-auto mt-2 max-w-md text-sm">
-          Try searching by transaction hash, block hash/height, contract hash, or Neo address.
+          {{ $t('notFoundPages.searchHint') }}
         </p>
 
         <div class="panel-muted mt-6 p-4 text-left">
           <ul class="text-mid space-y-2 text-sm">
-            <li>• Block height or block hash</li>
-            <li>• Transaction hash</li>
-            <li>• Neo address (N...)</li>
-            <li>• Contract hash</li>
+            <li>• {{ $t('notFoundPages.searchTipBlock') }}</li>
+            <li>• {{ $t('notFoundPages.searchTipTx') }}</li>
+            <li>• {{ $t('notFoundPages.searchTipAddress') }}</li>
+            <li>• {{ $t('notFoundPages.searchTipContract') }}</li>
           </ul>
         </div>
 
@@ -30,7 +30,7 @@
           to="/homepage"
           class="btn-primary mt-6"
         >
-          Back to Homepage
+          {{ $t('notFoundPages.backToHomepage') }}
         </router-link>
       </div>
     </section>

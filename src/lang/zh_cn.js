@@ -1234,6 +1234,18 @@ const zh = {
     tokenLoadFailed: "加载代币信息失败，请重试。",
     generic: "出现错误，请重试。",
   },
+  notFoundPages: {
+    searchTitle: "未找到结果",
+    searchHint: "请尝试使用交易哈希、区块哈希/高度、合约哈希或 Neo 地址进行搜索。",
+    searchTipBlock: "区块高度或哈希",
+    searchTipTx: "交易哈希",
+    searchTipAddress: "Neo 地址（N...）",
+    searchTipContract: "合约哈希",
+    backToHomepage: "返回首页",
+    pageTitle: "页面未找到",
+    pageDesc: "请求的页面不存在或可能已被移动。",
+    browseBlocks: "浏览区块",
+  },
   wallet: {
     networkMismatch: (env) => `网络不匹配。请将 NeoLine 钱包切换到 ${env} 后重试。`,
     noAccount: "NeoLine 中未找到账户。",

@@ -23,9 +23,9 @@
           </svg>
         </div>
         <p class="text-low text-7xl font-bold">404</p>
-        <h1 class="mt-2 page-title">Page Not Found</h1>
+        <h1 class="mt-2 page-title">{{ $t('notFoundPages.pageTitle') }}</h1>
         <p class="text-mid mt-2 text-sm">
-          The requested page does not exist or may have been moved.
+          {{ $t('notFoundPages.pageDesc') }}
         </p>
 
         <div class="mt-6 flex items-center justify-center gap-3">
@@ -33,10 +33,10 @@
             to="/homepage"
             class="btn-primary"
           >
-            Back to Homepage
+            {{ $t('notFoundPages.backToHomepage') }}
           </router-link>
           <router-link to="/blocks/1" class="btn-outline px-4 py-2">
-            Browse Blocks
+            {{ $t('notFoundPages.browseBlocks') }}
           </router-link>
         </div>
       </div>

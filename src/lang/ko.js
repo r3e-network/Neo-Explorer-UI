@@ -1234,6 +1234,18 @@ const ko = {
     tokenLoadFailed: "토큰 정보를 불러오지 못했습니다. 다시 시도해 주세요.",
     generic: "문제가 발생했습니다. 다시 시도해 주세요.",
   },
+  notFoundPages: {
+    searchTitle: "결과를 찾을 수 없습니다",
+    searchHint: "트랜잭션 해시, 블록 해시/높이, 컨트랙트 해시 또는 Neo 주소로 검색해 보세요.",
+    searchTipBlock: "블록 높이 또는 해시",
+    searchTipTx: "트랜잭션 해시",
+    searchTipAddress: "Neo 주소 (N...)",
+    searchTipContract: "컨트랙트 해시",
+    backToHomepage: "홈으로 돌아가기",
+    pageTitle: "페이지를 찾을 수 없습니다",
+    pageDesc: "요청한 페이지가 존재하지 않거나 이동되었을 수 있습니다.",
+    browseBlocks: "블록 둘러보기",
+  },
   wallet: {
     networkMismatch: (env) => `네트워크 불일치. NeoLine 지갑을 ${env}(으)로 전환한 후 다시 시도해 주세요.`,
     noAccount: "NeoLine에서 계정을 찾을 수 없습니다.",

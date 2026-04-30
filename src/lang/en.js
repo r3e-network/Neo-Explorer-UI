@@ -1234,6 +1234,18 @@ const en = {
     tokenLoadFailed: "Failed to load token information. Please try again.",
     generic: "Something went wrong. Please try again.",
   },
+  notFoundPages: {
+    searchTitle: "No Results Found",
+    searchHint: "Try searching by transaction hash, block hash/height, contract hash, or Neo address.",
+    searchTipBlock: "Block height or block hash",
+    searchTipTx: "Transaction hash",
+    searchTipAddress: "Neo address (N...)",
+    searchTipContract: "Contract hash",
+    backToHomepage: "Back to Homepage",
+    pageTitle: "Page Not Found",
+    pageDesc: "The requested page does not exist or may have been moved.",
+    browseBlocks: "Browse Blocks",
+  },
   wallet: {
     networkMismatch: (env) => `Network mismatch. Please switch your NeoLine wallet to ${env} and try again.`,
     noAccount: "No account found in NeoLine.",
