@@ -147,7 +147,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
           const temp = JSON.parse(JSON.stringify(stack));
           patchMethod(index, {
             isRaw: true,
-            button: "Decode",
+            button: t("contractDetail.infoDecode"),
             raw: stack,
             display: JSON.parse(JSON.stringify(temp, responseConverter)),
           });
@@ -155,7 +155,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
       })
       .catch((err) => {
         patchMethod(index, {
-          error: err?.message || err?.toString?.() || "Failed to invoke function",
+          error: err?.message || err?.toString?.() || t("contractDetail.infoFailedToInvoke"),
         });
       });
   }
