@@ -38,7 +38,17 @@ export async function getCommittee(network = NET_ENV.Mainnet) {
   const url = getDoraCommitteeUrl(network);
   const cacheKey = getDoraCommitteeCacheKey(network);
 
-  return cachedRequest(cacheKey, () => fetch(url).then((r) => (r.ok ? r.json() : [])), DORA_TTL);
+  return cachedRequest(
+    cacheKey,
+    () =>
+      fetch(url)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch((err) => {
+          if (import.meta.env.DEV) console.warn("[doraService] Failed to fetch committee", err);
+          return [];
+        }),
+    DORA_TTL,
+  );
 }
 
 /**
