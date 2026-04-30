@@ -1,8 +1,10 @@
 <template>
   <div class="space-y-4">
-    <div v-if="!manifest" class="panel-muted text-mid px-4 py-8 text-center text-sm">Loading contract manifest...</div>
+    <div v-if="!manifest" class="panel-muted text-mid px-4 py-8 text-center text-sm">
+      {{ $t("contractDetail.readLoadingManifest") }}
+    </div>
     <div v-else-if="!readMethods.length" class="panel-muted text-mid px-4 py-8 text-center text-sm">
-      No read-only (Safe) methods found in this contract.
+      {{ $t("contractDetail.readNoMethods") }}
     </div>
     <div v-else class="space-y-3">
       <div
@@ -13,7 +15,7 @@
         <button
           type="button"
           class="list-row flex w-full items-center justify-between p-4 text-left transition-colors"
-          :aria-label="`Toggle ${method.name} method details`"
+          :aria-label="$t('contractDetail.readToggleAria', { name: method.name })"
           :aria-expanded="readMethodState[mIdx]?.open"
           @click="emit('toggleMethod', mIdx)"
         >
@@ -49,13 +51,13 @@
               @update:model-value="emit('updateParam', mIdx, pIdx, $event)"
             />
           </div>
-          <div v-else class="text-mid mt-3 text-xs">No parameters required.</div>
+          <div v-else class="text-mid mt-3 text-xs">{{ $t("contractDetail.readNoParams") }}</div>
           <!-- Query button -->
           <button
             type="button"
             class="btn-primary mt-3 gap-2"
             :disabled="readMethodState[mIdx]?.loading"
-            :aria-label="`Query ${method.name}`"
+            :aria-label="$t('contractDetail.readQueryAria', { name: method.name })"
             @click="emit('invokeMethod', mIdx, method)"
           >
             <svg
@@ -68,8 +70,8 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span v-if="readMethodState[mIdx]?.loading" class="sr-only">Loading</span>
-            Query
+            <span v-if="readMethodState[mIdx]?.loading" class="sr-only">{{ $t("contractDetail.readLoading") }}</span>
+            {{ $t("contractDetail.readQueryButton") }}
           </button>
           <!-- Result -->
           <div
@@ -79,7 +81,7 @@
             aria-live="polite"
           >
             <div class="mb-2 flex items-center justify-between">
-              <h5 class="text-mid text-xs font-semibold">Result:</h5>
+              <h5 class="text-mid text-xs font-semibold">{{ $t("contractDetail.readResultLabel") }}</h5>
               <button
                 type="button"
                 class="rounded px-2 py-0.5 text-[10px] font-medium transition-colors"
@@ -91,7 +93,7 @@
                 "
                 @click="showRaw[mIdx] = !showRaw[mIdx]"
               >
-                {{ showRaw[mIdx] ? "Decoded" : "Raw" }}
+                {{ showRaw[mIdx] ? $t("contractDetail.readToggleDecoded") : $t("contractDetail.readToggleRaw") }}
               </button>
             </div>
             <!-- Raw view -->
@@ -115,7 +117,7 @@
                 </span>
               </div>
               <p v-if="getDecoded(readMethodState[mIdx].result).stack.length === 0" class="text-mid text-xs">
-                (empty result)
+                {{ $t("contractDetail.readEmptyResult") }}
               </p>
             </div>
           </div>
