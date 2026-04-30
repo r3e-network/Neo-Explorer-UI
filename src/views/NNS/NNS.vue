@@ -116,7 +116,7 @@
                       clip-rule="evenodd"
                     />
                   </svg>
-                  Available
+                  {{ $t('nnsPage.badgeAvailable') }}
                 </span>
                 <span
                   v-else
@@ -129,34 +129,34 @@
                       clip-rule="evenodd"
                     />
                   </svg>
-                  Taken
+                  {{ $t('nnsPage.badgeTaken') }}
                 </span>
               </div>
 
               <p v-if="searchResult.available" class="text-mid text-sm">
-                This domain is available for registration. Secure it now before someone else does!
+                {{ $t('nnsPage.availableHint') }}
               </p>
 
               <div v-else class="mt-4 space-y-4 p-5 bg-surface-muted rounded-xl border border-line-soft">
                 <div
                   class="flex items-center justify-between gap-4 text-sm border-b border-line-soft pb-3 last:border-0 last:pb-0"
                 >
-                  <span class="text-mid font-medium">Owner</span>
+                  <span class="text-mid font-medium">{{ $t('nnsPage.ownerLabel') }}</span>
                   <HashLink v-if="searchResult.owner" :hash="searchResult.owner" type="address" />
                   <span v-else class="text-low">-</span>
                 </div>
                 <div class="flex items-center justify-between gap-4 text-sm border-t soft-divider pt-3">
-                  <span class="text-mid font-medium">Admin</span>
+                  <span class="text-mid font-medium">{{ $t('nnsPage.adminLabel') }}</span>
                   <HashLink v-if="searchResult.admin" :hash="searchResult.admin" type="address" />
                   <span v-else class="text-low">-</span>
                 </div>
                 <div class="flex items-center justify-between gap-4 text-sm border-t soft-divider pt-3">
-                  <span class="text-mid font-medium">Resolves To</span>
+                  <span class="text-mid font-medium">{{ $t('nnsPage.resolvesTo') }}</span>
                   <HashLink v-if="searchResult.resolvedAddress" :hash="searchResult.resolvedAddress" type="address" />
                   <span v-else class="text-low">-</span>
                 </div>
                 <div class="flex items-center justify-between gap-4 text-sm border-t soft-divider pt-3">
-                  <span class="text-mid font-medium">Expiration</span>
+                  <span class="text-mid font-medium">{{ $t('nnsPage.expirationLabel') }}</span>
                   <span v-if="searchResult.expiration" class="text-high font-semibold">{{
                     formatDate(searchResult.expiration)
                   }}</span>
@@ -180,7 +180,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {{ actionLoading ? "Processing..." : "Register Now" }}
+                {{ actionLoading ? $t('nnsPage.processingButton') : $t('nnsPage.registerNow') }}
               </button>
 
               <button
@@ -189,14 +189,14 @@
                 :disabled="!account || actionLoading"
                 class="btn-outline w-full py-3.5 font-bold rounded-xl bg-surface"
               >
-                Transfer Domain
+                {{ $t('nnsPage.transferDomain') }}
               </button>
 
               <div
                 v-if="!account"
                 class="text-center text-xs text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-800"
               >
-                Connect wallet from header to manage
+                {{ $t('nnsPage.connectFromHeader') }}
               </div>
             </div>
           </div>
@@ -210,7 +210,7 @@
         role="dialog"
         tabindex="0"
         aria-modal="true"
-        aria-label="Transfer Domain"
+        :aria-label="$t('nnsPage.transferDomainAria')"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         @keydown.escape="showTransferModal = false"
       >
@@ -218,8 +218,8 @@
           class="bg-surface-base border border-line-soft rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all"
         >
           <div class="px-6 py-5 border-b soft-divider flex items-center justify-between bg-surface-muted/50">
-            <h3 class="text-lg font-bold text-high">Transfer Domain</h3>
-            <button @click="showTransferModal = false" class="text-mid hover:text-high transition-colors" aria-label="Close transfer modal">
+            <h3 class="text-lg font-bold text-high">{{ $t('nnsPage.transferDomain') }}</h3>
+            <button @click="showTransferModal = false" class="text-mid hover:text-high transition-colors" :aria-label="$t('nnsPage.closeTransferAria')">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -230,17 +230,17 @@
             <div
               class="mb-6 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-900/30"
             >
-              <p class="text-sm text-mid mb-1">Domain to transfer</p>
+              <p class="text-sm text-mid mb-1">{{ $t('nnsPage.domainToTransfer') }}</p>
               <p class="text-lg font-bold text-primary-700 dark:text-primary-400">{{ searchResult.domain }}</p>
             </div>
 
             <div class="space-y-4 mb-8">
               <div>
-                <label class="block text-sm font-semibold text-high mb-2">Recipient Address</label>
+                <label class="block text-sm font-semibold text-high mb-2">{{ $t('nnsPage.recipientAddress') }}</label>
                 <input
                   v-model="transferRecipient"
                   type="text"
-                  placeholder="e.g. N..."
+                  :placeholder="$t('nnsPage.recipientPlaceholder')"
                   class="w-full bg-surface-elevated border border-line-soft focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 rounded-xl px-4 py-3 text-high font-mono focus:outline-none transition-all"
                 />
               </div>
@@ -248,7 +248,7 @@
 
             <div class="flex gap-3">
               <button @click="showTransferModal = false" class="btn-outline flex-1 py-3 rounded-xl font-semibold">
-                Cancel
+                {{ $t('nnsPage.cancelButton') }}
               </button>
               <button
                 @click="transferDomain"
@@ -263,7 +263,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {{ actionLoading ? "Sending..." : "Confirm Transfer" }}
+                {{ actionLoading ? $t('nnsPage.sendingButton') : $t('nnsPage.confirmTransfer') }}
               </button>
             </div>
           </div>
