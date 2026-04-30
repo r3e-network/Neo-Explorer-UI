@@ -2168,6 +2168,7 @@ const ja = {
     tabTokens: "トークン保有",
     tabNfts: "NFT",
     tabVoters: "投票者",
+    csvExportFailed: "トランザクションのエクスポートに失敗しました。もう一度お試しください。",
     titleAddress: "アドレス",
     titleContract: "コントラクトアドレス",
     titleCandidate: "候補者アドレス",

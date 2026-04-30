@@ -2168,6 +2168,7 @@ const zh = {
     tabTokens: "代币持仓",
     tabNfts: "NFT",
     tabVoters: "投票者",
+    csvExportFailed: "导出交易失败。请重试。",
     titleAddress: "地址",
     titleContract: "合约地址",
     titleCandidate: "候选人地址",

@@ -2168,6 +2168,7 @@ const ko = {
     tabTokens: "토큰 보유",
     tabNfts: "NFT",
     tabVoters: "투표자",
+    csvExportFailed: "트랜잭션 내보내기에 실패했습니다. 다시 시도해 주세요.",
     titleAddress: "주소",
     titleContract: "컨트랙트 주소",
     titleCandidate: "후보 주소",

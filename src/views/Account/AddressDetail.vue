@@ -149,9 +149,11 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { useToast } from "vue-toastification";
 
 const route = useRoute();
 const { t } = useI18n();
+const toast = useToast();
 let addressRequestId = 0;
 const MAX_CANDIDATE_LIST_LOOKUP = 1000;
 const MAX_VOTER_FALLBACK_PAGES = 10;
@@ -600,7 +602,11 @@ async function loadAssets(addr) {
 }
 
 function exportCsv() {
-  downloadTransactionsCsv(transactions.value, `txns-${address.value}.csv`);
+  try {
+    downloadTransactionsCsv(transactions.value, `txns-${address.value}.csv`);
+  } catch {
+    toast.error(t("addressDetail.csvExportFailed"));
+  }
 }
 
 // --- Initialization ---

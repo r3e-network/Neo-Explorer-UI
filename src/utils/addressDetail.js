@@ -289,7 +289,7 @@ export function downloadTransactionsCsv(transactions = [], filename = "transacti
     URL.revokeObjectURL(url);
   } catch (error) {
     if (import.meta.env.DEV) console.error("Failed to download CSV:", error);
-    alert("Failed to export transactions. Please try again.");
+    throw error;
   }
 }
 

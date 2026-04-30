@@ -2168,6 +2168,7 @@ const en = {
     tabTokens: "Token Holdings",
     tabNfts: "NFTs",
     tabVoters: "Voters",
+    csvExportFailed: "Failed to export transactions. Please try again.",
     titleAddress: "Address",
     titleContract: "Contract Address",
     titleCandidate: "Candidate Address",

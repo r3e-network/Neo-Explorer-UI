@@ -2164,6 +2164,7 @@ const fr = {
     tabTokens: "Possessions de jetons",
     tabNfts: "NFT",
     tabVoters: "Votants",
+    csvExportFailed: "Échec de l'exportation des transactions. Veuillez réessayer.",
     titleAddress: "Adresse",
     titleContract: "Adresse de contrat",
     titleCandidate: "Adresse de candidat",
