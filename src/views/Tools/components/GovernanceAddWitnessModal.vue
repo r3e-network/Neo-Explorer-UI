@@ -5,15 +5,15 @@
     role="dialog"
     tabindex="0"
     aria-modal="true"
-    aria-label="Add Witness"
+    :aria-label="$t('tools.governance.addWitnessAria')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
     @keydown.escape="$emit('close')"
   >
     <div class="w-full max-w-2xl rounded-3xl border border-line-soft bg-white shadow-2xl overflow-hidden relative z-10 dark:bg-slate-950 flex flex-col max-h-[90vh]">
       <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
-        <h2 class="text-lg font-bold text-high tracking-tight">Add Signature</h2>
-        <button @click="$emit('close')" aria-label="Close" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
+        <h2 class="text-lg font-bold text-high tracking-tight">{{ $t('tools.governance.addSignatureTitle') }}</h2>
+        <button @click="$emit('close')" :aria-label="$t('tools.governance.addWitnessCloseAria')" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -25,42 +25,42 @@
         <!-- neo-cli Transaction JSON -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-high">Transaction (neo-cli JSON format)</label>
+            <label class="text-xs font-bold text-high">{{ $t('tools.governance.txJsonLabel') }}</label>
             <CopyButton v-if="contextJson" :text="contextJson" size="md" />
           </div>
           <div v-if="contextJson" class="rounded-xl bg-slate-950 p-3 max-h-32 overflow-y-auto custom-scrollbar dark:bg-slate-900">
             <code class="block break-all font-mono text-[10px] leading-5 text-emerald-300 select-all">{{ contextJson }}</code>
           </div>
-          <p v-else class="text-xs text-amber-600">Loading...</p>
-          <p class="text-[11px] text-mid">Copy this JSON into neo-cli: <code class="font-mono text-high">neo> sign &#123;paste JSON here&#125;</code></p>
+          <p v-else class="text-xs text-amber-600">{{ $t('tools.governance.walletSetupLoading') }}</p>
+          <p class="text-[11px] text-mid">{{ $t('tools.governance.copyJsonHint') }}</p>
         </div>
 
         <!-- Public Key + Signature -->
         <div class="space-y-3">
-          <label class="text-xs font-bold text-high">Public Key + Signature</label>
+          <label class="text-xs font-bold text-high">{{ $t('tools.governance.publicKeySignatureLabel') }}</label>
           <input
             v-model="signerPublicKey"
             type="text"
             class="form-input w-full font-mono text-xs py-2.5 rounded-xl"
-            placeholder="Public key (66 hex)"
+            :placeholder="$t('tools.governance.publicKeyHexPlaceholder')"
           />
           <input
             v-model="signatureHex"
             type="text"
             class="form-input w-full font-mono text-xs py-2.5 rounded-xl"
-            placeholder="Signature (128 hex or base64 from neo-cli)"
+            :placeholder="$t('tools.governance.signatureHexPlaceholder')"
           />
           <button
             @click="submitWitness"
             :disabled="!signatureHex.trim() || signatureHex.trim().length < 64 || !signerPublicKey.trim() || isSubmitting"
             class="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            {{ isSubmitting ? "Submitting..." : "Submit" }}
+            {{ isSubmitting ? $t('tools.governance.submittingButton') : $t('tools.governance.submitButtonShort') }}
           </button>
           <p v-if="submitError" class="text-xs text-red-600 dark:text-red-400">{{ submitError }}</p>
 
           <div class="text-center pt-2 border-t border-line-soft">
-            <p class="text-[11px] text-mid mb-1">Or send your public key and signature via email:</p>
+            <p class="text-[11px] text-mid mb-1">{{ $t('tools.governance.orEmailSignatureHint') }}</p>
             <a :href="emailLink" class="text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400">jimmy@r3e.network</a>
           </div>
         </div>

@@ -14,48 +14,46 @@
         </svg>
       </div>
       <div>
-        <h2 class="text-lg font-bold text-high">Action Center</h2>
+        <h2 class="text-lg font-bold text-high">{{ t('tools.governance.actionCenter') }}</h2>
         <p class="mt-1 text-sm text-mid">{{ actionDescription }}</p>
       </div>
     </div>
 
     <div class="mt-4 rounded-3xl border p-4" :class="actionToneClass">
-      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">Current State</div>
+      <div class="text-[10px] uppercase tracking-[0.18em] font-semibold text-low">{{ t('tools.governance.currentState') }}</div>
       <div class="mt-2 text-base font-bold text-high">{{ actionTitle }}</div>
       <p class="mt-2 text-sm text-mid">
-        {{ signedCount }} of {{ requiredCount }} council votes collected.
-        <span v-if="hasSigned" class="font-semibold text-emerald-600 dark:text-emerald-400">You already voted.</span>
+        {{ t('tools.governance.councilVotesCollected', { count: signedCount, required: requiredCount }) }}
+        <span v-if="hasSigned" class="font-semibold text-emerald-600 dark:text-emerald-400">{{ t('tools.governance.alreadyVoted') }}</span>
       </p>
     </div>
 
     <div v-if="proposal.status === 'EXECUTED'" class="mt-5 text-sm text-emerald-600 font-semibold">
-      Executed on-chain.
+      {{ t('tools.governance.executedOnChain') }}
     </div>
-    <div v-else-if="hasSigned" class="mt-5 text-sm text-emerald-600 font-semibold">You already voted.</div>
+    <div v-else-if="hasSigned" class="mt-5 text-sm text-emerald-600 font-semibold">{{ t('tools.governance.alreadyVoted') }}</div>
     <div v-else class="mt-5 space-y-3">
       <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
-        Sign the governance payload in NeoLine or offline, then paste the signature or witness back into this page so it can be collected with the other council approvals.
+        {{ t('tools.governance.signGovPayloadHint') }}
       </div>
       <div v-if="!canCurrentSignerVote" class="text-sm text-mid">
-        Only eligible council nodes can sign directly with a connected wallet, but you can still collect and submit an
-        external witness from another council signer.
+        {{ t('tools.governance.eligibleSignerHintShort') }}
       </div>
       <button
         class="w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary-600/20 hover:-translate-y-0.5 hover:bg-primary-700 transition-all"
         @click="$emit('open-sign-modal')"
       >
-        Add Signature / Witness
+        {{ t('tools.governance.addSignatureWitnessButton') }}
       </button>
       <button
         v-if="canCurrentSignerVote && !hasSigned"
         class="w-full rounded-xl border border-line-soft bg-surface px-4 py-3 text-sm font-semibold text-high hover:bg-surface-muted transition-all"
         @click="$emit('open-sign-modal')"
       >
-        Open Direct Wallet Sign
+        {{ t('tools.governance.openDirectWalletSign') }}
       </button>
       <p class="text-xs text-mid">
-        Paste signatures or witness fragments back into this page for collection. Once quorum is reached, the final
-        multisig witness can be assembled and broadcast.
+        {{ t('tools.governance.witnessCollectionFooter') }}
       </p>
     </div>
 
@@ -64,14 +62,14 @@
       class="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:-translate-y-0.5 hover:bg-emerald-700 transition-all"
       @click="$emit('broadcast')"
     >
-      Broadcast Threshold-Signed Proposal
+      {{ t('tools.governance.broadcastThresholdSigned') }}
     </button>
 
     <div
       v-if="isOffchainReviewPacket && proposal.status !== 'EXECUTED'"
       class="mt-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300"
     >
-      This packet is for off-chain witness collection only. Generate a fresh on-chain transaction before any broadcast.
+      {{ t('tools.governance.offchainPacketBroadcastNote') }}
     </div>
 
     <div v-if="canForkProposal" class="mt-5 border-t border-line-soft pt-5">

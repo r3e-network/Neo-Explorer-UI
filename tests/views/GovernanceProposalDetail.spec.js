@@ -485,7 +485,7 @@ describe("GovernanceProposalDetail", () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("You already voted");
+    expect(wrapper.text()).toContain("tools.governance.alreadyVoted");
     expect(wrapper.text()).not.toContain("Vote / Sign Proposal");
   });
 
