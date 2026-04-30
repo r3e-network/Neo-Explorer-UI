@@ -68,7 +68,7 @@
         </div>
       </div>
 
-      <p class="text-sm text-mid mt-4 text-center">Only exact searches are supported (must end with .neo)</p>
+      <p class="text-sm text-mid mt-4 text-center">{{ $t('inline.nnsExactSearchHint') }}</p>
 
       <!-- Search Error -->
       <transition name="fade">
@@ -84,7 +84,7 @@
             </div>
             <div>
               <p class="text-lg font-bold text-red-700 dark:text-red-400">Search failed</p>
-              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-0.5">Unable to check domain status. Please try again.</p>
+              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-0.5">{{ $t('inline.nnsCheckFailed') }}</p>
             </div>
           </div>
         </div>

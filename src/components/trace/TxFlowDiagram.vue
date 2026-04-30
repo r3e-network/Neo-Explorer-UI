@@ -11,7 +11,7 @@
       </svg>
     </div>
 
-    <div v-else-if="transfers.length === 0" class="text-mid py-8 text-center text-sm">No token transfers found</div>
+    <div v-else-if="transfers.length === 0" class="text-mid py-8 text-center text-sm">{{ $t('inline.noTokenTransfers') }}</div>
 
     <div v-else class="space-y-3">
       <div v-for="(transfer, index) in transfers" :key="index" class="flex items-center gap-3">

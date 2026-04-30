@@ -6,7 +6,7 @@
     >
       <div class="text-mid text-sm">
         <span v-if="contractHash"> Contract: {{ truncateHash(contractHash, 14, 10) }} </span>
-        <span v-else>Provide a contract hash to load source files.</span>
+        <span v-else>{{ $t('inline.provideContractHash') }}</span>
       </div>
 
       <div class="flex items-center gap-2">

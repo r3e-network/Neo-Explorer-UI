@@ -24,7 +24,7 @@
         />
       </svg>
       <span class="text-sm font-medium text-red-700 dark:text-red-400"
-        >Transaction execution failed (FAULT). State changes were reverted.</span
+        >{{ $t('inline.transactionFault') }}</span
       >
     </div>
 

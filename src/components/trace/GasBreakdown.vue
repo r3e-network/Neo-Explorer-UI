@@ -17,8 +17,8 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-high text-sm font-semibold">
-          Gas Distribution (estimated)<span class="text-low ml-2 text-xs font-normal"
-            >Gas estimated by operation count</span
+          {{ $t('inline.gasDistributionEstimated') }}<span class="text-low ml-2 text-xs font-normal"
+            >{{ $t('inline.gasEstimateOperationCount') }}</span
           >
         </h3>
         <span class="text-mid text-sm font-mono font-medium"> {{ formattedTotal }} GAS </span>

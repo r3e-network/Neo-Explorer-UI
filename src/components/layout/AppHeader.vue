@@ -213,7 +213,7 @@
 
             <div v-if="showDevWifForm" class="wallet-modal-dev-panel mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 space-y-3">
               <div>
-                <label class="block text-sm font-medium wallet-modal-label mb-1">Testnet WIF</label>
+                <label class="block text-sm font-medium wallet-modal-label mb-1">{{ $t('inline.walletWifLabel') }}</label>
                 <input
                   v-model="devWifInput"
                   type="password"
