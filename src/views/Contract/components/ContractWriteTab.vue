@@ -14,8 +14,8 @@
           />
         </svg>
         <div>
-          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Connect Wallet to Interact</h3>
-          <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">To write to this contract, connect a wallet.</p>
+          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">{{ $t("contractDetail.writeConnectTitle") }}</h3>
+          <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">{{ $t("contractDetail.writeConnectIntro") }}</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -25,7 +25,7 @@
               :disabled="walletConnecting"
               @click="emit('connectWallet', provider)"
             >
-              {{ walletConnecting ? "Connecting..." : provider }}
+              {{ walletConnecting ? $t("contractDetail.writeConnecting") : provider }}
             </button>
           </div>
           <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">{{ walletError }}</p>
@@ -50,7 +50,11 @@
           />
         </svg>
         <span class="text-sm font-medium text-green-800 dark:text-green-300">
-          Connected: {{ walletAccount?.address ? truncateHash(walletAccount.address, 8, 6) : "" }}
+          {{
+            $t("contractDetail.writeConnected", {
+              address: walletAccount?.address ? truncateHash(walletAccount.address, 8, 6) : "",
+            })
+          }}
         </span>
         <span
           class="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400"
@@ -63,15 +67,15 @@
         class="text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400"
         @click="emit('disconnectWallet')"
       >
-        Disconnect
+        {{ $t("contractDetail.writeDisconnect") }}
       </button>
     </div>
 
     <div v-if="!manifest" class="text-mid py-8 text-center">
-      Loading contract manifest...
+      {{ $t("contractDetail.readLoadingManifest") }}
     </div>
     <div v-else-if="!writeMethods.length" class="text-mid py-8 text-center">
-      No write methods found in this contract.
+      {{ $t("contractDetail.writeNoMethods") }}
     </div>
     <div v-else class="space-y-3">
       <div
@@ -83,7 +87,7 @@
         <button
           type="button"
           class="list-row flex w-full items-center justify-between p-4 text-left transition-colors"
-          :aria-label="`Toggle ${method.name} write method details`"
+          :aria-label="$t('contractDetail.writeToggleAria', { name: method.name })"
           :aria-expanded="writeMethodState[wIdx]?.open"
           @click="emit('toggleMethod', wIdx)"
         >
@@ -99,7 +103,7 @@
             <span
               class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
             >
-              Write
+              {{ $t("contractDetail.writeMethodBadge") }}
             </span>
           </div>
           <svg
@@ -128,16 +132,18 @@
               @update:model-value="emit('updateParam', wIdx, pIdx, $event)"
             />
           </div>
-          <div v-else class="text-mid mt-3 text-xs">No parameters required.</div>
+          <div v-else class="text-mid mt-3 text-xs">{{ $t("contractDetail.readNoParams") }}</div>
 
           <!-- Signer Scope -->
           <div class="mt-3 flex flex-col gap-1">
-            <label class="text-mid text-xs font-medium" :for="`signer-scope-${wIdx}`">Signer Scope</label>
+            <label class="text-mid text-xs font-medium" :for="`signer-scope-${wIdx}`">{{
+              $t("contractDetail.writeSignerScope")
+            }}</label>
             <select :id="`signer-scope-${wIdx}`" v-model="signerScopes[wIdx]" class="form-input text-sm">
-              <option :value="1">CalledByEntry (default)</option>
-              <option :value="128">Global</option>
-              <option :value="16">CustomContracts</option>
-              <option :value="32">CustomGroups</option>
+              <option :value="1">{{ $t("contractDetail.writeScopeCalledByEntry") }}</option>
+              <option :value="128">{{ $t("contractDetail.writeScopeGlobal") }}</option>
+              <option :value="16">{{ $t("contractDetail.writeScopeCustomContracts") }}</option>
+              <option :value="32">{{ $t("contractDetail.writeScopeCustomGroups") }}</option>
             </select>
           </div>
 
@@ -150,7 +156,11 @@
               :disabled="writeMethodState[wIdx]?.estimating"
               @click="emit('estimateGas', wIdx, method)"
             >
-              {{ writeMethodState[wIdx]?.estimating ? "Estimating..." : "Estimate GAS" }}
+              {{
+                writeMethodState[wIdx]?.estimating
+                  ? $t("contractDetail.writeEstimating")
+                  : $t("contractDetail.writeEstimateButton")
+              }}
             </button>
             <!-- Write button -->
             <button
@@ -164,13 +174,19 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {{ !walletConnected ? "Connect Wallet First" : writeMethodState[wIdx]?.loading ? "Sending..." : "Write" }}
+              {{
+                !walletConnected
+                  ? $t("contractDetail.writeConnectFirst")
+                  : writeMethodState[wIdx]?.loading
+                    ? $t("contractDetail.writeSending")
+                    : $t("contractDetail.writeButton")
+              }}
             </button>
           </div>
 
           <!-- Gas estimate display -->
           <p v-if="writeMethodState[wIdx]?.gasEstimate" class="text-mid mt-2 text-xs">
-            Estimated GAS:
+            {{ $t("contractDetail.writeEstimatedGas") }}
             <span class="text-high font-mono font-medium">
               {{ writeMethodState[wIdx].gasEstimate }}
             </span>
@@ -181,9 +197,13 @@
             v-if="writeMethodState[wIdx]?.result !== undefined"
             class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20"
           >
-            <h5 class="mb-1 text-xs font-semibold text-green-700 dark:text-green-400">Transaction Submitted</h5>
+            <h5 class="mb-1 text-xs font-semibold text-green-700 dark:text-green-400">{{ $t("contractDetail.writeTxSubmitted") }}</h5>
             <p class="break-all font-mono text-xs text-green-800 dark:text-green-300">
-              TxID: {{ writeMethodState[wIdx].result?.txid || writeMethodState[wIdx].result }}
+              {{
+                $t("contractDetail.writeTxidLabel", {
+                  txid: writeMethodState[wIdx].result?.txid || writeMethodState[wIdx].result,
+                })
+              }}
             </p>
             <!-- Tx tracking status -->
             <div
