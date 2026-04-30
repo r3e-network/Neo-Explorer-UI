@@ -37,19 +37,23 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <h1 class="page-title">Token Detail</h1>
+                <h1 class="page-title">{{ $t("tokenDetail.nep11Title") }}</h1>
                 <span
                   v-if="updateCounter === -1"
                   class="badge-soft text-status-error"
                 >
-                  Destroyed
+                  {{ $t("tokenDetail.nep11Destroyed") }}
                 </span>
               </div>
-              <button class="btn-outline ml-auto" aria-label="View contract details" @click="getContract(tokenInfo['hash'])">
-                View Contract
+              <button
+                class="btn-outline ml-auto"
+                :aria-label="$t('tokenDetail.nep11ViewContractAria')"
+                @click="getContract(tokenInfo['hash'])"
+              >
+                {{ $t("tokenDetail.nep11ViewContract") }}
               </button>
             </div>
-            <p class="page-subtitle">NEP-11 Non-Fungible Token</p>
+            <p class="page-subtitle">{{ $t("tokenDetail.nep11Subtitle") }}</p>
           </div>
         </div>
       </div>
@@ -106,8 +110,11 @@
 </template>
 
 <script setup>
+import { useI18n } from "vue-i18n";
 import { useTokenDetail } from "@/composables/useTokenDetail";
 import TabsNav from "@/components/common/TabsNav.vue";
+
+const { t } = useI18n();
 import NftToken from "./NftTokens.vue";
 import TokensTxNep11 from "@/components/common/TransferTable.vue";
 import TokenHolder from "./TokenHolder.vue";
@@ -136,10 +143,10 @@ const {
 } = useTokenDetail({
   defaultTab: "transfers",
   tabs: [
-    { key: "transfers", label: "Recent Transfers" },
-    { key: "nfts", label: "NFT Tokens" },
-    { key: "holders", label: "Top Holders" },
-    { key: "contract", label: "Contract Info" },
+    { key: "transfers", label: t("tokenDetail.nep11TabTransfers") },
+    { key: "nfts", label: t("tokenDetail.nep11TabNfts") },
+    { key: "holders", label: t("tokenDetail.nep11TabHolders") },
+    { key: "contract", label: t("tokenDetail.nep11TabContract") },
   ],
 });
 </script>
