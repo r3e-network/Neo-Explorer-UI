@@ -48,7 +48,7 @@
               class="text-[10px] uppercase tracking-[0.18em] font-semibold"
               :class="signer.signed ? 'text-emerald-600 dark:text-emerald-400' : 'text-low'"
             >
-              {{ signer.signed ? "Witness stored" : "Awaiting witness" }}
+              {{ signer.signed ? $t("tools.governance.witnessStored") : $t("tools.governance.awaitingWitness") }}
             </div>
           </div>
         </div>
@@ -56,7 +56,7 @@
           class="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm"
           :class="signer.signed ? 'bg-emerald-500 text-white' : 'bg-surface-elevated text-mid border border-line-soft'"
         >
-          {{ signer.signed ? "Voted" : "Pending" }}
+          {{ signer.signed ? $t("tools.governance.voted") : $t("tools.governance.pending") }}
         </div>
       </div>
     </div>

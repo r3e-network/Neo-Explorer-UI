@@ -1338,6 +1338,8 @@ const ja = {
         registrationSubmitted: "アカウント登録トランザクションが送信されました！",
         registrationFailed: "登録に失敗しました：{reason}",
       },
+      errorComputingAddress: "アドレスの計算中にエラーが発生しました",
+      unknownError: "不明なエラー",
     },
   },
   errors: {

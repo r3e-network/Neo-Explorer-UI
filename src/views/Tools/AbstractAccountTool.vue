@@ -336,7 +336,7 @@ function deriveAccount() {
     computedAddress.value = neonJs.wallet.getAddressFromScriptHash(hash160);
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
-    computedAddress.value = "Error computing address";
+    computedAddress.value = t("tools.abstractAccount.errorComputingAddress");
   }
 }
 
@@ -367,7 +367,7 @@ onMounted(async () => {
 useNetworkChange(handleNetworkChange);
 
 function formatErrorMessage(err) {
-  if (!err) return "Unknown error";
+  if (!err) return t("tools.abstractAccount.unknownError");
   if (typeof err === "string") return err;
   if (err.description) return err.description;
   if (err.message) return err.message;

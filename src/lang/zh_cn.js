@@ -1338,6 +1338,8 @@ const zh = {
         registrationSubmitted: "账户注册交易已提交！",
         registrationFailed: "注册失败：{reason}",
       },
+      errorComputingAddress: "计算地址时出错",
+      unknownError: "未知错误",
     },
   },
   errors: {

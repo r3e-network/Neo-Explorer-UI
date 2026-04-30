@@ -1334,6 +1334,8 @@ const fr = {
         registrationSubmitted: "Transaction d'enregistrement du compte soumise !",
         registrationFailed: "Échec de l'enregistrement : {reason}",
       },
+      errorComputingAddress: "Erreur lors du calcul de l'adresse",
+      unknownError: "Erreur inconnue",
     },
   },
   errors: {

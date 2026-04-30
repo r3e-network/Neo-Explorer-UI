@@ -1338,6 +1338,8 @@ const en = {
         registrationSubmitted: "Account registration transaction submitted!",
         registrationFailed: "Registration failed: {reason}",
       },
+      errorComputingAddress: "Error computing address",
+      unknownError: "Unknown error",
     },
   },
   errors: {

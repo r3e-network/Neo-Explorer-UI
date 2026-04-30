@@ -1338,6 +1338,8 @@ const ko = {
         registrationSubmitted: "계정 등록 트랜잭션이 제출되었습니다!",
         registrationFailed: "등록 실패: {reason}",
       },
+      errorComputingAddress: "주소 계산 오류",
+      unknownError: "알 수 없는 오류",
     },
   },
   errors: {
