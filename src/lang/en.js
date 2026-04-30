@@ -1487,6 +1487,8 @@ const en = {
     noParameters: "No parameters",
     searchFailed: "Search failed",
     howToSignNeoCli: "How to Sign with neo-cli",
+    validatorLogoAlt: "Validator logo",
+    tokenLogoAlt: "Token Logo",
   },
   stateChange: {
     contracts: "Contracts",

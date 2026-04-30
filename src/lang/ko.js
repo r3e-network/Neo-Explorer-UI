@@ -1487,6 +1487,8 @@ const ko = {
     noParameters: "매개변수 없음",
     searchFailed: "검색 실패",
     howToSignNeoCli: "neo-cli로 서명하는 방법",
+    validatorLogoAlt: "검증자 로고",
+    tokenLogoAlt: "토큰 로고",
   },
   stateChange: {
     contracts: "컨트랙트",

@@ -1487,6 +1487,8 @@ const zh = {
     noParameters: "无参数",
     searchFailed: "搜索失败",
     howToSignNeoCli: "如何使用 neo-cli 签名",
+    validatorLogoAlt: "验证者标志",
+    tokenLogoAlt: "代币标志",
   },
   stateChange: {
     contracts: "合约",

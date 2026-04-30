@@ -15,14 +15,14 @@
             v-if="tokenMetadata?.logo_url"
             :src="tokenMetadata.logo_url"
             class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
-            alt="Token Logo"
+            :alt="$t('inline.tokenLogoAlt')"
             loading="lazy"
           />
           <img
             v-else-if="hasTokenIcon(tokenValue?.hash)"
             :src="getTokenIcon(tokenValue?.hash, tokenValue?.type)"
             class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
-            alt="Token Logo"
+            :alt="$t('inline.tokenLogoAlt')"
             loading="lazy"
           />
           <div

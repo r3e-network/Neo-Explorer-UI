@@ -1487,6 +1487,8 @@ const ja = {
     noParameters: "パラメータなし",
     searchFailed: "検索失敗",
     howToSignNeoCli: "neo-cli で署名する方法",
+    validatorLogoAlt: "バリデーターロゴ",
+    tokenLogoAlt: "トークンロゴ",
   },
   stateChange: {
     contracts: "コントラクト",

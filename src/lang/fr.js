@@ -1483,6 +1483,8 @@ const fr = {
     noParameters: "Aucun paramètre",
     searchFailed: "Recherche échouée",
     howToSignNeoCli: "Comment signer avec neo-cli",
+    validatorLogoAlt: "Logo du validateur",
+    tokenLogoAlt: "Logo du jeton",
   },
   stateChange: {
     contracts: "Contrats",

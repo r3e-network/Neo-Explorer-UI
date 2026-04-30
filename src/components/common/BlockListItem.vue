@@ -29,7 +29,7 @@
             <img
               v-if="validatorLogo"
               :src="validatorLogo"
-              alt="Validator logo"
+              :alt="$t('inline.validatorLogoAlt')"
               class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
               onerror="this.src='/img/brand/neo.png'"
             />
