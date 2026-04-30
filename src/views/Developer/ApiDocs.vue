@@ -15,16 +15,16 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">API Documentation</h1>
+          <h1 class="page-title">{{ $t('apiDocsPage.title') }}</h1>
           <p class="page-subtitle">
-            JSON-RPC methods used by this explorer on <span class="font-medium">{{ networkLabel }}</span>
+            {{ $t('apiDocsPage.subtitleBefore') }} <span class="font-medium">{{ networkLabel }}</span>
           </p>
         </div>
       </div>
 
       <div class="panel-muted mb-4 px-4 py-3 text-sm">
         <p class="text-mid">
-          Endpoint:
+          {{ $t('apiDocsPage.endpointPrefix') }}
           <span class="text-high font-mono">POST {{ rpcBasePath }}</span>
         </p>
       </div>
@@ -32,9 +32,9 @@
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
         <aside class="etherscan-card p-4">
           <h2 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
-            Categories
+            {{ $t('apiDocsPage.categoriesHeading') }}
           </h2>
-          <nav class="space-y-1" aria-label="RPC Categories">
+          <nav class="space-y-1" :aria-label="$t('apiDocsPage.categoriesAriaLabel')">
             <button
               v-for="category in categories"
               :key="category.key"
@@ -59,7 +59,7 @@
               <div class="mb-2 flex items-center gap-2">
                 <span
                   class="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                  >RPC</span
+                  >{{ $t('apiDocsPage.rpcBadge') }}</span
                 >
                 <span
                   class="rounded px-2 py-0.5 text-xs font-semibold"
@@ -69,7 +69,7 @@
                       : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                   "
                 >
-                  {{ method.type === "passthrough" ? "Native Pass-through" : "Indexed API" }}
+                  {{ method.type === "passthrough" ? $t('apiDocsPage.typeNative') : $t('apiDocsPage.typeIndexed') }}
                 </span>
                 <h3 class="text-high font-mono text-sm font-semibold">
                   {{ method.name }}
@@ -81,7 +81,7 @@
               </p>
 
               <pre
-                aria-label="Example request payload"
+                :aria-label="$t('apiDocsPage.examplePayloadAria')"
                 class="font-hash text-high overflow-x-auto rounded border border-card-border bg-gray-50 p-3 text-xs leading-relaxed dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
               ><code>{{ buildRequestBody(method) }}</code></pre>
             </article>
@@ -90,7 +90,7 @@
             v-else
             class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm"
           >
-            No RPC methods available for this category yet.
+            {{ $t('apiDocsPage.noMethods') }}
           </div>
         </main>
       </div>

@@ -24,9 +24,9 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Execution Trace</h1>
+          <h1 class="page-title">{{ $t('executionTracePage.title') }}</h1>
           <div class="flex items-center gap-2">
-            <span class="page-subtitle">Transaction:</span>
+            <span class="page-subtitle">{{ $t('executionTracePage.transactionLabel') }}</span>
             <HashLink :hash="txHash" type="tx" :truncated="false" />
           </div>
         </div>
@@ -39,7 +39,7 @@
 
       <!-- Call map section -->
       <section class="mb-6">
-        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Contract Call Map</h2>
+        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">{{ $t('executionTracePage.contractCallMap') }}</h2>
         <div class="etherscan-card p-4">
           <div v-if="loading" class="space-y-3">
             <Skeleton width="60%" height="20px" />
@@ -47,7 +47,7 @@
           </div>
           <ErrorState
             v-else-if="error"
-            title="Unable to load execution trace"
+            :title="$t('executionTracePage.unableToLoad')"
             :message="error"
             @retry="loadTrace(txHash)"
           />
@@ -56,13 +56,13 @@
             :call-tree="callTree"
             :contract-metadata="enrichedData?.contractMetadata"
           />
-          <EmptyState v-else icon="tx" message="No call map available" />
+          <EmptyState v-else icon="tx" :message="$t('executionTracePage.noCallMap')" />
         </div>
       </section>
 
       <!-- Gas Breakdown -->
       <section class="mb-6">
-        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Gas Usage Breakdown</h2>
+        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">{{ $t('executionTracePage.gasUsageBreakdown') }}</h2>
         <div class="etherscan-card p-4">
           <GasBreakdown :executions="enrichedData?.executions ?? []" :total-gas="totalGas" :loading="loading" />
         </div>
@@ -70,7 +70,7 @@
 
       <!-- Token transfer flow section -->
       <section v-if="transfers.length > 0" class="mb-6">
-        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Token Transfer Flow</h2>
+        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">{{ $t('executionTracePage.tokenTransferFlow') }}</h2>
         <div class="etherscan-card p-4">
           <TokenTransferFlow :transfers="transfers" :loading="loading" />
         </div>
@@ -78,7 +78,7 @@
 
       <!-- Detailed trace section -->
       <section>
-        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">Detailed Trace</h2>
+        <h2 class="mb-3 text-base font-semibold text-text-primary dark:text-gray-200">{{ $t('executionTracePage.detailedTrace') }}</h2>
         <ExecutionTraceView :tx-hash="txHash" :enriched-data="enrichedData" :preloaded="!!enrichedData" />
       </section>
     </section>
