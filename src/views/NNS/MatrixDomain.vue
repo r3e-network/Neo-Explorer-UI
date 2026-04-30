@@ -103,10 +103,9 @@
                 ></path>
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-high mb-2">Zero Registration Fees</h3>
+            <h3 class="text-lg font-bold text-high mb-2">{{ $t('matrixPage.feature1Title') }}</h3>
             <p class="text-sm text-mid leading-relaxed">
-              Unlike traditional naming services, the .matrix registry does not charge native GAS or NEO fees to secure
-              a domain.
+              {{ $t('matrixPage.feature1Body') }}
             </p>
           </div>
           <div
@@ -124,10 +123,9 @@
                 ></path>
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-high mb-2">Permanent Ownership</h3>
+            <h3 class="text-lg font-bold text-high mb-2">{{ $t('matrixPage.feature2Title') }}</h3>
             <p class="text-sm text-mid leading-relaxed">
-              No expiration dates, no recurring renewal costs. Once registered, the domain is mathematically bound to
-              your wallet forever.
+              {{ $t('matrixPage.feature2Body') }}
             </p>
           </div>
           <div
@@ -145,10 +143,9 @@
                 ></path>
               </svg>
             </div>
-            <h3 class="text-lg font-bold text-high mb-2">Universal Resolution</h3>
+            <h3 class="text-lg font-bold text-high mb-2">{{ $t('matrixPage.feature3Title') }}</h3>
             <p class="text-sm text-mid leading-relaxed">
-              Natively integrated across the explorer ecosystem. Look up accounts, trace transactions, and transfer
-              assets easily.
+              {{ $t('matrixPage.feature3Body') }}
             </p>
           </div>
         </div>
@@ -170,14 +167,13 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                Domain Available
+                {{ $t('matrixPage.domainAvailable') }}
               </div>
               <h3 class="text-4xl md:text-5xl font-black text-high tracking-tight break-all">
                 {{ searchResult.domain }}
               </h3>
               <p class="text-mid text-base max-w-lg">
-                This domain is unregistered. You can claim it permanently and feelessly to your connected wallet right
-                now.
+                {{ $t('matrixPage.availableDescription') }}
               </p>
             </div>
 
@@ -185,12 +181,12 @@
               class="flex flex-col gap-3 min-w-[240px] shrink-0 md:self-start bg-surface p-6 rounded-2xl shadow-sm border border-line-soft"
             >
               <div class="flex justify-between items-center pb-3 border-b border-line-soft">
-                <span class="text-sm font-medium text-mid">Registration Fee</span>
-                <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">Free</span>
+                <span class="text-sm font-medium text-mid">{{ $t('matrixPage.registrationFee') }}</span>
+                <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">{{ $t('matrixPage.feeFree') }}</span>
               </div>
               <div class="flex justify-between items-center pb-4">
-                <span class="text-sm font-medium text-mid">Expiration</span>
-                <span class="text-sm font-bold text-high">Never</span>
+                <span class="text-sm font-medium text-mid">{{ $t('matrixPage.expiration') }}</span>
+                <span class="text-sm font-bold text-high">{{ $t('matrixPage.expirationNever') }}</span>
               </div>
 
               <button
@@ -214,10 +210,10 @@
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   ></path>
                 </svg>
-                {{ actionLoading ? "Processing..." : "Register Domain" }}
+                {{ actionLoading ? $t('matrixPage.processing') : $t('matrixPage.registerDomain') }}
               </button>
               <div v-if="!account" class="text-center text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
-                Please connect your wallet first
+                {{ $t('matrixPage.connectWalletFirst') }}
               </div>
             </div>
           </div>
@@ -240,12 +236,11 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                Domain Reserved
+                {{ $t('matrixPage.domainReserved') }}
               </div>
               <h3 class="text-4xl md:text-5xl font-black text-high tracking-tight">{{ searchResult.domain }}</h3>
               <p class="text-mid text-base max-w-lg">
-                This domain name has been administratively reserved. It can only be claimed privately by authorized
-                parties.
+                {{ $t('matrixPage.reservedDescription') }}
               </p>
             </div>
 
@@ -253,8 +248,8 @@
               class="flex flex-col gap-3 min-w-[240px] shrink-0 bg-surface p-6 rounded-2xl shadow-sm border border-line-soft"
             >
               <div class="flex justify-between items-center pb-3 border-b border-line-soft">
-                <span class="text-sm font-medium text-mid">Status</span>
-                <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">Locked</span>
+                <span class="text-sm font-medium text-mid">{{ $t('matrixPage.statusLabel') }}</span>
+                <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">{{ $t('matrixPage.statusLocked') }}</span>
               </div>
 
               <button
@@ -269,7 +264,7 @@
                     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                   ></path>
                 </svg>
-                Public Registration Disabled
+                {{ $t('matrixPage.publicRegistrationDisabled') }}
               </button>
             </div>
           </div>
@@ -287,8 +282,8 @@
               </svg>
             </div>
             <div>
-              <p class="text-xl font-black text-red-700 dark:text-red-400">Search failed</p>
-              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-1">Unable to check domain status. Please try again.</p>
+              <p class="text-xl font-black text-red-700 dark:text-red-400">{{ $t('matrixPage.searchFailed') }}</p>
+              <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-1">{{ $t('matrixPage.searchFailedDescription') }}</p>
             </div>
           </div>
         </div>
@@ -309,7 +304,7 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                Domain Registered
+                {{ $t('matrixPage.domainRegistered') }}
               </div>
               <h3 class="text-3xl md:text-4xl font-black text-high tracking-tight">{{ searchResult.domain }}</h3>
             </div>
@@ -326,16 +321,16 @@
                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
                   ></path>
                 </svg>
-                Transfer Domain
+                {{ $t('matrixPage.transferDomain') }}
               </button>
             </div>
           </div>
 
           <div class="p-8">
-            <h4 class="text-lg font-bold text-high mb-6">Domain Records</h4>
+            <h4 class="text-lg font-bold text-high mb-6">{{ $t('matrixPage.domainRecords') }}</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="p-5 bg-surface-muted rounded-2xl border border-line-soft space-y-1.5">
-                <p class="text-xs font-bold text-mid uppercase tracking-wider">Controller (Owner)</p>
+                <p class="text-xs font-bold text-mid uppercase tracking-wider">{{ $t('matrixPage.controllerOwner') }}</p>
                 <div class="flex items-center gap-2">
                   <HashLink
                     v-if="searchResult.owner"
@@ -343,11 +338,11 @@
                     type="address"
                     class="text-lg font-mono font-medium"
                   />
-                  <span v-else class="text-low">Unknown</span>
+                  <span v-else class="text-low">{{ $t('matrixPage.unknownPlaceholder') }}</span>
                 </div>
               </div>
               <div class="p-5 bg-surface-muted rounded-2xl border border-line-soft space-y-1.5">
-                <p class="text-xs font-bold text-mid uppercase tracking-wider">Resolution Target</p>
+                <p class="text-xs font-bold text-mid uppercase tracking-wider">{{ $t('matrixPage.resolutionTarget') }}</p>
                 <div class="flex items-center gap-2">
                   <HashLink
                     v-if="searchResult.resolvedAddress"
@@ -355,11 +350,11 @@
                     type="address"
                     class="text-lg font-mono font-medium"
                   />
-                  <span v-else class="text-low">Not configured</span>
+                  <span v-else class="text-low">{{ $t('matrixPage.notConfigured') }}</span>
                 </div>
               </div>
               <div class="p-5 bg-surface-muted rounded-2xl border border-line-soft space-y-1.5">
-                <p class="text-xs font-bold text-mid uppercase tracking-wider">Administrative Key</p>
+                <p class="text-xs font-bold text-mid uppercase tracking-wider">{{ $t('matrixPage.administrativeKey') }}</p>
                 <div class="flex items-center gap-2">
                   <HashLink
                     v-if="searchResult.admin"
@@ -367,13 +362,13 @@
                     type="address"
                     class="text-lg font-mono font-medium"
                   />
-                  <span v-else class="text-low">Default (Owner)</span>
+                  <span v-else class="text-low">{{ $t('matrixPage.defaultOwner') }}</span>
                 </div>
               </div>
               <div class="p-5 bg-surface-muted rounded-2xl border border-line-soft space-y-1.5">
-                <p class="text-xs font-bold text-mid uppercase tracking-wider">Status</p>
+                <p class="text-xs font-bold text-mid uppercase tracking-wider">{{ $t('matrixPage.statusLabel') }}</p>
                 <div class="flex items-center gap-2">
-                  <span class="text-lg font-bold text-high">Permanent</span>
+                  <span class="text-lg font-bold text-high">{{ $t('matrixPage.statusPermanent') }}</span>
                 </div>
               </div>
             </div>
@@ -383,16 +378,16 @@
 
       <!-- Transfer Modal -->
       <transition name="fade">
-        <div v-if="showTransferModal" ref="transferModalRef" class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" tabindex="0" aria-modal="true" aria-label="Transfer Domain" @keydown.escape="showTransferModal = false">
+        <div v-if="showTransferModal" ref="transferModalRef" class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" tabindex="0" aria-modal="true" :aria-label="$t('matrixPage.transferDomainAria')" @keydown.escape="showTransferModal = false">
           <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showTransferModal = false"></div>
           <div
             class="bg-surface-base border border-line-soft rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
           >
             <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface-muted">
-              <h3 class="text-xl font-bold text-high">Transfer Domain</h3>
+              <h3 class="text-xl font-bold text-high">{{ $t('matrixPage.transferDomain') }}</h3>
               <button
                 @click="showTransferModal = false"
-                aria-label="Close transfer modal"
+                :aria-label="$t('matrixPage.closeTransferModal')"
                 class="text-mid hover:text-high p-1 rounded-lg hover:bg-line-soft transition-colors"
               >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,17 +400,17 @@
               <div
                 class="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-center"
               >
-                <p class="text-sm text-mid mb-1 font-medium">Domain Asset</p>
+                <p class="text-sm text-mid mb-1 font-medium">{{ $t('matrixPage.domainAsset') }}</p>
                 <p class="text-xl font-black text-emerald-700 dark:text-emerald-400">{{ searchResult.domain }}</p>
               </div>
 
               <div class="space-y-4 mb-8">
                 <div>
-                  <label class="block text-sm font-bold text-high mb-2">Recipient Address</label>
+                  <label class="block text-sm font-bold text-high mb-2">{{ $t('matrixPage.recipientAddress') }}</label>
                   <input
                     v-model="transferRecipient"
                     type="text"
-                    placeholder="Enter Neo N3 Address (N...)"
+                    :placeholder="$t('matrixPage.recipientAddressPlaceholder')"
                     class="w-full bg-surface border border-line-soft focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl px-4 py-3.5 text-high font-mono text-sm focus:outline-none transition-all"
                   />
                 </div>
@@ -434,7 +429,7 @@
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                {{ actionLoading ? "Signing Transaction..." : "Confirm Transfer" }}
+                {{ actionLoading ? $t('matrixPage.signingTransaction') : $t('matrixPage.confirmTransfer') }}
               </button>
             </div>
           </div>
