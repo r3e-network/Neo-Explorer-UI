@@ -10,7 +10,7 @@
     </div>
     <div v-else-if="error && !blocks.length" class="p-4">
       <ErrorState
-        title="Unable to load latest blocks"
+        :title="$t('errorTitles.unableToLoadLatestBlocks')"
         message="Please try again in a moment."
         @retry="$emit('retry')"
       />

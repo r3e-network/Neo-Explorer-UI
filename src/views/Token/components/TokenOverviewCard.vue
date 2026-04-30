@@ -18,7 +18,7 @@
       <InfoRow label="Name">
         <span>
           {{ tokenInfo["tokenname"] }}
-          <span v-if="tokenInfo.ispopular" class="ml-1" title="Popular Token">&#x1F525;</span>
+          <span v-if="tokenInfo.ispopular" class="ml-1" :title="$t('aria.popularToken')">&#x1F525;</span>
         </span>
       </InfoRow>
       <!-- Hash -->

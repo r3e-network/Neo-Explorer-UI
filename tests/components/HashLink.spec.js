@@ -47,6 +47,7 @@ const mountHashLink = (props = {}) =>
   mount(HashLink, {
     props,
     global: {
+      mocks: { $t: (k) => k },
       stubs: {
         RouterLink: {
           name: "RouterLink",

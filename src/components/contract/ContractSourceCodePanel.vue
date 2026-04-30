@@ -24,7 +24,7 @@
 
     <ErrorState
       v-if="loadError"
-      title="Unable to load source code"
+      :title="$t('errorTitles.unableToLoadSource')"
       message="Please try again in a moment."
       @retry="loadSourceCode"
     />

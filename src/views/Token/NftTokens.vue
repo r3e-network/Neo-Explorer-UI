@@ -7,7 +7,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load NFT items" :message="error" @retry="loadNftItems(0)" />
+      <ErrorState :title="$t('errorTitles.unableToLoadNftItems')" :message="error" @retry="loadNftItems(0)" />
     </div>
 
     <template v-else>
@@ -25,7 +25,7 @@
                 ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30'
                 : 'text-mid hover:text-high',
             ]"
-            title="Grid view"
+            :title="$t('aria.gridView')"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -44,7 +44,7 @@
                 ? 'bg-primary-50 text-primary-500 dark:bg-primary-900/30'
                 : 'text-mid hover:text-high',
             ]"
-            title="List view"
+            :title="$t('aria.listView')"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />

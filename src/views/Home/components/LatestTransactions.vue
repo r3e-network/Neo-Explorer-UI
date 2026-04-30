@@ -10,7 +10,7 @@
     </div>
     <div v-else-if="error && !transactions.length" class="p-4">
       <ErrorState
-        title="Unable to load latest transactions"
+        :title="$t('errorTitles.unableToLoadLatestTransactions')"
         message="Please try again in a moment."
         @retry="$emit('retry')"
       />

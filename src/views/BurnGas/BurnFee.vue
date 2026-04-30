@@ -63,7 +63,7 @@
           <Skeleton v-for="i in 5" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load burn data" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('errorTitles.failedToLoadBurnData')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="cumulativeCanvas"></canvas>
@@ -78,7 +78,7 @@
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
         <div v-else-if="error" class="py-2">
-          <ErrorState title="Failed to load burn data" :message="error" @retry="loadData" />
+          <ErrorState :title="$t('errorTitles.failedToLoadBurnData')" :message="error" @retry="loadData" />
         </div>
         <div v-else class="h-[360px]">
           <canvas ref="dailyBurnCanvas"></canvas>

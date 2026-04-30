@@ -8,7 +8,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load NEP-17 transfers" :message="error" @retry="() => loadPage(currentPage)" />
+      <ErrorState :title="$t('errorTitles.unableToLoadNep17')" :message="error" @retry="() => loadPage(currentPage)" />
     </div>
 
     <template v-else>

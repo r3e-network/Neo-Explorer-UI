@@ -28,7 +28,10 @@ import SearchBox from "@/components/common/SearchBox.vue";
 const factory = (props = {}) =>
   mount(SearchBox, {
     props: { ...props },
-    global: { stubs: { "router-link": { template: "<a><slot /></a>", props: ["to"] } } },
+    global: {
+      mocks: { $t: (k) => k },
+      stubs: { "router-link": { template: "<a><slot /></a>", props: ["to"] } },
+    },
   });
 
 describe("SearchBox", () => {

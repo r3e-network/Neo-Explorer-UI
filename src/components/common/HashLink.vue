@@ -66,7 +66,7 @@
       v-if="type === 'address' && showNeoChat"
       :to="{ path: '/chat', query: { with: normalizedAddressHash || hash } }"
       class="flex-shrink-0 transition-transform hover:scale-110"
-      title="Open NeoChat"
+      :title="$t('aria.openNeoChat')"
     >
       <img src="@/assets/neochat.svg" class="w-4 h-4" alt="NeoChat" />
     </router-link>

@@ -47,7 +47,7 @@
             'border-white/20 text-[10px] font-bold text-white/70 border bg-white/10 transition-all duration-300 hidden sm:inline-flex h-6 w-6 items-center justify-center rounded-md',
             isFocused ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'
           ]"
-          title="Press / to search"
+          :title="$t('aria.pressSlashToSearch')"
           >/</kbd
         >
       </div>

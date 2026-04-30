@@ -218,7 +218,7 @@
                   v-model="devWifInput"
                   type="password"
                   class="form-input w-full font-mono text-sm"
-                  placeholder="Paste local testnet WIF"
+                  :placeholder="$t('header.devWifPlaceholder')"
                   autocomplete="off"
                 />
               </div>

@@ -93,7 +93,7 @@
         <!-- Collapsible body -->
         <div v-if="expandedExecs[ei]" class="soft-divider divide-y">
           <!-- Contract calls section -->
-          <TraceSection title="Contract Calls" :count="(exec.children ?? []).length" default-open>
+          <TraceSection :title="$t('traceSection.contractCalls')" :count="(exec.children ?? []).length" default-open>
             <div class="space-y-2">
               <div v-for="(node, ni) in exec.children ?? []" :key="ni" class="contract-group">
                 <div class="flex items-center gap-2 mb-2">
@@ -115,7 +115,7 @@
           <!-- Opcode Execution Steps (from neo3fura detailed trace) -->
           <TraceSection
             v-if="(execStepsMap[ei] ?? []).length > 0"
-            title="Execution Steps (Opcodes)"
+            :title="$t('traceSection.executionSteps')"
             :count="execStepsMap[ei].length"
             :default-open="false"
           >
@@ -159,7 +159,7 @@
           <!-- Contract-to-Contract Calls (from detailed trace) -->
           <TraceSection
             v-if="(execContractCallsMap[ei] ?? []).length > 0"
-            title="Internal Contract Calls"
+            :title="$t('traceSection.internalContractCalls')"
             :count="execContractCallsMap[ei].length"
             :default-open="true"
           >
@@ -195,7 +195,7 @@
           <!-- Return Stack section (collapsed by default) -->
           <TraceSection
             v-if="exec.stack && exec.stack.length > 0"
-            title="Advanced: Return Stack"
+            :title="$t('traceSection.advancedReturnStack')"
             :count="exec.stack.length"
             :default-open="false"
           >

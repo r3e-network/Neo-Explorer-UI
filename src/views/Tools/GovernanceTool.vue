@@ -19,14 +19,14 @@
 
       <div v-if="!loading && (committeeError || requestsError || validatorError)" class="mb-6 space-y-3">
         <div v-if="committeeError" class="etherscan-card overflow-hidden">
-          <ErrorState title="Failed to load committee" :message="committeeError" @retry="loadCommittee()" />
+          <ErrorState :title="$t('errorTitles.failedToLoadCommittee')" :message="committeeError" @retry="loadCommittee()" />
         </div>
         <div v-if="requestsError" class="etherscan-card overflow-hidden">
-          <ErrorState title="Failed to load proposals" :message="requestsError" @retry="loadRequests()" />
+          <ErrorState :title="$t('errorTitles.failedToLoadProposals')" :message="requestsError" @retry="loadRequests()" />
         </div>
         <div v-if="validatorError" class="etherscan-card overflow-hidden">
           <ErrorState
-            title="Failed to load validator metadata"
+            :title="$t('errorTitles.failedToLoadValidatorMetadata')"
             :message="validatorError"
             :show-retry="false"
           />
