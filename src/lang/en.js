@@ -1486,6 +1486,7 @@ const en = {
     submitSignatureStep: "Submit your signature",
     noParameters: "No parameters",
     searchFailed: "Search failed",
+    howToSignNeoCli: "How to Sign with neo-cli",
   },
   stateChange: {
     contracts: "Contracts",

@@ -1486,6 +1486,7 @@ const zh = {
     submitSignatureStep: "提交签名",
     noParameters: "无参数",
     searchFailed: "搜索失败",
+    howToSignNeoCli: "如何使用 neo-cli 签名",
   },
   stateChange: {
     contracts: "合约",

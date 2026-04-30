@@ -1486,6 +1486,7 @@ const ko = {
     submitSignatureStep: "서명 제출",
     noParameters: "매개변수 없음",
     searchFailed: "검색 실패",
+    howToSignNeoCli: "neo-cli로 서명하는 방법",
   },
   stateChange: {
     contracts: "컨트랙트",

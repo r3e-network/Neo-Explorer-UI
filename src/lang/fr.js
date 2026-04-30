@@ -1482,6 +1482,7 @@ const fr = {
     submitSignatureStep: "Soumettre votre signature",
     noParameters: "Aucun paramètre",
     searchFailed: "Recherche échouée",
+    howToSignNeoCli: "Comment signer avec neo-cli",
   },
   stateChange: {
     contracts: "Contrats",

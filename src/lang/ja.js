@@ -1486,6 +1486,7 @@ const ja = {
     submitSignatureStep: "署名を提出",
     noParameters: "パラメータなし",
     searchFailed: "検索失敗",
+    howToSignNeoCli: "neo-cli で署名する方法",
   },
   stateChange: {
     contracts: "コントラクト",

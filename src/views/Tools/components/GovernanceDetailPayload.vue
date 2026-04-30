@@ -143,7 +143,7 @@
               </svg>
             </div>
             <div>
-              <h3 class="text-sm font-black tracking-tight text-amber-800 dark:text-amber-400">How to Sign with neo-cli</h3>
+              <h3 class="text-sm font-black tracking-tight text-amber-800 dark:text-amber-400">{{ $t('inline.howToSignNeoCli') }}</h3>
               <p class="mt-0.5 text-xs text-amber-700/70 dark:text-amber-400/60">Step-by-step guide for council members to sign this proposal offline</p>
             </div>
           </div>
