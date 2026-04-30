@@ -429,7 +429,7 @@ const methodName = computed(() => {
     tx.attributes &&
     tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
   ) {
-    return "Oracle Callback";
+    return t("txDetail.actionOracle");
   }
   if (invocation.value?.method) {
     const contractHash = canonicalizeContractHash(invocation.value.contractHash);

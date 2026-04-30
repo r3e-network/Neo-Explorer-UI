@@ -140,6 +140,9 @@ import HashLink from "@/components/common/HashLink.vue";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -164,7 +167,7 @@ function getTxMethod(tx) {
     tx.attributes &&
     tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
   ) {
-    return "Oracle Callback";
+    return t("txDetail.actionOracle");
   }
   if (tx.script) {
     const inv = extractContractInvocation(tx.script);

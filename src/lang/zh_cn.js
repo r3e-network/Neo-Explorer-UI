@@ -664,6 +664,9 @@ const zh = {
       progressOneMoreVote: "广播前还需要 1 票。",
       progressMoreVotesNeeded: "广播前还需要 {count} 票。",
       progressDescOffchain: "此数据包仅用于链下见证收集。即使达到法定人数，广播前仍需生成新的链上交易。",
+      queueHeadlineNone: "当前没有审核中的活跃提案",
+      queueHeadlineOne: "1 项审核中的活跃提案",
+      queueHeadlineMany: "{count} 项审核中的活跃提案",
       actionTitleOffchainComplete: "链下审查数据包已完成",
       actionTitleOffchainCollecting: "正在收集链下见证片段",
       actionDescOffchain: "此数据包仅用于链下见证收集。在此收集审查见证，准备广播时再重新生成新的链上交易。",
@@ -1504,6 +1507,10 @@ const zh = {
     mint: "铸造",
     burn: "销毁",
     transfer: "转账",
+  },
+  validator: {
+    consensusNode: "共识节点",
+    consensusNodeN: "共识节点 {n}",
   },
   operationTypes: {
     transfer: "转账",

@@ -146,6 +146,9 @@ import { supabaseService } from "@/services/supabaseService";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   transactions: { type: Array, required: true },
@@ -233,7 +236,7 @@ function getMethodName(tx) {
     tx.attributes &&
     tx.attributes.some((a) => a.type === "OracleResponse" || a.usage === "OracleResponse" || a.type === 0x11)
   ) {
-    return "Oracle Callback";
+    return t("txDetail.actionOracle");
   }
   if (tx.script) {
     const inv = extractContractInvocation(tx.script);

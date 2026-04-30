@@ -663,6 +663,9 @@ const fr = {
       progressOneMoreVote: "Encore 1 vote nécessaire avant la diffusion.",
       progressMoreVotesNeeded: "Encore {count} votes nécessaires avant la diffusion.",
       progressDescOffchain: "Ce paquet est destiné uniquement à la collecte de témoins hors chaîne. Même après l'atteinte du quorum, une nouvelle transaction sur chaîne doit être générée avant la diffusion.",
+      queueHeadlineNone: "Aucune proposition active en cours d'examen",
+      queueHeadlineOne: "1 proposition active en cours d'examen",
+      queueHeadlineMany: "{count} propositions actives en cours d'examen",
       actionTitleOffchainComplete: "Paquet de revue hors chaîne complet",
       actionTitleOffchainCollecting: "Collecte de fragments de témoins hors chaîne",
       actionDescOffchain: "Ce paquet est destiné uniquement à la collecte de témoins hors chaîne. Rassemblez les témoins de revue ici, puis régénérez une nouvelle transaction sur chaîne lorsque vous êtes prêt à diffuser.",
@@ -1500,6 +1503,10 @@ const fr = {
     mint: "Émission",
     burn: "Brûlage",
     transfer: "Transfert",
+  },
+  validator: {
+    consensusNode: "Nœud de consensus",
+    consensusNodeN: "Nœud de consensus {n}",
   },
   operationTypes: {
     transfer: "Transfert",

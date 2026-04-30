@@ -5,6 +5,14 @@ import { NEO_HASH } from "@/constants";
 
 config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k }),
+  };
+});
+
 const { getContractMetadataBatch } = vi.hoisted(() => ({
   getContractMetadataBatch: vi.fn(async () => ({})),
 }));

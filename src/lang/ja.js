@@ -664,6 +664,9 @@ const ja = {
       progressOneMoreVote: "ブロードキャストまであと 1 票必要です。",
       progressMoreVotesNeeded: "ブロードキャストまであと {count} 票必要です。",
       progressDescOffchain: "このパケットはオフチェーンのウィットネス収集専用です。定足数に達した後でも、ブロードキャスト前に新しいオンチェーントランザクションを生成する必要があります。",
+      queueHeadlineNone: "審査中のアクティブな提案はありません",
+      queueHeadlineOne: "審査中のアクティブな提案 1 件",
+      queueHeadlineMany: "審査中のアクティブな提案 {count} 件",
       actionTitleOffchainComplete: "オフチェーンレビューパケット完了",
       actionTitleOffchainCollecting: "オフチェーンウィットネスフラグメントを収集中",
       actionDescOffchain: "このパケットはオフチェーンのウィットネス収集専用です。ここでレビューウィットネスを集め、ブロードキャストの準備ができたら新しいオンチェーントランザクションを再生成してください。",
@@ -1504,6 +1507,10 @@ const ja = {
     mint: "ミント",
     burn: "バーン",
     transfer: "転送",
+  },
+  validator: {
+    consensusNode: "コンセンサスノード",
+    consensusNodeN: "コンセンサスノード {n}",
   },
   operationTypes: {
     transfer: "転送",

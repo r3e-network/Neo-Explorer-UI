@@ -664,6 +664,9 @@ const en = {
       progressOneMoreVote: "1 more vote needed before broadcast.",
       progressMoreVotesNeeded: "{count} more votes needed before broadcast.",
       progressDescOffchain: "This packet is for off-chain witness collection only. Even after quorum is reached, a fresh on-chain transaction must be generated before broadcast.",
+      queueHeadlineNone: "No active proposals under review",
+      queueHeadlineOne: "1 active proposal under review",
+      queueHeadlineMany: "{count} active proposals under review",
       actionTitleOffchainComplete: "Off-chain review packet complete",
       actionTitleOffchainCollecting: "Collecting off-chain witness fragments",
       actionDescOffchain: "This packet is for off-chain witness collection only. Gather review witnesses here, then regenerate a fresh on-chain transaction when you are ready to broadcast.",
@@ -1504,6 +1507,10 @@ const en = {
     mint: "Mint",
     burn: "Burn",
     transfer: "Transfer",
+  },
+  validator: {
+    consensusNode: "Consensus Node",
+    consensusNodeN: "Consensus Node {n}",
   },
   operationTypes: {
     transfer: "Transfer",

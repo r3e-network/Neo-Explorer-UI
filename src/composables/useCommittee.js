@@ -155,6 +155,15 @@ const deriveValidatorAddress = (validator) => {
   return derived && derived !== publickey ? derived : null;
 };
 
+const tFallback = (key, params, fallback) => {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key, params || {});
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+};
+
 const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
   const address = scriptHashToAddress(String(maybeAddress || ""));
   const knownName = getKnownAddressName(address || maybeAddress);
@@ -164,10 +173,10 @@ const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
 
   const numericIndex = Number(primaryIndex);
   if (Number.isFinite(numericIndex) && numericIndex >= 0) {
-    return `Consensus Node ${numericIndex + 1}`;
+    return tFallback("validator.consensusNodeN", { n: numericIndex + 1 }, `Consensus Node ${numericIndex + 1}`);
   }
 
-  return "Consensus Node";
+  return tFallback("validator.consensusNode", null, "Consensus Node");
 };
 
 const getValidatorMetadata = (validator) => {

@@ -135,9 +135,9 @@ const collectedSignatureCount = computed(() =>
   requests.value.reduce((sum, request) => sum + getRequestSignatureCount(request), 0),
 );
 const requestQueueHeadline = computed(() => {
-  if (pendingRequestCount.value === 0) return "No active proposals under review";
-  if (pendingRequestCount.value === 1) return "1 active proposal under review";
-  return `${pendingRequestCount.value} active proposals under review`;
+  if (pendingRequestCount.value === 0) return t("tools.governance.queueHeadlineNone");
+  if (pendingRequestCount.value === 1) return t("tools.governance.queueHeadlineOne");
+  return t("tools.governance.queueHeadlineMany", { count: pendingRequestCount.value });
 });
 
 const isCouncilNode = computed(() => {

@@ -664,6 +664,9 @@ const ko = {
       progressOneMoreVote: "브로드캐스트 전에 1표가 더 필요합니다.",
       progressMoreVotesNeeded: "브로드캐스트 전에 {count}표가 더 필요합니다.",
       progressDescOffchain: "이 패킷은 오프체인 증인 수집 전용입니다. 정족수에 도달한 후에도 브로드캐스트 전에 새로운 온체인 트랜잭션을 생성해야 합니다.",
+      queueHeadlineNone: "검토 중인 활성 제안이 없습니다",
+      queueHeadlineOne: "검토 중인 활성 제안 1건",
+      queueHeadlineMany: "검토 중인 활성 제안 {count}건",
       actionTitleOffchainComplete: "오프체인 검토 패킷 완료",
       actionTitleOffchainCollecting: "오프체인 증인 조각 수집 중",
       actionDescOffchain: "이 패킷은 오프체인 증인 수집 전용입니다. 여기서 검토 증인을 수집한 다음 브로드캐스트할 준비가 되면 새로운 온체인 트랜잭션을 재생성하세요.",
@@ -1504,6 +1507,10 @@ const ko = {
     mint: "발행",
     burn: "소각",
     transfer: "전송",
+  },
+  validator: {
+    consensusNode: "합의 노드",
+    consensusNodeN: "합의 노드 {n}",
   },
   operationTypes: {
     transfer: "전송",
