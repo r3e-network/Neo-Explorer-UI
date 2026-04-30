@@ -18,6 +18,7 @@ describe("GovernanceCouncilWalletSetupCard", () => {
         activeNetworkLabel: "Mainnet",
       },
       global: {
+        mocks: { $t: (k) => k },
         stubs: {
           CopyButton: {
             props: ["text", "label"],
@@ -27,14 +28,14 @@ describe("GovernanceCouncilWalletSetupCard", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Prepare NeoLine for council signing");
+    expect(wrapper.text()).toContain("tools.governance.councilWalletSetupTitle");
     expect(wrapper.text()).toContain("NZqVw6G8PkM5oQJrjX6kN1H5eYc8m4u9Qf");
-    expect(wrapper.text()).toContain("Download Setup JSON");
+    expect(wrapper.text()).toContain("tools.governance.downloadSetupJson");
 
-    await wrapper.find('button[aria-label="Toggle council wallet setup"]').trigger("click");
+    await wrapper.find('button[aria-label="tools.governance.councilWalletSetupToggleAria"]').trigger("click");
 
-    expect(wrapper.text()).toContain("NeoLine Checklist");
-    expect(wrapper.text()).toContain("Add Wallet → Multi-Signature");
-    expect(wrapper.text()).toContain("Committee Public Keys");
+    expect(wrapper.text()).toContain("tools.governance.neoLineChecklistTitle");
+    expect(wrapper.text()).toContain("tools.governance.checklistStep2");
+    expect(wrapper.text()).toContain("tools.governance.committeePublicKeys");
   });
 });

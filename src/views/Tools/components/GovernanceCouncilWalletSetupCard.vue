@@ -5,12 +5,11 @@
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-[10px] font-black uppercase tracking-[0.2em] text-low mb-2">
-          Council Wallet Setup
+          {{ $t('tools.governance.councilWalletSetupEyebrow') }}
         </div>
-        <h3 class="text-base font-black tracking-tight text-high">Prepare NeoLine for council signing</h3>
+        <h3 class="text-base font-black tracking-tight text-high">{{ $t('tools.governance.councilWalletSetupTitle') }}</h3>
         <p class="mt-2 text-sm text-mid leading-relaxed">
-          This follows the NEXO-style flow. Each member signs with their own key, but NeoLine must be switched to the
-          committee multisig account context before direct proposal signing works.
+          {{ $t('tools.governance.councilWalletSetupBody') }}
         </p>
       </div>
       <button
@@ -18,7 +17,7 @@
         class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line-soft bg-surface text-mid transition-colors hover:bg-surface-muted hover:text-high"
         @click="showDetails = !showDetails"
         :aria-expanded="showDetails ? 'true' : 'false'"
-        aria-label="Toggle council wallet setup"
+        :aria-label="$t('tools.governance.councilWalletSetupToggleAria')"
       >
         <svg class="h-4 w-4 transition-transform" :class="showDetails ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -28,25 +27,25 @@
 
     <div class="mt-4 grid gap-3 sm:grid-cols-3">
       <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Multisig</div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.committeeMultisigLabel') }}</div>
         <div class="mt-2 font-mono text-[11px] break-all text-high">
-          {{ committeeMultiSig?.address || "Loading..." }}
+          {{ committeeMultiSig?.address || $t('tools.governance.walletSetupLoading') }}
         </div>
       </div>
       <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Threshold</div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.walletSetupThresholdLabel') }}</div>
         <div class="mt-2 text-xl font-black text-high">{{ threshold || "?" }}</div>
       </div>
       <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
-        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Connected Wallet</div>
+        <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.connectedWalletLabel') }}</div>
         <div class="mt-2 font-mono text-[11px] break-all text-high">
-          {{ connectedAccount || "Connect in the header" }}
+          {{ connectedAccount || $t('tools.governance.walletSetupConnectInHeader') }}
         </div>
       </div>
     </div>
 
     <div class="mt-4 flex flex-wrap gap-3">
-      <CopyButton :text="setupJson" size="md" label="Copy Setup JSON" />
+      <CopyButton :text="setupJson" size="md" :label="$t('tools.governance.copySetupJson')" />
       <button
         type="button"
         class="inline-flex items-center gap-2 rounded-xl border border-line-soft bg-surface px-4 py-2.5 text-sm font-semibold text-high transition-colors hover:bg-surface-muted"
@@ -55,31 +54,31 @@
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4m-5 8h18" />
         </svg>
-        Download Setup JSON
+        {{ $t('tools.governance.downloadSetupJson') }}
       </button>
-      <CopyButton :text="neolineChecklist" size="md" label="Copy NeoLine Checklist" />
+      <CopyButton :text="neolineChecklist" size="md" :label="$t('tools.governance.copyNeoLineChecklist')" />
     </div>
 
     <div v-if="showDetails" class="mt-5 space-y-4 border-t border-line-soft pt-5">
       <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
         <div class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-          NeoLine Checklist
+          {{ $t('tools.governance.neoLineChecklistTitle') }}
         </div>
         <ol class="mt-3 list-decimal space-y-2 pl-4 text-sm text-mid">
-          <li>Open NeoLine and unlock your member wallet.</li>
-          <li>Select <strong>Add Wallet → Multi-Signature</strong>.</li>
-          <li>Set the threshold to <strong>{{ threshold }}</strong>.</li>
-          <li>Paste the {{ committeePubkeys.length }} committee public keys exactly as listed below.</li>
-          <li>Save the multisig wallet and switch NeoLine to that account.</li>
-          <li>Return to this governance page and sign the proposal directly.</li>
+          <li>{{ $t('tools.governance.checklistStep1') }}</li>
+          <li>{{ $t('tools.governance.checklistStep2') }}</li>
+          <li>{{ $t('tools.governance.checklistStep3', { threshold }) }}</li>
+          <li>{{ $t('tools.governance.checklistStep4', { count: committeePubkeys.length }) }}</li>
+          <li>{{ $t('tools.governance.checklistStep5') }}</li>
+          <li>{{ $t('tools.governance.checklistStep6') }}</li>
         </ol>
       </div>
 
       <div class="rounded-2xl border border-line-soft bg-surface-muted/60 p-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Committee Public Keys</div>
-            <p class="mt-1 text-xs text-mid">Use these to build the committee multisig wallet in NeoLine.</p>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.committeePublicKeys') }}</div>
+            <p class="mt-1 text-xs text-mid">{{ $t('tools.governance.committeePublicKeysHint') }}</p>
           </div>
           <CopyButton :text="committeePubkeys.join('\n')" size="sm" />
         </div>
@@ -94,11 +93,10 @@
 
       <div class="rounded-2xl border border-sky-200 bg-sky-50/60 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
         <div class="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400">
-          Fallback
+          {{ $t('tools.governance.fallbackHeading') }}
         </div>
         <p class="mt-2 text-sm text-mid leading-relaxed">
-          If a member does not want to create the multisig wallet in NeoLine, they can still sign the prepared payload
-          with their own member key elsewhere and paste the witness into the governance signer modal.
+          {{ $t('tools.governance.fallbackBody') }}
         </p>
       </div>
     </div>
