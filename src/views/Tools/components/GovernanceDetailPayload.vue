@@ -199,7 +199,7 @@
               <div class="flex-1 w-px bg-amber-200 dark:bg-amber-800/40 mt-2"></div>
             </div>
             <div class="pb-5">
-              <h4 class="text-sm font-bold text-high">Sign the transaction</h4>
+              <h4 class="text-sm font-bold text-high">{{ $t('inline.signTransactionStep') }}</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
                 Paste the JSON into the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">sign</code> command:
               </p>
@@ -218,7 +218,7 @@
               <div class="h-7 w-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">4</div>
             </div>
             <div>
-              <h4 class="text-sm font-bold text-high">Submit your signature</h4>
+              <h4 class="text-sm font-bold text-high">{{ $t('inline.submitSignatureStep') }}</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
                 From the signed output, copy your <strong>public key</strong> (the key under <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>) and <strong>signature</strong> (the base64 value). Click "Add Signature" on this page and paste them directly — both hex and base64 formats are accepted.
               </p>

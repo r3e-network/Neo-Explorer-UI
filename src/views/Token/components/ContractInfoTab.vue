@@ -113,7 +113,7 @@
                     />
                   </div>
                 </div>
-                <div v-else class="text-sm text-mid">No parameters</div>
+                <div v-else class="text-sm text-mid">{{ $t('inline.noParameters') }}</div>
               </div>
               <!-- Return Type -->
               <div>

@@ -1481,6 +1481,11 @@ const ko = {
     copySigningPayload: "서명 페이로드 복사",
     noSignaturesStored: "아직 저장된 서명이 없습니다",
     signedOutputCommand: "neo-cli가 signatures 필드에 서명이 추가된 Signed Output JSON을 출력합니다.",
+    noHoldersFound: "보유자를 찾을 수 없습니다",
+    signTransactionStep: "트랜잭션 서명",
+    submitSignatureStep: "서명 제출",
+    noParameters: "매개변수 없음",
+    searchFailed: "검색 실패",
   },
   stateChange: {
     contracts: "컨트랙트",

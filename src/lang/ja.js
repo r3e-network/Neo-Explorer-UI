@@ -1481,6 +1481,11 @@ const ja = {
     copySigningPayload: "署名ペイロードをコピー",
     noSignaturesStored: "まだ署名が保存されていません",
     signedOutputCommand: "neo-cli は signatures フィールドにあなたの署名が追加された Signed Output JSON を出力します。",
+    noHoldersFound: "保有者が見つかりません",
+    signTransactionStep: "トランザクションに署名",
+    submitSignatureStep: "署名を提出",
+    noParameters: "パラメータなし",
+    searchFailed: "検索失敗",
   },
   stateChange: {
     contracts: "コントラクト",

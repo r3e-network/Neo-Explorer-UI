@@ -97,7 +97,7 @@
         <!-- Tab: Top Holders -->
         <div v-show="activeName === 'holders'">
           <token-holder v-if="tokenInfo && tokenInfo.holders" :contract-hash="tokenId" :format-balance="false" />
-          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">No holders found</div>
+          <div v-else class="etherscan-card p-6 text-center text-sm text-mid">{{ $t('inline.noHoldersFound') }}</div>
         </div>
 
         <!-- Tab: Contract Info -->

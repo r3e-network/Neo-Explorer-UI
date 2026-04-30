@@ -83,7 +83,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-lg font-bold text-red-700 dark:text-red-400">Search failed</p>
+              <p class="text-lg font-bold text-red-700 dark:text-red-400">{{ $t('inline.searchFailed') }}</p>
               <p class="text-sm text-red-600/80 dark:text-red-400/70 mt-0.5">{{ $t('inline.nnsCheckFailed') }}</p>
             </div>
           </div>

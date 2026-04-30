@@ -1481,6 +1481,11 @@ const zh = {
     copySigningPayload: "复制签名 Payload",
     noSignaturesStored: "尚未存储签名",
     signedOutputCommand: "neo-cli 将输出在 signatures 字段中添加了您签名的 Signed Output JSON。",
+    noHoldersFound: "未找到持有人",
+    signTransactionStep: "签署交易",
+    submitSignatureStep: "提交签名",
+    noParameters: "无参数",
+    searchFailed: "搜索失败",
   },
   stateChange: {
     contracts: "合约",

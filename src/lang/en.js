@@ -1481,6 +1481,11 @@ const en = {
     copySigningPayload: "Copy the signing payload",
     noSignaturesStored: "No signatures stored yet",
     signedOutputCommand: "neo-cli will output a Signed Output JSON with your signature added under the signatures field.",
+    noHoldersFound: "No holders found",
+    signTransactionStep: "Sign the transaction",
+    submitSignatureStep: "Submit your signature",
+    noParameters: "No parameters",
+    searchFailed: "Search failed",
   },
   stateChange: {
     contracts: "Contracts",
