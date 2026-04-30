@@ -393,52 +393,54 @@ const progressHeadline = computed(() => {
     return `${remainingVotes.value} more off-chain witnesses needed to complete review.`;
   }
   if (thresholdMet.value) {
-    return "Threshold reached. Ready to broadcast.";
+    return t("tools.governance.progressThresholdReached");
   }
   if (remainingVotes.value === 1) {
-    return "1 more vote needed before broadcast.";
+    return t("tools.governance.progressOneMoreVote");
   }
-  return `${remainingVotes.value} more votes needed before broadcast.`;
+  return t("tools.governance.progressMoreVotesNeeded", { count: remainingVotes.value });
 });
 const progressDescription = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
-    return "The council quorum was reached, the final witness was assembled, and the transaction was already published on-chain.";
+    return t("tools.governance.executedProgressDesc");
   }
   if (isOffchainReviewPacket.value) {
-    return "This packet is for off-chain witness collection only. Even after quorum is reached, a fresh on-chain transaction must be generated before broadcast.";
+    return t("tools.governance.progressDescOffchain");
   }
   if (thresholdMet.value) {
-    return "The required number of council signatures is already stored. Review the final witness section and broadcast the proposal when ready.";
+    return t("tools.governance.thresholdReachedProgressDesc");
   }
-  return "Council members are still reviewing the unsigned payload. Stored witness fragments will appear below as each eligible signer approves the proposal.";
+  return t("tools.governance.collectingProgressDesc");
 });
 const actionTitle = computed(() => {
-  if (proposal.value?.status === "EXECUTED") return "Proposal already executed";
+  if (proposal.value?.status === "EXECUTED") return t("tools.governance.actionTitleExecuted");
   if (isOffchainReviewPacket.value) {
-    return thresholdMet.value ? "Off-chain review packet complete" : "Collecting off-chain witness fragments";
+    return thresholdMet.value
+      ? t("tools.governance.actionTitleOffchainComplete")
+      : t("tools.governance.actionTitleOffchainCollecting");
   }
-  if (thresholdMet.value) return "Broadcast is unlocked";
-  if (hasSigned.value) return "Your witness has been recorded";
-  if (!canCurrentSignerVote.value) return "Waiting for eligible council signers";
-  return "Ready for your council signature";
+  if (thresholdMet.value) return t("tools.governance.actionTitleBroadcastUnlocked");
+  if (hasSigned.value) return t("tools.governance.actionTitleWitnessRecorded");
+  if (!canCurrentSignerVote.value) return t("tools.governance.actionTitleWaitingSigners");
+  return t("tools.governance.actionTitleReadyToSign");
 });
 const actionDescription = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
-    return "Execution is complete. You can still inspect the packet, signer roster, and final broadcast witness below.";
+    return t("tools.governance.actionDescExecuted");
   }
   if (isOffchainReviewPacket.value) {
-    return "This packet is for off-chain witness collection only. Gather review witnesses here, then regenerate a fresh on-chain transaction when you are ready to broadcast.";
+    return t("tools.governance.actionDescOffchain");
   }
   if (thresholdMet.value) {
-    return "The quorum is already met. Broadcasting will assemble the threshold witness and submit the transaction on-chain.";
+    return t("tools.governance.actionDescBroadcastReady");
   }
   if (hasSigned.value) {
-    return "Your vote is already stored. The page will move to broadcast-ready automatically once enough additional council witnesses arrive.";
+    return t("tools.governance.actionDescAlreadySigned");
   }
   if (!canCurrentSignerVote.value) {
-    return "This proposal is visible to everyone, but only eligible council nodes can contribute signatures or broadcast the final transaction.";
+    return t("tools.governance.actionDescNotEligible");
   }
-  return "Use the external witness flow: sign the payload in NeoLine or offline with your own council member key, then paste the signature or witness back into this page for collection.";
+  return t("tools.governance.actionDescReadyToSign");
 });
 const actionToneClass = computed(() => {
   if (proposal.value?.status === "EXECUTED") {
