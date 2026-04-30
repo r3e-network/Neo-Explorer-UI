@@ -3,7 +3,7 @@
     <div class="border-b border-line-soft bg-surface/30 px-6 py-6 md:px-8">
       <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 class="text-xl font-black text-high tracking-tight">Proposal Payload</h2>
+          <h2 class="text-xl font-black text-high tracking-tight">{{ $t('tools.governance.proposalPayload') }}</h2>
           <p class="mt-1.5 text-sm text-mid max-w-xl leading-relaxed">
             The decoded transaction packet and its supporting witness signatures that council members are mathematically
             validating.
@@ -36,7 +36,7 @@
                 ></path>
               </svg>
             </div>
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Target Method</div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.targetMethod') }}</div>
           </div>
           <div class="text-lg font-black text-high tracking-tight">{{ proposalMethodSummary }}</div>
         </div>
@@ -56,7 +56,7 @@
                 ></path>
               </svg>
             </div>
-            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">Smart Contract</div>
+            <div class="text-[10px] font-bold uppercase tracking-[0.15em] text-low">{{ $t('tools.governance.smartContract') }}</div>
           </div>
           <div class="font-mono text-sm font-semibold text-high break-all">{{ proposalTargetSummary }}</div>
         </div>
@@ -68,7 +68,7 @@
       >
         <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-5">
           <div>
-            <h3 class="text-lg font-black tracking-tight text-high">Atomic Invocation Plan</h3>
+            <h3 class="text-lg font-black tracking-tight text-high">{{ $t('tools.governance.atomicInvocationPlan') }}</h3>
             <p class="mt-1 text-sm text-mid">
               This governance packet chains multiple native-contract calls into one threshold-signed transaction.
             </p>
@@ -101,7 +101,7 @@
             </div>
 
             <div class="rounded-xl border border-line-soft bg-surface-muted/50 p-3">
-              <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">Target Hash</div>
+              <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">{{ $t('tools.governance.targetHash') }}</div>
               <div class="mt-1 font-mono text-xs break-all text-high">{{ invocation.targetHash || "Unavailable" }}</div>
             </div>
 
@@ -236,7 +236,7 @@
         class="rounded-xl border border-line-soft bg-surface p-4 shadow-inner dark:border-white/10 dark:bg-[#020617]"
       >
         <div class="mb-3">
-          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-mid dark:text-slate-400">Embedded Execution Script</h5>
+          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-mid dark:text-slate-400">{{ $t('tools.governance.embeddedExecutionScript') }}</h5>
           <p class="mt-1 text-xs text-mid dark:text-slate-500">
             Fallback decoded script text stored with the proposal when a full unsigned transaction payload is unavailable.
           </p>
@@ -248,8 +248,8 @@
       <div class="pt-6 border-t border-line-soft">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h3 class="text-lg font-black tracking-tight text-high">Collected Signatures</h3>
-            <p class="mt-1 text-sm text-mid">Valid ECDSA signatures stored off-chain until quorum is reached.</p>
+            <h3 class="text-lg font-black tracking-tight text-high">{{ $t('tools.governance.collectedSignatures') }}</h3>
+            <p class="mt-1 text-sm text-mid">{{ $t('tools.governance.collectedSignaturesDesc') }}</p>
           </div>
           <div
             class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl dark:bg-emerald-950/20 dark:border-emerald-900/30"
@@ -309,7 +309,7 @@
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   ></path>
                 </svg>
-                <span class="text-xs font-bold text-high">Cryptographically Valid</span>
+                <span class="text-xs font-bold text-high">{{ $t('tools.governance.cryptographicallyValid') }}</span>
               </div>
             </div>
 
@@ -355,7 +355,7 @@
                     ></path>
                   </svg>
                   <span class="text-[11px] font-bold tracking-wider text-high uppercase dark:text-slate-300"
-                    >Parsed Invocation OpCodes</span
+                    >{{ $t('tools.governance.parsedInvocationOpCodes') }}</span
                   >
                 </div>
               </div>

@@ -632,6 +632,7 @@ const ko = {
       parameters: "매개변수",
       collectedSignatures: "수집된 서명",
       collectedSignaturesDesc: "정족수에 도달할 때까지 오프체인에 저장되는 유효한 ECDSA 서명입니다.",
+      embeddedExecutionScript: "내장 실행 스크립트",
       stored: "{count} 저장됨",
       sigNumber: "서명 #{index}",
       you: "본인",

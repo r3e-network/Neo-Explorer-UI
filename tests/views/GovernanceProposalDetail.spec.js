@@ -298,10 +298,12 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Unsigned Transaction Packet");
     expect(wrapper.text()).toContain("Transaction Envelope");
     expect(wrapper.text()).toContain("Embedded Execution Script");
-    expect(wrapper.text()).toContain("Collected Signatures");
-    expect(wrapper.html().indexOf("Unsigned Transaction Packet")).toBeLessThan(wrapper.html().indexOf("Collected Signatures"));
+    expect(wrapper.text()).toContain("tools.governance.collectedSignatures");
+    expect(wrapper.html().indexOf("Unsigned Transaction Packet")).toBeLessThan(
+      wrapper.html().indexOf("tools.governance.collectedSignatures"),
+    );
     expect(wrapper.text()).toContain("Stored ECDSA Signature");
-    expect(wrapper.text()).toContain("Parsed Invocation OpCodes");
+    expect(wrapper.text()).toContain("tools.governance.parsedInvocationOpCodes");
     expect(wrapper.findAllComponents({ name: "ScriptViewer" }).length).toBeGreaterThanOrEqual(2);
     expect(wrapper.text()).toContain("Broadcast Witness");
     expect(wrapper.text()).toContain("0c40deadbeef");

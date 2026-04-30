@@ -632,6 +632,7 @@ const ja = {
       parameters: "パラメータ",
       collectedSignatures: "収集済み署名",
       collectedSignaturesDesc: "定足数に達するまでオフチェーンで保存される有効な ECDSA 署名です。",
+      embeddedExecutionScript: "埋め込み実行スクリプト",
       stored: "{count} 件保存済み",
       sigNumber: "署名 #{index}",
       you: "自分",

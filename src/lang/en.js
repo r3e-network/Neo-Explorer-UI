@@ -632,6 +632,7 @@ const en = {
       parameters: "Parameters",
       collectedSignatures: "Collected Signatures",
       collectedSignaturesDesc: "Valid ECDSA signatures stored off-chain until quorum is reached.",
+      embeddedExecutionScript: "Embedded Execution Script",
       stored: "{count} Stored",
       sigNumber: "Sig #{index}",
       you: "You",

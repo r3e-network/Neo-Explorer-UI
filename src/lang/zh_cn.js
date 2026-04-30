@@ -632,6 +632,7 @@ const zh = {
       parameters: "参数",
       collectedSignatures: "已收集签名",
       collectedSignaturesDesc: "在达到法定人数之前，有效的 ECDSA 签名会离线存储。",
+      embeddedExecutionScript: "嵌入的执行脚本",
       stored: "已存储 {count}",
       sigNumber: "签名 #{index}",
       you: "您",

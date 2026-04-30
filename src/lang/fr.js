@@ -631,6 +631,7 @@ const fr = {
       parameters: "Paramètres",
       collectedSignatures: "Signatures collectées",
       collectedSignaturesDesc: "Signatures ECDSA valides stockées hors chaîne jusqu'à ce que le quorum soit atteint.",
+      embeddedExecutionScript: "Script d'exécution intégré",
       stored: "{count} stockée(s)",
       sigNumber: "Sig nº{index}",
       you: "Vous",
