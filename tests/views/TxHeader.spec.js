@@ -1,5 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 import TxHeader from "@/views/Transaction/components/TxHeader.vue";
 
@@ -22,7 +24,7 @@ describe("TxHeader", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Failure Reason:");
+    expect(wrapper.text()).toContain("txDetail.headerFailurePrefix");
     expect(wrapper.text()).toContain("ECORE-22");
   });
 
@@ -44,7 +46,7 @@ describe("TxHeader", () => {
       },
     });
 
-    const reasonNode = wrapper.findAll("p").find((node) => node.text().includes("Failure Reason:"));
+    const reasonNode = wrapper.findAll("p").find((node) => node.text().includes("txDetail.headerFailurePrefix"));
     expect(reasonNode).toBeTruthy();
     expect(reasonNode?.classes() || []).toContain("text-red-700");
     expect(reasonNode?.classes() || []).toContain("bg-red-50");
@@ -69,7 +71,7 @@ describe("TxHeader", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Failure Reason:");
-    expect(wrapper.text()).toContain("No exception detail returned by node");
+    expect(wrapper.text()).toContain("txDetail.headerFailurePrefix");
+    expect(wrapper.text()).toContain("txDetail.rowFailureReasonEmpty");
   });
 });

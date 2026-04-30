@@ -7,13 +7,13 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
-      <ErrorState title="Unable to load token holders" :message="error" @retry="() => loadPage(currentPage)" />
+      <ErrorState :title="$t('tokenDetail.holdersErrorTitle')" :message="error" @retry="() => loadPage(currentPage)" />
     </div>
 
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-mid text-sm">A total of {{ formatNumber(totalCount) }} holders found</p>
+        <p class="text-mid text-sm">{{ $t("tokenDetail.holdersTotal", { count: formatNumber(totalCount) }) }}</p>
       </div>
 
       <!-- Table -->
@@ -21,10 +21,10 @@
         <table class="w-full min-w-[700px]" aria-label="Token holders">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Rank</th>
-              <th class="table-header-cell">Address</th>
-              <th class="table-header-cell-right">Balance</th>
-              <th class="table-header-cell-right">Percentage</th>
+              <th class="table-header-cell">{{ $t("tokenDetail.colRank") }}</th>
+              <th class="table-header-cell">{{ $t("tokenDetail.colAddress") }}</th>
+              <th class="table-header-cell-right">{{ $t("tokenDetail.colBalance") }}</th>
+              <th class="table-header-cell-right">{{ $t("tokenDetail.colPercentage") }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">
@@ -42,7 +42,7 @@
               <!-- Address -->
               <td class="px-4 py-3">
                 <div class="max-w-[220px] truncate">
-                  <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> Null Address </span>
+                  <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> {{ $t("tokenDetail.nullAddress") }} </span>
                   <HashLink
                     v-else
                     :hash="showAddress ? scriptHashToAddress(item.address) : item.address"
@@ -72,7 +72,7 @@
       </div>
 
       <div v-if="holders.length === 0" class="p-4">
-        <EmptyState message="No holders found" />
+        <EmptyState :message="$t('tokenDetail.holdersEmpty')" />
       </div>
     </template>
 

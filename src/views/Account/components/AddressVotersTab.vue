@@ -4,20 +4,23 @@
       <Skeleton v-for="index in 6" :key="index" height="46px" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load voters" :message="error" @retry="$emit('goToPage', 1)" />
+    <ErrorState v-else-if="error" :title="$t('addressDetail.votersError')" :message="error" @retry="$emit('goToPage', 1)" />
 
     <EmptyState
       v-else-if="!voters.length"
-      message="No voters found"
-      description="This candidate has no voters yet."
+      :message="$t('addressDetail.votersEmptyTitle')"
+      :description="$t('addressDetail.votersEmptyDesc')"
     />
 
     <div v-else class="space-y-4">
       <div class="flex items-center justify-between">
         <p class="text-mid text-sm">
-          Latest {{ voters.length }} from a total of
-          <span class="text-high font-semibold">{{ formatNumber(totalCount) }}</span>
-          voters
+          {{
+            $t("addressDetail.votersCountLine", {
+              count: voters.length,
+              total: formatNumber(totalCount),
+            })
+          }}
         </p>
       </div>
 
@@ -25,8 +28,8 @@
         <table class="w-full text-sm">
           <thead class="bg-surface-elevated text-mid border-b border-line-soft">
             <tr>
-              <th class="px-4 py-3 text-left font-semibold">Voter Address</th>
-              <th class="px-4 py-3 text-right font-semibold">Votes</th>
+              <th class="px-4 py-3 text-left font-semibold">{{ $t("addressDetail.colVoterAddress") }}</th>
+              <th class="px-4 py-3 text-right font-semibold">{{ $t("addressDetail.colVotes") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-line-soft">

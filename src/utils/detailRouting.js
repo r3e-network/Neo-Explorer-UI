@@ -20,19 +20,22 @@ export function buildSourceCodeLocation(contractHash, updatecounter = 0) {
   };
 }
 
+// Tabs return i18n keys via `labelKey`. Callers should map to translated
+// labels using their own `t()` (typically inside a computed so the labels
+// reactively re-render on locale change).
 export function getContractDetailTabs() {
   return Object.freeze([
-    Object.freeze({ key: "transactions", label: "Transactions" }),
-    Object.freeze({ key: "events", label: "Events" }),
-    Object.freeze({ key: "readContract", label: "Read Contract" }),
-    Object.freeze({ key: "writeContract", label: "Write Contract" }),
-    Object.freeze({ key: "code", label: "Code" }),
+    Object.freeze({ key: "transactions", labelKey: "contractDetail.tabTransactions" }),
+    Object.freeze({ key: "events", labelKey: "contractDetail.tabEvents" }),
+    Object.freeze({ key: "readContract", labelKey: "contractDetail.tabReadContract" }),
+    Object.freeze({ key: "writeContract", labelKey: "contractDetail.tabWriteContract" }),
+    Object.freeze({ key: "code", labelKey: "contractDetail.tabCode" }),
   ]);
 }
 
 export function getTokenDetailTabs() {
   return Object.freeze([
-    Object.freeze({ key: "transfers", label: "Transfers" }),
-    Object.freeze({ key: "holders", label: "Holders" }),
+    Object.freeze({ key: "transfers", labelKey: "tokenDetail.tabTransfers" }),
+    Object.freeze({ key: "holders", labelKey: "tokenDetail.holdersHeader" }),
   ]);
 }

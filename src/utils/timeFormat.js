@@ -1,5 +1,23 @@
 import { getCurrentEnv, NET_ENV } from "./env";
 
+// Resolve via the global i18n instance so callers don't need to pass `t`.
+// Defaults to English when the key has not been loaded yet (initial render
+// before async locale messages arrive, or test runs without i18n) — vue-i18n
+// returns the literal key string in that case, so we detect & fall back.
+function tAge(key, params, fallback) {
+  try {
+    // Lazy-import to avoid a module-init cycle (timeFormat is imported by
+    // many leaves; vue-i18n depends on Vue runtime which isn't always
+    // available in pure-utility contexts).
+    const i18n = globalThis.__neoExplorerI18n__;
+    if (!i18n) return fallback;
+    const out = i18n.global.t(key, params);
+    return out === key ? fallback : out;
+  } catch {
+    return fallback;
+  }
+}
+
 const DISPLAY_DELAY_OFFSET_SECONDS = {
   [NET_ENV.Mainnet]: 0,
   [NET_ENV.TestT5]: 0,
@@ -41,9 +59,12 @@ export function formatAge(timestamp, nowMs = Date.now()) {
   const delayOffset = DISPLAY_DELAY_OFFSET_SECONDS[network] ?? 0;
   const seconds = Math.max(0, Math.floor(nowMs / 1000 - ts) - delayOffset);
 
-  if (seconds === 0) return "just now";
-  if (seconds < 60) return `${seconds} secs ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
-  return `${Math.floor(seconds / 86400)} days ago`;
+  if (seconds === 0) return tAge("time.justNow", {}, "just now");
+  if (seconds < 60) return tAge("time.secsAgo", { n: seconds }, `${seconds} secs ago`);
+  const mins = Math.floor(seconds / 60);
+  if (seconds < 3600) return tAge("time.minsAgo", { n: mins }, `${mins} mins ago`);
+  const hrs = Math.floor(seconds / 3600);
+  if (seconds < 86400) return tAge("time.hrsAgo", { n: hrs }, `${hrs} hrs ago`);
+  const days = Math.floor(seconds / 86400);
+  return tAge("time.daysAgo", { n: days }, `${days} days ago`);
 }

@@ -16,7 +16,7 @@
         </div>
         <div>
           <h1 class="page-title">{{ $t("nav.contracts") || "Contracts" }}</h1>
-          <p class="page-subtitle">Smart contracts deployed on Neo N3</p>
+          <p class="page-subtitle">{{ $t("contractsPage.pageSubtitle") }}</p>
         </div>
       </div>
 
@@ -40,7 +40,7 @@
             v-model="searchQuery"
             type="text"
             :placeholder="$t('common.searchByContract')"
-            aria-label="Search contracts"
+            :aria-label="$t('contractsPage.searchAria')"
             class="form-input rounded-lg py-2 pl-10 pr-4"
             @input="onSearchInput"
           />
@@ -57,16 +57,18 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          Verify Contract
+          {{ $t("contractsPage.verifyContract") }}
         </router-link>
       </div>
 
       <div class="etherscan-card overflow-hidden">
         <div class="card-header">
           <p class="text-mid text-sm">
-            {{ isSearchMode ? "Search results" : "Contract registry" }}
+            {{ isSearchMode ? $t("contractsPage.headerSearchResults") : $t("contractsPage.headerRegistry") }}
           </p>
-          <p class="text-low text-sm">Page {{ currentPage }} / {{ totalPages }}</p>
+          <p class="text-low text-sm">
+            {{ $t("contractsPage.pageOfTotal", { current: currentPage, total: totalPages }) }}
+          </p>
         </div>
 
         <!-- Loading State -->
@@ -76,12 +78,12 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-4">
-          <ErrorState title="Failed to load contracts" :message="error" @retry="loadPage" />
+          <ErrorState :title="$t('contractsPage.errorLoad')" :message="error" @retry="loadPage" />
         </div>
 
         <!-- Empty State -->
         <div v-else-if="contracts.length === 0" class="p-4">
-          <EmptyState :message="isSearchMode ? 'No contracts match your search' : 'No contracts found'" />
+          <EmptyState :message="isSearchMode ? $t('contractsPage.emptySearch') : $t('contractsPage.emptyAll')" />
         </div>
 
         <!-- Data Table -->
@@ -90,12 +92,12 @@
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell">#</th>
-                <th class="table-header-cell">Contract</th>
-                <th class="table-header-cell">Hash</th>
-                <th class="table-header-cell-right">Invocations</th>
-                <th class="table-header-cell text-center">Standards</th>
-                <th class="table-header-cell text-center">Verified</th>
-                <th class="table-header-cell-right">Created</th>
+                <th class="table-header-cell">{{ $t("contractsPage.colContract") }}</th>
+                <th class="table-header-cell">{{ $t("contractsPage.colHash") }}</th>
+                <th class="table-header-cell-right">{{ $t("contractsPage.colInvocations") }}</th>
+                <th class="table-header-cell text-center">{{ $t("contractsPage.colStandards") }}</th>
+                <th class="table-header-cell text-center">{{ $t("contractsPage.colVerified") }}</th>
+                <th class="table-header-cell-right">{{ $t("contractsPage.colCreated") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -112,7 +114,7 @@
                     :to="`/contract-info/${contract.hash}`"
                     class="text-high etherscan-link font-medium"
                   >
-                    {{ contract.name || "Unknown Contract" }}
+                    {{ contract.name || $t("contractsPage.unknownContract") }}
                   </router-link>
                 </td>
                 <td class="table-cell">

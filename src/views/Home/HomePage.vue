@@ -57,7 +57,7 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
-import { blockService, transactionService, searchService, indexerReadService } from "@/services";
+import { blockService, transactionService, searchService, indexerReadService, statsService } from "@/services";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
@@ -454,9 +454,13 @@ async function loadLatestData(forceRefresh = false) {
   }
 }
 
+// On Mainnet most 3-second blocks are empty, so a rolling 20-block window
+// (≈60s) almost always produces 0 TPS even when activity is normal. Compute
+// from the 24h rolling tx count instead — it always returns a meaningful
+// non-zero number while the chain has any traffic.
 function updateTps() {
   if (latestBlocks.value.length < 2) {
-    tps.value = 0;
+    if (tps.value <= 0) tps.value = 0;
     return;
   }
 
@@ -470,7 +474,23 @@ function updateTps() {
 
   const timeDiff = Math.max(1, newestTime - oldestTime);
   const totalTxs = latestBlocks.value.reduce((sum, b) => sum + (b.txcount || b.transactioncount || 0), 0);
-  tps.value = totalTxs / timeDiff;
+  const live = totalTxs / timeDiff;
+  // Only override the 24h-average baseline (loadAvgTps) when the recent
+  // window actually has activity worth reporting.
+  if (live > 0) tps.value = live;
+}
+
+async function loadAvgTps() {
+  try {
+    const rows = await statsService.getDailyAnalytics(2);
+    // Prefer the most recent fully-elapsed UTC day; fall back to today if
+    // it's the only row that exists (very early in the day) or has data.
+    const recent = rows.length ? rows[rows.length - 2] || rows[rows.length - 1] : null;
+    const txs = Number(recent?.tx_count) || 0;
+    if (txs > 0) tps.value = txs / 86400;
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Failed to load daily TPS baseline:", err);
+  }
 }
 
 async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
@@ -586,8 +606,14 @@ async function handleSearch(inputValue) {
 }
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
+let avgTpsTickCounter = 0;
 const { start: startAutoRefresh } = useAutoRefresh(() => {
   void loadLatestData(true);
+  // Refresh the 24h-baseline TPS once a minute so a slow first-call timeout
+  // (3s indexer budget vs occasional cold-cache latency) self-recovers without
+  // a page reload, and the value tracks the day's running tx_count.
+  avgTpsTickCounter += 1;
+  if (avgTpsTickCounter % 20 === 0 || tps.value === 0) void loadAvgTps();
 }, { intervalMs: HOMEPAGE_REFRESH_INTERVAL_MS });
 
 function handleNetworkChange() {
@@ -600,6 +626,7 @@ function handleNetworkChange() {
 onMounted(() => {
   void loadCommittee();
   void loadData();
+  void loadAvgTps();
   startAutoRefresh();
 });
 

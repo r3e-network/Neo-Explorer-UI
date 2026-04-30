@@ -17,7 +17,7 @@
         </div>
         <div>
           <h1 class="page-title">{{ $t("nav.tokens") || "Tokens" }}</h1>
-          <p class="page-subtitle">NEP-17 fungible tokens on Neo N3</p>
+          <p class="page-subtitle">{{ $t("tokenDetail.pageSubtitle") }}</p>
         </div>
       </div>
 
@@ -30,13 +30,13 @@
               @click="switchTab('nep17')"
               :class="['tab-btn', activeTab === 'nep17' ? 'tab-btn-active' : 'tab-btn-inactive']"
             >
-              NEP-17 Tokens
+              {{ $t("tokenDetail.tabNep17") }}
             </button>
             <button
               @click="switchTab('nep11')"
               :class="['tab-btn', activeTab === 'nep11' ? 'tab-btn-active' : 'tab-btn-inactive']"
             >
-              NEP-11 NFTs
+              {{ $t("tokenDetail.tabNep11") }}
             </button>
           </nav>
         </div>
@@ -44,15 +44,15 @@
         <!-- Search + Info bar -->
         <div class="soft-divider flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-mid text-sm">
-            {{ activeTab === "nep17" ? "NEP-17 Token List" : "NEP-11 NFT Collection List" }}
-            <span v-if="totalCount > 0" class="text-low">({{ formatNumber(totalCount) }} total)</span>
+            {{ activeTab === "nep17" ? $t("tokenDetail.listTitleNep17") : $t("tokenDetail.listTitleNep11") }}
+            <span v-if="totalCount > 0" class="text-low">{{ $t("tokenDetail.totalCountSuffix", { count: formatNumber(totalCount) }) }}</span>
           </p>
           <div class="relative w-full sm:w-64">
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by name..."
-              aria-label="Search tokens"
+              :placeholder="$t('tokenDetail.searchPlaceholder')"
+              :aria-label="$t('tokenDetail.searchAria')"
               class="form-input pl-8 pr-3"
               @input="handleSearchDebounced"
             />
@@ -79,11 +79,11 @@
 
         <!-- Error State -->
         <div v-else-if="error" class="p-6">
-          <ErrorState title="Unable to load tokens" :message="error" @retry="() => loadPage(currentPage)" />
+          <ErrorState :title="$t('tokenDetail.errorLoadTokens')" :message="error" @retry="() => loadPage(currentPage)" />
         </div>
 
         <!-- Empty -->
-        <EmptyState v-else-if="tokens.length === 0" message="No tokens found" />
+        <EmptyState v-else-if="tokens.length === 0" :message="$t('tokenDetail.emptyTokens')" />
 
         <!-- NEP-17 Table -->
         <div v-else-if="activeTab === 'nep17'" class="overflow-x-auto">
@@ -91,12 +91,12 @@
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">Token</th>
-                <th class="table-header-cell">Symbol</th>
-                <th class="table-header-cell">Contract</th>
-                <th class="table-header-cell-right">Holders</th>
-                <th class="table-header-cell-right">Total Supply</th>
-                <th class="table-header-cell-right">Market Cap</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColToken") }}</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
+                <th class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
+                <th class="table-header-cell-right">{{ $t("tokenDetail.listColTotalSupply") }}</th>
+                <th class="table-header-cell-right">{{ $t("tokenDetail.listColMarketCap") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -129,7 +129,7 @@
                     <span
                       class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1"
                     >
-                      {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Token" }}
+                      {{ supabaseMeta[token.hash]?.name || token.tokenname || $t("tokenDetail.unknownToken") }}
                       <svg
                         v-if="supabaseMeta[token.hash]?.is_verified"
                         class="h-3.5 w-3.5 text-success"
@@ -171,11 +171,11 @@
             <thead class="table-head">
               <tr>
                 <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">Collection</th>
-                <th class="table-header-cell">Symbol</th>
-                <th class="table-header-cell">Contract</th>
-                <th class="table-header-cell-right">Items</th>
-                <th class="table-header-cell-right">Holders</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColCollection") }}</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
+                <th class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
+                <th class="table-header-cell-right">{{ $t("tokenDetail.listColItems") }}</th>
+                <th class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -208,7 +208,7 @@
                     <span
                       class="text-high font-medium hover:text-primary-500 transition-colors flex items-center gap-1"
                     >
-                      {{ supabaseMeta[token.hash]?.name || token.tokenname || "Unknown Collection" }}
+                      {{ supabaseMeta[token.hash]?.name || token.tokenname || $t("tokenDetail.unknownCollection") }}
                       <svg
                         v-if="supabaseMeta[token.hash]?.is_verified"
                         class="h-3.5 w-3.5 text-success"

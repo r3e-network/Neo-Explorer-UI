@@ -60,7 +60,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="ml-2 text-primary-500 hover:underline"
-                >Official Website ↗</a
+                >{{ $t("tokenDetail.officialWebsite") }} ↗</a
               >
             </p>
           </div>
@@ -68,32 +68,32 @@
       </div>
 
       <!-- Error State -->
-      <ErrorState v-if="error" title="Token not found" :message="error" @retry="reloadToken" />
+      <ErrorState v-if="error" :title="$t('tokenDetail.notFoundTitle')" :message="error" @retry="reloadToken" />
 
       <template v-else>
         <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="stat-card">
-            <p class="stat-label">Total Supply</p>
+            <p class="stat-label">{{ $t("tokenDetail.statTotalSupply") }}</p>
             <p class="stat-value">{{ formatSupply }}</p>
           </div>
           <div class="stat-card">
-            <p class="stat-label">Holders</p>
+            <p class="stat-label">{{ $t("tokenDetail.statHolders") }}</p>
             <p class="stat-value">{{ formatNumber(tokenValue?.holders) }}</p>
           </div>
           <div class="stat-card">
-            <p class="stat-label">Type</p>
+            <p class="stat-label">{{ $t("tokenDetail.statType") }}</p>
             <p class="stat-value">{{ tokenValue?.type || "NEP-17" }}</p>
           </div>
           <div class="stat-card">
-            <p class="stat-label">Decimals</p>
+            <p class="stat-label">{{ $t("tokenDetail.statDecimals") }}</p>
             <p class="stat-value">{{ tokenValue?.decimals || 0 }}</p>
           </div>
         </div>
 
         <div class="mb-6 etherscan-card px-4">
           <InfoRow
-            label="Contract"
-            tooltip="The smart contract address for this token"
+            :label="$t('tokenDetail.contract')"
+            :tooltip="$t('tokenDetail.contractTooltip')"
             :copyable="!!tokenValue?.hash"
             :copy-value="tokenValue?.hash"
           >
@@ -119,7 +119,7 @@
             </div>
 
             <div v-else-if="!tokenValue?.hash" class="p-6 text-center text-sm text-mid">
-              Token data is currently unavailable.
+              {{ $t("tokenDetail.dataUnavailable") }}
             </div>
 
             <div v-else-if="activeTab === 'transfers'">
@@ -148,8 +148,11 @@
 
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { formatNumber, formatSupply as formatSupplyUtil } from "@/utils/explorerFormat";
 import { useTokenDetail } from "@/composables/useTokenDetail";
+
+const { t } = useI18n();
 import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
@@ -170,8 +173,8 @@ const {
 } = useTokenDetail({
   defaultTab: "transfers",
   tabs: [
-    { key: "transfers", label: "Transfers" },
-    { key: "holders", label: "Top Holders" },
+    { key: "transfers", label: t("tokenDetail.tabTransfers") },
+    { key: "holders", label: t("tokenDetail.tabHolders") },
   ],
 });
 

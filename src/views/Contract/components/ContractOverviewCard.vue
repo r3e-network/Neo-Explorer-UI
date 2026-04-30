@@ -1,40 +1,40 @@
 <template>
   <div class="etherscan-card">
     <div class="card-header">
-      <h2 class="text-high text-base font-bold">Overview</h2>
+      <h2 class="text-high text-base font-bold">{{ $t("contractDetail.overviewTitle") }}</h2>
     </div>
     <div class="divide-y soft-divider px-4">
       <InfoRow
-        label="Contract Hash"
-        tooltip="The unique identifier for this smart contract"
+        :label="$t('contractDetail.rowContractHash')"
+        :tooltip="$t('contractDetail.rowContractHashTip')"
         :value="contract.hash || '-'"
         :copyable="!!contract.hash"
         :copy-value="contract.hash"
       />
-      <InfoRow label="Name" :value="displayName" />
-      <InfoRow v-if="developerName" label="Developer" :value="developerName" />
-      <InfoRow v-if="developerEmail" label="Developer Email">
+      <InfoRow :label="$t('contractDetail.rowName')" :value="displayName" />
+      <InfoRow v-if="developerName" :label="$t('contractDetail.rowDeveloper')" :value="developerName" />
+      <InfoRow v-if="developerEmail" :label="$t('contractDetail.rowDeveloperEmail')">
         <a :href="`mailto:${developerEmail}`" class="etherscan-link">{{ developerEmail }}</a>
       </InfoRow>
-      <InfoRow v-if="contractDescription" label="Description">
+      <InfoRow v-if="contractDescription" :label="$t('contractDetail.rowDescription')">
         <span class="whitespace-pre-wrap break-words">{{ contractDescription }}</span>
       </InfoRow>
-      <InfoRow v-if="sourceCodeUrl" label="Source Code">
+      <InfoRow v-if="sourceCodeUrl" :label="$t('contractDetail.rowSourceCode')">
         <a :href="sourceCodeUrl" target="_blank" rel="noopener noreferrer" class="etherscan-link break-all">
           {{ sourceCodeUrl }}
         </a>
       </InfoRow>
-      <InfoRow label="Creator" tooltip="The address that deployed this contract">
+      <InfoRow :label="$t('contractDetail.rowCreator')" :tooltip="$t('contractDetail.rowCreatorTip')">
         <HashLink v-if="contract.sender" :hash="contract.sender" type="address" :truncated="false" :copyable="false" />
         <span v-else class="text-mid">-</span>
       </InfoRow>
-      <InfoRow label="Invocations" :value="formatNumber(contract.totalsccall || 0)" />
+      <InfoRow :label="$t('contractDetail.rowInvocations')" :value="formatNumber(contract.totalsccall || 0)" />
       <InfoRow
-        label="Update Counter"
-        tooltip="Number of times this contract has been updated"
+        :label="$t('contractDetail.rowUpdateCounter')"
+        :tooltip="$t('contractDetail.rowUpdateCounterTip')"
         :value="String(contract.updatecounter ?? 0)"
       />
-      <InfoRow label="Verified">
+      <InfoRow :label="$t('contractDetail.rowVerifiedLabel')">
         <span
           v-if="isVerified"
           class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-success dark:border-emerald-800 dark:bg-emerald-900/25"
@@ -46,16 +46,16 @@
               clip-rule="evenodd"
             />
           </svg>
-          Verified
+          {{ $t("contractDetail.headerVerified") }}
         </span>
         <span
           v-else
           class="badge-soft inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold"
         >
-          Not Verified
+          {{ $t("contractDetail.rowNotVerified") }}
         </span>
       </InfoRow>
-      <InfoRow v-if="supportedStandards.length" label="Supported Standards">
+      <InfoRow v-if="supportedStandards.length" :label="$t('contractDetail.rowSupportedStandards')">
         <div class="flex flex-wrap gap-1.5">
           <span
             v-for="std in supportedStandards"
@@ -67,8 +67,16 @@
           </span>
         </div>
       </InfoRow>
-      <InfoRow label="Methods Count" tooltip="Number of methods in the contract ABI" :value="String(methodsCount)" />
-      <InfoRow label="Events Count" tooltip="Number of events in the contract ABI" :value="String(eventsCount)" />
+      <InfoRow
+        :label="$t('contractDetail.rowMethodsCount')"
+        :tooltip="$t('contractDetail.rowMethodsCountTip')"
+        :value="String(methodsCount)"
+      />
+      <InfoRow
+        :label="$t('contractDetail.rowEventsCount')"
+        :tooltip="$t('contractDetail.rowEventsCountTip')"
+        :value="String(eventsCount)"
+      />
     </div>
   </div>
 </template>

@@ -1,5 +1,15 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+  };
+});
 
 vi.mock("@/utils/explorerFormat", () => ({
   formatGas: (value) => String(value),
@@ -59,10 +69,10 @@ describe("TxOverviewTab", () => {
       },
     });
 
-    const systemFeeRow = wrapper.find('[data-label="System Fee"]');
+    const systemFeeRow = wrapper.find('[data-label="txDetail.rowSysFee"]');
     expect(systemFeeRow.exists()).toBe(true);
     expect(systemFeeRow.text()).toContain("1 GAS");
-    expect(systemFeeRow.text()).toContain("burned");
+    expect(systemFeeRow.text()).toContain("txDetail.rowSysFeeBurned");
     const burnedBadge = systemFeeRow.find(".text-red-600");
     expect(burnedBadge.exists()).toBe(true);
   });
@@ -99,9 +109,9 @@ describe("TxOverviewTab", () => {
       },
     });
 
-    const methodRow = wrapper.find('[data-label="Method"]');
+    const methodRow = wrapper.find('[data-label="txDetail.rowMethod"]');
     expect(methodRow.exists()).toBe(true);
-    expect(methodRow.text()).toContain("Oracle Callback");
+    expect(methodRow.text()).toContain("txDetail.actionOracle");
   });
 
   it("prefers tx.recipient as an address target instead of falling back to generic contract invocation", async () => {
@@ -141,8 +151,8 @@ describe("TxOverviewTab", () => {
       },
     });
 
-    const targetRow = wrapper.find('[data-label="To / Interacted With"]');
-    expect(targetRow.text()).not.toContain("Contract Invocation");
+    const targetRow = wrapper.find('[data-label="txDetail.rowTo"]');
+    expect(targetRow.text()).not.toContain("txDetail.rowToFallback");
     const link = targetRow.find(`[data-testid="hash-link"][data-hash="${recipient}"][data-type="address"]`);
     expect(link.exists()).toBe(true);
   });

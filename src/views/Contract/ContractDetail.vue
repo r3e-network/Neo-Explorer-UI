@@ -22,7 +22,7 @@
       />
 
       <!-- Error State -->
-      <ErrorState v-if="error" title="Contract not found" :message="error" @retry="loadContract(route.params.hash)" />
+      <ErrorState v-if="error" :title="$t('contractDetail.notFound')" :message="error" @retry="loadContract(route.params.hash)" />
 
       <!-- Overview Card -->
       <ContractOverviewCard
@@ -45,7 +45,7 @@
 
         <div :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
           <div v-if="!contract.hash" class="py-8 text-center text-mid">
-            Loading contract details...
+            {{ $t("contractDetail.loadingDetails") }}
           </div>
 
           <!-- Transactions Tab -->
@@ -138,7 +138,9 @@ const manifest = ref(null);
 const loading = ref(false);
 const error = ref(null);
 const activeTab = ref("transactions");
-const tabs = getContractDetailTabs();
+const tabs = computed(() =>
+  getContractDetailTabs().map((tab) => ({ key: tab.key, label: t(tab.labelKey) })),
+);
 const isVerified = ref(false);
 
 // Wallet state

@@ -1,5 +1,8 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
 import ContractOverviewCard from "@/views/Contract/components/ContractOverviewCard.vue";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
@@ -72,10 +75,10 @@ describe("ContractOverviewCard", () => {
       },
     });
 
-    expect(wrapper.find('[data-label="Name"]').text()).toContain("ManifestContractName");
-    expect(wrapper.find('[data-label="Developer"]').text()).toContain("The Neo Project");
-    expect(wrapper.find('[data-label="Developer Email"]').text()).toContain("dev@neo.org");
-    expect(wrapper.find('[data-label="Description"]').text()).toContain("Matrix Name Service");
+    expect(wrapper.find('[data-label="contractDetail.rowName"]').text()).toContain("ManifestContractName");
+    expect(wrapper.find('[data-label="contractDetail.rowDeveloper"]').text()).toContain("The Neo Project");
+    expect(wrapper.find('[data-label="contractDetail.rowDeveloperEmail"]').text()).toContain("dev@neo.org");
+    expect(wrapper.find('[data-label="contractDetail.rowDescription"]').text()).toContain("Matrix Name Service");
   });
 
   it("shows manifest source code link when provided in manifest extra", () => {
@@ -111,7 +114,7 @@ describe("ContractOverviewCard", () => {
       },
     });
 
-    const sourceRow = wrapper.find('[data-label="Source Code"] a');
+    const sourceRow = wrapper.find('[data-label="contractDetail.rowSourceCode"] a');
     expect(sourceRow.exists()).toBe(true);
     expect(sourceRow.attributes("href")).toBe("https://github.com/neo-project/non-native-contracts");
   });
@@ -150,8 +153,8 @@ describe("ContractOverviewCard", () => {
       },
     });
 
-    expect(wrapper.find('[data-label="Source Code"]').exists()).toBe(false);
-    expect(wrapper.find('[data-label="Developer Email"]').exists()).toBe(false);
+    expect(wrapper.find('[data-label="contractDetail.rowSourceCode"]').exists()).toBe(false);
+    expect(wrapper.find('[data-label="contractDetail.rowDeveloperEmail"]').exists()).toBe(false);
   });
 
   it("renders known contract branding when the creator address belongs to a known contract", async () => {
@@ -184,7 +187,7 @@ describe("ContractOverviewCard", () => {
 
     await Promise.resolve();
 
-    expect(wrapper.find('[data-label="Creator"]').text()).toContain("OracleProxy");
+    expect(wrapper.find('[data-label="contractDetail.rowCreator"]').text()).toContain("OracleProxy");
     expect(wrapper.find('img[alt="OracleProxy"]').attributes("src")).toBe("https://x.neo.org/favicon.ico");
   });
 });

@@ -80,8 +80,8 @@ describe("Tokens view", () => {
     await flushPromises();
 
     expect(getTokenListWithFallbackMock).toHaveBeenCalled();
-    expect(wrapper.text()).toContain("NEP-11 NFT Collection List");
-    expect(wrapper.text()).toContain("Unable to load tokens");
+    expect(wrapper.text()).toContain("tokenDetail.listTitleNep11");
+    expect(wrapper.text()).toContain("tokenDetail.errorLoadTokens");
     expect(wrapper.text()).toContain("Token listing is currently unavailable from the backend API.");
   });
 

@@ -331,6 +331,22 @@ export const indexerReadService = {
     );
     return Array.isArray(payload?.data) ? payload.data : [];
   },
+
+  // Most-recent transactions across the network. Use this when blocks are
+  // sparse (Neo N3 produces empty blocks every ~15s during low traffic) and
+  // you need a populated fee distribution.
+  async getRecentTransactions(limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const payload = await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `transactions?${params.toString()}`),
+      options,
+    );
+    return Array.isArray(payload?.data) ? payload.data : [];
+  },
 };
 
 export default indexerReadService;

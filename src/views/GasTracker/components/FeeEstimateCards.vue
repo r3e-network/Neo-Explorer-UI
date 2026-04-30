@@ -13,12 +13,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
         </span>
-        <span class="stat-label text-sm normal-case tracking-normal">Low</span>
+        <span class="stat-label text-sm normal-case tracking-normal">{{ $t("gasTracker.feeLow") }}</span>
       </div>
       <p class="stat-value text-2xl">
         {{ formatGas(feeEstimates.low) }}
       </p>
-      <p class="text-low mt-1 text-xs">GAS / transaction (slow)</p>
+      <p class="text-low mt-1 text-xs">{{ $t("gasTracker.feeLowSuffix") }}</p>
     </div>
 
     <!-- Average Fee -->
@@ -31,12 +31,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </span>
-        <span class="stat-label text-sm normal-case tracking-normal">Average</span>
+        <span class="stat-label text-sm normal-case tracking-normal">{{ $t("gasTracker.feeAverage") }}</span>
       </div>
       <p class="stat-value text-2xl text-primary-600 dark:text-primary-400">
         {{ formatGas(feeEstimates.average) }}
       </p>
-      <p class="text-low mt-1 text-xs">GAS / transaction (standard)</p>
+      <p class="text-low mt-1 text-xs">{{ $t("gasTracker.feeAverageSuffix") }}</p>
     </div>
 
     <!-- High Fee -->
@@ -54,12 +54,12 @@
             />
           </svg>
         </span>
-        <span class="stat-label text-sm normal-case tracking-normal">High</span>
+        <span class="stat-label text-sm normal-case tracking-normal">{{ $t("gasTracker.feeHigh") }}</span>
       </div>
       <p class="stat-value text-2xl">
         {{ formatGas(feeEstimates.high) }}
       </p>
-      <p class="text-low mt-1 text-xs">GAS / transaction (fast)</p>
+      <p class="text-low mt-1 text-xs">{{ $t("gasTracker.feeHighSuffix") }}</p>
     </div>
   </div>
 </template>

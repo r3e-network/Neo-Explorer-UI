@@ -1,5 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 describe("TxLogsTab", () => {
   it("renders stack results with the StackViewer instead of raw JSON", async () => {
@@ -30,7 +32,7 @@ describe("TxLogsTab", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Stack Result");
+    expect(wrapper.text()).toContain("blockDetail.logsStackResult");
     expect(wrapper.text()).toContain("Boolean");
     expect(wrapper.text()).toContain("true");
     expect(wrapper.text()).not.toContain('"type": "Boolean"');

@@ -4,25 +4,25 @@
       <Skeleton v-for="index in 5" :key="index" height="46px" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load NFT holdings" :message="error" @retry="$emit('retry')" />
+    <ErrorState v-else-if="error" :title="$t('addressDetail.nftsError')" :message="error" @retry="$emit('retry')" />
 
     <EmptyState
       v-else-if="!assets.length"
-      message="No NFT holdings"
-      description="No NEP-11 balances were found for this address."
+      :message="$t('addressDetail.nftsEmptyTitle')"
+      :description="$t('addressDetail.nftsEmptyDesc')"
     />
 
     <div v-else class="surface-panel overflow-x-auto">
-      <table class="w-full min-w-[700px]" aria-label="Address NFT holdings">
+      <table class="w-full min-w-[700px]" :aria-label="$t('addressDetail.nftsTableAria')">
         <caption class="sr-only">
           NEP-11 token holdings for this address
         </caption>
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">Collection</th>
-            <th class="table-header-cell">Standard</th>
-            <th class="table-header-cell-right">Balance</th>
-            <th class="table-header-cell">Contract</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colCollection") }}</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colStandard") }}</th>
+            <th class="table-header-cell-right">{{ $t("addressDetail.colBalance") }}</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colContract") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

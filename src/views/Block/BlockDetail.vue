@@ -6,7 +6,10 @@
           { label: $t('breadcrumb.home'), to: '/homepage' },
           { label: $t('breadcrumb.blocks'), to: '/blocks/1' },
           {
-            label: block.index != null ? `Block #${formatNumber(block.index)}` : 'Block',
+            label:
+              block.index != null
+                ? $t('blockDetail.breadcrumbBlockN', { n: formatNumber(block.index) })
+                : $t('blockDetail.breadcrumbBlock'),
           },
         ]"
       />
@@ -33,7 +36,7 @@
         </div>
       </div>
 
-      <ErrorState v-else-if="error" title="Block not found" :message="error" @retry="loadBlock(route.params.hash)" />
+      <ErrorState v-else-if="error" :title="$t('blockDetail.notFound')" :message="error" @retry="loadBlock(route.params.hash)" />
 
       <div v-else class="space-y-6">
         <BlockOverview :block="block" :transactions="transactions" :reward="reward" v-model:show-witnesses="showWitnesses" />
@@ -44,7 +47,7 @@
             <TabsNav
               :tabs="tabs"
               v-model="activeTab"
-              aria-label="Block detail sections"
+              :aria-label="$t('blockDetail.sectionsAria')"
               id-base="block-detail"
             />
           </div>

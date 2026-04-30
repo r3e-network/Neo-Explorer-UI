@@ -5,6 +5,13 @@ vi.mock("vue-router", () => ({
   useRoute: () => ({ params: {} }),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+  };
+});
 vi.mock("@/utils/addressFormat", () => ({
   isValidTxHash: (h) => /^(0x)?[a-f0-9]{64}$/i.test(h),
   isValidNeoAddress: (a) => /^N[a-zA-Z0-9]{33}$/.test(a)
@@ -49,7 +56,7 @@ describe("SearchBox", () => {
 
   it("disables search button when query is empty", () => {
     const wrapper = factory();
-    const btn = wrapper.find("button[aria-label='Submit search']");
+    const btn = wrapper.find("button[aria-label='searchBox.ariaSubmit']");
     expect(btn.attributes("disabled")).toBeDefined();
   });
 
@@ -74,7 +81,7 @@ describe("SearchBox", () => {
 
   it("applies dedicated class to keep submit button vertically aligned", () => {
     const wrapper = factory();
-    expect(wrapper.find("button[aria-label='Submit search']").classes()).toContain("search-submit-btn");
+    expect(wrapper.find("button[aria-label='searchBox.ariaSubmit']").classes()).toContain("search-submit-btn");
   });
 
   it("selects highlighted suggestion with Enter", async () => {

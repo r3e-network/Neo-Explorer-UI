@@ -19,10 +19,26 @@ export function nepBadgeClass(std) {
   return NEP_BADGE_CLASSES[String(std || "").toUpperCase()] || NEP_BADGE_DEFAULT;
 }
 
+// Same global-singleton pattern as formatAge: resolve through vue-i18n when
+// available, fall back to English otherwise (test/SSR safety).
+function tNep(key, fallback) {
+  try {
+    const i18n = globalThis.__neoExplorerI18n__;
+    if (!i18n) return fallback;
+    const out = i18n.global.t(key);
+    return out === key ? fallback : out;
+  } catch {
+    return fallback;
+  }
+}
+
 export function nepTooltip(std) {
   const upper = String(std || "").toUpperCase();
-  if (upper.includes("NEP-17") || upper.includes("NEP17")) return "Fungible Token Standard";
-  if (upper.includes("NEP-11") || upper.includes("NEP11")) return "Non-Fungible Token Standard";
-  if (upper.includes("NEP-27") || upper.includes("NEP27")) return "Payable Contract Standard";
+  if (upper.includes("NEP-17") || upper.includes("NEP17"))
+    return tNep("nepBadges.nep17", "Fungible Token Standard");
+  if (upper.includes("NEP-11") || upper.includes("NEP11"))
+    return tNep("nepBadges.nep11", "Non-Fungible Token Standard");
+  if (upper.includes("NEP-27") || upper.includes("NEP27"))
+    return tNep("nepBadges.nep27", "Payable Contract Standard");
   return std;
 }

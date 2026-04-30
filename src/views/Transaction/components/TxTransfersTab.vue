@@ -10,25 +10,23 @@
     <!-- Empty -->
     <EmptyState
       v-else-if="allTransfers.length === 0"
-      message="No token transfers found for this transaction."
+      :message="$t('txDetail.transfersEmpty')"
       icon="tx"
     />
     <!-- Content -->
     <div v-else class="surface-panel overflow-x-auto">
-      <table class="w-full min-w-[780px] text-sm" aria-label="Transaction token transfers">
-        <caption class="sr-only">
-          NEP transfer list for this transaction
-        </caption>
+      <table class="w-full min-w-[780px] text-sm" :aria-label="$t('txDetail.transfersTableAria')">
+        <caption class="sr-only">{{ $t("txDetail.transfersCaption") }}</caption>
         <thead class="table-head">
           <tr class="soft-divider border-b">
             <th class="table-header-cell">#</th>
-            <th class="table-header-cell">Type</th>
-            <th class="table-header-cell">From</th>
-            <th class="table-header-cell">To</th>
-            <th class="table-header-cell-right">Amount</th>
-            <th class="table-header-cell">Token ID</th>
-            <th class="table-header-cell">Token</th>
-            <th class="table-header-cell">Contract</th>
+            <th class="table-header-cell">{{ $t("txDetail.transfersColType") }}</th>
+            <th class="table-header-cell">{{ $t("txDetail.transferFromLabel") }}</th>
+            <th class="table-header-cell">{{ $t("txDetail.transferToLabel") }}</th>
+            <th class="table-header-cell-right">{{ $t("txDetail.transfersColAmount") }}</th>
+            <th class="table-header-cell">{{ $t("txDetail.transfersColTokenId") }}</th>
+            <th class="table-header-cell">{{ $t("txDetail.transferToken") }}</th>
+            <th class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
@@ -50,13 +48,13 @@
               <div v-if="t.from" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
                 <HashLink :hash="scriptHashToAddress(t.from)" type="address" :truncated="false" />
               </div>
-              <span v-else class="text-mid text-xs italic">Mint</span>
+              <span v-else class="text-mid text-xs italic">{{ $t("txDetail.transferMint") }}</span>
             </td>
             <td class="table-cell">
               <div v-if="t.to" class="max-w-[120px] md:max-w-[200px] lg:max-w-none truncate">
                 <HashLink :hash="scriptHashToAddress(t.to)" type="address" :truncated="false" />
               </div>
-              <span v-else class="text-mid text-xs italic">Burn</span>
+              <span v-else class="text-mid text-xs italic">{{ $t("txDetail.transferBurn") }}</span>
             </td>
             <td class="table-cell-right font-mono text-xs">
               {{ formatTransferAmount(t) }}
@@ -91,7 +89,7 @@
                   class="w-4 h-4 rounded-full object-cover bg-white/5"
                   loading="lazy"
                 />
-                {{ t.tokenname || t.symbol || "Unknown" }}
+                {{ t.tokenname || t.symbol || $t("txDetail.transfersUnknownToken") }}
               </span>
             </td>
             <td class="table-cell">

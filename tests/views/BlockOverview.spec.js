@@ -1,5 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 vi.mock("@/composables/useCommittee", () => ({
   useCommittee: () => ({

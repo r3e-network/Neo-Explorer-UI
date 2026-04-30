@@ -13,7 +13,7 @@
     </div>
     <!-- Empty -->
     <div v-else-if="!appLog" class="panel-muted text-mid px-4 py-8 text-center text-sm">
-      No application log available for this transaction.
+      {{ $t("txDetail.logsAppLogEmpty") }}
     </div>
     <!-- Content -->
     <div v-else class="space-y-6">
@@ -38,7 +38,7 @@
               d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
             />
           </svg>
-          {{ showRawAppLog ? "Decoded View" : "Raw JSON" }}
+          {{ showRawAppLog ? $t("blockDetail.logsDecoded") : $t("blockDetail.logsRawJson") }}
         </button>
       </div>
 
@@ -56,7 +56,7 @@
             <span
               class="badge-soft rounded px-2 py-1 text-xs font-medium text-high"
             >
-              Trigger: {{ exec.trigger || "Application" }}
+              {{ $t("txDetail.logsTrigger", { value: exec.trigger || $t("txDetail.logsTriggerApplication") }) }}
             </span>
             <span
               class="rounded px-2 py-1 text-xs font-medium"
@@ -66,12 +66,12 @@
                   : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
               "
             >
-              VM State: {{ exec.vmstate || "UNKNOWN" }}
+              {{ $t("blockDetail.logsVmState", { state: exec.vmstate || $t("blockDetail.logsVmStateUnknown") }) }}
             </span>
             <span
               class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             >
-              GAS Consumed: {{ formatGas(exec.gasconsumed) }}
+              {{ $t("blockDetail.logsGasConsumed", { amount: formatGas(exec.gasconsumed) }) }}
             </span>
           </div>
 
@@ -81,7 +81,7 @@
             class="panel-muted mb-4 p-3"
           >
             <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-              Stack Result
+              {{ $t("blockDetail.logsStackResult") }}
             </h4>
             <StackViewer :stack="exec.stack" />
           </div>
@@ -89,7 +89,7 @@
           <!-- Notifications -->
           <div v-if="exec.notifications && exec.notifications.length">
             <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-              Notifications ({{ exec.notifications.length }})
+              {{ $t("blockDetail.logsNotifications", { count: exec.notifications.length }) }}
             </h4>
             <!-- Enriched display when available -->
             <div v-if="enrichedTrace && enrichedTrace.executions[eIdx]" class="space-y-3">
@@ -103,15 +103,13 @@
             <!-- Raw fallback -->
             <div v-else class="overflow-x-auto">
               <table class="w-full text-sm">
-                <caption class="sr-only">
-                  Raw VM notifications
-                </caption>
+                <caption class="sr-only">{{ $t("txDetail.logsCaptionTx") }}</caption>
                 <thead class="table-head">
                   <tr class="soft-divider border-b">
                     <th class="table-header-cell">#</th>
-                    <th class="table-header-cell">Contract</th>
-                    <th class="table-header-cell">Event</th>
-                    <th class="table-header-cell">State</th>
+                    <th class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
+                    <th class="table-header-cell">{{ $t("blockDetail.logsColEvent") }}</th>
+                    <th class="table-header-cell">{{ $t("blockDetail.logsColState") }}</th>
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">
@@ -126,7 +124,7 @@
                       <span
                         class="badge-soft text-high rounded px-2 py-0.5 text-xs font-medium"
                       >
-                        {{ n.eventname || "unknown" }}
+                        {{ n.eventname || $t("blockDetail.logsEventUnknown") }}
                       </span>
                     </td>
                     <td class="table-cell">
@@ -141,7 +139,7 @@
             </div>
           </div>
           <div v-else class="text-mid py-4 text-center text-sm">
-            No notifications emitted.
+            {{ $t("blockDetail.logsNoNotifications") }}
           </div>
         </div>
       </template>

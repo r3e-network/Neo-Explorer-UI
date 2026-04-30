@@ -25,23 +25,23 @@
         <table class="w-full min-w-[960px]">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">Txn Hash</th>
-              <th v-if="type === 'nep11'" class="table-header-cell">Token ID</th>
-              <th class="table-header-cell">Type</th>
-              <th class="table-header-cell">From</th>
+              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th v-if="type === 'nep11'" class="table-header-cell">{{ $t("transactionsPage.colTokenId") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
               <th class="table-header-cell w-12 text-center"></th>
-              <th class="table-header-cell text-center">Amount</th>
-              <th class="table-header-cell">To</th>
+              <th class="table-header-cell text-center">{{ $t("transactionsPage.colAmount") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
               <th
                 class="table-header-cell-right cursor-pointer select-none hover:text-primary-500"
                 role="button"
                 tabindex="0"
-                aria-label="Toggle time format"
+                :aria-label="$t('transactionsPage.toggleTimeAria')"
                 @click="showAbsoluteTime = !showAbsoluteTime"
                 @keydown.enter.prevent="showAbsoluteTime = !showAbsoluteTime"
                 @keydown.space.prevent="showAbsoluteTime = !showAbsoluteTime"
               >
-                {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
+                {{ showAbsoluteTime ? $t("transactionsPage.colDateTimeUtc") : $t("transactionsPage.colAge") }}
                 <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"

@@ -24,17 +24,19 @@
         <table class="w-full min-w-[960px]" aria-label="Token transfers">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">Txn Hash</th>
-              <th class="table-header-cell">Type</th>
-              <th class="table-header-cell">From</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
               <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]"></th>
-              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]">Amount</th>
-              <th class="table-header-cell">To</th>
+              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]">
+                {{ $t("transactionsPage.colAmount") }}
+              </th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
               <th
                 class="table-header-cell-right cursor-pointer select-none hover:text-primary-500"
                 @click="showAbsoluteTime = !showAbsoluteTime"
               >
-                {{ showAbsoluteTime ? "Date Time (UTC)" : "Age" }}
+                {{ showAbsoluteTime ? $t("transactionsPage.colDateTimeUtc") : $t("transactionsPage.colAge") }}
                 <svg class="ml-0.5 inline h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"

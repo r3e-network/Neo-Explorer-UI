@@ -5,7 +5,7 @@
         v-if="contractLogo"
         :src="contractLogo"
         class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
-        alt="Contract Logo"
+        :alt="$t('contractDetail.headerLogoAlt')"
         loading="lazy"
       />
       <div v-else class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
@@ -16,7 +16,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="page-title">
-            {{ metadata?.name || contract.name || "Unknown Contract" }}
+            {{ metadata?.name || contract.name || $t("contractDetail.headerUnknownContract") }}
           </h1>
           <span
             v-if="isVerified || metadata?.is_verified"
@@ -29,7 +29,7 @@
                 clip-rule="evenodd"
               />
             </svg>
-            Verified
+            {{ $t("contractDetail.headerVerified") }}
           </span>
           <span
             v-for="std in supportedStandards"
@@ -46,7 +46,7 @@
             {{ contract.hash || "-" }}
           </span>
           <button
-            aria-label="Copy contract hash"
+            :aria-label="$t('contractDetail.headerCopyHashAria')"
             class="detail-chip hover:text-primary-600 dark:hover:text-primary-300"
             @click="emit('copyHash')"
           >
@@ -58,7 +58,7 @@
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            Copy Hash
+            {{ $t("contractDetail.headerCopyHash") }}
           </button>
         </div>
       </div>

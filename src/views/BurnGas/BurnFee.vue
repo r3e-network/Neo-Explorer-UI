@@ -17,8 +17,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">{{ $t("nav.burnedGas") || "Burned GAS" }}</h1>
-          <p class="page-subtitle">GAS burn statistics from Neo N3 system fee consumption</p>
+          <h1 class="page-title">{{ $t("pages.burnGas.title") }}</h1>
+          <p class="page-subtitle">{{ $t("pages.burnGas.subtitle") }}</p>
         </div>
       </div>
 
@@ -29,7 +29,7 @@
       <div v-else class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Total GAS Burned -->
         <div class="stat-card">
-          <p class="stat-label">Total GAS Burned</p>
+          <p class="stat-label">{{ $t("pages.burnGas.statTotal") }}</p>
           <p class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">
             {{ formatGasDisplay(totalBurned) }}
           </p>
@@ -38,27 +38,27 @@
 
         <!-- Daily Burn Rate -->
         <div class="stat-card">
-          <p class="stat-label">Avg Daily Burn</p>
+          <p class="stat-label">{{ $t("pages.burnGas.statAvgDaily") }}</p>
           <p class="stat-value text-2xl">
             {{ formatGasDisplay(avgDailyBurn) }}
           </p>
-          <p class="text-low mt-1 text-xs">GAS / day</p>
+          <p class="text-low mt-1 text-xs">{{ $t("pages.burnGas.statAvgDailyUnit") }}</p>
         </div>
 
         <!-- Burn Trend -->
         <div class="stat-card">
-          <p class="stat-label">Burn Rate per Tx</p>
+          <p class="stat-label">{{ $t("pages.burnGas.statAvgPerTx") }}</p>
           <p class="stat-value text-2xl">
-            {{ BURN_RATE }}
+            {{ formatGasDisplay(avgBurnPerTx) }}
           </p>
-          <p class="text-low mt-1 text-xs">GAS (system fee burn)</p>
+          <p class="text-low mt-1 text-xs">{{ $t("pages.burnGas.statAvgPerTxUnit") }}</p>
         </div>
       </div>
 
       <!-- Cumulative Burn Chart (Area) -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="text-high mb-1 text-base font-semibold">Cumulative GAS Burned</h2>
-        <p class="text-low mb-4 text-xs">Running total of estimated GAS burned over time</p>
+        <h2 class="text-high mb-1 text-base font-semibold">{{ $t("pages.burnGas.cumulativeTitle") }}</h2>
+        <p class="text-low mb-4 text-xs">{{ $t("pages.burnGas.cumulativeSubtitle") }}</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 5" :key="i" height="44px" />
         </div>
@@ -72,10 +72,8 @@
 
       <!-- Daily Burn Chart (Bar) -->
       <div class="etherscan-card mb-6 p-5">
-        <h2 class="text-high mb-1 text-base font-semibold">Daily GAS Burned</h2>
-        <p class="text-low mb-4 text-xs">
-          Estimated daily GAS burn based on transaction count
-        </p>
+        <h2 class="text-high mb-1 text-base font-semibold">{{ $t("pages.burnGas.dailyTitle") }}</h2>
+        <p class="text-low mb-4 text-xs">{{ $t("pages.burnGas.dailySubtitle") }}</p>
         <div v-if="loading" class="space-y-2">
           <Skeleton v-for="i in 4" :key="i" height="44px" />
         </div>
@@ -89,17 +87,21 @@
 
       <!-- Info Card -->
       <div class="etherscan-card p-5">
-        <h2 class="text-high mb-2 text-base font-semibold">About GAS Burning</h2>
+        <h2 class="text-high mb-2 text-base font-semibold">{{ $t("pages.burnGas.aboutTitle") }}</h2>
         <div class="text-mid space-y-2 text-sm leading-relaxed">
           <p>
-            In Neo N3, system fees paid for smart contract execution are
-            <strong class="text-high">burned</strong> (permanently removed from circulation),
-            creating deflationary pressure on the GAS token supply.
+            {{ $t("pages.burnGas.aboutPara1Pre") }}
+            <strong class="text-high">{{ $t("pages.burnGas.aboutBurned") }}</strong>
+            {{ $t("pages.burnGas.aboutPara1Post") }}
           </p>
           <p>
-            The burn rate is approximately
-            <strong class="text-high">{{ BURN_RATE }} GAS</strong>
-            per transaction. Actual burn amounts vary based on contract complexity and computational resources consumed.
+            {{
+              $t("pages.burnGas.aboutPara2", {
+                days: dailyData.length,
+                avg: formatGasDisplay(avgBurnPerTx),
+                txs: totalTxs.toLocaleString(),
+              })
+            }}
           </p>
         </div>
       </div>
@@ -114,7 +116,6 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
-import { BURN_RATE } from "@/constants";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 import { useTheme } from "@/composables/useTheme";
 
@@ -134,13 +135,18 @@ let cumulativeChart = null;
 let dailyBurnChart = null;
 
 // --- Computed ---
-const totalBurned = computed(() => {
-  return dailyData.value.reduce((sum, d) => sum + d.burned, 0);
-});
+const totalBurned = computed(() => dailyData.value.reduce((sum, d) => sum + d.burned, 0));
+
+const totalTxs = computed(() => dailyData.value.reduce((sum, d) => sum + d.transactions, 0));
 
 const avgDailyBurn = computed(() => {
   if (!dailyData.value.length) return 0;
   return totalBurned.value / dailyData.value.length;
+});
+
+const avgBurnPerTx = computed(() => {
+  if (!totalTxs.value) return 0;
+  return totalBurned.value / totalTxs.value;
 });
 
 // --- Helpers ---
@@ -148,42 +154,10 @@ function formatGasDisplay(value) {
   return Number(value || 0).toFixed(8);
 }
 
-function formatDayOffset(offset) {
-  const date = new Date(Date.now() - offset * 24 * 60 * 60 * 1000);
-  return date.toISOString().split("T")[0];
-}
-
 function formatDateLabel(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// --- Data normalization ---
-function normalizeData(raw) {
-  const list = Array.isArray(raw) ? raw : [];
-  if (!list.length) {
-    return Array.from({ length: 30 }, (_, i) => ({
-      date: formatDayOffset(29 - i),
-      transactions: 0,
-      burned: 0,
-    }));
-  }
-
-  const mapped = list.map((entry, i) => {
-    const date = entry?.date || entry?.Date || entry?.day || formatDayOffset(list.length - i - 1);
-    const txs = Number(entry?.transactions ?? entry?.DailyTransactions ?? entry?.dailyTransactions ?? entry?.txs ?? 0);
-    return {
-      date,
-      transactions: txs,
-      burned: txs * BURN_RATE,
-    };
-  });
-
-  if (mapped.length > 1 && mapped[0].date > mapped[mapped.length - 1].date) {
-    mapped.reverse();
-  }
-  return mapped;
 }
 
 // --- Chart creation ---
@@ -320,11 +294,17 @@ async function loadData() {
   loading.value = true;
   error.value = null;
   try {
-    const raw = await statsService.getNetworkActivity(30);
-    dailyData.value = normalizeData(raw);
+    const rows = await statsService.getDailyAnalytics(30);
+    // fee_burned is fractoshi (10^8 GAS); convert to GAS for display.
+    dailyData.value = rows.map((r) => ({
+      date: r.day,
+      transactions: Number(r.tx_count) || 0,
+      burned: Number(r.fee_burned || 0) / 1e8,
+    }));
     await renderCharts();
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load burn metrics:", err);
+    dailyData.value = [];
     error.value = t("errors.loadBurnMetrics");
   } finally {
     loading.value = false;

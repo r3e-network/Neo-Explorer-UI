@@ -58,7 +58,7 @@
 
       <!-- Fees (hidden on mobile) -->
       <div class="hidden min-w-0 flex-1 text-right lg:block">
-        <p class="text-xs text-mid">Total Fees</p>
+        <p class="text-xs text-mid">{{ $t("listItems.totalFees") }}</p>
         <p class="text-sm font-medium text-high truncate">{{ blockFee }} GAS</p>
       </div>
 
@@ -66,7 +66,7 @@
       <div class="flex-shrink-0 text-right w-20">
         <p class="text-sm text-high">
           <span class="font-medium">{{ formatNumber(block.transactioncount || block.txcount || 0) }}</span>
-          txns
+          {{ $t("listItems.txns") }}
         </p>
         <p class="text-[10px] text-mid hidden md:block">{{ formatNumber(block.size || 0) }} B</p>
       </div>

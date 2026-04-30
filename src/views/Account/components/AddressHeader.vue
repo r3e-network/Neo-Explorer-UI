@@ -36,18 +36,26 @@
               v-if="publicTagLogo"
               :src="publicTagLogo"
               class="h-3.5 w-3.5 rounded-full object-cover bg-white"
-              alt="Address tag logo"
+              :alt="$t('addressDetail.publicTagAlt')"
             />
             {{ publicTag }}
           </span>
           <h1 class="page-title">
-            {{ isNeoFoundation ? "Neo Foundation / Treasury" : candidateData ? "Candidate Address" : "Address" }}
+            {{
+              isNeoFoundation
+                ? $t("addressDetail.titleNeoFoundation")
+                : candidateData
+                ? $t("addressDetail.titleCandidate")
+                : isContract
+                ? $t("addressDetail.titleContract")
+                : $t("addressDetail.titleAddress")
+            }}
           </h1>
           <span
             v-if="isContract"
             class="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-600 dark:bg-violet-900/30 dark:text-violet-300"
           >
-            Contract
+            {{ $t("addressDetail.badgeContract") }}
           </span>
           <span
             v-if="candidateData"
@@ -58,7 +66,9 @@
                 : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
             "
           >
-            {{ candidateData.isCommittee ? "Consensus Node" : "Standby Candidate" }}
+            {{
+              candidateData.isCommittee ? $t("addressDetail.badgeConsensus") : $t("addressDetail.badgeStandby")
+            }}
           </span>
         </div>
         <div class="detail-metadata mt-1">
@@ -82,8 +92,8 @@
           <CopyButton :text="address" />
           <button
             class="detail-chip hover:text-primary-600 dark:hover:text-primary-300"
-            title="Show QR Code"
-            aria-label="Toggle QR code display"
+            :title="$t('addressDetail.qrShow')"
+            :aria-label="$t('addressDetail.qrToggleAria')"
             @click="$emit('update:showQr', !showQr)"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,15 +111,15 @@
         <!-- Candidate specific stats row -->
         <div v-if="candidateData" class="flex items-center gap-4 mt-3 text-sm flex-wrap">
           <div class="flex items-center gap-1.5">
-            <span class="text-mid">Votes:</span>
+            <span class="text-mid">{{ $t("addressDetail.candidateVotes") }}</span>
             <span class="font-bold text-high">{{ formatNumber(candidateVotesDisplay) }}</span>
           </div>
           <div v-if="candidateData.metaLocation" class="flex items-center gap-1.5">
-            <span class="text-mid">Location:</span>
+            <span class="text-mid">{{ $t("addressDetail.candidateLocation") }}</span>
             <span class="font-medium text-high">{{ candidateData.metaLocation }}</span>
           </div>
           <div v-if="candidateData.publickey" class="flex items-center gap-1.5 min-w-0">
-            <span class="text-mid">Pubkey:</span>
+            <span class="text-mid">{{ $t("addressDetail.candidatePubkey") }}</span>
             <span class="font-hash text-high truncate max-w-[200px] sm:max-w-xs">{{ candidateData.publickey }}</span>
             <CopyButton :text="candidateData.publickey" size="xs" />
           </div>
@@ -136,28 +146,28 @@
   <!-- Balance overview cards -->
   <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
     <div class="stat-card">
-      <p class="stat-label">NEO Balance</p>
+      <p class="stat-label">{{ $t("addressDetail.statNeoBalance") }}</p>
       <p class="stat-value">
         <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
         <span v-else>{{ formatBalance(neoBalance, 8) }}</span>
       </p>
     </div>
     <div class="stat-card">
-      <p class="stat-label">GAS Balance</p>
+      <p class="stat-label">{{ $t("addressDetail.statGasBalance") }}</p>
       <p class="stat-value">
         <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
         <span v-else>{{ formatTokenAmount(gasBalance, 8, 8) }}</span>
       </p>
     </div>
     <div class="stat-card">
-      <p class="stat-label">Transactions</p>
+      <p class="stat-label">{{ $t("addressDetail.statTransactions") }}</p>
       <p class="stat-value">
         <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
         <span v-else>{{ formatNumber(txCount) }}</span>
       </p>
     </div>
     <div class="stat-card">
-      <p class="stat-label">Token Holdings</p>
+      <p class="stat-label">{{ $t("addressDetail.statTokenHoldings") }}</p>
       <p class="stat-value">
         <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
         <span v-else>{{ formatNumber(tokenCount) }}</span>

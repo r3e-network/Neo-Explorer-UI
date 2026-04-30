@@ -2,22 +2,22 @@
   <div>
     <div class="soft-divider divide-y">
       <InfoRow
-        label="Transaction Hash"
-        tooltip="A unique identifier for this transaction"
+        :label="$t('txDetail.rowTxHash')"
+        :tooltip="$t('txDetail.rowTxHashTip')"
         :value="tx.hash"
         :copyable="!!tx.hash"
         :copy-value="tx.hash"
       />
 
-      <InfoRow v-if="txMethod" label="Method" tooltip="The function executed by this transaction">
+      <InfoRow v-if="txMethod" :label="$t('txDetail.rowMethod')" :tooltip="$t('txDetail.rowMethodTip')">
         <span class="badge-soft">{{ txMethod }}</span>
       </InfoRow>
 
-      <InfoRow label="Status" tooltip="The execution status of the transaction">
+      <InfoRow :label="$t('txDetail.rowStatus')" :tooltip="$t('txDetail.rowStatusTip')">
         <StatusBadge :status="txStatus" />
       </InfoRow>
 
-      <InfoRow label="VM State" tooltip="NeoVM execution result for this transaction">
+      <InfoRow :label="$t('txDetail.rowVmState')" :tooltip="$t('txDetail.rowVmStateTip')">
         <span
           v-if="vmState"
           class="badge-soft rounded px-2 py-0.5 text-xs font-semibold"
@@ -25,13 +25,13 @@
         >
           {{ vmState }}
         </span>
-        <span v-else class="text-mid">UNKNOWN</span>
+        <span v-else class="text-mid">{{ $t("txDetail.rowVmStateUnknown") }}</span>
       </InfoRow>
 
       <InfoRow
         v-if="vmState === 'FAULT'"
-        label="Failure Reason"
-        tooltip="NeoVM exception returned for failed execution"
+        :label="$t('txDetail.rowFailureReason')"
+        :tooltip="$t('txDetail.rowFailureReasonTip')"
       >
         <code
           v-if="failureReason"
@@ -39,17 +39,17 @@
         >
           {{ failureReason }}
         </code>
-        <span v-else class="text-mid">No exception detail returned by node</span>
+        <span v-else class="text-mid">{{ $t("txDetail.rowFailureReasonEmpty") }}</span>
       </InfoRow>
 
-      <InfoRow label="Block">
+      <InfoRow :label="$t('txDetail.rowBlock')">
         <router-link v-if="tx.blockhash" :to="`/block-info/${tx.blockhash}`" class="etherscan-link">
           #{{ tx.blockIndex ?? tx.blockindex }}
         </router-link>
-        <span v-else class="text-mid">Pending confirmation</span>
+        <span v-else class="text-mid">{{ $t("txDetail.rowPendingConfirm") }}</span>
       </InfoRow>
 
-      <InfoRow label="Timestamp">
+      <InfoRow :label="$t('txDetail.rowTimestamp')">
         <template v-if="tx.blocktime">
           <span class="text-high">{{ formatTime(tx.blocktime) }}</span>
           <span class="text-mid ml-2 text-xs"> ({{ formatAge(tx.blocktime) }}) </span>
@@ -64,27 +64,27 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            Pending in Mempool for {{ formatAge(tx.timestamp) }}
+            {{ $t("txDetail.rowMempoolPending", { age: formatAge(tx.timestamp) }) }}
           </span>
         </template>
-        <span v-else class="text-mid">Pending confirmation</span>
+        <span v-else class="text-mid">{{ $t("txDetail.rowPendingConfirm") }}</span>
       </InfoRow>
 
-      <InfoRow label="Confirmations" tooltip="Number of blocks confirmed since this transaction">
+      <InfoRow :label="$t('txDetail.rowConfirmations')" :tooltip="$t('txDetail.rowConfirmationsTip')">
         <span class="badge-soft rounded px-2 py-0.5 text-xs font-medium text-high">
-          {{ confirmations.toLocaleString() }} blocks
+          {{ $t("txDetail.rowConfirmationsValue", { count: confirmations.toLocaleString() }) }}
         </span>
       </InfoRow>
 
       <!-- Separator -->
       <div class="py-1" />
 
-      <InfoRow label="From" tooltip="The sending address of this transaction">
+      <InfoRow :label="$t('txDetail.rowFrom')" :tooltip="$t('txDetail.rowFromTip')">
         <HashLink v-if="tx.sender" :hash="tx.sender" type="address" :truncated="false" :show-neo-chat="true" />
         <span v-else class="text-mid">-</span>
       </InfoRow>
 
-      <InfoRow label="To / Interacted With" tooltip="The receiving address or the primary contract invoked">
+      <InfoRow :label="$t('txDetail.rowTo')" :tooltip="$t('txDetail.rowToTip')">
         <HashLink
           v-if="recipientTarget"
           :hash="recipientTarget.hash"
@@ -92,13 +92,13 @@
           :truncated="false"
           :show-neo-chat="recipientTarget.type === 'address'"
         />
-        <span v-else class="text-mid">Contract Invocation</span>
+        <span v-else class="text-mid">{{ $t("txDetail.rowToFallback") }}</span>
       </InfoRow>
 
       <InfoRow
         v-if="allTransfers && allTransfers.length"
-        label="Tokens Transferred"
-        tooltip="Tokens sent during this transaction"
+        :label="$t('txDetail.rowTokensTransferred')"
+        :tooltip="$t('txDetail.rowTokensTransferredTip')"
       >
         <div class="space-y-3 mt-1">
           <div
@@ -106,13 +106,13 @@
             :key="'overview-xfer-' + tIdx"
             class="flex items-center flex-wrap gap-2 text-sm bg-surface-elevated px-3 py-2 rounded-lg border border-line-soft"
           >
-            <span class="text-low font-medium">From</span>
+            <span class="text-low font-medium">{{ $t("txDetail.transferFromLabel") }}</span>
             <HashLink v-if="t.from" :hash="scriptHashToAddress(t.from)" type="address" class="max-w-[100px] truncate" />
-            <span v-else class="text-mid italic text-xs">Mint</span>
-            <span class="text-low font-medium px-1">To</span>
+            <span v-else class="text-mid italic text-xs">{{ $t("txDetail.transferMint") }}</span>
+            <span class="text-low font-medium px-1">{{ $t("txDetail.transferToLabel") }}</span>
             <HashLink v-if="t.to" :hash="scriptHashToAddress(t.to)" type="address" class="max-w-[100px] truncate" />
-            <span v-else class="text-mid italic text-xs">Burn</span>
-            <span class="text-high font-semibold font-mono pl-2">For</span>
+            <span v-else class="text-mid italic text-xs">{{ $t("txDetail.transferBurn") }}</span>
+            <span class="text-high font-semibold font-mono pl-2">{{ $t("txDetail.transferForLabel") }}</span>
             <span class="text-high font-mono">{{ formatTransferAmount(t) }}</span>
             <span class="badge-soft inline-flex items-center gap-1.5 px-2 py-1">
               <img
@@ -129,7 +129,7 @@
                 class="w-4 h-4 rounded-full object-cover bg-white/5"
                 loading="lazy"
               />
-              {{ t.tokenname || t.symbol || "Token" }}
+              {{ t.tokenname || t.symbol || $t("txDetail.transferToken") }}
             </span>
             <span v-if="t._standard === 'NEP-11' && t.tokenId" class="text-xs text-low"
               >#{{ t.tokenId.length > 8 ? t.tokenId.slice(0, 8) + "…" : t.tokenId }}</span
@@ -138,19 +138,21 @@
         </div>
       </InfoRow>
 
-      <InfoRow label="Network Fee" :value="`${formatGas(tx.netfee)} GAS`" />
-      <InfoRow label="System Fee">
+      <InfoRow :label="$t('txDetail.rowNetFee')" :value="`${formatGas(tx.netfee)} GAS`" />
+      <InfoRow :label="$t('txDetail.rowSysFee')">
         <span class="inline-flex items-center gap-1.5">
           <span>{{ formatGas(tx.sysfee) }} GAS</span>
-          <span class="text-red-600 dark:text-red-400 text-xs font-semibold uppercase tracking-wide">burned</span>
+          <span class="text-red-600 dark:text-red-400 text-xs font-semibold uppercase tracking-wide">{{
+            $t("txDetail.rowSysFeeBurned")
+          }}</span>
         </span>
       </InfoRow>
 
-      <InfoRow label="Total Fee">
+      <InfoRow :label="$t('txDetail.rowTotalFee')">
         <span class="text-high font-medium">{{ totalFee }} GAS</span>
       </InfoRow>
 
-      <InfoRow label="Signers" tooltip="Accounts that authorized this transaction and their authorization scope">
+      <InfoRow :label="$t('txDetail.rowSigners')" :tooltip="$t('txDetail.rowSignersTip')">
         <div v-if="tx.signers && tx.signers.length" class="space-y-2">
           <div v-for="(signer, idx) in tx.signers" :key="idx" class="flex items-center gap-2 flex-wrap">
             <HashLink
@@ -179,11 +181,13 @@
         type="button"
         :aria-expanded="showMore"
         aria-controls="tx-overview-extra"
-        :aria-label="`${showMore ? 'Hide' : 'Show'} additional transaction details`"
+        :aria-label="$t('txDetail.moreToggleAria', { action: showMore ? $t('txDetail.moreToggleHide') : $t('txDetail.moreToggleShow') })"
         class="list-row flex w-full items-center justify-between p-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         @click="$emit('update:showMore', !showMore)"
       >
-        <span class="text-sm font-medium text-primary-500"> Click to {{ showMore ? "hide" : "show" }} more </span>
+        <span class="text-sm font-medium text-primary-500">
+          {{ showMore ? $t("txDetail.moreToggleClickHide") : $t("txDetail.moreToggleClickShow") }}
+        </span>
         <svg
           class="h-4 w-4 text-primary-500 transition-transform duration-200"
           :class="{ 'rotate-180': showMore }"
@@ -197,8 +201,11 @@
       <transition name="expand">
         <div id="tx-overview-extra" v-show="showMore" class="soft-divider border-t">
           <div class="soft-divider divide-y">
-            <InfoRow label="Size" :value="`${tx.size || 0} bytes`" />
-            <InfoRow label="Valid Until Block">
+            <InfoRow
+              :label="$t('txDetail.rowSize')"
+              :value="$t('txDetail.rowSizeBytes', { count: tx.size || 0 })"
+            />
+            <InfoRow :label="$t('txDetail.rowValidUntilBlock')">
               <router-link
                 v-if="tx.validUntilBlock || tx.validuntilblock"
                 :to="`/block-info/${tx.validUntilBlock || tx.validuntilblock}`"
@@ -208,8 +215,8 @@
               </router-link>
               <span v-else class="text-mid">-</span>
             </InfoRow>
-            <InfoRow label="Nonce" :value="tx.nonce != null ? String(tx.nonce) : '-'" />
-            <InfoRow label="Version" :value="tx.version != null ? String(tx.version) : '-'" />
+            <InfoRow :label="$t('txDetail.rowNonce')" :value="tx.nonce != null ? String(tx.nonce) : '-'" />
+            <InfoRow :label="$t('txDetail.rowVersion')" :value="tx.version != null ? String(tx.version) : '-'" />
           </div>
         </div>
       </transition>
@@ -220,7 +227,10 @@
 <script setup>
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import InfoRow from "@/components/common/InfoRow.vue";
+
+const { t } = useI18n();
 import HashLink from "@/components/common/HashLink.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
@@ -340,11 +350,11 @@ function hasOracleResponseAttribute(tx) {
 }
 
 const txMethod = computed(() => {
-  if (hasOracleResponseAttribute(props.tx)) return "Oracle Callback";
+  if (hasOracleResponseAttribute(props.tx)) return t("txDetail.actionOracle");
   if (props.tx?.method) return props.tx.method;
   if (props.tx?.notifications?.length > 0) {
-    return props.tx.notifications[0].eventname || "Transfer";
+    return props.tx.notifications[0].eventname || t("txDetail.methodTransferFallback");
   }
-  return "Transfer";
+  return t("txDetail.methodTransferFallback");
 });
 </script>

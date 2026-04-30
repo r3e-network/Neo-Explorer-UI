@@ -1,5 +1,7 @@
-import { mount, flushPromises } from "@vue/test-utils";
+import { mount, flushPromises, config } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 const route = { params: { txhash: "0xtx" } };
 const getByHash = vi.fn();

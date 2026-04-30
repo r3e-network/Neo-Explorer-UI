@@ -49,16 +49,16 @@
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h1 class="page-title">Transaction Details</h1>
+          <h1 class="page-title">{{ $t("txDetail.headerTitle") }}</h1>
           <StatusBadge :status="txStatus" />
         </div>
-        <p class="page-subtitle">Execution status, traceability, and asset movement for this transaction.</p>
+        <p class="page-subtitle">{{ $t("txDetail.headerSubtitle") }}</p>
         <p
           v-if="isSuccess === false"
           class="mt-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 break-all dark:border-red-700/70 dark:bg-red-950/35 dark:text-red-300"
         >
-          <span class="font-semibold">Failure Reason:</span>
-          {{ failureReason || "No exception detail returned by node" }}
+          <span class="font-semibold">{{ $t("txDetail.headerFailurePrefix") }}</span>
+          {{ failureReason || $t("txDetail.rowFailureReasonEmpty") }}
         </p>
       </div>
     </div>

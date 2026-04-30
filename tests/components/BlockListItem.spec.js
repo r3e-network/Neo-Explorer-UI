@@ -1,6 +1,8 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import BlockListItem from "@/components/common/BlockListItem.vue";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
 const { resolvePrimaryIndexMock, getPrimaryNodeNameMock, getPrimaryNodeAddressMock, getPrimaryNodeLogoMock } = vi.hoisted(() => ({
@@ -14,6 +16,14 @@ const useNowMock = vi.hoisted(() => vi.fn(() => ({ value: new Date() })));
 vi.mock("@vueuse/core", () => ({
   useNow: useNowMock,
 }));
+
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+  };
+});
 
 vi.mock("@/utils/explorerFormat", () => ({
   formatAge: () => "just now",

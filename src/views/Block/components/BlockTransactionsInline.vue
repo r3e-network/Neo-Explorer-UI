@@ -45,11 +45,11 @@ function getNetworkFee(tx) {
         </caption>
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">Txn Hash</th>
-            <th class="table-header-cell">Sender</th>
-            <th class="table-header-cell-right">System Fee</th>
-            <th class="table-header-cell-right">Net Fee</th>
-            <th class="table-header-cell-right">Size</th>
+            <th class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
+            <th class="table-header-cell">{{ $t("transactionsPage.colSender") }}</th>
+            <th class="table-header-cell-right">{{ $t("transactionsPage.colSystemFee") }}</th>
+            <th class="table-header-cell-right">{{ $t("transactionsPage.colNetFee") }}</th>
+            <th class="table-header-cell-right">{{ $t("transactionsPage.colSize") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

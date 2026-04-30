@@ -17,10 +17,10 @@
         v-if="mode === 'full'"
         v-model="activeFilter"
         class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 bg-transparent hover:bg-white/5 py-4 pl-4 pr-10 text-sm font-bold text-white transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
-        aria-label="Search filter"
+        :aria-label="t('searchBox.ariaFilter')"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-slate-900 text-white">
-          {{ f.label }}
+          {{ t(f.labelKey) }}
         </option>
       </select>
 
@@ -73,7 +73,7 @@
         @keydown.escape="closeSuggestions"
         autocomplete="off"
         role="combobox"
-        aria-label="Search blockchain"
+        :aria-label="t('searchBox.ariaSearchInput')"
         :aria-expanded="showDropdown"
         aria-controls="search-dropdown"
         aria-autocomplete="list"
@@ -84,7 +84,7 @@
       <button
         @click="handleSearch"
         :disabled="loading || !query.trim()"
-        aria-label="Submit search"
+        :aria-label="t('searchBox.ariaSubmit')"
         :class="[
           'search-submit-btn absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5',
           mode === 'full'
@@ -104,7 +104,7 @@
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
-        <span v-if="mode === 'full'">Search</span>
+        <span v-if="mode === 'full'">{{ t("searchBox.submit") }}</span>
       </button>
     </div>
 
@@ -114,21 +114,21 @@
         v-if="showDropdown && mode === 'full'"
         id="search-dropdown"
         role="listbox"
-        aria-label="Search suggestions"
+        :aria-label="t('searchBox.ariaSuggestions')"
         class="surface-panel soft-divider absolute z-[150] mt-2 max-h-96 w-full overflow-hidden overflow-y-auto rounded-2xl border shadow-[0_10px_40px_rgba(0,0,0,0.2)]"
       >
         <!-- Search History -->
         <div v-if="!query && searchHistory.length > 0">
           <div class="search-group-header flex items-center justify-between px-4 py-2">
-            <span class="text-mid text-xs font-medium uppercase tracking-wide"
-              >Recent Searches</span
-            >
+            <span class="text-mid text-xs font-medium uppercase tracking-wide">{{
+              t("searchBox.recentSearches")
+            }}</span>
             <button
               @click.stop="clearHistory"
-              aria-label="Clear search history"
+              :aria-label="t('searchBox.ariaClearHistory')"
               class="text-low hover:text-error text-xs transition-colors"
             >
-              Clear
+              {{ t("searchBox.clearHistory") }}
             </button>
           </div>
           <div
@@ -159,9 +159,9 @@
         <!-- Search Suggestions -->
         <div v-if="query && suggestions.length > 0">
           <div class="search-group-header px-4 py-2">
-            <span class="text-mid text-xs font-medium uppercase tracking-wide"
-              >Suggestions</span
-            >
+            <span class="text-mid text-xs font-medium uppercase tracking-wide">{{
+              t("searchBox.suggestions")
+            }}</span>
           </div>
           <div
             v-for="(item, index) in suggestions"
@@ -192,35 +192,43 @@
 
         <!-- Quick Search Tips -->
         <div v-if="!query && searchHistory.length === 0" class="p-4">
-          <p class="text-mid mb-3 text-xs font-medium uppercase tracking-wide">Search Tips</p>
+          <p class="text-mid mb-3 text-xs font-medium uppercase tracking-wide">
+            {{ t("searchBox.searchTips") }}
+          </p>
           <div class="space-y-2">
             <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-500 flex items-center justify-center text-xs"
                 >Bk</span
               >
-              <span>Block height: <code class="search-tip-code rounded px-1">12345678</code></span>
+              <i18n-t keypath="searchBox.tipBlockHeight" tag="span">
+                <template #example><code class="search-tip-code rounded px-1">12345678</code></template>
+              </i18n-t>
             </div>
             <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center text-xs"
                 >Tx</span
               >
-              <span>Transaction hash: <code class="search-tip-code rounded px-1">0x...</code></span>
+              <i18n-t keypath="searchBox.tipTransactionHash" tag="span">
+                <template #example><code class="search-tip-code rounded px-1">0x...</code></template>
+              </i18n-t>
             </div>
             <div class="text-mid flex items-center gap-2 text-sm">
               <span
                 class="w-6 h-6 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-500 flex items-center justify-center text-xs"
                 >Ad</span
               >
-              <span>Address: <code class="search-tip-code rounded px-1">N...</code></span>
+              <i18n-t keypath="searchBox.tipAddress" tag="span">
+                <template #example><code class="search-tip-code rounded px-1">N...</code></template>
+              </i18n-t>
             </div>
           </div>
         </div>
 
         <!-- No Results -->
         <div v-if="query && suggestions.length === 0 && !isSearching" class="p-4 text-center">
-          <p class="text-mid text-sm">Press Enter to search</p>
+          <p class="text-mid text-sm">{{ t("searchBox.pressEnterToSearch") }}</p>
         </div>
       </div>
     </transition>
@@ -229,18 +237,23 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { isValidNeoAddress, isValidTxHash } from "@/utils/addressFormat";
 import { getTypeIcon, getTypeIconClass, getTypeBadgeClass } from "@/utils/searchPresentation";
 import { SEARCH_DEBOUNCE_MS } from "@/constants";
+
+const { t } = useI18n();
 
 const HISTORY_KEY = "neo_explorer_search_history";
 const MIN_SEARCH_LENGTH = 2;
 const MAX_HISTORY_DISPLAY = 5;
 
 const props = defineProps({
+  // Caller may override the default placeholder. Empty string falls back to
+  // the locale-aware default below so a missing prop doesn't pin English.
   placeholder: {
     type: String,
-    default: "Search by Address / NNS / Txn Hash / Block / Token / Contract",
+    default: "",
   },
   loading: { type: Boolean, default: false },
   mode: {
@@ -276,25 +289,26 @@ function isNnsDomain(value) {
 }
 
 const filters = [
-  { value: "all", label: "All Filters" },
-  { value: "addresses", label: "Addresses" },
-  { value: "transactions", label: "Transactions" },
-  { value: "blocks", label: "Blocks" },
-  { value: "tokens", label: "Tokens" },
-  { value: "contracts", label: "Contracts" },
+  { value: "all", labelKey: "searchBox.filterAll" },
+  { value: "addresses", labelKey: "searchBox.filterAddresses" },
+  { value: "transactions", labelKey: "searchBox.filterTransactions" },
+  { value: "blocks", labelKey: "searchBox.filterBlocks" },
+  { value: "tokens", labelKey: "searchBox.filterTokens" },
+  { value: "contracts", labelKey: "searchBox.filterContracts" },
 ];
 
 const currentPlaceholder = computed(() => {
-  if (props.mode === "compact") return "Search by Address / Txn Hash / Block";
+  if (props.mode === "compact") return t("searchBox.placeholderCompact");
+  const fallback = props.placeholder || t("searchBox.placeholderDefault");
   const map = {
-    all: props.placeholder,
-    addresses: "Search by Neo N3 address (N...) or NNS (.neo)",
-    transactions: "Search by transaction hash (0x...)",
-    blocks: "Search by block height or hash",
-    tokens: "Search by token name or hash",
-    contracts: "Search by contract hash",
+    all: fallback,
+    addresses: t("searchBox.placeholderAddresses"),
+    transactions: t("searchBox.placeholderTransactions"),
+    blocks: t("searchBox.placeholderBlocks"),
+    tokens: t("searchBox.placeholderTokens"),
+    contracts: t("searchBox.placeholderContracts"),
   };
-  return map[activeFilter.value] || props.placeholder;
+  return map[activeFilter.value] || fallback;
 });
 
 function handleSearch() {

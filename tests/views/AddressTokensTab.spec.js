@@ -1,5 +1,15 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+  };
+});
 
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {

@@ -1,11 +1,14 @@
 <script setup>
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import EnrichedNotification from "@/components/trace/EnrichedNotification.vue";
 import StackViewer from "@/components/trace/StackViewer.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatGas } from "@/utils/explorerFormat";
+
+const { t } = useI18n();
 
 defineProps({
   appLog: { type: Object, default: null },
@@ -25,18 +28,20 @@ function formatState(state) {
   }
 }
 
+// dBFT trigger codes are protocol identifiers, not user-facing copy. Translate
+// only the generic "System" fallback when no trigger is present.
 function triggerLabel(trigger) {
-  if (!trigger) return "System";
-  const t = trigger.toLowerCase();
-  if (t === "onpersist") return "OnPersist";
-  if (t === "postpersist") return "PostPersist";
+  if (!trigger) return t("blockDetail.logsTriggerSystem");
+  const code = trigger.toLowerCase();
+  if (code === "onpersist") return "OnPersist";
+  if (code === "postpersist") return "PostPersist";
   return trigger;
 }
 
 function triggerDescription(trigger) {
-  const t = (trigger || "").toLowerCase();
-  if (t === "onpersist") return "Executed before block persistence — native contract state updates (hardfork upgrades, committee changes)";
-  if (t === "postpersist") return "Executed after block persistence — GAS distribution, validator reward settlement";
+  const code = (trigger || "").toLowerCase();
+  if (code === "onpersist") return t("blockDetail.logsOnPersistDescription");
+  if (code === "postpersist") return t("blockDetail.logsPostPersistDescription");
   return "";
 }
 </script>
@@ -64,7 +69,7 @@ function triggerDescription(trigger) {
             d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
           />
         </svg>
-        {{ showRawAppLog ? "Decoded View" : "Raw JSON" }}
+        {{ showRawAppLog ? $t("blockDetail.logsDecoded") : $t("blockDetail.logsRawJson") }}
       </button>
     </div>
 
@@ -84,7 +89,7 @@ function triggerDescription(trigger) {
     <!-- Empty -->
     <EmptyState
       v-else-if="!appLog || !appLog.executions || appLog.executions.length === 0"
-      message="No system execution logs for this block"
+      :message="$t('blockDetail.logsEmpty')"
       icon="log"
     />
 
@@ -123,12 +128,12 @@ function triggerDescription(trigger) {
                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                 "
               >
-                VM State: {{ exec.vmstate || "UNKNOWN" }}
+                {{ $t("blockDetail.logsVmState", { state: exec.vmstate || $t("blockDetail.logsVmStateUnknown") }) }}
               </span>
               <span
                 class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
               >
-                GAS Consumed: {{ formatGas(exec.gasconsumed) }}
+                {{ $t("blockDetail.logsGasConsumed", { amount: formatGas(exec.gasconsumed) }) }}
               </span>
             </div>
             <p
@@ -146,7 +151,7 @@ function triggerDescription(trigger) {
               class="panel-muted mb-4 p-3"
             >
               <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-                Stack Result
+                {{ $t("blockDetail.logsStackResult") }}
               </h4>
               <StackViewer :stack="exec.stack" />
             </div>
@@ -154,7 +159,7 @@ function triggerDescription(trigger) {
             <!-- Notifications -->
             <div v-if="exec.notifications && exec.notifications.length">
               <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-                Notifications ({{ exec.notifications.length }})
+                {{ $t("blockDetail.logsNotifications", { count: exec.notifications.length }) }}
               </h4>
 
               <!-- Enriched display -->
@@ -170,13 +175,13 @@ function triggerDescription(trigger) {
               <!-- Raw fallback -->
               <div v-else class="overflow-x-auto">
                 <table class="w-full text-sm">
-                  <caption class="sr-only">Block system execution notifications</caption>
+                  <caption class="sr-only">{{ $t("blockDetail.logsCaption") }}</caption>
                   <thead class="table-head">
                     <tr class="soft-divider border-b">
                       <th class="table-header-cell">#</th>
-                      <th class="table-header-cell">Contract</th>
-                      <th class="table-header-cell">Event</th>
-                      <th class="table-header-cell">State</th>
+                      <th class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
+                      <th class="table-header-cell">{{ $t("blockDetail.logsColEvent") }}</th>
+                      <th class="table-header-cell">{{ $t("blockDetail.logsColState") }}</th>
                     </tr>
                   </thead>
                   <tbody class="soft-divider divide-y">
@@ -191,7 +196,7 @@ function triggerDescription(trigger) {
                       </td>
                       <td class="table-cell">
                         <span class="badge-soft text-high rounded px-2 py-0.5 text-xs font-medium">
-                          {{ n.eventname || "unknown" }}
+                          {{ n.eventname || $t("blockDetail.logsEventUnknown") }}
                         </span>
                       </td>
                       <td class="table-cell">
@@ -204,7 +209,7 @@ function triggerDescription(trigger) {
             </div>
 
             <div v-else class="text-mid py-4 text-center text-sm">
-              No notifications emitted.
+              {{ $t("blockDetail.logsNoNotifications") }}
             </div>
           </div>
         </div>

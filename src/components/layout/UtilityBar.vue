@@ -9,7 +9,7 @@
         <span class="hidden sm:inline">GAS:</span>
         <span class="hidden font-semibold text-white sm:inline">${{ formatPrice(gasPrice) }}</span>
         <span class="hidden text-white/30 md:inline">|</span>
-        <span class="hidden md:inline">Net Fee:</span>
+        <span class="hidden md:inline">{{ t("utilityBar.netFee") }}</span>
         <span class="hidden font-semibold text-white md:inline"
           >{{ formatGasValue(networkFee) }} GAS</span
         >
@@ -18,7 +18,7 @@
         <div ref="networkDropdown" class="relative">
           <button
             class="h-6 rounded-md border border-white/25 bg-white/10 px-2 text-xs text-white transition hover:bg-white/20"
-            aria-label="Select network"
+            :aria-label="t('utilityBar.selectNetwork')"
             aria-haspopup="true"
             :aria-expanded="networkDropdownOpen"
             @click="$emit('toggle-network-dropdown')"
@@ -38,7 +38,7 @@
                   ? 'bg-white/15 text-primary-300'
                   : 'text-white/80 hover:bg-white/10 hover:text-white',
               ]"
-              :aria-label="`Switch to ${net.name}`"
+              :aria-label="t('utilityBar.switchTo', { name: net.name })"
               @click="$emit('select-network', net)"
             >
               {{ net.name }}
@@ -54,9 +54,12 @@
 
 <script setup>
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import ThemeToggle from "@/components/common/ThemeToggle.vue";
 import LanguageSelector from "@/components/common/LanguageSelector.vue";
 import { formatPrice, formatPriceChange } from "@/utils/explorerFormat";
+
+const { t } = useI18n();
 
 defineProps({
   neoPrice: { type: Number, default: 0 },

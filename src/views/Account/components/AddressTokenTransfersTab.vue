@@ -4,30 +4,30 @@
       <Skeleton v-for="index in 6" :key="index" height="46px" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load token transfers" :message="error" @retry="$emit('retry')" />
+    <ErrorState v-else-if="error" :title="$t('addressDetail.transfersError')" :message="error" @retry="$emit('retry')" />
 
     <EmptyState
       v-else-if="!transfers.length"
-      message="No token transfers found"
-      description="No NEP-17 transfer records were found for this address."
+      :message="$t('addressDetail.transfersEmptyTitle')"
+      :description="$t('addressDetail.transfersEmptyDesc')"
     />
 
     <div v-else class="space-y-4">
-      <p class="text-mid text-sm">Latest {{ transfers.length }} NEP-17 token transfers</p>
+      <p class="text-mid text-sm">{{ $t("addressDetail.latestNep17", { count: transfers.length }) }}</p>
       <div class="surface-panel overflow-x-auto">
-        <table class="w-full min-w-[850px]" aria-label="Address NEP-17 token transfers">
+        <table class="w-full min-w-[850px]" :aria-label="$t('addressDetail.transfersTableAria')">
           <caption class="sr-only">
             NEP-17 token transfers involving this address
           </caption>
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">Txn Hash</th>
-              <th class="table-header-cell">Age</th>
-              <th class="table-header-cell">From</th>
+              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
               <th class="table-header-cell w-16 text-center"></th>
-              <th class="table-header-cell">To</th>
-              <th class="table-header-cell-right">Amount</th>
-              <th class="table-header-cell">Token</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th class="table-header-cell-right">{{ $t("transactionsPage.colAmount") }}</th>
+              <th class="table-header-cell">{{ $t("addressDetail.colToken") }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">

@@ -1,6 +1,9 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import TxListItem from "@/components/common/TxListItem.vue";
+
+// Make `$t(key)` resolve to the key in template, matching the useI18n mock above.
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 import { NEO_HASH } from "@/constants";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
@@ -9,6 +12,14 @@ const useNowMock = vi.hoisted(() => vi.fn(() => ({ value: new Date() })));
 vi.mock("@vueuse/core", () => ({
   useNow: useNowMock,
 }));
+
+vi.mock("vue-i18n", async () => {
+  const actual = await vi.importActual("vue-i18n");
+  return {
+    ...actual,
+    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+  };
+});
 
 const { resolveAddressToNNS, getContractMetadata, getAddressTag } = vi.hoisted(() => ({
   resolveAddressToNNS: vi.fn(async () => null),

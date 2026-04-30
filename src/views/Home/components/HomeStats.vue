@@ -22,7 +22,7 @@
               </svg>
             </div>
             <div>
-              <div class="stat-label">NEO Price</div>
+              <div class="stat-label">{{ $t("homePage.statNeoPrice") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !neoPrice" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>${{ formatPrice(neoPrice) }}</span>
@@ -34,7 +34,7 @@
             :class="priceChangeClass(neoPriceChange)"
             :aria-label="`NEO 24h change ${describePriceChange(neoPriceChange)}`"
           >
-            {{ formatPriceChange(neoPriceChange) }} <span class="text-low">(24h)</span>
+            {{ formatPriceChange(neoPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
         </div>
 
@@ -53,7 +53,7 @@
               </svg>
             </div>
             <div>
-              <div class="stat-label">GAS Price</div>
+              <div class="stat-label">{{ $t("homePage.statGasPrice") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !gasPrice" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>${{ formatPrice(gasPrice) }}</span>
@@ -65,7 +65,7 @@
             :class="priceChangeClass(gasPriceChange)"
             :aria-label="`GAS 24h change ${describePriceChange(gasPriceChange)}`"
           >
-            {{ formatPriceChange(gasPriceChange) }} <span class="text-low">(24h)</span>
+            {{ formatPriceChange(gasPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
         </div>
 

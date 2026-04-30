@@ -20,7 +20,7 @@
       <div class="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
         <template v-if="isSingleTransferFlow">
           <div class="min-w-0 text-right">
-            <p class="text-xs text-mid">From</p>
+            <p class="text-xs text-mid">{{ $t("listItems.from") }}</p>
             <HashLink
               v-if="tx.sender"
               :hash="tx.sender"
@@ -45,7 +45,7 @@
             </svg>
           </div>
           <div class="min-w-0 text-left">
-            <p class="text-xs text-mid">To</p>
+            <p class="text-xs text-mid">{{ $t("listItems.to") }}</p>
             <HashLink
               v-if="recipient"
               :hash="recipient.hash"
@@ -57,7 +57,7 @@
         </template>
         <template v-else>
           <div class="min-w-0 text-right">
-            <p class="text-xs text-mid">From</p>
+            <p class="text-xs text-mid">{{ $t("listItems.from") }}</p>
             <HashLink
               v-if="tx.sender"
               :hash="tx.sender"
@@ -70,7 +70,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
           <div class="min-w-0 text-left">
-            <p class="text-xs text-mid">To</p>
+            <p class="text-xs text-mid">{{ $t("listItems.to") }}</p>
             <div v-if="recipient" class="flex items-center gap-1.5">
               <HashLink
                 :hash="recipient.hash"
@@ -110,7 +110,7 @@
               />
               <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
             </div>
-            <span v-else class="text-sm text-low">Contract Call</span>
+            <span v-else class="text-sm text-low">{{ $t("listItems.contractCall") }}</span>
           </div>
         </template>
       </div>
@@ -130,7 +130,7 @@
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            Complex
+            {{ $t("listItems.complex") }}
           </span>
           <span :style="statusStyle" class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
             {{ statusText }}
@@ -144,9 +144,12 @@
 
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
 import HashLink from "./HashLink.vue";
+
+const { t } = useI18n();
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS, NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
@@ -322,7 +325,7 @@ const statusText = computed(() => {
   if (props.tx?.status === "pending" || props.tx?.status?.toLowerCase() === "pending") return "PENDING";
   if (isSuccess.value === true) return "HALT";
   if (isSuccess.value === false) return "FAULT";
-  return "Unknown";
+  return t("listItems.statusUnknown");
 });
 
 const toPrefixedHash = (value) => {

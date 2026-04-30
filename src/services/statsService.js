@@ -4,7 +4,6 @@ import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { getCurrentEnv } from "@/utils/env";
-import { mapDailyAnalyticsToTransactionSeries } from "./legacyFallbacks";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -62,141 +61,61 @@ function extractCount(res) {
   return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
 }
 
-/**
- * Helper to generate realistic mock data for endpoints not yet implemented by neo3fura backend.
- * @param {string} type - 'address', 'contract', 'tokenVolume', 'gasPrice'
- * @param {number} days - Number of days to generate
- */
-function generateMockChartData(type, days) {
-  const data = [];
-  const now = Date.now();
-  let baseValue = 0;
-  let volatility = 0.1;
-  let trend = 0;
-
-  switch (type) {
-    case 'address': baseValue = 120; volatility = 0.3; trend = 1.05; break;
-    case 'contract': baseValue = 3; volatility = 0.8; trend = 1.01; break;
-    case 'tokenVolume': baseValue = 50000; volatility = 0.4; trend = 1.02; break;
-    case 'gasPrice': baseValue = 0.0012; volatility = 0.05; trend = 0.99; break;
+// Pad indexer rows to exactly `days` consecutive UTC days ending today, oldest-first.
+// Missing days (gaps in the indexer) become zero-valued rows so charts render evenly.
+function padDailyRows(rows, days, now = new Date()) {
+  const byDay = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const day = String(row?.day || "").trim();
+    if (day) byDay.set(day, row);
   }
-
-  let currentValue = baseValue;
-
-  for (let i = 0; i < days; i++) {
-    // Generate from oldest to newest
-    const dDate = new Date(now - (days - 1 - i) * 86400000);
-    const dateStr = dDate.toISOString().split('T')[0];
-
-    currentValue = currentValue * trend + (Math.random() - 0.5) * currentValue * volatility;
-    if (type === 'contract') currentValue = Math.max(0, Math.round(currentValue));
-    if (type === 'address') currentValue = Math.max(10, Math.round(currentValue));
-    if (type === 'tokenVolume') currentValue = Math.max(1000, Math.round(currentValue));
-
-    data.push({ date: dateStr, value: currentValue });
-  }
-
-  return data;
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date(start);
+    date.setUTCDate(start.getUTCDate() - (days - i - 1));
+    const day = date.toISOString().slice(0, 10);
+    return (
+      byDay.get(day) || {
+        day,
+        tx_count: 0,
+        active_signers: 0,
+        fee_burned: "0",
+        nep17_transfer_count: 0,
+        nep11_transfer_count: 0,
+      }
+    );
+  });
 }
 
 export const statsService = createService(
+  {},
   {
-    _getNetworkActivityRpc: {
-      cacheKey: "network_activity",
-      rpcMethod: "GetDailyTransactions",
-      fallback: [],
-      ttl: CACHE_TTL.chart,
-      buildParams: ([days = 14]) => ({ Days: days }),
-      buildCacheParams: ([days = 14]) => ({ days }),
-    },
-    _getDailyStatsRpc: {
-      cacheKey: "daily_stats",
-      rpcMethod: "GetDailyTransactions",
-      fallback: [],
-      ttl: CACHE_TTL.chart,
-      buildParams: ([days = 30]) => ({ Days: days }),
-      buildCacheParams: ([days = 30]) => ({ days }),
-    },
-  },
-  {
-    async getNetworkActivity(days = 14, options = {}) {
-      const key = getCacheKey("network_activity_fallback", { days });
+    /**
+     * Daily analytics rows from the indexer, padded to exactly `days` UTC days.
+     * One row per day with: tx_count, active_signers, fee_burned (fractoshi),
+     * nep17_transfer_count, nep11_transfer_count. Throws on indexer failure
+     * so the UI can show an error state instead of silent zeros.
+     */
+    async getDailyAnalytics(days = 30, options = {}) {
+      const key = getCacheKey("daily_analytics_padded", { days });
       return cachedRequest(
         key,
         async () => {
-          const res = await this._getNetworkActivityRpc(days, options);
-          if (Array.isArray(res) && res.length > 0) {
-            return res;
+          const rows = await indexerReadService.getDailyAnalytics(days, options);
+          if (!Array.isArray(rows) || rows.length === 0) {
+            throw new Error("Daily analytics unavailable");
           }
-          const daily = await indexerReadService.getDailyAnalytics(days, options);
-          return mapDailyAnalyticsToTransactionSeries(daily, days);
+          return padDailyRows(rows, days);
         },
         CACHE_TTL.chart,
         getRealtimeListCacheOptions(options),
       );
     },
 
-    async getDailyStats(days = 30, options = {}) {
-      const key = getCacheKey("daily_stats_fallback", { days });
-      return cachedRequest(
-        key,
-        async () => {
-          const res = await this._getDailyStatsRpc(days, options);
-          if (Array.isArray(res) && res.length > 0) {
-            return res;
-          }
-          const daily = await indexerReadService.getDailyAnalytics(days, options);
-          return mapDailyAnalyticsToTransactionSeries(daily, days);
-        },
-        CACHE_TTL.chart,
-        getRealtimeListCacheOptions(options),
-      );
-    },
-
-    /**
-     * 获取仪表盘统计数据（带缓存）
-     * Aggregates 6 parallel RPC calls — cannot be expressed as a single factory config.
-     * @param {boolean} forceRefresh - 强制刷新
-     * @returns {Promise<Object>} 包含 blocks, txs, contracts 等统计
-     */
-    
-    /**
-     * Get Address Growth Chart Data
-     * Falls back to mock data if endpoint returns stale/broken 2021 data.
-     */
-    async getDailyAddressGrowth(days = 30) {
-      try {
-        const res = await rpc("GetNewAddresses", { Days: days });
-        // Neo3fura currently returns 2 static records from 2021 for this endpoint.
-        // We simulate real data if the results are clearly broken.
-        if (!res || !Array.isArray(res) || res.length < 5) {
-          throw new Error("Stale/Broken data from GetNewAddresses");
-        }
-        return res;
-      } catch (e) {
-        return generateMockChartData('address', days);
-      }
-    },
-
-    /**
-     * Get Contract Deployment Chart Data
-     */
-    async getDailyContracts(days = 30) {
-      return generateMockChartData('contract', days);
-    },
-
-    /**
-     * Get Token Transfer Volume Chart Data
-     */
-    async getTokenTransferVolume(days = 30) {
-      return generateMockChartData('tokenVolume', days);
-    },
-
-    /**
-     * Get GAS Price History Chart Data
-     */
-    async getGasPriceHistory(days = 30) {
-      return generateMockChartData('gasPrice', days);
+    /** [{date, transactions}] — kept stable for BurnFee.vue. */
+    async getNetworkActivity(days = 30, options = {}) {
+      const rows = await this.getDailyAnalytics(days, options);
+      return rows.map((r) => ({ date: r.day, transactions: Number(r.tx_count) || 0 }));
     },
 
     async getDashboardStats(forceRefresh = false) {

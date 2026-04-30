@@ -1,13 +1,13 @@
 <template>
   <div class="etherscan-card overflow-hidden">
     <div class="card-header">
-      <h2 class="text-high text-sm font-semibold">Recent Blocks - Fee Data</h2>
+      <h2 class="text-high text-sm font-semibold">{{ $t("gasTracker.blocksTitle") }}</h2>
       <button
         @click="$emit('refresh')"
-        aria-label="Refresh data"
+        :aria-label="$t('gasTracker.blocksRefreshAria')"
         class="text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400"
       >
-        Refresh
+        {{ $t("gasTracker.blocksRefresh") }}
       </button>
     </div>
 
@@ -23,7 +23,7 @@
 
     <!-- Empty -->
     <div v-else-if="!blocks.length" class="p-4">
-      <EmptyState message="No block data available" icon="block" />
+      <EmptyState :message="$t('gasTracker.blocksEmpty')" icon="block" />
     </div>
 
     <!-- Table -->
@@ -31,11 +31,11 @@
       <table class="w-full min-w-[700px]" aria-label="Block fees">
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">Block</th>
-            <th class="table-header-cell">Age</th>
-            <th class="table-header-cell text-center">Txns</th>
-            <th class="table-header-cell-right">Avg Fee</th>
-            <th class="table-header-cell-right">Total Fees</th>
+            <th class="table-header-cell">{{ $t("gasTracker.colBlock") }}</th>
+            <th class="table-header-cell">{{ $t("gasTracker.colAge") }}</th>
+            <th class="table-header-cell text-center">{{ $t("gasTracker.colTxns") }}</th>
+            <th class="table-header-cell-right">{{ $t("gasTracker.colAvgFee") }}</th>
+            <th class="table-header-cell-right">{{ $t("gasTracker.colTotalFees") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

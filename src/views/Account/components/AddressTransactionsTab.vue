@@ -4,25 +4,28 @@
       <Skeleton v-for="index in 6" :key="index" height="46px" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load transactions" :message="error" @retry="$emit('goToPage', 1)" />
+    <ErrorState v-else-if="error" :title="$t('addressDetail.txError')" :message="error" @retry="$emit('goToPage', 1)" />
 
     <EmptyState
       v-else-if="!transactions.length"
-      message="No transactions found"
-      description="This address has no indexed transaction history yet."
+      :message="$t('addressDetail.txEmptyTitle')"
+      :description="$t('addressDetail.txEmptyDesc')"
     />
 
     <div v-else class="space-y-4">
       <div class="flex items-center justify-between">
         <p class="text-mid text-sm">
-          Latest {{ transactions.length }} from a total of
-          <span class="text-high font-semibold">{{ formatNumber(totalCount) }}</span>
-          transactions
+          {{
+            $t("addressDetail.txCountLine", {
+              count: transactions.length,
+              total: formatNumber(totalCount),
+            })
+          }}
         </p>
         <button
           type="button"
           class="btn-outline flex items-center gap-1 px-2.5 py-1.5 text-xs"
-          aria-label="Export transactions to CSV"
+          :aria-label="$t('addressDetail.txExportAria')"
           @click="$emit('exportCsv')"
         >
           <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,25 +36,25 @@
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          CSV Export
+          {{ $t("addressDetail.csvExport") }}
         </button>
       </div>
       <div class="surface-panel overflow-x-auto">
-        <table class="w-full min-w-[900px]" aria-label="Address transactions">
+        <table class="w-full min-w-[900px]" :aria-label="$t('addressDetail.txTableAria')">
           <caption class="sr-only">
             Address transaction history
           </caption>
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">Txn Hash</th>
-              <th class="table-header-cell w-[120px]">Method</th>
-              <th class="table-header-cell w-[100px]">Block</th>
-              <th class="table-header-cell">Age</th>
-              <th class="table-header-cell">From</th>
+              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th class="table-header-cell w-[120px]">{{ $t("transactionsPage.colMethod") }}</th>
+              <th class="table-header-cell w-[100px]">{{ $t("transactionsPage.colBlock") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
               <th class="table-header-cell w-16 text-center"></th>
-              <th class="table-header-cell">To</th>
-              <th class="table-header-cell-right">Value</th>
-              <th class="table-header-cell-right">Txn Fee</th>
+              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th class="table-header-cell-right">{{ $t("addressDetail.colValue") }}</th>
+              <th class="table-header-cell-right">{{ $t("addressDetail.colTxFee") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y soft-divider">

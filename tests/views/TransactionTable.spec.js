@@ -1,7 +1,9 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import TransactionTable from "@/views/Transaction/components/TransactionTable.vue";
 import { NEO_HASH } from "@/constants";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 const { getContractMetadataBatch } = vi.hoisted(() => ({
   getContractMetadataBatch: vi.fn(async () => ({})),

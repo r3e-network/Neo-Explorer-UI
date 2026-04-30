@@ -28,6 +28,14 @@ export const i18n = createI18n({
   messages: {},
 });
 
+// Expose the i18n singleton on globalThis so utility modules (timeFormat,
+// etc.) can resolve translations without forcing every caller to pipe `t`
+// through. SSR/test environments without vue-i18n simply skip the lookup
+// and fall back to English in the helper.
+if (typeof globalThis !== "undefined") {
+  globalThis.__neoExplorerI18n__ = i18n;
+}
+
 export async function ensureLocaleMessages(locale) {
   const normalized = normalizeLocale(locale);
   if (loadedLocales.has(normalized)) {

@@ -4,25 +4,25 @@
       <Skeleton v-for="index in 5" :key="index" height="46px" />
     </div>
 
-    <ErrorState v-else-if="error" title="Unable to load token holdings" :message="error" @retry="$emit('retry')" />
+    <ErrorState v-else-if="error" :title="$t('addressDetail.tokensError')" :message="error" @retry="$emit('retry')" />
 
     <EmptyState
       v-else-if="!assets.length"
-      message="No token holdings"
-      description="No NEP-17 balances were found for this address."
+      :message="$t('addressDetail.tokensEmptyTitle')"
+      :description="$t('addressDetail.tokensEmptyDesc')"
     />
 
     <div v-else class="surface-panel overflow-x-auto">
-      <table class="w-full min-w-[700px]" aria-label="Address token holdings">
+      <table class="w-full min-w-[700px]" :aria-label="$t('addressDetail.tokensTableAria')">
         <caption class="sr-only">
           NEP-17 token balances for this address
         </caption>
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">Token</th>
-            <th class="table-header-cell">Standard</th>
-            <th class="table-header-cell-right">Balance</th>
-            <th class="table-header-cell">Contract</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colToken") }}</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colStandard") }}</th>
+            <th class="table-header-cell-right">{{ $t("addressDetail.colBalance") }}</th>
+            <th class="table-header-cell">{{ $t("addressDetail.colContract") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">
@@ -92,7 +92,10 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
+
+const { t: tu } = useI18n();
 import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { supabaseService } from "@/services/supabaseService";
@@ -140,7 +143,7 @@ function assetDisplayName(asset) {
   if (supabaseMeta.value[hash]?.symbol) return supabaseMeta.value[hash].symbol;
   if (NATIVE_CONTRACTS[hash]) return NATIVE_CONTRACTS[hash].symbol || NATIVE_CONTRACTS[hash].name;
   if (KNOWN_CONTRACTS[hash]) return KNOWN_CONTRACTS[hash].symbol || KNOWN_CONTRACTS[hash].name;
-  return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
+  return asset?.tokenname || asset?.name || asset?.symbol || tu("addressDetail.unknownAsset");
 }
 
 function normalizeAssetHash(hash) {

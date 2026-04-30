@@ -12,12 +12,12 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">Neo N3 Gas Tracker</h1>
+          <h1 class="page-title">{{ $t("gasTracker.pageTitle") }}</h1>
           <p class="page-subtitle">
-            Real-time network fee estimates and GAS analytics
+            {{ $t("gasTracker.pageSubtitle") }}
             <span v-if="autoRefreshActive" class="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
               <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              Live
+              {{ $t("gasTracker.live") }}
             </span>
           </p>
         </div>
@@ -30,7 +30,7 @@
       <div v-if="gasError" class="etherscan-card mb-6 p-5">
         <div class="flex items-center gap-3 text-sm text-mid">
           <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
-          <span>Unable to load fee summary data. Showing block-based estimates only.</span>
+          <span>{{ $t("gasTracker.summaryUnavailable") }}</span>
           <button @click="loadGasTracker(true)" class="ml-auto text-primary-500 hover:text-primary-600 font-medium text-xs underline">{{ $t('common.retry') }}</button>
         </div>
       </div>
@@ -50,20 +50,16 @@
 
       <!-- About Neo N3 Fees -->
       <div class="etherscan-card mt-6 p-5">
-        <h2 class="text-high mb-2 text-base font-semibold">About Neo N3 Fees</h2>
+        <h2 class="text-high mb-2 text-base font-semibold">{{ $t("gasTracker.aboutTitle") }}</h2>
         <div class="text-mid space-y-2 text-sm leading-relaxed">
           <p>
-            Neo N3 transactions incur two types of fees:
-            <strong class="text-high">System Fee</strong>
-            (consumed for on-chain operations like contract invocations) and
-            <strong class="text-high">Network Fee</strong>
-            (paid to Consensus Nodes for transaction verification and inclusion).
+            {{ $t("gasTracker.aboutPara1Prefix") }}
+            <strong class="text-high">{{ $t("gasTracker.aboutSystemFee") }}</strong>
+            {{ $t("gasTracker.aboutSystemFeeDescription") }}
+            <strong class="text-high">{{ $t("gasTracker.aboutNetworkFee") }}</strong>
+            {{ $t("gasTracker.aboutNetworkFeeDescription") }}
           </p>
-          <p>
-            Unlike Ethereum's variable gas pricing, Neo N3 fees are deterministic and based on the computational
-            resources consumed. The Network Fee is partially burned at a rate of
-            {{ BURN_RATE }} GAS per byte, contributing to GAS deflation.
-          </p>
+          <p>{{ $t("gasTracker.aboutPara2", { rate: BURN_RATE }) }}</p>
         </div>
       </div>
     </section>
@@ -78,6 +74,7 @@ import FeeSummary from "./components/FeeSummary.vue";
 import FeeTrendChart from "./components/FeeTrendChart.vue";
 import BlockFeeTable from "./components/BlockFeeTable.vue";
 import { statsService, blockService } from "@/services";
+import { indexerReadService } from "@/services/indexerReadService";
 import { BURN_RATE } from "@/constants";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
@@ -98,20 +95,24 @@ const blocks = ref([]);
 
 let isRefreshing = false;
 
-// --- Fee estimation from block data ---
-function totalFee(block) {
-  return (Number(block.sysfee) || 0) + (Number(block.netfee) || 0);
+// --- Fee estimation from recent transactions ---
+// Sourced from the indexer's /transactions endpoint, not blocks: Neo N3
+// produces empty blocks every ~15s during low traffic, so a 20-block sample
+// frequently has zero fee-bearing items.
+function txTotalFee(tx) {
+  return (Number(tx?.sys_fee) || 0) + (Number(tx?.net_fee) || 0);
 }
 
-function computeFeeEstimates() {
-  const feeBearing = blocks.value.filter((b) => totalFee(b) > 0);
-  if (!feeBearing.length) {
+function computeFeeEstimatesFromTxs(txs) {
+  const fees = (Array.isArray(txs) ? txs : [])
+    .map(txTotalFee)
+    .filter((f) => f > 0)
+    .sort((a, b) => a - b);
+
+  if (!fees.length) {
     feeEstimates.value = { low: 0, average: 0, high: 0 };
     return;
   }
-
-  const fees = feeBearing.map((b) => totalFee(b));
-  fees.sort((a, b) => a - b);
 
   feeEstimates.value = {
     low: fees[0],
@@ -139,9 +140,12 @@ async function loadBlocks(forceRefresh = false) {
   blocksLoading.value = true;
   blocksError.value = null;
   try {
-    const res = await blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true });
-    blocks.value = res?.result || [];
-    computeFeeEstimates();
+    const [blockRes, recentTxs] = await Promise.all([
+      blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true }),
+      indexerReadService.getRecentTransactions(20, 0, { forceRefresh }).catch(() => []),
+    ]);
+    blocks.value = blockRes?.result || [];
+    computeFeeEstimatesFromTxs(recentTxs);
   } catch (e) {
     blocksError.value = e.message || "Failed to load blocks";
   } finally {

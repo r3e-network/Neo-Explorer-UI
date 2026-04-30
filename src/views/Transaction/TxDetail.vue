@@ -47,7 +47,7 @@
         <button
           type="button"
           class="rounded-md text-sm font-medium text-amber-600 transition-colors hover:text-amber-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
-          aria-label="Switch to execution trace tab"
+          :aria-label="$t('txDetail.traceAria')"
           @click="activeTab = 'trace'"
         >
           View Execution Trace &rarr;
@@ -71,7 +71,7 @@
       </div>
 
       <!-- Error State -->
-      <ErrorState v-else-if="error" title="Transaction not found" :message="error" @retry="loadTx(txHash)" />
+      <ErrorState v-else-if="error" :title="$t('txDetail.notFound')" :message="error" @retry="loadTx(txHash)" />
 
       <!-- Tabbed Content -->
       <div v-else-if="tx.hash" class="etherscan-card overflow-hidden">
@@ -80,7 +80,7 @@
           <TabsNav
             :tabs="tabs"
             v-model="activeTab"
-            aria-label="Transaction detail sections"
+            :aria-label="$t('txDetail.sectionsAria')"
             id-base="tx-detail"
           />
         </div>
@@ -253,8 +253,8 @@ const enrichedLoading = ref(false);
 const txHash = computed(() => route.params.txhash || "");
 
 const breadcrumbs = computed(() => [
-  { label: "Home", to: "/homepage" },
-  { label: "Transactions", to: "/transactions/1" },
+  { label: t("breadcrumb.home"), to: "/homepage" },
+  { label: t("breadcrumb.transactions"), to: "/transactions/1" },
   { label: truncateHash(txHash.value, 10, 6) },
 ]);
 
@@ -315,20 +315,20 @@ const totalGas = computed(() => {
 });
 
 const tabs = computed(() => [
-  { key: "overview", label: "Overview" },
-  { key: "script", label: "Script & Witnesses" },
-  { key: "logs", label: "Logs", count: notificationCount.value || null },
+  { key: "overview", label: t("txDetail.tabOverview") },
+  { key: "script", label: t("txDetail.tabScript") },
+  { key: "logs", label: t("txDetail.tabLogs"), count: notificationCount.value || null },
   {
     key: "transfers",
-    label: "Token Transfers",
+    label: t("txDetail.tabTransfers"),
     count: allTransfers.value.length || null,
   },
   {
     key: "internal",
-    label: "Internal Ops",
+    label: t("txDetail.tabInternal"),
     count: enrichedOpsCount.value || null,
   },
-  { key: "trace", label: "Execution Trace" },
+  { key: "trace", label: t("txDetail.tabTrace") },
 ]);
 
 const actionSummary = computed(() => buildActionSummary());
@@ -351,22 +351,22 @@ function hasOracleResponseAttribute(tx) {
 function buildActionSummary() {
   if (!tx.value.hash) return "";
   if (hasOracleResponseAttribute(tx.value)) {
-    return "Oracle Callback";
+    return t("txDetail.actionOracle");
   }
   const transfers = allTransfers.value;
   if (transfers.length === 1) {
-    const t = transfers[0];
-    const amount = formatTransferAmount(t);
-    const token = t.tokenname || t.symbol || "Token";
-    const from = t.from ? truncateHash(scriptHashToAddress(t.from), 6, 4) : "Mint";
-    const to = t.to ? truncateHash(scriptHashToAddress(t.to), 6, 4) : "Burn";
-    return `Transfer ${amount} ${token} from ${from} to ${to}`;
+    const transfer = transfers[0];
+    const amount = formatTransferAmount(transfer);
+    const token = transfer.tokenname || transfer.symbol || t("txDetail.actionTokenFallback");
+    const from = transfer.from ? truncateHash(scriptHashToAddress(transfer.from), 6, 4) : t("txDetail.actionMint");
+    const to = transfer.to ? truncateHash(scriptHashToAddress(transfer.to), 6, 4) : t("txDetail.actionBurn");
+    return t("txDetail.actionTransfer", { amount, token, from, to });
   }
   if (transfers.length > 1) {
-    return `${transfers.length} token transfers in this transaction`;
+    return t("txDetail.actionMultiTransfer", { count: transfers.length });
   }
   if (notificationCount.value > 0) {
-    return "Contract Call with " + notificationCount.value + " notification(s)";
+    return t("txDetail.actionContractCall", { count: notificationCount.value });
   }
   return "";
 }

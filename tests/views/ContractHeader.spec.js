@@ -1,5 +1,8 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
 import ContractHeader from "@/views/Contract/components/ContractHeader.vue";
 
 const FULL_HASH = "0x0123456789abcdef0123456789abcdef01234567";
@@ -34,7 +37,7 @@ describe("ContractHeader", () => {
       },
     });
 
-    const logo = wrapper.find('img[alt="Contract Logo"]');
+    const logo = wrapper.find('img[alt="contractDetail.headerLogoAlt"]');
     expect(logo.exists()).toBe(true);
     expect(logo.attributes("src")).toBe("https://x.neo.org/favicon.ico");
   });

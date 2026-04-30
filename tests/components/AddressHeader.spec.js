@@ -1,5 +1,8 @@
-import { flushPromises, mount } from "@vue/test-utils";
+import { flushPromises, mount, config } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
+
 import AddressHeader from "@/views/Account/components/AddressHeader.vue";
 import { formatTokenAmount } from "@/utils/gasFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
@@ -46,7 +49,7 @@ describe("AddressHeader", () => {
     });
 
     const expected = formatTokenAmount(gasRaw, 8, 8);
-    expect(wrapper.text()).toContain("GAS Balance");
+    expect(wrapper.text()).toContain("addressDetail.statGasBalance");
     expect(wrapper.text()).toContain(expected);
   });
   it("shows known contract identity for contract address pages", async () => {

@@ -26,20 +26,20 @@ describe("detailRouting", () => {
     });
   });
 
-  it("returns standard contract detail tabs", () => {
+  it("returns standard contract detail tabs (with i18n label keys)", () => {
     expect(getContractDetailTabs()).toEqual([
-      { key: "transactions", label: "Transactions" },
-      { key: "events", label: "Events" },
-      { key: "readContract", label: "Read Contract" },
-      { key: "writeContract", label: "Write Contract" },
-      { key: "code", label: "Code" },
+      { key: "transactions", labelKey: "contractDetail.tabTransactions" },
+      { key: "events", labelKey: "contractDetail.tabEvents" },
+      { key: "readContract", labelKey: "contractDetail.tabReadContract" },
+      { key: "writeContract", labelKey: "contractDetail.tabWriteContract" },
+      { key: "code", labelKey: "contractDetail.tabCode" },
     ]);
   });
 
-  it("returns standard token detail tabs", () => {
+  it("returns standard token detail tabs (with i18n label keys)", () => {
     expect(getTokenDetailTabs()).toEqual([
-      { key: "transfers", label: "Transfers" },
-      { key: "holders", label: "Holders" },
+      { key: "transfers", labelKey: "tokenDetail.tabTransfers" },
+      { key: "holders", labelKey: "tokenDetail.holdersHeader" },
     ]);
   });
 });
