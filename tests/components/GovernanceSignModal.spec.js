@@ -214,7 +214,7 @@ describe("GovernanceSignModal", () => {
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-panel"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="governance-detail-sign-modal-body"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
-    expect(wrapper.text()).toContain("Primary: Add Signature / Witness");
+    expect(wrapper.text()).toContain("tools.governance.addSignatureOrWitnessLabel");
   });
 
   it("prepares an offline signing payload and prefills the connected council signer details", async () => {
@@ -619,7 +619,7 @@ describe("GovernanceSignModal", () => {
     expect(walletButton?.attributes("disabled")).toBeDefined();
 
     // NeoLine guide and signing payload should be visible
-    expect(wrapper.text()).toContain("NeoLine requires the committee multisig wallet");
+    expect(wrapper.text()).toContain("tools.governance.neoLineMismatchHeading");
     // Auto-prepared signing payload should be visible
     expect(getRawTransactionSigningPayloadMock).toHaveBeenCalledWith("001122");
     expect(wrapper.text()).toContain("3353ef4eabcd");
@@ -826,7 +826,7 @@ describe("GovernanceSignModal", () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain("NeoLine requires the committee multisig wallet");
+    expect(wrapper.text()).toContain("tools.governance.neoLineMismatchHeading");
 
     await wrapper.get('[data-testid="governance-sign-modal-switch-neoline-account"]').trigger("click");
     await flushPromises();

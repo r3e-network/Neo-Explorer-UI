@@ -6,7 +6,7 @@
     role="dialog"
     tabindex="0"
     aria-modal="true"
-    aria-label="Sign Proposal"
+    :aria-label="$t('tools.governance.signProposalTitle')"
     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 transition-opacity"
     @click.self="$emit('close')"
     @keydown.escape="$emit('close')"
@@ -24,7 +24,7 @@
           </div>
           <h2 class="text-xl font-bold text-high tracking-tight">{{ $t("tools.governance.signProposalTitle") }}</h2>
         </div>
-        <button @click="$emit('close')" aria-label="Close" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
+        <button @click="$emit('close')" :aria-label="$t('tools.governance.signModalCloseAria')" class="p-2 rounded-xl text-mid hover:text-high hover:bg-surface-muted transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -33,7 +33,7 @@
 
       <div :data-testid="testId('body')" class="p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar min-h-0">
         <div class="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
-          Preferred collection flow: sign the payload in NeoLine or offline with your own council member key, then paste the signature or witness back into this page so the proposal can collect it.
+          {{ $t('tools.governance.preferredCollectionHint') }}
           <div class="mt-3 flex flex-wrap gap-3">
             <button
               :data-testid="testId('jump-to-submit')"
@@ -41,7 +41,7 @@
               class="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
               @click="jumpToWitnessForm"
             >
-              Jump To Paste-Back Form
+              {{ $t('tools.governance.jumpToWitnessForm') }}
             </button>
             <button
               :data-testid="testId('jump-to-payload')"
@@ -49,16 +49,16 @@
               class="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white/80 px-4 py-2 text-sm font-semibold text-sky-800 transition-colors hover:bg-white dark:border-sky-900/40 dark:bg-slate-950/40 dark:text-sky-200 dark:hover:bg-slate-950"
               @click="jumpToSigningPayload"
             >
-              Jump To Signing Payload
+              {{ $t('tools.governance.jumpToSigningPayload') }}
             </button>
           </div>
         </div>
 
         <!-- ═══ Sign with Wallet ═══ -->
         <div class="order-3 space-y-3 rounded-2xl border border-line-soft bg-surface-muted/40 p-4">
-          <label class="block text-sm font-bold text-high">Optional: Direct Wallet Sign</label>
+          <label class="block text-sm font-bold text-high">{{ $t('tools.governance.directWalletSignLabel') }}</label>
           <p class="text-xs text-mid">
-            Use this only if you want NeoLine to sign directly in-browser. The collection flow above remains the preferred path.
+            {{ $t('tools.governance.directWalletSignHint') }}
           </p>
           <button
             @click="autoSignTx"
@@ -89,28 +89,25 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div class="space-y-1">
-              <p class="text-sm font-bold text-high">NeoLine requires the committee multisig wallet</p>
+              <p class="text-sm font-bold text-high">{{ $t('tools.governance.neoLineMismatchHeading') }}</p>
               <p class="text-xs text-mid leading-relaxed">
-                Your connected NeoLine account does not match the governance transaction signer.
-                To sign directly, create a multisig wallet <strong>inside NeoLine</strong> using the committee keys below,
-                switch to it, then click “Sign with Wallet”.
-                This is the same <strong>NEXO</strong> pattern used by NGD.
+                {{ $t('tools.governance.neoLineMismatchBody') }}
               </p>
             </div>
           </div>
 
           <ol class="text-xs text-mid list-decimal pl-4 space-y-1">
-            <li>Open NeoLine → avatar → <strong>Add Wallet → Multi-Signature</strong></li>
-            <li>Set threshold to <strong>{{ committeeThreshold }}</strong> and paste the {{ committeePubkeys.length }} public keys below</li>
-            <li>Switch to the new committee wallet, then return here and click Sign</li>
+            <li>{{ $t('tools.governance.neoLineStep1') }}</li>
+            <li>{{ $t('tools.governance.neoLineStep2', { threshold: committeeThreshold, count: committeePubkeys.length }) }}</li>
+            <li>{{ $t('tools.governance.neoLineStep3') }}</li>
           </ol>
 
           <div class="rounded-xl border border-amber-200 bg-white/70 p-3 space-y-2 dark:border-amber-800 dark:bg-slate-950/40">
             <div class="flex items-center justify-between gap-3">
-              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-low">Expected Committee Multisig</p>
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-low">{{ $t('tools.governance.expectedCommitteeMultisig') }}</p>
               <CopyButton v-if="committeeMultiSigAddress" :text="committeeMultiSigAddress" size="sm" />
             </div>
-            <p class="font-mono text-[11px] break-all text-high">{{ committeeMultiSigAddress || "Unavailable until committee keys load" }}</p>
+            <p class="font-mono text-[11px] break-all text-high">{{ committeeMultiSigAddress || $t('tools.governance.committeeKeysUnavailable') }}</p>
           </div>
 
           <button
@@ -119,12 +116,12 @@
             :disabled="isSwitchingWalletAccount"
             class="w-full px-4 py-3 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
           >
-            {{ isSwitchingWalletAccount ? "Waiting For NeoLine..." : "Switch NeoLine Account" }}
+            {{ isSwitchingWalletAccount ? $t('tools.governance.waitingForNeoLine') : $t('tools.governance.switchNeoLineAccount') }}
           </button>
 
           <div class="rounded-xl bg-slate-950 text-slate-100 p-3 space-y-2 dark:bg-slate-900">
             <div class="flex items-center justify-between gap-3">
-              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Committee Public Keys</p>
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ $t('tools.governance.committeePublicKeys') }}</p>
               <CopyButton :text="committeePubkeys.join('\n')" size="md" />
             </div>
             <div class="max-h-32 overflow-y-auto custom-scrollbar space-y-1">
@@ -132,37 +129,37 @@
             </div>
           </div>
 
-          <p class="text-xs text-mid">Or sign the payload externally with your own council member key and paste the witness below.</p>
+          <p class="text-xs text-mid">{{ $t('tools.governance.orSignExternallyHint') }}</p>
         </div>
 
         <div class="order-2 relative py-2">
           <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-line-soft"></div></div>
           <div class="relative flex justify-center">
-            <span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">Recommended Collection Flow</span>
+            <span class="px-3 bg-white dark:bg-slate-950 text-xs font-bold text-low tracking-widest uppercase rounded-full">{{ $t('tools.governance.recommendedCollectionFlow') }}</span>
           </div>
         </div>
 
         <!-- ═══ Section 3: Transaction Data + External Witness ═══ -->
         <div class="order-1 space-y-4">
-          <label class="block text-sm font-bold text-high">Primary: Add Signature / Witness</label>
+          <label class="block text-sm font-bold text-high">{{ $t('tools.governance.addSignatureOrWitnessLabel') }}</label>
           <p class="text-xs text-mid">
-            Sign elsewhere, then bring the signature or witness back into this proposal so it can be collected with the other council approvals.
+            {{ $t('tools.governance.addSignatureOrWitnessHint') }}
           </p>
 
           <!-- Unsigned Transaction Viewer -->
           <UnsignedTransactionViewer
             v-if="request.params?.unsigned_tx"
             :transaction-hex="request.params.unsigned_tx"
-            label="Unsigned Transaction Packet"
-            description="Review the governance transaction. Copy the signing payload below to sign with an external tool."
+            :label="$t('tools.governance.unsignedTransactionPacket')"
+            :description="$t('tools.governance.unsignedTransactionPacketDesc')"
           />
 
           <!-- Signing Payload + neo-cli Guide -->
           <div ref="signingPayloadSectionRef" class="rounded-2xl border border-line-soft bg-surface/70 p-4 space-y-3">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="space-y-1">
-                <p class="text-sm font-semibold text-high">Signing Payload</p>
-                <p class="text-xs text-mid">Sign this payload offline with <code class="font-mono text-high">neo-cli</code>, neon-js, or any ECDSA tool. Then paste the 64-byte signature below in hex or Base64.</p>
+                <p class="text-sm font-semibold text-high">{{ $t('tools.governance.signingPayloadHeading') }}</p>
+                <p class="text-xs text-mid">{{ $t('tools.governance.signingPayloadHint') }}</p>
               </div>
               <button
                 :data-testid="testId('prepare-payload')"
@@ -170,41 +167,41 @@
                 :disabled="!request.params?.unsigned_tx || isPreparingSigningPayload"
                 class="shrink-0 px-4 py-2.5 bg-slate-950 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
               >
-                {{ isPreparingSigningPayload ? "Preparing..." : (preparedSigningPayload ? "Refresh" : "Prepare Signing Payload") }}
+                {{ isPreparingSigningPayload ? $t('tools.governance.preparing') : (preparedSigningPayload ? $t('tools.governance.refresh') : $t('tools.governance.prepareSigningPayload')) }}
               </button>
             </div>
             <div v-if="preparedSigningPayload" class="space-y-3">
               <div class="rounded-2xl bg-slate-950 text-slate-100 p-4 space-y-3 dark:bg-slate-900">
                 <div class="flex items-center justify-between gap-3">
-                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Payload Hex</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ $t('tools.governance.payloadHexLabel') }}</p>
                   <CopyButton :text="preparedSigningPayload.payload" size="md" />
                 </div>
                 <code :data-testid="testId('signing-payload')" class="block break-all font-mono text-[11px] leading-5 text-slate-100">{{ preparedSigningPayload.payload }}</code>
                 <div class="grid grid-cols-1 gap-2 text-[11px] text-slate-300 sm:grid-cols-2">
-                  <p>Network magic: {{ preparedSigningPayload.networkMagic }}</p>
-                  <p>Transaction hash: {{ preparedSigningPayload.transactionHash }}</p>
+                  <p>{{ $t('tools.governance.networkMagicLine', { value: preparedSigningPayload.networkMagic }) }}</p>
+                  <p>{{ $t('tools.governance.transactionHashLine', { value: preparedSigningPayload.transactionHash }) }}</p>
                 </div>
               </div>
 
               <!-- neo-cli signing command -->
               <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2 dark:bg-emerald-950/20 dark:border-emerald-900/40">
-                <p class="text-xs font-bold text-high">How to sign with neon-js (Node.js):</p>
+                <p class="text-xs font-bold text-high">{{ $t('tools.governance.howToSignNeonJs') }}</p>
                 <div class="rounded-xl bg-slate-950 p-3 dark:bg-slate-900">
                   <div class="flex items-center justify-between mb-1">
-                    <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">Copy & run in terminal</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400">{{ $t('tools.governance.copyAndRun') }}</p>
                     <CopyButton :text="neonJsSignCommand" size="sm" />
                   </div>
                   <code class="block break-all font-mono text-[10px] leading-5 text-emerald-300 whitespace-pre-wrap">{{ neonJsSignCommand }}</code>
                 </div>
-                <p class="text-[11px] text-mid">Replace <code class="font-mono text-high">YOUR_WIF</code> with your own council member WIF private key. The output is the 128-char hex signature to paste below.</p>
+                <p class="text-[11px] text-mid">{{ $t('tools.governance.replaceYourWif') }}</p>
               </div>
             </div>
           </div>
 
           <!-- Submit Witness -->
           <div ref="witnessFormSectionRef" class="space-y-3">
-            <p class="text-sm font-semibold text-high">Submit Witness</p>
-            <p class="text-xs text-mid">Paste a 64-byte signature from any valid committee member in hex or Base64. The system validates the signer is in the committee before accepting.</p>
+            <p class="text-sm font-semibold text-high">{{ $t('tools.governance.submitWitnessHeading') }}</p>
+            <p class="text-xs text-mid">{{ $t('tools.governance.submitWitnessHint') }}</p>
             <input
               :data-testid="testId('external-address')"
               v-model="externalSignerAddress"
@@ -224,7 +221,7 @@
               v-model="externalSignature"
               type="text"
               class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-              placeholder="Paste raw 64-byte signature (hex or Base64)"
+              :placeholder="$t('tools.governance.signaturePastePlaceholder')"
             />
             <p
               v-if="signatureFormatHint"
