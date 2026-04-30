@@ -1,8 +1,17 @@
-import { mount } from "@vue/test-utils";
+import { config, mount } from "@vue/test-utils";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { ensureNeonJs } from "@/utils/unsignedTransaction";
 
 beforeAll(async () => { await ensureNeonJs(); });
+
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
+config.global.mocks = {
+  ...(config.global.mocks || {}),
+  $t: (key) => key,
+};
 
 vi.mock("@/components/common/CopyButton.vue", () => ({
   default: {
@@ -33,8 +42,8 @@ describe("UnsignedTransactionViewer", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Transaction Envelope");
-    expect(wrapper.text()).toContain("Version");
+    expect(wrapper.text()).toContain("unsignedTx.transactionEnvelope");
+    expect(wrapper.text()).toContain("unsignedTx.rowVersion");
     expect(wrapper.text()).toContain("9,055,023");
     expect(wrapper.text()).toContain("Global");
     expect(wrapper.text()).toContain("0.00135208 GAS");

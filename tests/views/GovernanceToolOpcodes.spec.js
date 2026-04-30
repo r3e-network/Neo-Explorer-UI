@@ -176,6 +176,6 @@ describe("GovernanceTool opcode display", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("Unsigned Transaction Packet");
-    expect(wrapper.text()).toContain("Embedded Execution Script");
+    expect(wrapper.text()).toContain("unsignedTx.embeddedExecutionScript");
   });
 });

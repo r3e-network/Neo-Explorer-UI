@@ -296,8 +296,8 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("Council Beta");
     expect(wrapper.text()).toContain("Council Node 3");
     expect(wrapper.text()).toContain("Unsigned Transaction Packet");
-    expect(wrapper.text()).toContain("Transaction Envelope");
-    expect(wrapper.text()).toContain("Embedded Execution Script");
+    expect(wrapper.text()).toContain("unsignedTx.transactionEnvelope");
+    expect(wrapper.text()).toContain("unsignedTx.embeddedExecutionScript");
     expect(wrapper.text()).toContain("tools.governance.collectedSignatures");
     expect(wrapper.html().indexOf("Unsigned Transaction Packet")).toBeLessThan(
       wrapper.html().indexOf("tools.governance.collectedSignatures"),
@@ -852,7 +852,7 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("3000");
     expect(wrapper.text()).toContain("setGasPerBlock");
     expect(wrapper.text()).toContain("100000000");
-    expect(wrapper.text()).toContain("Embedded Execution Script");
+    expect(wrapper.text()).toContain("unsignedTx.embeddedExecutionScript");
     expect(wrapper.text()).toContain("System.Contract.Call");
     expect(wrapper.text()).toContain("1 / 10");
     expect(wrapper.text()).toContain("Awaiting Quorum");

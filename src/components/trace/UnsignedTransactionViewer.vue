@@ -2,7 +2,7 @@
   <div class="unsigned-transaction-viewer text-high">
     <div class="mb-4 flex items-start justify-between gap-3">
       <div>
-        <h4 data-testid="unsigned-tx-header-label" class="text-sm font-semibold text-high">{{ label }}</h4>
+        <h4 data-testid="unsigned-tx-header-label" class="text-sm font-semibold text-high">{{ labelText }}</h4>
         <p v-if="description" data-testid="unsigned-tx-header-description" class="mt-1 text-xs text-mid">{{ description }}</p>
       </div>
       <div class="flex items-center gap-2">
@@ -19,11 +19,11 @@
           <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
-          {{ showRaw ? "Decoded" : "Raw Hex" }}
+          {{ showRaw ? $t('unsignedTx.decodedToggle') : $t('unsignedTx.rawHexToggle') }}
         </button>
         <div v-if="contextJson" class="relative group">
           <CopyButton :text="contextJson" />
-          <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold bg-slate-800 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">neo-cli JSON</span>
+          <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold bg-slate-800 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">{{ $t('unsignedTx.neoCliJson') }}</span>
         </div>
         <CopyButton v-if="rawHex" :text="rawHex" />
       </div>
@@ -43,9 +43,9 @@
       <div class="grid gap-4 xl:grid-cols-[1.25fr,1fr]">
         <section class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">
           <div class="mb-3 flex items-center justify-between">
-            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Transaction Envelope</h5>
+            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">{{ $t('unsignedTx.transactionEnvelope') }}</h5>
             <span class="rounded-full border border-line-soft bg-surface-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-low dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
-              {{ decodedTx.totalLength }} Bytes
+              {{ $t('unsignedTx.bytesSuffix', { count: decodedTx.totalLength }) }}
             </span>
           </div>
           <dl class="grid gap-3 sm:grid-cols-2">
@@ -53,7 +53,7 @@
               <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">{{ item.label }}</dt>
               <dd class="mt-1 break-all font-mono text-sm text-high dark:text-slate-200">{{ item.value }}</dd>
               <p
-                v-if="item.label === 'Valid Until Block' && expiryCountdown"
+                v-if="item.label === $t('unsignedTx.rowValidUntilBlock') && expiryCountdown"
                 data-testid="unsigned-tx-expiry-countdown"
                 class="mt-2 text-xs font-medium text-mid dark:text-slate-400"
               >
@@ -65,9 +65,9 @@
 
         <section class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">
           <div class="mb-3 flex items-center justify-between">
-            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Fee Summary</h5>
+            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">{{ $t('unsignedTx.feeSummary') }}</h5>
             <span class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
-              Fixed8
+              {{ $t('unsignedTx.fixed8Badge') }}
             </span>
           </div>
           <dl class="space-y-3">
@@ -84,7 +84,7 @@
 
       <section class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">
         <div class="mb-3 flex items-center justify-between">
-          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Signers</h5>
+          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">{{ $t('unsignedTx.signers') }}</h5>
           <span class="rounded-full border border-line-soft bg-surface-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-low dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
             {{ decodedTx.signersCount }}
           </span>
@@ -96,19 +96,19 @@
             class="rounded-xl border border-line-soft bg-surface-muted/60 p-4 dark:border-white/5 dark:bg-black/20"
           >
             <div class="mb-3 flex items-center justify-between gap-3">
-              <div class="text-sm font-semibold text-high dark:text-slate-100">Signer {{ signer.index }}</div>
+              <div class="text-sm font-semibold text-high dark:text-slate-100">{{ $t('unsignedTx.signerLabel', { index: signer.index }) }}</div>
               <span class="rounded-full border border-primary-500/20 bg-primary-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-300">
                 {{ signer.scopeLabels.join(" | ") }}
               </span>
             </div>
             <dl class="grid gap-3 lg:grid-cols-2">
               <div class="rounded-lg border border-line-soft bg-surface p-3 dark:border-white/5 dark:bg-[#020617]">
-                <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">Signer Address</dt>
-                <dd class="mt-1 break-all font-mono text-xs text-high dark:text-slate-200">{{ signer.address || "Unavailable" }}</dd>
+                <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">{{ $t('unsignedTx.signerAddress') }}</dt>
+                <dd class="mt-1 break-all font-mono text-xs text-high dark:text-slate-200">{{ signer.address || $t('unsignedTx.unavailable') }}</dd>
               </div>
               <div class="rounded-lg border border-line-soft bg-surface p-3 dark:border-white/5 dark:bg-[#020617]">
-                <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">Script Hash</dt>
-                <dd class="mt-1 break-all font-mono text-xs text-high dark:text-slate-200">{{ signer.accountScriptHash || "Unavailable" }}</dd>
+                <dt class="text-[10px] font-bold uppercase tracking-[0.16em] text-low dark:text-slate-500">{{ $t('unsignedTx.scriptHash') }}</dt>
+                <dd class="mt-1 break-all font-mono text-xs text-high dark:text-slate-200">{{ signer.accountScriptHash || $t('unsignedTx.unavailable') }}</dd>
               </div>
             </dl>
           </div>
@@ -117,7 +117,7 @@
 
       <section v-if="decodedTx.attributesCount > 0" class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">
         <div class="mb-3 flex items-center justify-between">
-          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Attributes</h5>
+          <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">{{ $t('unsignedTx.attributes') }}</h5>
           <span class="rounded-full border border-line-soft bg-surface-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-low dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
             {{ decodedTx.attributesCount }}
           </span>
@@ -133,14 +133,14 @@
       <section class="rounded-xl border border-line-soft bg-surface p-4 dark:border-white/10 dark:bg-white/[0.03]">
         <div class="mb-3 flex items-center justify-between">
           <div>
-            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">Embedded Execution Script</h5>
-            <p class="mt-1 text-xs text-mid dark:text-slate-500">The executable contract call payload carried inside the unsigned transaction.</p>
+            <h5 class="text-xs font-black uppercase tracking-[0.18em] text-low dark:text-slate-400">{{ $t('unsignedTx.embeddedExecutionScript') }}</h5>
+            <p class="mt-1 text-xs text-mid dark:text-slate-500">{{ $t('unsignedTx.embeddedExecutionScriptDesc') }}</p>
           </div>
           <span class="rounded-full border border-line-soft bg-surface-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-low dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
-            {{ decodedTx.scriptLength }} Bytes
+            {{ $t('unsignedTx.bytesSuffix', { count: decodedTx.scriptLength }) }}
           </span>
         </div>
-        <ScriptViewer :script="decodedTx.scriptBase64" label="Execution Script" />
+        <ScriptViewer :script="decodedTx.scriptBase64" :label="$t('unsignedTx.executionScript')" />
       </section>
     </div>
 
@@ -148,27 +148,32 @@
       v-else
       class="rounded-xl border border-dashed border-line-soft bg-surface p-4 text-sm text-mid dark:border-white/10 dark:bg-[#020617] dark:text-slate-400"
     >
-      Unable to decode this unsigned transaction payload.
+      {{ $t('unsignedTx.unableToDecode') }}
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { formatGas } from "@/utils/explorerFormat";
 import CopyButton from "@/components/common/CopyButton.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import { describeGovernanceTxExpiry } from "@/utils/governanceTiming";
 
+const { t } = useI18n();
+
 const props = defineProps({
   transactionHex: { type: String, default: "" },
   contextJson: { type: String, default: "" },
-  label: { type: String, default: "Unsigned Transaction" },
+  label: { type: String, default: "" },
   description: { type: String, default: "" },
   currentBlockHeight: { type: [Number, null], default: null },
   millisecondsPerBlock: { type: [Number, null], default: null },
 });
+
+const labelText = computed(() => props.label || t("unsignedTx.defaultLabel"));
 
 const showRaw = ref(false);
 
@@ -201,12 +206,12 @@ const summaryRows = computed(() => {
   if (!decodedTx.value) return [];
 
   return [
-    { label: "Version", value: String(decodedTx.value.version) },
-    { label: "Nonce", value: formatInteger(decodedTx.value.nonce) },
-    { label: "Valid Until Block", value: formatInteger(decodedTx.value.validUntilBlock) },
-    { label: "Signers", value: String(decodedTx.value.signersCount) },
-    { label: "Attributes", value: String(decodedTx.value.attributesCount) },
-    { label: "Transaction Hash", value: neonJsTxHash.value || decodedTx.value.hash || "Unavailable" },
+    { label: t("unsignedTx.rowVersion"), value: String(decodedTx.value.version) },
+    { label: t("unsignedTx.rowNonce"), value: formatInteger(decodedTx.value.nonce) },
+    { label: t("unsignedTx.rowValidUntilBlock"), value: formatInteger(decodedTx.value.validUntilBlock) },
+    { label: t("unsignedTx.rowSigners"), value: String(decodedTx.value.signersCount) },
+    { label: t("unsignedTx.rowAttributes"), value: String(decodedTx.value.attributesCount) },
+    { label: t("unsignedTx.rowTransactionHash"), value: neonJsTxHash.value || decodedTx.value.hash || t("unsignedTx.unavailable") },
   ];
 });
 
@@ -214,9 +219,9 @@ const feeRows = computed(() => {
   if (!decodedTx.value) return [];
 
   return [
-    { label: "System Fee", raw: decodedTx.value.systemFee, display: `${formatGas(decodedTx.value.systemFee)} GAS` },
-    { label: "Network Fee", raw: decodedTx.value.networkFee, display: `${formatGas(decodedTx.value.networkFee)} GAS` },
-    { label: "Total Fee", raw: decodedTx.value.totalFee, display: `${formatGas(decodedTx.value.totalFee)} GAS` },
+    { label: t("unsignedTx.rowSystemFee"), raw: decodedTx.value.systemFee, display: `${formatGas(decodedTx.value.systemFee)} GAS` },
+    { label: t("unsignedTx.rowNetworkFee"), raw: decodedTx.value.networkFee, display: `${formatGas(decodedTx.value.networkFee)} GAS` },
+    { label: t("unsignedTx.rowTotalFee"), raw: decodedTx.value.totalFee, display: `${formatGas(decodedTx.value.totalFee)} GAS` },
   ];
 });
 
