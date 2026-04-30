@@ -2147,6 +2147,12 @@ const ja = {
     traceOpenFullscreen: "実行トレースをフルスクリーンで開く",
   },
   addressDetail: {
+    tabTransactions: "トランザクション",
+    tabTokenTransfers: "トークン転送",
+    tabNftTransfers: "NFT 転送",
+    tabTokens: "トークン保有",
+    tabNfts: "NFT",
+    tabVoters: "投票者",
     titleAddress: "アドレス",
     titleContract: "コントラクトアドレス",
     titleCandidate: "候補者アドレス",

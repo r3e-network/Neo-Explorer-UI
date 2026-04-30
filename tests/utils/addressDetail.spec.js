@@ -12,11 +12,11 @@ import {
 describe("addressDetail utils", () => {
   it("returns standard address detail tabs", () => {
     expect(getAddressDetailTabs()).toEqual([
-      { key: "transactions", label: "Transactions" },
-      { key: "tokenTransfers", label: "Token Transfers" },
-      { key: "nftTransfers", label: "NFT Transfers" },
-      { key: "tokens", label: "Token Holdings" },
-      { key: "nfts", label: "NFTs" },
+      { key: "transactions", labelKey: "addressDetail.tabTransactions" },
+      { key: "tokenTransfers", labelKey: "addressDetail.tabTokenTransfers" },
+      { key: "nftTransfers", labelKey: "addressDetail.tabNftTransfers" },
+      { key: "tokens", labelKey: "addressDetail.tabTokens" },
+      { key: "nfts", labelKey: "addressDetail.tabNfts" },
     ]);
   });
 

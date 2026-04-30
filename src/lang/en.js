@@ -2147,6 +2147,12 @@ const en = {
     traceOpenFullscreen: "Open Fullscreen Execution Trace",
   },
   addressDetail: {
+    tabTransactions: "Transactions",
+    tabTokenTransfers: "Token Transfers",
+    tabNftTransfers: "NFT Transfers",
+    tabTokens: "Token Holdings",
+    tabNfts: "NFTs",
+    tabVoters: "Voters",
     titleAddress: "Address",
     titleContract: "Contract Address",
     titleCandidate: "Candidate Address",

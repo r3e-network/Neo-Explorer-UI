@@ -107,14 +107,14 @@ export function sumCandidateVoterBalances(voters = []) {
 
 export function getAddressDetailTabs(isCandidate = false) {
   const tabs = [
-    { key: "transactions", label: "Transactions" },
-    { key: "tokenTransfers", label: "Token Transfers" },
-    { key: "nftTransfers", label: "NFT Transfers" },
-    { key: "tokens", label: "Token Holdings" },
-    { key: "nfts", label: "NFTs" },
+    { key: "transactions", labelKey: "addressDetail.tabTransactions" },
+    { key: "tokenTransfers", labelKey: "addressDetail.tabTokenTransfers" },
+    { key: "nftTransfers", labelKey: "addressDetail.tabNftTransfers" },
+    { key: "tokens", labelKey: "addressDetail.tabTokens" },
+    { key: "nfts", labelKey: "addressDetail.tabNfts" },
   ];
   if (isCandidate) {
-    tabs.splice(1, 0, { key: "voters", label: "Voters" });
+    tabs.splice(1, 0, { key: "voters", labelKey: "addressDetail.tabVoters" });
   }
   return tabs;
 }

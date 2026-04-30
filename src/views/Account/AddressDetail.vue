@@ -165,7 +165,9 @@ const summaryLoading = ref(true);
 const activeTab = ref("transactions");
 const isCandidate = ref(false);
 const candidateData = ref(null);
-const tabs = computed(() => getAddressDetailTabs(isCandidate.value));
+const tabs = computed(() =>
+  getAddressDetailTabs(isCandidate.value).map((tab) => ({ ...tab, label: t(tab.labelKey) })),
+);
 const assets = ref([]);
 const fungibleAssets = ref([]);
 const nftAssets = ref([]);

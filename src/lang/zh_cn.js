@@ -2147,6 +2147,12 @@ const zh = {
     traceOpenFullscreen: "全屏打开执行追踪",
   },
   addressDetail: {
+    tabTransactions: "交易",
+    tabTokenTransfers: "代币转账",
+    tabNftTransfers: "NFT 转账",
+    tabTokens: "代币持仓",
+    tabNfts: "NFT",
+    tabVoters: "投票者",
     titleAddress: "地址",
     titleContract: "合约地址",
     titleCandidate: "候选人地址",

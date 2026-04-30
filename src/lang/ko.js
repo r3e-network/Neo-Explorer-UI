@@ -2147,6 +2147,12 @@ const ko = {
     traceOpenFullscreen: "실행 추적을 전체 화면으로 열기",
   },
   addressDetail: {
+    tabTransactions: "트랜잭션",
+    tabTokenTransfers: "토큰 전송",
+    tabNftTransfers: "NFT 전송",
+    tabTokens: "토큰 보유",
+    tabNfts: "NFT",
+    tabVoters: "투표자",
     titleAddress: "주소",
     titleContract: "컨트랙트 주소",
     titleCandidate: "후보 주소",
