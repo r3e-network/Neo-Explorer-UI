@@ -10,11 +10,10 @@
             class="mb-6 !text-white/70"
           />
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl mb-4">
-            Neo Treasury Holdings
+            {{ $t('treasuryPage.pageTitle') }}
           </h1>
           <p class="max-w-2xl text-base text-white/70">
-            Real-time, transparent tracking of the Neo Foundation's digital assets. View the distribution of NEO and GAS
-            across operational and reserve accounts.
+            {{ $t('treasuryPage.pageSubtitle') }}
           </p>
         </div>
       </div>
@@ -34,14 +33,14 @@
           />
         </svg>
         <div class="text-sm font-medium">
-          Data for Neo Treasury is provided by
+          {{ $t('treasuryPage.dataSourcePrefix') }}
           <a
             href="https://neo-treasury.pages.dev/"
             target="_blank"
             rel="noopener noreferrer"
             class="underline hover:text-blue-600 dark:hover:text-blue-200 font-bold decoration-2 underline-offset-2"
             >neo-treasury.pages.dev</a
-          >. Visit the site for more detailed information and historical analytics.
+          >{{ $t('treasuryPage.dataSourceSuffix') }}
         </div>
       </div>
 
@@ -58,14 +57,14 @@
           />
         </svg>
         <div class="text-sm font-medium">
-          Neo Treasury holdings are tracked on mainnet only. Switch to N3 Mainnet to view live foundation balances.
+          {{ $t('treasuryPage.mainnetOnlyNotice') }}
         </div>
       </div>
 
       <!-- Error State -->
       <div v-if="error && !loading" class="mb-6">
         <div class="etherscan-card overflow-hidden">
-          <ErrorState title="Failed to load treasury data" :message="error" @retry="loadTreasuryData(true)" />
+          <ErrorState :title="$t('treasuryPage.failedToLoad')" :message="error" @retry="loadTreasuryData(true)" />
         </div>
       </div>
 
@@ -83,7 +82,7 @@
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Total Foundation Assets
+            {{ $t('treasuryPage.totalFoundationAssets') }}
           </h2>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -92,11 +91,11 @@
             >
               <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl"></div>
               <p class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wide">
-                Total NEO
+                {{ $t('treasuryPage.totalNeoLabel') }}
               </p>
               <div v-if="loading" class="animate-pulse h-8 w-32 bg-green-500/20 rounded mt-1 mb-2"></div>
               <p v-else-if="!isTreasuryNetworkSupported" class="text-2xl font-extrabold text-high tracking-tight">
-                Mainnet only
+                {{ $t('treasuryPage.mainnetOnlyShort') }}
               </p>
               <p v-else class="text-3xl font-extrabold text-high font-mono tracking-tight">
                 {{ formatNumber(totalNeo) }}
@@ -114,11 +113,11 @@
             >
               <div class="absolute -right-4 -top-4 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
               <p class="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-2 uppercase tracking-wide">
-                Total GAS
+                {{ $t('treasuryPage.totalGasLabel') }}
               </p>
               <div v-if="loading" class="animate-pulse h-8 w-32 bg-cyan-500/20 rounded mt-1 mb-2"></div>
               <p v-else-if="!isTreasuryNetworkSupported" class="text-2xl font-extrabold text-high tracking-tight">
-                Mainnet only
+                {{ $t('treasuryPage.mainnetOnlyShort') }}
               </p>
               <p v-else class="text-3xl font-extrabold text-high font-mono tracking-tight">
                 {{ formatNumber(totalGas) }}
@@ -133,9 +132,9 @@
           </div>
 
           <div class="mt-6 pt-5 border-t soft-divider flex items-center justify-between">
-            <span class="text-sm text-mid font-medium">Estimated Total USD Value</span>
+            <span class="text-sm text-mid font-medium">{{ $t('treasuryPage.estimatedTotalUsd') }}</span>
             <span v-if="loading" class="animate-pulse h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded"></span>
-            <span v-else-if="!isTreasuryNetworkSupported" class="text-base font-bold text-mid">Switch to N3 Mainnet</span>
+            <span v-else-if="!isTreasuryNetworkSupported" class="text-base font-bold text-mid">{{ $t('treasuryPage.switchToMainnet') }}</span>
             <span v-else class="text-lg font-bold text-high"
               >${{ formatLargeNumber(totalNeo * neoPrice + totalGas * gasPrice) }}</span
             >
@@ -144,13 +143,13 @@
 
         <!-- Group Distribution -->
         <div class="etherscan-card p-6 lg:col-span-5 flex flex-col justify-center bg-surface">
-          <h2 class="text-sm font-bold text-high uppercase tracking-wider mb-6">Asset Distribution</h2>
+          <h2 class="text-sm font-bold text-high uppercase tracking-wider mb-6">{{ $t('treasuryPage.assetDistribution') }}</h2>
 
           <div v-if="loading" class="space-y-4">
             <Skeleton v-for="i in 3" :key="i" height="40px" />
           </div>
           <div v-else-if="!isTreasuryNetworkSupported" class="rounded-xl border border-dashed border-line-soft bg-surface-muted/40 p-4 text-sm text-mid">
-            Switch to N3 Mainnet to view the treasury distribution chart.
+            {{ $t('treasuryPage.switchForChart') }}
           </div>
           <div v-else class="space-y-5">
             <div v-for="group in groups" :key="group.name" class="group">
@@ -192,7 +191,7 @@
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            Treasury Wallets
+            {{ $t('treasuryPage.treasuryWallets') }}
           </h3>
           <button
             @click="loadTreasuryData(true)"
@@ -213,7 +212,7 @@
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-            {{ loading ? "Syncing..." : "Refresh" }}
+            {{ loading ? $t('treasuryPage.syncingButton') : $t('treasuryPage.refreshButton') }}
           </button>
         </div>
 
@@ -224,18 +223,18 @@
           v-else-if="!isTreasuryNetworkSupported"
           class="p-8 text-center text-mid"
         >
-          Switch to N3 Mainnet to view live foundation balances.
+          {{ $t('treasuryPage.switchForBalances') }}
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm whitespace-nowrap" aria-label="Treasury wallets">
+          <table class="w-full text-sm whitespace-nowrap" :aria-label="$t('treasuryPage.treasuryWallets')">
             <thead class="bg-surface-muted border-b soft-divider text-xs uppercase tracking-wider text-mid">
               <tr>
-                <th class="px-5 py-3.5 text-left font-semibold">Owner Group</th>
-                <th class="px-5 py-3.5 text-left font-semibold">Wallet Address</th>
-                <th class="px-5 py-3.5 text-right font-semibold">NEO Balance</th>
-                <th class="px-5 py-3.5 text-right font-semibold">GAS Balance</th>
-                <th class="px-5 py-3.5 text-right font-semibold">Est. Value (USD)</th>
+                <th class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colOwnerGroup') }}</th>
+                <th class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colWalletAddress') }}</th>
+                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colNeoBalance') }}</th>
+                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colGasBalance') }}</th>
+                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colEstUsd') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y soft-divider bg-surface">

@@ -82,7 +82,7 @@ describe("Treasury network changes", () => {
     await flushPromises();
 
     expect(cachedRequestMock).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain("Switch to N3 Mainnet to view live foundation balances.");
+    expect(wrapper.text()).toContain("treasuryPage.mainnetOnlyNotice");
     wrapper.unmount();
   });
 
@@ -108,7 +108,7 @@ describe("Treasury network changes", () => {
     await flushPromises();
 
     expect(cachedRequestMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.text()).toContain("Switch to N3 Mainnet to view live foundation balances.");
+    expect(wrapper.text()).toContain("treasuryPage.mainnetOnlyNotice");
 
     envState.value = "MainNet";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "MainNet" } }));
