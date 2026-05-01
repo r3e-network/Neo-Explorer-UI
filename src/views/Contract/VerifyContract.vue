@@ -289,20 +289,20 @@ function onFilesSelected(event) {
   const incomingSize = files.reduce((sum, f) => sum + f.size, 0);
 
   if (fileList.value.length + files.length > MAX_FILE_COUNT) {
-    showNotification("error", `Maximum ${MAX_FILE_COUNT} files allowed.`);
+    showNotification("error", t("tools.verifyContract.errors.maxFiles", { max: MAX_FILE_COUNT }));
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
 
   const oversized = files.find((f) => f.size > MAX_FILE_SIZE);
   if (oversized) {
-    showNotification("error", `"${oversized.name}" exceeds the 10 MB per-file limit.`);
+    showNotification("error", t("tools.verifyContract.errors.fileTooLarge", { name: oversized.name, limitMb: 10 }));
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
 
   if (currentSize + incomingSize > MAX_TOTAL_SIZE) {
-    showNotification("error", "Total file size exceeds the 50 MB limit.");
+    showNotification("error", t("tools.verifyContract.errors.totalTooLarge", { limitMb: 50 }));
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
@@ -320,13 +320,13 @@ async function submitVerification() {
 
   errors.value = {};
   if (!CONTRACT_HASH_PATTERN.test(form.value.hash)) {
-    errors.value.hash = "Invalid format. Must be a 40-character hex string.";
+    errors.value.hash = t("tools.verifyContract.errors.invalidHash");
     return;
   }
 
   const node = resolveUploadNode(form.value.version);
   if (!node) {
-    showNotification("error", "Unsupported host for contract verification endpoint.");
+    showNotification("error", t("tools.verifyContract.errors.unsupportedHost"));
     return;
   }
 

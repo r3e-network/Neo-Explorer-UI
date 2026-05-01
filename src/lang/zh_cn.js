@@ -116,6 +116,9 @@ const zh = {
     ariaClearHistory: "清除搜索记录",
   },
   homePage: {
+    priceChangeUp: "上涨 {percent} 个百分点",
+    priceChangeDown: "下跌 {percent} 个百分点",
+    priceChangeUnchanged: "无变化",
     heroTitle: "Neo N3 区块链浏览器",
     heroSubtitle: "搜索 Neo N3 上的交易、区块、地址、代币等",
     recentBlocks: "最新区块",
@@ -479,6 +482,7 @@ const zh = {
         broadcasted: "交易已广播！TXID：{txid}",
         failedToBroadcast: "广播失败：{reason}",
         signingFallbackReason: "提交失败",
+        initFailed: "多签名工具初始化失败。请刷新页面重试。",
       },
       errors: {
         needAtLeastOnePubkey: "至少需要 1 个公钥",
@@ -900,6 +904,13 @@ const zh = {
     verifyContract: {
       title: "验证合约",
       description: "上传源代码以匹配链上字节码，为您的合约授予已验证绿色标记。",
+      errors: {
+        maxFiles: "最多允许 {max} 个文件。",
+        fileTooLarge: "\"{name}\" 超过单文件 {limitMb} MB 限制。",
+        totalTooLarge: "文件总大小超过 {limitMb} MB 限制。",
+        invalidHash: "格式无效。必须是 40 个字符的十六进制字符串。",
+        unsupportedHost: "合约验证端点不支持的主机。",
+      },
     },
     converter: {
       title: "Neo 格式转换器",
@@ -1402,6 +1413,7 @@ const zh = {
       unknownError: "未知错误",
       masterAaNotFound: "在环境配置中未找到主 Abstract Account 合约。",
       noTxidFromWallet: "钱包未返回 txid",
+      aaHashNotConfigured: "此网络未配置主 AA 合约",
     },
   },
   errors: {
@@ -1829,6 +1841,9 @@ const zh = {
     mainnetOnlyNotice: "Neo 国库持仓仅在主网追踪。请切换到 N3 主网以查看实时基金会余额。",
     failedToLoad: "加载国库数据失败",
     failedToLoadRetry: "加载国库数据失败，请重试。",
+    groupDaHongfei: "Neo Foundation (Da Hongfei)",
+    groupErikZhang: "Neo Foundation (Erik Zhang)",
+    groupOpsAndOther: "运营与其他",
     totalFoundationAssets: "基金会总资产",
     totalNeoLabel: "NEO 总数",
     totalGasLabel: "GAS 总数",

@@ -9,6 +9,10 @@ vi.mock("@/utils/env", async () => {
   };
 });
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
 // HomeStats now uses $t for stat labels — provide a passthrough so the
 // keys render and the countdown emits assertions still apply.
 const i18nPlugin = {

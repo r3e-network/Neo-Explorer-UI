@@ -1027,6 +1027,7 @@ onMounted(async () => {
     await loadRequests();
   } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);
+    toast.error(t("tools.multisig.toasts.initFailed"));
   } finally {
     loading.value = false;
   }

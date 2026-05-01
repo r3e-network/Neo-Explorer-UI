@@ -318,7 +318,7 @@ function deriveAccount() {
   try {
     const aaHash = getAbstractAccountHash();
     if (!aaHash) {
-      computedAddress.value = "AA_HASH_NOT_CONFIGURED";
+      computedAddress.value = t("tools.abstractAccount.aaHashNotConfigured");
       return;
     }
 

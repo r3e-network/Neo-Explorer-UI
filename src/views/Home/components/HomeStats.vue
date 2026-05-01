@@ -169,6 +169,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   formatNumber,
   formatPrice,
@@ -192,6 +193,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["fetch-latest"]);
+
+const { t } = useI18n();
 
 const nextBlockCountdown = ref(null);
 const targetTime = ref(15);
@@ -244,9 +247,9 @@ const gasCostUsd = computed(() => {
 
 function describePriceChange(value) {
   const change = Number(value) || 0;
-  if (change > 0) return `up ${Math.abs(change).toFixed(2)} percent`;
-  if (change < 0) return `down ${Math.abs(change).toFixed(2)} percent`;
-  return "unchanged";
+  if (change > 0) return t("homePage.priceChangeUp", { percent: Math.abs(change).toFixed(2) });
+  if (change < 0) return t("homePage.priceChangeDown", { percent: Math.abs(change).toFixed(2) });
+  return t("homePage.priceChangeUnchanged");
 }
 </script>
 

@@ -116,6 +116,9 @@ const ja = {
     ariaClearHistory: "検索履歴をクリア",
   },
   homePage: {
+    priceChangeUp: "{percent} パーセント上昇",
+    priceChangeDown: "{percent} パーセント下落",
+    priceChangeUnchanged: "変化なし",
     heroTitle: "Neo N3 ブロックチェーンエクスプローラー",
     heroSubtitle: "Neo N3 のトランザクション、ブロック、アドレス、トークンなどを検索",
     recentBlocks: "最新のブロック",
@@ -479,6 +482,7 @@ const ja = {
         broadcasted: "トランザクションをブロードキャストしました！TXID：{txid}",
         failedToBroadcast: "ブロードキャストに失敗しました：{reason}",
         signingFallbackReason: "送信に失敗しました",
+        initFailed: "マルチシグツールの初期化に失敗しました。ページを再読み込みして再試行してください。",
       },
       errors: {
         needAtLeastOnePubkey: "少なくとも 1 つの公開鍵が必要です",
@@ -900,6 +904,13 @@ const ja = {
     verifyContract: {
       title: "コントラクト検証",
       description: "ソースコードをアップロードしてオンチェーンバイトコードと一致させ、コントラクトに検証済みの緑色チェックマークを付与します。",
+      errors: {
+        maxFiles: "最大 {max} ファイルまで許可されます。",
+        fileTooLarge: "\"{name}\" は 1 ファイルあたり {limitMb} MB の制限を超えています。",
+        totalTooLarge: "合計ファイルサイズが {limitMb} MB の制限を超えています。",
+        invalidHash: "形式が無効です。40 文字の hex 文字列である必要があります。",
+        unsupportedHost: "コントラクト検証エンドポイントでサポートされていないホストです。",
+      },
     },
     converter: {
       title: "Neo フォーマッター＆コンバーター",
@@ -1402,6 +1413,7 @@ const ja = {
       unknownError: "不明なエラー",
       masterAaNotFound: "環境設定にマスター Abstract Account コントラクトが見つかりませんでした。",
       noTxidFromWallet: "ウォレットから txid が返されませんでした",
+      aaHashNotConfigured: "このネットワークではマスター AA コントラクトが構成されていません",
     },
   },
   errors: {
@@ -1829,6 +1841,9 @@ const ja = {
     mainnetOnlyNotice: "Neo トレジャリーの保有はメインネットでのみ追跡されます。Foundation の残高をライブで表示するには N3 メインネットに切り替えてください。",
     failedToLoad: "トレジャリーデータの読み込みに失敗しました",
     failedToLoadRetry: "トレジャリーデータの読み込みに失敗しました。再度お試しください。",
+    groupDaHongfei: "Neo Foundation (Da Hongfei)",
+    groupErikZhang: "Neo Foundation (Erik Zhang)",
+    groupOpsAndOther: "運用とその他",
     totalFoundationAssets: "Foundation 総資産",
     totalNeoLabel: "総 NEO",
     totalGasLabel: "総 GAS",

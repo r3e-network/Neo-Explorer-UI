@@ -116,6 +116,9 @@ const ko = {
     ariaClearHistory: "검색 기록 지우기",
   },
   homePage: {
+    priceChangeUp: "{percent} 퍼센트 상승",
+    priceChangeDown: "{percent} 퍼센트 하락",
+    priceChangeUnchanged: "변동 없음",
     heroTitle: "Neo N3 블록체인 익스플로러",
     heroSubtitle: "Neo N3에서 트랜잭션, 블록, 주소, 토큰 등을 검색하세요",
     recentBlocks: "최근 블록",
@@ -479,6 +482,7 @@ const ko = {
         broadcasted: "트랜잭션이 브로드캐스트되었습니다! TXID: {txid}",
         failedToBroadcast: "브로드캐스트 실패: {reason}",
         signingFallbackReason: "제출에 실패했습니다",
+        initFailed: "멀티시그 도구 초기화에 실패했습니다. 페이지를 새로고침하여 다시 시도하세요.",
       },
       errors: {
         needAtLeastOnePubkey: "공개 키가 최소 1개 이상 필요합니다",
@@ -900,6 +904,13 @@ const ko = {
     verifyContract: {
       title: "컨트랙트 검증",
       description: "소스 코드를 업로드하여 온체인 바이트코드와 일치시키고, 컨트랙트에 검증된 녹색 체크마크를 부여합니다.",
+      errors: {
+        maxFiles: "최대 {max}개의 파일만 허용됩니다.",
+        fileTooLarge: "\"{name}\"이(가) 파일당 {limitMb} MB 제한을 초과합니다.",
+        totalTooLarge: "전체 파일 크기가 {limitMb} MB 제한을 초과합니다.",
+        invalidHash: "잘못된 형식입니다. 40자 hex 문자열이어야 합니다.",
+        unsupportedHost: "컨트랙트 검증 엔드포인트에 지원되지 않는 호스트입니다.",
+      },
     },
     converter: {
       title: "Neo 포맷터 & 변환기",
@@ -1402,6 +1413,7 @@ const ko = {
       unknownError: "알 수 없는 오류",
       masterAaNotFound: "환경 구성에서 마스터 Abstract Account 컨트랙트를 찾을 수 없습니다.",
       noTxidFromWallet: "지갑에서 txid가 반환되지 않았습니다",
+      aaHashNotConfigured: "이 네트워크에 마스터 AA 컨트랙트가 구성되어 있지 않습니다",
     },
   },
   errors: {
@@ -1829,6 +1841,9 @@ const ko = {
     mainnetOnlyNotice: "Neo 재무 보유는 메인넷에서만 추적됩니다. Foundation 잔액을 실시간으로 보려면 N3 메인넷으로 전환하세요.",
     failedToLoad: "재무 데이터를 불러오지 못했습니다",
     failedToLoadRetry: "재무 데이터를 불러오지 못했습니다. 다시 시도해 주세요.",
+    groupDaHongfei: "Neo Foundation (Da Hongfei)",
+    groupErikZhang: "Neo Foundation (Erik Zhang)",
+    groupOpsAndOther: "운영 및 기타",
     totalFoundationAssets: "Foundation 총 자산",
     totalNeoLabel: "총 NEO",
     totalGasLabel: "총 GAS",

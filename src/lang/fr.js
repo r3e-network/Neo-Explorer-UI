@@ -115,6 +115,9 @@ const fr = {
     ariaClearHistory: "Effacer l'historique de recherche",
   },
   homePage: {
+    priceChangeUp: "en hausse de {percent} pour cent",
+    priceChangeDown: "en baisse de {percent} pour cent",
+    priceChangeUnchanged: "inchangé",
     heroTitle: "L'explorateur de la blockchain Neo N3",
     heroSubtitle: "Rechercher transactions, blocs, adresses, jetons et plus sur Neo N3",
     recentBlocks: "Derniers blocs",
@@ -478,6 +481,7 @@ const fr = {
         broadcasted: "Transaction diffusée ! TXID : {txid}",
         failedToBroadcast: "Échec de la diffusion : {reason}",
         signingFallbackReason: "envoi échoué",
+        initFailed: "Échec de l'initialisation de l'outil multi-signature. Rechargez la page pour réessayer.",
       },
       errors: {
         needAtLeastOnePubkey: "Au moins une clé publique est requise",
@@ -899,6 +903,13 @@ const fr = {
     verifyContract: {
       title: "Vérifier le Contrat",
       description: "Téléchargez le code source pour le comparer au bytecode on-chain et obtenir la coche verte de vérification.",
+      errors: {
+        maxFiles: "Maximum {max} fichiers autorisés.",
+        fileTooLarge: "\"{name}\" dépasse la limite de {limitMb} Mo par fichier.",
+        totalTooLarge: "La taille totale dépasse la limite de {limitMb} Mo.",
+        invalidHash: "Format invalide. Doit être une chaîne hex de 40 caractères.",
+        unsupportedHost: "Hôte non pris en charge pour l'endpoint de vérification.",
+      },
     },
     converter: {
       title: "Formateur et convertisseur Neo",
@@ -1398,6 +1409,7 @@ const fr = {
       unknownError: "Erreur inconnue",
       masterAaNotFound: "Contrat principal Abstract Account introuvable dans la configuration d'environnement.",
       noTxidFromWallet: "Aucun txid retourné par le portefeuille",
+      aaHashNotConfigured: "Le contrat AA principal n'est pas configuré pour ce réseau",
     },
   },
   errors: {
@@ -1825,6 +1837,9 @@ const fr = {
     mainnetOnlyNotice: "Les avoirs de la trésorerie Neo ne sont suivis que sur le mainnet. Basculez vers N3 Mainnet pour voir les soldes en direct.",
     failedToLoad: "Échec du chargement des données de la trésorerie",
     failedToLoadRetry: "Échec du chargement des données de la trésorerie. Veuillez réessayer.",
+    groupDaHongfei: "Neo Foundation (Da Hongfei)",
+    groupErikZhang: "Neo Foundation (Erik Zhang)",
+    groupOpsAndOther: "Opérations et autres",
     totalFoundationAssets: "Actifs totaux de la Foundation",
     totalNeoLabel: "Total NEO",
     totalGasLabel: "Total GAS",

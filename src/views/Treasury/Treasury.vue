@@ -152,7 +152,7 @@
             {{ $t('treasuryPage.switchForChart') }}
           </div>
           <div v-else class="space-y-5">
-            <div v-for="group in groups" :key="group.name" class="group">
+            <div v-for="group in groups" :key="group.key" class="group">
               <div class="flex justify-between items-end mb-2">
                 <div class="flex items-center gap-2">
                   <span
@@ -314,9 +314,9 @@ const totalNeo = computed(() => balances.value.reduce((sum, item) => sum + item.
 const totalGas = computed(() => balances.value.reduce((sum, item) => sum + item.gas, 0));
 
 const groups = computed(() => {
-  const da = { name: "Neo Foundation (Da Hongfei)", neo: 0, gas: 0, color: "bg-blue-500 ring-blue-500" };
-  const erik = { name: "Neo Foundation (Erik Zhang)", neo: 0, gas: 0, color: "bg-purple-500 ring-purple-500" };
-  const ops = { name: "Operations & Other", neo: 0, gas: 0, color: "bg-amber-500 ring-amber-500" };
+  const da = { key: "daHongfei", name: t("treasuryPage.groupDaHongfei"), neo: 0, gas: 0, color: "bg-blue-500 ring-blue-500" };
+  const erik = { key: "erikZhang", name: t("treasuryPage.groupErikZhang"), neo: 0, gas: 0, color: "bg-purple-500 ring-purple-500" };
+  const ops = { key: "opsAndOther", name: t("treasuryPage.groupOpsAndOther"), neo: 0, gas: 0, color: "bg-amber-500 ring-amber-500" };
 
   balances.value.forEach((item) => {
     if (item.name.includes("Da Hongfei")) {

@@ -116,6 +116,9 @@ const en = {
     ariaClearHistory: "Clear search history",
   },
   homePage: {
+    priceChangeUp: "up {percent} percent",
+    priceChangeDown: "down {percent} percent",
+    priceChangeUnchanged: "unchanged",
     heroTitle: "The Neo N3 Blockchain Explorer",
     heroSubtitle: "Search transactions, blocks, addresses, tokens and more on Neo N3",
     recentBlocks: "Latest Blocks",
@@ -479,6 +482,7 @@ const en = {
         broadcasted: "Transaction broadcasted! TXID: {txid}",
         failedToBroadcast: "Failed to broadcast: {reason}",
         signingFallbackReason: "submission failed",
+        initFailed: "Failed to initialize multi-signature tool. Reload the page to retry.",
       },
       errors: {
         needAtLeastOnePubkey: "Need at least 1 public key",
@@ -900,6 +904,13 @@ const en = {
     verifyContract: {
       title: "Verify Contract",
       description: "Upload source code to match on-chain bytecode, granting your contract a verified green checkmark.",
+      errors: {
+        maxFiles: "Maximum {max} files allowed.",
+        fileTooLarge: "\"{name}\" exceeds the {limitMb} MB per-file limit.",
+        totalTooLarge: "Total file size exceeds the {limitMb} MB limit.",
+        invalidHash: "Invalid format. Must be a 40-character hex string.",
+        unsupportedHost: "Unsupported host for contract verification endpoint.",
+      },
     },
     converter: {
       title: "Neo Formatter & Converter",
@@ -1402,6 +1413,7 @@ const en = {
       unknownError: "Unknown error",
       masterAaNotFound: "Master Abstract Account contract not found in environment config.",
       noTxidFromWallet: "No txid returned from wallet",
+      aaHashNotConfigured: "Master AA contract is not configured for this network",
     },
   },
   errors: {
@@ -1829,6 +1841,9 @@ const en = {
     mainnetOnlyNotice: "Neo Treasury holdings are tracked on mainnet only. Switch to N3 Mainnet to view live foundation balances.",
     failedToLoad: "Failed to load treasury data",
     failedToLoadRetry: "Failed to load treasury data. Please try again.",
+    groupDaHongfei: "Neo Foundation (Da Hongfei)",
+    groupErikZhang: "Neo Foundation (Erik Zhang)",
+    groupOpsAndOther: "Operations & Other",
     totalFoundationAssets: "Total Foundation Assets",
     totalNeoLabel: "Total NEO",
     totalGasLabel: "Total GAS",
