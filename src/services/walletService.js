@@ -46,6 +46,46 @@ let _account = null;
 let _neolineN3 = null;
 let _directWifAccount = null;
 
+// EIP-1193 listener bookkeeping. We hold references so we can detach them
+// cleanly on disconnect (window.ethereum survives the wallet session).
+let _evmAccountsChangedHandler = null;
+let _evmChainChangedHandler = null;
+
+function detachEvmListeners() {
+  if (typeof window === "undefined" || !window.ethereum) return;
+  if (_evmAccountsChangedHandler && typeof window.ethereum.removeListener === "function") {
+    try { window.ethereum.removeListener("accountsChanged", _evmAccountsChangedHandler); } catch { /* noop */ }
+  }
+  if (_evmChainChangedHandler && typeof window.ethereum.removeListener === "function") {
+    try { window.ethereum.removeListener("chainChanged", _evmChainChangedHandler); } catch { /* noop */ }
+  }
+  _evmAccountsChangedHandler = null;
+  _evmChainChangedHandler = null;
+}
+
+function attachEvmListeners() {
+  if (typeof window === "undefined" || !window.ethereum || typeof window.ethereum.on !== "function") return;
+  detachEvmListeners();
+  _evmAccountsChangedHandler = (accounts) => {
+    // Empty array = wallet locked or all accounts disconnected.
+    // Different address = user switched accounts mid-session; the cached
+    // pubkey + derived AA address are now stale, so disconnect cleanly
+    // rather than leave the user with an unsignable session.
+    const next = Array.isArray(accounts) && accounts[0] ? String(accounts[0]).toLowerCase() : "";
+    const current = _account?.evmAddress || "";
+    if (!next || next !== current) {
+      walletService.disconnect();
+    }
+  };
+  _evmChainChangedHandler = () => {
+    // Network change invalidates assumptions about which Neo network the
+    // EVM identity maps to — disconnect.
+    walletService.disconnect();
+  };
+  window.ethereum.on("accountsChanged", _evmAccountsChangedHandler);
+  window.ethereum.on("chainChanged", _evmChainChangedHandler);
+}
+
 export const WALLET_STATE_EVENT = "neo-explorer:wallet-state-changed";
 
 function broadcastWalletStateChange() {
@@ -942,6 +982,7 @@ export const walletService = {
 
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
+      attachEvmListeners();
       broadcastWalletStateChange();
       return _account;
     }
@@ -1007,6 +1048,9 @@ export const walletService = {
       void loadWeb3authService().then((web3authService) => {
         web3authService.disconnect();
       }).catch(() => {});
+    }
+    if (_connectedProvider === PROVIDERS.EVM_WALLET) {
+      detachEvmListeners();
     }
     _connectedProvider = null;
     _account = null;
