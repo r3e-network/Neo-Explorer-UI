@@ -3,6 +3,23 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 
 /**
+ * Detect "method not exposed" errors so we know when to fall back to a
+ * different RPC method. Two cases worth catching:
+ *   - JSON-RPC -32601 "Method not found" (the canonical signal)
+ *   - JSON-RPC -32600 "Invalid request" (what neo3fura returns for an
+ *     unknown method when it falls through to the upstream proxy and the
+ *     upstream node also rejects it)
+ * Other errors (network, -106 not-yet-computed) should NOT trigger a
+ * fallback — they'd produce the same response from the lowercase path.
+ */
+function isMethodMissingError(err) {
+  const code = err?.rpc?.code ?? err?.code;
+  if (code === -32601 || code === -32600) return true;
+  const msg = String(err?.message || err?.rpc?.message || "").toLowerCase();
+  return msg.includes("method not found") || msg.includes("invalid request");
+}
+
+/**
  * Block Service - Neo3 区块相关 API 调用
  * @module services/blockService
  * @description 通过 neo3fura 后端获取区块数据
@@ -148,24 +165,38 @@ export const blockService = createService(
     /**
      * Fetch the official state root for a block height. Primary path is
      * neo3fura's `GetStateRoot` (which proxies the Neo node's
-     * `getstateroot`). Falls back to a direct node RPC call if the
-     * neo3fura method is unavailable (e.g. during a backend rollout
-     * window before the new handler is deployed).
+     * `getstateroot`, with server-side LRU caching). Falls back to a
+     * direct node RPC call if the neo3fura method is unavailable
+     * (e.g. during a backend rollout window before the new handler is
+     * deployed, or against a neo3fura instance that hasn't enabled it).
      *
      * State roots are produced by the StateRootService and reflect the
      * MPT root of the contract storage trie at the end of the block.
-     * Returns the `roothash` string or null.
+     * They are immutable per height — once computed they never change —
+     * so both the server cache and the client-side cachedRequest TTL
+     * can be aggressive. Returns the `roothash` string or null.
      */
     async getStateRoot(height, options = {}) {
       const numericHeight = Number(height);
       if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
 
+      // Primary: neo3fura GetStateRoot. We pass WithWitnesses=false (the
+      // server default) since the explorer only needs the roothash —
+      // skipping the witness array shaves ~600 bytes per response.
       try {
         const res = await this.getStateRootRaw(numericHeight, options);
         const roothash = res?.roothash || res?.rootHash;
         if (roothash) return roothash;
       } catch (e) {
-        if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot via neo3fura failed, falling back:", e);
+        // Only fall back on errors that suggest the method itself is
+        // missing. Genuine "block not yet has state root" responses
+        // shouldn't trigger a fallback (the node will return the same
+        // not-found from the lowercase path).
+        if (!isMethodMissingError(e)) {
+          if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot upstream error:", e);
+          return null;
+        }
+        if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot not exposed, falling back to node RPC:", e);
       }
 
       // Fallback: direct node RPC (lowercase getstateroot) via the same proxy.
