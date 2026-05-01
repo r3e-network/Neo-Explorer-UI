@@ -478,6 +478,7 @@ const en = {
         broadcasting: "Broadcasting to network...",
         broadcasted: "Transaction broadcasted! TXID: {txid}",
         failedToBroadcast: "Failed to broadcast: {reason}",
+        signingFallbackReason: "submission failed",
       },
       errors: {
         needAtLeastOnePubkey: "Need at least 1 public key",
@@ -487,6 +488,9 @@ const en = {
         submitSignatureFailed: "Failed to submit signature: {reason}",
         notEnoughSignatures: "Failed to match enough signatures.",
       },
+      promptGroupName: "Enter a name for this signer group:",
+      defaultGroupName: "Group ({threshold}/{size})",
+      confirmDelete: "Delete this group?",
     },
     abiEncoder: {
       pageTitle: "ABI Encoder & Decoder",
@@ -2190,6 +2194,7 @@ const en = {
     breadcrumbBlock: "Block",
     breadcrumbBlockN: "Block #{n}",
     notFound: "Block not found",
+    appLogFailed: "Failed to load block application log.",
     sectionsAria: "Block detail sections",
     overviewTitle: "Overview",
     detailsTitle: "Details",
@@ -2436,6 +2441,12 @@ const en = {
     writePlaceholder: "Write a message",
     sending: "Sending…",
     send: "Send",
+    enterAddressOrDomain: "Enter an address or domain.",
+    walletRuntimeUnavailable: "Neo wallet runtime unavailable.",
+    unableToResolveRecipient: "Unable to resolve chat recipient.",
+    unableToOpenRoom: "Unable to open chat room.",
+    sendFailed: "Failed to send message.",
+    authFailed: "NeoChat authorization failed.",
   },
   nns: {
     toasts: {

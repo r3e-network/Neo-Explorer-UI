@@ -478,6 +478,7 @@ const ko = {
         broadcasting: "네트워크로 브로드캐스트 중...",
         broadcasted: "트랜잭션이 브로드캐스트되었습니다! TXID: {txid}",
         failedToBroadcast: "브로드캐스트 실패: {reason}",
+        signingFallbackReason: "제출에 실패했습니다",
       },
       errors: {
         needAtLeastOnePubkey: "공개 키가 최소 1개 이상 필요합니다",
@@ -487,6 +488,9 @@ const ko = {
         submitSignatureFailed: "서명 제출 실패: {reason}",
         notEnoughSignatures: "충분한 서명을 맞추지 못했습니다.",
       },
+      promptGroupName: "이 서명자 그룹의 이름을 입력하세요:",
+      defaultGroupName: "그룹 ({threshold}/{size})",
+      confirmDelete: "이 그룹을 삭제하시겠습니까?",
     },
     abiEncoder: {
       pageTitle: "ABI 인코더 & 디코더",
@@ -2190,6 +2194,7 @@ const ko = {
     breadcrumbBlock: "블록",
     breadcrumbBlockN: "블록 #{n}",
     notFound: "블록을 찾을 수 없습니다",
+    appLogFailed: "블록 애플리케이션 로그를 불러오지 못했습니다.",
     sectionsAria: "블록 상세 섹션",
     overviewTitle: "개요",
     detailsTitle: "세부 정보",
@@ -2436,6 +2441,12 @@ const ko = {
     writePlaceholder: "메시지 입력",
     sending: "전송 중…",
     send: "전송",
+    enterAddressOrDomain: "주소 또는 도메인을 입력하세요.",
+    walletRuntimeUnavailable: "Neo 지갑 런타임을 사용할 수 없습니다.",
+    unableToResolveRecipient: "채팅 수신자를 확인할 수 없습니다.",
+    unableToOpenRoom: "채팅방을 열 수 없습니다.",
+    sendFailed: "메시지 전송에 실패했습니다.",
+    authFailed: "NeoChat 인증에 실패했습니다.",
   },
   nns: {
     toasts: {

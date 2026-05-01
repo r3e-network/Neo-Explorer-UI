@@ -337,7 +337,7 @@ async function loadBlockAppLog(blockHash, requestId) {
       if (requestId !== blockRequestId) return;
       blockAppLog.value = appLog;
     } catch {
-      blockAppLogError.value = "Failed to load block application log.";
+      blockAppLogError.value = t("blockDetail.appLogFailed");
     }
   } finally {
     if (requestId === blockRequestId) {

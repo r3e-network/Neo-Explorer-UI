@@ -56,6 +56,7 @@ defineOptions({ name: "ChatPage" });
 
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import ChatSidebar from "./components/ChatSidebar.vue";
 import ChatThread from "./components/ChatThread.vue";
 import { connectedAccount } from "@/utils/wallet";
@@ -65,6 +66,7 @@ import { useChatSession } from "@/composables/useChatSession";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const {
   chatSession,
   restoreChatSession,
@@ -155,17 +157,17 @@ async function openRoom(room) {
 
 async function resolvePeerAddress(rawTarget) {
   const value = String(rawTarget || "").trim();
-  if (!value) throw new Error("Enter an address or domain.");
+  if (!value) throw new Error(t("chat.enterAddressOrDomain"));
   const wallet = getWalletRuntime();
   if (!wallet?.isAddress) {
-    throw new Error("Neo wallet runtime unavailable.");
+    throw new Error(t("chat.walletRuntimeUnavailable"));
   }
   if (wallet.isAddress(value)) {
     return { address: value, label: value };
   }
   const resolved = await nnsService.resolveDomain(value);
   if (!resolved || !wallet.isAddress(resolved)) {
-    throw new Error("Unable to resolve chat recipient.");
+    throw new Error(t("chat.unableToResolveRecipient"));
   }
   return { address: resolved, label: value };
 }
@@ -188,7 +190,7 @@ async function handleEnsureRoom(rawTarget = target.value) {
     target.value = "";
     await openRoom(room);
   } catch (error) {
-    targetError.value = error.message || "Unable to open chat room.";
+    targetError.value = error.message || t("chat.unableToOpenRoom");
   }
 }
 
@@ -210,6 +212,9 @@ async function sendMessage(body) {
       room.lastSenderAddress = message.sender_address;
     }
     await refreshNotifications();
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[chat] sendMessage failed:", err);
+    targetError.value = err?.message || t("chat.sendFailed");
   } finally {
     sending.value = false;
   }
@@ -231,7 +236,7 @@ async function authorizeChat() {
       }
     }
   } catch (error) {
-    authError.value = error.message || "NeoChat authorization failed.";
+    authError.value = error.message || t("chat.authFailed");
   } finally {
     authorizing.value = false;
   }
@@ -239,20 +244,24 @@ async function authorizeChat() {
 
 async function bootstrap() {
   if (!connectedAccount.value) return;
-  await restoreChatSession();
-  if (!chatSession.value) return;
-  await loadRooms();
-  await refreshNotifications();
+  try {
+    await restoreChatSession();
+    if (!chatSession.value) return;
+    await loadRooms();
+    await refreshNotifications();
 
-  if (route.query.room) {
-    const room = rooms.value.find((entry) => entry.roomId === String(route.query.room));
-    if (room) {
-      await openRoom(room);
-      return;
+    if (route.query.room) {
+      const room = rooms.value.find((entry) => entry.roomId === String(route.query.room));
+      if (room) {
+        await openRoom(room);
+        return;
+      }
     }
-  }
-  if (route.query.with) {
-    await handleEnsureRoom(String(route.query.with));
+    if (route.query.with) {
+      await handleEnsureRoom(String(route.query.with));
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[chat] bootstrap failed:", err);
   }
 }
 

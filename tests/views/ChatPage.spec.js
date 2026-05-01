@@ -8,6 +8,10 @@ const i18nPlugin = {
   },
 };
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
 const routeRef = {
   value: {
     fullPath: "/chat?with=alice.neo",

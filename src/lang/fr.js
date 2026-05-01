@@ -477,6 +477,7 @@ const fr = {
         broadcasting: "Diffusion sur le réseau...",
         broadcasted: "Transaction diffusée ! TXID : {txid}",
         failedToBroadcast: "Échec de la diffusion : {reason}",
+        signingFallbackReason: "envoi échoué",
       },
       errors: {
         needAtLeastOnePubkey: "Au moins une clé publique est requise",
@@ -486,6 +487,9 @@ const fr = {
         submitSignatureFailed: "Échec de l'envoi de la signature : {reason}",
         notEnoughSignatures: "Impossible de réunir suffisamment de signatures.",
       },
+      promptGroupName: "Entrez un nom pour ce groupe de signataires :",
+      defaultGroupName: "Groupe ({threshold}/{size})",
+      confirmDelete: "Supprimer ce groupe ?",
     },
     abiEncoder: {
       pageTitle: "Encodeur & décodeur ABI",
@@ -2186,6 +2190,7 @@ const fr = {
     breadcrumbBlock: "Bloc",
     breadcrumbBlockN: "Bloc #{n}",
     notFound: "Bloc introuvable",
+    appLogFailed: "Échec du chargement du journal d'application du bloc.",
     sectionsAria: "Sections du détail de bloc",
     overviewTitle: "Aperçu",
     detailsTitle: "Détails",
@@ -2432,6 +2437,12 @@ const fr = {
     writePlaceholder: "Écrivez un message",
     sending: "Envoi…",
     send: "Envoyer",
+    enterAddressOrDomain: "Entrez une adresse ou un domaine.",
+    walletRuntimeUnavailable: "Runtime du portefeuille Neo indisponible.",
+    unableToResolveRecipient: "Impossible de résoudre le destinataire du chat.",
+    unableToOpenRoom: "Impossible d'ouvrir la salle de chat.",
+    sendFailed: "Échec de l'envoi du message.",
+    authFailed: "L'autorisation NeoChat a échoué.",
   },
   nns: {
     toasts: {

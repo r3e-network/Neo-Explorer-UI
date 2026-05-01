@@ -478,6 +478,7 @@ const zh = {
         broadcasting: "正在广播到网络...",
         broadcasted: "交易已广播！TXID：{txid}",
         failedToBroadcast: "广播失败：{reason}",
+        signingFallbackReason: "提交失败",
       },
       errors: {
         needAtLeastOnePubkey: "至少需要 1 个公钥",
@@ -487,6 +488,9 @@ const zh = {
         submitSignatureFailed: "提交签名失败：{reason}",
         notEnoughSignatures: "未能收集到足够的签名。",
       },
+      promptGroupName: "请输入该签名者组的名称：",
+      defaultGroupName: "组 ({threshold}/{size})",
+      confirmDelete: "删除该组？",
     },
     abiEncoder: {
       pageTitle: "ABI 编码器 & 解码器",
@@ -2190,6 +2194,7 @@ const zh = {
     breadcrumbBlock: "区块",
     breadcrumbBlockN: "区块 #{n}",
     notFound: "未找到该区块",
+    appLogFailed: "加载区块应用日志失败。",
     sectionsAria: "区块详情区块",
     overviewTitle: "概览",
     detailsTitle: "详情",
@@ -2436,6 +2441,12 @@ const zh = {
     writePlaceholder: "输入消息",
     sending: "发送中…",
     send: "发送",
+    enterAddressOrDomain: "请输入地址或域名。",
+    walletRuntimeUnavailable: "Neo 钱包运行时不可用。",
+    unableToResolveRecipient: "无法解析聊天接收方。",
+    unableToOpenRoom: "无法打开聊天室。",
+    sendFailed: "发送消息失败。",
+    authFailed: "NeoChat 授权失败。",
   },
   nns: {
     toasts: {

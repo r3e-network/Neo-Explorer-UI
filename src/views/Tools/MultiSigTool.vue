@@ -796,7 +796,10 @@ function saveCurrentConfig() {
     return;
   }
   const threshold = parseInt(createForm.value.threshold);
-  const name = prompt("Enter a name for this signer group:", `Group (${threshold}/${pubkeys.length})`);
+  const name = prompt(
+    t("tools.multisig.promptGroupName"),
+    t("tools.multisig.defaultGroupName", { threshold, size: pubkeys.length }),
+  );
   if (!name) return;
 
   savedConfigs.value.push({ name, pubkeys, threshold });
@@ -805,7 +808,7 @@ function saveCurrentConfig() {
 }
 
 function deleteConfig(idx) {
-  if (!confirm("Delete this group?")) return;
+  if (!confirm(t("tools.multisig.confirmDelete"))) return;
   savedConfigs.value.splice(idx, 1);
   localStorage.setItem("neo_multisig_configs", JSON.stringify(savedConfigs.value));
 }
@@ -937,7 +940,7 @@ async function submitManualSignature() {
     await submitSig(manualSignature.value.trim());
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
-    toast.error(t("tools.multisig.toasts.signingFailed", { reason: e?.message || "submit failed" }));
+    toast.error(t("tools.multisig.toasts.signingFailed", { reason: e?.message || t("tools.multisig.toasts.signingFallbackReason") }));
   } finally {
     isSigning.value = false;
   }

@@ -478,6 +478,7 @@ const ja = {
         broadcasting: "ネットワークにブロードキャスト中...",
         broadcasted: "トランザクションをブロードキャストしました！TXID：{txid}",
         failedToBroadcast: "ブロードキャストに失敗しました：{reason}",
+        signingFallbackReason: "送信に失敗しました",
       },
       errors: {
         needAtLeastOnePubkey: "少なくとも 1 つの公開鍵が必要です",
@@ -487,6 +488,9 @@ const ja = {
         submitSignatureFailed: "署名の送信に失敗しました：{reason}",
         notEnoughSignatures: "十分な署名を揃えることができませんでした。",
       },
+      promptGroupName: "この署名者グループの名前を入力してください：",
+      defaultGroupName: "グループ ({threshold}/{size})",
+      confirmDelete: "このグループを削除しますか？",
     },
     abiEncoder: {
       pageTitle: "ABI エンコーダー & デコーダー",
@@ -2190,6 +2194,7 @@ const ja = {
     breadcrumbBlock: "ブロック",
     breadcrumbBlockN: "ブロック #{n}",
     notFound: "ブロックが見つかりません",
+    appLogFailed: "ブロックのアプリケーションログの読み込みに失敗しました。",
     sectionsAria: "ブロック詳細セクション",
     overviewTitle: "概要",
     detailsTitle: "詳細",
@@ -2436,6 +2441,12 @@ const ja = {
     writePlaceholder: "メッセージを入力",
     sending: "送信中…",
     send: "送信",
+    enterAddressOrDomain: "アドレスまたはドメインを入力してください。",
+    walletRuntimeUnavailable: "Neo ウォレットランタイムが利用できません。",
+    unableToResolveRecipient: "チャットの受信者を解決できませんでした。",
+    unableToOpenRoom: "チャットルームを開けませんでした。",
+    sendFailed: "メッセージの送信に失敗しました。",
+    authFailed: "NeoChat の認証に失敗しました。",
   },
   nns: {
     toasts: {
