@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { formatAge, truncateHash } from "@/utils/explorerFormat";
+import { formatAge, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
 import { getTransferDirection } from "@/utils/addressDetail";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -125,11 +125,6 @@ function getDirection(from, to) {
 }
 
 function formatTransferAmount(amount, decimals = 8) {
-  const raw = Number(amount || 0);
-  if (!Number.isFinite(raw)) return "0";
-  const divisor = Math.pow(10, decimals);
-  return (raw / divisor).toLocaleString(undefined, {
-    maximumFractionDigits: decimals,
-  });
+  return formatTokenAmount(amount ?? 0, decimals, decimals);
 }
 </script>

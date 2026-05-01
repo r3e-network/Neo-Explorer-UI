@@ -236,7 +236,7 @@ const { t } = useI18n();
 import HashLink from "@/components/common/HashLink.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
-import { formatGas, formatAge, formatTime } from "@/utils/explorerFormat";
+import { formatGas, formatAge, formatTime, formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { GAS_DECIMALS } from "@/constants";
@@ -282,10 +282,9 @@ function getTokenLogo(t) {
 }
 
 function formatTransferAmount(t) {
-  const raw = Number(t.value || t.amount || 0);
+  const raw = t.value ?? t.amount ?? 0;
   const decimals = Number(t.decimals ?? GAS_DECIMALS);
-  if (decimals === 0) return String(raw);
-  return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
+  return formatTokenAmount(raw, decimals, Math.min(decimals, 8));
 }
 
 const invocation = computed(() => {

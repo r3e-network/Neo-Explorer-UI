@@ -239,12 +239,14 @@ import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
+import { formatTokenAmount } from "@/utils/explorerFormat";
 import { loadNeonJs } from "@/utils/neonLoader";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 
 const { t } = useI18n();
 const toast = useToast();
 const gasBalance = ref("0");
+const gasBalanceRaw = ref(0);
 const operation = ref("claim");
 const candidatePubKey = ref("");
 const isProcessing = ref(false);
@@ -258,7 +260,7 @@ function formatVotes(value) {
 const eligibilityThreshold = 0.5; // GAS
 
 const isEligible = computed(() => {
-  return Number(gasBalance.value) < eligibilityThreshold;
+  return gasBalanceRaw.value < eligibilityThreshold;
 });
 
 async function createRpcClient(endpoint) {
@@ -279,9 +281,14 @@ async function createAccount(value) {
   return new Account(value);
 }
 
+function resetBalance() {
+  gasBalance.value = "0";
+  gasBalanceRaw.value = 0;
+}
+
 async function fetchBalance() {
   if (!connectedAccount.value) {
-    gasBalance.value = "0";
+    resetBalance();
     return;
   }
 
@@ -292,13 +299,27 @@ async function fetchBalance() {
     });
     const gasAsset = result.balance.find((b) => b.assethash === GAS_HASH);
     if (gasAsset) {
-      gasBalance.value = (Number(gasAsset.amount) / 100000000).toFixed(4);
+      // BigInt-safe: avoid Number(amount)/1e8 precision loss as GAS
+      // supply approaches the 90M ceiling. Store the unformatted ratio
+      // for the eligibility comparison, but render the localized form.
+      try {
+        const raw = BigInt(String(gasAsset.amount).split(".")[0]);
+        // Two-step BigInt → Number: integer part stays exact, fractional
+        // part fits in Number trivially (<1). Threshold check (0.5 GAS)
+        // doesn't care about whale-sized integer part precision.
+        const intPart = Number(raw / 100000000n);
+        const fracPart = Number(raw % 100000000n) / 1e8;
+        gasBalanceRaw.value = intPart + fracPart;
+      } catch {
+        gasBalanceRaw.value = 0;
+      }
+      gasBalance.value = formatTokenAmount(gasAsset.amount, 8, 4);
     } else {
-      gasBalance.value = "0";
+      resetBalance();
     }
   } catch (e) {
     if (import.meta.env.DEV) console.warn("Failed to fetch balance", e);
-    gasBalance.value = "0";
+    resetBalance();
   }
 }
 

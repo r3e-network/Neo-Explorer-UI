@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { truncateHash, formatAge, formatUnixTime, formatGas, getContractDisplayName } from "@/utils/explorerFormat";
+import { truncateHash, formatAge, formatUnixTime, formatGas, getContractDisplayName, formatTokenAmount } from "@/utils/explorerFormat";
 import HashLink from "@/components/common/HashLink.vue";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { NATIVE_CONTRACTS, NEO_HASH, POLICY_HASH, ORACLE_HASH } from "@/constants";
@@ -350,9 +350,11 @@ function getValueSummary(tx) {
     return summary.text || "\u2014";
   }
 
-  const transferValue = Number(tx.value || 0);
-  if (transferValue > 0) {
-    return `${formatGas(transferValue)} GAS`;
+  // Use BigInt-aware formatter directly \u2014 passing tx.value through
+  // Number() before formatGas drops precision for whale-sized GAS
+  // transfers (rare today but supply can grow past the 90M ceiling).
+  if (tx.value && String(tx.value) !== "0") {
+    return `${formatTokenAmount(tx.value, 8, 8)} GAS`;
   }
   return "\u2014";
 }

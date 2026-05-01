@@ -203,7 +203,7 @@ import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { GAS_DECIMALS } from "@/constants";
-import { formatGas, truncateHash } from "@/utils/explorerFormat";
+import { formatGas, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
 import { extractFailureReasonFromAppLog } from "@/utils/txFailureReason";
 import TabsNav from "@/components/common/TabsNav.vue";
@@ -335,10 +335,9 @@ const actionSummary = computed(() => buildActionSummary());
 
 // --- Methods ---
 function formatTransferAmount(transfer) {
-  const raw = Number(transfer.value || transfer.amount || 0);
+  const raw = transfer.value ?? transfer.amount ?? 0;
   const decimals = Number(transfer.decimals ?? GAS_DECIMALS);
-  if (decimals === 0) return String(raw);
-  return (raw / Math.pow(10, decimals)).toFixed(Math.min(decimals, 8));
+  return formatTokenAmount(raw, decimals, Math.min(decimals, 8));
 }
 
 function hasOracleResponseAttribute(tx) {

@@ -58,6 +58,7 @@
 
 <script setup>
 import HashLink from "@/components/common/HashLink.vue";
+import { formatTokenAmount } from "@/utils/explorerFormat";
 
 const props = defineProps({
   transfers: { type: Array, default: () => [] },
@@ -67,10 +68,15 @@ const props = defineProps({
 
 function formatAmount(amount, decimals = 8) {
   if (!amount) return "0";
-  const value = Number(amount) / Math.pow(10, decimals);
-  if (value === 0) return "0";
-  if (value < 0.0001) return value.toExponential(4);
-  return value.toLocaleString(undefined, { maximumFractionDigits: 8 });
+  // Tiny values use exponential notation for readability — keep the
+  // Number() path for that branch only. For everything else, route
+  // through the BigInt-safe formatter so whale-sized transfers render
+  // their integer part exactly.
+  const tinyProbe = Number(amount) / Math.pow(10, decimals);
+  if (Number.isFinite(tinyProbe) && tinyProbe > 0 && tinyProbe < 0.0001) {
+    return tinyProbe.toExponential(4);
+  }
+  return formatTokenAmount(amount, decimals, 8);
 }
 
 function truncateTokenId(tokenId) {
