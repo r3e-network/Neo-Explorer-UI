@@ -269,6 +269,16 @@ const routes = [
         component: Accounts,
       },
       {
+        // Natural URL guess; canonical paginated route is /account/:page.
+        path: "/account",
+        redirect: "/account/1",
+      },
+      {
+        // Plural variant — also a common guess.
+        path: "/accounts",
+        redirect: "/account/1",
+      },
+      {
         path: "/treasury",
         name: "treasury",
         meta: { titleKey: "pageTitles.treasury" },
@@ -287,6 +297,15 @@ const routes = [
         component: Tokens,
       },
       {
+        // Natural URL guesses; canonical paginated route requires :tab + :page.
+        path: "/tokens",
+        redirect: "/tokens/nep17/1",
+      },
+      {
+        path: "/tokens/:tab",
+        redirect: (to) => `/tokens/${to.params.tab}/1`,
+      },
+      {
         path: "/nep17-token-info/:hash",
         name: "nep17TokenDetail",
         meta: { titleKey: "pageTitles.nep17Token" },
@@ -303,6 +322,11 @@ const routes = [
         name: "candidates",
         meta: { titleKey: "pageTitles.consensusNodes" },
         component: Candidates,
+      },
+      {
+        // Natural URL guess; canonical paginated route is /candidates/:page.
+        path: "/candidates",
+        redirect: "/candidates/1",
       },
       {
         path: "/burn",
@@ -327,6 +351,11 @@ const routes = [
         name: "charts",
         meta: { titleKey: "pageTitles.chartsStatistics" },
         component: ChartsPage,
+      },
+      {
+        // Natural URL guess; the canonical route is /echarts.
+        path: "/charts",
+        redirect: "/echarts",
       },
       {
         path: "/api-docs",
