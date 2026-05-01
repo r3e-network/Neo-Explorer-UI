@@ -28,7 +28,7 @@
               d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
             />
           </svg>
-          {{ showRaw ? "Decoded" : "Raw Hex" }}
+          {{ showRaw ? $t("unsignedTx.decodedToggle") : $t("unsignedTx.rawHexToggle") }}
         </button>
         <CopyButton :text="rawHex" />
       </div>
@@ -49,9 +49,9 @@
       <table class="w-full text-xs">
         <thead>
           <tr class="border-b border-line-soft bg-surface-muted/70 dark:border-white/10 dark:bg-white/5">
-            <th class="w-16 px-3 py-2 text-left font-medium text-low dark:text-slate-400">Offset</th>
-            <th class="w-32 px-3 py-2 text-left font-medium text-low dark:text-slate-400">Opcode</th>
-            <th class="px-3 py-2 text-left font-medium text-low dark:text-slate-400">Operand</th>
+            <th class="w-16 px-3 py-2 text-left font-medium text-low dark:text-slate-400">{{ $t("unsignedTx.colOffset") }}</th>
+            <th class="w-32 px-3 py-2 text-left font-medium text-low dark:text-slate-400">{{ $t("unsignedTx.colOpcode") }}</th>
+            <th class="px-3 py-2 text-left font-medium text-low dark:text-slate-400">{{ $t("unsignedTx.colOperand") }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-line-soft dark:divide-white/5">

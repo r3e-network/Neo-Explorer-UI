@@ -3,8 +3,8 @@
     @click="copyText"
     class="relative inline-flex items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
     :class="sizeClass"
-    :title="copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy'"
-    :aria-label="copied ? 'Copied to clipboard' : copyFailed ? 'Copy to clipboard failed' : 'Copy to clipboard'"
+    :title="copied ? $t('aria.copied') : copyFailed ? $t('aria.copyFailedShort') : $t('aria.copy')"
+    :aria-label="copied ? $t('aria.copiedToClipboard') : copyFailed ? $t('aria.copyToClipboardFailed') : $t('aria.copyToClipboard')"
     :aria-describedby="copied ? successTooltipId : copyFailed ? failTooltipId : undefined"
   >
     <!-- Copy icon -->
@@ -50,7 +50,7 @@
     </svg>
 
     <span class="sr-only" aria-live="polite">
-      {{ copied ? "Copied to clipboard" : copyFailed ? "Copy to clipboard failed" : "" }}
+      {{ copied ? $t("aria.copiedToClipboard") : copyFailed ? $t("aria.copyToClipboardFailed") : "" }}
     </span>
 
     <!-- Tooltip -->
@@ -61,7 +61,7 @@
         class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs shadow bg-surface-elevated text-high"
         role="tooltip"
       >
-        Copied!
+        {{ $t("aria.copied") }}
       </span>
       <span
         v-else-if="copyFailed"
@@ -69,7 +69,7 @@
         class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs text-white shadow bg-status-error"
         role="tooltip"
       >
-        Failed!
+        {{ $t("aria.copyFailedTooltip") }}
       </span>
     </transition>
   </button>

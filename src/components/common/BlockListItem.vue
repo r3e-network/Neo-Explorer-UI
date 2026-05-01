@@ -79,7 +79,10 @@ import { computed } from "vue";
 import { useNow } from "@vueuse/core";
 import { formatAge as _formatAge, formatNumber, formatGas, truncateHash } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
-import { useCommittee } from "@/composables/useCommittee";
+import { useCommittee, isFallbackValidatorName } from "@/composables/useCommittee";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 
@@ -106,8 +109,8 @@ const validatorHintAddress = computed(() => {
 });
 
 const validatorName = computed(() => {
-  if (resolvedPrimary.value === undefined) return "Validator";
-  return getPrimaryNodeName(resolvedPrimary.value, validatorHintAddress.value) || "Consensus Node";
+  if (resolvedPrimary.value === undefined) return t("validator.validator");
+  return getPrimaryNodeName(resolvedPrimary.value, validatorHintAddress.value) || t("validator.consensusNode");
 });
 
 const validatorLogo = computed(() => {
@@ -126,8 +129,9 @@ const validatorAddress = computed(() => {
 
 const hasNamedValidatorIdentity = computed(() => {
   const name = String(validatorName.value || "").trim();
-  if (!name || name === "Validator" || name === "Unknown Validator") return false;
-  return !/^Consensus Node(?: \d+)?$/i.test(name);
+  if (!name) return false;
+  if (name === t("validator.validator")) return false;
+  return !isFallbackValidatorName(name);
 });
 
 const blockFee = computed(() => {

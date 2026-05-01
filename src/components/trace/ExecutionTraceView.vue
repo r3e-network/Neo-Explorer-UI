@@ -123,10 +123,10 @@
               <table class="w-full text-sm">
                 <thead class="table-head sticky top-0 z-10">
                   <tr>
-                    <th class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">#</th>
-                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">OpCode</th>
-                    <th class="text-mid px-3 py-2 text-left text-xs font-medium">Operand</th>
-                    <th class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">Gas</th>
+                    <th class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colStepIndex") }}</th>
+                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOpcode") }}</th>
+                    <th class="text-mid px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOperand") }}</th>
+                    <th class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">{{ $t("unsignedTx.colGas") }}</th>
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">
@@ -216,7 +216,10 @@
 
 <script setup>
 import { ref, reactive, computed, watch, toRef } from "vue";
+import { useI18n } from "vue-i18n";
 import { executionService } from "@/services/executionService";
+
+const { t } = useI18n();
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -335,7 +338,7 @@ async function loadTrace() {
     void loadEnrichedTrace({ requestId, txHash });
   } catch (err) {
     if (requestId !== activeTraceRequestId) return;
-    error.value = err?.message ?? "Failed to fetch execution trace";
+    error.value = err?.message ?? t("errorTitles.failedFetchExecutionTrace");
   } finally {
     if (requestId === activeTraceRequestId) {
       loading.value = false;

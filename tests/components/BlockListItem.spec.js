@@ -39,6 +39,10 @@ vi.mock("@/composables/useCommittee", () => ({
     getPrimaryNodeAddress: getPrimaryNodeAddressMock,
     getPrimaryNodeLogo: getPrimaryNodeLogoMock,
   }),
+  isFallbackValidatorName: (name) => {
+    if (!name) return true;
+    return /^Consensus Node(?: \d+)?$/i.test(String(name).trim());
+  },
 }));
 
 describe("BlockListItem", () => {

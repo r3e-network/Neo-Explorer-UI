@@ -1,7 +1,9 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/constants", () => ({ COPY_FEEDBACK_TIMEOUT_MS: 2000 }));
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 import CopyButton from "@/components/common/CopyButton.vue";
 
@@ -40,7 +42,7 @@ describe("CopyButton", () => {
     const wrapper = mount(CopyButton, { props: { text: "hello" } });
     await wrapper.find("button").trigger("click");
     await vi.dynamicImportSettled();
-    expect(wrapper.find("button").attributes("title")).toBe("Copied!");
+    expect(wrapper.find("button").attributes("title")).toBe("aria.copied");
     const tooltip = wrapper.find('[role="tooltip"]');
     expect(tooltip.exists()).toBe(true);
     expect(wrapper.find("button").attributes("aria-describedby")).toBe(tooltip.attributes("id"));
@@ -51,7 +53,7 @@ describe("CopyButton", () => {
     const wrapper = mount(CopyButton, { props: { text: "hello" } });
     await wrapper.find("button").trigger("click");
     await vi.dynamicImportSettled();
-    expect(wrapper.find("button").attributes("title")).toBe("Copy failed");
+    expect(wrapper.find("button").attributes("title")).toBe("aria.copyFailedShort");
   });
 
   it("cleans up timer on unmount", async () => {
@@ -70,6 +72,6 @@ describe("CopyButton", () => {
     await vi.dynamicImportSettled();
     const liveRegion = wrapper.find('span[aria-live="polite"]');
     expect(liveRegion.exists()).toBe(true);
-    expect(liveRegion.text()).toContain("Copied to clipboard");
+    expect(liveRegion.text()).toContain("aria.copiedToClipboard");
   });
 });

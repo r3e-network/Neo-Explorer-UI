@@ -179,6 +179,30 @@ const fallbackValidatorName = (primaryIndex, maybeAddress = null) => {
   return tFallback("validator.consensusNode", null, "Consensus Node");
 };
 
+/**
+ * Check whether a validator display name is one of the generic
+ * "Consensus Node" / "Consensus Node N" fallbacks (vs a real custom
+ * name from metadata or knownAddresses). Locale-aware: compares
+ * against the active translations as well as the English defaults.
+ */
+export const isFallbackValidatorName = (name) => {
+  if (!name) return true;
+  const trimmed = String(name).trim();
+  if (!trimmed) return true;
+  if (/^Consensus Node(?: \d+)?$/i.test(trimmed)) return true;
+
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const fallback = i18n.global.t("validator.consensusNode");
+    if (fallback && trimmed === String(fallback).trim()) return true;
+    for (let n = 1; n <= 30; n += 1) {
+      const numbered = i18n.global.t("validator.consensusNodeN", { n });
+      if (numbered && trimmed === String(numbered).trim()) return true;
+    }
+  }
+  return false;
+};
+
 const getValidatorMetadata = (validator) => {
   const publickey = getValidatorPublicKey(validator);
   if (publickey) {

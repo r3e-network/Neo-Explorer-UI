@@ -1,5 +1,7 @@
-import { mount } from "@vue/test-utils";
+import { mount, config } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
+
+config.global.mocks = { ...(config.global.mocks || {}), $t: (k) => k };
 
 function bytesToBase64(bytes) {
   return btoa(String.fromCharCode(...bytes));

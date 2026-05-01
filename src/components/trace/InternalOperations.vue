@@ -185,7 +185,7 @@
         class="soft-divider list-row mt-4 w-full rounded-lg border py-2 text-sm font-medium text-primary-500 transition-colors"
         @click="showAll = !showAll"
       >
-        {{ showAll ? "Show less" : `Show all ${operations.length} operations` }}
+        {{ showAll ? $t("traceSection.showLess") : $t("traceSection.showAllOperations", { count: operations.length }) }}
       </button>
     </div>
   </div>
