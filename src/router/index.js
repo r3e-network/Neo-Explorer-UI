@@ -219,6 +219,11 @@ const routes = [
         redirect: "/blocks/1",
       },
       {
+        // Singular Etherscan-style guess.
+        path: "/block",
+        redirect: "/blocks/1",
+      },
+      {
         path: "/blocks/:page",
         name: "blocks",
         meta: { titleKey: "pageTitles.blocks" },
@@ -232,6 +237,15 @@ const routes = [
       },
       {
         path: "/transactions",
+        redirect: "/transactions/1",
+      },
+      {
+        // Etherscan-style guesses.
+        path: "/transaction",
+        redirect: "/transactions/1",
+      },
+      {
+        path: "/tx",
         redirect: "/transactions/1",
       },
       {
@@ -279,6 +293,11 @@ const routes = [
         redirect: "/account/1",
       },
       {
+        // Etherscan-style guess.
+        path: "/address",
+        redirect: "/account/1",
+      },
+      {
         path: "/treasury",
         name: "treasury",
         meta: { titleKey: "pageTitles.treasury" },
@@ -304,6 +323,11 @@ const routes = [
       {
         path: "/tokens/:tab",
         redirect: (to) => `/tokens/${to.params.tab}/1`,
+      },
+      {
+        // Singular guess.
+        path: "/token",
+        redirect: "/tokens/nep17/1",
       },
       {
         path: "/nep17-token-info/:hash",
