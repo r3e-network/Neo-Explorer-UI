@@ -274,6 +274,7 @@ import {
 } from "@/utils/explorerFormat";
 import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 import { useDebounceFn } from "@/composables/useVueUtils";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -411,4 +412,9 @@ watch(
   },
   { immediate: true },
 );
+
+// Refetch on network switch — without this, switching Mainnet ↔ Testnet
+// while sitting on /tokens leaves the previous network's rows visible
+// until the user paginates or searches.
+useNetworkChange(() => loadPage(currentPage.value));
 </script>

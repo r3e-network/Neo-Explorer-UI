@@ -192,6 +192,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 
 const route = useRoute();
@@ -318,6 +319,10 @@ watch(
   },
   { immediate: true }
 );
+
+// Refetch on network switch — Mainnet ↔ Testnet otherwise leaves
+// the previous network's contract list visible until next paginate.
+useNetworkChange(() => loadPage());
 
 onBeforeUnmount(() => {
   if (searchDebounce) clearTimeout(searchDebounce);

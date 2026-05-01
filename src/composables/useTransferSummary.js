@@ -3,6 +3,15 @@ import { tokenService } from "@/services";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 
+function tFallback(key, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 const CONTRACT_HASH_ALIASES = [
   "contract",
   "contractHash",
@@ -136,7 +145,7 @@ export function useTransferSummary() {
 
       if (nep17) {
         const amount = formatTokenAmount(nep17.value ?? 0, Number(nep17.decimals ?? 0), 8);
-        const symbol = nep17.symbol || nep17.tokenname || "Token";
+        const symbol = nep17.symbol || nep17.tokenname || tFallback("txDetail.transferToken", "Token");
         const suffix = extraTransferSuffix(nep17Selection.transferCount);
         setSummary(
           hash,
@@ -159,7 +168,7 @@ export function useTransferSummary() {
       const nep11 = nep11Selection.preferred;
 
       if (nep11) {
-        const symbol = nep11.symbol || nep11.tokenname || "NFT";
+        const symbol = nep11.symbol || nep11.tokenname || tFallback("txDetail.transferNft", "NFT");
         const tokenId = nep11.tokenid || nep11.tokenId;
         const suffix = extraTransferSuffix(nep11Selection.transferCount);
         const readableId = truncateTokenId(tokenId);

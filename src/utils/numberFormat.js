@@ -93,9 +93,29 @@ export function formatBalance(balance, maximumFractionDigits = 0) {
  * @returns {string}
  */
 export function formatSupply(totalSupply, decimals = 0) {
+  if (totalSupply === null || totalSupply === undefined || totalSupply === "") return "0";
+  // Fast path for safe Numbers — keeps existing display unchanged for the
+  // 99% case. Slow path uses BigInt so a token with 18 decimals and a
+  // supply above 2^53 doesn't round-trip through Number() and corrupt
+  // the displayed digits.
   const num = Number(totalSupply);
-  if (!Number.isFinite(num)) return "0";
-  return (num / Math.pow(10, decimals)).toLocaleString();
+  const decimalsNum = Number(decimals) || 0;
+  if (Number.isFinite(num) && Math.abs(num) <= Number.MAX_SAFE_INTEGER) {
+    return (num / Math.pow(10, decimalsNum)).toLocaleString();
+  }
+  let raw;
+  try {
+    raw = BigInt(String(totalSupply).split(".")[0]);
+  } catch {
+    return "0";
+  }
+  if (decimalsNum === 0) return raw.toLocaleString();
+  const divisor = 10n ** BigInt(decimalsNum);
+  const intPart = raw / divisor;
+  const fracPart = raw % divisor;
+  const fracStr = fracPart.toString().padStart(decimalsNum, "0").replace(/0+$/, "");
+  const intGrouped = intPart.toLocaleString();
+  return fracStr ? `${intGrouped}.${fracStr}` : intGrouped;
 }
 
 /**

@@ -29,18 +29,18 @@
 
         <!-- Token badge -->
         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold" :class="tokenBadgeClass(t)">
-          {{ t.tokenSymbol || "Token" }}
+          {{ t.tokenSymbol || $t("txDetail.transferToken") }}
         </span>
 
         <!-- From -->
         <div class="flex items-center gap-1">
-          <span class="text-mid text-xs">From</span>
+          <span class="text-mid text-xs">{{ $t("txDetail.transferFromLabel") }}</span>
           <HashLink v-if="t.from && t.from !== 'null'" :hash="t.from" type="address" />
           <span
             v-else
             class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
           >
-            Mint
+            {{ $t("txDetail.transferMint") }}
           </span>
         </div>
 
@@ -56,13 +56,13 @@
 
         <!-- To -->
         <div class="flex items-center gap-1">
-          <span class="text-mid text-xs">To</span>
+          <span class="text-mid text-xs">{{ $t("txDetail.transferToLabel") }}</span>
           <HashLink v-if="t.to && t.to !== 'null'" :hash="t.to" type="address" />
           <span
             v-else
             class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
           >
-            Burn
+            {{ $t("txDetail.transferBurn") }}
           </span>
         </div>
 
@@ -75,7 +75,7 @@
           ID: {{ t.tokenId.length > 16 ? t.tokenId.slice(0, 16) + "…" : t.tokenId }}
         </span>
         <span v-if="t.contractName" class="text-low ml-auto hidden text-xs sm:inline">
-          via {{ t.contractName }}
+          {{ $t("txDetail.transferVia", { name: t.contractName }) }}
         </span>
       </div>
 
@@ -83,7 +83,7 @@
       <div
         class="soft-divider text-mid mt-1 flex items-center justify-end border-t px-4 py-2 text-xs"
       >
-        Total: {{ transfers.length }} {{ transfers.length === 1 ? "transfer" : "transfers" }}
+        {{ $t("txDetail.transferTotal", { count: transfers.length }, transfers.length) }}
       </div>
     </div>
   </div>
