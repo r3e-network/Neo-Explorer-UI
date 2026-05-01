@@ -37,6 +37,13 @@ export function usePagination(
 
   // Race-condition guard: only the latest request writes state.
   let requestId = 0;
+  // Counter of in-flight non-silent (loading-skeleton-showing) fetches.
+  // Loading state must clear when the LAST one finishes — gating it on
+  // the latest requestId previously caused stuck-skeleton bugs when an
+  // auto-refresh tick fired before the initial fetch resolved (the
+  // initial fetch's finally clause saw a stale myId and skipped the
+  // loading.value = false reset, leaving the page on skeletons forever).
+  let pendingLoadingFetches = 0;
 
   /**
    * Load a specific page.
@@ -55,7 +62,10 @@ export function usePagination(
       if (getCache(key) !== null) shouldShowLoading = false;
     }
 
-    if (shouldShowLoading) loading.value = true;
+    if (shouldShowLoading) {
+      pendingLoadingFetches += 1;
+      loading.value = true;
+    }
     if (!silent) error.value = null;
 
     try {
@@ -72,7 +82,10 @@ export function usePagination(
         items.value = [];
       }
     } finally {
-      if (myId === requestId && shouldShowLoading) loading.value = false;
+      if (shouldShowLoading) {
+        pendingLoadingFetches = Math.max(0, pendingLoadingFetches - 1);
+        if (pendingLoadingFetches === 0) loading.value = false;
+      }
     }
   }
 
