@@ -112,6 +112,7 @@
                       class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
                       alt=""
                       loading="lazy"
+                      @error="$event.target.src='/img/brand/neo.png'"
                     />
                     <img
                       v-else-if="hasTokenIcon(token.hash)"
@@ -191,6 +192,7 @@
                       class="h-8 w-8 rounded-full object-cover ring-1 ring-line-soft bg-white"
                       alt=""
                       loading="lazy"
+                      @error="$event.target.src='/img/brand/neo.png'"
                     />
                     <img
                       v-else-if="hasTokenIcon(token.hash)"

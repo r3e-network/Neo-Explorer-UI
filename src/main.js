@@ -44,6 +44,18 @@ async function bootstrap() {
     }
   };
 
+  // Catch promise rejections that escape Vue's lifecycle (services, utility
+  // modules, top-level bootstrap chains). Without this, Sentry only sees
+  // errors thrown from within component setup/render.
+  if (typeof window !== "undefined") {
+    window.addEventListener("unhandledrejection", (event) => {
+      captureBrowserTelemetryError(event.reason, { source: "unhandledrejection" });
+      if (import.meta.env.DEV) {
+        console.error("[unhandledrejection]:", event.reason);
+      }
+    });
+  }
+
   appInstance.use(router);
   appInstance.use(i18n);
   appInstance.use(directives);

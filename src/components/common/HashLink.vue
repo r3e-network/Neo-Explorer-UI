@@ -12,6 +12,8 @@
           :src="addressLogo"
           class="w-3.5 h-3.5 rounded-full object-cover bg-white"
           :alt="addressAlias"
+          loading="lazy"
+          @error="$event.target.src='/img/brand/neo.png'"
         />
         <span class="truncate">{{ addressAlias }}</span>
       </router-link>
@@ -52,6 +54,7 @@
           class="w-3.5 h-3.5 rounded-full object-cover bg-white"
           :alt="knownName"
           loading="lazy"
+          @error="$event.target.src='/img/brand/neo.png'"
         />
         {{ knownName }}
       </router-link>

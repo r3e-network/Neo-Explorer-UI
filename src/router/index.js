@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { CHUNK_RELOAD_KEY, CHUNK_RELOAD_TARGET_KEY, isChunkLoadError, triggerChunkReload } from "@/utils/chunkReload";
+import { CHUNK_RELOAD_KEY, CHUNK_RELOAD_TARGET_KEY, CHUNK_RELOAD_QUERY_KEY, isChunkLoadError, triggerChunkReload } from "@/utils/chunkReload";
 
 let pendingRoutePath = "/homepage";
 
@@ -427,10 +427,17 @@ function resolveRouteTitle(meta) {
   return meta?.title || "";
 }
 
-// Clear chunk reload flag on successful navigation & set document title
+// Clear chunk reload flag on successful navigation & set document title.
+// Also strip the __chunk_reload cache-bust query param the recovery flow
+// appends, so the URL bar / shared links don't carry a stale timestamp.
 router.afterEach((to) => {
   sessionStorage.removeItem(CHUNK_RELOAD_KEY);
   sessionStorage.removeItem(CHUNK_RELOAD_TARGET_KEY);
+  if (Object.prototype.hasOwnProperty.call(to.query || {}, CHUNK_RELOAD_QUERY_KEY)) {
+    const cleaned = { ...to.query };
+    delete cleaned[CHUNK_RELOAD_QUERY_KEY];
+    router.replace({ path: to.path, query: cleaned, hash: to.hash });
+  }
   const title = resolveRouteTitle(to.meta);
   document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
 });

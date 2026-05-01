@@ -183,8 +183,11 @@ const submitAlert = async () => {
     const res = await supabaseService.saveNetworkAlert(alertData);
     if (res.success) {
       successMsg.value = t('tools.networkAlerts.successMessage');
+      form.value.alertType = 'consensus_stuck';
+      form.value.threshold = 30;
       form.value.target = '';
       form.value.contact = '';
+      setTimeout(() => { successMsg.value = ''; }, 8000);
     } else {
       errorMsg.value = res.error || t('tools.networkAlerts.errorFallback');
     }

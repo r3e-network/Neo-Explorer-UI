@@ -121,6 +121,7 @@
                 class="h-6 w-6 rounded-full ring-1 ring-line-soft bg-white object-cover"
                 alt=""
                 loading="lazy"
+                @error="$event.target.src='/img/brand/neo.png'"
               />
               <img
                 v-else
@@ -128,6 +129,7 @@
                 alt="logo"
                 class="w-4 h-4 rounded-full object-cover bg-white/5"
                 loading="lazy"
+                @error="$event.target.src='/img/brand/neo.png'"
               />
               {{ t.tokenname || t.symbol || $t("txDetail.transferToken") }}
             </span>

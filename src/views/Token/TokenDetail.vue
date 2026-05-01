@@ -17,6 +17,7 @@
             class="h-10 w-10 rounded-full object-cover ring-1 ring-line-soft bg-white"
             :alt="$t('inline.tokenLogoAlt')"
             loading="lazy"
+            @error="$event.target.src='/img/brand/neo.png'"
           />
           <img
             v-else-if="hasTokenIcon(tokenValue?.hash)"

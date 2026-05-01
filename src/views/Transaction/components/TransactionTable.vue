@@ -100,6 +100,9 @@
                   v-if="getSummaryLogo(tx)"
                   :src="getSummaryLogo(tx)"
                   class="w-4 h-4 rounded-full ring-1 ring-line-soft bg-white object-cover"
+                  alt=""
+                  loading="lazy"
+                  @error="$event.target.src='/img/brand/neo.png'"
                 />
                 <span class="truncate font-medium text-high flex items-center gap-1" :title="getValueSummary(tx)">
                   {{ getValueSummary(tx) }}

@@ -10,6 +10,8 @@
         :src="image"
         :alt="tokenInfo['tokenname'] ? tokenInfo['tokenname'] + ' icon' : 'Token'"
         class="h-16 w-16 rounded-lg object-contain"
+        loading="lazy"
+        @error="$event.target.src='/img/brand/neo.png'"
       />
     </div>
 
