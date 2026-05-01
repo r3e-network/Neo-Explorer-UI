@@ -818,7 +818,7 @@ function handleSearch() {
     // Container reference — open REST gateway metadata
     fetch(`${NEOFS_REST_GW}/v1/containers/${containerId}`)
       .then((resp) => {
-        if (!resp.ok) throw new Error(`Container not found (HTTP ${resp.status})`);
+        if (!resp.ok) throw new Error(t("tools.neofs.toasts.containerNotFound"));
         return resp.json();
       })
       .then((data) => {

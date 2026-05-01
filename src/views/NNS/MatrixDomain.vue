@@ -469,7 +469,7 @@ const { activate: activateTransferTrap, deactivate: deactivateTransferTrap } = u
 watch(showTransferModal, (v) => v ? nextTick(activateTransferTrap) : deactivateTransferTrap());
 const transferRecipient = ref("");
 const currentNetwork = ref(getCurrentEnv());
-const currentNetworkLabel = computed(() => (currentNetwork.value === "TestT5" ? "Testnet" : "Mainnet"));
+const currentNetworkLabel = computed(() => (currentNetwork.value === "TestT5" ? t("common.netLabelTestnet") : t("common.netLabelMainnet")));
 
 function handleNetworkChange(event) {
   currentNetwork.value = event?.detail?.env || getCurrentEnv();

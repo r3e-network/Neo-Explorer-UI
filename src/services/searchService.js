@@ -7,6 +7,15 @@ import { isValidNeoAddress } from "../utils/addressFormat";
 
 const MAX_SUGGESTIONS = 5;
 
+function tSearch(key, params, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key, params || {});
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
@@ -155,10 +164,11 @@ export const searchService = {
 
           if (hits.block) {
             const b = hits.block;
+            const idx = b.index ?? query;
             suggestions.push({
               type: "block",
-              label: `Block #${b.index ?? query}`,
-              sublabel: `${b.txcount || 0} transactions`,
+              label: tSearch("searchBox.suggestionBlockLabel", { index: idx }, `Block #${idx}`),
+              sublabel: tSearch("searchBox.suggestionBlockSublabel", { count: b.txcount || 0 }, `${b.txcount || 0} transactions`),
               data: b,
             });
           }
@@ -167,7 +177,9 @@ export const searchService = {
             suggestions.push({
               type: "transaction",
               label: tx.hash?.substring(0, 20) + "...",
-              sublabel: `Block #${tx.blockindex ?? "?"}`,
+              sublabel: tx.blockindex
+                ? tSearch("searchBox.suggestionTxSublabel", { index: tx.blockindex }, `Block #${tx.blockindex}`)
+                : tSearch("searchBox.suggestionTxSublabelUnknown", null, "Block #?"),
               data: tx,
             });
           }
@@ -176,7 +188,7 @@ export const searchService = {
             suggestions.push({
               type: "contract",
               label: c.name || (c.hash || query).substring(0, 20) + "...",
-              sublabel: "Contract",
+              sublabel: tSearch("searchBox.suggestionContractSublabel", null, "Contract"),
               data: c,
             });
           }
@@ -185,7 +197,9 @@ export const searchService = {
             suggestions.push({
               type: "address",
               label: a.address || query,
-              sublabel: a.balance ? `${a.balance} NEO` : "Address",
+              sublabel: a.balance
+                ? tSearch("searchBox.suggestionAddressSublabelBalance", { balance: a.balance }, `${a.balance} NEO`)
+                : tSearch("searchBox.suggestionAddressSublabel", null, "Address"),
               data: a,
             });
           }

@@ -8,6 +8,15 @@ const unreadCount = ref(0);
 const notifications = ref([]);
 const restoring = ref(false);
 
+function tFallback(key, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 function normalizePublicKey(value) {
   const raw = String(value || "").trim();
   return raw || "";
@@ -48,7 +57,7 @@ async function ensureInteractiveChatSession() {
   // and we must not request a challenge for one address and then verify
   // it as another — the backend would reject it as mismatched.
   const requestedAddress = String(connectedAccount.value || "").trim();
-  if (!requestedAddress) throw new Error("Wallet not connected");
+  if (!requestedAddress) throw new Error(tFallback("chat.walletNotConnected", "Wallet not connected"));
   const walletService = await loadWalletService();
 
   const existing = await restoreChatSession();
@@ -61,7 +70,7 @@ async function ensureInteractiveChatSession() {
       ? walletService.getChatAuthSupport()
       : { supported: true, reason: "" };
   if (!chatAuthSupport.supported) {
-    throw new Error(chatAuthSupport.reason || "This wallet is not supported for NeoChat login.");
+    throw new Error(chatAuthSupport.reason || tFallback("chat.walletNotSupported", "This wallet is not supported for NeoChat login."));
   }
 
   const challenge = await chatService.requestChallenge(requestedAddress);
@@ -71,7 +80,7 @@ async function ensureInteractiveChatSession() {
   // signature. If it did, abort instead of associating the new wallet's
   // identity with the previous account's challenge.
   if (connectedAccount.value && connectedAccount.value !== requestedAddress) {
-    throw new Error("Wallet account changed during chat sign-in. Please retry.");
+    throw new Error(tFallback("chat.accountChangedRetry", "Wallet account changed during chat sign-in. Please retry."));
   }
 
   const signature = String(signed?.signature || signed?.data || "").trim();
@@ -81,9 +90,10 @@ async function ensureInteractiveChatSession() {
     normalizePublicKey(walletService.account?.pubKey);
 
   if (!signature || !publicKey) {
-    throw new Error(
-      "This wallet connection did not provide the verifiable Neo public key required for NeoChat login."
-    );
+    throw new Error(tFallback(
+      "chat.missingPublicKey",
+      "This wallet connection did not provide the verifiable Neo public key required for NeoChat login.",
+    ));
   }
 
   const session = await chatService.verifyChallenge({

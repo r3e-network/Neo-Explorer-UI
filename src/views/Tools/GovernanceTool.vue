@@ -120,7 +120,7 @@ const isGovernanceLabModeAvailable = computed(() => toNetworkMode(getCurrentEnv(
 const canCreateProposal = computed(
   () => Boolean(connectedAccount.value) && (isCouncilNode.value || isGovernanceLabModeAvailable.value),
 );
-const activeNetworkLabel = computed(() => (toNetworkMode(getCurrentEnv()) === "testnet" ? "Testnet" : "Mainnet"));
+const activeNetworkLabel = computed(() => (toNetworkMode(getCurrentEnv()) === "testnet" ? t("common.netLabelTestnet") : t("common.netLabelMainnet")));
 const pendingRequestCount = computed(() => requests.value.filter((request) => request.status === "PENDING").length);
 const readyToBroadcastCount = computed(
   () =>

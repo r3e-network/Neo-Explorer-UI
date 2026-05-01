@@ -32,7 +32,7 @@
           <div
             class="mt-1 text-xs"
             :class="priceChangeClass(neoPriceChange)"
-            :aria-label="`NEO 24h change ${describePriceChange(neoPriceChange)}`"
+            :aria-label="$t('homePage.neo24hChangeAria', { description: describePriceChange(neoPriceChange) })"
           >
             {{ formatPriceChange(neoPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
@@ -63,7 +63,7 @@
           <div
             class="mt-1 text-xs"
             :class="priceChangeClass(gasPriceChange)"
-            :aria-label="`GAS 24h change ${describePriceChange(gasPriceChange)}`"
+            :aria-label="$t('homePage.gas24hChangeAria', { description: describePriceChange(gasPriceChange) })"
           >
             {{ formatPriceChange(gasPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
@@ -237,12 +237,14 @@ onBeforeUnmount(() => {
   if (countdownTimer) clearInterval(countdownTimer);
 });
 
-const networkFeeDisplay = computed(() => {
-  return "0.003"; // Standard base network fee for simple transfer
-});
+const NETWORK_FEE_GAS = 0.003;
+
+const networkFeeDisplay = computed(() => NETWORK_FEE_GAS.toFixed(3));
 
 const gasCostUsd = computed(() => {
-  return "0.01";
+  const usd = NETWORK_FEE_GAS * Number(props.gasPrice || 0);
+  if (!Number.isFinite(usd) || usd <= 0) return "0.00";
+  return usd < 0.01 ? "<0.01" : usd.toFixed(2);
 });
 
 function describePriceChange(value) {
