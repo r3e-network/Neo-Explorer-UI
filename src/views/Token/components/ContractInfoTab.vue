@@ -158,7 +158,7 @@
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-xs font-semibold text-text-primary dark:text-gray-100">{{ $t("contractDetail.infoResponseLabel") }}</span>
                 <button type="button" class="btn-mini" :aria-label="$t('aria.decodeResponse')" @click="$emit('decode', index)">
-                  {{ manifest["abi"]["methods"][index]["button"] }}
+                  {{ manifest["abi"]["methods"][index]["isRaw"] ? $t("contractDetail.infoRaw") : $t("contractDetail.infoDecode") }}
                 </button>
               </div>
               <contract-json-view

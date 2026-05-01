@@ -2,7 +2,7 @@
   <button
     @click="toggle"
     class="theme-toggle group"
-    :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+    :aria-label="isDark ? $t('aria.switchToLightMode') : $t('aria.switchToDarkMode')"
   >
     <div class="icon-wrapper">
       <transition name="rotate" mode="out-in">

@@ -17,6 +17,15 @@ function hexToBytes(hex) {
 }
 import { PROVIDERS } from "@/constants/walletProviders";
 
+function tWallet(key, params, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key, params || {});
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import {
@@ -153,7 +162,7 @@ function isEthereumAvailable() {
  */
 async function getNeoLineN3() {
   if (_neolineN3) return _neolineN3;
-  if (!hasNeoLineN3Api()) throw new Error("NeoLine extension not detected");
+  if (!hasNeoLineN3Api()) throw new Error(tWallet("wallet.errors.neoLineNotDetected", null, "NeoLine extension not detected"));
   _neolineN3 = await new window.NEOLineN3.Init();
   return _neolineN3;
 }
@@ -335,7 +344,7 @@ function requestNeoLineAccount(n3, timeoutMs = NEOLINE_APPROVAL_TIMEOUT_MS) {
         finishReject(toConnectionDeniedError(PROVIDERS.NEOLINE));
         return;
       }
-      finishReject(new Error("NeoLine connection timed out."));
+      finishReject(new Error(tWallet("wallet.errors.neoLineConnectionTimeout", null, "NeoLine connection timed out.")));
     }, timeoutMs);
 
     Promise.resolve()
@@ -345,7 +354,7 @@ function requestNeoLineAccount(n3, timeoutMs = NEOLINE_APPROVAL_TIMEOUT_MS) {
           finishResolve(account);
           return;
         }
-        finishReject(new Error("NeoLine returned no account."));
+        finishReject(new Error(tWallet("wallet.errors.neoLineNoAccount", null, "NeoLine returned no account.")));
       })
       .catch((error) => {
         if (isDapiConnectionDenied(error)) {
@@ -423,7 +432,7 @@ function requestNeoLineInvoke(n3, request, timeoutMs = NEOLINE_APPROVAL_TIMEOUT_
         finishReject(toConnectionDeniedError(PROVIDERS.NEOLINE));
         return;
       }
-      finishReject(new Error("NeoLine invocation timed out."));
+      finishReject(new Error(tWallet("wallet.errors.neoLineInvocationTimeout", null, "NeoLine invocation timed out.")));
     }, timeoutMs);
 
     Promise.resolve()
@@ -450,7 +459,7 @@ async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRe
   try {
     return await getAccount();
   } catch (err) {
-    if (isDapiCanceled(err)) throw new Error("Connection canceled by user.");
+    if (isDapiCanceled(err)) throw new Error(tWallet("wallet.errors.connectionCanceled", null, "Connection canceled by user."));
     if (!isDapiConnectionDenied(err)) throw err;
 
     if (typeof prepareRetry === "function") {
@@ -464,7 +473,7 @@ async function requestAccountWithDeniedRetry(providerName, getAccount, prepareRe
     try {
       return await getAccount();
     } catch (retryErr) {
-      if (isDapiCanceled(retryErr)) throw new Error("Connection canceled by user.");
+      if (isDapiCanceled(retryErr)) throw new Error(tWallet("wallet.errors.connectionCanceled", null, "Connection canceled by user."));
       if (isDapiConnectionDenied(retryErr)) {
         if (typeof prepareRetry === "function") {
           try {
@@ -701,7 +710,7 @@ async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switch
     }
 
     if (!switchSuccess) {
-      throw new Error(`Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`);
+      throw new Error(tWallet("wallet.errors.networkMismatchSwitch", { env: getCurrentEnv() }, `Network mismatch. Switch your wallet to ${getCurrentEnv()} and try again.`));
     }
   }
   _connectedProvider = providerName;
@@ -809,7 +818,7 @@ export const walletService = {
 
     if (providerName === PROVIDERS.O3) {
       const dapi = getO3Dapi();
-      if (!dapi) throw new Error("O3 wallet not detected");
+      if (!dapi) throw new Error(tWallet("wallet.errors.o3NotDetected", null, "O3 wallet not detected"));
       return connectDapiWallet({
         providerName: PROVIDERS.O3,
         getDapiFn: () => dapi,
@@ -820,7 +829,7 @@ export const walletService = {
 
     if (providerName === PROVIDERS.ONEGATE) {
       const dapi = getOneGateDapi();
-      if (!dapi) throw new Error("OneGate wallet not detected");
+      if (!dapi) throw new Error(tWallet("wallet.errors.oneGateNotDetected", null, "OneGate wallet not detected"));
       return connectDapiWallet({
         providerName: PROVIDERS.ONEGATE,
         getDapiFn: () => dapi,
@@ -831,10 +840,10 @@ export const walletService = {
 
     if (providerName === PROVIDERS.TESTNET_WIF) {
       if (!isDirectWifProviderEnabled()) {
-        throw new Error("Direct WIF testing is only available in local development.");
+        throw new Error(tWallet("wallet.errors.directWifLocalOnly", null, "Direct WIF testing is only available in local development."));
       }
       if (!isExplorerTestnet()) {
-        throw new Error("Direct WIF testing is only allowed while the explorer is on testnet.");
+        throw new Error(tWallet("wallet.errors.directWifTestnetOnly", null, "Direct WIF testing is only allowed while the explorer is on testnet."));
       }
 
       const wif = String(options?.wif || "").trim();
@@ -843,7 +852,7 @@ export const walletService = {
       try {
         account = SdkAccount.fromWIF(wif);
       } catch {
-        throw new Error("Invalid WIF.");
+        throw new Error(tWallet("wallet.errors.invalidWif", null, "Invalid WIF."));
       }
 
       _connectedProvider = PROVIDERS.TESTNET_WIF;
@@ -860,7 +869,7 @@ export const walletService = {
     if (providerName === PROVIDERS.WALLETCONNECT || providerName === PROVIDERS.NEON) {
       const projectId = getWalletConnectProjectId();
       if (!projectId) {
-        throw new Error("WalletConnect is not configured. Set VITE_WC_PROJECT_ID to enable this wallet.");
+        throw new Error(tWallet("wallet.errors.walletConnectNotConfigured", null, "WalletConnect is not configured. Set VITE_WC_PROJECT_ID to enable this wallet."));
       }
       const walletConnectService = await loadWalletConnectService();
       await walletConnectService.init(projectId);
@@ -890,10 +899,10 @@ export const walletService = {
 
     if (providerName === PROVIDERS.EVM_WALLET) {
       const { ethers } = await import("ethers");
-      if (!isEthereumAvailable()) throw new Error("EVM Wallet is not installed.");
+      if (!isEthereumAvailable()) throw new Error(tWallet("wallet.errors.evmWalletNotInstalled", null, "EVM Wallet is not installed."));
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
-      if (!accounts || accounts.length === 0) throw new Error("No EVM accounts found.");
+      if (!accounts || accounts.length === 0) throw new Error(tWallet("wallet.errors.evmNoAccounts", null, "No EVM accounts found."));
 
       const evmAddress = accounts[0].toLowerCase();
       let uncompressedPubKey = localStorage.getItem(`evm_pubkey_${evmAddress}`);
@@ -908,7 +917,7 @@ export const walletService = {
           uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature).slice(2);
           localStorage.setItem(`evm_pubkey_${evmAddress}`, uncompressedPubKey);
         } catch (e) {
-          throw new Error("Signature is required to generate your Abstract Account identity.");
+          throw new Error(tWallet("wallet.errors.aaSignatureRequired", null, "Signature is required to generate your Abstract Account identity."));
         }
       }
 
@@ -1009,7 +1018,7 @@ export const walletService = {
   },
 
   async getPublicKey() {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
@@ -1058,7 +1067,7 @@ export const walletService = {
   },
 
   async signRawTransactionDetailed(unsignedTxHex) {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
@@ -1086,17 +1095,17 @@ export const walletService = {
           const res = await n3.signTransaction({ transaction: unsignedTxHex, network: expectedNetwork });
           const details = extractNeoLineSignatureMetadata(res);
           if (!details.signature) {
-            throw new Error("NeoLine returned no transaction signature.");
+            throw new Error(tWallet("wallet.errors.neoLineNoSignature", null, "NeoLine returned no transaction signature."));
           }
           return details;
         } catch (error) {
           if (isDapiCanceled(error)) {
-            throw new Error("Transaction canceled by user.");
+            throw new Error(tWallet("wallet.errors.txCanceledByUser", null, "Transaction canceled by user."));
           }
           throw toReadableWalletError(error, "NeoLine failed to sign the transaction.");
         }
       }
-      throw new Error("NeoLine does not support signTransaction.");
+      throw new Error(tWallet("wallet.errors.neoLineNoSignTransaction", null, "NeoLine does not support signTransaction."));
     }
 
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
@@ -1129,17 +1138,17 @@ export const walletService = {
   },
 
   async switchWalletAccount() {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
       if (typeof n3.switchWalletAccount !== "function") {
-        throw new Error("NeoLine does not support account switching.");
+        throw new Error(tWallet("wallet.errors.neoLineNoAccountSwitch", null, "NeoLine does not support account switching."));
       }
 
       const nextAccount = await n3.switchWalletAccount();
       if (!nextAccount?.address) {
-        throw new Error("NeoLine returned no account after switching.");
+        throw new Error(tWallet("wallet.errors.neoLineSwitchNoAccount", null, "NeoLine returned no account after switching."));
       }
 
       _account = {
@@ -1150,11 +1159,11 @@ export const walletService = {
       return _account;
     }
 
-    throw new Error("Active wallet does not support account switching.");
+    throw new Error(tWallet("wallet.errors.activeWalletNoSwitch", null, "Active wallet does not support account switching."));
   },
 
   async signMessage(message) {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
@@ -1214,11 +1223,11 @@ export const walletService = {
       });
     }
 
-    throw new Error("No wallet connected");
+    throw new Error(tWallet("wallet.errors.noWalletConnected", null, "No wallet connected"));
   },
 
   async invoke({ scriptHash, operation, args = [], scope = 1, signers = null, broadcastOverride = false }) {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
 
     const dapiArgs = args.map(normalizeArgForDapi);
 
@@ -1441,7 +1450,7 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.EVM_WALLET) {
       const { ethers } = await import("ethers");
-      if (!isEthereumAvailable()) throw new Error("EVM Wallet is not installed.");
+      if (!isEthereumAvailable()) throw new Error(tWallet("wallet.errors.evmWalletNotInstalled", null, "EVM Wallet is not installed."));
 
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -1575,11 +1584,11 @@ export const walletService = {
       return { txid: data.txid };
     }
 
-    throw new Error("No wallet connected");
+    throw new Error(tWallet("wallet.errors.noWalletConnected", null, "No wallet connected"));
   },
 
   async simulateInvoke({ scriptHash, operation, args = [], scope = 1, signers = null }) {
-    if (!_account) throw new Error("Wallet not connected");
+    if (!_account) throw new Error(tWallet("wallet.notConnected", null, "Wallet not connected"));
     const invokeSigners = signers || [{ account: _account.address, scopes: scope }];
     const normalizedArgs = normalizeInvokeArgsForRpc(args);
     const normalizedSigners = normalizeSignersForInvokeScript(invokeSigners);
@@ -1611,7 +1620,7 @@ export const walletService = {
   },
 
   async broadcastSignedTx(signedTx) {
-    if (!signedTx) throw new Error("Signed transaction is empty.");
+    if (!signedTx) throw new Error(tWallet("wallet.errors.signedTxEmpty", null, "Signed transaction is empty."));
     const { RpcClient } = await loadSdk();
     return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);

@@ -72,7 +72,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
       manifestError.value = null;
     },
     onError: (err) => {
-      manifestError.value = "Failed to load contract data.";
+      manifestError.value = t("errors.loadContractData");
       if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
     },
   });
@@ -115,10 +115,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   function decode(index) {
     const method = manifest.value?.abi?.methods?.[index];
     if (!method) return;
-    patchMethod(index, {
-      isRaw: !method.isRaw,
-      button: method.isRaw ? "Raw" : "Decode",
-    });
+    patchMethod(index, { isRaw: !method.isRaw });
   }
 
   /** Update a single parameter value on a contract method. */
@@ -147,7 +144,6 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
           const temp = JSON.parse(JSON.stringify(stack));
           patchMethod(index, {
             isRaw: true,
-            button: t("contractDetail.infoDecode"),
             raw: stack,
             display: JSON.parse(JSON.stringify(temp, responseConverter)),
           });

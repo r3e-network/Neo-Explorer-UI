@@ -9,7 +9,7 @@
 
     <!-- Error state -->
     <div v-else-if="error" aria-live="assertive">
-      <ErrorState :title="'Failed to load execution trace'" :message="error" @retry="loadTrace" />
+      <ErrorState :title="$t('executionTracePage.failedToLoad')" :message="error" @retry="loadTrace" />
     </div>
 
     <!-- Simple transaction -->
@@ -36,7 +36,7 @@
       >
         <!-- Collapsible execution header -->
         <button
-          :aria-label="`Toggle execution ${ei + 1}: ${exec.trigger} (${exec.vmState})`"
+          :aria-label="$t('executionTracePage.toggleExecution', { n: ei + 1, trigger: exec.trigger, vmState: exec.vmState })"
           class="soft-divider list-row flex w-full cursor-pointer items-center justify-between border-b px-4 py-3 transition-colors"
           :aria-expanded="!!expandedExecs[ei]"
           @click="toggleExec(ei)"
