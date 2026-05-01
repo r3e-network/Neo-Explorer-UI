@@ -120,7 +120,7 @@ export function usePagination(
     stopRouteWatch = watch(
       () => route.params[paramName],
       (page) => {
-        const parsed = Math.max(1, parseInt(page) || 1);
+        const parsed = Math.max(1, parseInt(page, 10) || 1);
         currentPage.value = parsed;
         loadPage(parsed);
       },

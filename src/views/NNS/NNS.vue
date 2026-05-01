@@ -408,7 +408,11 @@ async function handleSearch() {
         if (propData.expiration) {
           expirationMs = Number(propData.expiration);
           if (expirationMs < 1000000000000) expirationMs *= 1000;
-          if (Date.now() > expirationMs) {
+          // 60s tolerance: a user with a slightly-fast client clock should
+          // not see a domain flip to "expired" right at the boundary;
+          // the chain itself uses block time, not the user's wall clock.
+          const CLOCK_SKEW_TOLERANCE_MS = 60_000;
+          if (Date.now() - CLOCK_SKEW_TOLERANCE_MS > expirationMs) {
             expired = true;
           }
         }

@@ -1193,6 +1193,7 @@ const en = {
         sponsorInfoFailed: "Could not fetch sponsor info. Backend might not be configured.",
         userRejectedSignature: "User rejected signature.",
         broadcastFailed: "Failed to broadcast via sponsor",
+        signedTxUnavailable: "This wallet didn't return a signed transaction. Sponsored transactions need NeoLine, O3, or OneGate — try one of those.",
       },
     },
     deployer: {

@@ -795,7 +795,11 @@ function saveCurrentConfig() {
     toast.error(t("tools.multisig.toasts.enterValidPubkeys"));
     return;
   }
-  const threshold = parseInt(createForm.value.threshold);
+  const threshold = parseInt(createForm.value.threshold, 10);
+  if (!Number.isFinite(threshold) || threshold < 1 || threshold > pubkeys.length) {
+    toast.error(t("tools.multisig.errors.invalidThreshold"));
+    return;
+  }
   const name = prompt(
     t("tools.multisig.promptGroupName"),
     t("tools.multisig.defaultGroupName", { threshold, size: pubkeys.length }),

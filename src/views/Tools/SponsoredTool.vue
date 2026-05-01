@@ -354,6 +354,19 @@ async function executeSponsoredTx() {
     return;
   }
 
+  // WalletConnect / Neon currently ignore the broadcastOverride hint —
+  // walletService.invoke for those providers always broadcasts and
+  // returns a txid only, never the signedTx hex the sponsor relay
+  // needs. Refuse the sponsored flow up-front rather than letting the
+  // user sign a transaction whose signedTx we'll throw away.
+  if (
+    activeProvider === walletService.PROVIDERS.WALLETCONNECT ||
+    activeProvider === walletService.PROVIDERS.NEON
+  ) {
+    toast.error(t("tools.sponsored.statusMessages.signedTxUnavailable"));
+    return;
+  }
+
   isProcessing.value = true;
   txHash.value = "";
 
@@ -424,6 +437,16 @@ async function executeSponsoredTx() {
       }
     } catch (e) {
       throw new Error(e.description || e.message || t("tools.sponsored.statusMessages.userRejectedSignature"));
+    }
+
+    // Guard: not every wallet adapter returns the expected
+    // { signedTx } shape. WalletConnect / Neon currently ignore the
+    // broadcastOverride hint and return raw txid info, so signedTx
+    // arrives undefined. Fail loudly here rather than silently POST
+    // `transactionHex: null` to /api/sponsor and confuse the user
+    // with a generic "broadcast failed" toast downstream.
+    if (!signedTxRes || typeof signedTxRes.signedTx !== "string" || !signedTxRes.signedTx) {
+      throw new Error(t("tools.sponsored.statusMessages.signedTxUnavailable"));
     }
 
     // 3. Send the partially signed transaction to Vercel backend to get Sponsor signature & broadcast

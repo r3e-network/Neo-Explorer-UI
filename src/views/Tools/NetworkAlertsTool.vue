@@ -173,7 +173,7 @@ const submitAlert = async () => {
   const alertData = {
     network: form.value.network,
     alert_type: form.value.alertType,
-    threshold: form.value.alertType === 'consensus_stuck' ? parseInt(form.value.threshold) : null,
+    threshold: form.value.alertType === 'consensus_stuck' ? parseInt(form.value.threshold, 10) : null,
     target: (form.value.alertType === 'consensus_missed' || form.value.alertType === 'account_event') ? form.value.target : null,
     contact: form.value.contact,
     is_active: true

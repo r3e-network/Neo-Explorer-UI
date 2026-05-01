@@ -1193,6 +1193,7 @@ const zh = {
         sponsorInfoFailed: "无法获取赞助者信息，后端可能未配置。",
         userRejectedSignature: "用户拒绝了签名。",
         broadcastFailed: "通过赞助者广播失败",
+        signedTxUnavailable: "此钱包未返回已签名的交易。赞助交易需要 NeoLine、O3 或 OneGate — 请尝试其中之一。",
       },
     },
     deployer: {

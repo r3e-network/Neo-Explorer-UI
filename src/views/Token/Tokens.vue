@@ -405,7 +405,7 @@ watch(
 watch(
   () => route.params.page,
   (page) => {
-    const parsed = Math.max(1, parseInt(page) || 1);
+    const parsed = Math.max(1, parseInt(page, 10) || 1);
     currentPage.value = parsed;
     loadPage(parsed);
   },

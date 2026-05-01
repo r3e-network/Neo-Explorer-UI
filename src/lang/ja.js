@@ -1193,6 +1193,7 @@ const ja = {
         sponsorInfoFailed: "スポンサー情報を取得できませんでした。バックエンドが設定されていない可能性があります。",
         userRejectedSignature: "ユーザーが署名を拒否しました。",
         broadcastFailed: "スポンサー経由のブロードキャストに失敗しました",
+        signedTxUnavailable: "このウォレットは署名済みトランザクションを返しませんでした。スポンサードトランザクションには NeoLine、O3、または OneGate が必要です — いずれかをお試しください。",
       },
     },
     deployer: {

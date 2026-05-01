@@ -1585,7 +1585,11 @@ export const walletService = {
       // payload that can't be executed. Deadlines look like Unix seconds in
       // the AA EIP-712 schema — anything before now is unusable.
       const deadlineSeconds = Number(prepared.message.deadline);
-      if (!Number.isFinite(deadlineSeconds) || deadlineSeconds <= Math.floor(Date.now() / 1000)) {
+      // 5-second skew tolerance — the relayer signs against block time;
+      // a slightly fast client clock shouldn't trip a "deadline expired"
+      // for a deadline still seconds in the chain's future.
+      const DEADLINE_SKEW_TOLERANCE_S = 5;
+      if (!Number.isFinite(deadlineSeconds) || deadlineSeconds + DEADLINE_SKEW_TOLERANCE_S <= Math.floor(Date.now() / 1000)) {
         throw new Error("Relayer returned an expired deadline.");
       }
       // Defence-in-depth: the relayer signs the prepare response with our

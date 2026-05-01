@@ -312,7 +312,7 @@ function onSearchInput() {
 watch(
   () => route.params.page,
   (page) => {
-    const parsed = parseInt(page) || 1;
+    const parsed = parseInt(page, 10) || 1;
     currentPage.value = Math.max(1, parsed);
     loadPage();
   },

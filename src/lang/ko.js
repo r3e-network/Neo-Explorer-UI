@@ -1193,6 +1193,7 @@ const ko = {
         sponsorInfoFailed: "스폰서 정보를 가져올 수 없습니다. 백엔드가 구성되지 않았을 수 있습니다.",
         userRejectedSignature: "사용자가 서명을 거부했습니다.",
         broadcastFailed: "스폰서를 통한 브로드캐스트에 실패했습니다",
+        signedTxUnavailable: "이 지갑이 서명된 트랜잭션을 반환하지 않았습니다. 스폰서 트랜잭션은 NeoLine, O3 또는 OneGate가 필요합니다 — 그 중 하나를 시도하세요.",
       },
     },
     deployer: {

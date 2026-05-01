@@ -1189,6 +1189,7 @@ const fr = {
         sponsorInfoFailed: "Impossible de récupérer les informations du sponsor. Le backend n'est peut-être pas configuré.",
         userRejectedSignature: "L'utilisateur a refusé la signature.",
         broadcastFailed: "Échec de la diffusion via le sponsor",
+        signedTxUnavailable: "Ce portefeuille n'a pas renvoyé de transaction signée. Les transactions sponsorisées nécessitent NeoLine, O3 ou OneGate — essayez l'un d'eux.",
       },
     },
     deployer: {
