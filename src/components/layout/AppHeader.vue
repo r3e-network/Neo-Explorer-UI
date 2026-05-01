@@ -168,84 +168,16 @@
       </transition>
     </nav>
   
-    <transition name="fade">
-      <div
-        v-if="showWalletModal"
-        class="fixed inset-0 z-[200] flex items-center justify-center bg-transparent p-5"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="$t('header.connectWallet')"
-        tabindex="0"
-        @keydown.escape="showWalletModal = false; resetDevWifForm()"
-        @click.self="showWalletModal = false; resetDevWifForm()"
-      >
-        <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
-          <div class="wallet-modal-header px-7 py-5 flex items-center justify-between border-b border-white/10">
-            <h2 class="wallet-modal-title text-lg font-bold">{{ $t('header.connectWallet') }}</h2>
-            <button :aria-label="$t('aria.closeWalletDialog')" @click="showWalletModal = false; resetDevWifForm()" class="wallet-modal-close rounded-lg p-2 transition-colors">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-          </div>
-          <div class="p-7 space-y-4">
-            <button 
-              v-for="provider in supportedProviders" 
-              :key="provider"
-              :disabled="walletLoading"
-              :title="isProviderAvailable(provider) ? provider : getProviderUnavailableReason(provider)"
-              @click="handleConnect(provider)"
-              class="wallet-modal-option w-full flex items-center justify-between p-5 rounded-xl border border-white/10 bg-slate-800 text-slate-100 transition-all group disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-700 hover:border-emerald-400/40"
-            >
-              <div class="flex items-center gap-4">
-                <div class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-slate-200/80 bg-white p-2">
-                  <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="wallet-modal-logo-wordmark h-5 w-5 object-cover object-left" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else-if="provider === 'Neon Wallet'" :src="'/img/brand/neon.ico'" alt="Neon Wallet" class="w-full h-full object-contain" />
-                  <img v-else-if="provider === 'Testnet WIF (Local Dev)'" :src="'/img/brand/neo.png'" alt="Testnet WIF (Local Dev)" class="w-full h-full object-contain" />
-                  <img v-else-if="provider === 'OneGate'" :src="'/img/brand/onegate.ico'" alt="OneGate" class="w-full h-full object-contain" />
-                  <img v-else-if="provider === 'Google / Email (Web3Auth)'" :src="'/img/brand/web3auth.png'" alt="Web3Auth" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
-                  <img v-else-if="provider === 'EVM Wallets (MetaMask, OKX, Rabby, etc.)'" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="w-full h-full object-contain" />
-                  <svg v-else class="w-6 h-6 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 15.92 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
-                </div>
-                <span class="wallet-modal-option-label font-semibold group-hover:text-emerald-600">{{ provider }}</span>
-              </div>
-              <svg class="wallet-modal-chevron w-5 h-5 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-
-            <div v-if="showDevWifForm" class="wallet-modal-dev-panel mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 space-y-3">
-              <div>
-                <label class="block text-sm font-medium wallet-modal-label mb-1">{{ $t('inline.walletWifLabel') }}</label>
-                <input
-                  v-model="devWifInput"
-                  type="password"
-                  class="form-input w-full font-mono text-sm"
-                  :placeholder="$t('header.devWifPlaceholder')"
-                  autocomplete="off"
-                />
-              </div>
-              <div class="flex gap-2">
-                <button
-                  @click="handleDevWifConnect"
-                  :disabled="walletLoading || !devWifInput.trim()"
-                  class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                >
-                  {{ $t('header.connectTestnetWif') }}
-                </button>
-                <button
-                  @click="resetDevWifForm"
-                  class="wallet-modal-secondary rounded-lg border border-white/10 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
-                >
-                  {{ $t('header.cancel') }}
-                </button>
-              </div>
-              <p class="wallet-modal-help text-xs">
-                {{ $t('header.devWifHelp') }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <HeaderWalletModal
+      v-if="showWalletModal"
+      :supported-providers="supportedProviders"
+      :wallet-loading="walletLoading"
+      :is-provider-available="isProviderAvailable"
+      :get-provider-unavailable-reason="getProviderUnavailableReason"
+      @close="showWalletModal = false"
+      @connect="handleConnect"
+      @dev-wif-connect="handleDevWifConnect"
+    />
     
     <WalletConnectModal v-if="wcUri" :uri="wcUri" :visible="!!wcUri" @close="wcUri = ''" />
 
@@ -275,6 +207,7 @@ import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
 import { truncateHash } from "@/utils/addressFormat";
 import { loadWalletService } from "@/utils/lazyServices";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
+import HeaderWalletModal from "@/components/layout/HeaderWalletModal.vue";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { useToast } from "vue-toastification";
 import { useChatSession } from "@/composables/useChatSession";
@@ -352,8 +285,6 @@ const showWalletModal = ref(false);
 const availableProviders = ref([]);
 const supportedProviders = ref([]);
 const wcUri = ref("");
-const showDevWifForm = ref(false);
-const devWifInput = ref("");
 
 function isProviderAvailable(provider) {
   return availableProviders.value.includes(provider);
@@ -409,18 +340,9 @@ function getProviderInstallUrl(provider) {
   return "";
 }
 
-function resetDevWifForm() {
-  showDevWifForm.value = false;
-  devWifInput.value = "";
-}
-
 async function handleConnect(provider) {
-  if (provider === PROVIDERS.TESTNET_WIF) {
-    if (!isProviderAvailable(provider)) {
-      toast.info(getProviderUnavailableReason(provider));
-      return;
-    }
-    showDevWifForm.value = true;
+  if (provider === PROVIDERS.TESTNET_WIF && !isProviderAvailable(provider)) {
+    toast.info(getProviderUnavailableReason(provider));
     return;
   }
   if (!isProviderAvailable(provider)) {
@@ -465,7 +387,6 @@ async function handleConnect(provider) {
          localStorage.setItem("connectedWallet", result.address);
          localStorage.setItem("walletProvider", provider);
        }
-       resetDevWifForm();
        showWalletModal.value = false;
        await bootstrapChatSession();
        toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
@@ -480,20 +401,17 @@ async function handleConnect(provider) {
   }
 }
 
-async function handleDevWifConnect() {
+async function handleDevWifConnect(wif) {
   walletLoading.value = true;
   try {
     const walletService = await loadWalletService();
-    const result = await walletService.connect(PROVIDERS.TESTNET_WIF, {
-      wif: devWifInput.value.trim(),
-    });
+    const result = await walletService.connect(PROVIDERS.TESTNET_WIF, { wif });
     if (result?.address) {
       connectedAccount.value = result.address;
       if (result.persistSession === "session") {
         sessionStorage.setItem("connectedWallet", result.address);
         sessionStorage.setItem("walletProvider", PROVIDERS.TESTNET_WIF);
       }
-      resetDevWifForm();
       showWalletModal.value = false;
       await bootstrapChatSession();
       toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
@@ -523,7 +441,6 @@ async function toggleWallet() {
     supportedProviders.value = typeof walletService.getSupportedProviders === "function"
       ? walletService.getSupportedProviders()
       : walletService.getAvailableProviders();
-    resetDevWifForm();
     showWalletModal.value = true;
   } finally {
     walletLoading.value = false;
