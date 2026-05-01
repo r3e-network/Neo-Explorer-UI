@@ -10,12 +10,17 @@ const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "";
 import { getCurrentEnv } from "@/utils/env";
 import { getPrimaryRpcEndpoint } from "@/utils/rpcEndpoints";
 
+// Only network identity (env + rpc target) should drive re-init. The
+// previous version included `lang` and `dark` here, which forced a full
+// _web3auth.logout() + reinit every time the user toggled theme or
+// switched locale — silently signing them out of an active session.
+// Theme/language are presentation concerns; the modal keeps whatever
+// values it was last initialized with until the user explicitly
+// reconnects, which is a much better UX than losing the session.
 const getChainConfigKey = () =>
   JSON.stringify({
     env: getCurrentEnv(),
     rpcTarget: getPrimaryRpcEndpoint(getCurrentEnv()),
-    lang: typeof localStorage !== "undefined" ? localStorage.getItem("lang") || "en" : "en",
-    dark: typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false,
   });
 
 export const web3authService = {
