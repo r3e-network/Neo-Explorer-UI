@@ -543,9 +543,12 @@ watch(
 const displayHash = computed(() => {
   if (!props.hash) return "";
   if (props.type === "address") {
-    const address = normalizedAddressHash.value || props.hash;
-    if (!shouldTruncate.value) return address;
-    return truncateHashValue(address, 8, 6);
+    // Always render the full Neo address (34 chars). The link's CSS
+    // `truncate` class handles graceful end-ellipsis when the container
+    // is too narrow; in wide table cells the full address shows. Users
+    // explicitly asked for full addresses when there's room rather than
+    // the JS-baked "8...6" middle-truncation pattern.
+    return normalizedAddressHash.value || props.hash;
   }
   if (fetchedContractName.value) return fetchedContractName.value;
   if (!shouldTruncate.value) return props.hash;
