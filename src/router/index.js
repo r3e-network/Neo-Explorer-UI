@@ -130,6 +130,23 @@ const routes = [
       { path: "/mempool", redirect: "/tools/mempool" },
       { path: "/burn-fee", redirect: "/burn" },
       { path: "/api", redirect: "/api-docs" },
+      { path: "/docs", redirect: "/api-docs" },
+      // Singular plain-English aliases for top-level pages.
+      { path: "/home", redirect: "/homepage" },
+      { path: "/index", redirect: "/homepage" },
+      { path: "/verify", redirect: "/verify-contract" },
+      // Tool sub-pages addressed without the /tools/ prefix.
+      { path: "/broadcast", redirect: "/tools/broadcast" },
+      { path: "/deployer", redirect: "/tools/deployer" },
+      { path: "/factory", redirect: "/tools/factory" },
+      { path: "/abi", redirect: "/tools/abi" },
+      { path: "/storage", redirect: "/tools/storage" },
+      { path: "/alerts", redirect: "/tools/alerts" },
+      { path: "/abstract-account", redirect: "/tools/abstract-account" },
+      { path: "/candidate-profile", redirect: "/tools/candidate-profile" },
+      // Singular forms of plural canonical routes.
+      { path: "/candidate", redirect: "/candidates/1" },
+      { path: "/contract", redirect: "/contracts/1" },
       {
         path: "/tools/multisig",
         name: "multisig",
