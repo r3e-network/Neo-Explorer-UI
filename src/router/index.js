@@ -118,6 +118,18 @@ const routes = [
         meta: { titleKey: "pageTitles.tools" },
         component: ToolsIndex,
       },
+      // Convenience top-level aliases for the most-typed tool URLs.
+      // Users frequently bookmark /multisig or /sponsored without the
+      // /tools/ prefix; redirect rather than 404.
+      { path: "/multisig", redirect: "/tools/multisig" },
+      { path: "/multi-sig", redirect: "/tools/multisig" },
+      { path: "/sponsored", redirect: "/tools/sponsored" },
+      { path: "/sponsored-transactions", redirect: "/tools/sponsored" },
+      { path: "/governance", redirect: "/tools/governance" },
+      { path: "/neofs", redirect: "/tools/neofs" },
+      { path: "/mempool", redirect: "/tools/mempool" },
+      { path: "/burn-fee", redirect: "/burn" },
+      { path: "/api", redirect: "/api-docs" },
       {
         path: "/tools/multisig",
         name: "multisig",
