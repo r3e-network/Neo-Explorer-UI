@@ -156,6 +156,13 @@ export async function initWallet() {
       clearStoredWalletState();
     }
   } else if (provider === PROVIDERS.WALLETCONNECT) {
+    // WalletConnect (and EVM_WALLET below) have no restore path via
+    // walletService.restoreSession — see line 969 of walletService.js
+    // which gates restore behind NEON only. Until per-provider restore
+    // is implemented, clear state on reload so the user is prompted to
+    // reconnect rather than appearing connected with stale state.
+    clearStoredWalletState();
+  } else if (provider === PROVIDERS.EVM_WALLET) {
     clearStoredWalletState();
   } else if (provider === PROVIDERS.TESTNET_WIF) {
     try {

@@ -1995,6 +1995,12 @@ const fr = {
       walletConnectNotConnected: "WalletConnect non connecté",
       walletConnectNoTxid: "WalletConnect n'a renvoyé aucun txid pour l'invocation.",
     },
+    chatSupport: {
+      connectFirst: "Connectez d'abord un portefeuille.",
+      evmWallet: "NeoChat n'est pas encore pris en charge pour les connexions de portefeuille EVM. Utilisez un portefeuille Neo natif ou un Testnet WIF.",
+      noPubkey: "Cette connexion de portefeuille n'expose pas encore de manière fiable la clé publique Neo nécessaire à la connexion NeoChat. Utilisez NeoLine, O3, OneGate, Web3Auth ou Testnet WIF.",
+      providerNotSupported: "Ce fournisseur de portefeuille n'est pas pris en charge pour la connexion NeoChat.",
+    },
   },
   header: {
     connectWallet: "Connecter le portefeuille",

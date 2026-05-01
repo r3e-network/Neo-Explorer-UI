@@ -1,4 +1,9 @@
-function escapeCsvValue(value) {
+// UTF-8 BOM so Excel treats the CSV as UTF-8 instead of cp1252.
+// Excel's "Open" path needs the BOM to render CJK / NNS labels
+// correctly; Numbers/Sheets ignore it.
+export const CSV_BOM = "﻿";
+
+export function escapeCsvValue(value) {
   if (value === null || value === undefined) return "";
   const str = String(value);
   // Escape formula injection: prefix with single quote if starts with a
@@ -42,7 +47,8 @@ export function exportToCSV(data, filename) {
     ...data.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(",")),
   ];
 
-  const csvString = csvRows.join("\n");
+  // \r\n is the canonical CSV line ending; some Excel locales misparse \n.
+  const csvString = CSV_BOM + csvRows.join("\r\n");
   const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
   downloadBlob(blob, `${safeFilename}.csv`);
 }

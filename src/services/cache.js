@@ -122,7 +122,13 @@ function fetchAndCache(key, fetchFn, ttl) {
 
   const promise = fetchFn()
     .then((data) => {
-      setCache(key, data, ttl);
+      // Don't cache null/undefined responses. `safeRpc` returns its
+      // `defaultValue` (typically null) on transient backend errors —
+      // caching that for the full TTL would poison subsequent reads
+      // even after the backend recovers.
+      if (data !== null && data !== undefined) {
+        setCache(key, data, ttl);
+      }
       pendingRequests.delete(key);
       return data;
     })

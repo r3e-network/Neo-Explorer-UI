@@ -1999,6 +1999,12 @@ const zh = {
       walletConnectNotConnected: "WalletConnect 未连接",
       walletConnectNoTxid: "WalletConnect 未为调用返回 txid。",
     },
+    chatSupport: {
+      connectFirst: "请先连接钱包。",
+      evmWallet: "NeoChat 暂不支持 EVM 钱包连接。请使用 Neo 原生钱包或 Testnet WIF。",
+      noPubkey: "此钱包连接尚不能可靠地暴露 NeoChat 登录所需的 Neo 公钥。请使用 NeoLine、O3、OneGate、Web3Auth 或 Testnet WIF。",
+      providerNotSupported: "NeoChat 登录不支持此钱包提供商。",
+    },
   },
   header: {
     connectWallet: "连接钱包",

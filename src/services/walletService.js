@@ -766,7 +766,7 @@ export const walletService = {
 
   getChatAuthSupport() {
     if (!_connectedProvider) {
-      return { supported: false, reason: "Connect a wallet first." };
+      return { supported: false, reason: tWallet("wallet.chatSupport.connectFirst", null, "Connect a wallet first.") };
     }
 
     if (
@@ -782,21 +782,32 @@ export const walletService = {
     if (_connectedProvider === PROVIDERS.EVM_WALLET) {
       return {
         supported: false,
-        reason: "NeoChat is not yet supported for EVM wallet connections. Use a Neo-native wallet or Testnet WIF.",
+        reason: tWallet(
+          "wallet.chatSupport.evmWallet",
+          null,
+          "NeoChat is not yet supported for EVM wallet connections. Use a Neo-native wallet or Testnet WIF.",
+        ),
       };
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       return {
         supported: false,
-        reason:
+        reason: tWallet(
+          "wallet.chatSupport.noPubkey",
+          null,
           "This wallet connection does not reliably expose the Neo public key needed for NeoChat login yet. Use NeoLine, O3, OneGate, Web3Auth, or Testnet WIF.",
+        ),
       };
     }
 
     return {
       supported: false,
-      reason: "This wallet provider is not supported for NeoChat login.",
+      reason: tWallet(
+        "wallet.chatSupport.providerNotSupported",
+        null,
+        "This wallet provider is not supported for NeoChat login.",
+      ),
     };
   },
 

@@ -1999,6 +1999,12 @@ const ja = {
       walletConnectNotConnected: "WalletConnect が接続されていません",
       walletConnectNoTxid: "WalletConnect は invoke の txid を返しませんでした。",
     },
+    chatSupport: {
+      connectFirst: "まずウォレットを接続してください。",
+      evmWallet: "EVM ウォレット接続では NeoChat はまだサポートされていません。Neo ネイティブウォレットまたは Testnet WIF を使用してください。",
+      noPubkey: "このウォレット接続は、NeoChat ログインに必要な Neo 公開鍵をまだ確実に公開できません。NeoLine、O3、OneGate、Web3Auth、または Testnet WIF を使用してください。",
+      providerNotSupported: "このウォレットプロバイダーは NeoChat ログインに対応していません。",
+    },
   },
   header: {
     connectWallet: "ウォレット接続",

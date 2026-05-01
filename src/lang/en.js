@@ -1999,6 +1999,12 @@ const en = {
       walletConnectNotConnected: "WalletConnect not connected",
       walletConnectNoTxid: "WalletConnect returned no txid for invoke.",
     },
+    chatSupport: {
+      connectFirst: "Connect a wallet first.",
+      evmWallet: "NeoChat is not yet supported for EVM wallet connections. Use a Neo-native wallet or Testnet WIF.",
+      noPubkey: "This wallet connection does not reliably expose the Neo public key needed for NeoChat login yet. Use NeoLine, O3, OneGate, Web3Auth, or Testnet WIF.",
+      providerNotSupported: "This wallet provider is not supported for NeoChat login.",
+    },
   },
   header: {
     connectWallet: "Connect Wallet",

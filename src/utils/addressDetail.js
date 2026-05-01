@@ -1,6 +1,7 @@
 import { NATIVE_CONTRACTS, NEO_HASH, GAS_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "./neoHelpers";
+import { CSV_BOM, escapeCsvValue } from "./dataExport";
 
 /**
  * Address detail page helpers: normalization, transfer direction, CSV export.
@@ -276,9 +277,9 @@ export function downloadTransactionsCsv(transactions = [], filename = "transacti
       tx.size ?? "",
     ]);
 
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+    const csvContent = CSV_BOM + [headers, ...rows]
+      .map((row) => row.map(escapeCsvValue).join(","))
+      .join("\r\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

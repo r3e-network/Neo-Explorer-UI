@@ -1999,6 +1999,12 @@ const ko = {
       walletConnectNotConnected: "WalletConnect가 연결되지 않았습니다",
       walletConnectNoTxid: "WalletConnect가 invoke에 대한 txid를 반환하지 않았습니다.",
     },
+    chatSupport: {
+      connectFirst: "먼저 지갑을 연결하세요.",
+      evmWallet: "EVM 지갑 연결에는 아직 NeoChat이 지원되지 않습니다. Neo 네이티브 지갑이나 Testnet WIF를 사용하세요.",
+      noPubkey: "이 지갑 연결은 아직 NeoChat 로그인에 필요한 Neo 공개 키를 안정적으로 노출하지 못합니다. NeoLine, O3, OneGate, Web3Auth 또는 Testnet WIF를 사용하세요.",
+      providerNotSupported: "이 지갑 제공자는 NeoChat 로그인을 지원하지 않습니다.",
+    },
   },
   header: {
     connectWallet: "지갑 연결",

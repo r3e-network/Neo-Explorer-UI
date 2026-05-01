@@ -33,7 +33,7 @@ export function usePagination(
 
   const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / pageSize.value)));
   const startRecord = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1));
-  const endRecord = computed(() => Math.min(currentPage.value * pageSize.value, totalCount.value));
+  const endRecord = computed(() => Math.max(startRecord.value - 1, Math.min(currentPage.value * pageSize.value, totalCount.value)));
 
   // Race-condition guard: only the latest request writes state.
   let requestId = 0;
@@ -73,7 +73,12 @@ export function usePagination(
       if (myId !== requestId) return; // stale response
       totalCount.value = res?.totalCount || 0;
       items.value = res?.result || [];
-      currentPage.value = page;
+      // Clamp to the new last page if totalCount drifted down between
+      // refreshes (e.g. empty-block pruning, deleted records). Without
+      // this the UI could read "Showing 41-30 of 30" and the Next button
+      // would freeze because currentPage > totalPages.
+      const lastPage = Math.max(1, Math.ceil((res?.totalCount || 0) / pageSize.value));
+      currentPage.value = Math.min(page, lastPage);
     } catch (err) {
       if (myId !== requestId) return;
       if (import.meta.env.DEV) console.error("Failed to load page:", err);

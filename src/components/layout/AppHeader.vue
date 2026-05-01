@@ -362,13 +362,20 @@ async function handleConnect(provider) {
      if (result?.uri && result?.approval) {
         wcUri.value = result.uri;
         walletLoading.value = false;
-        
+
         try {
           const account = await result.approval;
           wcUri.value = "";
           connectedAccount.value = account.address;
-          localStorage.setItem("connectedWallet", account.address);
-          localStorage.setItem("walletProvider", provider);
+          // WalletConnect has no restoreSession path in walletService —
+          // persisting the provider would just leave stale state on
+          // reload that gets cleared. Persist only for NEON (which uses
+          // WC under the hood but does have a restore path) and providers
+          // with their own restore branches.
+          if (provider === PROVIDERS.NEON) {
+            localStorage.setItem("connectedWallet", account.address);
+            localStorage.setItem("walletProvider", provider);
+          }
           await bootstrapChatSession();
           toast.success(t("header.connectedAs", { address: truncateHash(account.address, 6, 4) }));
         } catch(e) {
@@ -380,12 +387,16 @@ async function handleConnect(provider) {
      
      if (result && result.address) {
        connectedAccount.value = result.address;
+       // EVM_WALLET has no restore path; persisting would just lead to a
+       // stale-then-cleared state on reload. Skip the persist so the
+       // user is honestly prompted to reconnect.
+       const restoreSupported = provider !== PROVIDERS.EVM_WALLET;
        if (result.persistSession === "session") {
          sessionStorage.setItem("connectedWallet", result.address);
-         sessionStorage.setItem("walletProvider", provider);
+         if (restoreSupported) sessionStorage.setItem("walletProvider", provider);
        } else if (result.persistSession !== false) {
          localStorage.setItem("connectedWallet", result.address);
-         localStorage.setItem("walletProvider", provider);
+         if (restoreSupported) localStorage.setItem("walletProvider", provider);
        }
        showWalletModal.value = false;
        await bootstrapChatSession();
