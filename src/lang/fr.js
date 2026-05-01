@@ -1469,6 +1469,7 @@ const fr = {
     copyFailedShort: "Échec de la copie",
     copyFailedTooltip: "Échec !",
     copyToClipboard: "Copier dans le presse-papiers",
+    contentSections: "Sections du contenu",
   },
   errorTitles: {
     unableToLoadSource: "Impossible de charger le code source",

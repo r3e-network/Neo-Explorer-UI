@@ -1473,6 +1473,7 @@ const zh = {
     copyFailedShort: "复制失败",
     copyFailedTooltip: "失败！",
     copyToClipboard: "复制到剪贴板",
+    contentSections: "内容分区",
   },
   errorTitles: {
     unableToLoadSource: "无法加载源代码",

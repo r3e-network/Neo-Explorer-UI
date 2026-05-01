@@ -1,5 +1,8 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   tabs: {
@@ -13,13 +16,15 @@ const props = defineProps({
   },
   ariaLabel: {
     type: String,
-    default: "Content sections",
+    default: "",
   },
   idBase: {
     type: String,
     default: "",
   },
 });
+
+const resolvedAriaLabel = computed(() => props.ariaLabel || t("aria.contentSections"));
 
 const emit = defineEmits(["update:modelValue"]);
 
@@ -68,7 +73,7 @@ watch(
 </script>
 
 <template>
-  <div role="tablist" :aria-label="ariaLabel" class="surface-panel flex gap-1 overflow-x-auto p-1">
+  <div role="tablist" :aria-label="resolvedAriaLabel" class="surface-panel flex gap-1 overflow-x-auto p-1">
     <button
       v-for="(tab, index) in tabs"
       :key="tab.key"

@@ -1473,6 +1473,7 @@ const en = {
     copyFailedShort: "Copy failed",
     copyFailedTooltip: "Failed!",
     copyToClipboard: "Copy to clipboard",
+    contentSections: "Content sections",
   },
   errorTitles: {
     unableToLoadSource: "Unable to load source code",

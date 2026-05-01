@@ -1473,6 +1473,7 @@ const ja = {
     copyFailedShort: "コピー失敗",
     copyFailedTooltip: "失敗！",
     copyToClipboard: "クリップボードにコピー",
+    contentSections: "コンテンツセクション",
   },
   errorTitles: {
     unableToLoadSource: "ソースコードを読み込めません",

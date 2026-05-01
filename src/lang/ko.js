@@ -1473,6 +1473,7 @@ const ko = {
     copyFailedShort: "복사 실패",
     copyFailedTooltip: "실패!",
     copyToClipboard: "클립보드에 복사",
+    contentSections: "콘텐츠 섹션",
   },
   errorTitles: {
     unableToLoadSource: "소스 코드를 불러올 수 없습니다",
