@@ -15,7 +15,7 @@
     <div v-else class="surface-panel overflow-x-auto">
       <table class="w-full min-w-[700px]" :aria-label="$t('addressDetail.nftsTableAria')">
         <caption class="sr-only">
-          NEP-11 token holdings for this address
+          {{ $t('addressDetail.nep11TableCaption') }}
         </caption>
         <thead class="table-head">
           <tr>
@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+import { useI18n } from "vue-i18n";
 import { truncateHash } from "@/utils/explorerFormat";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -71,19 +72,18 @@ defineProps({
 
 defineEmits(["retry"]);
 
-
-
+const { t } = useI18n();
 
 function assetHash(asset) {
   return asset?.hash || asset?.contracthash || asset?.contractHash || asset?.assethash || "";
 }
 
 function assetStandard(asset) {
-  return String(asset?.standard || asset?.type || "Unknown");
+  return String(asset?.standard || asset?.type || t("addressDetail.unknownAsset"));
 }
 
 function assetDisplayName(asset) {
-  return asset?.tokenname || asset?.name || asset?.symbol || "Unknown";
+  return asset?.tokenname || asset?.name || asset?.symbol || t("addressDetail.unknownAsset");
 }
 
 function assetBalance(asset) {

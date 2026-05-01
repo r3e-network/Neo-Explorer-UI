@@ -15,7 +15,7 @@
     <div v-else class="surface-panel overflow-x-auto">
       <table class="w-full min-w-[700px]" :aria-label="$t('addressDetail.tokensTableAria')">
         <caption class="sr-only">
-          NEP-17 token balances for this address
+          {{ $t('addressDetail.nep17TableCaption') }}
         </caption>
         <thead class="table-head">
           <tr>

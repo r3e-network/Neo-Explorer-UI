@@ -20,7 +20,7 @@
         </button>
       </div>
       <p class="text-mid mb-3 text-xs">
-        Copy this URI and paste it into your WalletConnect-compatible wallet.
+        {{ $t('aria.walletConnectUriHint') }}
       </p>
       <div class="flex items-center gap-2">
         <input :value="uri" readonly :aria-label="$t('aria.walletConnectUri')" class="form-input flex-1 font-mono text-xs" @focus="$event.target.select()" />
