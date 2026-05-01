@@ -14,7 +14,7 @@
       <!-- View Toggle + Info bar -->
       <div v-if="totalCount > 0" class="card-header">
         <p class="text-sm text-mid">
-          A total of {{ formatNumber(totalCount) }} NFT items found
+          {{ $t('tokenDetail.totalNftItemsFound', { count: formatNumber(totalCount) }) }}
         </p>
         <div class="flex items-center gap-1">
           <button

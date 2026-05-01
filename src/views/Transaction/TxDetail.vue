@@ -41,7 +41,7 @@
             />
           </svg>
           <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-            Complex transaction involving multiple contracts.
+            {{ $t('txDetail.complexBanner') }}
           </span>
         </div>
         <button
@@ -50,7 +50,7 @@
           :aria-label="$t('txDetail.traceAria')"
           @click="activeTab = 'trace'"
         >
-          View Execution Trace &rarr;
+          {{ $t('txDetail.viewExecutionTrace') }}
         </button>
       </div>
 

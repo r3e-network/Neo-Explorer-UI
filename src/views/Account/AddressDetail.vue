@@ -22,8 +22,8 @@
         v-if="showMainnetHint"
         class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
-        No activity was found for this address on N3 Testnet.
-        <button class="ml-1 font-semibold underline" @click="switchToMainnet">Switch to N3 Mainnet</button>
+        {{ $t('addressDetail.noTestnetActivity') }}
+        <button class="ml-1 font-semibold underline" @click="switchToMainnet">{{ $t('addressDetail.switchToMainnet') }}</button>
       </div>
 
       <div class="etherscan-card overflow-hidden">

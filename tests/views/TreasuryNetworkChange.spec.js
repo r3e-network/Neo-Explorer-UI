@@ -7,6 +7,10 @@ const i18nPlugin = {
   },
 };
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
 const envState = { value: "MainNet" };
 const fetchPricesMock = vi.hoisted(() => vi.fn().mockResolvedValue({ neo: 1, gas: 1 }));
 const cachedRequestMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));

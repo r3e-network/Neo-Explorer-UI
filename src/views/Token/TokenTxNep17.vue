@@ -15,7 +15,7 @@
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
         <p class="text-mid text-sm">
-          A total of {{ formatNumber(totalCount) }} transfers found
+          {{ $t('tokenDetail.totalTransfersFound', { count: formatNumber(totalCount) }) }}
         </p>
       </div>
 
@@ -57,7 +57,7 @@
               <!-- Txn Hash -->
               <td class="px-4 py-3">
                 <div class="max-w-[160px] truncate">
-                  <span v-if="isNullTx(item.txid)" class="text-low text-sm">System</span>
+                  <span v-if="isNullTx(item.txid)" class="text-low text-sm">{{ $t('tokenDetail.systemTx') }}</span>
                   <router-link v-else :to="'/transaction-info/' + item.txid" class="font-hash text-sm etherscan-link">
                     {{ item.txid }}
                   </router-link>

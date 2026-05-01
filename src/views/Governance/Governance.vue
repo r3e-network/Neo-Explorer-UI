@@ -505,7 +505,7 @@ async function loadCandidates() {
     // method directly using the same client instance.
     const Query = rpcClient._sdk?.rpc?.Query;
     if (typeof Query !== "function") {
-      throw new Error("Neo RPC Query class is not available.");
+      throw new Error(t("governancePage.rpcQueryUnavailable"));
     }
     const rpcRes = await rpcClient.execute(new Query({ method: "getcandidates", params: [] }));
 
@@ -513,7 +513,7 @@ async function loadCandidates() {
     if (rpcRes && rpcRes.length > 0) {
       rawCandidates = rpcRes;
     } else {
-      throw new Error("Failed to fetch candidates from RPC node.");
+      throw new Error(t("governancePage.fetchCandidatesFailed"));
     }
 
     let indexerRows = [];
@@ -581,7 +581,7 @@ async function loadCandidates() {
     }).catch(() => {});
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load candidates", err);
-    error.value = err.message || "Failed to fetch candidates from RPC node.";
+    error.value = err.message || t("governancePage.fetchCandidatesFailed");
   } finally {
     loading.value = false;
   }

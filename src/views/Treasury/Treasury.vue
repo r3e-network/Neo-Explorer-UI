@@ -278,6 +278,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useI18n } from "vue-i18n";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { formatNumber, formatLargeNumber } from "@/utils/explorerFormat";
 import { getTreasuryKnownAddresses } from "@/constants/knownAddresses";
@@ -292,6 +293,7 @@ import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
+const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
 const loading = ref(true);
 const error = ref(null);
@@ -431,7 +433,7 @@ async function loadTreasuryData(forceRefresh = false) {
     balances.value = withUsd.sort((a, b) => b.usdValue - a.usdValue);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load treasury data", err);
-    error.value = "Failed to load treasury data. Please try again.";
+    error.value = t("treasuryPage.failedToLoadRetry");
   } finally {
     loading.value = false;
   }

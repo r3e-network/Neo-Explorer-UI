@@ -7,6 +7,10 @@ const i18nPlugin = {
   },
 };
 
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key) => key }),
+}));
+
 const getNep17BalancesMock = vi.fn();
 
 vi.mock("@/composables/usePriceCache", () => ({
