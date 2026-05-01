@@ -7,6 +7,17 @@ import { useTheme } from "@/composables/useTheme";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
+// Self-hosted fonts (matches the original Google Fonts request and
+// avoids the external dependency / CSP relaxation / privacy hop).
+import "@fontsource/plus-jakarta-sans/400.css";
+import "@fontsource/plus-jakarta-sans/500.css";
+import "@fontsource/plus-jakarta-sans/600.css";
+import "@fontsource/plus-jakarta-sans/700.css";
+import "@fontsource/plus-jakarta-sans/800.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "@fontsource/ibm-plex-mono/600.css";
+
 import "./styles/tailwind.css";
 
 const appInstance = createApp(App);
