@@ -249,6 +249,10 @@ const ja = {
       hintTx: "Tx：0x + 64 文字の16進",
       hintAddress: "アドレス：N で始まるか .neo で終わる",
       hintContract: "コントラクト：スクリプトハッシュ",
+      viewBlockDetails: "ブロック詳細を表示",
+      viewTxDetails: "トランザクション詳細を表示",
+      viewAddressDetails: "アドレス詳細を表示",
+      viewContractDetails: "コントラクト詳細を表示",
     },
     verifyContract: {
       title: "コントラクト検証",

@@ -249,6 +249,10 @@ const ko = {
       hintTx: "트랜잭션: 0x + 64자리 16진",
       hintAddress: "주소: N으로 시작 또는 .neo로 끝남",
       hintContract: "컨트랙트: 스크립트 해시",
+      viewBlockDetails: "블록 세부 정보 보기",
+      viewTxDetails: "트랜잭션 세부 정보 보기",
+      viewAddressDetails: "주소 세부 정보 보기",
+      viewContractDetails: "컨트랙트 세부 정보 보기",
     },
     verifyContract: {
       title: "컨트랙트 검증",

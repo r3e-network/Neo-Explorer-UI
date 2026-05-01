@@ -249,6 +249,10 @@ const en = {
       hintTx: "Tx: 0x + 64 hex chars",
       hintAddress: "Address: starts with N or ends with .neo",
       hintContract: "Contract: script hash",
+      viewBlockDetails: "View Block Details",
+      viewTxDetails: "View Transaction Details",
+      viewAddressDetails: "View Address Details",
+      viewContractDetails: "View Contract Details",
     },
     verifyContract: {
       title: "Verify Contract",

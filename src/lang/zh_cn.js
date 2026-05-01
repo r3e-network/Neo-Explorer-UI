@@ -249,6 +249,10 @@ const zh = {
       hintTx: "交易：0x + 64 个十六进制字符",
       hintAddress: "地址：以 N 开头或以 .neo 结尾",
       hintContract: "合约：脚本哈希",
+      viewBlockDetails: "查看区块详情",
+      viewTxDetails: "查看交易详情",
+      viewAddressDetails: "查看地址详情",
+      viewContractDetails: "查看合约详情",
     },
     verifyContract: {
       title: "验证合约",

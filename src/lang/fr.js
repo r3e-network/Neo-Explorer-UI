@@ -248,6 +248,10 @@ const fr = {
       hintTx: "Tx : 0x + 64 caractères hex",
       hintAddress: "Adresse : commence par N ou se termine par .neo",
       hintContract: "Contrat : hash de script",
+      viewBlockDetails: "Voir les détails du bloc",
+      viewTxDetails: "Voir les détails de la transaction",
+      viewAddressDetails: "Voir les détails de l'adresse",
+      viewContractDetails: "Voir les détails du contrat",
     },
     verifyContract: {
       title: "Vérifier le contrat",

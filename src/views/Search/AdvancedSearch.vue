@@ -135,7 +135,7 @@
                 :to="`/block-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
-                View Block Details
+                {{ $t('pages.advancedSearch.viewBlockDetails') }}
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
@@ -153,7 +153,7 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-low text-sm">Transaction</p>
+                  <p class="text-low text-sm">{{ $t('pages.advancedSearch.resultTransaction') }}</p>
                   <p class="text-high font-semibold">
                     {{ truncateHash(result.data.hash) }}
                   </p>
@@ -164,7 +164,7 @@
                 :to="`/transaction-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
-                View Transaction Details
+                {{ $t('pages.advancedSearch.viewTxDetails') }}
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
@@ -182,7 +182,7 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-low text-sm">Address</p>
+                  <p class="text-low text-sm">{{ $t('pages.advancedSearch.resultAddress') }}</p>
                   <p class="text-high font-semibold">
                     {{ truncateHash(query.trim(), 12, 10) }}
                   </p>
@@ -193,7 +193,7 @@
                 :to="`/account-profile/${query.trim()}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
-                View Address Details
+                {{ $t('pages.advancedSearch.viewAddressDetails') }}
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
@@ -219,7 +219,7 @@
                   </svg>
                 </div>
                 <div>
-                  <p class="text-low text-sm">Contract</p>
+                  <p class="text-low text-sm">{{ $t('pages.advancedSearch.resultContract') }}</p>
                   <p class="text-high font-semibold">
                     {{ result.data.name || truncateHash(result.data.hash) }}
                   </p>
@@ -230,7 +230,7 @@
                 :to="`/contract-info/${result.data.hash}`"
                 class="inline-flex items-center gap-1 text-sm font-medium etherscan-link"
               >
-                View Contract Details
+                {{ $t('pages.advancedSearch.viewContractDetails') }}
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
