@@ -1411,6 +1411,8 @@ const ko = {
     cancelButton: "취소",
     sendingButton: "전송 중...",
     confirmTransfer: "전송 확인",
+    searching: "검색 중...",
+    searchButton: "검색",
   },
   aria: {
     breadcrumb: "이동 경로",
@@ -1852,6 +1854,7 @@ const ko = {
     connectedAs: "연결됨: {address}",
     walletConnectRejected: "WalletConnect 연결이 승인되지 않았습니다.",
     connectWalletFailed: "지갑 연결에 실패했습니다.",
+    waitingForWalletApproval: "지갑 승인을 기다리는 중...",
   },
   transactionsPage: {
     subtitle: "Neo N3 네트워크 트랜잭션",

@@ -63,7 +63,7 @@
             :disabled="searching || !searchQuery.trim()"
             class="btn-primary rounded-lg px-8 py-3.5 text-base shadow-md m-1 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ searching ? "Searching..." : "Search" }}
+            {{ searching ? $t("nnsPage.searching") : $t("nnsPage.searchButton") }}
           </button>
         </div>
       </div>

@@ -269,10 +269,11 @@ function getMethodName(tx) {
     }
   }
   if (tx.method) return tx.method;
+  const transferLabel = t("transferTypes.transfer");
   if (tx.notifications?.length > 0) {
-    return tx.notifications[0].eventname || "Transfer";
+    return tx.notifications[0].eventname || transferLabel;
   }
-  return "Transfer";
+  return transferLabel;
 }
 
 function normalizeComparableSummaryAddress(value) {

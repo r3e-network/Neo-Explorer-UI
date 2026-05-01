@@ -1411,6 +1411,8 @@ const zh = {
     cancelButton: "取消",
     sendingButton: "发送中...",
     confirmTransfer: "确认转移",
+    searching: "搜索中...",
+    searchButton: "搜索",
   },
   aria: {
     breadcrumb: "面包屑导航",
@@ -1852,6 +1854,7 @@ const zh = {
     connectedAs: "已连接：{address}",
     walletConnectRejected: "WalletConnect 连接未被批准。",
     connectWalletFailed: "连接钱包失败。",
+    waitingForWalletApproval: "等待钱包确认中...",
   },
   transactionsPage: {
     subtitle: "Neo N3 网络交易",

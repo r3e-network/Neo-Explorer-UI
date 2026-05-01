@@ -1411,6 +1411,8 @@ const ja = {
     cancelButton: "キャンセル",
     sendingButton: "送信中...",
     confirmTransfer: "転送を確認",
+    searching: "検索中...",
+    searchButton: "検索",
   },
   aria: {
     breadcrumb: "パンくずリスト",
@@ -1852,6 +1854,7 @@ const ja = {
     connectedAs: "接続しました：{address}",
     walletConnectRejected: "WalletConnect 接続が承認されませんでした。",
     connectWalletFailed: "ウォレットの接続に失敗しました。",
+    waitingForWalletApproval: "ウォレットの承認を待っています...",
   },
   transactionsPage: {
     subtitle: "Neo N3ネットワークのトランザクション",

@@ -1411,6 +1411,8 @@ const en = {
     cancelButton: "Cancel",
     sendingButton: "Sending...",
     confirmTransfer: "Confirm Transfer",
+    searching: "Searching...",
+    searchButton: "Search",
   },
   aria: {
     breadcrumb: "Breadcrumb",
@@ -1852,6 +1854,7 @@ const en = {
     connectedAs: "Connected: {address}",
     walletConnectRejected: "WalletConnect connection was not approved.",
     connectWalletFailed: "Failed to connect wallet.",
+    waitingForWalletApproval: "Waiting for wallet approval...",
   },
   transactionsPage: {
     subtitle: "Neo N3 network transactions",

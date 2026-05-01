@@ -1407,6 +1407,8 @@ const fr = {
     cancelButton: "Annuler",
     sendingButton: "Envoi...",
     confirmTransfer: "Confirmer le transfert",
+    searching: "Recherche...",
+    searchButton: "Rechercher",
   },
   aria: {
     breadcrumb: "Fil d'Ariane",
@@ -1848,6 +1850,7 @@ const fr = {
     connectedAs: "Connecté : {address}",
     walletConnectRejected: "La connexion WalletConnect n'a pas été approuvée.",
     connectWalletFailed: "Échec de la connexion du portefeuille.",
+    waitingForWalletApproval: "En attente de l'approbation du portefeuille...",
   },
   transactionsPage: {
     subtitle: "Transactions du réseau Neo N3",

@@ -216,7 +216,7 @@ import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, truncateHash } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
-import { useCommittee } from "@/composables/useCommittee";
+import { useCommittee, isFallbackValidatorName } from "@/composables/useCommittee";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -245,8 +245,9 @@ function hasNamedValidatorIdentity(block) {
   if (resolvedPrimary === undefined) return false;
 
   const name = String(getPrimaryNodeName(resolvedPrimary) || "").trim();
-  if (!name || name === "Validator" || name === "Unknown Validator") return false;
-  return !/^Consensus Node(?: \d+)?$/i.test(name);
+  if (!name) return false;
+  if (name === t("validator.validator")) return false;
+  return !isFallbackValidatorName(name);
 }
 const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 const showAbsoluteTime = ref(false);
