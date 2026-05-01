@@ -2,6 +2,15 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function tChat(key, params, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key, params || {});
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 function toId(value) {
   return value === null || value === undefined ? "" : String(value);
 }
@@ -315,7 +324,7 @@ async function request(url, options = {}) {
     const error = new Error(
       normalizeText(payload?.error) ||
         normalizeText(payload?.message) ||
-        `Chat API request failed with status ${response.status}`
+        tChat("chat.apiRequestFailed", { status: response.status }, `Chat API request failed with status ${response.status}`)
     );
     error.status = response.status;
     error.payload = payload;

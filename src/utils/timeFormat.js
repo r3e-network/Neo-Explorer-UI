@@ -18,6 +18,34 @@ function tAge(key, params, fallback) {
   }
 }
 
+/**
+ * Map an internal locale code (cn/en/fr/ja/ko) to the corresponding BCP 47
+ * tag accepted by Intl.DateTimeFormat / toLocaleDateString. Pass through
+ * already-valid tags untouched and fall back to "en" for anything unknown.
+ * @param {string|null|undefined} locale
+ * @returns {string}
+ */
+export function toBcp47(locale) {
+  const raw = String(locale || "").trim().toLowerCase();
+  if (raw === "cn" || raw === "zh" || raw === "zh_cn" || raw === "zh-cn") return "zh-CN";
+  if (raw === "en" || raw === "fr" || raw === "ja" || raw === "ko") return raw;
+  return "en";
+}
+
+/**
+ * Resolve the active i18n locale as a BCP 47 tag, falling back to "en".
+ * Useful in non-Vue contexts (services/utilities) where we don't have a
+ * useI18n() handle.
+ * @returns {string}
+ */
+export function getActiveBcp47Locale() {
+  try {
+    const i18n = globalThis.__neoExplorerI18n__;
+    if (i18n?.global?.locale?.value) return toBcp47(i18n.global.locale.value);
+  } catch { /* noop */ }
+  return "en";
+}
+
 const DISPLAY_DELAY_OFFSET_SECONDS = {
   [NET_ENV.Mainnet]: 0,
   [NET_ENV.TestT5]: 0,

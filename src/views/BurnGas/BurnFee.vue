@@ -118,9 +118,10 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 import { useTheme } from "@/composables/useTheme";
+import { toBcp47 } from "@/utils/timeFormat";
 
 // --- State ---
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { isDark } = useTheme();
 const loading = ref(true);
 const error = ref(null);
@@ -157,7 +158,7 @@ function formatGasDisplay(value) {
 function formatDateLabel(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(toBcp47(locale.value), { month: "short", day: "numeric" });
 }
 
 // --- Chart creation ---

@@ -14,6 +14,7 @@
 
 <script setup>
 import { ref, watch, onBeforeUnmount, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { GAS_DIVISOR } from "@/constants";
 import { getChartColors, baseTooltipConfig } from "@/utils/chartHelpers";
@@ -29,6 +30,7 @@ const props = defineProps({
   },
 });
 
+const { t } = useI18n();
 const feeTrendCanvas = ref(null);
 let feeTrendChart = null;
 let chartConstructorPromise = null;
@@ -72,7 +74,7 @@ async function createFeeTrendChart() {
       labels,
       datasets: [
         {
-          label: "Total Fee (GAS)",
+          label: t("gasTracker.feeTrendDatasetLabel"),
           data: values,
           fill: true,
           backgroundColor: "rgba(16, 185, 129, 0.08)",
@@ -94,7 +96,7 @@ async function createFeeTrendChart() {
       tooltips: {
         ...baseTooltipConfig(colors),
         callbacks: {
-          label: (item) => `Fee: ${Number(item.yLabel).toFixed(8)} GAS`,
+          label: (item) => t("gasTracker.feeTrendTooltipFee", { amount: Number(item.yLabel).toFixed(8) }),
         },
       },
       scales: {

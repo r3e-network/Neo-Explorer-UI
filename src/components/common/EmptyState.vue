@@ -69,7 +69,7 @@
       </svg>
     </div>
 
-    <p class="font-semibold text-mid">{{ message }}</p>
+    <p class="font-semibold text-mid">{{ message || $t('common.noDataAvailable') }}</p>
 
     <router-link v-if="actionLabel && actionTo" :to="actionTo" class="btn-primary mt-4 gap-1.5">
       {{ actionLabel }}
@@ -79,7 +79,7 @@
 
 <script setup>
 defineProps({
-  message: { type: String, default: "No data available" },
+  message: { type: String, default: "" },
   icon: {
     type: String,
     default: "default",

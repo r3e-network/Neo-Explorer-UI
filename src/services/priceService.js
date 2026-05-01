@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getCacheKey, cachedRequest } from "./cache";
+import { getActiveBcp47Locale } from "@/utils/timeFormat";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 
@@ -150,7 +151,7 @@ export function formatPriceChange(change) {
 
 export function formatPrice(price, currency = "usd") {
   if (!price) return "$0.00";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(getActiveBcp47Locale(), {
     style: "currency",
     currency: currency.toUpperCase(),
     minimumFractionDigits: 2,
