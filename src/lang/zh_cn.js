@@ -2130,6 +2130,8 @@ const zh = {
     rowPrevHash: "上一区块哈希",
     rowGenesis: "创世区块（无上一区块）",
     rowMerkleRoot: "Merkle 根",
+    rowStateRoot: "官方状态根",
+    rowStateRootTip: "此区块后合约存储 MPT 树的根哈希，由 StateRoot 服务签名。",
     rowNextConsensus: "下一个共识",
     rowNextConsensusTip: "下一个共识节点的地址",
     rowVersion: "版本",

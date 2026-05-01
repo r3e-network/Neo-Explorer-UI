@@ -2130,6 +2130,8 @@ const ko = {
     rowPrevHash: "이전 해시",
     rowGenesis: "제네시스 블록 (이전 없음)",
     rowMerkleRoot: "머클 루트",
+    rowStateRoot: "공식 스테이트 루트",
+    rowStateRootTip: "이 블록 이후 컨트랙트 저장소 트라이의 MPT 루트로, StateRoot 서비스에 의해 서명됩니다.",
     rowNextConsensus: "다음 컨센서스",
     rowNextConsensusTip: "다음 컨센서스 노드의 주소",
     rowVersion: "버전",

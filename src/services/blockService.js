@@ -1,4 +1,4 @@
-import { safeRpc, safeRpcList } from "./api";
+import { rpc, safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 
@@ -135,6 +135,35 @@ export const blockService = createService(
       if (Number.isFinite(direct)) return direct;
       if (!res) return 0;
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
+    },
+
+    /**
+     * Fetch the official state root for a block height via the Neo node
+     * `getstateroot` RPC. Returns the `roothash` string, or null on error.
+     *
+     * State roots are produced by the StateRootService and reflect the
+     * MPT root of the contract storage trie at the end of the block.
+     */
+    async getStateRoot(height, options = {}) {
+      const numericHeight = Number(height);
+      if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
+
+      const cacheOpts = getRealtimeListCacheOptions(options);
+      const key = getCacheKey("block_stateroot", { height: numericHeight });
+      return cachedRequest(
+        key,
+        async () => {
+          try {
+            const res = await rpc("getstateroot", [numericHeight], { suppressLog: true });
+            return res?.roothash || res?.rootHash || null;
+          } catch (e) {
+            if (import.meta.env.DEV) console.warn("[blockService] getstateroot failed:", e);
+            return null;
+          }
+        },
+        CACHE_TTL.block,
+        cacheOpts,
+      );
     },
 
     /**

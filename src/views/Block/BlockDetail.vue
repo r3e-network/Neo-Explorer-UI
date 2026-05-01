@@ -196,6 +196,15 @@ function mergeBlockData(raw, info) {
     merged.transactioncount = mergedTxCount;
   }
 
+  // Preserve the official state root across silent refreshes — it's
+  // fetched separately via getstateroot and isn't part of the raw/info
+  // payloads, so it would otherwise be wiped on every auto-refresh tick
+  // and re-flicker into "--" before the next async resolve completes.
+  const sameBlock = Number(block.value?.index) === Number(merged.index);
+  if (sameBlock && block.value?.stateroot && !merged.stateroot) {
+    merged.stateroot = block.value.stateroot;
+  }
+
   return merged;
 }
 
@@ -257,6 +266,19 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
     // Merge info + raw for maximum field coverage
     block.value = mergeBlockData(raw, info);
     error.value = null;
+
+    // Fetch the official state root (non-blocking; not all nodes expose it).
+    if (Number.isFinite(Number(block.value.index))) {
+      blockService
+        .getStateRoot(block.value.index, { forceRefresh })
+        .then((stateroot) => {
+          if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+          if (stateroot) block.value = { ...block.value, stateroot };
+        })
+        .catch((err) => {
+          if (import.meta.env.DEV) console.warn("Block state root fetch failed:", err);
+        });
+    }
 
     // Fetch latest block height for next-button disabled logic
     blockService

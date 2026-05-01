@@ -2126,6 +2126,8 @@ const fr = {
     rowPrevHash: "Hash précédent",
     rowGenesis: "Bloc genèse (aucun précédent)",
     rowMerkleRoot: "Racine de Merkle",
+    rowStateRoot: "Racine d'état officielle",
+    rowStateRootTip: "Racine MPT de l'arbre de stockage des contrats après ce bloc, signée par le service StateRoot",
     rowNextConsensus: "Prochain consensus",
     rowNextConsensusTip: "Adresse du prochain nœud de consensus",
     rowVersion: "Version",

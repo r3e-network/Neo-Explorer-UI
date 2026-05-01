@@ -2130,6 +2130,8 @@ const ja = {
     rowPrevHash: "前ハッシュ",
     rowGenesis: "ジェネシスブロック (前のブロックなし)",
     rowMerkleRoot: "マークルルート",
+    rowStateRoot: "公式ステートルート",
+    rowStateRootTip: "このブロック後のコントラクトストレージトライの MPT ルート。StateRoot サービスにより署名されています。",
     rowNextConsensus: "次のコンセンサス",
     rowNextConsensusTip: "次のコンセンサスノードのアドレス",
     rowVersion: "バージョン",

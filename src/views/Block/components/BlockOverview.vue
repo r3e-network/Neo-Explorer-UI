@@ -165,6 +165,13 @@ const feeTotals = computed(() => {
         </span>
       </InfoRow>
 
+      <!-- State Root -->
+      <InfoRow :label="$t('blockDetail.rowStateRoot')" :tooltip="$t('blockDetail.rowStateRootTip')">
+        <span class="text-high font-mono text-sm break-all">
+          {{ block.stateroot || "--" }}
+        </span>
+      </InfoRow>
+
       <!-- Next Consensus -->
       <InfoRow :label="$t('blockDetail.rowNextConsensus')" :tooltip="$t('blockDetail.rowNextConsensusTip')">
         <HashLink v-if="block.nextconsensus" :hash="scriptHashToAddress(block.nextconsensus)" type="address" :truncated="false" />

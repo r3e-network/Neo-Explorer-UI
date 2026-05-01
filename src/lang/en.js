@@ -2130,6 +2130,8 @@ const en = {
     rowPrevHash: "Previous Hash",
     rowGenesis: "Genesis Block (no previous)",
     rowMerkleRoot: "Merkle Root",
+    rowStateRoot: "Official State Root",
+    rowStateRootTip: "MPT root of the contract storage trie after this block, signed by the StateRoot service",
     rowNextConsensus: "Next Consensus",
     rowNextConsensusTip: "Address of the next consensus node",
     rowVersion: "Version",
