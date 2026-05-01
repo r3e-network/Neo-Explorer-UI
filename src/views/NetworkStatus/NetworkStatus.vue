@@ -233,13 +233,22 @@ function seedStatusDotClass(seed) {
 
 async function refresh() {
   const env = currentEnv();
-  const [healthRes, blocksRes] = await Promise.all([
-    getNetworkHealth(env, STALE_HEIGHT_WINDOW),
-    getLatestBlocks(env),
-  ]);
-  health.value = healthRes;
-  latestBlocks.value = blocksRes;
-  loading.value = false;
+  try {
+    const [healthRes, blocksRes] = await Promise.all([
+      getNetworkHealth(env, STALE_HEIGHT_WINDOW),
+      getLatestBlocks(env),
+    ]);
+    health.value = healthRes;
+    latestBlocks.value = blocksRes;
+  } catch (err) {
+    // Service layer already swallows fetch errors and returns empty
+    // defaults, so this catch is a defensive belt-and-braces guard.
+    // If anything unexpected throws, keep existing data on screen
+    // instead of clearing it — better stale than blank.
+    if (import.meta.env.DEV) console.warn("[networkStatus] refresh failed:", err);
+  } finally {
+    loading.value = false;
+  }
 }
 
 function handleNetworkChange() {
@@ -255,7 +264,9 @@ onMounted(() => {
   void refresh();
   // 30s poll matches the seed-status TTL; the underlying service caches
   // shorter so we never thrash the upstream.
-  pollTimer = setInterval(() => void refresh(), 30 * 1000);
+  pollTimer = setInterval(() => {
+    void refresh();
+  }, 30 * 1000);
 });
 
 onBeforeUnmount(() => {

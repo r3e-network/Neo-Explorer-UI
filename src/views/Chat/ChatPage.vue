@@ -126,16 +126,29 @@ async function loadMessages(roomId) {
 }
 
 async function markRoomRead(roomId) {
-  await chatService.markRoomRead(roomId);
-  const room = rooms.value.find((entry) => entry.roomId === roomId);
-  if (room) room.unreadCount = 0;
-  await refreshNotifications();
+  // Best-effort: a failure here should never block opening a room or
+  // fall through to the bootstrap chain's outer catch (which would
+  // leave the page on "Loading…" forever). If the read-receipt write
+  // fails, the user can still see messages; the unread badge will
+  // self-heal on the next refresh.
+  try {
+    await chatService.markRoomRead(roomId);
+    const room = rooms.value.find((entry) => entry.roomId === roomId);
+    if (room) room.unreadCount = 0;
+    await refreshNotifications();
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[chat] markRoomRead failed:", err);
+  }
 }
 
 async function openRoom(room) {
   const normalized = normalizeRoom(room);
   selectedRoomId.value = normalized.roomId;
-  await loadMessages(normalized.roomId);
+  try {
+    await loadMessages(normalized.roomId);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[chat] loadMessages failed:", err);
+  }
   await markRoomRead(normalized.roomId);
   router.replace({ path: "/chat", query: { room: normalized.roomId } }).catch(() => {});
 }
