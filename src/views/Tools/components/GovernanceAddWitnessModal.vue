@@ -204,17 +204,17 @@ async function submitWitness() {
       } catch { /* not valid base64, will fail hex check below */ }
     }
 
-    if (!sig || sig.length < 128 || !/^[0-9a-f]+$/i.test(sig)) throw new Error("Signature must be 128 hex characters or 64-byte base64.");
-    if (!pk || !isPublicKeyHex(pk)) throw new Error("Valid public key required (66 hex chars).");
+    if (!sig || sig.length < 128 || !/^[0-9a-f]+$/i.test(sig)) throw new Error(t("tools.governance.errors.signatureLengthHexOrBase64"));
+    if (!pk || !isPublicKeyHex(pk)) throw new Error(t("tools.governance.errors.validPublicKeyRequired"));
 
     const addr = publicKeyToAddress(pk);
-    if (!addr) throw new Error("Could not derive address from public key.");
+    if (!addr) throw new Error(t("tools.governance.errors.cannotDeriveAddress"));
 
     // 1. Public key must be a committee member
     const committee = (props.request?.params?.committee_pubkeys || []).map((p) => p.toLowerCase());
-    if (!committee.length) throw new Error("Committee pubkeys not available for this proposal.");
+    if (!committee.length) throw new Error(t("tools.governance.errors.committeeNotAvailable"));
     if (!committee.includes(pk.toLowerCase())) {
-      throw new Error("This public key is not a committee member.");
+      throw new Error(t("tools.governance.errors.notCommitteeMember"));
     }
 
     // 2 & 3. Verify signature against the current transaction using neon-js directly
@@ -222,7 +222,7 @@ async function submitWitness() {
     await ensureNeonJs();
     const freshRequest = await supabaseService.getMultisigRequestById(props.request.id, props.request.network);
     const unsignedTx = freshRequest?.params?.unsigned_tx || props.request?.params?.unsigned_tx;
-    if (!unsignedTx) throw new Error("Proposal has no unsigned transaction.");
+    if (!unsignedTx) throw new Error(t("tools.governance.errors.proposalNoUnsignedTx"));
     const txObj = neonJs.tx.Transaction.deserialize(unsignedTx);
     const txHash = typeof txObj.hash === "function" ? txObj.hash() : txObj.hash;
     const { getRpcClientUrl } = await import("@/utils/env.js");
@@ -237,7 +237,7 @@ async function submitWitness() {
     if (!networkMagic) networkMagic = 860833102;
     const sigPayload = neonJs.u.num2hexstring(networkMagic, 4, true) + neonJs.u.reverseHex(String(txHash).replace(/^0x/i, ""));
     if (!neonJs.wallet.verify(sigPayload, sig, pk)) {
-      throw new Error("Signature does not verify against the transaction. Make sure you signed the correct proposal and your public key matches.");
+      throw new Error(t("tools.governance.errors.signatureDoesNotVerify"));
     }
 
     const payload = buildExternalWitnessPayload({

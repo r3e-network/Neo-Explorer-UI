@@ -691,28 +691,28 @@ function resolveSignerConfig(neonJs) {
 
   if (createForm.value.mode === "lab") {
     if (!props.isGovernanceLabModeAvailable) {
-      throw new Error("Lab mode is only available on testnet.");
+      throw new Error(t("tools.governance.errors.labModeTestnetOnly"));
     }
 
     const signerPubkeys = normalizeSignerPubkeys(createForm.value.labSignerPubkeys);
     if (signerPubkeys.length === 0) {
-      throw new Error("Add at least one signer public key for lab mode.");
+      throw new Error(t("tools.governance.errors.labSignerRequired"));
     }
 
     for (const pubkey of signerPubkeys) {
       if (!isPublicKeyHex(pubkey)) {
-        throw new Error(`Invalid signer public key: ${pubkey}`);
+        throw new Error(t("tools.governance.errors.invalidSignerPubkey", { pubkey }));
       }
     }
 
     const thresholdValue = Number.parseInt(String(createForm.value.labThreshold || ""), 10);
     if (!Number.isFinite(thresholdValue) || thresholdValue < 1 || thresholdValue > signerPubkeys.length) {
-      throw new Error("Lab threshold must be between 1 and the number of signer public keys.");
+      throw new Error(t("tools.governance.errors.invalidLabThreshold"));
     }
 
     const signerAddresses = signerPubkeys.map((pubkey) => new neonJs.wallet.Account(pubkey).address);
     if (!signerAddresses.includes(props.connectedAccount)) {
-      throw new Error("Connected wallet must be included in the lab signer public keys.");
+      throw new Error(t("tools.governance.errors.walletNotInLabSet"));
     }
 
     return {
@@ -833,7 +833,7 @@ function normalizeArg(val, type, neonJs) {
       const arr = JSON.parse(val);
       return neonJs.sc.ContractParam.array(arr.map((i) => neonJs.sc.ContractParam.any(i)));
     } catch {
-      throw new Error("Invalid Array format. Provide a JSON array.");
+      throw new Error(t("tools.governance.errors.invalidArrayFormat"));
     }
   }
   return neonJs.sc.ContractParam.string(val);
@@ -881,7 +881,7 @@ async function handleCreateProposal() {
 
       const args = mDef.params.map((p) => {
         const val = inv.params[p.name];
-        if (val === undefined || val === "") throw new Error(`Missing param: ${p.name} in method ${method}`);
+        if (val === undefined || val === "") throw new Error(t("tools.governance.errors.missingMethodParam", { name: p.name, method }));
         return normalizeArg(val, p.type, neonJs);
       });
 

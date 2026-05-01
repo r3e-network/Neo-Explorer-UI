@@ -573,7 +573,7 @@ function assertSignerIdentityMatches({ signerAddress, signerPublicKey }) {
   if (!normalizedAddress || !normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) return normalizedPublicKey;
   const derivedAddress = publicKeyToAddress(normalizedPublicKey);
   if (derivedAddress && derivedAddress !== normalizedAddress) {
-    throw new Error("Signer address does not match the provided public key.");
+    throw new Error(t("tools.governance.errors.signerAddressMismatch"));
   }
   return normalizedPublicKey;
 }
@@ -581,7 +581,7 @@ function assertSignerIdentityMatches({ signerAddress, signerPublicKey }) {
 async function getGovernanceSigningPayloadHex() {
   if (preparedSigningPayload.value?.payload) return String(preparedSigningPayload.value.payload).trim();
   const unsignedTxHex = String(props.request?.params?.unsigned_tx || "").trim();
-  if (!unsignedTxHex) throw new Error("Missing unsigned transaction payload.");
+  if (!unsignedTxHex) throw new Error(t("tools.governance.errors.missingUnsignedTxPayload"));
   const payload = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
   preparedSigningPayload.value = payload;
   return String(payload?.payload || "").trim();
@@ -591,12 +591,12 @@ async function verifyGovernanceSignature(signatureHex, signerPublicKey) {
   await ensureNeonJs();
   const normalizedSignature = normalizeSignatureHex(signatureHex);
   const normalizedPublicKey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
-  if (!normalizedSignature) throw new Error("Missing signature.");
+  if (!normalizedSignature) throw new Error(t("tools.governance.errors.missingSignature"));
   if (!normalizedPublicKey || !isPublicKeyHex(normalizedPublicKey)) return;
   if (typeof neonJs?.wallet?.verify !== "function") return;
   const signingPayload = await getGovernanceSigningPayloadHex();
   const isValid = neonJs.wallet.verify(signingPayload, normalizedSignature, normalizedPublicKey);
-  if (!isValid) throw new Error("Signature does not match the governance signing payload for this signer.");
+  if (!isValid) throw new Error(t("tools.governance.errors.signatureDoesNotMatchPayload"));
 }
 
 function validateCommitteeMember(signerPublicKey) {
@@ -605,14 +605,14 @@ function validateCommitteeMember(signerPublicKey) {
   const normalizedPubkey = String(signerPublicKey || "").trim().replace(/^0x/i, "");
   if (!normalizedPubkey) return;
   if (!committeePubkeys.includes(normalizedPubkey)) {
-    throw new Error("This signer is not a member of the committee for this proposal.");
+    throw new Error(t("tools.governance.errors.signerNotCommitteeMember"));
   }
 }
 
 async function submitSig(signatureHex, source = "manual_signature", signerOverride = null) {
   const normalizedSignature = normalizeSignatureHex(signatureHex);
   if (!normalizedSignature || normalizedSignature.length < 128) {
-    throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
+    throw new Error(t("tools.governance.errors.invalidSignatureLength"));
   }
   try {
     const requestId = props.request.id;
@@ -662,7 +662,7 @@ async function submitSig(signatureHex, source = "manual_signature", signerOverri
     emit("close");
     emit("signed", { requestId });
   } catch (e) {
-    throw new Error("Failed to submit signature: " + e.message);
+    throw new Error(t("tools.governance.errors.submitSignatureFailed", { reason: e.message }));
   }
 }
 

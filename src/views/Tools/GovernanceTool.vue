@@ -271,7 +271,7 @@ async function handleBroadcast(req) {
     }
 
     if (sortedSignatures.length < getRequestRequiredCount(req)) {
-      throw new Error("Failed to match enough signatures to valid committee members.");
+      throw new Error(t("tools.governance.errors.notEnoughCommitteeSignatures"));
     }
 
     // Construct the MultiSig Invocation script
