@@ -36,10 +36,26 @@ export function useLoadMore(fetchFn, pagination, { onAppend } = {}) {
       if (myId !== requestId) return; // stale response
 
       if (res?.result?.length > 0) {
-        items.value = [...items.value, ...res.result];
+        // Dedup against existing items by a stable identifier — the server
+        // can return overlapping rows when items shifted by 1 between
+        // pages (a new tx/block landed since the previous fetch). Without
+        // this the list would render duplicate rows with the same key,
+        // tripping Vue's :key warnings and inflating "load more"
+        // counts.
+        const seen = new Set(
+          items.value.map((item) => item?.hash ?? item?.txid ?? item?.index ?? item?.id).filter(Boolean),
+        );
+        const fresh = res.result.filter((item) => {
+          const id = item?.hash ?? item?.txid ?? item?.index ?? item?.id;
+          if (id == null) return true;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+        if (fresh.length > 0) items.value = [...items.value, ...fresh];
         currentPage.value = nextPage;
         totalCount.value = res.totalCount || totalCount.value;
-        onAppend?.(res.result);
+        onAppend?.(fresh);
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error("Failed to load more:", err);

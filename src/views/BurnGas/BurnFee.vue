@@ -312,8 +312,10 @@ async function loadData() {
   }
 }
 
-// --- Theme reactivity ---
-watch(isDark, () => {
+// --- Theme + locale reactivity ---
+// Re-render charts on theme toggle AND on locale switch so the x-axis
+// date labels stay in the user's selected language.
+watch([isDark, locale], () => {
   if (!loading.value && dailyData.value.length) {
     renderCharts();
   }

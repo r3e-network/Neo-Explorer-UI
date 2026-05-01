@@ -406,8 +406,12 @@ function changeDays(days) {
   loadData();
 }
 
-// --- Theme reactivity ---
-watch(isDark, () => {
+// --- Theme + locale reactivity ---
+// Re-render charts when the user toggles dark mode OR switches language —
+// without the locale watch the dataset labels, tooltip strings, and
+// formatDateLabel output stayed pinned to the previous locale until a
+// hard refresh.
+watch([isDark, locale], () => {
   if (!loading.value && dailyRows.value.length) {
     renderCharts().catch(() => {});
   }
