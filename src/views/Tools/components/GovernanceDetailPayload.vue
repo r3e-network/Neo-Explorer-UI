@@ -186,9 +186,14 @@
             </div>
             <div class="pb-5">
               <h4 class="text-sm font-bold text-high">{{ $t('inline.copySigningPayload') }}</h4>
-              <p class="mt-1 text-xs text-mid leading-relaxed">
-                Click the <strong>neo-cli JSON</strong> copy button above (next to "Raw Hex") to copy the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">ContractParametersContext</code> JSON to your clipboard.
-              </p>
+              <i18n-t keypath="inline.step2Body" tag="p" class="mt-1 text-xs text-mid leading-relaxed">
+                <template #neoCliJson>
+                  <strong>{{ $t('inline.neoCliJsonLabel') }}</strong>
+                </template>
+                <template #ctxJson>
+                  <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">ContractParametersContext</code>
+                </template>
+              </i18n-t>
             </div>
           </div>
 
@@ -200,9 +205,11 @@
             </div>
             <div class="pb-5">
               <h4 class="text-sm font-bold text-high">{{ $t('inline.signTransactionStep') }}</h4>
-              <p class="mt-1 text-xs text-mid leading-relaxed">
-                Paste the JSON into the <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">sign</code> command:
-              </p>
+              <i18n-t keypath="inline.step3PasteIntoSign" tag="p" class="mt-1 text-xs text-mid leading-relaxed">
+                <template #signCmd>
+                  <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">sign</code>
+                </template>
+              </i18n-t>
               <div class="mt-2 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
                 <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; sign &#123;paste JSON here&#125;</code>
               </div>
@@ -219,11 +226,22 @@
             </div>
             <div>
               <h4 class="text-sm font-bold text-high">{{ $t('inline.submitSignatureStep') }}</h4>
-              <p class="mt-1 text-xs text-mid leading-relaxed">
-                From the signed output, copy your <strong>public key</strong> (the key under <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>) and <strong>signature</strong> (the base64 value). Click "Add Signature" on this page and paste them directly — both hex and base64 formats are accepted.
-              </p>
+              <i18n-t keypath="inline.step4Body" tag="p" class="mt-1 text-xs text-mid leading-relaxed">
+                <template #publicKey>
+                  <strong>{{ $t('inline.publicKeyEmph') }}</strong>
+                </template>
+                <template #signaturesCode>
+                  <code class="font-mono text-[10px] bg-surface-muted px-1 py-0.5 rounded">signatures</code>
+                </template>
+                <template #signature>
+                  <strong>{{ $t('inline.signatureEmph') }}</strong>
+                </template>
+                <template #addSignature>
+                  <strong>{{ $t('inline.addSignatureLabel') }}</strong>
+                </template>
+              </i18n-t>
               <div class="mt-3 rounded-xl bg-slate-950 p-3 dark:bg-black/40">
-                <code class="block font-mono text-[10px] leading-5 text-slate-400">// In the signed output JSON, find:<br /></code>
+                <code class="block font-mono text-[10px] leading-5 text-slate-400">{{ $t('inline.signedOutputComment') }}<br /></code>
                 <code class="block font-mono text-[10px] leading-5 text-emerald-300">"signatures": &#123;<br />&nbsp;&nbsp;"<span class="text-sky-300">your_public_key_hex</span>": "<span class="text-amber-300">base64_signature</span>"<br />&#125;</code>
               </div>
             </div>
