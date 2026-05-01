@@ -340,9 +340,14 @@ watch(
   () => tokens.value,
   async (newTokens) => {
     if (newTokens && newTokens.length) {
-      const hashes = newTokens.map((t) => t.hash).filter(Boolean);
-      const meta = await supabaseService.getContractMetadataBatch(hashes);
-      supabaseMeta.value = meta;
+      try {
+        const hashes = newTokens.map((t) => t.hash).filter(Boolean);
+        const meta = await supabaseService.getContractMetadataBatch(hashes);
+        supabaseMeta.value = meta;
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[tokens] metadata batch failed:", err);
+        supabaseMeta.value = {};
+      }
     } else {
       supabaseMeta.value = {};
     }

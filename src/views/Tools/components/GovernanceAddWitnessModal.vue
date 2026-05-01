@@ -167,7 +167,12 @@ watch(() => props.request, async (req) => {
   submitError.value = "";
   signingPayload.value = null;
 
-  await ensureNeonJs();
+  try {
+    await ensureNeonJs();
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[governanceAddWitness] ensureNeonJs failed:", err);
+    return;
+  }
 
   if (req.params?.unsigned_tx) {
     try {

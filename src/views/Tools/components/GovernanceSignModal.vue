@@ -342,8 +342,12 @@ watch(
 
 watch(connectedAccount, async () => {
   if (!props.request || externalSignerAddress.value || externalSignerPublicKey.value) return;
-  await ensureNeonJs();
-  await prefillExternalWitnessSigner();
+  try {
+    await ensureNeonJs();
+    await prefillExternalWitnessSigner();
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[governanceSignModal] connectedAccount watch failed:", err);
+  }
 });
 
 async function ensureNeonJs() {

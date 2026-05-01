@@ -408,6 +408,7 @@ async function createAccount() {
   txHash.value = "";
 
   try {
+    if (!neonJs) throw new Error(t("tools.governance.toasts.walletLibraryNotLoaded"));
     const aaHash = getAbstractAccountHash();
     if (!aaHash) throw new Error(t("tools.abstractAccount.masterAaNotFound"));
 
