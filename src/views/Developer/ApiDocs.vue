@@ -48,7 +48,7 @@
               "
               @click="activeCategory = category.key"
             >
-              {{ category.label }}
+              {{ $t(`apiDocsPage.categories.${category.key}`) }}
             </button>
           </nav>
         </aside>
@@ -77,7 +77,7 @@
               </div>
 
               <p class="text-mid mb-3 text-sm">
-                {{ method.desc }}
+                {{ $t(`apiDocsPage.methods.${method.name}`) }}
               </p>
 
               <pre
