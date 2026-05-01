@@ -1991,6 +1991,9 @@ const fr = {
       noWalletConnected: "Aucun portefeuille connecté",
       activeWalletNoSwitch: "Le portefeuille actif ne prend pas en charge le changement de compte.",
       signedTxEmpty: "La transaction signée est vide.",
+      walletConnectNotInitialized: "WalletConnect non initialisé",
+      walletConnectNotConnected: "WalletConnect non connecté",
+      walletConnectNoTxid: "WalletConnect n'a renvoyé aucun txid pour l'invocation.",
     },
   },
   header: {

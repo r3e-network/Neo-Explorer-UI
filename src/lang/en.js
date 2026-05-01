@@ -1995,6 +1995,9 @@ const en = {
       noWalletConnected: "No wallet connected",
       activeWalletNoSwitch: "Active wallet does not support account switching.",
       signedTxEmpty: "Signed transaction is empty.",
+      walletConnectNotInitialized: "WalletConnect not initialized",
+      walletConnectNotConnected: "WalletConnect not connected",
+      walletConnectNoTxid: "WalletConnect returned no txid for invoke.",
     },
   },
   header: {

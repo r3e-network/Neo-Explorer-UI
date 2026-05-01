@@ -5,6 +5,15 @@
 
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
+function tWc(key, fallback) {
+  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
+  if (i18n?.global?.t) {
+    const translated = i18n.global.t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return fallback;
+}
+
 const NEO_N3_METHODS = ["invokeFunction", "testInvoke", "signMessage"];
 const NEO_N3_EVENTS = ["accountChanged"];
 
@@ -59,7 +68,7 @@ export const walletConnectService = {
    * @returns {Promise<{ uri: string, approval: Promise }>}
    */
   async connect() {
-    if (!_client) throw new Error("WalletConnect not initialized");
+    if (!_client) throw new Error(tWc("wallet.errors.walletConnectNotInitialized", "WalletConnect not initialized"));
     const { uri, approval } = await _client.connect({
       requiredNamespaces: {
         neo3: {
@@ -79,7 +88,7 @@ export const walletConnectService = {
   },
 
   restoreSession() {
-    if (!_client) throw new Error("WalletConnect not initialized");
+    if (!_client) throw new Error(tWc("wallet.errors.walletConnectNotInitialized", "WalletConnect not initialized"));
     if (_session) return this.account;
 
     const sessions = typeof _client.session?.getAll === "function" ? _client.session.getAll() : [];
@@ -98,7 +107,7 @@ export const walletConnectService = {
    * Invoke a contract method via the connected wallet.
    */
   async signMessage(message) {
-    if (!_session || !_client) throw new Error("WalletConnect not connected");
+    if (!_session || !_client) throw new Error(tWc("wallet.errors.walletConnectNotConnected", "WalletConnect not connected"));
     return await _client.request({
       topic: _session.topic,
       chainId: getActiveChain(),
@@ -113,7 +122,7 @@ export const walletConnectService = {
    * Invoke a contract method via the connected wallet.
    */
   async invoke({ scriptHash, operation, args = [], signerScope = 1 }) {
-    if (!_session || !_client) throw new Error("WalletConnect not connected");
+    if (!_session || !_client) throw new Error(tWc("wallet.errors.walletConnectNotConnected", "WalletConnect not connected"));
     const result = await _client.request({
       topic: _session.topic,
       chainId: getActiveChain(),
@@ -130,7 +139,7 @@ export const walletConnectService = {
     if (result && typeof result === "object" && typeof result.txid === "string") {
       return { txid: result.txid };
     }
-    throw new Error("WalletConnect returned no txid for invoke.");
+    throw new Error(tWc("wallet.errors.walletConnectNoTxid", "WalletConnect returned no txid for invoke."));
   },
 
   disconnect() {

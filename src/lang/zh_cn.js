@@ -1995,6 +1995,9 @@ const zh = {
       noWalletConnected: "未连接钱包",
       activeWalletNoSwitch: "当前钱包不支持账户切换。",
       signedTxEmpty: "已签名的交易为空。",
+      walletConnectNotInitialized: "WalletConnect 未初始化",
+      walletConnectNotConnected: "WalletConnect 未连接",
+      walletConnectNoTxid: "WalletConnect 未为调用返回 txid。",
     },
   },
   header: {

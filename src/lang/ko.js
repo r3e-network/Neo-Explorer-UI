@@ -1995,6 +1995,9 @@ const ko = {
       noWalletConnected: "연결된 지갑이 없습니다",
       activeWalletNoSwitch: "활성 지갑은 계정 전환을 지원하지 않습니다.",
       signedTxEmpty: "서명된 트랜잭션이 비어 있습니다.",
+      walletConnectNotInitialized: "WalletConnect가 초기화되지 않았습니다",
+      walletConnectNotConnected: "WalletConnect가 연결되지 않았습니다",
+      walletConnectNoTxid: "WalletConnect가 invoke에 대한 txid를 반환하지 않았습니다.",
     },
   },
   header: {

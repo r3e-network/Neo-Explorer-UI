@@ -1995,6 +1995,9 @@ const ja = {
       noWalletConnected: "ウォレットが接続されていません",
       activeWalletNoSwitch: "アクティブなウォレットはアカウント切り替えをサポートしていません。",
       signedTxEmpty: "署名済みトランザクションが空です。",
+      walletConnectNotInitialized: "WalletConnect が初期化されていません",
+      walletConnectNotConnected: "WalletConnect が接続されていません",
+      walletConnectNoTxid: "WalletConnect は invoke の txid を返しませんでした。",
     },
   },
   header: {
