@@ -35,33 +35,51 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-async function fetchMempoolFromNode(network, limit) {
-  // Direct-node fallback: hit getrawmempool to get the hash list. We
-  // intentionally don't fan out to getrawtransaction for each hash —
-  // that would be N+1 RPCs and the explorer's mempool view degrades
-  // gracefully when fee/sender fields are missing (renders 0 GAS).
-  // The cron-populated Supabase cache provides the rich data; this
-  // fallback's job is just keeping the count + hash list visible.
-  try {
-    const result = await callWithRpcEndpointFallback(network, async (url) => {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getrawmempool", params: [false] }),
-      });
-      if (!res.ok) throw new Error(`mempool RPC HTTP ${res.status}`);
-      const json = await res.json();
-      if (json?.error) throw new Error(json.error.message || "mempool RPC error");
-      return json?.result;
-    });
+// How many pending txs we'll enrich with getrawtransaction in the fallback
+// path. The full mempool can hold up to 50k entries on Neo nodes, but the
+// explorer UI only needs detail for the visible page (~100). Capping
+// concurrent enrichment keeps a single mempool request under ~1s of
+// upstream load even on a busy network.
+const MEMPOOL_FALLBACK_ENRICH_CAP = 100;
+// Parallelism for getrawtransaction calls during enrichment. Higher =
+// faster fetch, more concurrent open sockets to the node. 8 is a safe
+// balance for a single Vercel function instance.
+const MEMPOOL_FALLBACK_ENRICH_CONCURRENCY = 8;
 
-    const hashes = Array.isArray(result)
-      ? result
-      : Array.isArray(result?.verified) || Array.isArray(result?.unverified)
-        ? [...(result.verified || []), ...(result.unverified || [])]
-        : [];
+async function postRpc(url, method, params, signal) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    signal,
+  });
+  if (!res.ok) throw new Error(`${method} HTTP ${res.status}`);
+  const json = await res.json();
+  if (json?.error) throw new Error(json.error.message || `${method} RPC error`);
+  return json?.result;
+}
 
-    return hashes.slice(0, limit).map((hash) => ({
+async function runWithConcurrency(items, worker, concurrency) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (true) {
+      const idx = cursor++;
+      if (idx >= items.length) return;
+      try {
+        results[idx] = await worker(items[idx], idx);
+      } catch (e) {
+        results[idx] = { __error: e?.message || String(e) };
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+function buildPendingRecord(network, hash, txData = null) {
+  if (!txData || txData.__error) {
+    return {
       hash,
       network,
       sender: "",
@@ -71,7 +89,58 @@ async function fetchMempoolFromNode(network, limit) {
       valid_until_block: 0,
       timestamp: Date.now(),
       status: "pending",
-    }));
+    };
+  }
+  return {
+    hash: txData.hash || hash,
+    network,
+    sender: txData.signers?.[0]?.account || "",
+    size: Number(txData.size) || 0,
+    netfee: Number(txData.netfee) || 0,
+    sysfee: Number(txData.sysfee) || 0,
+    valid_until_block: Number(txData.validuntilblock) || 0,
+    timestamp: Date.now(),
+    status: "pending",
+  };
+}
+
+async function fetchMempoolFromNode(network, limit) {
+  // Direct-node fallback when the Supabase cache is unavailable. We hit
+  // getrawmempool for the hash list, then fan out to getrawtransaction
+  // for the first MEMPOOL_FALLBACK_ENRICH_CAP hashes to enrich each
+  // record with sender / size / fees / validUntilBlock. Hashes beyond
+  // the cap fall back to bare records so the count stays accurate.
+  try {
+    const mempoolResult = await callWithRpcEndpointFallback(network, (url) =>
+      postRpc(url, "getrawmempool", [false]),
+    );
+
+    const hashes = Array.isArray(mempoolResult)
+      ? mempoolResult
+      : Array.isArray(mempoolResult?.verified) || Array.isArray(mempoolResult?.unverified)
+        ? [...(mempoolResult.verified || []), ...(mempoolResult.unverified || [])]
+        : [];
+
+    if (hashes.length === 0) return [];
+
+    const truncated = hashes.slice(0, limit);
+    const enrichSlice = truncated.slice(0, MEMPOOL_FALLBACK_ENRICH_CAP);
+    const tailSlice = truncated.slice(MEMPOOL_FALLBACK_ENRICH_CAP);
+
+    const enriched = await runWithConcurrency(
+      enrichSlice,
+      (hash) =>
+        callWithRpcEndpointFallback(network, (url) =>
+          postRpc(url, "getrawtransaction", [hash, true]),
+        ),
+      MEMPOOL_FALLBACK_ENRICH_CONCURRENCY,
+    );
+
+    const records = enrichSlice.map((hash, i) => buildPendingRecord(network, hash, enriched[i]));
+    for (const hash of tailSlice) {
+      records.push(buildPendingRecord(network, hash, null));
+    }
+    return records;
   } catch (error) {
     console.error("[mempool] node-RPC fallback failed:", error?.message || error);
     return [];
@@ -117,6 +186,12 @@ async function handler(req, res) {
   })) {
     return;
   }
+
+  // Brief edge cache to absorb refresh bursts without hammering Supabase
+  // or the Neo node. Mempool churns ~per-block (~3s on Neo), so 2s is a
+  // sensible upper bound that keeps the view feeling live while letting
+  // the CDN coalesce concurrent visitors.
+  res.setHeader("Cache-Control", "public, max-age=2, s-maxage=2, stale-while-revalidate=10");
 
   // Primary path: Supabase cache populated by the sync_mempool cron.
   const supabase = getSupabaseClient();

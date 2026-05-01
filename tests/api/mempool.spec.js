@@ -88,4 +88,72 @@ describe("mempool API", () => {
     expect(res.statusCode).toBe(400);
     expect(table.from).not.toHaveBeenCalled();
   });
+
+  it("falls back to direct Neo-node RPC and enriches records when Supabase returns empty", async () => {
+    const emptyTable = createMempoolSelectMock({ data: [], error: null });
+
+    // Mock the Neo node: getrawmempool returns 2 hashes, getrawtransaction
+    // enriches each with tx fields.
+    const fetchSpy = vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.method === "getrawmempool") {
+        return new Response(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, result: ["0x111", "0x222"] }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (body.method === "getrawtransaction") {
+        const [hash] = body.params;
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: {
+              hash,
+              size: hash === "0x111" ? 250 : 410,
+              netfee: hash === "0x111" ? "100000" : "200000",
+              sysfee: hash === "0x111" ? "0" : "50000",
+              validuntilblock: 9999999,
+              signers: [{ account: hash === "0x111" ? "Naddr1" : "Naddr2" }],
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    vi.stubEnv("VITE_PUBLIC_RPC_BASE_URL_MAINNET", "https://example-rpc.test/mainnet");
+
+    const mod = await import("../../api/mempool.js");
+    const handler = mod.default || mod;
+    handler._internal.setSupabaseClientForTests({ from: emptyTable.from });
+    const res = createMockRes();
+
+    await handler({
+      method: "GET",
+      query: { network: "mainnet" },
+      headers: {},
+      socket: { remoteAddress: "203.0.113.46" },
+    }, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload.data).toHaveLength(2);
+    expect(res.payload.data[0]).toMatchObject({
+      hash: "0x111",
+      sender: "Naddr1",
+      size: 250,
+      netfee: 100000,
+      status: "pending",
+    });
+    expect(res.payload.data[1]).toMatchObject({
+      hash: "0x222",
+      sender: "Naddr2",
+      size: 410,
+      netfee: 200000,
+      sysfee: 50000,
+    });
+    expect(res.headers["Cache-Control"]).toContain("max-age=2");
+  });
 });
