@@ -14,6 +14,11 @@ export const supabase = null;
 const contractMetadataCache = new Map();
 const addressTagCache = new Map();
 const validatorMetadataCache = new Map();
+// In-flight Promise per network so concurrent getValidatorMetadata()
+// callers (e.g. 25 HashLink mounts on a list page) coalesce onto a
+// single upstream fetch instead of fanning out and racing on the
+// initial cache miss.
+const validatorMetadataPending = new Map();
 
 // In-flight request dedupe + micro-batching (prevents N+1 fetches from leaf components)
 const contractMetadataPending = new Map(); // cacheKey -> Promise<metadata|null>
@@ -114,9 +119,17 @@ const GOVERNANCE_CANDIDATE_INFO_CONTRACTS = Object.freeze({
 const normalizeContractHash = (hash) => {
   const normalized = String(hash || "").trim().toLowerCase();
   if (!normalized) return "";
-  if (normalized.startsWith("0x")) return normalized;
-  if (normalized.length === 40 || normalized.length === 64) return `0x${normalized}`;
-  return normalized;
+  // Strip an existing 0x prefix so we can validate the hex payload uniformly.
+  const hex = normalized.startsWith("0x") ? normalized.slice(2) : normalized;
+  // Only accept actual hex script-hash (20 bytes) or transaction-hash (32 bytes)
+  // values. Inputs that look like Neo base58 addresses (34 chars containing
+  // non-hex letters like n/y/t/k) used to slip through with a `0x` prefix
+  // tacked on, which produced bogus URLs like
+  // `?hashes=0xnldypxacypka...` to the contract metadata endpoint and
+  // wasted bandwidth on guaranteed-empty lookups.
+  if (hex.length !== 40 && hex.length !== 64) return "";
+  if (!/^[0-9a-f]+$/.test(hex)) return "";
+  return `0x${hex}`;
 };
 
 const normalizeAddressKey = (address) => String(address || "").trim();
@@ -618,40 +631,53 @@ export const supabaseService = {
       return cached.data;
     }
 
-    try {
-      const [payload, governanceRows] = await Promise.all([
-        fetchJsonWithTimeoutWithFallback(buildIndexerMetadataUrls(network, "validators")),
-        fetchGovernanceCandidateMetadata(network),
-      ]);
-      const rows = Array.isArray(payload?.data) ? payload.data : [];
-      const normalized = rows
-        .map((item) => {
-          const pubkey = String(item.public_key || item.pubkey || item.publicKey || "").trim();
-          if (!pubkey) return null;
-          const logo = optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "validator" });
-          return {
-            ...item,
-            pubkey,
-            public_key: pubkey,
-            name: String(item.display_name || item.name || "").trim(),
-            display_name: String(item.display_name || item.name || "").trim(),
-            scripthash: String(item.address || item.scripthash || "").trim(),
-            logo,
-            logo_url: logo,
-            logoUrl: logo,
-          };
-        })
-        .filter(Boolean);
+    // Coalesce concurrent callers onto a single upstream fetch. Without
+    // this, a 25-row list page where each HashLink mounts and calls
+    // getValidatorMetadata produces 25 simultaneous fetches.
+    const pending = validatorMetadataPending.get(network);
+    if (pending) return pending;
 
-      const merged = mergeValidatorMetadataWithGovernanceCandidates(normalized, governanceRows);
-      validatorMetadataCache.set(network, { timestamp: Date.now(), data: merged });
-      return merged;
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn("Indexer validator metadata fetch failed:", err);
-      const governanceRows = await fetchGovernanceCandidateMetadata(network);
-      validatorMetadataCache.set(network, { timestamp: Date.now(), data: governanceRows });
-      return governanceRows;
-    }
+    const promise = (async () => {
+      try {
+        const [payload, governanceRows] = await Promise.all([
+          fetchJsonWithTimeoutWithFallback(buildIndexerMetadataUrls(network, "validators")),
+          fetchGovernanceCandidateMetadata(network),
+        ]);
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        const normalized = rows
+          .map((item) => {
+            const pubkey = String(item.public_key || item.pubkey || item.publicKey || "").trim();
+            if (!pubkey) return null;
+            const logo = optimizeLogoUrl(item.logo_url || item.logo || "", { kind: "validator" });
+            return {
+              ...item,
+              pubkey,
+              public_key: pubkey,
+              name: String(item.display_name || item.name || "").trim(),
+              display_name: String(item.display_name || item.name || "").trim(),
+              scripthash: String(item.address || item.scripthash || "").trim(),
+              logo,
+              logo_url: logo,
+              logoUrl: logo,
+            };
+          })
+          .filter(Boolean);
+
+        const merged = mergeValidatorMetadataWithGovernanceCandidates(normalized, governanceRows);
+        validatorMetadataCache.set(network, { timestamp: Date.now(), data: merged });
+        return merged;
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("Indexer validator metadata fetch failed:", err);
+        const governanceRows = await fetchGovernanceCandidateMetadata(network);
+        validatorMetadataCache.set(network, { timestamp: Date.now(), data: governanceRows });
+        return governanceRows;
+      } finally {
+        validatorMetadataPending.delete(network);
+      }
+    })();
+
+    validatorMetadataPending.set(network, promise);
+    return promise;
   },
 
   async getMultisigRequests(networkMode) {

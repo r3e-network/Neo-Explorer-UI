@@ -157,6 +157,7 @@
             <router-link to="/nns" class="mobile-link" @click="closeMobile">{{ $t('header.nnsDomains') }}</router-link>
             <router-link to="/matrix" class="mobile-link" @click="closeMobile">{{ $t('header.matrixDomain') }}</router-link>
             <router-link to="/echarts" class="mobile-link" @click="closeMobile">{{ $t("nav.chartsStats") }}</router-link>
+            <router-link to="/network-status" class="mobile-link" @click="closeMobile">{{ $t("nav.networkStatus") }}</router-link>
             <router-link to="/burn" class="mobile-link" @click="closeMobile">{{ $t("nav.burnedGas") }}</router-link>
             <router-link to="/gas-tracker" class="mobile-link" @click="closeMobile">{{ $t("nav.gasTracker") }}</router-link>
             <router-link to="/api-docs" class="mobile-link" @click="closeMobile">{{ $t("nav.apiDocs") }}</router-link>

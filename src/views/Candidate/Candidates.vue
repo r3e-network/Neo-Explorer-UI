@@ -73,8 +73,15 @@
                       N3
                     </div>
                     <div class="min-w-0 flex flex-col gap-0.5">
+                      <router-link
+                        v-if="(candidate.metaName || getKnownName(candidate.candidate)) && getCandidateAddress(candidate)"
+                        :to="`/account-profile/${getCandidateAddress(candidate)}`"
+                        class="etherscan-link inline-block font-semibold text-sm"
+                      >
+                        {{ candidate.metaName || getKnownName(candidate.candidate) }}
+                      </router-link>
                       <span
-                        v-if="candidate.metaName || getKnownName(candidate.candidate)"
+                        v-else-if="candidate.metaName || getKnownName(candidate.candidate)"
                         class="inline-block font-semibold text-high text-sm"
                       >
                         {{ candidate.metaName || getKnownName(candidate.candidate) }}
@@ -139,7 +146,7 @@ import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
-import { publicKeyToAddress, addressToScriptHash } from "@/utils/neoHelpers";
+import { publicKeyToAddress, scriptHashToAddress, addressToScriptHash } from "@/utils/neoHelpers";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
@@ -291,5 +298,30 @@ function getLogo(candidate) {
 function formatVotes(value) {
   const num = Number(value || 0);
   return Number.isFinite(num) ? num.toLocaleString() : "0";
+}
+
+// Resolve a candidate row to a Neo address suitable for /account-profile/.
+// Tries: explicit address fields → derive from publickey → fall back to
+// the candidate's own identifier if it's already a script hash that
+// converts cleanly. Returns "" when no usable address can be produced.
+function getCandidateAddress(candidate) {
+  const direct = String(candidate?.metaAddress || candidate?.address || candidate?.scripthash || "").trim();
+  if (direct) {
+    if (direct.startsWith("N")) return direct;
+    const fromHash = scriptHashToAddress(direct);
+    if (fromHash) return fromHash;
+  }
+  const pubkey = String(candidate?.publickey || candidate?.metaPubkey || "").trim();
+  if (pubkey) {
+    const fromPub = publicKeyToAddress(pubkey);
+    if (fromPub) return fromPub;
+  }
+  const id = String(candidate?.candidate || "").trim();
+  if (id) {
+    if (id.startsWith("N")) return id;
+    const fromId = scriptHashToAddress(id);
+    if (fromId) return fromId;
+  }
+  return "";
 }
 </script>

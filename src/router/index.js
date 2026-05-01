@@ -57,6 +57,7 @@ const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 
 // New placeholder pages
 const GasTracker = lazyLoad(() => import("../views/GasTracker/GasTracker.vue"));
+const NetworkStatus = lazyLoad(() => import("../views/NetworkStatus/NetworkStatus.vue"));
 const AdvancedSearch = lazyLoad(() => import("../views/Search/AdvancedSearch.vue"));
 const Governance = lazyLoad(() => import("../views/Governance/Governance.vue"));
 const ChatPage = lazyLoad(() => import("../views/Chat/ChatPage.vue"));
@@ -344,6 +345,12 @@ const routes = [
         name: "gasTracker",
         meta: { titleKey: "pageTitles.gasTracker" },
         component: GasTracker,
+      },
+      {
+        path: "/network-status",
+        name: "networkStatus",
+        meta: { titleKey: "pageTitles.networkStatus" },
+        component: NetworkStatus,
       },
       {
         path: "/advanced-search",

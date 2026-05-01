@@ -118,6 +118,7 @@
         <router-link to="/nns" class="dropdown-link">{{ $t('nav.nnsDotNeo') }}</router-link>
         <router-link to="/tools" class="dropdown-link">{{ $t('nav.tools') }}</router-link>
         <router-link to="/echarts" class="dropdown-link">{{ $t("nav.chartsStats") }}</router-link>
+        <router-link to="/network-status" class="dropdown-link">{{ $t("nav.networkStatus") }}</router-link>
         <router-link to="/gas-tracker" class="dropdown-link">{{ $t("nav.gasTracker") }}</router-link>
         <router-link to="/burn" class="dropdown-link">{{ $t("nav.burnedGas") }}</router-link>
       </div>

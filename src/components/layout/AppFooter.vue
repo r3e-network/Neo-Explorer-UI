@@ -74,6 +74,7 @@
           <h3 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">{{ $t("footer.resources") }}</h3>
           <ul class="space-y-2 text-sm">
             <li><router-link to="/echarts" class="footer-link">{{ $t("nav.chartsStats") }}</router-link></li>
+            <li><router-link to="/network-status" class="footer-link">{{ $t("nav.networkStatus") }}</router-link></li>
             <li><router-link to="/gas-tracker" class="footer-link">{{ $t("nav.gasTracker") }}</router-link></li>
             <li><router-link to="/burn" class="footer-link">{{ $t("nav.burnedGas") }}</router-link></li>
             <li><router-link to="/candidates/1" class="footer-link">{{ $t("nav.consensusNodes") }}</router-link></li>

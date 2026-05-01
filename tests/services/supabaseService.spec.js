@@ -73,7 +73,7 @@ describe("supabaseService metadata", () => {
         json: async () => ({
           data: [
             {
-              contract_hash: "0xabc",
+              contract_hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
               display_name: "Indexed Token",
               symbol: "ITK",
               logo_url: "https://example.com/itk.png",
@@ -91,13 +91,13 @@ describe("supabaseService metadata", () => {
 
   it("fetches contract metadata from the indexer endpoint", async () => {
     const { supabaseService } = await import("../../src/services/supabaseService.js");
-    const result = await supabaseService.getContractMetadataBatch(["0xabc"]);
+    const result = await supabaseService.getContractMetadataBatch(["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"]);
 
     expect(fetch).toHaveBeenCalled();
     expect(fetch.mock.calls[0][0]).toContain("/data/mainnet/metadata/contracts");
-    expect(result["0xabc"]?.name).toBe("Indexed Token");
-    expect(result["0xabc"]?.symbol).toBe("ITK");
-    expect(result["0xabc"]?.logo_url).toBe("https://example.com/itk.png");
+    expect(result["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"]?.name).toBe("Indexed Token");
+    expect(result["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"]?.symbol).toBe("ITK");
+    expect(result["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"]?.logo_url).toBe("https://example.com/itk.png");
   });
 
   it("keeps browser service free of direct Supabase table queries", async () => {
@@ -126,7 +126,7 @@ describe("supabaseService metadata", () => {
     );
 
     const { supabaseService } = await import("../../src/services/supabaseService.js");
-    const result = await supabaseService.getContractMetadataBatch(["0xabc"], "testnet");
+    const result = await supabaseService.getContractMetadataBatch(["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"], "testnet");
 
     expect(createClientMock).not.toHaveBeenCalled();
     expect(result).toEqual({});
@@ -164,7 +164,7 @@ describe("supabaseService metadata", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ data: [{ hash: "0xabc", network: "testnet" }] }),
+        json: async () => ({ data: [{ hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", network: "testnet" }] }),
       })
     );
 
@@ -173,7 +173,7 @@ describe("supabaseService metadata", () => {
 
     expect(fetch).toHaveBeenCalledWith("/api/mempool?network=testnet&limit=1000");
     expect(createClientMock).not.toHaveBeenCalled();
-    expect(result).toEqual([{ hash: "0xabc", network: "testnet" }]);
+    expect(result).toEqual([{ hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", network: "testnet" }]);
   });
 
   it("maps script-hash metadata rows back to the requested base58 address", async () => {
