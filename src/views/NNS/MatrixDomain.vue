@@ -17,18 +17,17 @@
               ></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            Live on {{ currentNetworkLabel }}
+            {{ $t('matrixPage.liveOn', { network: currentNetworkLabel }) }}
           </div>
 
           <h1 class="text-balance text-4xl font-black tracking-tight text-white md:text-6xl drop-shadow-sm">
-            Own Your
+            {{ $t('matrixPage.heroTitlePrefix') }}
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">.matrix</span>
-            Identity
+            {{ $t('matrixPage.heroTitleSuffix') }}
           </h1>
 
           <p class="text-base text-white/70 md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
-            The permanent, feeless naming layer for the Neo N3 network. Register your human-readable domain once, and
-            own it forever. No renewal fees.
+            {{ $t('matrixPage.heroSubtitle') }}
           </p>
         </div>
       </div>
@@ -73,12 +72,12 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            {{ searching ? "Searching..." : "Search" }}
+            {{ searching ? $t('matrixPage.searching') : $t('matrixPage.searchButton') }}
           </button>
         </div>
       </div>
       <p class="text-sm text-mid mt-4 text-center font-medium">
-        Domain must end strictly with
+        {{ $t('matrixPage.domainSuffixPrefix') }}
         <code class="bg-surface-muted px-1.5 py-0.5 rounded text-emerald-600 dark:text-emerald-400">.matrix</code>
       </p>
     </section>

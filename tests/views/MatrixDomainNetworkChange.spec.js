@@ -76,12 +76,12 @@ describe("MatrixDomain network changes", () => {
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
 
-    const searchButton = wrapper.findAll('button').find((node) => node.text().includes('Search'));
+    const searchButton = wrapper.findAll('button').find((node) => node.text().includes('matrixPage.searchButton'));
     await searchButton.trigger("click");
     await flushPromises();
 
     expect(getMatrixDomainProfile).toHaveBeenCalledWith("hello.matrix");
-    expect(wrapper.text()).toContain("Live on Testnet");
+    expect(wrapper.text()).toContain("matrixPage.liveOn");
 
     wrapper.unmount();
   });

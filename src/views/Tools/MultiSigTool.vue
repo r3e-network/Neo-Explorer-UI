@@ -832,14 +832,14 @@ async function handleCreateRequest() {
       .split(",")
       .map((p) => p.trim())
       .filter((p) => p);
-    if (pubkeys.length === 0) throw new Error("Need at least 1 public key");
+    if (pubkeys.length === 0) throw new Error(t("tools.multisig.errors.needAtLeastOnePubkey"));
 
     // Sort public keys lexically (standard for multisig)
     pubkeys.sort((a, b) => a.localeCompare(b));
 
     const threshold = parseInt(createForm.value.threshold);
     if (threshold < 1 || threshold > pubkeys.length) {
-      throw new Error("Invalid threshold");
+      throw new Error(t("tools.multisig.errors.invalidThreshold"));
     }
 
     const mAccount = neonJs.wallet.Account.createMultiSig(threshold, pubkeys);
@@ -855,7 +855,7 @@ async function handleCreateRequest() {
         args = parsed.map((a) => neonJs.sc.ContractParam.fromJson(a));
       }
     } catch {
-      throw new Error("Invalid args JSON");
+      throw new Error(t("tools.multisig.errors.invalidArgsJson"));
     }
 
     let target = createForm.value.targetContract;
@@ -945,7 +945,7 @@ async function submitManualSignature() {
 
 async function submitSig(signatureHex) {
   if (!signatureHex || signatureHex.length < 128) {
-    throw new Error("Invalid signature length. Expected at least 64 bytes (128 hex chars).");
+    throw new Error(t("tools.multisig.errors.invalidSignatureLength"));
   }
   try {
     const res = await supabaseService.addMultisigSignature(signModalReq.value.id, connectedAccount.value, signatureHex);
@@ -955,7 +955,7 @@ async function submitSig(signatureHex) {
     signModalReq.value = null;
     await loadRequests();
   } catch (e) {
-    throw new Error("Failed to submit signature: " + e.message);
+    throw new Error(t("tools.multisig.errors.submitSignatureFailed", { reason: e.message }));
   }
 }
 
@@ -982,7 +982,7 @@ async function handleBroadcast(req) {
     }
 
     if (sortedSignatures.length < req.signers_required) {
-      throw new Error("Failed to match enough signatures.");
+      throw new Error(t("tools.multisig.errors.notEnoughSignatures"));
     }
 
     const builder = new neonJs.sc.ScriptBuilder();

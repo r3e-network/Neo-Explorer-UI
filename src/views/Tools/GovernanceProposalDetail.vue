@@ -721,7 +721,7 @@ async function handleBroadcast(currentProposal) {
     }
 
     if (orderedSignatures.length < currentProposal.signers_required) {
-      throw new Error("Not enough valid council signatures collected.");
+      throw new Error(t("tools.governance.toasts.notEnoughCouncilSignatures"));
     }
 
     const builder = new neonJs.sc.ScriptBuilder();

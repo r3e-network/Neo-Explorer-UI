@@ -397,7 +397,7 @@ function _pushInt(target, num) {
   else if (byteCount <= 8) opcode = 0x03; // PUSHINT64
   else if (byteCount <= 16) opcode = 0x04; // PUSHINT128
   else if (byteCount <= 32) opcode = 0x05; // PUSHINT256
-  else throw new Error("Integer value too large for Neo VM (max 256 bits)");
+  else throw new Error(t("tools.abiEncoder.errors.integerTooLarge"));
 
   const sizes = [1, 2, 4, 8, 16, 32];
   const size = sizes[opcode];
@@ -422,14 +422,14 @@ function _encodeParam(target, param) {
       break;
     }
     case "Integer": {
-      if (!/^-?\d+$/.test(v)) throw new Error(`Invalid integer: "${v}"`);
+      if (!/^-?\d+$/.test(v)) throw new Error(t("tools.abiEncoder.errors.invalidInteger", { value: v }));
       _pushInt(target, BigInt(v));
       break;
     }
     case "Hash160": {
       const hex = v.replace(/^0x/i, "");
       if (!/^[0-9a-fA-F]{40}$/.test(hex))
-        throw new Error("Hash160 requires exactly 40 hex characters");
+        throw new Error(t("tools.abiEncoder.errors.hash160Length"));
       // Reverse to little-endian script-hash byte order
       const bytes = _hexToBytes(hex);
       _pushData(target, Uint8Array.from(bytes).reverse());
@@ -438,7 +438,7 @@ function _encodeParam(target, param) {
     case "Hash256": {
       const hex = v.replace(/^0x/i, "");
       if (!/^[0-9a-fA-F]{64}$/.test(hex))
-        throw new Error("Hash256 requires exactly 64 hex characters");
+        throw new Error(t("tools.abiEncoder.errors.hash256Length"));
       const bytes = _hexToBytes(hex);
       _pushData(target, Uint8Array.from(bytes).reverse());
       break;
@@ -446,14 +446,14 @@ function _encodeParam(target, param) {
     case "ByteArray": {
       const hex = v.replace(/^0x/i, "");
       if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0)
-        throw new Error("ByteArray requires an even-length hex string");
+        throw new Error(t("tools.abiEncoder.errors.byteArrayEvenLength"));
       _pushData(target, _hexToBytes(hex));
       break;
     }
     case "PublicKey": {
       const hex = v.replace(/^0x/i, "");
       if (!/^[0-9a-fA-F]{66}$/.test(hex))
-        throw new Error("PublicKey requires exactly 66 hex characters (33 bytes)");
+        throw new Error(t("tools.abiEncoder.errors.publicKeyLength"));
       _pushData(target, _hexToBytes(hex));
       break;
     }
@@ -481,7 +481,7 @@ function _encodeParam(target, param) {
       break;
     }
     default:
-      throw new Error(`Unsupported parameter type: ${param.type}`);
+      throw new Error(t("tools.abiEncoder.errors.unsupportedParamType", { type: param.type }));
   }
 }
 

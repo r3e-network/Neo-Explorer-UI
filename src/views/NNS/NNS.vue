@@ -10,11 +10,10 @@
             class="mb-6 justify-center !text-white/70"
           />
           <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-5xl mb-4">
-            Discover Your <span class="text-primary-400">.neo</span> Identity
+            {{ $t('nnsPage.heroTitlePrefix') }}<span class="text-primary-400">.neo</span>{{ $t('nnsPage.heroTitleSuffix') }}
           </h1>
           <p class="max-w-2xl mx-auto text-base text-white/70 mb-8">
-            Search, register, and manage human-readable Neo Name Service domains. Replace long complex hashes with a
-            simple, recognizable name.
+            {{ $t('nnsPage.heroSubtitle') }}
           </p>
 
           <div class="flex justify-center items-center gap-3">
@@ -29,7 +28,7 @@
               v-else
               class="text-sm font-medium text-white/80 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20"
             >
-              Connect wallet from header to register/manage domains
+              {{ $t('nnsPage.connectToManage') }}
             </span>
           </div>
         </div>

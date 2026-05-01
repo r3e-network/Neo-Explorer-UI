@@ -265,7 +265,7 @@ async function createRpcClient(endpoint) {
   const sdk = (await loadNeonJs()) || window.Neon;
   const RpcClient = sdk?.rpc?.RPCClient;
   if (typeof RpcClient !== "function") {
-    throw new Error("Neo RPC client is not available.");
+    throw new Error(t("tools.sponsored.statusMessages.rpcUnavailable"));
   }
   return new RpcClient(endpoint);
 }
@@ -274,7 +274,7 @@ async function createAccount(value) {
   const sdk = (await loadNeonJs()) || window.Neon;
   const Account = sdk?.wallet?.Account;
   if (typeof Account !== "function") {
-    throw new Error("Neo account helper is not available.");
+    throw new Error(t("tools.sponsored.statusMessages.accountHelperUnavailable"));
   }
   return new Account(value);
 }
@@ -375,7 +375,7 @@ async function executeSponsoredTx() {
       body: JSON.stringify({ action: "info" }),
     });
 
-    if (!sponsorInfoRes.ok) throw new Error("Could not fetch sponsor info. Backend might not be configured.");
+    if (!sponsorInfoRes.ok) throw new Error(t("tools.sponsored.statusMessages.sponsorInfoFailed"));
     const sponsorInfo = await sponsorInfoRes.json();
     const sponsorScriptHash = (await createAccount(sponsorInfo.sponsorAddress)).scriptHash;
     const userScriptHash = (await createAccount(connectedAccount.value)).scriptHash;
@@ -423,7 +423,7 @@ async function executeSponsoredTx() {
         });
       }
     } catch (e) {
-      throw new Error(e.description || e.message || "User rejected signature.");
+      throw new Error(e.description || e.message || t("tools.sponsored.statusMessages.userRejectedSignature"));
     }
 
     // 3. Send the partially signed transaction to Vercel backend to get Sponsor signature & broadcast
@@ -444,7 +444,7 @@ async function executeSponsoredTx() {
 
     if (!signRes.ok) {
       const err = await signRes.json();
-      throw new Error(err.error || "Failed to broadcast via sponsor");
+      throw new Error(err.error || t("tools.sponsored.statusMessages.broadcastFailed"));
     }
 
     const finalResult = await signRes.json();

@@ -409,7 +409,7 @@ async function createAccount() {
 
   try {
     const aaHash = getAbstractAccountHash();
-    if (!aaHash) throw new Error("Master Abstract Account contract not found in environment config.");
+    if (!aaHash) throw new Error(t("tools.abstractAccount.masterAaNotFound"));
 
     const accountIdHex = normalizeAccountId(uuid.value);
 
@@ -454,7 +454,7 @@ async function createAccount() {
     if (!deployedTxId && result?.result?.txid) deployedTxId = result.result.txid;
 
     if (!deployedTxId) {
-      throw new Error("No txid returned from wallet");
+      throw new Error(t("tools.abstractAccount.noTxidFromWallet"));
     }
 
     txHash.value = deployedTxId;

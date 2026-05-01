@@ -79,7 +79,7 @@ describe("MatrixDomain registration", () => {
     });
 
     await wrapper.find('input[type="text"]').setValue("hello");
-    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("Search"));
+    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("matrixPage.searchButton"));
     await searchButton.trigger("click");
     await flushPromises();
 
@@ -120,7 +120,7 @@ describe("MatrixDomain registration", () => {
     });
 
     await wrapper.find('input[type="text"]').setValue("averyveryveryveryveryveryveryveryverylongdomainname");
-    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("Search"));
+    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("matrixPage.searchButton"));
     await searchButton.trigger("click");
     await flushPromises();
 
@@ -152,7 +152,7 @@ describe("MatrixDomain registration", () => {
     });
 
     await wrapper.find('input[type="text"]').setValue("hello");
-    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("Search"));
+    const searchButton = wrapper.findAll("button").find((node) => node.text().includes("matrixPage.searchButton"));
     await searchButton.trigger("click");
     await flushPromises();
 
