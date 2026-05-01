@@ -87,6 +87,14 @@ export const blockService = createService(
       buildParams: ([height, limit = 20, skip = 0]) => ({ BlockHeight: height, Limit: limit, Skip: skip }),
       buildCacheParams: ([height, limit = 20, skip = 0]) => ({ height, limit, skip }),
     },
+    getStateRootRaw: {
+      cacheKey: "block_stateroot",
+      rpcMethod: "GetStateRoot",
+      fallback: null,
+      ttl: CACHE_TTL.block,
+      buildParams: ([height]) => ({ BlockHeight: Number(height) }),
+      buildCacheParams: ([height]) => ({ height: Number(height) }),
+    },
   },
   {
     _computeTransactionFeeTotals(transactions = []) {
@@ -138,18 +146,31 @@ export const blockService = createService(
     },
 
     /**
-     * Fetch the official state root for a block height via the Neo node
-     * `getstateroot` RPC. Returns the `roothash` string, or null on error.
+     * Fetch the official state root for a block height. Primary path is
+     * neo3fura's `GetStateRoot` (which proxies the Neo node's
+     * `getstateroot`). Falls back to a direct node RPC call if the
+     * neo3fura method is unavailable (e.g. during a backend rollout
+     * window before the new handler is deployed).
      *
      * State roots are produced by the StateRootService and reflect the
      * MPT root of the contract storage trie at the end of the block.
+     * Returns the `roothash` string or null.
      */
     async getStateRoot(height, options = {}) {
       const numericHeight = Number(height);
       if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
 
+      try {
+        const res = await this.getStateRootRaw(numericHeight, options);
+        const roothash = res?.roothash || res?.rootHash;
+        if (roothash) return roothash;
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot via neo3fura failed, falling back:", e);
+      }
+
+      // Fallback: direct node RPC (lowercase getstateroot) via the same proxy.
       const cacheOpts = getRealtimeListCacheOptions(options);
-      const key = getCacheKey("block_stateroot", { height: numericHeight });
+      const key = getCacheKey("block_stateroot_node", { height: numericHeight });
       return cachedRequest(
         key,
         async () => {
@@ -157,7 +178,7 @@ export const blockService = createService(
             const res = await rpc("getstateroot", [numericHeight], { suppressLog: true });
             return res?.roothash || res?.rootHash || null;
           } catch (e) {
-            if (import.meta.env.DEV) console.warn("[blockService] getstateroot failed:", e);
+            if (import.meta.env.DEV) console.warn("[blockService] getstateroot fallback failed:", e);
             return null;
           }
         },
