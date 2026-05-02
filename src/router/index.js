@@ -479,10 +479,17 @@ const router = createRouter({
   linkActiveClass: "active",
   routes,
   scrollBehavior(_to, _from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition;
-    }
-    return { top: 0 };
+    // Wait for the next animation frame so the browser has committed
+    // layout for the freshly rendered page before vue-router calls
+    // window.scrollTo. Without this, the perf trace shows ~200ms of
+    // forced reflow on initial navigation as scrollToPosition runs
+    // mid-render. Microtask-only deferral (vue-router's default
+    // nextTick) doesn't include a layout pass.
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        resolve(savedPosition || { top: 0 });
+      });
+    });
   },
 });
 
