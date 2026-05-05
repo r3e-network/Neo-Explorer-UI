@@ -92,7 +92,7 @@
                   v-if="isOffchainReviewPacket(req)"
                   class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-400"
                 >
-                  Off-chain Review
+                  {{ $t("tools.governance.offchainReviewBadge") }}
                 </span>
                 <span
                   class="inline-flex items-center rounded-full border border-line-soft bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-low dark:bg-slate-950/50"
@@ -199,16 +199,16 @@
                   </div>
                   <div v-else class="space-y-2">
                     <div v-if="isOffchainReviewPacket(req)" class="text-sm text-mid">
-                      This packet is for off-chain witness collection only. Regenerate a fresh on-chain transaction before broadcast.
+                      {{ $t("tools.governance.progressDescOffchain") }}
                     </div>
                     <button
                       @click="emit('add-witness', req)"
                       class="w-full px-4 py-2.5 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 transition-colors"
                     >
-                      Add Signature / Witness
+                      {{ $t("tools.governance.addSignatureWitnessButton") }}
                     </button>
                     <p class="text-xs text-mid">
-                      Sign the governance payload offline, then paste your public key and signature here.
+                      {{ $t("tools.governance.signGovPayloadHint") }}
                     </p>
                     <button
                       :data-testid="`governance-list-fork-${req.id}`"

@@ -72,11 +72,11 @@
           <table class="etherscan-table min-w-full" :aria-label="$t('tools.mempool.tableAriaLabel')">
             <thead>
               <tr>
-                <th class="w-1/4">{{ $t('tools.mempool.tableHash') }}</th>
-                <th>{{ $t('tools.mempool.tableTime') }}</th>
-                <th>{{ $t('tools.mempool.tableSender') }}</th>
-                <th class="text-right">{{ $t('tools.mempool.tableFee') }}</th>
-                <th class="text-right">{{ $t('tools.mempool.tableSize') }}</th>
+                <th scope="col" class="w-1/4">{{ $t('tools.mempool.tableHash') }}</th>
+                <th scope="col">{{ $t('tools.mempool.tableTime') }}</th>
+                <th scope="col">{{ $t('tools.mempool.tableSender') }}</th>
+                <th scope="col" class="text-right">{{ $t('tools.mempool.tableFee') }}</th>
+                <th scope="col" class="text-right">{{ $t('tools.mempool.tableSize') }}</th>
               </tr>
             </thead>
             <tbody>

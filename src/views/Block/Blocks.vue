@@ -109,8 +109,8 @@
           <table class="w-full min-w-[800px]" :aria-label="$t('blocks.ariaLabel')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell">{{ $t("blocks.table.block") }}</th>
-                <th
+                <th scope="col" class="table-header-cell">{{ $t("blocks.table.block") }}</th>
+                <th scope="col"
                   class="table-header-cell cursor-pointer select-none hover:text-primary-500"
                   @click="showAbsoluteTime = !showAbsoluteTime"
                 >
@@ -124,9 +124,9 @@
                     />
                   </svg>
                 </th>
-                <th class="table-header-cell">{{ $t("blocks.table.txn") }}</th>
-                <th class="table-header-cell">{{ $t("blocks.table.validator") }}</th>
-                <th class="table-header-cell-right">{{ $t("blocks.table.size") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("blocks.table.txn") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("blocks.table.validator") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("blocks.table.size") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

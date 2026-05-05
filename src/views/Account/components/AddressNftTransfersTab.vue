@@ -16,18 +16,16 @@
       <p class="text-mid text-sm">{{ $t("addressDetail.latestNep11", { count: transfers.length }) }}</p>
       <div class="surface-panel overflow-x-auto">
         <table class="w-full min-w-[850px]" :aria-label="$t('addressDetail.nftTransfersTableAria')">
-          <caption class="sr-only">
-            NEP-11 transfer records involving this address
-          </caption>
+          <caption class="sr-only">{{ $t("addressDetail.nftTransfersCaption") }}</caption>
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
-              <th class="table-header-cell w-16 text-center"></th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTokenId") }}</th>
-              <th class="table-header-cell">{{ $t("addressDetail.colCollection") }}</th>
+              <th scope="col" class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
+              <th scope="col" class="table-header-cell w-16 text-center"></th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTokenId") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("addressDetail.colCollection") }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">

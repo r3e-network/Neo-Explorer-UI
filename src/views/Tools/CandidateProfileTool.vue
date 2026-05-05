@@ -211,6 +211,7 @@
                 />
                 <button
                   @click="form.logoUrl = ''"
+                  :aria-label="$t('tools.candidateProfile.removeLogoAria')"
                   class="absolute top-2 right-2 text-red-500 hover:text-red-600 bg-surface rounded-full p-1 border border-line-soft"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

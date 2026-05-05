@@ -59,10 +59,10 @@
         <table class="w-full min-w-[500px]">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-8">#</th>
-              <th v-if="hasParamNames" class="table-header-cell">{{ $t('enrichedNotif.colName') }}</th>
-              <th class="table-header-cell w-28">{{ $t('enrichedNotif.colType') }}</th>
-              <th class="table-header-cell">{{ $t('enrichedNotif.colDecodedValue') }}</th>
+              <th scope="col" class="table-header-cell w-8">#</th>
+              <th scope="col" v-if="hasParamNames" class="table-header-cell">{{ $t('enrichedNotif.colName') }}</th>
+              <th scope="col" class="table-header-cell w-28">{{ $t('enrichedNotif.colType') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('enrichedNotif.colDecodedValue') }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">

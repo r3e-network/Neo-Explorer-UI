@@ -5,9 +5,15 @@
       :style="'font-size:' + fontSize + 'px'"
     >
       <span
-        @click="toggleClose"
-        :class="['angle', innerclosed ? 'closed' : '']"
         v-if="length"
+        role="button"
+        tabindex="0"
+        :aria-label="$t('aria.toggleSection')"
+        :aria-expanded="!innerclosed"
+        :class="['angle', innerclosed ? 'closed' : '']"
+        @click="toggleClose"
+        @keydown.enter.prevent="toggleClose"
+        @keydown.space.prevent="toggleClose"
       >
       </span>
       <div class="content-wrap">

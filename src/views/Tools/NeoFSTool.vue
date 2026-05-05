@@ -469,13 +469,18 @@
           </div>
           <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
             <div
-              class="border-2 border-dashed border-line-soft rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all"
+              role="button"
+              tabindex="0"
+              :aria-label="$t('tools.neofs.clickToBrowse')"
+              class="border-2 border-dashed border-line-soft rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500"
               :class="
                 selectedFile
                   ? 'border-cyan-500 bg-cyan-50/30 dark:bg-cyan-900/10'
                   : 'hover:bg-surface-muted hover:border-cyan-400'
               "
               @click="$refs.fileInput.click()"
+              @keydown.enter.prevent="$refs.fileInput.click()"
+              @keydown.space.prevent="$refs.fileInput.click()"
             >
               <input type="file" ref="fileInput" class="hidden" @change="onFileSelected" />
 

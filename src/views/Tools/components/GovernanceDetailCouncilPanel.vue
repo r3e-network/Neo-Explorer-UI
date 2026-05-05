@@ -5,7 +5,7 @@
         <div>
           <h2 class="text-lg font-black text-high tracking-tight">{{ $t('stateChange.councilVoteStatus') }}</h2>
           <p class="mt-1.5 text-xs text-mid max-w-[250px] leading-relaxed">
-            Track which eligible council members have signed the governance payload.
+            {{ $t('tools.governance.councilVoteStatusDesc') }}
           </p>
         </div>
         <span

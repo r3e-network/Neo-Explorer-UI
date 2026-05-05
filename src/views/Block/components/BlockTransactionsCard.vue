@@ -47,16 +47,14 @@ function getNetworkFee(tx) {
     <!-- Tx Table -->
     <div v-else class="surface-panel overflow-x-auto">
       <table class="w-full min-w-[700px]" :aria-label="$t('aria.blockTransactionsTable')">
-        <caption class="sr-only">
-          Transactions included in this block
-        </caption>
+        <caption class="sr-only">{{ $t("blockDetail.txTableCaption") }}</caption>
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
-            <th class="table-header-cell">{{ $t("transactionsPage.colSender") }}</th>
-            <th class="table-header-cell-right">{{ $t("transactionsPage.colSystemFee") }}</th>
-            <th class="table-header-cell-right">{{ $t("transactionsPage.colNetFee") }}</th>
-            <th class="table-header-cell-right">{{ $t("transactionsPage.colSize") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colSender") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("transactionsPage.colSystemFee") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("transactionsPage.colNetFee") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("transactionsPage.colSize") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

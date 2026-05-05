@@ -5,14 +5,13 @@
         <div>
           <h2 class="text-xl font-black text-high tracking-tight">{{ $t('tools.governance.proposalPayload') }}</h2>
           <p class="mt-1.5 text-sm text-mid max-w-xl leading-relaxed">
-            The decoded transaction packet and its supporting witness signatures that council members are mathematically
-            validating.
+            {{ $t('tools.governance.proposalPayloadDesc') }}
           </p>
         </div>
         <span
           class="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-800/30 dark:text-indigo-400"
         >
-          Governance Packet
+          {{ $t('tools.governance.governancePacket') }}
         </span>
       </div>
     </div>
@@ -70,13 +69,13 @@
           <div>
             <h3 class="text-lg font-black tracking-tight text-high">{{ $t('tools.governance.atomicInvocationPlan') }}</h3>
             <p class="mt-1 text-sm text-mid">
-              This governance packet chains multiple native-contract calls into one threshold-signed transaction.
+              {{ $t('tools.governance.atomicInvocationPlanDesc') }}
             </p>
           </div>
           <span
             class="inline-flex items-center rounded-full border border-line-soft bg-surface px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-low"
           >
-            {{ proposalInvocations.length }} Calls
+            {{ $t('tools.governance.calls', { count: proposalInvocations.length }) }}
           </span>
         </div>
 
@@ -106,7 +105,7 @@
             </div>
 
             <div class="mt-3 space-y-2">
-              <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">Parameters</div>
+              <div class="text-[10px] uppercase tracking-[0.15em] font-bold text-low">{{ $t('tools.governance.parameters') }}</div>
               <div
                 v-for="(paramValue, paramName) in invocation.params"
                 :key="`${invocation.index}-${paramName}`"
@@ -144,7 +143,7 @@
             </div>
             <div>
               <h3 class="text-sm font-black tracking-tight text-amber-800 dark:text-amber-400">{{ $t('inline.howToSignNeoCli') }}</h3>
-              <p class="mt-0.5 text-xs text-amber-700/70 dark:text-amber-400/60">Step-by-step guide for council members to sign this proposal offline</p>
+              <p class="mt-0.5 text-xs text-amber-700/70 dark:text-amber-400/60">{{ $t('inline.howToSignNeoCliSubtitle') }}</p>
             </div>
           </div>
           <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 transition-transform shrink-0" :class="{ 'rotate-180': showSigningGuide }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +161,7 @@
             <div class="pb-5">
               <h4 class="text-sm font-bold text-high">{{ $t('inline.openCouncilWallet') }}</h4>
               <p class="mt-1 text-xs text-mid leading-relaxed">
-                Start neo-cli, open your council member wallet, then import the committee multisig address. neo-cli requires the multisig address to be imported before signing.
+                {{ $t('inline.step1Body') }}
               </p>
               <div class="mt-2 rounded-xl bg-slate-950 p-3 overflow-x-auto dark:bg-black/40">
                 <code class="block font-mono text-[11px] leading-5 text-emerald-300">neo&gt; open wallet council.json<br />password: ********</code>

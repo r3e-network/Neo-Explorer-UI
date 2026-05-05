@@ -102,13 +102,13 @@
           <table class="w-full min-w-[960px]" :aria-label="$t('governancePage.tableAria')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">{{ $t('governancePage.colCouncilNode') }}</th>
-                <th class="table-header-cell-right">{{ $t('governancePage.colVotes') }}</th>
-                <th class="table-header-cell-right">{{ $t('governancePage.colLiveness') }}</th>
-                <th class="table-header-cell-right">{{ $t('governancePage.colMonthlyGas') }}</th>
-                <th class="table-header-cell-right">{{ $t('governancePage.colApr') }}</th>
-                <th class="table-header-cell-right">{{ $t('governancePage.colAction') }}</th>
+                <th scope="col" class="table-header-cell w-16">#</th>
+                <th scope="col" class="table-header-cell">{{ $t('governancePage.colCouncilNode') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('governancePage.colVotes') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('governancePage.colLiveness') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('governancePage.colMonthlyGas') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('governancePage.colApr') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('governancePage.colAction') }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

@@ -28,8 +28,8 @@
         <table class="w-full text-sm">
           <thead class="bg-surface-elevated text-mid border-b border-line-soft">
             <tr>
-              <th class="px-4 py-3 text-left font-semibold">{{ $t("addressDetail.colVoterAddress") }}</th>
-              <th class="px-4 py-3 text-right font-semibold">{{ $t("addressDetail.colVotes") }}</th>
+              <th scope="col" class="px-4 py-3 text-left font-semibold">{{ $t("addressDetail.colVoterAddress") }}</th>
+              <th scope="col" class="px-4 py-3 text-right font-semibold">{{ $t("addressDetail.colVotes") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-line-soft">

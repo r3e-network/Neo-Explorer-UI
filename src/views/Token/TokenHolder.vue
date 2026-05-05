@@ -21,10 +21,10 @@
         <table class="w-full min-w-[700px]" :aria-label="$t('aria.tokenHoldersTable')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">{{ $t("tokenDetail.colRank") }}</th>
-              <th class="table-header-cell">{{ $t("tokenDetail.colAddress") }}</th>
-              <th class="table-header-cell-right">{{ $t("tokenDetail.colBalance") }}</th>
-              <th class="table-header-cell-right">{{ $t("tokenDetail.colPercentage") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("tokenDetail.colRank") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("tokenDetail.colAddress") }}</th>
+              <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.colBalance") }}</th>
+              <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.colPercentage") }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">

@@ -92,13 +92,19 @@
               <div
                 v-for="(cfg, idx) in savedConfigs"
                 :key="idx"
-                class="p-3 border border-line-soft rounded-xl hover:border-blue-400 transition-colors cursor-pointer group bg-surface"
+                role="button"
+                tabindex="0"
+                :aria-label="$t('tools.multisig.loadConfigAria', { name: cfg.name })"
+                class="p-3 border border-line-soft rounded-xl hover:border-blue-400 transition-colors cursor-pointer group bg-surface focus:outline-none focus:ring-2 focus:ring-blue-500"
                 @click="loadConfig(cfg)"
+                @keydown.enter.prevent="loadConfig(cfg)"
+                @keydown.space.prevent="loadConfig(cfg)"
               >
                 <div class="flex items-center justify-between mb-1">
                   <span class="font-semibold text-sm text-high group-hover:text-blue-600">{{ cfg.name }}</span>
                   <button
                     @click.stop="deleteConfig(idx)"
+                    :aria-label="$t('tools.multisig.deleteConfigAria')"
                     class="text-low hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,10 +179,11 @@
 
                   <div class="flex items-center gap-4">
                     <div class="flex-1">
-                      <label class="block text-sm font-medium text-high mb-1">{{
+                      <label for="multisig-required-threshold" class="block text-sm font-medium text-high mb-1">{{
                         $t("tools.multisig.requiredSignatures")
                       }}</label>
                       <input
+                        id="multisig-required-threshold"
                         v-model="createForm.threshold"
                         type="number"
                         class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"

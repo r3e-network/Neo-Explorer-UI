@@ -106,10 +106,10 @@
                 <caption class="sr-only">{{ $t("txDetail.logsCaptionTx") }}</caption>
                 <thead class="table-head">
                   <tr class="soft-divider border-b">
-                    <th class="table-header-cell">#</th>
-                    <th class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
-                    <th class="table-header-cell">{{ $t("blockDetail.logsColEvent") }}</th>
-                    <th class="table-header-cell">{{ $t("blockDetail.logsColState") }}</th>
+                    <th scope="col" class="table-header-cell">#</th>
+                    <th scope="col" class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
+                    <th scope="col" class="table-header-cell">{{ $t("blockDetail.logsColEvent") }}</th>
+                    <th scope="col" class="table-header-cell">{{ $t("blockDetail.logsColState") }}</th>
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">

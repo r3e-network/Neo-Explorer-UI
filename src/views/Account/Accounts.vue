@@ -49,12 +49,12 @@
           <table class="w-full min-w-[900px]" :aria-label="$t('accounts.tableAriaLabel')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell w-16">{{ $t("accounts.colRank") }}</th>
-                <th class="table-header-cell">{{ $t("accounts.colAddress") }}</th>
-                <th class="table-header-cell-right">{{ $t("accounts.colNeoBalance") }}</th>
-                <th class="table-header-cell-right">{{ $t("accounts.colGasBalance") }}</th>
-                <th class="table-header-cell-right">{{ $t("accounts.colTxnCount") }}</th>
-                <th class="table-header-cell-right">{{ $t("accounts.colLastActive") }}</th>
+                <th scope="col" class="table-header-cell w-16">{{ $t("accounts.colRank") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("accounts.colAddress") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("accounts.colNeoBalance") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("accounts.colGasBalance") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("accounts.colTxnCount") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("accounts.colLastActive") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

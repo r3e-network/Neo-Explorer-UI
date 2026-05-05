@@ -1286,7 +1286,7 @@ describe("GovernanceTool network changes", () => {
 
     const addWitnessButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().includes("Add Signature / Witness"));
+      .find((candidate) => candidate.text().includes("tools.governance.addSignatureWitnessButton"));
     await addWitnessButton.trigger("click");
     await flushPromises();
 
@@ -1429,7 +1429,7 @@ describe("GovernanceTool network changes", () => {
     wrapper.unmount();
   });
 
-  it.skip("keeps the add-witness modal scrollable and closable", async () => {
+  it("keeps the add-witness modal scrollable and closable", async () => {
     connectedAccount.value = "";
     walletServiceMock.isConnected = false;
     getMultisigRequestsMock.mockResolvedValue([
@@ -1467,21 +1467,18 @@ describe("GovernanceTool network changes", () => {
     await flushPromises();
     const addWitnessButton = wrapper
       .findAll("button")
-      .find((candidate) => candidate.text().includes("Add Signature / Witness"));
+      .find((candidate) => candidate.text().includes("tools.governance.addSignatureWitnessButton"));
     await addWitnessButton.trigger("click");
     await flushPromises();
 
-    const overlay = wrapper.get('[data-testid="governance-sign-modal-overlay"]');
-    const panel = wrapper.get('[data-testid="governance-sign-modal-panel"]');
-    const body = wrapper.get('[data-testid="governance-sign-modal-body"]');
+    const dialog = wrapper.get('[role="dialog"]');
+    expect(dialog.element.querySelector(".max-h-\\[90vh\\]")).toBeTruthy();
+    expect(dialog.element.querySelector(".overflow-y-auto")).toBeTruthy();
 
-    expect(panel.classes()).toContain("max-h-[90vh]");
-    expect(body.classes()).toContain("overflow-y-auto");
-
-    await overlay.trigger("click");
+    await dialog.trigger("click");
     await flushPromises();
 
-    expect(wrapper.find('[data-testid="governance-sign-modal-overlay"]').exists()).toBe(false);
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
     wrapper.unmount();
   });
 

@@ -15,11 +15,11 @@
         <table class="w-full min-w-[750px]" :aria-label="$t('contractDetail.eventsAria')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">{{ $t('contractDetail.eventsColTxnHash') }}</th>
-              <th class="table-header-cell">{{ $t('contractDetail.eventsColEventName') }}</th>
-              <th class="table-header-cell">{{ $t('contractDetail.eventsColVmState') }}</th>
-              <th class="table-header-cell">{{ $t('contractDetail.eventsColIndex') }}</th>
-              <th class="table-header-cell">
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.eventsColTxnHash') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.eventsColEventName') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.eventsColVmState') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.eventsColIndex') }}</th>
+              <th scope="col" class="table-header-cell">
                 {{ $t('contractDetail.eventsColTime') }}
                 <button class="btn-mini ml-1" :aria-label="$t('contractDetail.eventsToggleTimeAria')" @click="toggleTimeFormat">{{ $t('contractDetail.eventsToggleTimeButton') }}</button>
               </th>

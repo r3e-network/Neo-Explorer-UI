@@ -55,13 +55,18 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-high tracking-tight">{{ $t("tools.contractDeployer.nefLabel") }}</label>
               <div
-                class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group"
+                role="button"
+                tabindex="0"
+                :aria-label="$t('tools.contractDeployer.nefPrompt')"
+                class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="
                   nefFile
                     ? 'border-blue-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
                     : 'border-line-soft hover:border-primary-400 bg-surface hover:bg-surface-muted'
                 "
                 @click="$refs.nefInput.click()"
+                @keydown.enter.prevent="$refs.nefInput.click()"
+                @keydown.space.prevent="$refs.nefInput.click()"
                 style="cursor: pointer"
               >
                 <input type="file" ref="nefInput" class="hidden" accept=".nef" @change="onNefSelected" />
@@ -110,13 +115,18 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-high tracking-tight">{{ $t("tools.contractDeployer.manifestLabel") }}</label>
               <div
-                class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group"
+                role="button"
+                tabindex="0"
+                :aria-label="$t('tools.contractDeployer.manifestPrompt')"
+                class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="
                   manifestFile
                     ? 'border-blue-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
                     : 'border-line-soft hover:border-primary-400 bg-surface hover:bg-surface-muted'
                 "
                 @click="$refs.manifestInput.click()"
+                @keydown.enter.prevent="$refs.manifestInput.click()"
+                @keydown.space.prevent="$refs.manifestInput.click()"
                 style="cursor: pointer"
               >
                 <input type="file" ref="manifestInput" class="hidden" accept=".json" @change="onManifestSelected" />

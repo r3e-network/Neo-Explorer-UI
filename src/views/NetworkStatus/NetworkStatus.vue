@@ -99,11 +99,11 @@
           <table class="w-full min-w-[640px]" :aria-label="$t('pages.networkStatus.seedsTitle')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell">{{ $t("pages.networkStatus.colSeed") }}</th>
-                <th class="table-header-cell-right">{{ $t("pages.networkStatus.colHeight") }}</th>
-                <th class="table-header-cell-right">{{ $t("pages.networkStatus.colLatency") }}</th>
-                <th class="table-header-cell">{{ $t("pages.networkStatus.colVersion") }}</th>
-                <th class="table-header-cell">{{ $t("pages.networkStatus.colStatus") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("pages.networkStatus.colSeed") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("pages.networkStatus.colHeight") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("pages.networkStatus.colLatency") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("pages.networkStatus.colVersion") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("pages.networkStatus.colStatus") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

@@ -34,6 +34,7 @@
               <img
                 v-if="transferLogo"
                 :src="transferLogo"
+                alt=""
                 class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
               />
               <span class="text-sm text-high font-medium truncate" :title="transferText">
@@ -83,6 +84,7 @@
               <img
                 v-if="transferLogo"
                 :src="transferLogo"
+                alt=""
                 class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
               />
               <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">

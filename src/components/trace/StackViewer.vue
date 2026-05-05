@@ -1,7 +1,7 @@
 <template>
   <div class="stack-viewer">
     <div v-if="!stack || stack.length === 0" class="text-mid py-2 text-sm italic">
-      No stack items
+      {{ $t("emptyMessages.noStackItems") }}
     </div>
     <div v-else class="space-y-1">
       <!-- index key is acceptable: stack items have no unique ID and list is not reordered -->

@@ -41,20 +41,18 @@
       </div>
       <div class="surface-panel overflow-x-auto">
         <table class="w-full min-w-[900px]" :aria-label="$t('addressDetail.txTableAria')">
-          <caption class="sr-only">
-            Address transaction history
-          </caption>
+          <caption class="sr-only">{{ $t("addressDetail.txTableCaption") }}</caption>
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
-              <th class="table-header-cell w-[120px]">{{ $t("transactionsPage.colMethod") }}</th>
-              <th class="table-header-cell w-[100px]">{{ $t("transactionsPage.colBlock") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
-              <th class="table-header-cell w-16 text-center"></th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
-              <th class="table-header-cell-right">{{ $t("addressDetail.colValue") }}</th>
-              <th class="table-header-cell-right">{{ $t("addressDetail.colTxFee") }}</th>
+              <th scope="col" class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th scope="col" class="table-header-cell w-[120px]">{{ $t("transactionsPage.colMethod") }}</th>
+              <th scope="col" class="table-header-cell w-[100px]">{{ $t("transactionsPage.colBlock") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colAge") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
+              <th scope="col" class="table-header-cell w-16 text-center"></th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th scope="col" class="table-header-cell-right">{{ $t("addressDetail.colValue") }}</th>
+              <th scope="col" class="table-header-cell-right">{{ $t("addressDetail.colTxFee") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y soft-divider">

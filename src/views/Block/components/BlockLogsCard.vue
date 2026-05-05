@@ -53,9 +53,9 @@ function triggerDescription(trigger) {
   <div class="etherscan-card overflow-hidden">
     <div class="card-header flex items-center justify-between">
       <h2 class="text-base font-semibold text-high">
-        Block Logs
+        {{ $t("blocks.detail.tabLogs") }}
         <span v-if="notificationCount > 0" class="ml-1.5 text-sm font-normal text-mid">
-          ({{ notificationCount }} notification{{ notificationCount !== 1 ? "s" : "" }})
+          {{ $t("blockDetail.logsNotifications", { count: notificationCount }) }}
         </span>
       </h2>
       <button
@@ -161,7 +161,7 @@ function triggerDescription(trigger) {
                 class="panel-muted mb-4 p-3"
               >
                 <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-                  Stack Result
+                  {{ $t("blockDetail.logsStackResult") }}
                 </h4>
                 <StackViewer :stack="exec.stack" />
               </div>
@@ -169,7 +169,7 @@ function triggerDescription(trigger) {
               <!-- Notifications -->
               <div v-if="exec.notifications && exec.notifications.length">
                 <h4 class="text-low mb-2 text-xs font-semibold uppercase tracking-wider">
-                  Notifications ({{ exec.notifications.length }})
+                  {{ $t("blockDetail.logsNotifications", { count: exec.notifications.length }) }}
                 </h4>
 
                 <!-- Enriched display -->
@@ -188,10 +188,10 @@ function triggerDescription(trigger) {
                     <caption class="sr-only">{{ $t('inline.blockSystemExecCaption') }}</caption>
                     <thead class="table-head">
                       <tr class="soft-divider border-b">
-                        <th class="table-header-cell">#</th>
-                        <th class="table-header-cell">{{ $t('blockDetail.logsColContract') }}</th>
-                        <th class="table-header-cell">{{ $t('blockDetail.logsColEvent') }}</th>
-                        <th class="table-header-cell">{{ $t('blockDetail.logsColState') }}</th>
+                        <th scope="col" class="table-header-cell">#</th>
+                        <th scope="col" class="table-header-cell">{{ $t('blockDetail.logsColContract') }}</th>
+                        <th scope="col" class="table-header-cell">{{ $t('blockDetail.logsColEvent') }}</th>
+                        <th scope="col" class="table-header-cell">{{ $t('blockDetail.logsColState') }}</th>
                       </tr>
                     </thead>
                     <tbody class="soft-divider divide-y">
@@ -219,7 +219,7 @@ function triggerDescription(trigger) {
               </div>
 
               <div v-else class="text-mid py-4 text-center text-sm">
-                No notifications emitted.
+                {{ $t("blockDetail.logsNoNotifications") }}
               </div>
             </div>
           </div>

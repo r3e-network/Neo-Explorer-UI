@@ -31,11 +31,11 @@
       <table class="w-full min-w-[700px]" :aria-label="$t('aria.blockFeesTable')">
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">{{ $t("gasTracker.colBlock") }}</th>
-            <th class="table-header-cell">{{ $t("gasTracker.colAge") }}</th>
-            <th class="table-header-cell text-center">{{ $t("gasTracker.colTxns") }}</th>
-            <th class="table-header-cell-right">{{ $t("gasTracker.colAvgFee") }}</th>
-            <th class="table-header-cell-right">{{ $t("gasTracker.colTotalFees") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("gasTracker.colBlock") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("gasTracker.colAge") }}</th>
+            <th scope="col" class="table-header-cell text-center">{{ $t("gasTracker.colTxns") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("gasTracker.colAvgFee") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("gasTracker.colTotalFees") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

@@ -19,10 +19,10 @@
         </caption>
         <thead class="table-head">
           <tr>
-            <th class="table-header-cell">{{ $t("addressDetail.colCollection") }}</th>
-            <th class="table-header-cell">{{ $t("addressDetail.colStandard") }}</th>
-            <th class="table-header-cell-right">{{ $t("addressDetail.colBalance") }}</th>
-            <th class="table-header-cell">{{ $t("addressDetail.colContract") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("addressDetail.colCollection") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("addressDetail.colStandard") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("addressDetail.colBalance") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("addressDetail.colContract") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

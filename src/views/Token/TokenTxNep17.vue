@@ -24,15 +24,15 @@
         <table class="w-full min-w-[960px]" :aria-label="$t('aria.tokenTransfersTable')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
-              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]"></th>
-              <th class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]">
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
+              <th scope="col" class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]"></th>
+              <th scope="col" class="text-low px-4 py-3 text-center text-xs font-medium uppercase tracking-[0.08em]">
                 {{ $t("transactionsPage.colAmount") }}
               </th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
-              <th
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th scope="col"
                 class="table-header-cell-right cursor-pointer select-none hover:text-primary-500"
                 @click="showAbsoluteTime = !showAbsoluteTime"
               >

@@ -19,14 +19,14 @@
         <caption class="sr-only">{{ $t("txDetail.transfersCaption") }}</caption>
         <thead class="table-head">
           <tr class="soft-divider border-b">
-            <th class="table-header-cell">#</th>
-            <th class="table-header-cell">{{ $t("txDetail.transfersColType") }}</th>
-            <th class="table-header-cell">{{ $t("txDetail.transferFromLabel") }}</th>
-            <th class="table-header-cell">{{ $t("txDetail.transferToLabel") }}</th>
-            <th class="table-header-cell-right">{{ $t("txDetail.transfersColAmount") }}</th>
-            <th class="table-header-cell">{{ $t("txDetail.transfersColTokenId") }}</th>
-            <th class="table-header-cell">{{ $t("txDetail.transferToken") }}</th>
-            <th class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
+            <th scope="col" class="table-header-cell">#</th>
+            <th scope="col" class="table-header-cell">{{ $t("txDetail.transfersColType") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("txDetail.transferFromLabel") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("txDetail.transferToLabel") }}</th>
+            <th scope="col" class="table-header-cell-right">{{ $t("txDetail.transfersColAmount") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("txDetail.transfersColTokenId") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("txDetail.transferToken") }}</th>
+            <th scope="col" class="table-header-cell">{{ $t("blockDetail.logsColContract") }}</th>
           </tr>
         </thead>
         <tbody class="soft-divider divide-y">

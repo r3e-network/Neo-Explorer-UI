@@ -3,19 +3,19 @@
     <table class="w-full min-w-[900px]" :aria-label="$t('aria.transactionsTable')">
       <thead class="table-head">
         <tr>
-          <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
-          <th class="table-header-cell w-[120px]">{{ $t("transactionsPage.colMethod") }}</th>
-          <th class="table-header-cell w-[100px]">{{ $t("transactionsPage.colBlock") }}</th>
-          <th
+          <th scope="col" class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+          <th scope="col" class="table-header-cell w-[120px]">{{ $t("transactionsPage.colMethod") }}</th>
+          <th scope="col" class="table-header-cell w-[100px]">{{ $t("transactionsPage.colBlock") }}</th>
+          <th scope="col"
             class="table-header-cell cursor-pointer select-none transition-colors hover:text-primary-500"
             @click="$emit('toggle-time')"
           >
             {{ showAbsoluteTime ? $t("transactionsPage.colDateTimeUtc") : $t("transactionsPage.colAge") }}
           </th>
-          <th class="table-header-cell hidden md:table-cell">{{ $t("transactionsPage.colFrom") }}</th>
-          <th class="table-header-cell hidden lg:table-cell">{{ $t("transactionsPage.colTo") }}</th>
-          <th class="table-header-cell-right hidden lg:table-cell">{{ $t("transactionsPage.colValueGas") }}</th>
-          <th class="table-header-cell-right hidden xl:table-cell">{{ $t("transactionsPage.colNetSysFee") }}</th>
+          <th scope="col" class="table-header-cell hidden md:table-cell">{{ $t("transactionsPage.colFrom") }}</th>
+          <th scope="col" class="table-header-cell hidden lg:table-cell">{{ $t("transactionsPage.colTo") }}</th>
+          <th scope="col" class="table-header-cell-right hidden lg:table-cell">{{ $t("transactionsPage.colValueGas") }}</th>
+          <th scope="col" class="table-header-cell-right hidden xl:table-cell">{{ $t("transactionsPage.colNetSysFee") }}</th>
         </tr>
       </thead>
       <tbody class="divide-y border-t soft-divider">

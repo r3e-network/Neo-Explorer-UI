@@ -123,10 +123,10 @@
               <table class="w-full text-sm">
                 <thead class="table-head sticky top-0 z-10">
                   <tr>
-                    <th class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colStepIndex") }}</th>
-                    <th class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOpcode") }}</th>
-                    <th class="text-mid px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOperand") }}</th>
-                    <th class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">{{ $t("unsignedTx.colGas") }}</th>
+                    <th scope="col" class="text-mid w-16 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colStepIndex") }}</th>
+                    <th scope="col" class="text-mid w-28 px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOpcode") }}</th>
+                    <th scope="col" class="text-mid px-3 py-2 text-left text-xs font-medium">{{ $t("unsignedTx.colOperand") }}</th>
+                    <th scope="col" class="text-mid w-24 px-3 py-2 text-right text-xs font-medium">{{ $t("unsignedTx.colGas") }}</th>
                   </tr>
                 </thead>
                 <tbody class="soft-divider divide-y">

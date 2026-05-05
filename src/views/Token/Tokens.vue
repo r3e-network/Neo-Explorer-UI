@@ -90,13 +90,13 @@
           <table class="w-full min-w-[920px]" :aria-label="$t('aria.nep17TokensTable')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColToken") }}</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
-                <th class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
-                <th class="table-header-cell-right">{{ $t("tokenDetail.listColTotalSupply") }}</th>
-                <th class="table-header-cell-right">{{ $t("tokenDetail.listColMarketCap") }}</th>
+                <th scope="col" class="table-header-cell w-16">#</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColToken") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.listColTotalSupply") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.listColMarketCap") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
@@ -171,12 +171,12 @@
           <table class="w-full min-w-[920px]" :aria-label="$t('aria.nep11NftsTable')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell w-16">#</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColCollection") }}</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
-                <th class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
-                <th class="table-header-cell-right">{{ $t("tokenDetail.listColItems") }}</th>
-                <th class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
+                <th scope="col" class="table-header-cell w-16">#</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColCollection") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColSymbol") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("tokenDetail.listColContract") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.listColItems") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("tokenDetail.holdersHeader") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

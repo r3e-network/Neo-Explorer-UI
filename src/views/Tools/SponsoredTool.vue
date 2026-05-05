@@ -267,7 +267,7 @@ async function createRpcClient(endpoint) {
   const sdk = (await loadNeonJs()) || window.Neon;
   const RpcClient = sdk?.rpc?.RPCClient;
   if (typeof RpcClient !== "function") {
-    throw new Error(t("tools.sponsored.statusMessages.rpcUnavailable"));
+    throw new Error(t("tools.sponsored.toasts.rpcUnavailable"));
   }
   return new RpcClient(endpoint);
 }
@@ -276,7 +276,7 @@ async function createAccount(value) {
   const sdk = (await loadNeonJs()) || window.Neon;
   const Account = sdk?.wallet?.Account;
   if (typeof Account !== "function") {
-    throw new Error(t("tools.sponsored.statusMessages.accountHelperUnavailable"));
+    throw new Error(t("tools.sponsored.toasts.accountHelperUnavailable"));
   }
   return new Account(value);
 }
@@ -384,7 +384,7 @@ async function executeSponsoredTx() {
     activeProvider === walletService.PROVIDERS.WALLETCONNECT ||
     activeProvider === walletService.PROVIDERS.NEON
   ) {
-    toast.error(t("tools.sponsored.statusMessages.signedTxUnavailable"));
+    toast.error(t("tools.sponsored.toasts.signedTxUnavailable"));
     return;
   }
 
@@ -409,7 +409,7 @@ async function executeSponsoredTx() {
       body: JSON.stringify({ action: "info" }),
     });
 
-    if (!sponsorInfoRes.ok) throw new Error(t("tools.sponsored.statusMessages.sponsorInfoFailed"));
+    if (!sponsorInfoRes.ok) throw new Error(t("tools.sponsored.toasts.sponsorInfoFailed"));
     const sponsorInfo = await sponsorInfoRes.json();
     const sponsorScriptHash = (await createAccount(sponsorInfo.sponsorAddress)).scriptHash;
     const userScriptHash = (await createAccount(connectedAccount.value)).scriptHash;
@@ -457,7 +457,7 @@ async function executeSponsoredTx() {
         });
       }
     } catch (e) {
-      throw new Error(e.description || e.message || t("tools.sponsored.statusMessages.userRejectedSignature"));
+      throw new Error(e.description || e.message || t("tools.sponsored.toasts.userRejectedSignature"));
     }
 
     // Guard: not every wallet adapter returns the expected
@@ -467,7 +467,7 @@ async function executeSponsoredTx() {
     // `transactionHex: null` to /api/sponsor and confuse the user
     // with a generic "broadcast failed" toast downstream.
     if (!signedTxRes || typeof signedTxRes.signedTx !== "string" || !signedTxRes.signedTx) {
-      throw new Error(t("tools.sponsored.statusMessages.signedTxUnavailable"));
+      throw new Error(t("tools.sponsored.toasts.signedTxUnavailable"));
     }
 
     // 3. Send the partially signed transaction to Vercel backend to get Sponsor signature & broadcast
@@ -488,7 +488,7 @@ async function executeSponsoredTx() {
 
     if (!signRes.ok) {
       const err = await signRes.json();
-      throw new Error(err.error || t("tools.sponsored.statusMessages.broadcastFailed"));
+      throw new Error(err.error || t("tools.sponsored.toasts.broadcastFailed"));
     }
 
     const finalResult = await signRes.json();

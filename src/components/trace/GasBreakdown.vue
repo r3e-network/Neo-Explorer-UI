@@ -9,7 +9,7 @@
 
     <!-- Empty -->
     <div v-else-if="!contractGasData || contractGasData.length === 0" class="text-mid py-6 text-center text-sm">
-      No gas data available
+      {{ $t("emptyMessages.noGasData") }}
     </div>
 
     <!-- Content -->

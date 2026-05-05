@@ -15,15 +15,15 @@
         <table class="w-full min-w-[700px]" :aria-label="$t('contractDetail.scCallsAria')">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell">{{ $t('contractDetail.scCallsColTxnHash') }}</th>
-              <th class="table-header-cell">
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.scCallsColTxnHash') }}</th>
+              <th scope="col" class="table-header-cell">
                 {{ $t('contractDetail.scCallsColSender') }}
                 <button class="btn-mini ml-1" :aria-label="$t('contractDetail.scCallsToggleAddrAria')" @click="toggleAddressFormat">
                   {{ showAddress ? $t('contractDetail.scCallsAddrToggleHash') : $t('contractDetail.scCallsAddrToggleAddr') }}
                 </button>
               </th>
-              <th class="table-header-cell">{{ $t('contractDetail.scCallsColMethod') }}</th>
-              <th class="table-header-cell">{{ $t('contractDetail.scCallsColCallFlags') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.scCallsColMethod') }}</th>
+              <th scope="col" class="table-header-cell">{{ $t('contractDetail.scCallsColCallFlags') }}</th>
             </tr>
           </thead>
           <tbody class="soft-divider divide-y">

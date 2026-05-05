@@ -230,11 +230,11 @@
           <table class="w-full text-sm whitespace-nowrap" :aria-label="$t('treasuryPage.treasuryWallets')">
             <thead class="bg-surface-muted border-b soft-divider text-xs uppercase tracking-wider text-mid">
               <tr>
-                <th class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colOwnerGroup') }}</th>
-                <th class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colWalletAddress') }}</th>
-                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colNeoBalance') }}</th>
-                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colGasBalance') }}</th>
-                <th class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colEstUsd') }}</th>
+                <th scope="col" class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colOwnerGroup') }}</th>
+                <th scope="col" class="px-5 py-3.5 text-left font-semibold">{{ $t('treasuryPage.colWalletAddress') }}</th>
+                <th scope="col" class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colNeoBalance') }}</th>
+                <th scope="col" class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colGasBalance') }}</th>
+                <th scope="col" class="px-5 py-3.5 text-right font-semibold">{{ $t('treasuryPage.colEstUsd') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y soft-divider bg-surface">

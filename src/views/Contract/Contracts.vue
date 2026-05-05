@@ -91,13 +91,13 @@
           <table class="w-full min-w-[900px]" :aria-label="$t('aria.contractsTable')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell">#</th>
-                <th class="table-header-cell">{{ $t("contractsPage.colContract") }}</th>
-                <th class="table-header-cell">{{ $t("contractsPage.colHash") }}</th>
-                <th class="table-header-cell-right">{{ $t("contractsPage.colInvocations") }}</th>
-                <th class="table-header-cell text-center">{{ $t("contractsPage.colStandards") }}</th>
-                <th class="table-header-cell text-center">{{ $t("contractsPage.colVerified") }}</th>
-                <th class="table-header-cell-right">{{ $t("contractsPage.colCreated") }}</th>
+                <th scope="col" class="table-header-cell">#</th>
+                <th scope="col" class="table-header-cell">{{ $t("contractsPage.colContract") }}</th>
+                <th scope="col" class="table-header-cell">{{ $t("contractsPage.colHash") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("contractsPage.colInvocations") }}</th>
+                <th scope="col" class="table-header-cell text-center">{{ $t("contractsPage.colStandards") }}</th>
+                <th scope="col" class="table-header-cell text-center">{{ $t("contractsPage.colVerified") }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("contractsPage.colCreated") }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">

@@ -1,7 +1,7 @@
 <template>
   <div class="contract-call-map">
     <div v-if="!callTree || callTree.length === 0" class="text-mid py-4 text-sm italic">
-      No contract calls to display
+      {{ $t("emptyMessages.noContractCalls") }}
     </div>
 
     <div v-else class="space-y-6">
@@ -94,7 +94,7 @@
                   </span>
                 </div>
                 <div v-if="!node.events || node.events.length === 0" class="text-low px-2 py-1 text-xs italic">
-                  No events
+                  {{ $t("emptyMessages.noEvents") }}
                 </div>
               </div>
             </div>

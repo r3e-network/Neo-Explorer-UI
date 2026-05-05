@@ -8,7 +8,7 @@
     <!-- Error State -->
     <div v-else-if="error" class="p-6">
       <ErrorState
-        :title="`Unable to load ${type === 'nep11' ? 'NEP-11' : 'NEP-17'} transfers`"
+        :title="$t(type === 'nep11' ? 'errorTitles.unableToLoadNep11' : 'errorTitles.unableToLoadNep17')"
         :message="error"
         @retry="() => loadPage(currentPage)"
       />
@@ -17,7 +17,7 @@
     <template v-else>
       <!-- Info bar -->
       <div v-if="totalCount > 0" class="card-header">
-        <p class="text-sm text-mid">A total of {{ formatNumber(totalCount) }} transfers found</p>
+        <p class="text-sm text-mid">{{ $t("tokenDetail.totalTransfersFound", { count: formatNumber(totalCount) }) }}</p>
       </div>
 
       <!-- Table -->
@@ -25,14 +25,14 @@
         <table class="w-full min-w-[960px]">
           <thead class="table-head">
             <tr>
-              <th class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
-              <th v-if="type === 'nep11'" class="table-header-cell">{{ $t("transactionsPage.colTokenId") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
-              <th class="table-header-cell w-12 text-center"></th>
-              <th class="table-header-cell text-center">{{ $t("transactionsPage.colAmount") }}</th>
-              <th class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
-              <th
+              <th scope="col" class="table-header-cell w-[180px]">{{ $t("transactionsPage.colTxnHash") }}</th>
+              <th scope="col" v-if="type === 'nep11'" class="table-header-cell">{{ $t("transactionsPage.colTokenId") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colType") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colFrom") }}</th>
+              <th scope="col" class="table-header-cell w-12 text-center"></th>
+              <th scope="col" class="table-header-cell text-center">{{ $t("transactionsPage.colAmount") }}</th>
+              <th scope="col" class="table-header-cell">{{ $t("transactionsPage.colTo") }}</th>
+              <th scope="col"
                 class="table-header-cell-right cursor-pointer select-none hover:text-primary-500"
                 role="button"
                 tabindex="0"

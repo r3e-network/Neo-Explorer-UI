@@ -243,7 +243,7 @@
             <!-- Overwrite toggle -->
             <label class="flex items-center gap-2 text-xs text-mid cursor-pointer select-none">
               <input v-model="allowOverwrite" type="checkbox" class="rounded border-line-soft" />
-              Allow overwriting existing signature from this signer
+              {{ $t('tools.governance.allowOverwriteExistingSig') }}
             </label>
 
             <button

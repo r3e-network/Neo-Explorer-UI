@@ -177,12 +177,12 @@
                   <div>
                     <p class="text-sm font-bold mb-1.5 flex items-center gap-2">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                      Registration Transaction Submitted
+                      {{ $t('tools.abstractAccount.toasts.registrationSubmitted') }}
                     </p>
                     <p class="text-xs break-all font-mono opacity-80 pl-7">{{ txHash }}</p>
                   </div>
                   <router-link :to="`/transaction-info/${txHash}`" class="text-sm font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap bg-emerald-200/50 dark:bg-emerald-800/50 px-4 py-2 rounded-xl transition-all hover:bg-emerald-300/50 dark:hover:bg-emerald-700/50 hover:shadow-md shrink-0">
-                    View Transaction
+                    {{ $t('tools.contractDeployer.viewTransaction') }}
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                   </router-link>
                 </div>

@@ -46,10 +46,10 @@
           <table class="w-full min-w-[760px]" :aria-label="$t('candidatesPage.tableAria')">
             <thead class="table-head">
               <tr>
-                <th class="table-header-cell">#</th>
-                <th class="table-header-cell">{{ $t('candidatesPage.colCandidate') }}</th>
-                <th class="table-header-cell-right">{{ $t('candidatesPage.colVotes') }}</th>
-                <th class="table-header-cell text-center">{{ $t('candidatesPage.colStatus') }}</th>
+                <th scope="col" class="table-header-cell">#</th>
+                <th scope="col" class="table-header-cell">{{ $t('candidatesPage.colCandidate') }}</th>
+                <th scope="col" class="table-header-cell-right">{{ $t('candidatesPage.colVotes') }}</th>
+                <th scope="col" class="table-header-cell text-center">{{ $t('candidatesPage.colStatus') }}</th>
               </tr>
             </thead>
             <tbody class="soft-divider divide-y">
