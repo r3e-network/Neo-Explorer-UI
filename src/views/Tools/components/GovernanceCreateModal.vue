@@ -82,10 +82,11 @@
               </p>
             </div>
             <div class="space-y-2">
-              <label class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
+              <label for="governance-lab-threshold" class="block text-xs font-bold text-high uppercase tracking-wider opacity-80">{{
                 $t("tools.governance.signatureThreshold")
               }}</label>
               <input
+                id="governance-lab-threshold"
                 data-testid="lab-threshold"
                 v-model="createForm.labThreshold"
                 type="number"
@@ -108,7 +109,7 @@
             v-model="createForm.description"
             type="text"
             class="form-input w-full bg-surface text-sm py-2.5 px-4 rounded-xl border-line-soft shadow-inner focus:ring-2 focus:ring-amber-500/20 hover:border-amber-400 focus:border-amber-400 transition-all outline-none"
-            placeholder="e.g. Decrease GAS Network Fee"
+            :placeholder="$t('tools.governance.proposalDescriptionPlaceholder')"
           />
         </div>
 
@@ -118,6 +119,32 @@
           data-testid="governance-fork-draft-banner"
         >
           {{ $t("tools.governance.forkProposalDesc") }}
+        </div>
+
+        <div
+          v-if="!isForkMode"
+          class="rounded-2xl border border-line-soft bg-surface-muted/50 p-4 space-y-3"
+          data-testid="governance-template-picker"
+        >
+          <div>
+            <h3 class="text-sm font-bold text-high tracking-tight">
+              {{ $t("tools.governance.templates.sectionTitle") }}
+            </h3>
+            <p class="mt-1 text-xs text-mid">{{ $t("tools.governance.templates.sectionDesc") }}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="template in PROPOSAL_TEMPLATES"
+              :key="template.id"
+              type="button"
+              :data-testid="`governance-template-${template.id}`"
+              :title="$t(`tools.governance.templates.${template.id}Desc`)"
+              class="rounded-full border border-line-soft bg-surface px-3 py-1.5 text-xs font-semibold text-mid hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20 dark:hover:text-amber-300 transition-colors"
+              @click="applyTemplate(template.id)"
+            >
+              {{ $t(`tools.governance.templates.${template.id}`) }}
+            </button>
+          </div>
         </div>
 
         <div class="space-y-6">
@@ -332,6 +359,19 @@ const NATIVE_CONTRACTS = {
   NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
 };
 
+const PROPOSAL_TEMPLATES = [
+  { id: "blockAccount", contract: "PolicyContract", method: "blockAccount" },
+  { id: "unblockAccount", contract: "PolicyContract", method: "unblockAccount" },
+  { id: "setFeePerByte", contract: "PolicyContract", method: "setFeePerByte" },
+  { id: "setExecFeeFactor", contract: "PolicyContract", method: "setExecFeeFactor" },
+  { id: "setStoragePrice", contract: "PolicyContract", method: "setStoragePrice" },
+  { id: "setMillisecondsPerBlock", contract: "PolicyContract", method: "setMillisecondsPerBlock" },
+  { id: "designateAsRole", contract: "RoleManagement", method: "designateAsRole" },
+  { id: "setOraclePrice", contract: "OracleContract", method: "setPrice" },
+  { id: "setGasPerBlock", contract: "NEO", method: "setGasPerBlock" },
+  { id: "setRegisterPrice", contract: "NEO", method: "setRegisterPrice" },
+];
+
 const NATIVE_METHODS = {
   PolicyContract: [
     {
@@ -459,6 +499,28 @@ function resolveMethodCallFlags(method, neonJs) {
 function formatMethodCallFlags(method) {
   if (!method?.callFlags?.length) return "";
   return method.callFlags.join(" | ");
+}
+
+function applyTemplate(templateId) {
+  const template = PROPOSAL_TEMPLATES.find((entry) => entry.id === templateId);
+  if (!template) return;
+
+  const target = createForm.value.invocations[0];
+  if (!target) return;
+
+  if (NATIVE_METHODS[template.contract]?.some((method) => method.name === template.method)) {
+    target.selectedContract = template.contract;
+    target.selectedMethod = template.method;
+    target.params = {};
+  }
+
+  if (!createForm.value.description) {
+    const descKey = `tools.governance.templates.descriptions.${template.id}`;
+    const candidate = t(descKey);
+    if (candidate && candidate !== descKey) {
+      createForm.value.description = candidate;
+    }
+  }
 }
 
 function handleContractChange(index) {
