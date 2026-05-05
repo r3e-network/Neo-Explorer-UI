@@ -130,10 +130,13 @@ async function loadSourceCode() {
   loadError.value = false;
 
   try {
+    // Suppress dev console.error for the common "unverified contract" case —
+    // the failure is handled gracefully via loadError.value below, and the
+    // noise drowns out real errors when browsing standard NEP-17 tokens.
     const result = await rpc("GetSourceCodeByContractHash", {
       ContractHash: props.contractHash,
       updatecounter: safeUpdateCounter.value,
-    });
+    }, { suppressLog: true });
 
     sourceCodeList.value = Array.isArray(result?.result) ? result.result : [];
     totalCount.value = Number(result?.totalCount || sourceCodeList.value.length || 0);

@@ -22,7 +22,20 @@ function createDevMultisigApiPlugin() {
     name: "dev-multisig-api",
     configureServer(server) {
       const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-      if (!DATABASE_URL) return;
+
+      // Always register the middleware so /api/multisig/* never falls through
+      // to Vite's static-asset handler (which would serve the raw source file).
+      // When DATABASE_URL is unset, return a clear 503 JSON instead.
+      if (!DATABASE_URL) {
+        server.middlewares.use("/api/multisig", (_req, res) => {
+          res.statusCode = 503;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({
+            error: "DATABASE_URL not configured for dev — multisig API unavailable.",
+          }));
+        });
+        return;
+      }
 
       server.middlewares.use("/api/multisig", async (req, res, next) => {
         try {

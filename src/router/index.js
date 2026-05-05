@@ -516,6 +516,20 @@ function resolveRouteTitle(meta) {
   return meta?.title || "";
 }
 
+function applyDocumentTitle(meta) {
+  const title = resolveRouteTitle(meta);
+  document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
+}
+
+// Expose a refresher on globalThis so the language selector can re-resolve
+// the title after locale change without importing the router (which would
+// pull vue-router into test mocks that don't provide createRouter).
+if (typeof globalThis !== "undefined") {
+  globalThis.__neoExplorerRefreshDocumentTitle__ = () => {
+    applyDocumentTitle(router.currentRoute.value?.meta);
+  };
+}
+
 // Clear chunk reload flag on successful navigation & set document title.
 // Also strip the __chunk_reload cache-bust query param the recovery flow
 // appends, so the URL bar / shared links don't carry a stale timestamp.
@@ -527,8 +541,7 @@ router.afterEach((to) => {
     delete cleaned[CHUNK_RELOAD_QUERY_KEY];
     router.replace({ path: to.path, query: cleaned, hash: to.hash });
   }
-  const title = resolveRouteTitle(to.meta);
-  document.title = title ? `${title} | Neo Explorer` : "Neo Explorer";
+  applyDocumentTitle(to.meta);
 });
 
 export default router;

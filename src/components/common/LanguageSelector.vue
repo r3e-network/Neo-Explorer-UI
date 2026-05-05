@@ -60,6 +60,11 @@ const currentLabel = computed(() => {
 async function selectLang(val) {
   await setLanguage(val);
   locale.value = val;
+  // Refresh the document title so it reflects the new locale immediately
+  // (router.afterEach won't fire on locale-only changes).
+  if (typeof globalThis !== "undefined" && typeof globalThis.__neoExplorerRefreshDocumentTitle__ === "function") {
+    globalThis.__neoExplorerRefreshDocumentTitle__();
+  }
   dropdownOpen.value = false;
 }
 
