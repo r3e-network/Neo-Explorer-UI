@@ -1039,7 +1039,7 @@ const en = {
       accountAddressPlaceholder: "e.g. N...",
       accountAddressHelp: "Alerts on any incoming/outgoing transfer or contract invocation for this account.",
       emailLabel: "Delivery Email Address:",
-      emailPlaceholder: "your.email@example.com",
+      emailPlaceholder: "your.email{'@'}example.com",
       emailHelp: "We will send an immediate email to this address when the alert condition is met. Alerts auto-deactivate after firing to prevent spam.",
       submitting: "Registering...",
       submit: "Register Alert",

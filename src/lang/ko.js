@@ -1039,7 +1039,7 @@ const ko = {
       accountAddressPlaceholder: "예: N...",
       accountAddressHelp: "이 계정의 입출금 또는 계약 호출 발생 시 알립니다.",
       emailLabel: "수신 이메일 주소:",
-      emailPlaceholder: "your.email@example.com",
+      emailPlaceholder: "your.email{'@'}example.com",
       emailHelp: "알림 조건이 충족되면 즉시 이 주소로 이메일을 보냅니다. 스팸 방지를 위해 알림 발송 후 자동 비활성화됩니다.",
       submitting: "등록 중...",
       submit: "알림 등록",

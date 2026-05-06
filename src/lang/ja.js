@@ -1039,7 +1039,7 @@ const ja = {
       accountAddressPlaceholder: "例: N...",
       accountAddressHelp: "このアカウントの送受信や契約呼び出しがあった場合にアラートします。",
       emailLabel: "配信メールアドレス:",
-      emailPlaceholder: "your.email@example.com",
+      emailPlaceholder: "your.email{'@'}example.com",
       emailHelp: "アラート条件が満たされると、このアドレスに即座にメールを送信します。スパム防止のため、アラート発火後は自動的に無効化されます。",
       submitting: "登録中...",
       submit: "アラートを登録",

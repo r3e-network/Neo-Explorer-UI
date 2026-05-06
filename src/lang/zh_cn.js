@@ -1039,7 +1039,7 @@ const zh = {
       accountAddressPlaceholder: "例如：N...",
       accountAddressHelp: "对此账户的任何转入/转出或合约调用发出警报。",
       emailLabel: "接收邮箱地址：",
-      emailPlaceholder: "your.email@example.com",
+      emailPlaceholder: "your.email{'@'}example.com",
       emailHelp: "当满足警报条件时，我们将立即向此地址发送电子邮件。警报触发后自动停用以防止垃圾邮件。",
       submitting: "注册中...",
       submit: "注册警报",

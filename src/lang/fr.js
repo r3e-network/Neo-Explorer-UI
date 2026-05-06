@@ -1038,7 +1038,7 @@ const fr = {
       accountAddressPlaceholder: "ex. N...",
       accountAddressHelp: "Alerte sur tout transfert entrant/sortant ou invocation de contrat pour ce compte.",
       emailLabel: "Adresse e-mail de livraison :",
-      emailPlaceholder: "votre.email@exemple.com",
+      emailPlaceholder: "votre.email{'@'}exemple.com",
       emailHelp: "Nous enverrons un e-mail immédiat à cette adresse lorsque la condition d'alerte sera remplie. Les alertes se désactivent automatiquement après leur déclenchement pour éviter le spam.",
       submitting: "Enregistrement...",
       submit: "Enregistrer l'alerte",
