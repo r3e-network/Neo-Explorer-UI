@@ -298,29 +298,37 @@ export const tokenService = createService(
     // Transfer event state into {from, to, amount}.
     async getNep17Transfers(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const notifications = await indexerReadService.getContractNotifications(
-          hash,
-          // Transfer events are interleaved with other event names. Pull a
-          // generous window and filter client-side; if filtering leaves us
-          // short, the next page will fetch more.
-          Math.max(limit * 3, 50),
-          skip,
-          options,
-        );
+        // Fetch the page of transfers and the token's authoritative total
+        // in parallel — transfer_event_count from the indexer's tokens
+        // endpoint is the real "A total of N transfers" number; without
+        // it the previous heuristic showed "26" for NEO (1.2M actual).
+        const [notifications, tokenInfo] = await Promise.all([
+          indexerReadService.getContractNotifications(
+            hash,
+            // Transfer events are interleaved with other event names. Pull a
+            // generous window and filter client-side; if filtering leaves us
+            // short, the next page will fetch more.
+            Math.max(limit * 3, 50),
+            skip,
+            options,
+          ),
+          indexerReadService.getToken(hash, options).catch(() => null),
+        ]);
         const rows = Array.isArray(notifications?.data) ? notifications.data : [];
         const transfers = rows
           .filter((row) => String(row.event_name || "").toLowerCase() === "transfer")
           .slice(0, limit)
           .map((row) => decodeTransferNotification(row));
         if (transfers.length > 0) {
+          const authoritativeTotal = Number(tokenInfo?.transfer_event_count);
           return {
             result: transfers,
-            // Best-available total — see transactionService.getByAddress
-            // for the same heuristic.
-            totalCount: Number(
-              notifications?.paging?.total
-                ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
-            ),
+            totalCount: Number.isFinite(authoritativeTotal) && authoritativeTotal > 0
+              ? authoritativeTotal
+              : Number(
+                  notifications?.paging?.total
+                    ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
+                ),
           };
         }
       } catch {
@@ -342,23 +350,29 @@ export const tokenService = createService(
     // with [from, to, amount/tokenId] state.
     async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const notifications = await indexerReadService.getContractNotifications(
-          hash,
-          Math.max(limit * 3, 50),
-          skip,
-          options,
-        );
+        const [notifications, tokenInfo] = await Promise.all([
+          indexerReadService.getContractNotifications(
+            hash,
+            Math.max(limit * 3, 50),
+            skip,
+            options,
+          ),
+          indexerReadService.getToken(hash, options).catch(() => null),
+        ]);
         const rows = Array.isArray(notifications?.data) ? notifications.data : [];
         const transfers = rows
           .filter((row) => String(row.event_name || "").toLowerCase() === "transfer")
           .slice(0, limit)
           .map((row) => decodeTransferNotification(row));
+        const authoritativeTotal = Number(tokenInfo?.transfer_event_count);
         return {
           result: transfers,
-          totalCount: Number(
-            notifications?.paging?.total
-              ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
-          ),
+          totalCount: Number.isFinite(authoritativeTotal) && authoritativeTotal > 0
+            ? authoritativeTotal
+            : Number(
+                notifications?.paging?.total
+                  ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
+              ),
         };
       } catch {
         return { result: [], totalCount: 0 };
