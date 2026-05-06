@@ -690,7 +690,7 @@ async function resolveUnsignedTransactionHash(unsignedTxHex) {
 
 async function buildRawTransactionSigningPayload(unsignedTxHex) {
   const sdk = await loadSdk();
-  const { RpcClient } = sdk;
+  const { RPCClient: RpcClient } = sdk.rpc;
   const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
     const rpcClient = new RpcClient(endpoint);
     return rpcClient.getVersion();
@@ -1391,7 +1391,7 @@ export const walletService = {
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
         const sdk = await loadSdk();
-        const { RpcClient } = sdk;
+        const { RPCClient: RpcClient } = sdk.rpc;
         const CompatTransaction = getCompatTransactionClass(sdk);
         const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
@@ -1459,7 +1459,7 @@ export const walletService = {
 
       return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
         const sdk = await loadSdk();
-        const { RpcClient } = sdk;
+        const { RPCClient: RpcClient } = sdk.rpc;
         const CompatTransaction = getCompatTransactionClass(sdk);
         const rpcClient = new RpcClient(endpoint);
         const currentHeight = await rpcClient.getBlockCount();
@@ -1672,7 +1672,7 @@ export const walletService = {
     const script = sb.toHex();
 
     return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const { RpcClient } = await loadSdk();
+      const { RPCClient: RpcClient } = (await loadSdk()).rpc;
       const rpcClient = new RpcClient(endpoint);
       return rpcClient.invokeScript({ script, signers: normalizedSigners });
     });
@@ -1680,7 +1680,7 @@ export const walletService = {
 
   async broadcastSignedTx(signedTx) {
     if (!signedTx) throw new Error(tWallet("wallet.errors.signedTxEmpty", null, "Signed transaction is empty."));
-    const { RpcClient } = await loadSdk();
+    const { RPCClient: RpcClient } = (await loadSdk()).rpc;
     return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new RpcClient(endpoint);
       return rpcClient.sendRawTransaction({ tx: signedTx });

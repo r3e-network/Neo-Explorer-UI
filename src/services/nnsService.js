@@ -123,7 +123,7 @@ const decodePropertiesMap = (stackItem) => {
 
 const invokeContract = async (env, contractHash, operation, args = []) => {
   return callWithRpcEndpointFallback(env, async (endpoint) => {
-    const { RpcClient } = await loadSdk();
+    const { RPCClient: RpcClient } = (await loadSdk()).rpc;
     const rpcClient = new RpcClient(endpoint);
     // neon-js RpcClient.invokeFunction takes positional args
     // (scriptHash, operation, params, signers) — passing an object wrapper
@@ -420,7 +420,7 @@ export const nnsService = {
       key,
       async () => {
         try {
-          const { RpcClient } = await loadSdk();
+          const { RPCClient: RpcClient } = (await loadSdk()).rpc;
           const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
             const rpcClient = new RpcClient(endpoint);
             // Positional args, not object wrapper — see invokeContract above.
