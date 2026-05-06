@@ -26,8 +26,10 @@ describe("rpcEndpoints configured base URL", () => {
 
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
+    // neon-js's RpcDispatcher rejects relative URLs, so candidates are
+    // resolved against window.location.origin.
     expect(getRpcEndpointCandidates()).toEqual([
-      "/rpc/mainnet/primary",
+      `${window.location.origin}/rpc/mainnet/primary`,
       "https://rpc.n3index.dev",
     ]);
   });
@@ -46,7 +48,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(result).toBe("ok");
     expect(visited).toEqual([
-      "/rpc/mainnet/primary",
+      `${window.location.origin}/rpc/mainnet/primary`,
     ]);
   });
 
@@ -71,7 +73,7 @@ describe("rpcEndpoints configured base URL", () => {
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
     expect(getRpcEndpointCandidates()).toEqual([
-      "/rpc/mainnet/primary",
+      `${window.location.origin}/rpc/mainnet/primary`,
       "https://rpc.n3index.dev",
     ]);
   });

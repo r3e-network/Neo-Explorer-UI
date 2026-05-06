@@ -93,13 +93,15 @@ export const toNetworkMode = (value = getCurrentEnv()) => {
 export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
   const configured = getConfiguredRpcEndpointCandidates(value);
   if (configured?.length) {
-    return reorderCandidates(configured, normalizeBaseUrl(getActiveBasePath(value)));
+    return reorderCandidates(configured, normalizeBaseUrl(getActiveBasePath(value))).map(toAbsoluteUrl);
   }
 
   const network = toNetworkMode(value);
   const primary = PRIMARY_RPC_ENDPOINTS[network] || PRIMARY_RPC_ENDPOINTS.mainnet;
   const fallback = FALLBACK_RPC_ENDPOINTS[network] || FALLBACK_RPC_ENDPOINTS.mainnet;
-  return reorderCandidates([primary, ...fallback], derivePreferredCandidate(value));
+  // neon-js's RpcDispatcher rejects relative URLs at constructor time, so
+  // fold every candidate (the primary path is relative) through toAbsoluteUrl.
+  return reorderCandidates([primary, ...fallback], derivePreferredCandidate(value)).map(toAbsoluteUrl);
 };
 
 export const getPrimaryRpcEndpoint = (value = getCurrentEnv()) =>

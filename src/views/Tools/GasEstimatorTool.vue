@@ -337,7 +337,10 @@ async function estimateGas() {
     toast.info(t("tools.gasEstimator.toastSimulating"));
     const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
       const rpcClient = new rpc.RPCClient(endpoint);
-      const invokeRes = await rpcClient.invokeScript({ script: base64Script, signers: invokeSigners });
+      // neon-js's RPC client takes positional args, not object-wrapped:
+      //   invokeScript(script, signers)
+      //   calculateNetworkFee(tx)  — accepts Transaction; serializes + base64-encodes internally.
+      const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
 
       // Build a dummy transaction for precise network-fee sizing.
       const txn = new tx.Transaction({
@@ -351,7 +354,7 @@ async function estimateGas() {
         txn.sign(acc, 860833102); // magic does not affect serialized size
       }
 
-      const rawNetworkFee = await rpcClient.calculateNetworkFee({ tx: txn.serialize(true) });
+      const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
       return { invokeRes, rawNetworkFee };
     });
 
