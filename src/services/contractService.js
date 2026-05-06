@@ -286,24 +286,58 @@ export const contractService = createService(
     },
 
     async getByHashWithFallback(hash, options = {}) {
-      const indexedContract = await contractService.getByHash(hash, options);
-      const chainState = await this.getChainStateByHash(hash, options);
-      if (indexedContract?.hash && !chainState?.hash) return indexedContract;
-      if (!indexedContract?.hash && !chainState?.hash) return null;
+      // Fetch in parallel: legacy fura row, on-chain state, and the
+      // indexer's per-contract overview (the only source with the real
+      // tx_count for the Invocations stat).
+      const network = (() => {
+        const env = String(getCurrentEnv() || "").toLowerCase();
+        return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+      })();
+      const [indexedContract, chainState, overview] = await Promise.all([
+        contractService.getByHash(hash, options),
+        this.getChainStateByHash(hash, options),
+        fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
+          headers: { Accept: "application/json" },
+        }).then((r) => r.ok ? r.json() : null).catch(() => null),
+      ]);
+      const indexerOverview = overview?.data || null;
+      // tx_count from /data/<network>/contracts/<hash> is the
+      // authoritative invocation count; the legacy row's totalsccall
+      // is 0 because the Mongo collection isn't populated.
+      const totalsccall = Number(indexerOverview?.tx_count);
+
+      const mergeIndexerExtras = (base) => {
+        if (!base) return base;
+        const out = { ...base };
+        if (Number.isFinite(totalsccall) && totalsccall > 0) out.totalsccall = totalsccall;
+        return out;
+      };
+
+      if (indexedContract?.hash && !chainState?.hash) return mergeIndexerExtras(indexedContract);
+      if (!indexedContract?.hash && !chainState?.hash) {
+        return indexerOverview
+          ? mergeIndexerExtras({
+              hash,
+              name: indexerOverview.manifest_name || hash,
+              manifest: { name: indexerOverview.manifest_name },
+              updatecounter: indexerOverview.update_counter,
+            })
+          : null;
+      }
 
       if (indexedContract?.hash && chainState?.hash) {
-        return {
+        return mergeIndexerExtras({
           ...indexedContract,
           ...chainState,
           name: indexedContract?.name || chainState?.manifest?.name || chainState?.name || hash,
           manifest: indexedContract?.manifest || chainState?.manifest || null,
-        };
+        });
       }
 
-      return {
+      return mergeIndexerExtras({
         ...chainState,
         name: chainState?.manifest?.name || chainState?.name || hash,
-      };
+      });
     },
 
     /**
