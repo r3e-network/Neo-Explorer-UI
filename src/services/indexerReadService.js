@@ -317,7 +317,22 @@ export const indexerReadService = {
       buildIndexerFallbackPaths(network, `tokens/${contractHash}`),
       options,
     );
-    return payload?.data || null;
+    if (payload?.data) return payload.data;
+    // The single-token endpoint is NEP-17-only on the indexer side
+    // (GetTokenOverview gates on nep17_transfers). For NEP-11 contracts
+    // it returns 404 (fetchIndexerJsonWithFallback yields null); fall back
+    // to the list-search endpoint which does handle NEP-11.
+    const search = await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(
+        network,
+        `tokens?standard=NEP11&search=${encodeURIComponent(contractHash)}&limit=1`,
+      ),
+      options,
+    );
+    const row = Array.isArray(search?.data) ? search.data[0] : null;
+    return row && String(row.contract_hash || "").toLowerCase() === String(contractHash).toLowerCase()
+      ? row
+      : null;
   },
 
   async getDailyAnalytics(days = 30, options = {}) {
