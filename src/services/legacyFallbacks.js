@@ -1,5 +1,5 @@
 import { GAS_HASH, NEO_HASH } from "@/constants";
-import { addressToScriptHash, publicKeyToAddress, scriptHashToAddress } from "@/utils/neoHelpers";
+import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 
 function normalizeHash(value = "") {
   const raw = String(value || "").trim().toLowerCase();
@@ -13,10 +13,12 @@ function asCount(value) {
 }
 
 function buildBalanceLookup(rows = []) {
+  // Balance rows carry a real Neo base58 address — keep the case so we can
+  // look it up directly from the same address on the overview row.
   const balances = new Map();
 
   for (const row of rows) {
-    const address = normalizeHash(row?.address || "");
+    const address = String(row?.address || "").trim();
     const contractHash = normalizeHash(row?.contract_hash || row?.contractHash || "");
     if (!address || !contractHash) continue;
 
@@ -34,13 +36,14 @@ export function mapAccountOverviewRowsToAccounts(rows = [], balanceRows = []) {
 
   return [...(Array.isArray(rows) ? rows : [])]
     .map((row) => {
-      const scriptHash = normalizeHash(row?.address || "");
-      const assetBalances = balanceLookup.get(scriptHash) || {};
+      const address = String(row?.address || "").trim();
+      const scriptHash = normalizeHash(addressToScriptHash(address) || "");
+      const assetBalances = balanceLookup.get(address) || {};
       const txSent = asCount(row?.tx_sent);
       const txSigned = asCount(row?.tx_signed);
 
       return {
-        address: scriptHashToAddress(scriptHash) || row?.address || "",
+        address,
         scripthash: scriptHash,
         neobalance: assetBalances[normalizeHash(NEO_HASH)] || "0",
         gasbalance: assetBalances[normalizeHash(GAS_HASH)] || "0",

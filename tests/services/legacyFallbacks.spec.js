@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addressToScriptHash, publicKeyToAddress, scriptHashToAddress } from "@/utils/neoHelpers";
+import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 import { GAS_HASH, NEO_HASH } from "@/constants";
 import {
   mapAccountOverviewRowsToAccounts,
@@ -9,10 +9,13 @@ import {
 
 describe("legacy fallback helpers", () => {
   it("maps indexed account overview rows into account list rows", () => {
-    const scriptHash = "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56";
+    // The Postgres-backed v_account_overview view returns addresses in the
+    // canonical base58 form (case-preserved). Balance rows match by the same
+    // address.
+    const address = "NL2K2d2zHpQmsvDtY2vRMyhW6Fg7kgsfrE";
     const rows = [
       {
-        address: scriptHash,
+        address,
         tx_sent: 12,
         tx_signed: 34,
         nep11_sent_events: 5,
@@ -21,21 +24,23 @@ describe("legacy fallback helpers", () => {
       },
     ];
     const balances = [
-      { address: scriptHash, contract_hash: NEO_HASH, balance_raw: "42" },
-      { address: scriptHash, contract_hash: GAS_HASH, balance_raw: "123000000" },
+      { address, contract_hash: NEO_HASH, balance_raw: "42" },
+      { address, contract_hash: GAS_HASH, balance_raw: "123000000" },
     ];
 
     const mapped = mapAccountOverviewRowsToAccounts(rows, balances);
 
     expect(mapped).toHaveLength(1);
     expect(mapped[0]).toMatchObject({
-      address: scriptHashToAddress(scriptHash),
+      address,
       neobalance: "42",
       gasbalance: "123000000",
       txCount: 46,
       nep11TransferCount: 12,
       lastTransactionTime: 1234567890,
     });
+    // scripthash should be the canonical 0x... derived from the address.
+    expect(mapped[0].scripthash).toMatch(/^0x[0-9a-f]{40}$/);
   });
 
   it("maps native getcandidates rows into explorer candidate rows", () => {
