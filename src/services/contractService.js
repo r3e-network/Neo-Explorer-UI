@@ -3,6 +3,7 @@ import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
+import { getCurrentEnv } from "@/utils/env";
 
 // state_json arrives from the indexer as a JSON-encoded string; the
 // table renderer expects the parsed object. Fall back to the original
@@ -106,6 +107,101 @@ export const contractService = createService(
     // Override the auto-generated getNotifications: route through the
     // indexer REST endpoint, which has actual data, then fall back to
     // the legacy RPC when the indexer is unreachable.
+    // Override getScCalls — same Mongo→Postgres pattern as #150/#152/#153.
+    // Legacy GetScCallByContractHash queries an unpopulated Mongo collection.
+    // Derive contract calls from the indexer's contract_notifications stream:
+    // distinct txid+contract_hash rows are the unique invocations of this
+    // contract. Sender comes from transaction_signers (first signer per tx).
+    async getScCalls(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const indexerRes = await indexerReadService.getContractNotifications(
+          hash,
+          // Pull a wider window because we dedup by txid (contracts often
+          // emit several notifications per call).
+          Math.max(limit * 4, 100),
+          skip,
+          options,
+        );
+        const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
+        if (rows.length === 0) {
+          return safeRpcList(
+            "GetScCallByContractHash",
+            { ContractHash: hash, Limit: limit, Skip: skip },
+            "get SC calls",
+            options,
+          );
+        }
+        // Dedup by txid, keeping the first notification per tx for the
+        // event_name display.
+        const seen = new Set();
+        const calls = [];
+        for (const row of rows) {
+          if (!row?.txid || seen.has(row.txid)) continue;
+          seen.add(row.txid);
+          calls.push({
+            txid: row.txid,
+            blockindex: row.block_index,
+            method: row.event_name || "—",
+            callFlags: "",
+            // originSender is fetched in a second pass below.
+            originSender: null,
+          });
+          if (calls.length >= limit) break;
+        }
+        // Resolve senders in a single batched query against the indexer's
+        // transaction_signers REST table (txid IN (...)). One round-trip
+        // for the whole page rather than N individual getrawtransaction
+        // calls. Failures fall through to originSender=null — the table
+        // then renders "(null sender)" instead of breaking.
+        try {
+          const network = (() => {
+            const env = String(getCurrentEnv() || "").toLowerCase();
+            return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+          })();
+          const txids = calls.map((c) => c.txid).filter(Boolean);
+          if (txids.length > 0) {
+            const params = new URLSearchParams({
+              select: "txid,account,position",
+              network: `eq.${network}`,
+              txid: `in.(${txids.join(",")})`,
+              order: "position.asc",
+            });
+            const r = await fetch(`/rest/${network}/transaction_signers?${params}`, {
+              headers: { Accept: "application/json" },
+            });
+            if (r.ok) {
+              const rows = await r.json();
+              const senderByTxid = new Map();
+              for (const row of (Array.isArray(rows) ? rows : [])) {
+                if (row?.txid && !senderByTxid.has(row.txid)) {
+                  senderByTxid.set(row.txid, row.account);
+                }
+              }
+              for (const call of calls) {
+                if (senderByTxid.has(call.txid)) call.originSender = senderByTxid.get(call.txid);
+              }
+            }
+          }
+        } catch { /* keep null senders */ }
+        return {
+          result: calls,
+          totalCount: Number(
+            indexerRes?.paging?.total
+              ?? (rows.length === Math.max(limit * 4, 100) ? skip + limit + 1 : skip + calls.length),
+          ),
+        };
+      } catch {
+        // Indexer down — let legacy RPC try (will return empty, but at
+        // least the page renders without crashing).
+      }
+      return safeRpcList(
+        "GetScCallByContractHash",
+        { ContractHash: hash, Limit: limit, Skip: skip },
+        "get SC calls",
+        options,
+      );
+    },
+
     async getNotifications(hash, limit = 20, skip = 0, options = {}) {
       try {
         const indexerRes = await indexerReadService.getContractNotifications(hash, limit, skip, options);
