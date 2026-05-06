@@ -187,11 +187,12 @@ describe("nnsService.resolveDomain", () => {
     const profile = await nnsService.getMatrixDomainProfile("alice.matrix");
 
     expect(callWithRpcEndpointFallback).toHaveBeenCalled();
-    expect(invokeFunctionMock).toHaveBeenNthCalledWith(1, {
-      contractHash: "0x89908093c5ccc463e2c5744d6bacb06108b60a75",
-      method: "isAvailable",
-      args: expect.any(Array),
-    });
+    expect(invokeFunctionMock).toHaveBeenNthCalledWith(
+      1,
+      "0x89908093c5ccc463e2c5744d6bacb06108b60a75",
+      "isAvailable",
+      expect.any(Array),
+    );
     expect(profile).toMatchObject({
       domain: "alice.matrix",
       available: false,
