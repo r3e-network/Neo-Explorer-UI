@@ -930,7 +930,7 @@ const ja = {
     },
     converter: {
       title: "Neo フォーマッター＆コンバーター",
-      description: "Base64、Hex 文字列、UTF-8 テキスト、ScriptHash を簡単に変換できます。",
+      description: "Base64、Hex 文字列、UTF-8 テキストを簡単に変換できます。",
       pageTitle: "フォーマットコンバーター",
       pageSubtitle: "Neo N3 パラメータ用に Base64、Hex、文字列間で変換します。",
       breadcrumb: "フォーマットコンバーター",

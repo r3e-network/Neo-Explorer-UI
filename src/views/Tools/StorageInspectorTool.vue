@@ -140,7 +140,7 @@ import { useToast } from "vue-toastification";
 const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/../g) || [], b => parseInt(b, 16)));
 const reverseHex = (hex) => hex.match(/../g).reverse().join("");
 const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
-import { base642hex, BigInteger } from "@/utils/sdkCompat";
+import { base642hex } from "@/utils/sdkCompat";
 import { loadNeonJs } from "@/utils/neonLoader";
 import { getCurrentEnv } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
@@ -178,9 +178,17 @@ const stringResult = computed(() => {
 const intResult = computed(() => {
   if (!hexResult.value) return "0";
   try {
-    // Neo integers are little-endian in storage
-    const reversedHex = reverseHex(hexResult.value);
-    return BigInteger.fromTwos(reversedHex).toString();
+    // Neo VM integers are stored little-endian, two's complement (sign bit
+    // is the high bit of the most-significant byte after reversing to BE).
+    const h = hexResult.value;
+    if (!h) return "0";
+    const beHex = reverseHex(h);
+    let value = BigInt("0x" + beHex);
+    const msb = parseInt(beHex.slice(0, 2), 16);
+    if (msb & 0x80) {
+      value -= 1n << BigInt(beHex.length * 4);
+    }
+    return value.toString();
   } catch (e) {
     return t("tools.storageInspector.invalidInteger");
   }

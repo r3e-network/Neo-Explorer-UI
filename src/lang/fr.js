@@ -930,7 +930,7 @@ const fr = {
     },
     converter: {
       title: "Formateur et convertisseur Neo",
-      description: "Convertissez facilement entre Base64, chaînes Hex, texte UTF-8 et ScriptHash.",
+      description: "Convertissez facilement entre Base64, chaînes Hex et texte UTF-8.",
       pageTitle: "Convertisseur de format",
       pageSubtitle: "Convertissez entre Base64, Hex et chaînes de caractères pour les paramètres Neo N3.",
       breadcrumb: "Convertisseur de format",

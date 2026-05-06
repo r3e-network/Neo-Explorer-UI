@@ -930,7 +930,7 @@ const ko = {
     },
     converter: {
       title: "Neo 포맷터 & 변환기",
-      description: "Base64, Hex 문자열, UTF-8 텍스트, ScriptHash 간에 쉽게 변환할 수 있습니다.",
+      description: "Base64, Hex 문자열, UTF-8 텍스트 간에 쉽게 변환할 수 있습니다.",
       pageTitle: "포맷 변환기",
       pageSubtitle: "Neo N3 매개변수를 위해 Base64, Hex, 문자열 간에 변환합니다.",
       breadcrumb: "포맷 변환기",

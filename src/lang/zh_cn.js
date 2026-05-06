@@ -930,7 +930,7 @@ const zh = {
     },
     converter: {
       title: "Neo 格式转换器",
-      description: "在 Base64、十六进制字符串、UTF-8 文本和 ScriptHash 之间轻松转换。",
+      description: "在 Base64、十六进制字符串和 UTF-8 文本之间轻松转换。",
       pageTitle: "格式转换器",
       pageSubtitle: "在 Base64、十六进制和字符串之间转换 Neo N3 参数。",
       breadcrumb: "格式转换器",
