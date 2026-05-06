@@ -292,6 +292,59 @@ export const tokenService = createService(
       return fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
     },
 
+    // Override getHolders — the legacy GetAssetHoldersByContractHash RPC
+    // queries a Mongo collection that the Postgres-migrated indexer no
+    // longer populates. Pull from v_nep17_balances instead, ranked by
+    // balance_raw DESC, and compute % share against the token's
+    // total_supply_raw (sourced from the indexer's tokens endpoint).
+    async getHolders(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const network = (() => {
+          const env = String(getCurrentEnv() || "").toLowerCase();
+          return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+        })();
+        const params = new URLSearchParams({
+          select: "address,balance_raw",
+          contract_hash: `eq.${hash}`,
+          network: `eq.${network}`,
+          balance_raw: "gt.0",
+          limit: String(limit),
+          offset: String(skip),
+          order: "balance_raw.desc",
+        });
+        const [rowsRes, tokenInfo] = await Promise.all([
+          fetch(`/rest/${network}/v_nep17_balances?${params}`, { headers: { Accept: "application/json" } }),
+          indexerReadService.getToken(hash, options).catch(() => null),
+        ]);
+        if (rowsRes.ok) {
+          const rows = await rowsRes.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            const totalSupply = Number(tokenInfo?.total_supply_raw || 0);
+            const result = rows.map((r) => {
+              const balance = Number(r.balance_raw || 0);
+              return {
+                address: r.address,
+                balance: String(r.balance_raw ?? "0"),
+                percentage: totalSupply > 0 ? balance / totalSupply : 0,
+              };
+            });
+            return {
+              result,
+              totalCount: Number(tokenInfo?.holder_count || rows.length),
+            };
+          }
+        }
+      } catch {
+        // fall through to legacy RPC
+      }
+      return safeRpcList(
+        "GetAssetHoldersByContractHash",
+        { ContractHash: hash, Limit: limit, Skip: skip },
+        "get token holders",
+        options,
+      );
+    },
+
     // Override the default getNep17Transfers (legacy GetNep17TransferByContractHash
     // RPC) which returns empty for nearly every contract. Derive from the
     // indexer's contract notifications endpoint instead, decoding the
