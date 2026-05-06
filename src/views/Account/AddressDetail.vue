@@ -116,7 +116,7 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { accountService, transactionService, contractService, candidateService, tokenService } from "@/services";
 import { NATIVE_CONTRACTS } from "@/constants";
@@ -153,6 +153,7 @@ import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/log
 import { useToast } from "vue-toastification";
 
 const route = useRoute();
+const router = useRouter();
 const { t } = useI18n();
 const toast = useToast();
 let addressRequestId = 0;

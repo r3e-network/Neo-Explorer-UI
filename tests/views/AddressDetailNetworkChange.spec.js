@@ -25,6 +25,7 @@ const getValidatorMetadata = vi.fn();
 
 vi.mock("vue-router", () => ({
   useRoute: () => route,
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 
 vi.mock("@/utils/healthCheck", () => ({
