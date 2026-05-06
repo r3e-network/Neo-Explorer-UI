@@ -148,6 +148,7 @@ import { getCurrentEnv, NET_ENV, setCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { supabaseService } from "@/services/supabaseService";
+import nnsService from "@/services/nnsService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { useToast } from "vue-toastification";
 
@@ -657,6 +658,23 @@ watch(
   address,
   async (addr) => {
     if (!addr) return;
+    // If the URL is an NNS / Matrix domain (e.g. smartwallet.neo),
+    // resolve it to the on-chain address first and replace the route so
+    // every downstream service call sees the canonical N… address. The
+    // user can still navigate by typing the domain into search.
+    const trimmed = String(addr).trim();
+    if (/\.(neo|matrix)$/i.test(trimmed)) {
+      try {
+        const resolved = await nnsService.resolveDomain(trimmed.toLowerCase());
+        if (resolved && resolved !== trimmed) {
+          await router.replace({ path: `/account-profile/${resolved}` });
+          return; // route change re-fires this watcher with the resolved addr
+        }
+      } catch {
+        // Resolution failed — fall through and load with the raw value;
+        // the page will simply show empty stats, matching prior behavior.
+      }
+    }
     await initializeData(addr);
   },
   { immediate: true },
