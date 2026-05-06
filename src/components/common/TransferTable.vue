@@ -191,7 +191,14 @@ function getDirectionStyle(item) {
 
 function fetchTransfers(limit, skip) {
   if (props.type === "nep11") {
-    return tokenService.getNep11TransfersByTokenId(props.contractHash, hexToBase64(props.tokenId), limit, skip);
+    // Per-token transfers when a tokenId is supplied (used on the
+    // /nft-info/:contract/:owner/:tokenId page); contract-wide transfers
+    // when no tokenId is set (used on the NFT collection landing page,
+    // where the legacy GetNep11TransferByContractHash RPC doesn't exist).
+    if (props.tokenId) {
+      return tokenService.getNep11TransfersByTokenId(props.contractHash, hexToBase64(props.tokenId), limit, skip);
+    }
+    return tokenService.getNep11Transfers(props.contractHash, limit, skip);
   }
   return tokenService.getNep17Transfers(props.contractHash, limit, skip);
 }

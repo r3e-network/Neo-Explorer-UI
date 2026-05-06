@@ -334,6 +334,37 @@ export const tokenService = createService(
       );
     },
 
+    // Contract-level NEP-11 transfers. There's no
+    // GetNep11TransferByContractHash JSON-RPC handler — only the per-token
+    // variant exists — so the NFT collection page's "Recent Transfers" tab
+    // had no working data source. Reuse the same indexer-notifications
+    // path as getNep17Transfers; both standards emit a "Transfer" event
+    // with [from, to, amount/tokenId] state.
+    async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const notifications = await indexerReadService.getContractNotifications(
+          hash,
+          Math.max(limit * 3, 50),
+          skip,
+          options,
+        );
+        const rows = Array.isArray(notifications?.data) ? notifications.data : [];
+        const transfers = rows
+          .filter((row) => String(row.event_name || "").toLowerCase() === "transfer")
+          .slice(0, limit)
+          .map((row) => decodeTransferNotification(row));
+        return {
+          result: transfers,
+          totalCount: Number(
+            notifications?.paging?.total
+              ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
+          ),
+        };
+      } catch {
+        return { result: [], totalCount: 0 };
+      }
+    },
+
     /** @see getTokenList */
     async getNep17List(limit = 20, skip = 0, options = {}) {
       return tokenService.getTokenList("NEP17", limit, skip, options);
