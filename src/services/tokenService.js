@@ -3,6 +3,56 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { base64ToBytes, bytesToHex, scriptHashToAddress } from "@/utils/neoHelpers";
+import { getCurrentEnv } from "@/utils/env";
+
+const resolveTokenNetwork = () => {
+  const env = String(getCurrentEnv() || "").toLowerCase();
+  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+};
+
+// Indexer Postgres-backed REST endpoint for tx-level transfer lookups.
+// Fields returned: { txid, contract_hash, from_address, to_address,
+// amount_raw, amount_text, block_index, execution_index,
+// notification_index, indexed_at, raw_json, [token_id_raw for NEP-11] }.
+// Map to the legacy {from, to, amount, contract, txid, blockindex} shape
+// the shared TxTransfersTab component expects.
+async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, skip = 0) {
+  const network = resolveTokenNetwork();
+  const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
+  const params = new URLSearchParams({
+    txid: `eq.${txHash}`,
+    network: `eq.${network}`,
+    limit: String(limit),
+    offset: String(skip),
+    order: "execution_index.asc,notification_index.asc",
+  });
+  try {
+    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return { result: [], totalCount: 0 };
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return { result: [], totalCount: 0 };
+    return {
+      result: rows.map((r) => ({
+        txid: r.txid,
+        from: r.from_address || null,
+        to: r.to_address || null,
+        amount: String(r.amount_text ?? r.amount_raw ?? "0"),
+        contract: r.contract_hash,
+        contractHash: r.contract_hash,
+        blockindex: r.block_index,
+        timestamp: r.indexed_at,
+        ...(standard === "nep11" && r.token_id_raw
+          ? { tokenId: r.token_id_raw }
+          : {}),
+      })),
+      totalCount: rows.length,
+    };
+  } catch {
+    return { result: [], totalCount: 0 };
+  }
+}
 
 // Indexer contract notifications carry Transfer events as a JSON-encoded
 // stack: state.value = [from, to, amount]. Both addresses are 20-byte
@@ -215,6 +265,33 @@ export const tokenService = createService(
     },
   },
   {
+    // Override the default getTransfersByTxHash / getNep11TransfersByTxHash —
+    // both legacy RPC handlers query the empty Mongo `Nep17Transfer` /
+    // `Nep11Transfer` collections (indexer migrated to Postgres months ago).
+    // Fall back to the Postgres /rest/<network>/{nep17,nep11}_transfers
+    // endpoint, which returns the indexed rows for the given txid.
+    async getTransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+      const direct = await safeRpcList(
+        "GetNep17TransferByTransactionHash",
+        { TransactionHash: txHash, Limit: limit, Skip: skip },
+        "get NEP17 transfers by tx",
+        options,
+      ).catch(() => null);
+      if (Array.isArray(direct?.result) && direct.result.length > 0) return direct;
+      return fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
+    },
+
+    async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+      const direct = await safeRpcList(
+        "GetNep11TransferByTransactionHash",
+        { TransactionHash: txHash, Limit: limit, Skip: skip },
+        "get NEP11 transfers by tx",
+        options,
+      ).catch(() => null);
+      if (Array.isArray(direct?.result) && direct.result.length > 0) return direct;
+      return fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
+    },
+
     // Override the default getNep17Transfers (legacy GetNep17TransferByContractHash
     // RPC) which returns empty for nearly every contract. Derive from the
     // indexer's contract notifications endpoint instead, decoding the
