@@ -54,7 +54,7 @@
               </span>
             </div>
             <p class="page-subtitle mt-1">
-              {{ tokenValue?.type ? $t("tokenDetail.nepTokenSubtitle", { type: tokenValue.type }) : $t("tokenDetail.tokenFallback") }}
+              {{ tokenValue?.type ? $t("tokenDetail.nepTokenSubtitle", { type: String(tokenValue.type).replace(/^NEP-?/i, "") }) : $t("tokenDetail.tokenFallback") }}
               <a
                 v-if="tokenMetadata?.website"
                 :href="tokenMetadata.website"

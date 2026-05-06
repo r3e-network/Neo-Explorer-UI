@@ -37,7 +37,10 @@
       <!-- Decimals -->
       <InfoRow :label="$t('tokenDetail.statDecimals')" :value="String(tokenInfo['decimals'] ?? 0)" />
       <!-- Standard -->
-      <InfoRow :label="$t('tokenDetail.overviewStandard')" :value="`NEP-${tokenInfo['type']}`" />
+      <InfoRow
+        :label="$t('tokenDetail.overviewStandard')"
+        :value="`NEP-${String(tokenInfo['type'] ?? '').replace(/^NEP-?/i, '')}`"
+      />
       <!-- First Transfer -->
       <InfoRow :label="$t('tokenDetail.overviewFirstTransfer')">
         <span v-if="tokenInfo.firsttransfertime">

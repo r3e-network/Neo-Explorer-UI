@@ -284,10 +284,11 @@ export const tokenService = createService(
           tokenname: item.display_name || item.contract_hash,
           symbol: item.symbol || "",
           holders: item.holder_count || 0,
-          totalsupply:
-            String(item.standard || "").toUpperCase() === "NEP11"
-              ? item.total_supply_raw || "0"
-              : null,
+          // total_supply_raw is populated for both NEP-17 and NEP-11.
+          // Older revision masked NEP-17 to null on the assumption the
+          // indexer total was unreliable; the live data shows it tracks
+          // the contract's totalSupply correctly, so render it for both.
+          totalsupply: item.total_supply_raw || "0",
           decimals: Number(item.decimals || 0),
           type: item.standard || type,
           standard: item.standard || type,
