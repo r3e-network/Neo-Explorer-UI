@@ -114,14 +114,26 @@ export const contractService = createService(
     // contract. Sender comes from transaction_signers (first signer per tx).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const indexerRes = await indexerReadService.getContractNotifications(
-          hash,
-          // Pull a wider window because we dedup by txid (contracts often
-          // emit several notifications per call).
-          Math.max(limit * 4, 100),
-          skip,
-          options,
-        );
+        const network = (() => {
+          const env = String(getCurrentEnv() || "").toLowerCase();
+          return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+        })();
+        // Fetch the page of notifications, the per-contract overview (for
+        // the authoritative tx_count), and signers in parallel.
+        const [indexerRes, overviewRes] = await Promise.all([
+          indexerReadService.getContractNotifications(
+            hash,
+            // Pull a wider window because we dedup by txid (contracts often
+            // emit several notifications per call).
+            Math.max(limit * 4, 100),
+            skip,
+            options,
+          ),
+          fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
+            headers: { Accept: "application/json" },
+          }).then((r) => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        const authoritativeTxCount = Number(overviewRes?.data?.tx_count);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
         if (rows.length === 0) {
           return safeRpcList(
@@ -185,10 +197,12 @@ export const contractService = createService(
         } catch { /* keep null senders */ }
         return {
           result: calls,
-          totalCount: Number(
-            indexerRes?.paging?.total
-              ?? (rows.length === Math.max(limit * 4, 100) ? skip + limit + 1 : skip + calls.length),
-          ),
+          totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
+            ? authoritativeTxCount
+            : Number(
+                indexerRes?.paging?.total
+                  ?? (rows.length === Math.max(limit * 4, 100) ? skip + limit + 1 : skip + calls.length),
+              ),
         };
       } catch {
         // Indexer down — let legacy RPC try (will return empty, but at
