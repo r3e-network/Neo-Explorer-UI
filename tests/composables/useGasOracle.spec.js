@@ -1,7 +1,11 @@
-const mockSafeRpc = vi.fn();
+const mockGetList = vi.fn();
+const mockGetCount = vi.fn();
 
-vi.mock("@/services/api", () => ({
-  safeRpc: (...args) => mockSafeRpc(...args),
+vi.mock("@/services/transactionService", () => ({
+  transactionService: {
+    getList: (...args) => mockGetList(...args),
+    getCount: (...args) => mockGetCount(...args),
+  },
 }));
 
 vi.mock("@/services/cache", () => ({
@@ -15,7 +19,8 @@ import { useGasOracle, getGasPrice } from "@/composables/useGasOracle";
 describe("useGasOracle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSafeRpc.mockResolvedValue(null);
+    mockGetList.mockResolvedValue({ result: [], totalCount: 0 });
+    mockGetCount.mockResolvedValue(0);
   });
 
   it("returns the expected API shape", () => {
@@ -38,7 +43,8 @@ describe("useGasOracle", () => {
   });
 
   it("sets isLoading to true then false after refresh completes", async () => {
-    mockSafeRpc.mockResolvedValue(null);
+    mockGetList.mockResolvedValue({ result: [], totalCount: 0 });
+    mockGetCount.mockResolvedValue(0);
 
     const { refresh, isLoading } = useGasOracle();
 
@@ -53,11 +59,15 @@ describe("useGasOracle", () => {
     expect(isLoading.value).toBe(false);
   });
 
-  it("updates networkFee and systemFee from RPC response", async () => {
-    mockSafeRpc.mockImplementation((method) => {
-      if (method === "GetNetFeeRange") return Promise.resolve({ networkFee: 100000000, systemFee: 50000000 });
-      return Promise.resolve(5);
+  it("averages fees from latest 10 transactions (#187 — replaces GetNetFeeRange)", async () => {
+    mockGetList.mockResolvedValue({
+      result: [
+        { netfee: 100_000_000, sysfee: 50_000_000 },
+        { netfee: 100_000_000, sysfee: 50_000_000 },
+      ],
+      totalCount: 2,
     });
+    mockGetCount.mockResolvedValue(5);
 
     const { refresh, networkFee, systemFee, pendingCount } = useGasOracle();
     await refresh();
@@ -68,10 +78,11 @@ describe("useGasOracle", () => {
   });
 
   it("produces formatted suggestions (6 decimal strings)", async () => {
-    mockSafeRpc.mockImplementation((method) => {
-      if (method === "GetNetFeeRange") return Promise.resolve({ networkFee: 100000000, systemFee: 0 });
-      return Promise.resolve(3);
+    mockGetList.mockResolvedValue({
+      result: [{ netfee: 100_000_000, sysfee: 0 }],
+      totalCount: 1,
     });
+    mockGetCount.mockResolvedValue(3);
 
     const { refresh, suggestions } = useGasOracle();
     await refresh();
@@ -85,9 +96,8 @@ describe("useGasOracle", () => {
   });
 
   it("does not propagate errors swallowed by updateOracle", async () => {
-    // updateOracle catches errors internally and console.warns them,
-    // so refresh() should complete without setting error.
-    mockSafeRpc.mockRejectedValue(new Error("network down"));
+    mockGetList.mockRejectedValue(new Error("network down"));
+    mockGetCount.mockRejectedValue(new Error("network down"));
 
     const { refresh, error, isLoading } = useGasOracle();
     await refresh();
@@ -98,10 +108,11 @@ describe("useGasOracle", () => {
   });
 
   it("handles high mempool pressure (pending >= 50)", async () => {
-    mockSafeRpc.mockImplementation((method) => {
-      if (method === "GetNetFeeRange") return Promise.resolve({ networkFee: 200000000, systemFee: 100000000 });
-      return Promise.resolve(100);
+    mockGetList.mockResolvedValue({
+      result: [{ netfee: 200_000_000, sysfee: 100_000_000 }],
+      totalCount: 1,
     });
+    mockGetCount.mockResolvedValue(100);
 
     const { refresh, suggestions } = useGasOracle();
     await refresh();
@@ -112,11 +123,12 @@ describe("useGasOracle", () => {
     expect(parseFloat(s.slow)).toBeGreaterThanOrEqual(0.001);
   });
 
-  it("handles alternative RPC field names (netfee / sysfee)", async () => {
-    mockSafeRpc.mockImplementation((method) => {
-      if (method === "GetNetFeeRange") return Promise.resolve({ netfee: 200000000, sysfee: 100000000 });
-      return Promise.resolve(0);
+  it("accepts indexer snake_case net_fee/sys_fee fields too", async () => {
+    mockGetList.mockResolvedValue({
+      result: [{ net_fee: 200_000_000, sys_fee: 100_000_000 }],
+      totalCount: 1,
     });
+    mockGetCount.mockResolvedValue(0);
 
     const { refresh, networkFee, systemFee } = useGasOracle();
     await refresh();
@@ -129,7 +141,8 @@ describe("useGasOracle", () => {
 describe("getGasPrice", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSafeRpc.mockResolvedValue(null);
+    mockGetList.mockResolvedValue({ result: [], totalCount: 0 });
+    mockGetCount.mockResolvedValue(0);
   });
 
   it("returns formatted suggestions object", async () => {

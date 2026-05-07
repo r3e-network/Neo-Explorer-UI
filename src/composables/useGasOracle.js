@@ -5,7 +5,6 @@
  * All components calling useGasOracle() share the same underlying oracle data.
  */
 import { ref, computed, reactive } from "vue";
-import { safeRpc } from "@/services/api";
 import { transactionService } from "@/services/transactionService";
 import { getCacheKey, cachedRequest, CACHE_TTL } from "@/services/cache";
 
@@ -80,19 +79,35 @@ function calculateSuggestions() {
  */
 async function updateOracle() {
   try {
-    const [feeRes, txCount] = await Promise.all([
-      safeRpc("GetNetFeeRange", {}, null),
-      // Use the indexer-first transactionService.getCount instead of the
-      // raw legacy RPC — same migration as #171.
+    // Derive fee state from the latest 10 transactions (same source as
+    // statsService.getGasTracker). The legacy GetNetFeeRange RPC was
+    // a proprietary neo3fura_http aggregator with no standard equivalent;
+    // averaging recent tx fees gives the same UX without depending on it.
+    // Returns 1 round-trip for fees + 1 for tx count (both already
+    // indexer-first per #171/#177).
+    const [txListRes, txCount] = await Promise.all([
+      transactionService.getList(10, 0).catch(() => null),
       transactionService.getCount().catch(() => 0),
     ]);
 
-    if (feeRes) {
-      const netFee = Number(feeRes.networkFee || feeRes.netfee || 0);
-      state.networkFee = Number.isFinite(netFee) ? netFee / Math.pow(10, GAS_DECIMALS) : 0;
-
-      const sysFee = Number(feeRes.systemFee || feeRes.sysfee || 0);
-      state.systemFee = Number.isFinite(sysFee) ? sysFee / Math.pow(10, GAS_DECIMALS) : 0;
+    const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
+    if (rows.length > 0) {
+      let netSum = 0;
+      let sysSum = 0;
+      let n = 0;
+      for (const tx of rows) {
+        const net = Number(tx.netfee ?? tx.net_fee ?? tx.networkFee ?? 0);
+        const sys = Number(tx.sysfee ?? tx.sys_fee ?? tx.systemFee ?? 0);
+        if (Number.isFinite(net) && Number.isFinite(sys)) {
+          netSum += net;
+          sysSum += sys;
+          n += 1;
+        }
+      }
+      if (n > 0) {
+        state.networkFee = (netSum / n) / Math.pow(10, GAS_DECIMALS);
+        state.systemFee = (sysSum / n) / Math.pow(10, GAS_DECIMALS);
+      }
     }
 
     if (typeof txCount === "number") {
