@@ -4,6 +4,7 @@ import { addressToScriptHash } from "../../src/utils/neoHelpers";
 const safeRpc = vi.fn();
 const resolveDomain = vi.fn();
 const getByHashWithFallback = vi.fn();
+const getAccount = vi.fn();
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
@@ -21,6 +22,12 @@ vi.mock("../../src/services/nnsService.js", () => ({
   },
 }));
 
+vi.mock("../../src/services/indexerReadService.js", () => ({
+  indexerReadService: {
+    getAccount,
+  },
+}));
+
 vi.mock("../../src/services/cache.js", () => ({
   cachedRequest: (_key, fetchFn) => fetchFn(),
   getCacheKey: vi.fn(() => "search-cache-key"),
@@ -31,6 +38,8 @@ describe("searchService address lookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getByHashWithFallback.mockReset();
+    // Default: indexer offline, existing tests exercise legacy fallback.
+    getAccount.mockRejectedValue(new Error("indexer offline"));
   });
 
   it("finds account by converting Neo address to script hash first", async () => {
@@ -102,5 +111,75 @@ describe("searchService address lookup", () => {
     const result = await searchService.search(query);
 
     expect(result).toEqual({ type: null, data: null });
+  });
+
+  // Indexer-first migration tests (#174).
+  it("uses indexerReadService.getAccount for address lookup; skips legacy GetAddressByAddress", async () => {
+    const query = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
+    getAccount.mockResolvedValue({
+      tx_sent: 12,
+      tx_signed: 8,
+      nep17_net_raw: "1000000000",
+    });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(getAccount).toHaveBeenCalledWith(query);
+    expect(safeRpc).not.toHaveBeenCalledWith(
+      "GetAddressByAddress",
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(result.type).toBe("address");
+    expect(result.data).toMatchObject({
+      address: query,
+      tx_sent: 12,
+      balance: "1000000000",
+    });
+  });
+
+  it("uses standard getblock RPC for block-height query before legacy fallback", async () => {
+    const query = "12345";
+    safeRpc.mockImplementation(async (method, params) => {
+      if (method === "getblock" && params?.[0] === 12345) {
+        return { hash: "0xstdblock", index: 12345, txcount: 3 };
+      }
+      return null;
+    });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(safeRpc).toHaveBeenCalledWith("getblock", [12345, 1], null);
+    expect(safeRpc).not.toHaveBeenCalledWith(
+      "GetBlockByBlockHeight",
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(result.type).toBe("block");
+    expect(result.data.hash).toBe("0xstdblock");
+  });
+
+  it("uses standard getrawtransaction for 64-hex hash before legacy fallback", async () => {
+    const query = "a".repeat(64);
+    const fullHash = `0x${query}`;
+    safeRpc.mockImplementation(async (method, params) => {
+      if (method === "getrawtransaction" && params?.[0] === fullHash) {
+        return { hash: fullHash, blockindex: 99 };
+      }
+      return null;
+    });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(safeRpc).toHaveBeenCalledWith("getrawtransaction", [fullHash, 1], null);
+    expect(safeRpc).not.toHaveBeenCalledWith(
+      "GetRawTransactionByTransactionHash",
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(result.type).toBe("transaction");
   });
 });
