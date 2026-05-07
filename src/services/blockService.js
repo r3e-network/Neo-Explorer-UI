@@ -1,6 +1,7 @@
 import { rpc, safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
+import { indexerReadService } from "./indexerReadService";
 
 /**
  * Detect "method not exposed" errors so we know when to fall back to a
@@ -162,6 +163,26 @@ export const blockService = createService(
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
     },
 
+    // Map the indexer's snake_case BlockListItem to the legacy field names
+    // the existing block table renderers expect. Mirrors HomePage's
+    // normalizeBlockSummary.
+    _mapIndexerBlock(b = {}) {
+      const index = Number(b.index ?? b.block_index ?? b.blockindex ?? 0);
+      const txCount = Number(b.txcount ?? b.tx_count ?? (Array.isArray(b.tx) ? b.tx.length : 0));
+      return {
+        ...b,
+        hash: b.hash || "",
+        index: Number.isFinite(index) ? index : 0,
+        timestamp: Number(b.timestamp ?? b.time_ms ?? b.blocktime ?? 0),
+        txcount: Number.isFinite(txCount) ? txCount : 0,
+        transactioncount: Number.isFinite(txCount) ? txCount : 0,
+        primary: b.primary ?? b.primary_node,
+        nextconsensus: b.nextconsensus ?? b.next_consensus,
+        speaker: b.speaker ?? b.nextconsensus ?? b.next_consensus,
+        prevhash: b.prevhash ?? b.previous_block_hash,
+      };
+    },
+
     /**
      * Fetch the official state root for a block height. Primary path is
      * neo3fura's `GetStateRoot` (which proxies the Neo node's
@@ -227,6 +248,14 @@ export const blockService = createService(
       return cachedRequest(
         key,
         async () => {
+          // Indexer first — total_block_count tracks the chain tip and
+          // outlives the legacy GetBlockCount handler. Same Mongo→Postgres
+          // shift as #171.
+          try {
+            const summary = await indexerReadService.getSummary(cacheOpts);
+            const fromSummary = Number(summary?.total_block_count ?? summary?.last_indexed_block);
+            if (Number.isFinite(fromSummary) && fromSummary > 0) return fromSummary;
+          } catch { /* fall through */ }
           const res = await safeRpc("GetBlockCount", {}, null, cacheOpts);
           return this._extractCount(res);
         },
@@ -245,7 +274,27 @@ export const blockService = createService(
       const key = getCacheKey("block_list", { limit, skip });
       const res = await cachedRequest(
         key,
-        () => safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list", cacheOpts),
+        async () => {
+          // Indexer first — same Mongo→Postgres pattern as #171.
+          try {
+            const [indexerRes, summary] = await Promise.all([
+              indexerReadService.getBlocks(limit, skip, cacheOpts),
+              indexerReadService.getSummary(cacheOpts).catch(() => null),
+            ]);
+            const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
+            if (rows.length > 0) {
+              const totalFromSummary = Number(summary?.total_block_count ?? summary?.last_indexed_block);
+              return {
+                result: rows.map(this._mapIndexerBlock),
+                totalCount: Number(
+                  indexerRes?.paging?.total
+                    ?? (Number.isFinite(totalFromSummary) && totalFromSummary > 0 ? totalFromSummary : skip + rows.length),
+                ),
+              };
+            }
+          } catch { /* fall through to legacy */ }
+          return safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list", cacheOpts);
+        },
         CACHE_TTL.chart,
         cacheOpts,
       );
