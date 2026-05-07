@@ -98,11 +98,14 @@ export const transactionService = createService(
     },
 
     async getByHash(hash, options = {}) {
-      let tx = await this._getByHash(hash, options);
-      if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
-
+      // Native RPC first — `getrawtransaction` is the canonical source
+      // and works against any Neo node. The legacy
+      // GetRawTransactionByTransactionHash JSON-RPC was the previous
+      // primary path but always returned `{result: null, error: "not
+      // found"}` post-Mongo-deletion; live audit caught it firing on
+      // every tx-detail page load with no useful payload.
+      let tx = null;
       try {
-        // Fallback 1: Fura might be lagging. Try native RPC directly bypassing the local proxy.
         const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
         const { getCurrentEnv } = await import("@/utils/env");
         const network = toNetworkMode(getCurrentEnv());
@@ -125,7 +128,6 @@ export const transactionService = createService(
             }
           }
           return {
-            ...tx,
             ...nativeTx,
             vmstate: nativeTx.vmstate || "",
             netfee: nativeTx.netfee,
@@ -135,11 +137,17 @@ export const transactionService = createService(
           };
         }
       } catch (err) {
-        if (import.meta.env.DEV) console.warn("[transactionService] native RPC fallback failed:", err);
+        if (import.meta.env.DEV) console.warn("[transactionService] native RPC primary failed:", err);
       }
 
+      // Legacy fallback — only reached if the chain node is unreachable
+      // entirely. Once neo3fura_http is removed this returns "not found"
+      // and we'll fall through to the mempool lookup below.
+      tx = await this._getByHash(hash, options);
+      if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
+
       try {
-        // Fallback 2: Mempool
+        // Final fallback: mempool — the tx may not be on chain yet.
         const { resolveNetworkName } = await import("@/utils/env");
         const { supabaseService } = await import("./supabaseService");
         const network = resolveNetworkName();

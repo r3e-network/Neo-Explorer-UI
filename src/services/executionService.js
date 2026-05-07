@@ -132,47 +132,53 @@ export const executionService = createService(
     },
 
     async getExecutionTrace(txHash, options = {}) {
+      // Standard `getapplicationlog` is the canonical source — it works
+      // against any Neo node and returns the authoritative execution
+      // trace. Try it first; the legacy
+      // GetApplicationLogByTransactionHash JSON-RPC was previously the
+      // primary path but always returned `{result: null, error: "not
+      // found"}` post-Mongo-deletion (verified live).
+      let primary = null;
+      try {
+        const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
+        const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
+        const network = toNetworkMode(getCurrentEnv());
+        const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
+          const client = new RpcClient(toAbsoluteUrl(endpoint));
+          return client.getApplicationLog(txHash);
+        });
+        if (nativeLog) {
+          primary = this._normalizeExecutionTrace(nativeLog);
+          if (this._countNotifications(primary) > 0) return primary;
+        }
+      } catch (nativeErr) {
+        if (import.meta.env.DEV) console.warn("[executionService] native RPC applog fetch failed:", nativeErr);
+      }
+
+      // Defence-in-depth: try the indexed and legacy PascalCase
+      // wrappers if the native call returned a partial trace (no
+      // notifications) or threw entirely.
       let indexed = null;
       try {
         indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
       } catch (err) {
         if (import.meta.env.DEV) console.warn("[executionService] indexed trace fetch failed:", err);
       }
-
       const indexedNotifications = this._countNotifications(indexed);
-
-      if (indexedNotifications > 0) {
-        return indexed;
-      }
+      if (indexedNotifications > 0) return indexed;
 
       let legacy = null;
       try {
         legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
       } catch (err) {
         if (import.meta.env.DEV) console.warn("[executionService] legacy trace fetch failed:", err);
-        legacy = null;
       }
 
-      // If Fura proxy failed, hit the native Node RPC directly
-      if (!indexed && !legacy) {
-        try {
-          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-          const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
-          const network = toNetworkMode(getCurrentEnv());
-          const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-            const client = new RpcClient(toAbsoluteUrl(endpoint));
-            return client.getApplicationLog(txHash);
-          });
-          if (nativeLog) {
-            legacy = this._normalizeExecutionTrace(nativeLog);
-          }
-        } catch (nativeErr) {
-          if (import.meta.env.DEV) console.warn("[executionService] native RPC applog fetch failed:", nativeErr);
-        }
-      }
-
-      if (!indexed && legacy) return legacy;
-      if (this._countNotifications(legacy) > indexedNotifications) return legacy;
+      if (this._countNotifications(legacy) > 0) return legacy;
+      if (primary) return primary;
+      // When neither has notifications, prefer whichever surfaced a
+      // vmstate (FAULT trace, etc.) — legacy sometimes has fields
+      // the indexed Mongo row dropped.
       if (!extractVmStateFromAppLog(indexed) && extractVmStateFromAppLog(legacy)) return legacy;
       return indexed || legacy;
     },
