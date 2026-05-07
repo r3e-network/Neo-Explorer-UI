@@ -1,5 +1,9 @@
 <template>
-  <div class="inline-flex items-center gap-1.5 min-w-0">
+  <!-- flex (not inline-flex) + max-w-full so a long address inside a
+       narrow flex-1 cell respects the cell's available width. With
+       inline-flex the wrapper sized to content, defeating the inner
+       router-link's `truncate` and overflowing the row. -->
+  <div class="flex items-center gap-1.5 min-w-0 max-w-full">
     <template v-if="type === 'address'">
       <router-link
         v-if="addressAliasAsPrimary && addressAlias"

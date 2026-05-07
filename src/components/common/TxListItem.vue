@@ -17,9 +17,13 @@
       </div>
 
       <!-- From -> To (hidden on mobile) -->
+      <!-- flex-1 + min-w-0 on every slot is what lets the inner HashLink
+           truncate cleanly. Without per-slot width constraints, two
+           full-length addresses (~34 chars each) push the row past the
+           container at narrow viewports and overlap each other. -->
       <div class="hidden min-w-0 flex-1 items-center justify-center gap-2 md:flex">
         <template v-if="isSingleTransferFlow">
-          <div class="min-w-0 text-right">
+          <div class="min-w-0 flex-1 basis-0 text-right">
             <p class="text-xs text-mid">{{ $t("listItems.from") }}</p>
             <HashLink
               v-if="tx.sender"
@@ -29,7 +33,7 @@
               :address-alias-as-primary="true"
             />
           </div>
-          <div data-testid="single-transfer-flow" class="min-w-0 px-2 text-center">
+          <div data-testid="single-transfer-flow" class="min-w-0 flex-shrink basis-auto px-2 text-center">
             <div class="mb-1 flex items-center justify-center gap-1.5 min-w-0">
               <img
                 v-if="transferLogo"
@@ -45,7 +49,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </div>
-          <div class="min-w-0 text-left">
+          <div class="min-w-0 flex-1 basis-0 text-left">
             <p class="text-xs text-mid">{{ $t("listItems.to") }}</p>
             <HashLink
               v-if="recipient"
@@ -57,7 +61,7 @@
           </div>
         </template>
         <template v-else>
-          <div class="min-w-0 text-right">
+          <div class="min-w-0 flex-1 basis-0 text-right">
             <p class="text-xs text-mid">{{ $t("listItems.from") }}</p>
             <HashLink
               v-if="tx.sender"
@@ -70,7 +74,7 @@
           <svg class="h-4 w-4 flex-shrink-0 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
-          <div class="min-w-0 text-left">
+          <div class="min-w-0 flex-1 basis-0 text-left">
             <p class="text-xs text-mid">{{ $t("listItems.to") }}</p>
             <div v-if="recipient" class="flex items-center gap-1.5">
               <HashLink
