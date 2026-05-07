@@ -78,41 +78,29 @@ describe("searchService address lookup", () => {
     });
   });
 
-  it("finds contract by 40-char hash queries", async () => {
+  it("finds contract by 40-char hash queries via getByHashWithFallback (indexer-first per #173)", async () => {
     const query = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    safeRpc.mockImplementation(async (method, params) => {
-      if (method === "GetContractByContractHash" && params?.ContractHash === query) {
-        return { hash: query, name: "GasToken" };
-      }
-      return null;
-    });
+    safeRpc.mockResolvedValue(null);
+    getByHashWithFallback.mockResolvedValueOnce({ hash: query, name: "GasToken" });
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(safeRpc).toHaveBeenCalledWith("GetContractByContractHash", { ContractHash: query }, null);
+    expect(getByHashWithFallback).toHaveBeenCalledWith(query);
     expect(result).toEqual({
       type: "contract",
       data: { hash: query, name: "GasToken" },
     });
   });
 
-  it("falls back to native contract state for 40-char hash queries when indexed rows are missing", async () => {
+  it("returns no contract when getByHashWithFallback yields nothing", async () => {
     const query = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
-    safeRpc.mockImplementation(async (method, params) => {
-      if (method === "GetContractByContractHash" && params?.ContractHash === query) {
-        return null;
-      }
-      return null;
-    });
-    getByHashWithFallback.mockResolvedValueOnce({ hash: query, manifest: { name: "MorpheusDataFeed" } });
+    safeRpc.mockResolvedValue(null);
+    getByHashWithFallback.mockResolvedValueOnce(null);
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(result).toEqual({
-      type: "contract",
-      data: { hash: query, manifest: { name: "MorpheusDataFeed" } },
-    });
+    expect(result).toEqual({ type: null, data: null });
   });
 });

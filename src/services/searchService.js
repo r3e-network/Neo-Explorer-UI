@@ -2,6 +2,7 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
 import { contractService } from "./contractService";
+import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
@@ -53,17 +54,32 @@ function _dedupe(key, fn) {
  * @private
  */
 async function _lookupAddress(address) {
+  // Indexer first — same Mongo→Postgres pattern as #171/#172/#173. The
+  // legacy GetAddressByAddress queries an unpopulated Mongo collection;
+  // the indexer's per-account summary (tx_sent/tx_signed/balances) is
+  // both authoritative and faster.
+  try {
+    const summary = await indexerReadService.getAccount(address);
+    if (summary) {
+      return {
+        address,
+        ...summary,
+        // Preserve the legacy "balance" shape the search-bar suggestion
+        // sublabel reads. Indexer doesn't return a top-level balance, so
+        // surface the NEO net amount when present.
+        balance: summary.balance ?? summary.nep17_net_raw ?? null,
+      };
+    }
+  } catch { /* fall through to legacy */ }
+
   const scriptHash = addressToScriptHash(address);
   const candidates = [];
-
   if (scriptHash) candidates.push(scriptHash);
   if (!candidates.includes(address)) candidates.push(address);
-
   for (const candidate of candidates) {
     const account = await safeRpc("GetAddressByAddress", { Address: candidate }, null);
     if (account) return account;
   }
-
   return null;
 }
 
@@ -80,23 +96,39 @@ async function _lookupAddress(address) {
 async function _classifyAndDispatch(query) {
   const hits = {};
 
-  // Block height (pure digits)
+  // Block height (pure digits) — standard getblock works regardless of
+  // whether neo3fura_http is in the path; falls back to the legacy
+  // PascalCase wrapper for backends that route through Mongo.
   if (/^\d+$/.test(query)) {
     const blockHeight = parseInt(query);
     if (blockHeight >= 0 && blockHeight < 100_000_000) {
-      const block = await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null);
+      const block =
+        (await safeRpc("getblock", [blockHeight, 1], null).catch(() => null)) ||
+        (await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null));
       if (block) hits.block = block;
     }
   }
 
-  // Full hash (64 hex chars) — parallel exact lookups
+  // Full hash (64 hex chars) — parallel exact lookups via standard
+  // node RPCs (getrawtransaction, getblock, getcontractstate) which are
+  // unaffected by the Mongo backend's removal. Each falls back to the
+  // legacy PascalCase wrapper if the standard call returns null.
   if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
+    const lookupTx = async () =>
+      (await safeRpc("getrawtransaction", [hash, 1], null)) ||
+      (await safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null));
+    const lookupBlock = async () =>
+      (await safeRpc("getblock", [hash, 1], null)) ||
+      (await safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null));
+    const lookupContract = async () =>
+      (await safeRpc("getcontractstate", [hash], null)) ||
+      (await safeRpc("GetContractByContractHash", { ContractHash: hash }, null));
 
     const [txResult, blockResult, contractResult] = await Promise.allSettled([
-      safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null),
-      safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null),
-      safeRpc("GetContractByContractHash", { ContractHash: hash }, null),
+      lookupTx(),
+      lookupBlock(),
+      lookupContract(),
     ]);
 
     if (txResult.status === "fulfilled" && txResult.value) hits.transaction = txResult.value;
@@ -104,12 +136,11 @@ async function _classifyAndDispatch(query) {
     if (contractResult.status === "fulfilled" && contractResult.value) hits.contract = contractResult.value;
   }
 
-  // Contract hash (40 hex chars)
+  // Contract hash (40 hex chars) — getByHashWithFallback now goes
+  // indexer-first per #173, so the redundant Mongo probe is gone.
   if (/^(0x)?[a-fA-F0-9]{40}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
-    const contract =
-      (await safeRpc("GetContractByContractHash", { ContractHash: hash }, null)) ||
-      (await contractService.getByHashWithFallback(hash));
+    const contract = await contractService.getByHashWithFallback(hash);
     if (contract) hits.contract = contract;
   }
 
