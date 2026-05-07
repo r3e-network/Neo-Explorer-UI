@@ -1,20 +1,17 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const getTransfersByTxHashMock = vi.fn();
-const getNep11TransfersByTxHashMock = vi.fn();
+const getTransfersByTxHashesBatchMock = vi.fn();
 
 vi.mock("@/services", () => ({
   tokenService: {
-    getTransfersByTxHash: getTransfersByTxHashMock,
-    getNep11TransfersByTxHash: getNep11TransfersByTxHashMock,
+    getTransfersByTxHashesBatch: getTransfersByTxHashesBatchMock,
   },
 }));
 
 describe("useTransferSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getTransfersByTxHashMock.mockResolvedValue({ result: [], totalCount: 0 });
-    getNep11TransfersByTxHashMock.mockResolvedValue({ result: [], totalCount: 0 });
+    getTransfersByTxHashesBatchMock.mockResolvedValue(new Map());
   });
 
   it("ignores mint-back transfers to the sender when choosing the summary recipient and token", async () => {
@@ -22,8 +19,8 @@ describe("useTransferSummary", () => {
     const sender = "NMBAoPYQW15f9qxr7WiQd3rNnQJYX4Wwwc";
     const target = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
 
-    getTransfersByTxHashMock.mockResolvedValueOnce({
-      result: [
+    getTransfersByTxHashesBatchMock.mockResolvedValueOnce(
+      new Map([[txHash, [
         {
           from: null,
           to: sender,
@@ -40,9 +37,8 @@ describe("useTransferSummary", () => {
           symbol: "bNEO",
           contract: "0x48c40d4666f93408be1bef038b6722404d9a4c2a",
         },
-      ],
-      totalCount: 2,
-    });
+      ]]]),
+    );
 
     const { useTransferSummary } = await import("@/composables/useTransferSummary");
     const { transferSummaryByHash, enrichTransactions } = useTransferSummary();

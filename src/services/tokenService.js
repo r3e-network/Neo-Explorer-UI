@@ -11,6 +11,24 @@ const resolveTokenNetwork = () => resolveNetworkName();
 // Fields returned: { txid, contract_hash, from_address, to_address,
 // amount_raw, amount_text, block_index, execution_index,
 // notification_index, indexed_at, raw_json, [token_id_raw for NEP-11] }.
+// Map an indexer transfer row to the legacy shape the TxTransfersTab and
+// useTransferSummary composable consume.
+function _mapTransferRow(r, standard) {
+  return {
+    txid: r.txid,
+    from: r.from_address || null,
+    to: r.to_address || null,
+    amount: String(r.amount_text ?? r.amount_raw ?? "0"),
+    contract: r.contract_hash,
+    contractHash: r.contract_hash,
+    blockindex: r.block_index,
+    timestamp: r.indexed_at,
+    ...(standard === "nep11" && r.token_id_raw
+      ? { tokenId: r.token_id_raw }
+      : {}),
+  };
+}
+
 // Map to the legacy {from, to, amount, contract, txid, blockindex} shape
 // the shared TxTransfersTab component expects.
 async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, skip = 0) {
@@ -31,23 +49,52 @@ async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, s
     const rows = await res.json();
     if (!Array.isArray(rows)) return { result: [], totalCount: 0 };
     return {
-      result: rows.map((r) => ({
-        txid: r.txid,
-        from: r.from_address || null,
-        to: r.to_address || null,
-        amount: String(r.amount_text ?? r.amount_raw ?? "0"),
-        contract: r.contract_hash,
-        contractHash: r.contract_hash,
-        blockindex: r.block_index,
-        timestamp: r.indexed_at,
-        ...(standard === "nep11" && r.token_id_raw
-          ? { tokenId: r.token_id_raw }
-          : {}),
-      })),
+      result: rows.map((r) => _mapTransferRow(r, standard)),
       totalCount: rows.length,
     };
   } catch {
     return { result: [], totalCount: 0 };
+  }
+}
+
+// Batched variant of fetchTransfersByTxHashFromIndexer. Pulls transfers
+// for many txids in one PostgREST query (txid=in.(...)) and buckets the
+// rows by txid. Used by useTransferSummary on list pages where the
+// per-row N+1 loop would otherwise fire 8+ separate fetches.
+async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
+  const list = (Array.isArray(txHashes) ? txHashes : [])
+    .map((h) => String(h || "").trim())
+    .filter(Boolean);
+  if (list.length === 0) return new Map();
+
+  const network = resolveTokenNetwork();
+  const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
+  const params = new URLSearchParams({
+    txid: `in.(${list.join(",")})`,
+    network: `eq.${network}`,
+    // Per-row preview only needs a handful of rows per tx; oversize the
+    // global cap so we don't truncate a high-event tx mid-result.
+    limit: String(Math.min(list.length * 8, 200)),
+    order: "execution_index.asc,notification_index.asc",
+  });
+
+  try {
+    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return new Map();
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return new Map();
+
+    const buckets = new Map();
+    for (const txid of list) buckets.set(txid, []);
+    for (const row of rows) {
+      const bucket = buckets.get(row.txid);
+      if (bucket) bucket.push(_mapTransferRow(row, standard));
+    }
+    return buckets;
+  } catch {
+    return new Map();
   }
 }
 
@@ -297,6 +344,16 @@ export const tokenService = createService(
         options,
       ).catch(() => null);
       return direct || { result: [], totalCount: 0 };
+    },
+
+    // Batch sibling of getTransfersByTxHash. Single PostgREST query for
+    // many txids at once, returns Map<txid, transfers[]>. Pages that
+    // render a list of transactions (Home, /transactions, address profile)
+    // use this to replace per-row N+1 lookups. No legacy fallback — the
+    // legacy RPC has no batch variant; on empty/error we just return an
+    // empty Map and let callers degrade gracefully.
+    async getTransfersByTxHashesBatch(txHashes, standard = "nep17") {
+      return fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard);
     },
 
     // Override getHolders — the legacy GetAssetHoldersByContractHash RPC

@@ -130,72 +130,48 @@ export function useTransferSummary() {
     };
   }
 
-  async function loadSummary(hash) {
-    if (!hash || transferSummaryByHash.value[hash] || pendingHashes.has(hash)) {
-      return;
+  function applyTransferBucket(hash, transfers, standard) {
+    if (!transfers || transfers.length === 0) return false;
+
+    const selection = selectPreferredTransfer(transfers, transfers.length);
+    const preferred = selection.preferred;
+    if (!preferred) return false;
+
+    if (standard === "nep17") {
+      const amount = formatTokenAmount(preferred.value ?? preferred.amount ?? 0, Number(preferred.decimals ?? 0), 8);
+      const symbol = preferred.symbol || preferred.tokenname || tFallback("txDetail.transferToken", "Token");
+      const suffix = extraTransferSuffix(selection.transferCount);
+      setSummary(
+        hash,
+        buildSummary(
+          {
+            text: `${amount} ${symbol}${suffix}`,
+            contract: extractContractHash(preferred),
+            type: "NEP17",
+          },
+          selection.targetCount,
+          selection.recipient,
+        ),
+      );
+    } else {
+      const symbol = preferred.symbol || preferred.tokenname || tFallback("txDetail.transferNft", "NFT");
+      const tokenId = preferred.tokenid || preferred.tokenId;
+      const suffix = extraTransferSuffix(selection.transferCount);
+      const readableId = truncateTokenId(tokenId);
+      setSummary(
+        hash,
+        buildSummary(
+          {
+            text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
+            contract: extractContractHash(preferred),
+            type: "NEP11",
+          },
+          selection.targetCount,
+          selection.recipient,
+        ),
+      );
     }
-
-    pendingHashes.add(hash);
-
-    try {
-      // Try NEP-17 first
-      const nep17Res = await tokenService.getTransfersByTxHash(hash, 8, 0);
-      const nep17Selection = selectPreferredTransfer(nep17Res?.result, nep17Res?.totalCount);
-      const nep17 = nep17Selection.preferred;
-
-      if (nep17) {
-        const amount = formatTokenAmount(nep17.value ?? 0, Number(nep17.decimals ?? 0), 8);
-        const symbol = nep17.symbol || nep17.tokenname || tFallback("txDetail.transferToken", "Token");
-        const suffix = extraTransferSuffix(nep17Selection.transferCount);
-        setSummary(
-          hash,
-          buildSummary(
-            {
-              text: `${amount} ${symbol}${suffix}`,
-              contract: extractContractHash(nep17),
-              type: "NEP17",
-            },
-            nep17Selection.targetCount,
-            nep17Selection.recipient,
-          ),
-        );
-        return;
-      }
-
-      // Fallback to NEP-11
-      const nep11Res = await tokenService.getNep11TransfersByTxHash(hash, 8, 0);
-      const nep11Selection = selectPreferredTransfer(nep11Res?.result, nep11Res?.totalCount);
-      const nep11 = nep11Selection.preferred;
-
-      if (nep11) {
-        const symbol = nep11.symbol || nep11.tokenname || tFallback("txDetail.transferNft", "NFT");
-        const tokenId = nep11.tokenid || nep11.tokenId;
-        const suffix = extraTransferSuffix(nep11Selection.transferCount);
-        const readableId = truncateTokenId(tokenId);
-        setSummary(
-          hash,
-          buildSummary(
-            {
-              text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
-              contract: extractContractHash(nep11),
-              type: "NEP11",
-            },
-            nep11Selection.targetCount,
-            nep11Selection.recipient,
-          ),
-        );
-        return;
-      }
-
-      setSummary(hash, { text: "\u2014", contract: null, type: null });
-    } catch (err) {
-      if (import.meta.env.DEV) {
-        console.warn("Failed to load transaction transfer summary:", err);
-      }
-      setSummary(hash, { text: "\u2014", contract: null, type: null });
-    } finally {
-      pendingHashes.delete(hash);
-    }
+    return true;
   }
 
   async function enrichTransactions(txList, { maxItems = 8 } = {}) {
@@ -212,10 +188,37 @@ export function useTransferSummary() {
 
     if (hashes.length === 0) return;
 
-    const batchSize = 4;
-    for (let i = 0; i < hashes.length; i += batchSize) {
-      const batch = hashes.slice(i, i + batchSize);
-      await Promise.all(batch.map((h) => loadSummary(h)));
+    hashes.forEach((h) => pendingHashes.add(h));
+
+    try {
+      // 2 batched PostgREST queries (NEP-17, then NEP-11 for whichever
+      // txids didn't have NEP-17 transfers) instead of one fetch per row.
+      const nep17Buckets = await tokenService.getTransfersByTxHashesBatch(hashes, "nep17");
+
+      const remaining = [];
+      for (const hash of hashes) {
+        if (applyTransferBucket(hash, nep17Buckets.get(hash), "nep17")) continue;
+        remaining.push(hash);
+      }
+
+      if (remaining.length > 0) {
+        const nep11Buckets = await tokenService.getTransfersByTxHashesBatch(remaining, "nep11");
+        for (const hash of remaining) {
+          if (applyTransferBucket(hash, nep11Buckets.get(hash), "nep11")) continue;
+          setSummary(hash, { text: "—", contract: null, type: null });
+        }
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.warn("Failed to load transaction transfer summary batch:", err);
+      }
+      for (const hash of hashes) {
+        if (!transferSummaryByHash.value[hash]) {
+          setSummary(hash, { text: "—", contract: null, type: null });
+        }
+      }
+    } finally {
+      hashes.forEach((h) => pendingHashes.delete(h));
     }
   }
 
