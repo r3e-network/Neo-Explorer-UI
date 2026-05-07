@@ -74,7 +74,6 @@ const en = {
     daysAgo: "{n} days ago",
   },
   utilityBar: {
-    netFee: "Net Fee:",
     selectNetwork: "Select network",
     switchTo: "Switch to {name}",
   },

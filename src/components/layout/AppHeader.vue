@@ -6,7 +6,6 @@
       :neo-price="neoPrice"
       :gas-price="gasPrice"
       :neo-price-change="neoPriceChange"
-      :network-fee="networkFee"
       :current-network-label="currentNetworkLabel"
       :current-network="currentNetwork"
       :networks="NETWORKS"
@@ -241,7 +240,6 @@ const neoPrice = ref(0);
 const gasPrice = ref(0);
 const neoPriceChange = ref(0);
 const gasPriceChange = ref(0);
-const networkFee = ref(0);
 
 const currentNetwork = ref(getCurrentEnv());
 const walletLoading = ref(false);
@@ -514,17 +512,12 @@ function handleMobileSearch(query) {
   handleSearch(query);
 }
 
-function calculateNetworkFee() {
-  return 0.003;
-}
-
 async function loadPrices() {
   const data = await fetchPrices();
   neoPrice.value = data.neo;
   gasPrice.value = data.gas;
   neoPriceChange.value = data.neoChange;
   gasPriceChange.value = data.gasChange;
-  networkFee.value = calculateNetworkFee();
 }
 
 async function bootstrapChatSession() {

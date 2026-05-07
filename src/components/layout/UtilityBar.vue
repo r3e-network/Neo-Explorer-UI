@@ -8,11 +8,6 @@
         <span class="hidden text-white/30 sm:inline">|</span>
         <span class="hidden sm:inline">GAS:</span>
         <span class="hidden font-semibold text-white sm:inline">${{ formatPrice(gasPrice) }}</span>
-        <span class="hidden text-white/30 md:inline">|</span>
-        <span class="hidden md:inline">{{ t("utilityBar.netFee") }}</span>
-        <span class="hidden font-semibold text-white md:inline"
-          >{{ formatGasValue(networkFee) }} GAS</span
-        >
       </div>
       <div class="flex items-center gap-2">
         <div ref="networkDropdown" class="relative">
@@ -65,7 +60,6 @@ defineProps({
   neoPrice: { type: Number, default: 0 },
   gasPrice: { type: Number, default: 0 },
   neoPriceChange: { type: Number, default: 0 },
-  networkFee: { type: Number, default: 0 },
   currentNetworkLabel: { type: String, default: "" },
   currentNetwork: { type: String, default: "" },
   networks: { type: Array, default: () => [] },
@@ -77,11 +71,6 @@ defineEmits(["select-network", "toggle-network-dropdown"]);
 const networkDropdown = ref(null);
 
 defineExpose({ networkDropdown });
-
-function formatGasValue(value) {
-  const num = Number(value || 0);
-  return Number.isFinite(num) ? num.toFixed(3) : "0.000";
-}
 </script>
 
 <style scoped>

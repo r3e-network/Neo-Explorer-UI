@@ -74,7 +74,6 @@ const fr = {
     daysAgo: "il y a {n} j",
   },
   utilityBar: {
-    netFee: "Frais réseau :",
     selectNetwork: "Sélectionner le réseau",
     switchTo: "Passer à {name}",
   },

@@ -74,7 +74,6 @@ const ja = {
     daysAgo: "{n} 日前",
   },
   utilityBar: {
-    netFee: "ネット手数料:",
     selectNetwork: "ネットワークを選択",
     switchTo: "{name} に切り替え",
   },

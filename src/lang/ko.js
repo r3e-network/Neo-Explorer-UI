@@ -74,7 +74,6 @@ const ko = {
     daysAgo: "{n}일 전",
   },
   utilityBar: {
-    netFee: "네트워크 수수료:",
     selectNetwork: "네트워크 선택",
     switchTo: "{name}(으)로 전환",
   },

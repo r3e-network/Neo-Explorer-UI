@@ -74,7 +74,6 @@ const zh = {
     daysAgo: "{n} 天前",
   },
   utilityBar: {
-    netFee: "网络费：",
     selectNetwork: "选择网络",
     switchTo: "切换到 {name}",
   },
