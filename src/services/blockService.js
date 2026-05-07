@@ -317,7 +317,12 @@ export const blockService = createService(
             const fromSummary = Number(summary?.total_block_count ?? summary?.last_indexed_block);
             if (Number.isFinite(fromSummary) && fromSummary > 0) return fromSummary;
           } catch { /* fall through */ }
-          const res = await safeRpc("GetBlockCount", {}, null, cacheOpts);
+          // Standard `getblockcount` works against any Neo node and
+          // outlives Mongo cleanup. Older Mongo `GetBlockCount` was
+          // proxied here; switching to the lowercase canonical method
+          // means the fallback also keeps working post-#184.
+          const res = await safeRpc("getblockcount", [], null, cacheOpts);
+          if (typeof res === "number") return res;
           return this._extractCount(res);
         },
         CACHE_TTL.stats,
