@@ -516,104 +516,110 @@ export const accountService = createService(
     },
 
     async getAssets(address, options = {}) {
-      const primary = await this._getAssetsRpc(address, options);
-      if (Array.isArray(primary) && primary.length > 0) return primary;
-
+      // Standard `getnep17balances` / `getnep11balances` are the
+      // canonical on-chain sources — work against any Neo node and
+      // outlive the Mongo cleanup. The legacy GetAssetsHeldByAddress
+      // RPC was previously the primary path but returned `{result: [],
+      // totalCount: 0}` for every address (verified live on
+      // /account-profile). Flipping per #181/#182.
       const normalizedAddress = this._normalizeAddress(address);
-      if (!normalizedAddress) return Array.isArray(primary) ? primary : [];
+      if (normalizedAddress) {
+        const [nep17Balances, nep11Balances] = await Promise.all([
+          this._getNativeNep17Balances(normalizedAddress, options),
+          this._getNativeNep11Balances(normalizedAddress, options),
+        ]);
 
-      const [nep17Balances, nep11Balances] = await Promise.all([
-        this._getNativeNep17Balances(normalizedAddress, options),
-        this._getNativeNep11Balances(normalizedAddress, options),
-      ]);
+        const nep17 = Array.isArray(nep17Balances?.balance) ? nep17Balances.balance : [];
+        const nep11 = Array.isArray(nep11Balances?.balance) ? nep11Balances.balance : [];
+        const assets = [
+          ...nep17.map((item) => this._mapNep17BalanceToAsset(item)),
+          ...nep11.map((item) => this._mapNep11BalanceToAsset(item)),
+        ].filter((item) => item.asset);
 
-      const nep17 = Array.isArray(nep17Balances?.balance) ? nep17Balances.balance : [];
-      const nep11 = Array.isArray(nep11Balances?.balance) ? nep11Balances.balance : [];
-      const assets = [
-        ...nep17.map((item) => this._mapNep17BalanceToAsset(item)),
-        ...nep11.map((item) => this._mapNep11BalanceToAsset(item)),
-      ].filter((item) => item.asset);
+        if (assets.length > 0) return assets;
+      }
 
-      if (assets.length > 0) return assets;
+      // Legacy fallback — only reached if the chain node is unreachable.
+      const primary = await this._getAssetsRpc(address, options);
       return Array.isArray(primary) ? primary : [];
     },
 
     async getNep17Transfers(address, limit = 20, skip = 0, options = {}) {
-      const primary = await this._getNep17TransfersRpc(address, limit, skip, options);
-      if (Array.isArray(primary?.result) && (primary.result.length > 0 || Number(primary.totalCount || 0) > 0)) {
-        return primary;
+      // Indexer-first per #182 — same Mongo-empty pattern as the
+      // NEP-11 sibling. Postgres /rest/<n>/nep17_transfers is the
+      // authoritative source; native getnep17transfers is the
+      // defence-in-depth chain probe; legacy GetNep17TransferByAddress
+      // is the final fallback (returns empty post-Mongo-deletion).
+      const normalizedAddress = this._normalizeAddress(address);
+      if (normalizedAddress) {
+        // Pull native balances in parallel so we have token info ready
+        // for the indexer mapper (which needs symbol/decimals).
+        const nep17BalancesPromise = this._getNativeNep17Balances(normalizedAddress, options);
+
+        const indexer = await fetchAddressTransfersFromIndexer(
+          resolveAccountNetwork(),
+          "nep17_transfers",
+          normalizedAddress,
+          limit,
+          skip,
+        );
+        if (indexer) {
+          const tokenInfoMap = this._buildTokenInfoMap(await nep17BalancesPromise);
+          const indexerMerged = [
+            ...indexer.sent.map((row) => mapIndexerNep17TransferRow(row, "sent", tokenInfoMap)),
+            ...indexer.received.map((row) => mapIndexerNep17TransferRow(row, "received", tokenInfoMap)),
+          ].filter((item) => item.txid);
+          if (indexerMerged.length > 0) return this._paginateTransfers(indexerMerged, limit, skip);
+        }
+
+        const nep17Transfers = await this._getNativeNep17Transfers(normalizedAddress, options);
+        const tokenInfoMap = this._buildTokenInfoMap(await nep17BalancesPromise);
+        const sent = Array.isArray(nep17Transfers?.sent) ? nep17Transfers.sent : [];
+        const received = Array.isArray(nep17Transfers?.received) ? nep17Transfers.received : [];
+        const merged = [
+          ...sent.map((item) => this._mapNativeNep17Transfer(item, "sent", normalizedAddress, tokenInfoMap)),
+          ...received.map((item) => this._mapNativeNep17Transfer(item, "received", normalizedAddress, tokenInfoMap)),
+        ].filter((item) => item.txid || item.hash);
+        if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
       }
 
-      const normalizedAddress = this._normalizeAddress(address);
-      if (!normalizedAddress) return primary;
-
-      const [nep17Transfers, nep17Balances] = await Promise.all([
-        this._getNativeNep17Transfers(normalizedAddress, options),
-        this._getNativeNep17Balances(normalizedAddress, options),
-      ]);
-      const tokenInfoMap = this._buildTokenInfoMap(nep17Balances);
-      const sent = Array.isArray(nep17Transfers?.sent) ? nep17Transfers.sent : [];
-      const received = Array.isArray(nep17Transfers?.received) ? nep17Transfers.received : [];
-
-      const merged = [
-        ...sent.map((item) => this._mapNativeNep17Transfer(item, "sent", normalizedAddress, tokenInfoMap)),
-        ...received.map((item) => this._mapNativeNep17Transfer(item, "received", normalizedAddress, tokenInfoMap)),
-      ].filter((item) => item.txid || item.hash);
-
-      if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
-
-      // Both legacy RPC paths empty — fall back to the Postgres-indexed
-      // nep17_transfers REST table (same root cause as #150).
-      const indexer = await fetchAddressTransfersFromIndexer(
-        resolveAccountNetwork(),
-        "nep17_transfers",
-        normalizedAddress,
-        limit,
-        skip,
-      );
-      if (!indexer) return primary;
-      const indexerMerged = [
-        ...indexer.sent.map((row) => mapIndexerNep17TransferRow(row, "sent", tokenInfoMap)),
-        ...indexer.received.map((row) => mapIndexerNep17TransferRow(row, "received", tokenInfoMap)),
-      ].filter((item) => item.txid);
-      if (indexerMerged.length === 0) return primary;
-      return this._paginateTransfers(indexerMerged, limit, skip);
+      return await this._getNep17TransfersRpc(address, limit, skip, options) || { result: [], totalCount: 0 };
     },
 
     async getNep11Transfers(address, limit = 20, skip = 0, options = {}) {
-      const primary = await this._getNep11TransfersRpc(address, limit, skip, options);
-      if (Array.isArray(primary?.result) && (primary.result.length > 0 || Number(primary.totalCount || 0) > 0)) {
-        return primary;
+      // Indexer-first per #182 — the legacy GetNep11TransferByAddress
+      // RPC always returns {result:[], totalCount:0} (verified live on
+      // /account-profile). Try the Postgres-indexed nep11_transfers
+      // table first, then native getnep11transfers, then legacy.
+      const normalizedAddress = this._normalizeAddress(address);
+      if (normalizedAddress) {
+        const indexer = await fetchAddressTransfersFromIndexer(
+          resolveAccountNetwork(),
+          "nep11_transfers",
+          normalizedAddress,
+          limit,
+          skip,
+        );
+        if (indexer) {
+          const indexerMerged = [
+            ...indexer.sent.map((row) => mapIndexerNep11TransferRow(row, "sent")),
+            ...indexer.received.map((row) => mapIndexerNep11TransferRow(row, "received")),
+          ].filter((item) => item.txid);
+          if (indexerMerged.length > 0) return this._paginateTransfers(indexerMerged, limit, skip);
+        }
+
+        const nep11Transfers = await this._getNativeNep11Transfers(normalizedAddress, options);
+        const sent = Array.isArray(nep11Transfers?.sent) ? nep11Transfers.sent : [];
+        const received = Array.isArray(nep11Transfers?.received) ? nep11Transfers.received : [];
+        const merged = [
+          ...sent.map((item) => this._mapNativeNep11Transfer(item, "sent", normalizedAddress)),
+          ...received.map((item) => this._mapNativeNep11Transfer(item, "received", normalizedAddress)),
+        ].filter((item) => item.txid || item.hash);
+        if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
       }
 
-      const normalizedAddress = this._normalizeAddress(address);
-      if (!normalizedAddress) return primary;
-
-      const nep11Transfers = await this._getNativeNep11Transfers(normalizedAddress, options);
-      const sent = Array.isArray(nep11Transfers?.sent) ? nep11Transfers.sent : [];
-      const received = Array.isArray(nep11Transfers?.received) ? nep11Transfers.received : [];
-
-      const merged = [
-        ...sent.map((item) => this._mapNativeNep11Transfer(item, "sent", normalizedAddress)),
-        ...received.map((item) => this._mapNativeNep11Transfer(item, "received", normalizedAddress)),
-      ].filter((item) => item.txid || item.hash);
-
-      if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
-
-      const indexer = await fetchAddressTransfersFromIndexer(
-        resolveAccountNetwork(),
-        "nep11_transfers",
-        normalizedAddress,
-        limit,
-        skip,
-      );
-      if (!indexer) return primary;
-      const indexerMerged = [
-        ...indexer.sent.map((row) => mapIndexerNep11TransferRow(row, "sent")),
-        ...indexer.received.map((row) => mapIndexerNep11TransferRow(row, "received")),
-      ].filter((item) => item.txid);
-      if (indexerMerged.length === 0) return primary;
-      return this._paginateTransfers(indexerMerged, limit, skip);
+      // Legacy fallback — only reached if indexer + native both empty.
+      return await this._getNep11TransfersRpc(address, limit, skip, options) || { result: [], totalCount: 0 };
     },
 
     /**
