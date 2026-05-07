@@ -64,19 +64,18 @@ export const candidateService = createService({
     return cachedRequest(
       key,
       async () => {
-        let rpcResult = null;
-        try {
-          rpcResult = await this._getCountRpc(options);
-        } catch (_err) {
-          rpcResult = null;
-        }
-        const directCount = Number(rpcResult?.["total counts"] ?? rpcResult?.count ?? rpcResult ?? 0);
-        if (Number.isFinite(directCount) && directCount > 0) {
-          return rpcResult;
-        }
-
+        // Standard `getcandidates` is the canonical chain source — works
+        // against any Neo node. The legacy GetCandidateCount RPC queried
+        // a Mongo collection that's no longer populated (verified live
+        // on /candidates). Same flip pattern as #178/#181/#182.
         const rows = await safeRpc("getcandidates", [], [], options);
-        return { "total counts": Array.isArray(rows) ? rows.length : 0 };
+        if (Array.isArray(rows)) {
+          return { "total counts": rows.length };
+        }
+        // Fallback to the legacy Mongo wrapper only if the chain node
+        // is unreachable (extremely rare).
+        const rpcResult = await this._getCountRpc(options).catch(() => null);
+        return rpcResult || { "total counts": 0 };
       },
       CACHE_TTL.stats,
       options,
@@ -88,25 +87,21 @@ export const candidateService = createService({
     return cachedRequest(
       key,
       async () => {
-        let rpcResult = null;
-        try {
-          rpcResult = await this._getListRpc(limit, skip, options);
-        } catch (_err) {
-          rpcResult = null;
-        }
-        const existingRows = Array.isArray(rpcResult?.result) ? rpcResult.result : [];
-        if (existingRows.length > 0) {
-          return rpcResult;
-        }
-
+        // Standard `getcandidates` first — see getCount comment.
         const nativeRows = await safeRpc("getcandidates", [], [], options);
-        const mapped = mapRpcCandidatesToCandidateRows(nativeRows);
-        const safeSkip = Math.max(0, Number(skip) || 0);
-        const safeLimit = Math.max(1, Number(limit) || 20);
-        return {
-          result: mapped.slice(safeSkip, safeSkip + safeLimit),
-          totalCount: mapped.length,
-        };
+        if (Array.isArray(nativeRows) && nativeRows.length > 0) {
+          const mapped = mapRpcCandidatesToCandidateRows(nativeRows);
+          const safeSkip = Math.max(0, Number(skip) || 0);
+          const safeLimit = Math.max(1, Number(limit) || 20);
+          return {
+            result: mapped.slice(safeSkip, safeSkip + safeLimit),
+            totalCount: mapped.length,
+          };
+        }
+        // Fallback to the legacy Mongo wrapper only if the chain node
+        // is unreachable.
+        const rpcResult = await this._getListRpc(limit, skip, options).catch(() => null);
+        return rpcResult || { result: [], totalCount: 0 };
       },
       CACHE_TTL.chart,
       options,

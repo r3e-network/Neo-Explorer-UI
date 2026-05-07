@@ -18,48 +18,55 @@ describe("candidateService", () => {
   });
 
   describe("getCount", () => {
-    it("calls safeRpc with GetCandidateCount and empty params", async () => {
-      api.safeRpc.mockResolvedValueOnce(21);
+    it("uses standard getcandidates first (#186)", async () => {
+      api.safeRpc.mockResolvedValueOnce([{ publickey: "01" }, { publickey: "02" }]);
       const result = await candidateService.getCount();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetCandidateCount", {}, 0, expect.any(Object));
-      expect(result).toBe(21);
+      expect(api.safeRpc).toHaveBeenCalledWith("getcandidates", [], [], expect.any(Object));
+      // Legacy GetCandidateCount must not fire on the happy path.
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetCandidateCount", expect.any(Object), expect.any(Number), expect.any(Object));
+      expect(result).toEqual({ "total counts": 2 });
     });
 
-    it("returns fallback 0 when rpc resolves with fallback", async () => {
+    it("falls back to legacy GetCandidateCount when chain node returns null", async () => {
       api.safeRpc
-        .mockResolvedValueOnce(0) // GetCandidateCount
-        .mockResolvedValueOnce([]); // getcandidates
+        .mockResolvedValueOnce(null) // getcandidates returns nothing
+        .mockResolvedValueOnce({ "total counts": 5 }); // legacy
       const result = await candidateService.getCount();
-      expect(result).toEqual({ "total counts": 0 });
+      expect(result).toEqual({ "total counts": 5 });
     });
   });
 
   describe("getList", () => {
-    it("calls safeRpcList with default pagination", async () => {
-      const mockData = { result: [{ address: "NAddr1" }], totalCount: 1 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
+    it("uses standard getcandidates first; legacy GetCandidate must not fire (#186)", async () => {
+      api.safeRpc.mockResolvedValueOnce([
+        { publickey: "01", votes: "100", active: true },
+        { publickey: "02", votes: "50", active: false },
+      ]);
 
-      const result = await candidateService.getList();
-      expect(api.safeRpcList).toHaveBeenCalledWith(
+      const result = await candidateService.getList(20, 0);
+
+      expect(api.safeRpc).toHaveBeenCalledWith("getcandidates", [], [], expect.any(Object));
+      expect(api.safeRpcList).not.toHaveBeenCalledWith(
         "GetCandidate",
-        { Limit: 20, Skip: 0 },
-        "get candidate list",
+        expect.any(Object),
+        expect.any(String),
         expect.any(Object),
       );
-      expect(result).toEqual(mockData);
+      expect(result.totalCount).toBe(2);
+      expect(result.result).toHaveLength(2);
     });
 
-    it("calls safeRpcList with custom pagination", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
+    it("paginates the standard getcandidates result", async () => {
+      const rows = Array.from({ length: 50 }, (_, i) => ({
+        publickey: `pk${i}`,
+        votes: String(i),
+        active: false,
+      }));
+      api.safeRpc.mockResolvedValueOnce(rows);
 
-      await candidateService.getList(50, 10);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetCandidate",
-        { Limit: 50, Skip: 10 },
-        "get candidate list",
-        expect.any(Object),
-      );
+      const page = await candidateService.getList(20, 20);
+      expect(page.result).toHaveLength(20);
+      expect(page.totalCount).toBe(50);
     });
   });
 
@@ -131,13 +138,13 @@ describe("candidateService", () => {
 
   describe("caching", () => {
     it("returns cached result on second call for getCount", async () => {
-      api.safeRpc.mockResolvedValueOnce(21);
+      api.safeRpc.mockResolvedValueOnce([{ publickey: "01" }, { publickey: "02" }]);
 
       const first = await candidateService.getCount();
       const second = await candidateService.getCount();
 
-      expect(first).toBe(21);
-      expect(second).toBe(21);
+      expect(first).toEqual({ "total counts": 2 });
+      expect(second).toEqual({ "total counts": 2 });
       expect(api.safeRpc).toHaveBeenCalledTimes(1);
     });
 
