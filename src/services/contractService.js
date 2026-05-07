@@ -109,26 +109,65 @@ export const contractService = createService(
     // the legacy RPC when the indexer is unreachable.
     // Override getScCalls — same Mongo→Postgres pattern as #150/#152/#153.
     // Legacy GetScCallByContractHash queries an unpopulated Mongo collection.
-    // Derive contract calls from the indexer's contract_notifications stream:
-    // distinct txid+contract_hash rows are the unique invocations of this
-    // contract. Sender comes from transaction_signers (first signer per tx).
+    //
+    // Tries three sources in order:
+    //   1. The new /rest/v1/contract_calls endpoint (single round-trip).
+    //   2. The contract_notifications + transaction_signers derivation
+    //      (works against any current read-api; what we shipped first).
+    //   3. The legacy JSON-RPC handler (returns empty but keeps the page
+    //      renderable if both Postgres paths fail).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
+      const network = resolveNetworkName();
+      // Pull the per-contract overview in parallel with the calls request
+      // for an authoritative total tx_count regardless of which source wins.
+      const overviewPromise = fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
+        headers: { Accept: "application/json" },
+      }).then((r) => r.ok ? r.json() : null).catch(() => null);
+
+      // Source 1: the new dedicated REST endpoint.
       try {
-        const network = resolveNetworkName();
-        // Fetch the page of notifications, the per-contract overview (for
-        // the authoritative tx_count), and signers in parallel.
+        const params = new URLSearchParams({
+          network: `eq.${network}`,
+          contract_hash: `eq.${hash}`,
+          limit: String(limit),
+          offset: String(skip),
+        });
+        const [restRes, overviewRes] = await Promise.all([
+          fetch(`/rest/${network}/contract_calls?${params}`, { headers: { Accept: "application/json" } }),
+          overviewPromise,
+        ]);
+        if (restRes.ok) {
+          const rows = await restRes.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            const authoritativeTxCount = Number(overviewRes?.data?.tx_count);
+            return {
+              result: rows.map((r) => ({
+                txid: r.txid,
+                blockindex: r.block_index,
+                method: r.first_event_name || "—",
+                callFlags: "",
+                originSender: r.origin_sender || null,
+              })),
+              totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
+                ? authoritativeTxCount
+                : skip + rows.length + (rows.length === limit ? 1 : 0),
+            };
+          }
+        }
+        // 404 here means the read-api hasn't been redeployed yet with
+        // the new endpoint. Fall through to source 2.
+      } catch { /* network error; fall through */ }
+
+      // Source 2: derive client-side from contract_notifications + signers.
+      try {
         const [indexerRes, overviewRes] = await Promise.all([
           indexerReadService.getContractNotifications(
             hash,
-            // Pull a wider window because we dedup by txid (contracts often
-            // emit several notifications per call).
             Math.max(limit * 4, 100),
             skip,
             options,
           ),
-          fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
-            headers: { Accept: "application/json" },
-          }).then((r) => r.ok ? r.json() : null).catch(() => null),
+          overviewPromise,
         ]);
         const authoritativeTxCount = Number(overviewRes?.data?.tx_count);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
@@ -140,8 +179,6 @@ export const contractService = createService(
             options,
           );
         }
-        // Dedup by txid, keeping the first notification per tx for the
-        // event_name display.
         const seen = new Set();
         const calls = [];
         for (const row of rows) {
@@ -152,18 +189,11 @@ export const contractService = createService(
             blockindex: row.block_index,
             method: row.event_name || "—",
             callFlags: "",
-            // originSender is fetched in a second pass below.
             originSender: null,
           });
           if (calls.length >= limit) break;
         }
-        // Resolve senders in a single batched query against the indexer's
-        // transaction_signers REST table (txid IN (...)). One round-trip
-        // for the whole page rather than N individual getrawtransaction
-        // calls. Failures fall through to originSender=null — the table
-        // then renders "(null sender)" instead of breaking.
         try {
-          const network = resolveNetworkName();
           const txids = calls.map((c) => c.txid).filter(Boolean);
           if (txids.length > 0) {
             const params = new URLSearchParams({
@@ -176,9 +206,9 @@ export const contractService = createService(
               headers: { Accept: "application/json" },
             });
             if (r.ok) {
-              const rows = await r.json();
+              const signerRows = await r.json();
               const senderByTxid = new Map();
-              for (const row of (Array.isArray(rows) ? rows : [])) {
+              for (const row of (Array.isArray(signerRows) ? signerRows : [])) {
                 if (row?.txid && !senderByTxid.has(row.txid)) {
                   senderByTxid.set(row.txid, row.account);
                 }
@@ -198,10 +228,8 @@ export const contractService = createService(
                   ?? (rows.length === Math.max(limit * 4, 100) ? skip + limit + 1 : skip + calls.length),
               ),
         };
-      } catch {
-        // Indexer down — let legacy RPC try (will return empty, but at
-        // least the page renders without crashing).
-      }
+      } catch { /* fall through to legacy RPC */ }
+
       return safeRpcList(
         "GetScCallByContractHash",
         { ContractHash: hash, Limit: limit, Skip: skip },
