@@ -183,17 +183,34 @@ function shouldUseHotIndexerSelection({ pathType = "", forceRefresh = false, lim
   return Number(limit || 0) > 0 && Number(limit || 0) <= 20;
 }
 
+// Coalesce concurrent /summary calls. The home page alone fans out to
+// 5+ services that each invoke getSummary() in parallel; without dedup
+// every consumer triggers its own network round-trip. Keyed by network
+// so mainnet/testnet stay isolated. Cleared as soon as the in-flight
+// promise settles, so the next call does hit the wire.
+const _inflightGetSummary = new Map();
+
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
-    const hotPaths = shouldUseHotIndexerSelection({ pathType: "summary", ...options })
-      ? await buildHotIndexerPaths(network, "summary", options)
-      : buildIndexerFallbackPaths(network, "summary");
-    const payload = await fetchIndexerJsonWithFallback(
-      hotPaths,
-      options,
-    );
-    return payload?.data || null;
+    const inflight = _inflightGetSummary.get(network);
+    if (inflight) return inflight;
+
+    const promise = (async () => {
+      const hotPaths = shouldUseHotIndexerSelection({ pathType: "summary", ...options })
+        ? await buildHotIndexerPaths(network, "summary", options)
+        : buildIndexerFallbackPaths(network, "summary");
+      const payload = await fetchIndexerJsonWithFallback(
+        hotPaths,
+        options,
+      );
+      return payload?.data || null;
+    })().finally(() => {
+      _inflightGetSummary.delete(network);
+    });
+
+    _inflightGetSummary.set(network, promise);
+    return promise;
   },
 
   async getBlocks(limit = 20, offset = 0, options = {}) {

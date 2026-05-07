@@ -73,6 +73,57 @@ describe("indexerReadService freshness controls", () => {
   // Removed: "promotes the freshest same-origin backup route for hot reads" — single server, only one origin.
   // Removed: "reuses the cached freshest hot-read origin" — single server, only one origin.
 
+  it("coalesces concurrent getSummary calls into a single fetch chain", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { last_indexed_block: 100 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    // Fan out 5 concurrent getSummary() calls — the home page does this
+    // through HomePage.vue + 4 services that each independently load the
+    // summary on mount. Without dedup, each call triggers its own probe
+    // (selectFreshestHotIndexerBase) plus its own data fetch — 2 fetches
+    // per call, 10 total. With dedup, the first call's probe + data
+    // fetch (2 total) is shared by all 5 callers.
+    const results = await Promise.all(Array.from({ length: 5 }, () => indexerReadService.getSummary()));
+
+    expect(results).toHaveLength(5);
+    expect(results.every((r) => r?.last_indexed_block === 100)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases the in-flight slot after settle so subsequent calls re-fetch", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { last_indexed_block: 50 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    await indexerReadService.getSummary();
+    await indexerReadService.getSummary();
+
+    // First call: 1 probe (freshest base) + 1 data fetch = 2.
+    // Second call: probe cached for 30s (0 fetches) + 1 data fetch = 1.
+    // Total 3 — proves the dedup slot was released and the second
+    // sequential call actually hit the network again.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("returns null when the single indexer route fails", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
