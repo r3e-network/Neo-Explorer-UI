@@ -2,7 +2,6 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
 import { contractService } from "./contractService";
-import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
@@ -43,24 +42,6 @@ function _dedupe(key, fn) {
  * @private
  */
 async function _lookupAddress(address) {
-  // Indexer first — same Mongo→Postgres pattern as #171/#172/#173. The
-  // legacy GetAddressByAddress queries an unpopulated Mongo collection;
-  // the indexer's per-account summary (tx_sent/tx_signed/balances) is
-  // both authoritative and faster.
-  try {
-    const summary = await indexerReadService.getAccount(address);
-    if (summary) {
-      return {
-        address,
-        ...summary,
-        // Preserve the legacy "balance" shape the search-bar suggestion
-        // sublabel reads. Indexer doesn't return a top-level balance, so
-        // surface the NEO net amount when present.
-        balance: summary.balance ?? summary.nep17_net_raw ?? null,
-      };
-    }
-  } catch { /* fall through to legacy */ }
-
   const scriptHash = addressToScriptHash(address);
   const candidates = [];
   if (scriptHash) candidates.push(scriptHash);

@@ -243,21 +243,6 @@ export const indexerReadService = {
     );
   },
 
-  // Fetch the canonical per-account activity summary from the indexer.
-  // Authoritative source for tx_sent / tx_signed / nep17 totals — the
-  // legacy GetAssetsHeldByAddress RPC returns empty for many addresses
-  // and isn't a substitute.
-  async getAccount(address, options = {}) {
-    const network = resolveIndexerNetworkPath();
-    const safe = encodeURIComponent(String(address || "").trim());
-    if (!safe) return null;
-    const payload = await fetchIndexerJsonWithFallback(
-      buildIndexerFallbackPaths(network, `accounts/${safe}`),
-      options,
-    );
-    return payload?.data || null;
-  },
-
   // Per-contract notifications stream (events). The legacy
   // GetNotificationByContractHash RPC returns empty for many contracts;
   // the indexer's REST endpoint is authoritative.

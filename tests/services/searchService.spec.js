@@ -4,7 +4,6 @@ import { addressToScriptHash } from "../../src/utils/neoHelpers";
 const safeRpc = vi.fn();
 const resolveDomain = vi.fn();
 const getByHashWithFallback = vi.fn();
-const getAccount = vi.fn();
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
@@ -22,12 +21,6 @@ vi.mock("../../src/services/nnsService.js", () => ({
   },
 }));
 
-vi.mock("../../src/services/indexerReadService.js", () => ({
-  indexerReadService: {
-    getAccount,
-  },
-}));
-
 vi.mock("../../src/services/cache.js", () => ({
   cachedRequest: (_key, fetchFn) => fetchFn(),
   getCacheKey: vi.fn(() => "search-cache-key"),
@@ -38,8 +31,6 @@ describe("searchService address lookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getByHashWithFallback.mockReset();
-    // Default: indexer offline, existing tests exercise legacy fallback.
-    getAccount.mockRejectedValue(new Error("indexer offline"));
   });
 
   it("finds account by converting Neo address to script hash first", async () => {
@@ -113,30 +104,20 @@ describe("searchService address lookup", () => {
     expect(result).toEqual({ type: null, data: null });
   });
 
-  // Indexer-first migration tests (#174).
-  it("uses indexerReadService.getAccount for address lookup; skips legacy GetAddressByAddress", async () => {
+  it("classifies a base58 address as type=address via legacy RPC", async () => {
     const query = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
-    getAccount.mockResolvedValue({
-      tx_sent: 12,
-      tx_signed: 8,
-      nep17_net_raw: "1000000000",
+    safeRpc.mockImplementation(async (method) => {
+      if (method === "GetAddressByAddress") {
+        return { address: query, txCount: 5 };
+      }
+      return null;
     });
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(getAccount).toHaveBeenCalledWith(query);
-    expect(safeRpc).not.toHaveBeenCalledWith(
-      "GetAddressByAddress",
-      expect.any(Object),
-      expect.any(Object),
-    );
     expect(result.type).toBe("address");
-    expect(result.data).toMatchObject({
-      address: query,
-      tx_sent: 12,
-      balance: "1000000000",
-    });
+    expect(result.data).toMatchObject({ address: query });
   });
 
   it("uses standard getblock RPC for block-height query before legacy fallback", async () => {
