@@ -1521,7 +1521,6 @@ const fr = {
     toggleTraceSection: "Basculer la section de trace",
     toggleSection: "Basculer la section",
     refreshSourceCode: "Actualiser le code source",
-    closePendingTxPanel: "Fermer le panneau des transactions en attente",
     transactionsTable: "Transactions",
     blockFeesTable: "Frais de bloc",
     blockTransactionsTable: "Transactions du bloc",

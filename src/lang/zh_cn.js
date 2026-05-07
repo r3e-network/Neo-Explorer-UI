@@ -1524,7 +1524,6 @@ const zh = {
     toggleTraceSection: "切换追踪部分",
     toggleSection: "切换部分",
     refreshSourceCode: "刷新源代码",
-    closePendingTxPanel: "关闭待处理交易面板",
     transactionsTable: "交易",
     blockFeesTable: "区块费用",
     blockTransactionsTable: "区块交易",

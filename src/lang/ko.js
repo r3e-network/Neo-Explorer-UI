@@ -1524,7 +1524,6 @@ const ko = {
     toggleTraceSection: "추적 섹션 전환",
     toggleSection: "섹션 전환",
     refreshSourceCode: "소스 코드 새로 고침",
-    closePendingTxPanel: "대기 중 트랜잭션 패널 닫기",
     transactionsTable: "트랜잭션",
     blockFeesTable: "블록 수수료",
     blockTransactionsTable: "블록 트랜잭션",

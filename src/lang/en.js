@@ -1524,7 +1524,6 @@ const en = {
     toggleTraceSection: "Toggle trace section",
     toggleSection: "Toggle section",
     refreshSourceCode: "Refresh source code",
-    closePendingTxPanel: "Close pending transaction panel",
     transactionsTable: "Transactions",
     blockFeesTable: "Block fees",
     blockTransactionsTable: "Block transactions",

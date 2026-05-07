@@ -1524,7 +1524,6 @@ const ja = {
     toggleTraceSection: "トレースセクションを切り替え",
     toggleSection: "セクションを切り替え",
     refreshSourceCode: "ソースコードを更新",
-    closePendingTxPanel: "保留中トランザクションパネルを閉じる",
     transactionsTable: "トランザクション",
     blockFeesTable: "ブロック手数料",
     blockTransactionsTable: "ブロックトランザクション",
