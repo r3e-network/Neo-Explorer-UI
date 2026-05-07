@@ -430,6 +430,11 @@ export function useCommittee() {
 
   const resolvePrimaryIndex = (block) => {
     if (!block) return undefined;
+    // Authoritative source: the block header's `primary` field, served by
+    // RPC getblock / the indexer's blocks endpoint. This is the chain's
+    // record of which consensus node primary'd the block under dBFT
+    // (including any view-change shifts), not a derived value. Always
+    // prefer it; only fall through if a malformed block strips the field.
     const primaryCandidates = [block.primary, block.primary_node, block.primaryNode];
     for (const rawPrimary of primaryCandidates) {
       if (rawPrimary === undefined || rawPrimary === null) continue;
@@ -438,8 +443,17 @@ export function useCommittee() {
         return numericPrimary;
       }
     }
+    // Last-resort heuristic — only fires when the block lacks `primary`
+    // entirely. dBFT's normal-case primary follows `index % N`, but a
+    // view change shifts it; this approximation is wrong for blocks
+    // that took >1 view to consense. We accept the inaccuracy here
+    // because (a) it's gated on missing-field input that shouldn't
+    // happen in practice and (b) view changes are rare on Neo N3
+    // mainnet.
     if (block.index !== undefined && block.index !== null) {
-      const vCount = validators.value && validators.value.length > 0 ? validators.value.length : 7;
+      const vCount = validators.value && validators.value.length > 0
+        ? validators.value.length
+        : CONSENSUS_VALIDATOR_COUNT;
       return Number(block.index) % vCount;
     }
     return undefined;
