@@ -3,7 +3,7 @@ import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
-import { getCurrentEnv } from "@/utils/env";
+import { resolveNetworkName } from "@/utils/env";
 
 // state_json arrives from the indexer as a JSON-encoded string; the
 // table renderer expects the parsed object. Fall back to the original
@@ -114,10 +114,7 @@ export const contractService = createService(
     // contract. Sender comes from transaction_signers (first signer per tx).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const network = (() => {
-          const env = String(getCurrentEnv() || "").toLowerCase();
-          return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-        })();
+        const network = resolveNetworkName();
         // Fetch the page of notifications, the per-contract overview (for
         // the authoritative tx_count), and signers in parallel.
         const [indexerRes, overviewRes] = await Promise.all([
@@ -166,10 +163,7 @@ export const contractService = createService(
         // calls. Failures fall through to originSender=null — the table
         // then renders "(null sender)" instead of breaking.
         try {
-          const network = (() => {
-            const env = String(getCurrentEnv() || "").toLowerCase();
-            return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-          })();
+          const network = resolveNetworkName();
           const txids = calls.map((c) => c.txid).filter(Boolean);
           if (txids.length > 0) {
             const params = new URLSearchParams({
@@ -289,10 +283,7 @@ export const contractService = createService(
       // Fetch in parallel: legacy fura row, on-chain state, and the
       // indexer's per-contract overview (the only source with the real
       // tx_count for the Invocations stat).
-      const network = (() => {
-        const env = String(getCurrentEnv() || "").toLowerCase();
-        return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-      })();
+      const network = resolveNetworkName();
       const [indexedContract, chainState, overview] = await Promise.all([
         contractService.getByHash(hash, options),
         this.getChainStateByHash(hash, options),

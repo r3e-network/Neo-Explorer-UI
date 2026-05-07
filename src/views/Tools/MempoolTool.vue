@@ -117,7 +117,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { supabaseService } from '@/services/supabaseService';
-import { getCurrentEnv, NETWORK_CHANGE_EVENT } from '@/utils/env';
+import { resolveNetworkName, NETWORK_CHANGE_EVENT } from '@/utils/env';
 import { useAutoRefresh } from '@/composables/useAutoRefresh';
 import { useNow } from '@vueuse/core';
 import { formatAge as _formatAge, formatGas } from '@/utils/explorerFormat';
@@ -127,12 +127,7 @@ const loading = ref(false);
 const error = ref(false);
 const searchQuery = ref('');
 
-const resolveCurrentNetwork = () => {
-  const env = getCurrentEnv()?.toLowerCase() || 'mainnet';
-  return env.includes('test') || env.includes('t5') ? 'testnet' : 'mainnet';
-};
-
-const currentNetwork = ref(resolveCurrentNetwork());
+const currentNetwork = ref(resolveNetworkName());
 
 const now = useNow({ interval: 1000 });
 const formatAge = (ts) => _formatAge(ts, now.value.getTime());
@@ -168,7 +163,7 @@ const filteredTransactions = computed(() => {
 });
 
 function handleNetworkChange() {
-  currentNetwork.value = resolveCurrentNetwork();
+  currentNetwork.value = resolveNetworkName();
 }
 
 // Register the network-change listener synchronously and BEFORE

@@ -45,7 +45,7 @@ describe("TokenDetail view", () => {
           InfoRow: true,
           Skeleton: true,
           TabsNav: true,
-          TokenTxNep17: true,
+          TransferTable: true,
           TokenHolder: true,
           ErrorState: true,
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },

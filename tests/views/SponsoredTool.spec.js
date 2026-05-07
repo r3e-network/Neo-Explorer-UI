@@ -65,6 +65,7 @@ vi.mock("@/utils/env", () => ({
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   getConfiguredRpcBaseUrl: () => "",
   toAbsoluteUrl: (value) => value,
+  resolveNetworkName: () => "mainnet",
 }));
 
 vi.mock("@/services/cache", () => ({

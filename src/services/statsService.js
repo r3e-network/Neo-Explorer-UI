@@ -3,7 +3,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
-import { getCurrentEnv } from "@/utils/env";
+import { resolveNetworkName } from "@/utils/env";
 
 /**
  * Stats Service - 仪表盘统计数据
@@ -14,10 +14,7 @@ import { getCurrentEnv } from "@/utils/env";
 const NETWORK_FEE_RATIO = 0.08;
 const INDEXER_STATS_TIMEOUT_MS = 2500;
 
-const resolveIndexerNetworkPath = () => {
-  const env = String(getCurrentEnv() || "").toLowerCase();
-  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-};
+const resolveIndexerNetworkPath = () => resolveNetworkName();
 
 const fetchIndexerTransactionTotal = async () => {
   if (typeof fetch !== "function") return 0;

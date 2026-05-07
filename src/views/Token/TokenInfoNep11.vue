@@ -77,7 +77,7 @@
 
         <!-- Tab: Recent Transfers -->
         <div v-show="activeName === 'transfers'">
-          <tokens-tx-nep11
+          <TransferTable
             type="nep11"
             :contractHash="tokenId"
             :decimal="decimal === '' ? 0 : decimal"
@@ -116,7 +116,7 @@ import TabsNav from "@/components/common/TabsNav.vue";
 
 const { t } = useI18n();
 import NftToken from "./NftTokens.vue";
-import TokensTxNep11 from "@/components/common/TransferTable.vue";
+import TransferTable from "@/components/common/TransferTable.vue";
 import TokenHolder from "./TokenHolder.vue";
 import TokenOverviewCard from "./components/TokenOverviewCard.vue";
 import ContractInfoTab from "./components/ContractInfoTab.vue";

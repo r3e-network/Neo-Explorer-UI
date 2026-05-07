@@ -140,10 +140,9 @@ export const transactionService = createService(
 
       try {
         // Fallback 2: Mempool
-        const { getCurrentEnv } = await import("@/utils/env");
+        const { resolveNetworkName } = await import("@/utils/env");
         const { supabaseService } = await import("./supabaseService");
-        const env = getCurrentEnv()?.toLowerCase() || "mainnet";
-        const network = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+        const network = resolveNetworkName();
 
         const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
         const found = dbTxs.find((t) => t.hash === hash);
@@ -255,11 +254,10 @@ export const transactionService = createService(
      * @returns {Promise<Array>} Pending transaction list.
      */
     async getPendingTransactions(limit = 20) {
-      const { getCurrentEnv } = await import("@/utils/env");
+      const { resolveNetworkName } = await import("@/utils/env");
       const { supabaseService } = await import("./supabaseService");
 
-      const env = getCurrentEnv()?.toLowerCase() || "mainnet";
-      const network = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+      const network = resolveNetworkName();
       const supabasePending = await supabaseService.getMempoolTransactions(network, limit);
 
       if (supabasePending && supabasePending.length > 0) {

@@ -10,6 +10,7 @@ describe("indexerReadService freshness controls", () => {
   it("probes same-origin hot-read freshness route for force-refresh homepage reads", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
     }));
 
     const fetchMock = vi
@@ -46,6 +47,7 @@ describe("indexerReadService freshness controls", () => {
   it("uses the same-origin primary route first for testnet indexer reads by default", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "TestT5"),
+      resolveNetworkName: vi.fn(() => "testnet"),
     }));
 
     const fetchMock = vi.fn().mockResolvedValue({
@@ -74,6 +76,7 @@ describe("indexerReadService freshness controls", () => {
   it("returns null when the single indexer route fails", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
     }));
 
     const fetchMock = vi

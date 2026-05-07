@@ -1,7 +1,7 @@
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { safeRpc } from "./api";
-import { getCurrentEnv } from "@/utils/env";
+import { resolveNetworkName } from "@/utils/env";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { indexerReadService } from "./indexerReadService";
@@ -13,10 +13,7 @@ import { mapAccountOverviewRowsToAccounts } from "./legacyFallbacks";
  * @description 通过 neo3fura 后端获取账户数据
  */
 
-const resolveAccountNetwork = () => {
-  const env = String(getCurrentEnv() || "").toLowerCase();
-  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-};
+const resolveAccountNetwork = () => resolveNetworkName();
 
 const buildAccountRestBasePath = (network) => `/rest/${network}`;
 

@@ -1,4 +1,4 @@
-import { getCurrentEnv } from "@/utils/env";
+import { resolveNetworkName } from "@/utils/env";
 
 const INDEXER_TIMEOUT_MS = 3000;
 const HOT_INDEXER_SELECTION_TTL_MS = Math.max(
@@ -21,8 +21,7 @@ const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze({
 });
 
 function resolveIndexerNetworkPath() {
-  const env = String(getCurrentEnv() || "").toLowerCase();
-  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+  return resolveNetworkName();
 }
 
 function withCacheBusting(path, forceRefresh = false) {

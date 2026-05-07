@@ -3,12 +3,9 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { base64ToBytes, bytesToHex, scriptHashToAddress } from "@/utils/neoHelpers";
-import { getCurrentEnv } from "@/utils/env";
+import { resolveNetworkName } from "@/utils/env";
 
-const resolveTokenNetwork = () => {
-  const env = String(getCurrentEnv() || "").toLowerCase();
-  return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-};
+const resolveTokenNetwork = () => resolveNetworkName();
 
 // Indexer Postgres-backed REST endpoint for tx-level transfer lookups.
 // Fields returned: { txid, contract_hash, from_address, to_address,
@@ -299,10 +296,7 @@ export const tokenService = createService(
     // total_supply_raw (sourced from the indexer's tokens endpoint).
     async getHolders(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const network = (() => {
-          const env = String(getCurrentEnv() || "").toLowerCase();
-          return env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
-        })();
+        const network = resolveTokenNetwork();
         const params = new URLSearchParams({
           select: "address,balance_raw",
           contract_hash: `eq.${hash}`,

@@ -235,7 +235,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
@@ -333,8 +333,7 @@ watch(
 
 async function loadCandidates() {
   try {
-    const env = getCurrentEnv().toLowerCase();
-    const networkMode = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+    const networkMode = resolveNetworkName();
     const isTestnet = networkMode !== "mainnet";
     if (isTestnet) {
       candidateList.value = [];
@@ -399,8 +398,7 @@ async function executeSponsoredTx() {
   const requestedCandidatePubKey = String(candidatePubKey.value || "").trim();
 
   try {
-    const env = getCurrentEnv().toLowerCase();
-    const networkMode = env.includes("test") || env.includes("t5") ? "testnet" : "mainnet";
+    const networkMode = resolveNetworkName();
 
     // 1. Get sponsor info from our backend
     const sponsorInfoRes = await fetch("/api/sponsor", {

@@ -20,6 +20,10 @@ vi.mock("@/utils/env", () => ({
   getCurrentEnv: () => envState.value,
   getNetworkRefreshIntervalMs: vi.fn(() => 3000),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
+  resolveNetworkName: () => {
+    const v = String(envState.value || "").toLowerCase();
+    return v.includes("test") || v.includes("t5") ? "testnet" : "mainnet";
+  },
 }));
 
 vi.mock("@vueuse/core", () => ({

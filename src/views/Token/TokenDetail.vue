@@ -124,7 +124,7 @@
             </div>
 
             <div v-else-if="activeTab === 'transfers'">
-              <TokenTxNep17
+              <TransferTable
                 :key="`token-transfers-${tokenValue?.hash || 'unknown'}`"
                 type="nep17"
                 :contract-hash="tokenValue?.hash"
@@ -158,7 +158,7 @@ import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import InfoRow from "@/components/common/InfoRow.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import TokenTxNep17 from "@/components/common/TransferTable.vue";
+import TransferTable from "@/components/common/TransferTable.vue";
 import TokenHolder from "@/views/Token/TokenHolder.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
