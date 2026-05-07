@@ -416,6 +416,10 @@ export const tokenService = createService(
         // in parallel — transfer_event_count from the indexer's tokens
         // endpoint is the real "A total of N transfers" number; without
         // it the previous heuristic showed "26" for NEO (1.2M actual).
+        // High-traffic contracts like GAS need >3s to assemble even a
+        // small notifications page; bump the per-call timeout so the
+        // request doesn't abort and leave the Transfers tab empty.
+        const slowOptions = { ...options, timeoutMs: 12000 };
         const [notifications, tokenInfo] = await Promise.all([
           indexerReadService.getContractNotifications(
             hash,
@@ -424,7 +428,7 @@ export const tokenService = createService(
             // short, the next page will fetch more.
             Math.max(limit * 3, 50),
             skip,
-            options,
+            slowOptions,
           ),
           indexerReadService.getToken(hash, options).catch(() => null),
         ]);
@@ -464,12 +468,14 @@ export const tokenService = createService(
     // with [from, to, amount/tokenId] state.
     async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
       try {
+        // Same slow-endpoint accommodation as getNep17Transfers.
+        const slowOptions = { ...options, timeoutMs: 12000 };
         const [notifications, tokenInfo] = await Promise.all([
           indexerReadService.getContractNotifications(
             hash,
             Math.max(limit * 3, 50),
             skip,
-            options,
+            slowOptions,
           ),
           indexerReadService.getToken(hash, options).catch(() => null),
         ]);
