@@ -160,12 +160,14 @@ export const contractService = createService(
 
       // Source 2: derive client-side from contract_notifications + signers.
       try {
+        // Same slow-endpoint accommodation as tokenService.getNep17Transfers.
+        const slowOptions = { ...options, timeoutMs: 12000 };
         const [indexerRes, overview] = await Promise.all([
           indexerReadService.getContractNotifications(
             hash,
             Math.max(limit * 4, 100),
             skip,
-            options,
+            slowOptions,
           ),
           overviewPromise,
         ]);
@@ -240,7 +242,12 @@ export const contractService = createService(
 
     async getNotifications(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const indexerRes = await indexerReadService.getContractNotifications(hash, limit, skip, options);
+        // /contracts/<hash>/notifications takes 2-4s for high-traffic
+        // contracts (NEO/GAS); the default 3s timeout reliably aborts
+        // and leaves the EventsTable empty. See tokenService.getNep17Transfers
+        // for the same fix.
+        const slowOptions = { ...options, timeoutMs: 12000 };
+        const indexerRes = await indexerReadService.getContractNotifications(hash, limit, skip, slowOptions);
         if (Array.isArray(indexerRes?.data) && indexerRes.data.length > 0) {
           return {
             result: indexerRes.data.map((row) => ({
