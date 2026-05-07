@@ -155,21 +155,6 @@ export const statsService = createService(
     },
 
     /**
-     * 获取每小时交易数据
-     * Uncached raw RPC call — intentionally not using factory caching.
-     * @param {number} [hours=24] - 小时数
-     * @returns {Promise<Array>} 每小时交易数据
-     */
-    async getHourlyTransactions(hours = 24) {
-      try {
-        return await rpc("GetHourlyTransactions", { Hours: hours });
-      } catch (error) {
-        if (import.meta.env.DEV) console.error("Failed to get hourly transactions:", error.message);
-        return [];
-      }
-    },
-
-    /**
      * 获取 Gas 追踪数据（最新手续费 + 网络费用）
      * Aggregates 2 parallel RPC calls — cannot be expressed as a single factory config.
      * @param {boolean} [forceRefresh=false] - 强制刷新
