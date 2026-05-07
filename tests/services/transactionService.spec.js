@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { transactionService } from "../../src/services/transactionService.js";
 import * as api from "../../src/services/api.js";
 import { accountService } from "../../src/services/accountService.js";
-import { neotubeService } from "../../src/services/neotubeService.js";
 import { clearAllCache } from "../../src/services/cache.js";
 
 class MockRpcClient {
@@ -37,14 +36,6 @@ vi.mock("../../src/services/accountService.js", () => ({
   },
 }));
 
-vi.mock("../../src/services/neotubeService.js", () => ({
-  neotubeService: {
-    supportsNetwork: vi.fn(() => true),
-    getLatestTransactions: vi.fn(),
-    getStatistics: vi.fn(),
-  },
-}));
-
 vi.mock("../../src/services/indexerReadService.js", () => ({
   indexerReadService: {
     getTransactions: vi.fn(),
@@ -58,7 +49,6 @@ describe("transactionService", () => {
   beforeEach(() => {
     vi.clearAllMocks(); vi.resetAllMocks();
     clearAllCache();
-    neotubeService.supportsNetwork.mockReturnValue(true);
     // Default: indexer offline, so existing tests exercise legacy fallback.
     indexerReadService.getTransactions.mockRejectedValue(new Error("indexer offline"));
     indexerReadService.getSummary.mockRejectedValue(new Error("indexer offline"));
@@ -72,16 +62,6 @@ describe("transactionService", () => {
       expect(result).toBe(50000);
     });
 
-    it("uses RPC count as primary even when NeoTube is enabled", async () => {
-      api.safeRpc.mockResolvedValueOnce(1234);
-      neotubeService.getStatistics.mockResolvedValueOnce({ txs: 8888 });
-
-      const result = await transactionService.getCount({ useNeoTube: true });
-
-      expect(api.safeRpc).toHaveBeenCalled();
-      expect(neotubeService.getStatistics).not.toHaveBeenCalled();
-      expect(result).toBe(1234);
-    });
   });
 
   describe("getList", () => {
@@ -116,36 +96,6 @@ describe("transactionService", () => {
       expect(result.result[0].vmstate).toBeUndefined();
     });
 
-    it("uses RPC transaction list as primary even when NeoTube is enabled", async () => {
-      api.safeRpcList.mockResolvedValueOnce({
-        result: [{ hash: "0xrpc" }],
-        totalCount: 1,
-      });
-      neotubeService.getLatestTransactions.mockResolvedValueOnce({
-        result: [{ hash: "0xneo" }],
-        totalCount: 1,
-      });
-
-      const result = await transactionService.getList(10, 0, { useNeoTube: true });
-
-      expect(api.safeRpcList).toHaveBeenCalled();
-      expect(neotubeService.getLatestTransactions).not.toHaveBeenCalled();
-      expect(result.result[0].hash).toBe("0xrpc");
-    });
-
-    it("does not fall back to NeoTube transactions when RPC list is empty", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
-      neotubeService.getLatestTransactions.mockResolvedValueOnce({
-        result: [{ hash: "0xneo" }],
-        totalCount: 1,
-      });
-
-      const result = await transactionService.getList(10, 0, { useNeoTube: true });
-
-      expect(api.safeRpcList).toHaveBeenCalled();
-      expect(neotubeService.getLatestTransactions).not.toHaveBeenCalled();
-      expect(result).toEqual({ result: [], totalCount: 0 });
-    });
   });
 
   describe("getByHash", () => {
