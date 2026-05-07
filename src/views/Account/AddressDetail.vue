@@ -19,6 +19,13 @@
       />
 
       <div
+        v-if="unresolvedDomain"
+        class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      >
+        {{ $t('addressDetail.unresolvedDomain', { domain: unresolvedDomain }) }}
+      </div>
+
+      <div
         v-if="showMainnetHint"
         class="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
       >
@@ -207,6 +214,11 @@ const {
 const isContract = ref(false);
 const showQr = ref(false);
 const networkHintDismissed = ref(false);
+// Set when the URL is an .neo / .matrix domain that didn't resolve to an
+// address (expired registration, never registered, or RPC fault). Without
+// this hint the page silently renders the raw domain string with all
+// stats at zero, which looks like an empty-but-real account.
+const unresolvedDomain = ref("");
 
 // NEP-17 Token Transfers via composable
 const {
@@ -668,13 +680,18 @@ watch(
       try {
         const resolved = await nnsService.resolveDomain(trimmed.toLowerCase());
         if (resolved && resolved !== trimmed) {
+          unresolvedDomain.value = "";
           await router.replace({ path: `/account-profile/${resolved}` });
           return; // route change re-fires this watcher with the resolved addr
         }
+        // resolveDomain returns null on FAULT (e.g. expired) or no record.
+        unresolvedDomain.value = trimmed;
       } catch {
-        // Resolution failed — fall through and load with the raw value;
-        // the page will simply show empty stats, matching prior behavior.
+        // Network/SDK error — same end-user effect as no record.
+        unresolvedDomain.value = trimmed;
       }
+    } else {
+      unresolvedDomain.value = "";
     }
     await initializeData(addr);
   },

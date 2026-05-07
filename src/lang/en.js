@@ -2464,6 +2464,7 @@ const en = {
     tabNfts: "NFTs",
     tabVoters: "Voters",
     csvExportFailed: "Failed to export transactions. Please try again.",
+    unresolvedDomain: "{domain} could not be resolved (the NNS registration may be expired or never claimed).",
     noTestnetActivity: "No activity was found for this address on N3 Testnet.",
     switchToMainnet: "Switch to N3 Mainnet",
     titleAddress: "Address",

@@ -2464,6 +2464,7 @@ const ja = {
     tabNfts: "NFT",
     tabVoters: "投票者",
     csvExportFailed: "トランザクションのエクスポートに失敗しました。もう一度お試しください。",
+    unresolvedDomain: "{domain} を解決できませんでした（NNS 登録が期限切れか、未取得の可能性があります）。",
     noTestnetActivity: "N3 テストネットではこのアドレスのアクティビティは見つかりませんでした。",
     switchToMainnet: "N3 メインネットに切り替える",
     titleAddress: "アドレス",

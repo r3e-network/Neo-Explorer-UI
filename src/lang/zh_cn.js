@@ -2464,6 +2464,7 @@ const zh = {
     tabNfts: "NFT",
     tabVoters: "投票者",
     csvExportFailed: "导出交易失败。请重试。",
+    unresolvedDomain: "{domain} 无法解析（该 NNS 注册可能已过期或从未注册）。",
     noTestnetActivity: "在 N3 测试网上未发现该地址的活动。",
     switchToMainnet: "切换到 N3 主网",
     titleAddress: "地址",

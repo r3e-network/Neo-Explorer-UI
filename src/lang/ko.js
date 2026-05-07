@@ -2464,6 +2464,7 @@ const ko = {
     tabNfts: "NFT",
     tabVoters: "투표자",
     csvExportFailed: "트랜잭션 내보내기에 실패했습니다. 다시 시도해 주세요.",
+    unresolvedDomain: "{domain}을(를) 확인할 수 없습니다 (NNS 등록이 만료되었거나 등록되지 않았을 수 있습니다).",
     noTestnetActivity: "N3 테스트넷에서 이 주소의 활동을 찾을 수 없습니다.",
     switchToMainnet: "N3 메인넷으로 전환",
     titleAddress: "주소",
