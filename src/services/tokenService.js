@@ -262,31 +262,40 @@ export const tokenService = createService(
     },
   },
   {
-    // Override the default getTransfersByTxHash / getNep11TransfersByTxHash —
+    // Override getTransfersByTxHash / getNep11TransfersByTxHash —
     // both legacy RPC handlers query the empty Mongo `Nep17Transfer` /
-    // `Nep11Transfer` collections (indexer migrated to Postgres months ago).
-    // Fall back to the Postgres /rest/<network>/{nep17,nep11}_transfers
-    // endpoint, which returns the indexed rows for the given txid.
+    // `Nep11Transfer` collections (indexer migrated to Postgres months
+    // ago). Indexer-first per #171/#173 — verified live: every legacy
+    // call returns {result:[], totalCount:0}, so the previous
+    // legacy-then-indexer order was always firing two round-trips per
+    // tx. The Postgres /rest endpoint is the only source with data; the
+    // legacy probe is kept only as a defence-in-depth fallback.
     async getTransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+      try {
+        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
+        if (Array.isArray(indexed?.result) && indexed.result.length > 0) return indexed;
+      } catch { /* fall through to legacy */ }
       const direct = await safeRpcList(
         "GetNep17TransferByTransactionHash",
         { TransactionHash: txHash, Limit: limit, Skip: skip },
         "get NEP17 transfers by tx",
         options,
       ).catch(() => null);
-      if (Array.isArray(direct?.result) && direct.result.length > 0) return direct;
-      return fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
+      return direct || { result: [], totalCount: 0 };
     },
 
     async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+      try {
+        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
+        if (Array.isArray(indexed?.result) && indexed.result.length > 0) return indexed;
+      } catch { /* fall through to legacy */ }
       const direct = await safeRpcList(
         "GetNep11TransferByTransactionHash",
         { TransactionHash: txHash, Limit: limit, Skip: skip },
         "get NEP11 transfers by tx",
         options,
       ).catch(() => null);
-      if (Array.isArray(direct?.result) && direct.result.length > 0) return direct;
-      return fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
+      return direct || { result: [], totalCount: 0 };
     },
 
     // Override getHolders — the legacy GetAssetHoldersByContractHash RPC
