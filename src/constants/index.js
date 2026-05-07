@@ -37,12 +37,6 @@ export const BURN_RATE = 0.00003;
 
 // Timer & delay constants (milliseconds)
 
-/** Homepage auto-refresh interval for latest blocks/transactions */
-export const HOME_REFRESH_INTERVAL = 3000;
-
-/** Gas tracker page auto-refresh interval */
-export const GAS_TRACKER_REFRESH_INTERVAL = 30000;
-
 /** Debounce delay for search input fields */
 export const SEARCH_DEBOUNCE_MS = 350;
 
@@ -51,9 +45,6 @@ export const COPY_FEEDBACK_TIMEOUT_MS = 2000;
 
 /** Delay before closing navigation dropdown on mouse leave */
 export const DROPDOWN_CLOSE_DELAY_MS = 120;
-
-/** Pending transactions panel polling interval */
-export const PENDING_TX_POLL_INTERVAL = 10000;
 
 // ---------------------------------------------------------------------------
 // Native contract metadata (Neo N3 mainnet)
