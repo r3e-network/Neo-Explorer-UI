@@ -378,6 +378,18 @@ export const tokenService = createService(
       return fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard);
     },
 
+    // Override the default getNftHoldersList. The legacy
+    // GetAssetHoldersListByContractHash JSON-RPC handler queries an
+    // unpopulated Mongo collection and surfaces "RpcError: Unknown RPC
+    // error" in the console plus a red error state on the NftTokens tab.
+    // The indexer doesn't (yet) expose a per-NFT holdings endpoint, so
+    // there's nothing better to fall back to. Until that ships, swallow
+    // the failure and return an empty list so the tab renders its
+    // existing no-data state instead of an alarming error.
+    async getNftHoldersList(_hash, _limit = 20, _skip = 0) {
+      return { result: [], totalCount: 0 };
+    },
+
     // Override getHolders — the legacy GetAssetHoldersByContractHash RPC
     // queries a Mongo collection that the Postgres-migrated indexer no
     // longer populates. Pull from v_nep17_balances instead, ranked by
