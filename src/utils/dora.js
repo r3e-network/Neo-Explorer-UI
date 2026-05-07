@@ -2,7 +2,7 @@ import { getCurrentEnv, NET_ENV } from "./env";
 
 const DORA_API_BASE = "https://dora.coz.io/api/v2/neo3";
 
-export const toDoraNetwork = (env = getCurrentEnv()) => {
+const toDoraNetwork = (env = getCurrentEnv()) => {
   const normalized = String(env || "").trim().toLowerCase();
   if (normalized === NET_ENV.TestT5.toLowerCase() || normalized.includes("test") || normalized.includes("t5")) {
     return "testnet";
