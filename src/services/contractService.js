@@ -274,27 +274,31 @@ export const contractService = createService(
     },
 
     async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
+      // Indexer first — same Mongo→Postgres pattern as #171/#172. The
+      // legacy GetContractList / GetContractListByName handlers query an
+      // unpopulated Mongo collection.
+      try {
+        const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh });
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        if (rows.length > 0) {
+          return {
+            result: rows.map((item) => ({
+              hash: item.contract_hash,
+              name: item.display_name || item.contract_hash,
+              manifest: { supportedstandards: Array.isArray(item.standards) ? item.standards : [] },
+              totalsccall: item.tx_count || 0,
+              verified: Boolean(item.verified),
+              createtime: item.created_at_ms || 0,
+            })),
+            totalCount: Number(payload?.paging?.total || rows.length || 0),
+          };
+        }
+      } catch { /* fall through to legacy */ }
+
       const legacy = search
         ? await contractService.searchByName(search, limit, skip, { forceRefresh }).catch(() => null)
         : await contractService.getList(limit, skip, { forceRefresh }).catch(() => null);
-
-      if (Array.isArray(legacy?.result) && legacy.result.length > 0) {
-        return legacy;
-      }
-
-      const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh });
-      const rows = Array.isArray(payload?.data) ? payload.data : [];
-      return {
-        result: rows.map((item) => ({
-          hash: item.contract_hash,
-          name: item.display_name || item.contract_hash,
-          manifest: { supportedstandards: Array.isArray(item.standards) ? item.standards : [] },
-          totalsccall: item.tx_count || 0,
-          verified: Boolean(item.verified),
-          createtime: item.created_at_ms || 0,
-        })),
-        totalCount: Number(payload?.paging?.total || rows.length || 0),
-      };
+      return legacy || { result: [], totalCount: 0 };
     },
 
     async getChainStateByHash(hash, options = {}) {

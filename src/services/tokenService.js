@@ -437,43 +437,50 @@ export const tokenService = createService(
     },
 
     async getTokenListWithFallback(type, limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
+      // Indexer first — same Mongo→Postgres pattern as #171/#172/#173. The
+      // indexer's /tokens endpoint also handles `search` natively (matches
+      // by display_name or symbol), so a search-mode call goes there too.
+      try {
+        const payload = await indexerReadService.getTokens(type, limit, skip, { search, forceRefresh });
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        if (rows.length > 0) {
+          return {
+            result: rows.map((item) => ({
+              hash: item.contract_hash,
+              tokenname: item.display_name || item.contract_hash,
+              symbol: item.symbol || "",
+              holders: item.holder_count || 0,
+              // total_supply_raw is populated for both NEP-17 and NEP-11.
+              // Older revision masked NEP-17 to null on the assumption the
+              // indexer total was unreliable; the live data shows it tracks
+              // the contract's totalSupply correctly, so render it for both.
+              totalsupply: item.total_supply_raw || "0",
+              decimals: Number(item.decimals || 0),
+              type: item.standard || type,
+              standard: item.standard || type,
+            })),
+            totalCount: Number(payload?.paging?.total || rows.length || 0),
+          };
+        }
+      } catch { /* fall through to legacy */ }
+
       const legacy = search
         ? await tokenService.searchTokenByName(type, search, limit, skip, { forceRefresh }).catch(() => null)
         : await tokenService.getTokenList(type, limit, skip, { forceRefresh }).catch(() => null);
-
-      if (Array.isArray(legacy?.result) && legacy.result.length > 0) {
-        return legacy;
-      }
-
-      const payload = await indexerReadService.getTokens(type, limit, skip, { search, forceRefresh });
-      const rows = Array.isArray(payload?.data) ? payload.data : [];
-      return {
-        result: rows.map((item) => ({
-          hash: item.contract_hash,
-          tokenname: item.display_name || item.contract_hash,
-          symbol: item.symbol || "",
-          holders: item.holder_count || 0,
-          // total_supply_raw is populated for both NEP-17 and NEP-11.
-          // Older revision masked NEP-17 to null on the assumption the
-          // indexer total was unreliable; the live data shows it tracks
-          // the contract's totalSupply correctly, so render it for both.
-          totalsupply: item.total_supply_raw || "0",
-          decimals: Number(item.decimals || 0),
-          type: item.standard || type,
-          standard: item.standard || type,
-        })),
-        totalCount: Number(payload?.paging?.total || rows.length || 0),
-      };
+      return legacy || { result: [], totalCount: 0 };
     },
 
     async getByHashWithFallback(hash, options = {}) {
-      const legacy = await tokenService.getByHash(hash, options).catch(() => null);
-      if (legacy?.hash || legacy?.tokenname || legacy?.symbol) {
-        return legacy;
+      // Indexer first — same Mongo→Postgres pattern as #171/#172/#173.
+      // The legacy GetAssetInfoByContractHash returns null for most
+      // contracts. The enrichment block below (manifest invokefunction
+      // for missing decimals/symbol) still runs against the indexer row.
+      const item = await indexerReadService.getToken(hash, options).catch(() => null);
+      if (!item) {
+        const legacy = await tokenService.getByHash(hash, options).catch(() => null);
+        if (legacy?.hash || legacy?.tokenname || legacy?.symbol) return legacy;
+        return null;
       }
-
-      const item = await indexerReadService.getToken(hash, options);
-      if (!item) return null;
 
       // Indexer currently mis-reports decimals/symbol as 0/"" for some
       // NEP-17 contracts (notably the GAS native, which has 8 decimals).
