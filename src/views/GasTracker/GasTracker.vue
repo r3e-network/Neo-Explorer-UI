@@ -98,16 +98,33 @@ const blocks = ref([]);
 
 let isRefreshing = false;
 
-// --- Fee estimation from recent transactions ---
+// --- Fee estimation: rolling buffer of recent transactions ---
 // Sourced from the indexer's /transactions endpoint, not blocks: Neo N3
-// produces empty blocks every ~15s during low traffic, so a 20-block sample
-// frequently has zero fee-bearing items.
+// produces empty blocks every ~15s during low traffic, so a small block
+// sample frequently has zero fee-bearing items.
+//
+// The buffer is module-level (survives auto-refresh ticks within the same
+// session) and updates incrementally — initial fill is 5 sequential fetches
+// of 200 (= 1000 tx ≈ 3-5 minutes of activity at low traffic), then each
+// refresh fetches just the latest 100, dedups against the buffer's newest
+// txid, prepends new entries, and trims back to BUFFER_TARGET.
+//
+// Replaces the previous 20-tx single-fetch sample, which gave statistically
+// unstable estimates on Neo's typically-empty blocks.
+const FEE_BUFFER_TARGET = 1000;
+const FEE_INITIAL_PAGES = 5;
+const FEE_PAGE_SIZE = 200;
+const FEE_INCREMENTAL_FETCH = 100;
+
+let feeBuffer = []; // [{txid, sys_fee, net_fee}, ...] newest first
+let lastSeenTxid = null;
+
 function txTotalFee(tx) {
   return (Number(tx?.sys_fee) || 0) + (Number(tx?.net_fee) || 0);
 }
 
-function computeFeeEstimatesFromTxs(txs) {
-  const fees = (Array.isArray(txs) ? txs : [])
+function recomputeFeeEstimatesFromBuffer() {
+  const fees = feeBuffer
     .map(txTotalFee)
     .filter((f) => f > 0)
     .sort((a, b) => a - b);
@@ -117,11 +134,51 @@ function computeFeeEstimatesFromTxs(txs) {
     return;
   }
 
+  // Use percentiles instead of min/max so a single outlier tx doesn't
+  // skew "low" or "high". 25th / 50th / 75th percentile is the usual
+  // gas-tracker shape.
+  const at = (p) => fees[Math.min(fees.length - 1, Math.max(0, Math.floor(fees.length * p)))];
+  const median = at(0.5);
   feeEstimates.value = {
-    low: fees[0],
-    high: fees[fees.length - 1],
-    average: Math.round(fees.reduce((s, f) => s + f, 0) / fees.length),
+    low: at(0.25),
+    average: median,
+    high: at(0.75),
   };
+}
+
+async function refreshFeeBuffer(forceRefresh = false) {
+  // Initial fill happens once per session — auto-refresh ticks just
+  // append the latest delta. `forceRefresh` controls cache bypass on
+  // each request; it does NOT trigger a buffer rebuild (that would
+  // re-fetch 1000 tx every 30s, defeating the rolling-window design).
+  if (feeBuffer.length === 0) {
+    const pages = await Promise.all(
+      Array.from({ length: FEE_INITIAL_PAGES }, (_, i) =>
+        indexerReadService.getRecentTransactions(FEE_PAGE_SIZE, i * FEE_PAGE_SIZE, { forceRefresh })
+          .catch(() => []),
+      ),
+    );
+    feeBuffer = pages.flat().filter((tx) => tx?.txid);
+    lastSeenTxid = feeBuffer[0]?.txid || null;
+    recomputeFeeEstimatesFromBuffer();
+    return;
+  }
+
+  // Incremental — fetch the newest FEE_INCREMENTAL_FETCH and find the
+  // boundary against our last-seen txid.
+  const latest = await indexerReadService.getRecentTransactions(FEE_INCREMENTAL_FETCH, 0, { forceRefresh })
+    .catch(() => []);
+  const newRows = [];
+  for (const tx of latest) {
+    if (!tx?.txid) continue;
+    if (tx.txid === lastSeenTxid) break;
+    newRows.push(tx);
+  }
+  if (newRows.length > 0) {
+    feeBuffer = [...newRows, ...feeBuffer].slice(0, FEE_BUFFER_TARGET);
+    lastSeenTxid = feeBuffer[0]?.txid || lastSeenTxid;
+    recomputeFeeEstimatesFromBuffer();
+  }
 }
 
 // --- Data loading ---
@@ -143,12 +200,14 @@ async function loadBlocks(forceRefresh = false) {
   blocksLoading.value = true;
   blocksError.value = null;
   try {
-    const [blockRes, recentTxs] = await Promise.all([
+    const [blockRes] = await Promise.all([
       blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true }),
-      indexerReadService.getRecentTransactions(20, 0, { forceRefresh }).catch(() => []),
+      // Fee buffer updates incrementally — see refreshFeeBuffer comment.
+      // First call fetches 1000 tx; subsequent calls fetch only the
+      // latest 100 and dedup against the last-seen txid.
+      refreshFeeBuffer(forceRefresh),
     ]);
     blocks.value = blockRes?.result || [];
-    computeFeeEstimatesFromTxs(recentTxs);
   } catch (e) {
     blocksError.value = e.message || t("gasTracker.failedLoadBlocks");
   } finally {
