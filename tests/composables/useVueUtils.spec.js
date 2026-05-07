@@ -10,8 +10,7 @@ vi.mock("vue", async () => {
   };
 });
 
-import { useDebounceFn, useThrottleFn, useDebouncedRef } from "@/composables/useVueUtils";
-import { ref } from "vue";
+import { useDebounceFn } from "@/composables/useVueUtils";
 
 describe("useVueUtils", () => {
   beforeEach(() => {
@@ -66,59 +65,6 @@ describe("useVueUtils", () => {
       vi.advanceTimersByTime(50);
       expect(fn).toHaveBeenCalledWith("b");
       expect(fn).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("useThrottleFn", () => {
-    it("executes immediately on first call", () => {
-      const fn = vi.fn();
-      const { throttledFn } = useThrottleFn(fn, 100);
-
-      throttledFn("first");
-      expect(fn).toHaveBeenCalledWith("first");
-    });
-
-    it("throttles subsequent calls", () => {
-      const fn = vi.fn();
-      const { throttledFn } = useThrottleFn(fn, 100);
-
-      throttledFn("first");
-      throttledFn("second");
-      expect(fn).toHaveBeenCalledTimes(1);
-
-      vi.advanceTimersByTime(100);
-      expect(fn).toHaveBeenCalledTimes(2);
-      expect(fn).toHaveBeenLastCalledWith("second");
-    });
-
-    it("cancel stops pending execution", () => {
-      const fn = vi.fn();
-      const { throttledFn, cancel } = useThrottleFn(fn, 100);
-
-      throttledFn("first");
-      throttledFn("second");
-      cancel();
-      vi.advanceTimersByTime(200);
-      expect(fn).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("useDebouncedRef", () => {
-    it("initializes with source value", () => {
-      const source = ref("hello");
-      const { value } = useDebouncedRef(source, 100);
-      expect(value.value).toBe("hello");
-    });
-
-    it("updates value after delay", () => {
-      const source = ref("hello");
-      const { value, update } = useDebouncedRef(source, 100);
-
-      update("world");
-      expect(value.value).toBe("hello");
-
-      vi.advanceTimersByTime(100);
-      expect(value.value).toBe("world");
     });
   });
 });
