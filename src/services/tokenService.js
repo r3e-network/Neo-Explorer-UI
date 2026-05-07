@@ -121,6 +121,23 @@ function _decodeAddressFromState(item) {
   }
 }
 
+function _decodeNep11TokenId(item) {
+  if (!item || item.type === "Any" || item.value == null) return undefined;
+  // NEP-11 tokenId is typically a ByteString (base64-encoded raw bytes:
+  // a domain name like "poseidon.neo", or some opaque hash) or an
+  // Integer (numeric id). Surface the raw value as-is — the display
+  // layer (TransferTable) decides whether to show base64 or stringify
+  // bytes per contract.
+  if (item.type === "ByteString") {
+    try {
+      return atob(String(item.value));
+    } catch {
+      return String(item.value);
+    }
+  }
+  return String(item.value);
+}
+
 function decodeTransferNotification(row) {
   let state = row.state_json;
   if (typeof state === "string") {
@@ -132,6 +149,10 @@ function decodeTransferNotification(row) {
   }
   const items = Array.isArray(state?.value) ? state.value : [];
   const rawAmount = items[2]?.value || "0";
+  // NEP-11 Transfer event signature is (from, to, amount, tokenId);
+  // NEP-17's is (from, to, amount). items[3] is undefined for NEP-17,
+  // which collapses the field to undefined — exactly what we want.
+  const tokenId = _decodeNep11TokenId(items[3]);
   return {
     txid: row.txid,
     hash: row.txid,
@@ -146,6 +167,7 @@ function decodeTransferNotification(row) {
     value: rawAmount,
     amount: rawAmount,
     contract: row.contract_hash,
+    ...(tokenId !== undefined ? { tokenId, tokenid: tokenId } : {}),
   };
 }
 
