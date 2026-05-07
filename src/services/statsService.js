@@ -3,6 +3,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
+import { transactionService } from "./transactionService";
 import { resolveNetworkName } from "@/utils/env";
 
 /**
@@ -180,13 +181,15 @@ export const statsService = createService(
         key,
         async () => {
           try {
-            const rpcTxRes = await rpc("GetTransactionList", { Limit: 1, Skip: 0 }).catch(() => null);
-
-            const latestTx = Array.isArray(rpcTxRes?.result) ? rpcTxRes.result[0] : null;
+            // Route through transactionService.getList (#171 — indexer-first
+            // with legacy GetTransactionList as fallback). The legacy raw
+            // RPC path returns empty post-Mongo-deletion.
+            const txListRes = await transactionService.getList(1, 0, { forceRefresh }).catch(() => null);
+            const latestTx = Array.isArray(txListRes?.result) ? txListRes.result[0] : null;
 
             return {
-              latestNetworkFee: latestTx?.netfee ?? "0",
-              latestSystemFee: latestTx?.sysfee ?? "0",
+              latestNetworkFee: latestTx?.netfee ?? latestTx?.net_fee ?? "0",
+              latestSystemFee: latestTx?.sysfee ?? latestTx?.sys_fee ?? "0",
               networkFee: null,
             };
           } catch (error) {
