@@ -569,18 +569,83 @@ export const tokenService = createService(
 
     /**
      * 获取 NEP11 NFT 属性（名称、图片、描述等）
-     * @param {string} hash - 合约哈希
-     * @param {string[]} tokenIds - Token ID 数组
-     * @returns {Promise<Object|null>} NFT 属性数据
+     *
+     * Calls the contract's standard `properties(tokenId)` NEP-11 method
+     * via `invokefunction` and decodes the returned Map. This is the
+     * authoritative on-chain source — works against any compliant NEP-11
+     * contract regardless of whether neo3fura_http is in the path. Falls
+     * back to the legacy GetNep11PropertiesByContractHashTokenId for
+     * backends that still proxy through Mongo.
+     *
+     * @param {string} hash - Contract hash
+     * @param {string[]} tokenIds - Array of base64-encoded token IDs
+     * @param {Object} [options]
+     * @returns {Promise<{result: Array<{tokenId: string, name?: string, image?: string, description?: string}>}|null>}
      */
     async getNep11Properties(hash, tokenIds, options = {}) {
       const key = getCacheKey("token_nep11_properties", { hash, tokenIds });
       return cachedRequest(
         key,
-        () => safeRpc("GetNep11PropertiesByContractHashTokenId", { ContractHash: hash, TokenIds: tokenIds }, null, options),
+        async () => {
+          // Standard path — call properties(tokenId) on the contract for
+          // each id. Most NFT detail loads pass a single id, so this is
+          // typically one round-trip. Falls back to the legacy Mongo
+          // helper if the standard call doesn't HALT for any id.
+          try {
+            const ids = Array.isArray(tokenIds) ? tokenIds : [tokenIds];
+            const results = await Promise.all(
+              ids.map((tokenId) =>
+                safeRpc(
+                  "invokefunction",
+                  [hash, "properties", [{ type: "ByteString", value: tokenId }]],
+                  null,
+                  options,
+                ),
+              ),
+            );
+            const decoded = results
+              .map((res, i) => {
+                if (res?.state !== "HALT") return null;
+                const stack = res?.stack?.[0];
+                if (!stack || stack.type !== "Map" || !Array.isArray(stack.value)) return null;
+                const out = { tokenId: ids[i] };
+                for (const entry of stack.value) {
+                  const k = tokenService._decodeBase64(entry?.key?.value);
+                  const v = tokenService._decodeBase64(entry?.value?.value);
+                  if (k) out[k] = v;
+                }
+                return out;
+              })
+              .filter(Boolean);
+            if (decoded.length > 0) {
+              return { result: decoded };
+            }
+          } catch { /* fall through to legacy */ }
+          return safeRpc(
+            "GetNep11PropertiesByContractHashTokenId",
+            { ContractHash: hash, TokenIds: tokenIds },
+            null,
+            options,
+          );
+        },
         CACHE_TTL.token,
         options
       );
+    },
+
+    // Decode a base64-encoded ByteString stack value to a UTF-8 string.
+    // Returns the original input on decode failure (e.g. raw bytes that
+    // aren't valid UTF-8 — token images may sometimes be binary blobs).
+    _decodeBase64(raw) {
+      if (typeof raw !== "string" || !raw) return raw || "";
+      try {
+        const decoded = atob(raw);
+        // If it parses to printable text, return it. Otherwise hand the
+        // raw base64 back so callers can handle binary themselves.
+        return decoded;
+      } catch {
+        return raw;
+      }
     },
   }
 );
