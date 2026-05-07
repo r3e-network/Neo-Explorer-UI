@@ -13,13 +13,7 @@
         </div>
         <div>
           <h1 class="page-title">{{ $t("gasTracker.pageTitle") }}</h1>
-          <p class="page-subtitle">
-            {{ $t("gasTracker.pageSubtitle") }}
-            <span v-if="autoRefreshActive" class="ml-2 inline-flex items-center gap-1 text-xs text-green-500">
-              <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-              {{ $t("gasTracker.live") }}
-            </span>
-          </p>
+          <p class="page-subtitle">{{ $t("gasTracker.pageSubtitle") }}</p>
         </div>
       </div>
 
@@ -77,7 +71,7 @@ import BlockFeeTable from "./components/BlockFeeTable.vue";
 import { statsService, blockService } from "@/services";
 import { indexerReadService } from "@/services/indexerReadService";
 import { BURN_RATE } from "@/constants";
-import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { createRollingTxBuffer, feePercentileEstimates, txTotalFee } from "@/utils/rollingTxBuffer";
 
 // --- State ---
 const { t } = useI18n();
@@ -98,87 +92,19 @@ const blocks = ref([]);
 
 let isRefreshing = false;
 
-// --- Fee estimation: rolling buffer of recent transactions ---
-// Sourced from the indexer's /transactions endpoint, not blocks: Neo N3
-// produces empty blocks every ~15s during low traffic, so a small block
-// sample frequently has zero fee-bearing items.
-//
-// The buffer is module-level (survives auto-refresh ticks within the same
-// session) and updates incrementally — initial fill is 5 sequential fetches
-// of 200 (= 1000 tx ≈ 3-5 minutes of activity at low traffic), then each
-// refresh fetches just the latest 100, dedups against the buffer's newest
-// txid, prepends new entries, and trims back to BUFFER_TARGET.
-//
-// Replaces the previous 20-tx single-fetch sample, which gave statistically
-// unstable estimates on Neo's typically-empty blocks.
-const FEE_BUFFER_TARGET = 1000;
-const FEE_INITIAL_PAGES = 5;
-const FEE_PAGE_SIZE = 200;
-const FEE_INCREMENTAL_FETCH = 100;
-
-let feeBuffer = []; // [{txid, sys_fee, net_fee}, ...] newest first
-let lastSeenTxid = null;
-
-function txTotalFee(tx) {
-  return (Number(tx?.sys_fee) || 0) + (Number(tx?.net_fee) || 0);
-}
-
-function recomputeFeeEstimatesFromBuffer() {
-  const fees = feeBuffer
-    .map(txTotalFee)
-    .filter((f) => f > 0)
-    .sort((a, b) => a - b);
-
-  if (!fees.length) {
-    feeEstimates.value = { low: 0, average: 0, high: 0 };
-    return;
-  }
-
-  // Use percentiles instead of min/max so a single outlier tx doesn't
-  // skew "low" or "high". 25th / 50th / 75th percentile is the usual
-  // gas-tracker shape.
-  const at = (p) => fees[Math.min(fees.length - 1, Math.max(0, Math.floor(fees.length * p)))];
-  const median = at(0.5);
-  feeEstimates.value = {
-    low: at(0.25),
-    average: median,
-    high: at(0.75),
-  };
-}
+// Module-level rolling buffer of recent transactions (survives across
+// auto-refresh ticks in the same session). First refresh fetches 1000
+// tx; later refreshes fetch only the latest 100 and prepend the delta.
+// See utils/rollingTxBuffer for the design + tests.
+const feeTxBuffer = createRollingTxBuffer({
+  fetchPage: (limit, offset, options) =>
+    indexerReadService.getRecentTransactions(limit, offset, options),
+});
 
 async function refreshFeeBuffer(forceRefresh = false) {
-  // Initial fill happens once per session — auto-refresh ticks just
-  // append the latest delta. `forceRefresh` controls cache bypass on
-  // each request; it does NOT trigger a buffer rebuild (that would
-  // re-fetch 1000 tx every 30s, defeating the rolling-window design).
-  if (feeBuffer.length === 0) {
-    const pages = await Promise.all(
-      Array.from({ length: FEE_INITIAL_PAGES }, (_, i) =>
-        indexerReadService.getRecentTransactions(FEE_PAGE_SIZE, i * FEE_PAGE_SIZE, { forceRefresh })
-          .catch(() => []),
-      ),
-    );
-    feeBuffer = pages.flat().filter((tx) => tx?.txid);
-    lastSeenTxid = feeBuffer[0]?.txid || null;
-    recomputeFeeEstimatesFromBuffer();
-    return;
-  }
-
-  // Incremental — fetch the newest FEE_INCREMENTAL_FETCH and find the
-  // boundary against our last-seen txid.
-  const latest = await indexerReadService.getRecentTransactions(FEE_INCREMENTAL_FETCH, 0, { forceRefresh })
-    .catch(() => []);
-  const newRows = [];
-  for (const tx of latest) {
-    if (!tx?.txid) continue;
-    if (tx.txid === lastSeenTxid) break;
-    newRows.push(tx);
-  }
-  if (newRows.length > 0) {
-    feeBuffer = [...newRows, ...feeBuffer].slice(0, FEE_BUFFER_TARGET);
-    lastSeenTxid = feeBuffer[0]?.txid || lastSeenTxid;
-    recomputeFeeEstimatesFromBuffer();
-  }
+  await feeTxBuffer.refresh(forceRefresh);
+  const fees = feeTxBuffer.entries.map(txTotalFee);
+  feeEstimates.value = feePercentileEstimates(fees);
 }
 
 // --- Data loading ---
@@ -225,20 +151,12 @@ async function loadData(forceRefresh = false) {
   }
 }
 
-// --- Auto-refresh (network-aware) ---
-// useAutoRefresh handles visibility pause, network-change retick, and
-// keep-alive deactivation — replacing the prior raw setInterval which
-// kept hitting the network with the tab hidden.
-const { isActive: autoRefreshActive, start: startAutoRefresh } = useAutoRefresh(
-  () =>
-    loadData(true).catch((err) => {
-      if (import.meta.env.DEV) console.warn("[GasTracker] auto-refresh failed:", err);
-    }),
-);
-
 // --- Lifecycle ---
+// Loads once on mount. User can refresh manually via the BlockFeeTable
+// "@refresh" emit, the FeeSummary error retry button, or by reloading
+// the page. No auto-polling — keeps the page network-quiet for users
+// who leave the tab open.
 onMounted(() => {
   loadData();
-  startAutoRefresh();
 });
 </script>
