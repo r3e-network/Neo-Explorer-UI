@@ -94,13 +94,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { blockService, executionService } from "@/services";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -124,7 +123,6 @@ const showWitnesses = ref(false);
 const latestBlockHeight = ref(Infinity);
 const activeTab = ref("transactions");
 const BLOCK_TX_FETCH_BATCH_SIZE = 100;
-let isBackgroundRefreshing = false;
 let blockRequestId = 0;
 let txRequestId = 0;
 
@@ -480,29 +478,14 @@ async function loadReward(_hash) {
   }
 }
 
-async function refreshCurrentBlockSilently() {
-  if (isBackgroundRefreshing || loading.value) return;
-
-  const hash = route.params.hash;
-  if (!hash) return;
-
-  isBackgroundRefreshing = true;
-
-  try {
-    await loadBlock(hash, { silent: true, forceRefresh: true });
-  } finally {
-    isBackgroundRefreshing = false;
-  }
-}
-
-// Auto-refresh via composable (handles cleanup + visibility pause)
-const { start: startAutoRefresh } = useAutoRefresh(() => {
-  void refreshCurrentBlockSilently();
-});
+// No auto-refresh — once a block is finalized its data is immutable
+// (only `confirmations` ticks up over time, which is purely time-since-
+// finalization and not worth the network noise on every poll). The user
+// can manually refresh by reloading the page or navigating away/back.
 
 function handleNetworkChange() {
-  startAutoRefresh();
-  void refreshCurrentBlockSilently();
+  const hash = route.params.hash;
+  if (hash) loadBlock(hash, { silent: true, forceRefresh: true });
 }
 
 function navigateBlock(height) {
@@ -521,10 +504,6 @@ function navigateBlock(height) {
       }
     });
 }
-
-onMounted(() => {
-  startAutoRefresh();
-});
 
 useNetworkChange(handleNetworkChange);
 
