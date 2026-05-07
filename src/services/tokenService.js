@@ -264,17 +264,18 @@ export const tokenService = createService(
   {
     // Override getTransfersByTxHash / getNep11TransfersByTxHash —
     // both legacy RPC handlers query the empty Mongo `Nep17Transfer` /
-    // `Nep11Transfer` collections (indexer migrated to Postgres months
-    // ago). Indexer-first per #171/#173 — verified live: every legacy
-    // call returns {result:[], totalCount:0}, so the previous
-    // legacy-then-indexer order was always firing two round-trips per
-    // tx. The Postgres /rest endpoint is the only source with data; the
-    // legacy probe is kept only as a defence-in-depth fallback.
+    // `Nep11Transfer` collections. The Postgres indexer is the
+    // authoritative source: when it returns an array (even empty), we
+    // trust it. Only fall back to legacy if the indexer throws or
+    // returns null. The previous "fall back when length === 0" version
+    // was firing the legacy RPC for every tx without NEP-17 transfers
+    // (vote ops, contract calls, etc.) — verified live: thousands of
+    // wasted POSTs per page. See #178.
     async getTransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
       try {
         const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
-        if (Array.isArray(indexed?.result) && indexed.result.length > 0) return indexed;
-      } catch { /* fall through to legacy */ }
+        if (indexed && Array.isArray(indexed.result)) return indexed;
+      } catch { /* indexer threw — try legacy as defence-in-depth */ }
       const direct = await safeRpcList(
         "GetNep17TransferByTransactionHash",
         { TransactionHash: txHash, Limit: limit, Skip: skip },
@@ -287,8 +288,8 @@ export const tokenService = createService(
     async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
       try {
         const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
-        if (Array.isArray(indexed?.result) && indexed.result.length > 0) return indexed;
-      } catch { /* fall through to legacy */ }
+        if (indexed && Array.isArray(indexed.result)) return indexed;
+      } catch { /* indexer threw — try legacy as defence-in-depth */ }
       const direct = await safeRpcList(
         "GetNep11TransferByTransactionHash",
         { TransactionHash: txHash, Limit: limit, Skip: skip },
