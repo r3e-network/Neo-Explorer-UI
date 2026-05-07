@@ -16,16 +16,6 @@ const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   testnet: [],
 });
 
-const PRIMARY_WS_ENDPOINTS = Object.freeze({
-  mainnet: "wss://ws.r3e.network/mainnet",
-  testnet: "wss://ws.r3e.network/testnet",
-});
-
-const FALLBACK_WS_ENDPOINTS = Object.freeze({
-  mainnet: [],
-  testnet: [],
-});
-
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 const normalizeBaseUrl = (value) => {
   if (typeof value !== "string") return "";
@@ -106,16 +96,6 @@ export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
 
 export const getPrimaryRpcEndpoint = (value = getCurrentEnv()) =>
   getRpcEndpointCandidates(value)[0];
-
-export const getWsEndpointCandidates = (value = getCurrentEnv()) => {
-  const network = toNetworkMode(value);
-  const primary = PRIMARY_WS_ENDPOINTS[network] || PRIMARY_WS_ENDPOINTS.mainnet;
-  const fallback = FALLBACK_WS_ENDPOINTS[network] || FALLBACK_WS_ENDPOINTS.mainnet;
-  return [primary, ...fallback];
-};
-
-export const getPrimaryWsEndpoint = (value = getCurrentEnv()) =>
-  getWsEndpointCandidates(value)[0];
 
 export const callWithRpcEndpointFallback = async (value, handler) => {
   const candidates = getRpcEndpointCandidates(value);

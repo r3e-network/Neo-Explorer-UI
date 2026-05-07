@@ -6,12 +6,7 @@
  */
 import { isValidNeoAddress, isValidTxHash } from "@/utils/explorerFormat";
 
-/**
- * Detect the type of a search query based on its format.
- * @param {string} query - Raw user input
- * @returns {'address'|'tx'|'block'|'contract'|'token'|'unknown'}
- */
-export function detectSearchType(query) {
+function detectSearchType(query) {
   const q = (query || "").trim();
   if (!q) return "unknown";
 

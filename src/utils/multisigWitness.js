@@ -80,7 +80,7 @@ export function decodeSingleSignatureFromInvocationScript(invocationScript = "")
   return signatureHex.length >= 128 ? signatureHex : "";
 }
 
-export function encodePushDataHex(dataHex = "") {
+function encodePushDataHex(dataHex = "") {
   const normalized = normalizeHex(dataHex);
   if (!normalized || normalized.length % 2 !== 0 || /[^0-9a-f]/i.test(normalized)) {
     return "";

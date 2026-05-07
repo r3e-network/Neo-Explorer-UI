@@ -105,26 +105,3 @@ export function exportBlocksToCSV(blocks) {
   exportToCSV(flatData, `blocks_${Date.now()}`);
 }
 
-export function exportTransfersToCSV(transfers) {
-  if (!Array.isArray(transfers) || !transfers.length) return;
-  const flatData = transfers.map((t) => ({
-    tx_hash: t.txhash || t.hash,
-    block: t.blockindex || t.block,
-    timestamp: t.timestamp || t.time,
-    from: t.from_address || t.from,
-    to: t.to_address || t.to,
-    amount: t.amount || t.value,
-    token: t.token || t.contract,
-  }));
-  exportToCSV(flatData, `transfers_${Date.now()}`);
-}
-
-export function exportTokenHoldersToCSV(holders) {
-  if (!Array.isArray(holders) || !holders.length) return;
-  const flatData = holders.map((h) => ({
-    address: h.address,
-    balance: h.balance || h.amount,
-    percentage: h.percent || h.percentage,
-  }));
-  exportToCSV(flatData, `holders_${Date.now()}`);
-}

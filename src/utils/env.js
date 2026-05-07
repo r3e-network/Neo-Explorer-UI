@@ -3,7 +3,7 @@ export const NET_ENV = {
   TestT5: "TestT5",
 };
 
-export const NETWORK_STORAGE_KEY = "neo_explorer_network";
+const NETWORK_STORAGE_KEY = "neo_explorer_network";
 export const NETWORK_CHANGE_EVENT = "neo-explorer-network-change";
 
 const ENV_ALIASES = {
@@ -31,7 +31,7 @@ export const NETWORK_OPTIONS = [
   { id: NET_ENV.TestT5, name: "N3 Testnet" },
 ];
 
-export const NETWORK_REFRESH_INTERVALS = {
+const NETWORK_REFRESH_INTERVALS = {
   [NET_ENV.Mainnet]: 3 * 1000,
   [NET_ENV.TestT5]: 3 * 1000,
 };
@@ -41,7 +41,7 @@ export const getNetworkLabel = (env) => {
   return selected?.name || "N3 Mainnet";
 };
 
-export const getStoredEnv = () => {
+const getStoredEnv = () => {
   if (!canUseLocalStorage()) return null;
 
   try {
@@ -82,23 +82,12 @@ export const setCurrentEnv = (env) => {
   return normalizedEnv;
 };
 
-// AI Analysis API Configuration
-export const AI_API = {
-  BASE_URL: "https://op-ai-analyze-production.up.railway.app/api/parse",
-  METHOD: "gettxdetail",
-};
-
 const DEFAULT_RPC_BASE_URLS = {
   [NET_ENV.Mainnet]: "/rpc/mainnet",
   [NET_ENV.TestT5]: "/rpc/testnet",
 };
 
-// RPC Node URLs used by browser-side SDK clients and HTTP API calls.
-export const RPC_URLS = {
-  ...DEFAULT_RPC_BASE_URLS,
-};
-
-export const RPC_API_BASE_PATHS = {
+const RPC_API_BASE_PATHS = {
   ...DEFAULT_RPC_BASE_URLS,
 };
 
@@ -150,10 +139,6 @@ export const getActiveBasePath = (env = getCurrentEnv()) => {
   const normalized = normalizeEnv(env);
   return activeBasePaths[normalized] || RPC_API_BASE_PATHS[normalized] || RPC_API_BASE_PATHS[NET_ENV.Mainnet];
 };
-
-// Get RPC URL based on selected environment
-export const getRpcUrl = (env = getCurrentEnv()) =>
-  getConfiguredRpcBaseUrl(env) || activeBasePaths[normalizeEnv(env)] || RPC_URLS[NET_ENV.Mainnet];
 
 // Get API base path (proxied in dev + Vercel rewrites)
 export const getRpcApiBasePath = (env = getCurrentEnv()) =>

@@ -44,14 +44,14 @@ export const BOA_COMPILER_VERSIONS = [
   "neo3-boa 0.7.0",
 ];
 
-export const LEGACY_CSHARP_COMPILER_VERSIONS = [
+const LEGACY_CSHARP_COMPILER_VERSIONS = [
   "Neo.Compiler.CSharp 3.0.0",
   "Neo.Compiler.CSharp 3.0.2",
   "Neo.Compiler.CSharp 3.0.3",
 ];
 
 export const JAVA_COMPILER_VERSION = "neow3j";
-export const GO_COMPILER_VERSION = "neo-go";
+const GO_COMPILER_VERSION = "neo-go";
 
 export const COMPILER_VERSION_OPTIONS = [
   ...CSHARP_COMPILER_VERSIONS.map((version) => ({
@@ -74,15 +74,15 @@ export const COMPILE_COMMAND_OPTIONS = [
   },
 ];
 
-export function isCSharpCompiler(version) {
+function isCSharpCompiler(version) {
   return CSHARP_COMPILER_VERSIONS.includes(version);
 }
 
-export function isBoaCompiler(version) {
+function isBoaCompiler(version) {
   return BOA_COMPILER_VERSIONS.includes(version);
 }
 
-export function isLegacyCSharpCompiler(version) {
+function isLegacyCSharpCompiler(version) {
   return LEGACY_CSHARP_COMPILER_VERSIONS.includes(version);
 }
 
@@ -148,17 +148,3 @@ export function getCompilationFailureMessage(version) {
   return "Compilation failed. We could not generate a .nef file from your upload. Please ensure all .go files are included.";
 }
 
-export default {
-  CSHARP_COMPILER_VERSIONS,
-  BOA_COMPILER_VERSIONS,
-  LEGACY_CSHARP_COMPILER_VERSIONS,
-  COMPILER_VERSION_OPTIONS,
-  COMPILE_COMMAND_OPTIONS,
-  requiresCompileCommand,
-  resolveUploadNode,
-  getCompilerUploadHint,
-  getCompilationFailureMessage,
-  isCSharpCompiler,
-  isBoaCompiler,
-  isLegacyCSharpCompiler,
-};
