@@ -54,7 +54,7 @@ describe("useTransactionTracker", () => {
     track("0xtx-indexed");
     await waitForStatus(txStatuses, "0xtx-indexed", "confirmed");
 
-    expect(rpc).toHaveBeenCalledWith("GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-indexed" });
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"]);
     expect(txStatuses.value["0xtx-indexed"]).toBe("confirmed");
 
     unmount();
@@ -67,13 +67,13 @@ describe("useTransactionTracker", () => {
     track("0xtx-flat");
     await waitForStatus(txStatuses, "0xtx-flat", "failed");
 
-    expect(rpc).toHaveBeenCalledWith("GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-flat" });
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-flat"]);
     expect(txStatuses.value["0xtx-flat"]).toBe("failed");
 
     unmount();
   });
 
-  it("falls back to legacy native RPC when indexed method is unavailable", async () => {
+  it("falls back to legacy PascalCase RPC when standard getapplicationlog is unavailable (#186)", async () => {
     rpc.mockRejectedValueOnce(new Error("RPC Error -32601: JSON RPC method not found"));
     rpc.mockResolvedValueOnce({ executions: [{ vmstate: "FAULT" }] });
     const { track, txStatuses, unmount } = mountTrackerComposable();
@@ -81,8 +81,10 @@ describe("useTransactionTracker", () => {
     track("0xtx-legacy");
     await waitForStatus(txStatuses, "0xtx-legacy", "failed");
 
-    expect(rpc).toHaveBeenNthCalledWith(1, "GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-legacy" });
-    expect(rpc).toHaveBeenNthCalledWith(2, "getapplicationlog", ["0xtx-legacy"]);
+    // Standard `getapplicationlog` is now the primary; legacy
+    // GetApplicationLogByTransactionHash is the fallback.
+    expect(rpc).toHaveBeenNthCalledWith(1, "getapplicationlog", ["0xtx-legacy"]);
+    expect(rpc).toHaveBeenNthCalledWith(2, "GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-legacy" });
     expect(txStatuses.value["0xtx-legacy"]).toBe("failed");
 
     unmount();

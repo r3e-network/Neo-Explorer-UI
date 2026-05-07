@@ -358,8 +358,12 @@ export function useCommittee() {
 
     if (!validatorsLoaded) {
       try {
-        // Fallback: committee list still gives candidate metadata keys when validator RPC is unavailable.
-        const response = await rpc("GetCommittee", { Limit: 21, Skip: 0 });
+        // Standard `getcommittee` returns the consensus committee
+        // public-key list. Was previously calling PascalCase
+        // GetCommittee which proxies through neo3fura_http and won't
+        // exist post-Mongo cleanup. Standard works against any Neo
+        // node.
+        const response = await rpc("getcommittee", []);
         if (response && Array.isArray(response)) {
           validators.value = normalizeCommitteeList(response);
         } else if (response && response.result && Array.isArray(response.result)) {

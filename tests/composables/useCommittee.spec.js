@@ -62,7 +62,7 @@ describe("useCommittee", () => {
     vi.restoreAllMocks();
   });
 
-  it("falls back to GetCommittee when getnextblockvalidators fails", async () => {
+  it("falls back to standard getcommittee when getnextblockvalidators fails (#186)", async () => {
     rpcMock.mockRejectedValueOnce(new Error("temporary network failure")).mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
@@ -72,7 +72,7 @@ describe("useCommittee", () => {
 
     expect(rpcMock).toHaveBeenCalledTimes(2);
     expect(rpcMock).toHaveBeenNthCalledWith(1, "getnextblockvalidators", []);
-    expect(rpcMock).toHaveBeenNthCalledWith(2, "GetCommittee", { Limit: 21, Skip: 0 });
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "getcommittee", []);
     expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
     expect(getPrimaryNodeAddress(0)).toBe("0xcommittee1");
   });
@@ -86,7 +86,7 @@ describe("useCommittee", () => {
     await flush();
 
     expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
-    expect(rpcMock).not.toHaveBeenCalledWith("GetCommittee", { Limit: 21, Skip: 0 });
+    expect(rpcMock).not.toHaveBeenCalledWith("getcommittee", []);
   });
 
   it("maps primary index against next block validators instead of committee order", async () => {
@@ -101,7 +101,7 @@ describe("useCommittee", () => {
       if (method === "getnextblockvalidators") {
         return [{ publickey: "PUBKEY_VALIDATOR_0" }, { publickey: "PUBKEY_VALIDATOR_1" }];
       }
-      if (method === "GetCommittee") {
+      if (method === "getcommittee") {
         return [{ publickey: "PUBKEY_COMMITTEE_0" }, { publickey: "PUBKEY_COMMITTEE_1" }];
       }
       return [];

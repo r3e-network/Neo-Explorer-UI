@@ -11,12 +11,15 @@ function isMethodNotFoundError(error) {
 }
 
 async function fetchApplicationLog(txid) {
+  // Standard `getapplicationlog` is the canonical chain source — works
+  // against any Neo node and outlives Mongo cleanup. Was previously
+  // calling PascalCase GetApplicationLogByTransactionHash first which
+  // proxies through neo3fura_http (#180 / #185).
   try {
-    return await rpc("GetApplicationLogByTransactionHash", { TransactionHash: txid });
+    return await rpc("getapplicationlog", [txid]);
   } catch (error) {
-    // Some deployments proxy native RPC methods but do not expose the indexed method.
     if (!isMethodNotFoundError(error)) throw error;
-    return rpc("getapplicationlog", [txid]);
+    return rpc("GetApplicationLogByTransactionHash", { TransactionHash: txid });
   }
 }
 
