@@ -288,6 +288,14 @@ export const transactionService = createService(
       return cachedRequest(
         key,
         async () => {
+          // Indexer first — total_tx_count is the authoritative chain-wide
+          // counter. The legacy GetTransactionCount RPC reads from a Mongo
+          // collection that's no longer being populated.
+          try {
+            const summary = await indexerReadService.getSummary(cacheOpts);
+            const fromSummary = Number(summary?.total_tx_count);
+            if (Number.isFinite(fromSummary) && fromSummary > 0) return fromSummary;
+          } catch { /* fall through */ }
           const res = await safeRpc("GetTransactionCount", {}, 0, cacheOpts);
           return this._extractCount(res);
         },
@@ -303,7 +311,30 @@ export const transactionService = createService(
       const key = getCacheKey("tx_list", { limit, skip });
       const res = await cachedRequest(
         key,
-        () => safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts),
+        async () => {
+          // Indexer first — same Mongo→Postgres pattern as #150/#152/#153/#168.
+          // The legacy GetTransactionList queries a Mongo collection that's
+          // not being populated; without this branch the homepage tx list and
+          // /transactions page render empty once neo3fura_http is removed.
+          try {
+            const [indexerRes, summary] = await Promise.all([
+              indexerReadService.getTransactions(limit, skip, cacheOpts),
+              indexerReadService.getSummary(cacheOpts).catch(() => null),
+            ]);
+            const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
+            if (rows.length > 0) {
+              const totalFromSummary = Number(summary?.total_tx_count);
+              return {
+                result: rows.map(this._mapIndexerTx),
+                totalCount: Number(
+                  indexerRes?.paging?.total
+                    ?? (Number.isFinite(totalFromSummary) && totalFromSummary > 0 ? totalFromSummary : skip + rows.length),
+                ),
+              };
+            }
+          } catch { /* fall through to legacy */ }
+          return safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts);
+        },
         CACHE_TTL.chart,
         cacheOpts,
       );
@@ -325,6 +356,25 @@ export const transactionService = createService(
         }),
       );
       return { ...res, result: enriched };
+    },
+
+    // Map the indexer's snake_case TransactionListItem to the legacy field
+    // names the UI components expect (TransactionTable, TransactionRow, etc.).
+    // Spreads the original first so callers can still access snake_case if
+    // they prefer it.
+    _mapIndexerTx(tx = {}) {
+      return {
+        ...tx,
+        hash: tx.hash || tx.txid || "",
+        blockindex: tx.blockindex ?? tx.block_index,
+        blocktime: tx.blocktime ?? tx.block_time_ms ?? 0,
+        sender: tx.sender || tx.sender_address || "",
+        sysfee: tx.sysfee ?? tx.sys_fee ?? 0,
+        netfee: tx.netfee ?? tx.net_fee ?? 0,
+        validUntilBlock: tx.validUntilBlock ?? tx.valid_until_block,
+        contractHash: tx.contractHash || tx.contract_hash || "",
+        vmstate: tx.vmstate || tx.vm_state || "",
+      };
     },
 
     async getByAddress(address, limit = 20, skip = 0, options = {}) {
