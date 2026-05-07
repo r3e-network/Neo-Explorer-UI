@@ -6,6 +6,7 @@
  */
 import { ref, computed, reactive } from "vue";
 import { safeRpc } from "@/services/api";
+import { transactionService } from "@/services/transactionService";
 import { getCacheKey, cachedRequest, CACHE_TTL } from "@/services/cache";
 
 const GAS_DECIMALS = 8;
@@ -79,9 +80,11 @@ function calculateSuggestions() {
  */
 async function updateOracle() {
   try {
-    const [feeRes, txRes] = await Promise.all([
+    const [feeRes, txCount] = await Promise.all([
       safeRpc("GetNetFeeRange", {}, null),
-      safeRpc("GetTransactionCount", {}, 0),
+      // Use the indexer-first transactionService.getCount instead of the
+      // raw legacy RPC — same migration as #171.
+      transactionService.getCount().catch(() => 0),
     ]);
 
     if (feeRes) {
@@ -92,8 +95,8 @@ async function updateOracle() {
       state.systemFee = Number.isFinite(sysFee) ? sysFee / Math.pow(10, GAS_DECIMALS) : 0;
     }
 
-    if (typeof txRes === "number") {
-      state.pendingCount = txRes;
+    if (typeof txCount === "number") {
+      state.pendingCount = txCount;
     }
 
     state.lastUpdate = Date.now();
