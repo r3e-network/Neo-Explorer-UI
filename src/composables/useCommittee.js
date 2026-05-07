@@ -190,6 +190,12 @@ export const isFallbackValidatorName = (name) => {
   const trimmed = String(name).trim();
   if (!trimmed) return true;
   if (/^Consensus Node(?: \d+)?$/i.test(trimmed)) return true;
+  // The indexer's metadata/validators endpoint hands back generic
+  // "Validator 1" / "Validator 7" placeholders for nodes that don't
+  // have a configured operator name. Treat those as a fallback so the
+  // explorer falls through to the known-addresses table (NeoSPCC,
+  // NEXT, AxLabs, …) instead of rendering the placeholder.
+  if (/^Validator(?: \d+)?$/i.test(trimmed)) return true;
 
   const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
   if (i18n?.global?.t) {
@@ -454,7 +460,11 @@ export function useCommittee() {
     if (!validator) return fallbackValidatorName(numericIndex, fallbackAddress);
 
     const meta = getValidatorMetadata(validator);
-    if (meta && meta.name) {
+    // Trust meta.name only when it's a real operator name. The indexer
+    // currently fills display_name with "Validator N" placeholders for
+    // most nodes; passing those through hides better names that the
+    // knownAddresses table holds (NeoSPCC, NEXT, AxLabs, …).
+    if (meta && meta.name && !isFallbackValidatorName(meta.name)) {
       return meta.name;
     }
 
