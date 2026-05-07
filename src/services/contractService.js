@@ -120,9 +120,9 @@ export const contractService = createService(
       const network = resolveNetworkName();
       // Pull the per-contract overview in parallel with the calls request
       // for an authoritative total tx_count regardless of which source wins.
-      const overviewPromise = fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
-        headers: { Accept: "application/json" },
-      }).then((r) => r.ok ? r.json() : null).catch(() => null);
+      // Goes through indexerReadService so concurrent ContractDetail mount
+      // paths (header + ScCallTable) collapse to one /contracts/<hash> hit.
+      const overviewPromise = indexerReadService.getContractOverview(hash, options).catch(() => null);
 
       // Source 1: the new dedicated REST endpoint.
       try {
@@ -132,14 +132,14 @@ export const contractService = createService(
           limit: String(limit),
           offset: String(skip),
         });
-        const [restRes, overviewRes] = await Promise.all([
+        const [restRes, overview] = await Promise.all([
           fetch(`/rest/${network}/contract_calls?${params}`, { headers: { Accept: "application/json" } }),
           overviewPromise,
         ]);
         if (restRes.ok) {
           const rows = await restRes.json();
           if (Array.isArray(rows) && rows.length > 0) {
-            const authoritativeTxCount = Number(overviewRes?.data?.tx_count);
+            const authoritativeTxCount = Number(overview?.tx_count);
             return {
               result: rows.map((r) => ({
                 txid: r.txid,
@@ -160,7 +160,7 @@ export const contractService = createService(
 
       // Source 2: derive client-side from contract_notifications + signers.
       try {
-        const [indexerRes, overviewRes] = await Promise.all([
+        const [indexerRes, overview] = await Promise.all([
           indexerReadService.getContractNotifications(
             hash,
             Math.max(limit * 4, 100),
@@ -169,7 +169,7 @@ export const contractService = createService(
           ),
           overviewPromise,
         ]);
-        const authoritativeTxCount = Number(overviewRes?.data?.tx_count);
+        const authoritativeTxCount = Number(overview?.tx_count);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
         if (rows.length === 0) {
           return safeRpcList(
@@ -317,14 +317,10 @@ export const contractService = createService(
       // GetContractByContractHash Mongo path was previously also fired
       // here but always returned `{result: null, error: "not found"}`
       // post-Mongo-deletion (verified live on /contract-info pages).
-      const network = resolveNetworkName();
-      const [chainState, overview] = await Promise.all([
+      const [chainState, indexerOverview] = await Promise.all([
         this.getChainStateByHash(hash, options),
-        fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
-          headers: { Accept: "application/json" },
-        }).then((r) => r.ok ? r.json() : null).catch(() => null),
+        indexerReadService.getContractOverview(hash, options).catch(() => null),
       ]);
-      const indexerOverview = overview?.data || null;
       // tx_count from /data/<network>/contracts/<hash> is the
       // authoritative invocation count; the legacy row's totalsccall
       // is 0 because the Mongo collection isn't populated.

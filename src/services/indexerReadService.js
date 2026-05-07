@@ -190,6 +190,13 @@ function shouldUseHotIndexerSelection({ pathType = "", forceRefresh = false, lim
 // promise settles, so the next call does hit the wire.
 const _inflightGetSummary = new Map();
 
+// Same pattern for /contracts/<hash> overview. The contract-detail page
+// mounts ContractDetail (calls contractService.getByHash) + ScCallTable
+// (calls contractService.getScCalls's overviewPromise) at the same tick;
+// without dedup that's two raw fetches for the identical URL. Keyed by
+// network:hash so different contracts and networks stay isolated.
+const _inflightGetContractOverview = new Map();
+
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
@@ -276,6 +283,33 @@ export const indexerReadService = {
       buildIndexerFallbackPaths(network, `accounts/${safe}/transactions?${params.toString()}`),
       options,
     );
+  },
+
+  // Per-contract overview row: { tx_count, last_call_ms, ... }. The
+  // ContractDetail page reads this from two distinct mount paths (the
+  // page header + ScCallTable's overviewPromise), so concurrent calls
+  // get coalesced into one fetch.
+  async getContractOverview(hash, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(hash || "").trim());
+    if (!safe) return null;
+
+    const key = `${network}:${safe}`;
+    const inflight = _inflightGetContractOverview.get(key);
+    if (inflight) return inflight;
+
+    const promise = (async () => {
+      const payload = await fetchIndexerJsonWithFallback(
+        buildIndexerFallbackPaths(network, `contracts/${safe}`),
+        options,
+      );
+      return payload?.data || null;
+    })().finally(() => {
+      _inflightGetContractOverview.delete(key);
+    });
+
+    _inflightGetContractOverview.set(key, promise);
+    return promise;
   },
 
   async getContracts(limit = 20, offset = 0, { search = "", ...options } = {}) {

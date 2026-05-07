@@ -100,6 +100,34 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("coalesces concurrent getContractOverview calls per network+hash", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { hash: "0xabc", tx_count: 42 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    // ContractDetail mount fans out: page header (getByHash → overview)
+    // + ScCallTable.usePagination (getScCalls → overviewPromise) hit
+    // /contracts/<hash> in the same tick. Without dedup, two fetches.
+    const [a, b] = await Promise.all([
+      indexerReadService.getContractOverview("0xabc"),
+      indexerReadService.getContractOverview("0xabc"),
+    ]);
+
+    expect(a).toEqual({ hash: "0xabc", tx_count: 42 });
+    expect(b).toBe(a);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc");
+  });
+
   it("releases the in-flight slot after settle so subsequent calls re-fetch", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),

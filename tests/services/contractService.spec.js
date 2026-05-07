@@ -4,6 +4,7 @@ const safeRpcMock = vi.hoisted(() => vi.fn());
 const safeRpcListMock = vi.hoisted(() => vi.fn());
 const getContractsMock = vi.hoisted(() => vi.fn());
 const getContractNotificationsMock = vi.hoisted(() => vi.fn());
+const getContractOverviewMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc: safeRpcMock,
@@ -14,6 +15,7 @@ vi.mock("../../src/services/indexerReadService.js", () => ({
   indexerReadService: {
     getContracts: getContractsMock,
     getContractNotifications: getContractNotificationsMock,
+    getContractOverview: getContractOverviewMock,
   },
 }));
 
@@ -23,6 +25,7 @@ describe("contractService manifest fallback", () => {
     vi.clearAllMocks();
     getContractsMock.mockRejectedValue(new Error("indexer offline"));
     getContractNotificationsMock.mockRejectedValue(new Error("indexer offline"));
+    getContractOverviewMock.mockResolvedValue(null);
   });
 
   it("returns native getcontractstate result for getManifest (#181)", async () => {
@@ -129,12 +132,10 @@ describe("contractService.getScCalls fallback chain", () => {
       { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
       { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
     ];
+    getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) {
         return { ok: true, json: async () => restRows };
-      }
-      if (url.includes(`/contracts/`)) {
-        return { ok: true, json: async () => ({ data: { tx_count: 1234 } }) };
       }
       return { ok: false, json: async () => null };
     });
@@ -161,13 +162,11 @@ describe("contractService.getScCalls fallback chain", () => {
   });
 
   it("Source 2: falls back to client-side derivation when REST endpoint 404s", async () => {
+    getContractOverviewMock.mockResolvedValue({ tx_count: 99 });
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
       if (url.includes("/transaction_signers")) {
         return { ok: true, json: async () => [{ txid: "0xt1", account: "Nsender", position: 0 }] };
-      }
-      if (url.includes("/contracts/")) {
-        return { ok: true, json: async () => ({ data: { tx_count: 99 } }) };
       }
       return { ok: false };
     });
