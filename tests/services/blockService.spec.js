@@ -162,7 +162,8 @@ describe("blockService", () => {
 
       const result = await blockService.getList(1, 0, { enrichMissingFields: true });
 
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 2 }, null, expect.any(Object));
+      // After #183, getByHeight uses standard `getblock` first.
+      expect(api.safeRpc).toHaveBeenCalledWith("getblock", [2, 1], null, expect.any(Object));
       expect(result.result[0]).toMatchObject({
         sysfee: 300,
         netfee: 30,
@@ -202,7 +203,9 @@ describe("blockService", () => {
 
       const result = await blockService.getList(1, 0, { enrichMissingFields: true });
 
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 3 }, null, expect.any(Object));
+      // After #183, getByHeight uses standard `getblock` first.
+      expect(api.safeRpc).toHaveBeenCalledWith("getblock", [3, 1], null, expect.any(Object));
+      // Block returned tx:[] so getTransactionsByHeight falls back to legacy.
       expect(api.safeRpcList).toHaveBeenLastCalledWith(
         "GetRawTransactionByBlockHeight",
         { BlockHeight: 3, Limit: 2, Skip: 0 },
@@ -226,10 +229,25 @@ describe("blockService", () => {
   });
 
   describe("getByHeight", () => {
-    it("calls safeRpc with height", async () => {
-      api.safeRpc.mockResolvedValueOnce({ hash: "0x123" });
-      await blockService.getByHeight(100);
-      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockByBlockHeight", { BlockHeight: 100 }, null, expect.any(Object));
+    it("uses standard getblock RPC first (#183)", async () => {
+      api.safeRpc.mockResolvedValueOnce({ hash: "0x123", index: 100 });
+      const result = await blockService.getByHeight(100);
+      expect(api.safeRpc).toHaveBeenCalledWith("getblock", [100, 1], null, expect.any(Object));
+      expect(result).toEqual({ hash: "0x123", index: 100 });
+    });
+
+    it("falls back to legacy GetBlockByBlockHeight when standard getblock returns null", async () => {
+      api.safeRpc
+        .mockResolvedValueOnce(null) // getblock
+        .mockResolvedValueOnce({ hash: "0xleg", index: 100 }); // GetBlockByBlockHeight
+      const result = await blockService.getByHeight(100);
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "GetBlockByBlockHeight",
+        { BlockHeight: 100 },
+        null,
+        expect.any(Object),
+      );
+      expect(result.hash).toBe("0xleg");
     });
   });
 

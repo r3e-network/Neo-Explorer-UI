@@ -183,6 +183,67 @@ export const blockService = createService(
       };
     },
 
+    // Override getByHeight + getTransactionsByHeight to use standard
+    // `getblock` first. The legacy GetBlockByBlockHeight Mongo wrapper
+    // does proxy through to `getblock` upstream, but firing it from
+    // the frontend wastes a hop. GetRawTransactionByBlockHeight
+    // returns empty Mongo per live audit on /homepage and /block-info.
+    async getByHeight(height, options = {}) {
+      const cacheOpts = options;
+      const numericHeight = Number(height);
+      if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
+      const key = getCacheKey("block_height", { height: numericHeight });
+      return cachedRequest(
+        key,
+        async () => {
+          // Standard getblock(height, true) — returns full block + tx
+          // list in one round-trip. Replaces both legacy probes.
+          try {
+            const block = await safeRpc("getblock", [numericHeight, 1], null, cacheOpts);
+            if (block && (block.hash || block.index !== undefined)) return block;
+          } catch (err) {
+            if (import.meta.env.DEV) console.warn("[blockService] getblock primary failed:", err);
+          }
+          // Legacy fallback for backends still routing through Mongo.
+          return await safeRpc(
+            "GetBlockByBlockHeight",
+            { BlockHeight: numericHeight },
+            null,
+            cacheOpts,
+          );
+        },
+        CACHE_TTL.block,
+        cacheOpts,
+      );
+    },
+
+    async getTransactionsByHeight(height, limit = 20, skip = 0, options = {}) {
+      // Standard `getblock` returns the full tx list inline; derive the
+      // requested page from there. Avoids the empty-Mongo
+      // GetRawTransactionByBlockHeight round-trip.
+      const cacheOpts = options;
+      try {
+        const block = await this.getByHeight(height, cacheOpts);
+        const allTxs = Array.isArray(block?.tx) ? block.tx : [];
+        if (allTxs.length > 0) {
+          const pageStart = Math.max(0, skip);
+          const pageEnd = pageStart + Math.max(0, limit);
+          return {
+            result: allTxs.slice(pageStart, pageEnd),
+            totalCount: allTxs.length,
+          };
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[blockService] getblock-derived tx list failed:", err);
+      }
+      return safeRpcList(
+        "GetRawTransactionByBlockHeight",
+        { BlockHeight: Number(height), Limit: limit, Skip: skip },
+        "get transactions by block height",
+        options,
+      );
+    },
+
     /**
      * Fetch the official state root for a block height. Primary path is
      * neo3fura's `GetStateRoot` (which proxies the Neo node's
