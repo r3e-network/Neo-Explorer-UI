@@ -436,16 +436,6 @@ export const tokenService = createService(
       }
     },
 
-    /** @see getTokenList */
-    async getNep17List(limit = 20, skip = 0, options = {}) {
-      return tokenService.getTokenList("NEP17", limit, skip, options);
-    },
-
-    /** @see getTokenList */
-    async getNep11List(limit = 20, skip = 0, options = {}) {
-      return tokenService.getTokenList("NEP11", limit, skip, options);
-    },
-
     async getTokenListWithFallback(type, limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
       // Indexer first — same Mongo→Postgres pattern as #171/#172/#173. The
       // indexer's /tokens endpoint also handles `search` natively (matches

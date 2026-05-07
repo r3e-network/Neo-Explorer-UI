@@ -29,42 +29,6 @@ describe("tokenService", () => {
     indexerReadService.getContractNotifications.mockRejectedValue(new Error("indexer offline"));
   });
 
-  describe("getNep17List", () => {
-    it("calls rpc with NEP17 type", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
-
-      await tokenService.getNep17List(10, 5);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetAssetInfos",
-        { Limit: 10, Skip: 5, Standard: "NEP17" },
-        "get token list",
-        expect.any(Object)
-      );
-    });
-
-    it("returns empty on error", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
-      const result = await tokenService.getNep17List();
-      expect(result).toEqual({ result: [], totalCount: 0 });
-    });
-  });
-
-  describe("getNep11List", () => {
-    it("calls rpc with NEP11 type", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
-
-      await tokenService.getNep11List(10, 5);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetAssetInfos",
-        { Limit: 10, Skip: 5, Standard: "NEP11" },
-        "get token list",
-        expect.any(Object)
-      );
-    });
-  });
-
   describe("getByHash", () => {
     it("calls safeRpc with hash", async () => {
       api.safeRpc.mockResolvedValueOnce({ name: "NEO" });

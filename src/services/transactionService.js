@@ -1,7 +1,6 @@
 import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
-import { executionService } from "./executionService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { accountService } from "./accountService";
 import { indexerReadService } from "./indexerReadService";
@@ -40,15 +39,6 @@ export const transactionService = createService(
       ttl: CACHE_TTL.txDetail,
       buildParams: ([hash]) => ({ TransactionHash: hash }),
       buildCacheParams: ([hash]) => ({ hash }),
-    },
-    getInternalTransactions: {
-      _type: "list",
-      cacheKey: "tx_internal",
-      rpcMethod: "GetScCallByTransactionHash",
-      errorLabel: "get internal transaction calls",
-      ttl: CACHE_TTL.trace,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ TransactionHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
     },
     getCountByAddress: {
       cacheKey: "tx_count_address",
@@ -283,12 +273,6 @@ export const transactionService = createService(
       return [];
     },
 
-    /**
-     * @deprecated Use executionService.getExecutionTrace directly — identical RPC call.
-     */
-    async getApplicationLog(txHash) {
-      return executionService.getExecutionTrace(txHash);
-    },
 
     async getCount(options = {}) {
       const cacheOpts = getRealtimeListCacheOptions(options);
