@@ -690,9 +690,18 @@ watch(
         // Network/SDK error — same end-user effect as no record.
         unresolvedDomain.value = trimmed;
       }
-    } else {
-      unresolvedDomain.value = "";
+      // The downstream loaders (transactions, transfers, assets) all key off
+      // the canonical Neo address. With only a bogus domain string they'd
+      // throw and surface "Unable to load transactions" errors that drown
+      // out the unresolvedDomain banner. Render the empty state instead.
+      summaryLoading.value = false;
+      neoBalance.value = "0";
+      gasBalance.value = "0";
+      txCount.value = 0;
+      tokenCount.value = 0;
+      return;
     }
+    unresolvedDomain.value = "";
     await initializeData(addr);
   },
   { immediate: true },
