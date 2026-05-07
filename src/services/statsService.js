@@ -54,11 +54,6 @@ export function calculateNetworkFee(gasPrice) {
   return Number(Math.max(0, (gasPrice || 0) * NETWORK_FEE_RATIO).toFixed(3));
 }
 
-function extractCount(res) {
-  if (!res) return 0;
-  return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
-}
-
 // Pad indexer rows to exactly `days` consecutive UTC days ending today, oldest-first.
 // Missing days (gaps in the indexer) become zero-valued rows so charts render evenly.
 function padDailyRows(rows, days, now = new Date()) {
@@ -121,25 +116,28 @@ export const statsService = createService(
 
       const fetchFn = async () => {
         try {
-          const [summary, contractsRes, candidatesRes, blocksRes, txsRes] = await Promise.all([
-            indexerReadService.getSummary().catch(() => null),
-            rpc("GetContractCount", {}).catch(() => null),
-            rpc("GetCandidateCount", {}).catch(() => null),
-            rpc("GetBlockCount", {}).catch(() => null),
-            rpc("GetTransactionCount", {}).catch(() => null),
-          ]);
+          // Indexer summary has total_*_count for everything we render.
+          // Previously fired 4 parallel PascalCase Mongo POSTs as
+          // "fallback" — all empty or redundant per #184. Standard
+          // getblockcount is the only chain-side fallback we keep
+          // (works against any Neo node, outlives Mongo cleanup).
+          const summary = await indexerReadService.getSummary().catch(() => null);
 
-          const blocks = Number(summary?.total_block_count) || extractCount(blocksRes);
+          let blocks = Number(summary?.total_block_count) || 0;
+          if (blocks === 0) {
+            const blockCountRes = await rpc("getblockcount", []).catch(() => null);
+            blocks = Number(blockCountRes) || 0;
+          }
+
           const txsFromSummary = Number(summary?.total_tx_count) || 0;
           const txsFromIndexerStats = Number(await fetchIndexerTransactionTotal().catch(() => 0)) || 0;
-          const txsFromRpc = Number(extractCount(txsRes)) || 0;
-          const txs = Math.max(txsFromSummary, txsFromIndexerStats, txsFromRpc);
+          const txs = Math.max(txsFromSummary, txsFromIndexerStats);
 
           const result = {
             blocks,
             txs,
-            contracts: extractCount(contractsRes),
-            candidates: extractCount(candidatesRes),
+            contracts: Number(summary?.total_contract_count) || 0,
+            candidates: Number(summary?.total_candidate_count) || 0,
             addresses: Number(summary?.total_address_count) || 0,
             tokens: Number(summary?.total_asset_count) || 0,
           };

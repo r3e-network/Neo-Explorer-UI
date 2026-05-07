@@ -89,19 +89,28 @@ const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
       };
     }
 
+    // Standard `getblockcount` works against any Neo node and outlives
+    // Mongo cleanup. Was previously calling PascalCase GetBlockCount
+    // which proxies through neo3fura_http (#184).
     const res = await axios.post(
       url,
       {
         jsonrpc: "2.0",
         id: 1,
-        method: "GetBlockCount",
-        params: {},
+        method: "getblockcount",
+        params: [],
       },
       { timeout: HEALTHCHECK_TIMEOUT_MS },
     );
 
     const result = res.data?.result;
     const latencyMs = Date.now() - start;
+    // Standard getblockcount returns the integer directly. Keep the
+    // object-handling branch as a safety net for the legacy proxy
+    // shape `{index: N}` that some backends still emit.
+    if (typeof result === "number") {
+      return { height: result, latencyMs, networkMagic };
+    }
     if (typeof result === "object" && result !== null) {
       return {
         height: Number(result.index || result.count || 0),
