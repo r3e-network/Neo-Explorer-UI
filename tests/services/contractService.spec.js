@@ -114,6 +114,116 @@ describe("contractService manifest fallback", () => {
   });
 });
 
+// Three-tier fallback chain (#168 + #169) for getScCalls.
+describe("contractService.getScCalls fallback chain", () => {
+  const HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"; // NEO native
+
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    // Default: indexer notifications offline so Source 2 is unreachable.
+    getContractNotificationsMock.mockRejectedValue(new Error("indexer offline"));
+  });
+
+  it("Source 1: returns rows from /rest/v1/contract_calls when present", async () => {
+    const restRows = [
+      { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
+      { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+    ];
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) {
+        return { ok: true, json: async () => restRows };
+      }
+      if (url.includes(`/contracts/`)) {
+        return { ok: true, json: async () => ({ data: { tx_count: 1234 } }) };
+      }
+      return { ok: false, json: async () => null };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/contract_calls"),
+      expect.any(Object),
+    );
+    expect(result).toEqual({
+      result: [
+        { txid: "0xt1", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
+        { txid: "0xt2", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+      ],
+      totalCount: 1234,
+    });
+    // Legacy RPC must not be touched.
+    expect(safeRpcListMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("Source 2: falls back to client-side derivation when REST endpoint 404s", async () => {
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
+      if (url.includes("/transaction_signers")) {
+        return { ok: true, json: async () => [{ txid: "0xt1", account: "Nsender", position: 0 }] };
+      }
+      if (url.includes("/contracts/")) {
+        return { ok: true, json: async () => ({ data: { tx_count: 99 } }) };
+      }
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    getContractNotificationsMock.mockResolvedValueOnce({
+      data: [
+        { txid: "0xt1", block_index: 50, event_name: "Transfer" },
+        { txid: "0xt1", block_index: 50, event_name: "Approval" }, // duplicate dedup'd
+      ],
+      paging: { total: 50 },
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0);
+
+    expect(getContractNotificationsMock).toHaveBeenCalled();
+    expect(result.result).toEqual([
+      { txid: "0xt1", blockindex: 50, method: "Transfer", callFlags: "", originSender: "Nsender" },
+    ]);
+    expect(result.totalCount).toBe(99);
+    expect(safeRpcListMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("Source 3: falls back to legacy GetScCallByContractHash when both Postgres paths empty", async () => {
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) return { ok: false, status: 404 };
+      if (url.includes("/contracts/")) return { ok: false };
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    getContractNotificationsMock.mockResolvedValueOnce({ data: [], paging: { total: 0 } });
+    safeRpcListMock.mockResolvedValueOnce({
+      result: [{ txid: "0xtleg", method: "Legacy" }],
+      totalCount: 1,
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0);
+
+    expect(safeRpcListMock).toHaveBeenCalledWith(
+      "GetScCallByContractHash",
+      { ContractHash: HASH, Limit: 20, Skip: 0 },
+      "get SC calls",
+      expect.any(Object),
+    );
+    expect(result.result[0].txid).toBe("0xtleg");
+
+    vi.unstubAllGlobals();
+  });
+});
+
 // Indexer-first migration tests (#173) for getListWithFallback.
 describe("contractService.getListWithFallback indexer-first", () => {
   beforeEach(() => {
