@@ -4,7 +4,6 @@ import { GAS_HASH, NEO_HASH } from "@/constants";
 import {
   mapAccountOverviewRowsToAccounts,
   mapRpcCandidatesToCandidateRows,
-  mapDailyAnalyticsToTransactionSeries,
 } from "@/services/legacyFallbacks";
 
 describe("legacy fallback helpers", () => {
@@ -63,18 +62,4 @@ describe("legacy fallback helpers", () => {
     });
   });
 
-  it("maps sparse analytics rows into a continuous transaction series", () => {
-    const rows = [
-      { day: "2026-03-23", tx_count: 10 },
-      { day: "2026-03-25", tx_count: 30 },
-    ];
-
-    const mapped = mapDailyAnalyticsToTransactionSeries(rows, 3, new Date("2026-03-25T12:00:00Z"));
-
-    expect(mapped).toEqual([
-      { date: "2026-03-23", transactions: 10 },
-      { date: "2026-03-24", transactions: 0 },
-      { date: "2026-03-25", transactions: 30 },
-    ]);
-  });
 });

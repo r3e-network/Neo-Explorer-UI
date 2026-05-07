@@ -86,22 +86,3 @@ export function mapRpcCandidatesToCandidateRows(rows = []) {
     .sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
 }
 
-export function mapDailyAnalyticsToTransactionSeries(rows = [], days = 30, now = new Date()) {
-  const byDay = new Map();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const day = String(row?.day || "").trim();
-    if (!day) continue;
-    byDay.set(day, asCount(row?.tx_count ?? row?.txCount));
-  }
-
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  return Array.from({ length: days }, (_, index) => {
-    const date = new Date(start);
-    date.setUTCDate(start.getUTCDate() - (days - index - 1));
-    const day = date.toISOString().slice(0, 10);
-    return {
-      date: day,
-      transactions: byDay.get(day) || 0,
-    };
-  });
-}
