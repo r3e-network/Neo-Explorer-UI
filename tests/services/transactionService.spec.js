@@ -45,11 +45,23 @@ vi.mock("../../src/services/neotubeService.js", () => ({
   },
 }));
 
+vi.mock("../../src/services/indexerReadService.js", () => ({
+  indexerReadService: {
+    getTransactions: vi.fn(),
+    getSummary: vi.fn(),
+  },
+}));
+
+import { indexerReadService } from "../../src/services/indexerReadService.js";
+
 describe("transactionService", () => {
   beforeEach(() => {
     vi.clearAllMocks(); vi.resetAllMocks();
     clearAllCache();
     neotubeService.supportsNetwork.mockReturnValue(true);
+    // Default: indexer offline, so existing tests exercise legacy fallback.
+    indexerReadService.getTransactions.mockRejectedValue(new Error("indexer offline"));
+    indexerReadService.getSummary.mockRejectedValue(new Error("indexer offline"));
   });
 
   describe("getCount", () => {
@@ -202,6 +214,82 @@ describe("transactionService", () => {
       expect(result.totalCount).toBe(3);
       expect(result.result).toHaveLength(2);
       expect(result.result.map((tx) => tx.hash)).toEqual(["0x222", "0x333"]);
+    });
+  });
+
+  // Indexer-first migration tests (#171). Validate that when the
+  // indexer responds, the legacy GetTransactionList / GetTransactionCount
+  // PascalCase RPCs are NOT called.
+  describe("indexer-first migration", () => {
+    it("getCount uses summary.total_tx_count when indexer responds", async () => {
+      indexerReadService.getSummary.mockResolvedValue({ total_tx_count: 1234567 });
+
+      const result = await transactionService.getCount();
+
+      expect(result).toBe(1234567);
+      expect(api.safeRpc).not.toHaveBeenCalled();
+    });
+
+    it("getCount falls back to legacy GetTransactionCount when indexer summary is empty", async () => {
+      indexerReadService.getSummary.mockResolvedValue({ total_tx_count: 0 });
+      api.safeRpc.mockResolvedValueOnce(99);
+
+      const result = await transactionService.getCount();
+
+      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, expect.any(Object));
+      expect(result).toBe(99);
+    });
+
+    it("getList maps indexer rows to legacy field names and skips legacy RPC", async () => {
+      indexerReadService.getTransactions.mockResolvedValue({
+        data: [
+          {
+            txid: "0xtxid1",
+            block_index: 100,
+            block_time_ms: 1700000000000,
+            sender_address: "Nfoo",
+            sys_fee: "100",
+            net_fee: "10",
+            vm_state: "HALT",
+            valid_until_block: 200,
+            contract_hash: "0xcontract",
+          },
+        ],
+        paging: { total: 5_000_000 },
+      });
+      indexerReadService.getSummary.mockResolvedValue({ total_tx_count: 5_000_000 });
+
+      const result = await transactionService.getList(20, 0);
+
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result.totalCount).toBe(5_000_000);
+      expect(result.result[0]).toMatchObject({
+        hash: "0xtxid1",
+        blockindex: 100,
+        blocktime: 1700000000000,
+        sender: "Nfoo",
+        sysfee: "100",
+        netfee: "10",
+        vmstate: "HALT",
+        validUntilBlock: 200,
+        contractHash: "0xcontract",
+      });
+    });
+
+    it("getList falls back to legacy when indexer rows empty", async () => {
+      indexerReadService.getTransactions.mockResolvedValue({ data: [], paging: { total: 0 } });
+      indexerReadService.getSummary.mockResolvedValue(null);
+      api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xleg" }], totalCount: 1 });
+
+      const result = await transactionService.getList();
+
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetTransactionList",
+        expect.any(Object),
+        expect.any(String),
+        expect.any(Object),
+      );
+      expect(result.result[0].hash).toBe("0xleg");
     });
   });
 });

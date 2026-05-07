@@ -20,12 +20,26 @@ vi.mock("../../src/services/neotubeService.js", () => ({
   },
 }));
 
+vi.mock("../../src/services/indexerReadService.js", () => ({
+  indexerReadService: {
+    getBlocks: vi.fn(),
+    getSummary: vi.fn(),
+  },
+}));
+
+import { indexerReadService } from "../../src/services/indexerReadService.js";
+
 describe("blockService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.clearAllMocks();
     clearAllCache();
     neotubeService.supportsNetwork.mockReturnValue(true);
+    // Default: indexer is unavailable so existing tests continue to
+    // exercise the legacy fallback path. Indexer-first tests below
+    // override these per-case.
+    indexerReadService.getBlocks.mockRejectedValue(new Error("indexer offline"));
+    indexerReadService.getSummary.mockRejectedValue(new Error("indexer offline"));
   });
 
   describe("getCount", () => {
@@ -248,6 +262,90 @@ describe("blockService", () => {
         expect.any(Object)
       );
       expect(result).toEqual(mockData);
+    });
+  });
+
+  // Indexer-first migration tests (#172). Validate that when the
+  // indexer returns rows, the legacy GetBlockCount / GetBlockInfoList
+  // PascalCase RPCs are NOT called.
+  describe("indexer-first migration", () => {
+    it("getCount uses summary.total_block_count when indexer responds", async () => {
+      indexerReadService.getSummary.mockResolvedValue({ total_block_count: 9999999 });
+
+      const result = await blockService.getCount();
+
+      expect(result).toBe(9999999);
+      expect(api.safeRpc).not.toHaveBeenCalled();
+    });
+
+    it("getCount falls back to legacy GetBlockCount when indexer summary is empty", async () => {
+      indexerReadService.getSummary.mockResolvedValue({ total_block_count: 0 });
+      api.safeRpc.mockResolvedValueOnce({ "total counts": 42 });
+
+      const result = await blockService.getCount();
+
+      expect(api.safeRpc).toHaveBeenCalledWith("GetBlockCount", {}, null, expect.any(Object));
+      expect(result).toBe(42);
+    });
+
+    it("getList maps indexer rows to legacy field names and skips legacy RPC", async () => {
+      indexerReadService.getBlocks.mockResolvedValue({
+        data: [
+          {
+            hash: "0xabc",
+            block_index: 5_000_000,
+            time_ms: 1700000000000,
+            tx_count: 7,
+            primary_node: 3,
+            next_consensus: "NfooBar",
+            previous_block_hash: "0xprev",
+          },
+        ],
+        paging: { total: 5_000_001 },
+      });
+      indexerReadService.getSummary.mockResolvedValue({ total_block_count: 5_000_001 });
+
+      const result = await blockService.getList(20, 0);
+
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result.totalCount).toBe(5_000_001);
+      expect(result.result[0]).toMatchObject({
+        hash: "0xabc",
+        index: 5_000_000,
+        timestamp: 1700000000000,
+        txcount: 7,
+        primary: 3,
+        nextconsensus: "NfooBar",
+        prevhash: "0xprev",
+      });
+    });
+
+    it("getList uses summary total when paging.total absent", async () => {
+      indexerReadService.getBlocks.mockResolvedValue({
+        data: [{ hash: "0x1", block_index: 1, time_ms: 1, tx_count: 1 }],
+        paging: {},
+      });
+      indexerReadService.getSummary.mockResolvedValue({ total_block_count: 12345 });
+
+      const result = await blockService.getList();
+
+      expect(result.totalCount).toBe(12345);
+    });
+
+    it("getList falls back to legacy when indexer rows empty", async () => {
+      indexerReadService.getBlocks.mockResolvedValue({ data: [], paging: { total: 0 } });
+      indexerReadService.getSummary.mockResolvedValue(null);
+      api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xleg" }], totalCount: 1 });
+
+      const result = await blockService.getList();
+
+      expect(api.safeRpcList).toHaveBeenCalledWith(
+        "GetBlockInfoList",
+        expect.any(Object),
+        expect.any(String),
+        expect.any(Object),
+      );
+      expect(result.result[0].hash).toBe("0xleg");
     });
   });
 
