@@ -2,7 +2,7 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const MINUTE_IN_MS = 60 * 1000;
 
 export const DEFAULT_GOVERNANCE_VALIDITY_DAYS = 30;
-export const DEFAULT_GOVERNANCE_VALID_UNTIL_BLOCK_INCREMENT = 1000;
+const DEFAULT_GOVERNANCE_VALID_UNTIL_BLOCK_INCREMENT = 1000;
 
 function toPositiveInteger(value) {
   const numeric = Number(value);

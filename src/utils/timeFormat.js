@@ -32,20 +32,6 @@ export function toBcp47(locale) {
   return "en";
 }
 
-/**
- * Resolve the active i18n locale as a BCP 47 tag, falling back to "en".
- * Useful in non-Vue contexts (services/utilities) where we don't have a
- * useI18n() handle.
- * @returns {string}
- */
-export function getActiveBcp47Locale() {
-  try {
-    const i18n = globalThis.__neoExplorerI18n__;
-    if (i18n?.global?.locale?.value) return toBcp47(i18n.global.locale.value);
-  } catch { /* noop */ }
-  return "en";
-}
-
 const DISPLAY_DELAY_OFFSET_SECONDS = {
   [NET_ENV.Mainnet]: 0,
   [NET_ENV.TestT5]: 0,
