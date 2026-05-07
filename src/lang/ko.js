@@ -114,13 +114,6 @@ const ko = {
     ariaSubmit: "검색 실행",
     ariaSuggestions: "검색 제안",
     ariaClearHistory: "검색 기록 지우기",
-    suggestionBlockLabel: "블록 #{index}",
-    suggestionBlockSublabel: "{count}개의 트랜잭션",
-    suggestionTxSublabel: "블록 #{index}",
-    suggestionTxSublabelUnknown: "블록 #?",
-    suggestionContractSublabel: "컨트랙트",
-    suggestionAddressSublabelBalance: "{balance} NEO",
-    suggestionAddressSublabel: "주소",
   },
   homePage: {
     priceChangeUp: "{percent} 퍼센트 상승",

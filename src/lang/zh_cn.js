@@ -114,13 +114,6 @@ const zh = {
     ariaSubmit: "提交搜索",
     ariaSuggestions: "搜索建议",
     ariaClearHistory: "清除搜索记录",
-    suggestionBlockLabel: "区块 #{index}",
-    suggestionBlockSublabel: "{count} 笔交易",
-    suggestionTxSublabel: "区块 #{index}",
-    suggestionTxSublabelUnknown: "区块 #?",
-    suggestionContractSublabel: "合约",
-    suggestionAddressSublabelBalance: "{balance} NEO",
-    suggestionAddressSublabel: "地址",
   },
   homePage: {
     priceChangeUp: "上涨 {percent} 个百分点",

@@ -114,13 +114,6 @@ const fr = {
     ariaSubmit: "Lancer la recherche",
     ariaSuggestions: "Suggestions de recherche",
     ariaClearHistory: "Effacer l'historique de recherche",
-    suggestionBlockLabel: "Bloc #{index}",
-    suggestionBlockSublabel: "{count} transactions",
-    suggestionTxSublabel: "Bloc #{index}",
-    suggestionTxSublabelUnknown: "Bloc #?",
-    suggestionContractSublabel: "Contrat",
-    suggestionAddressSublabelBalance: "{balance} NEO",
-    suggestionAddressSublabel: "Adresse",
   },
   homePage: {
     priceChangeUp: "en hausse de {percent} pour cent",

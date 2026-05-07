@@ -6,17 +6,6 @@ import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
-const MAX_SUGGESTIONS = 5;
-
-function tSearch(key, params, fallback) {
-  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
-  if (i18n?.global?.t) {
-    const translated = i18n.global.t(key, params || {});
-    if (translated && translated !== key) return translated;
-  }
-  return fallback;
-}
-
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
@@ -175,76 +164,6 @@ async function _classifyAndDispatch(query) {
  * @description Unified search across blocks, transactions, addresses, and contracts.
  */
 export const searchService = {
-  /**
-   * Get search suggestions (quick lookup for autocomplete).
-   *
-   * @param {string} query - Search query
-   * @returns {Promise<Array>} Array of suggestions with type and data
-   */
-  async getSuggestions(query) {
-    query = (query || "").trim();
-    if (!query || query.length < 2 || query.length > 256) return [];
-
-    const key = getCacheKey("search_suggestions", { query });
-    return cachedRequest(
-      key,
-      async () => {
-        try {
-          const hits = await _dedupe(query, () => _classifyAndDispatch(query));
-          const suggestions = [];
-
-          if (hits.block) {
-            const b = hits.block;
-            const idx = b.index ?? query;
-            suggestions.push({
-              type: "block",
-              label: tSearch("searchBox.suggestionBlockLabel", { index: idx }, `Block #${idx}`),
-              sublabel: tSearch("searchBox.suggestionBlockSublabel", { count: b.txcount || 0 }, `${b.txcount || 0} transactions`),
-              data: b,
-            });
-          }
-          if (hits.transaction) {
-            const tx = hits.transaction;
-            suggestions.push({
-              type: "transaction",
-              label: tx.hash?.substring(0, 20) + "...",
-              sublabel: tx.blockindex
-                ? tSearch("searchBox.suggestionTxSublabel", { index: tx.blockindex }, `Block #${tx.blockindex}`)
-                : tSearch("searchBox.suggestionTxSublabelUnknown", null, "Block #?"),
-              data: tx,
-            });
-          }
-          if (hits.contract) {
-            const c = hits.contract;
-            suggestions.push({
-              type: "contract",
-              label: c.name || (c.hash || query).substring(0, 20) + "...",
-              sublabel: tSearch("searchBox.suggestionContractSublabel", null, "Contract"),
-              data: c,
-            });
-          }
-          if (hits.address) {
-            const a = hits.address;
-            suggestions.push({
-              type: "address",
-              label: a.address || query,
-              sublabel: a.balance
-                ? tSearch("searchBox.suggestionAddressSublabelBalance", { balance: a.balance }, `${a.balance} NEO`)
-                : tSearch("searchBox.suggestionAddressSublabel", null, "Address"),
-              data: a,
-            });
-          }
-
-          return suggestions.slice(0, MAX_SUGGESTIONS);
-        } catch (error) {
-          if (import.meta.env.DEV) console.error("Search suggestions error:", error.message);
-          return [];
-        }
-      },
-      CACHE_TTL.block
-    );
-  },
-
   /**
    * Full search — returns the first matching result by priority.
    * @param {string} query

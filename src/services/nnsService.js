@@ -379,31 +379,6 @@ export const nnsService = {
   },
 
   /**
-   * Resolve many addresses and return alias map.
-   * Known callsites can use this for list prefetching.
-   * @param {string[]} addresses
-   * @returns {Promise<Record<string, string>>}
-   */
-  async resolveAddressesToNNS(addresses = []) {
-    if (!Array.isArray(addresses) || addresses.length === 0) return {};
-    const unique = [...new Set(addresses.map((a) => String(a || "").trim()).filter(Boolean))];
-    if (!unique.length) return {};
-
-    const pairs = await Promise.all(
-      unique.map(async (address) => {
-        const resolved = await this.resolveAddressToNNS(address);
-        return [address, resolved?.nns || null];
-      }),
-    );
-
-    const out = {};
-    for (const [address, domain] of pairs) {
-      if (domain) out[address] = domain;
-    }
-    return out;
-  },
-
-  /**
    * Resolve NNS Domain to Address string
    * @param {string} domain
    * @returns {Promise<string|null>} Address if resolved, null otherwise

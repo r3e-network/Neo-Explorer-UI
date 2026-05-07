@@ -114,13 +114,6 @@ const en = {
     ariaSubmit: "Submit search",
     ariaSuggestions: "Search suggestions",
     ariaClearHistory: "Clear search history",
-    suggestionBlockLabel: "Block #{index}",
-    suggestionBlockSublabel: "{count} transactions",
-    suggestionTxSublabel: "Block #{index}",
-    suggestionTxSublabelUnknown: "Block #?",
-    suggestionContractSublabel: "Contract",
-    suggestionAddressSublabelBalance: "{balance} NEO",
-    suggestionAddressSublabel: "Address",
   },
   homePage: {
     priceChangeUp: "up {percent} percent",

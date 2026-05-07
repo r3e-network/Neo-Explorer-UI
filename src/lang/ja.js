@@ -114,13 +114,6 @@ const ja = {
     ariaSubmit: "検索を実行",
     ariaSuggestions: "検索候補",
     ariaClearHistory: "検索履歴をクリア",
-    suggestionBlockLabel: "ブロック #{index}",
-    suggestionBlockSublabel: "{count} トランザクション",
-    suggestionTxSublabel: "ブロック #{index}",
-    suggestionTxSublabelUnknown: "ブロック #?",
-    suggestionContractSublabel: "コントラクト",
-    suggestionAddressSublabelBalance: "{balance} NEO",
-    suggestionAddressSublabel: "アドレス",
   },
   homePage: {
     priceChangeUp: "{percent} パーセント上昇",
