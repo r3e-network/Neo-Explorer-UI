@@ -111,6 +111,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
+import { supabaseService } from "@/services/supabaseService";
 import { walletService, WALLET_STATE_EVENT } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
 import { useNetworkChange } from "@/composables/useNetworkChange";
@@ -290,9 +291,13 @@ async function loadContract(hash) {
 }
 
 async function checkVerification(hash) {
+  // Read is_verified from the indexer-cached contract metadata. The
+  // legacy GetVerifiedContractByContractHash JSON-RPC queries an
+  // unpopulated Mongo collection and always returns "find document(s)
+  // error" post-cleanup (verified live on /contract-info).
   try {
-    const verified = await contractService.getVerifiedByHash(hash, contract.value.updatecounter || 0);
-    isVerified.value = !!(verified && verified.hash);
+    const metadata = await supabaseService.getContractMetadata(hash);
+    isVerified.value = Boolean(metadata?.is_verified);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Contract verification check failed:", err);
     isVerified.value = false;

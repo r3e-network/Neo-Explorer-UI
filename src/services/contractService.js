@@ -312,12 +312,13 @@ export const contractService = createService(
     },
 
     async getByHashWithFallback(hash, options = {}) {
-      // Fetch in parallel: legacy fura row, on-chain state, and the
-      // indexer's per-contract overview (the only source with the real
-      // tx_count for the Invocations stat).
+      // Fetch in parallel: on-chain state (canonical) and the indexer's
+      // per-contract overview (authoritative tx_count). The legacy
+      // GetContractByContractHash Mongo path was previously also fired
+      // here but always returned `{result: null, error: "not found"}`
+      // post-Mongo-deletion (verified live on /contract-info pages).
       const network = resolveNetworkName();
-      const [indexedContract, chainState, overview] = await Promise.all([
-        contractService.getByHash(hash, options),
+      const [chainState, overview] = await Promise.all([
         this.getChainStateByHash(hash, options),
         fetch(`/data/${network}/contracts/${encodeURIComponent(hash)}`, {
           headers: { Accept: "application/json" },
@@ -336,31 +337,26 @@ export const contractService = createService(
         return out;
       };
 
-      if (indexedContract?.hash && !chainState?.hash) return mergeIndexerExtras(indexedContract);
-      if (!indexedContract?.hash && !chainState?.hash) {
-        return indexerOverview
-          ? mergeIndexerExtras({
-              hash,
-              name: indexerOverview.manifest_name || hash,
-              manifest: { name: indexerOverview.manifest_name },
-              updatecounter: indexerOverview.update_counter,
-            })
-          : null;
-      }
-
-      if (indexedContract?.hash && chainState?.hash) {
+      if (chainState?.hash) {
         return mergeIndexerExtras({
-          ...indexedContract,
           ...chainState,
-          name: indexedContract?.name || chainState?.manifest?.name || chainState?.name || hash,
-          manifest: indexedContract?.manifest || chainState?.manifest || null,
+          name: chainState?.manifest?.name || chainState?.name || hash,
         });
       }
 
-      return mergeIndexerExtras({
-        ...chainState,
-        name: chainState?.manifest?.name || chainState?.name || hash,
-      });
+      if (indexerOverview) {
+        return mergeIndexerExtras({
+          hash,
+          name: indexerOverview.manifest_name || hash,
+          manifest: { name: indexerOverview.manifest_name },
+          updatecounter: indexerOverview.update_counter,
+        });
+      }
+
+      // Final defence-in-depth — try the legacy Mongo row in case the
+      // chain node is unreachable AND the indexer is down.
+      const indexedContract = await contractService.getByHash(hash, options);
+      return indexedContract ? mergeIndexerExtras(indexedContract) : null;
     },
 
     /**

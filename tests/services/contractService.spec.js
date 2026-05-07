@@ -25,10 +25,9 @@ describe("contractService manifest fallback", () => {
     getContractNotificationsMock.mockRejectedValue(new Error("indexer offline"));
   });
 
-  it("falls back to native getcontractstate when indexed contract lookup misses", async () => {
+  it("returns native getcontractstate result for getManifest (#181)", async () => {
     const hash = "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd";
     safeRpcMock.mockImplementation(async (method) => {
-      if (method === "GetContractByContractHash") return null;
       if (method === "getcontractstate") {
         return {
           hash,
@@ -47,16 +46,19 @@ describe("contractService manifest fallback", () => {
     const { contractService } = await import("../../src/services/contractService.js");
     const manifest = await contractService.getManifest(hash);
 
-    expect(safeRpcMock).toHaveBeenCalledWith(
-      "GetContractByContractHash",
-      { ContractHash: hash },
-      null,
-      expect.any(Object)
-    );
+    // Standard `getcontractstate` is the primary source. The legacy
+    // GetContractByContractHash Mongo probe should NOT fire when the
+    // standard call succeeds (#181).
     expect(safeRpcMock).toHaveBeenCalledWith(
       "getcontractstate",
       [hash],
       null,
+      expect.any(Object)
+    );
+    expect(safeRpcMock).not.toHaveBeenCalledWith(
+      "GetContractByContractHash",
+      expect.any(Object),
+      expect.any(Object),
       expect.any(Object)
     );
     expect(manifest).toEqual({
@@ -68,17 +70,9 @@ describe("contractService manifest fallback", () => {
     });
   });
 
-  it("merges native chain state into partial indexed contract rows", async () => {
+  it("returns chain-state contract when getcontractstate succeeds (#181)", async () => {
     const hash = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
     safeRpcMock.mockImplementation(async (method) => {
-      if (method === "GetContractByContractHash") {
-        return {
-          hash,
-          name: "NameService",
-          totalsccall: 415,
-          sender: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-        };
-      }
       if (method === "getcontractstate") {
         return {
           hash,
@@ -98,11 +92,16 @@ describe("contractService manifest fallback", () => {
     const { contractService } = await import("../../src/services/contractService.js");
     const contract = await contractService.getByHashWithFallback(hash);
 
+    // chainState is canonical — the legacy Mongo probe must NOT fire.
+    expect(safeRpcMock).not.toHaveBeenCalledWith(
+      "GetContractByContractHash",
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(Object)
+    );
     expect(contract).toMatchObject({
       hash,
       name: "NameService",
-      totalsccall: 415,
-      sender: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
       updatecounter: 0,
       manifest: {
         abi: {
