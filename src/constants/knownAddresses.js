@@ -58,6 +58,7 @@ const KNOWN_ADDRESSES = {
   // Consensus Candidates & Specific Labels
   "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf": "The Neo Order",
   "NSPCCpw8YmgNDYWiBfXJHRfz38NDjv6WW3": "NeoSPCC",
+  "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK": "R3E",
   "NZWWneZw9ucujrXUQvV6fLtENmn8xvKZ3u": "Red4Sec",
   "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW": "AxLabs (neow3j)",
   "NXMSUhKfia45bxbiRGbzBgcbRmAvSGL96s": "NGD4",
