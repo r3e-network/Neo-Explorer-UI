@@ -1,6 +1,7 @@
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 
-export const KNOWN_ADDRESSES = {
+// Map kept module-private — consumers go through getKnownAddressName / getKnownAddressLogo.
+const KNOWN_ADDRESSES = {
   // Treasury: Neo Foundation (Da Hongfei)
   "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw": "Neo Foundation (Da Hongfei)",
   "NZjXReMViE1yV5UxYD9idxcCt7QTNztNCT": "Neo Foundation (Da Hongfei)",
@@ -90,7 +91,7 @@ export const KNOWN_ADDRESSES = {
   "NNTw7SisSeQrTizGD74HUfwm5JSWKsr3po": "NGD7",
 };
 
-export const KNOWN_ADDRESS_LOGOS = {
+const KNOWN_ADDRESS_LOGOS = {
   "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "/img/known/binance.svg",
   "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "/img/known/binance.svg",
   "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "/img/known/binance.svg",
