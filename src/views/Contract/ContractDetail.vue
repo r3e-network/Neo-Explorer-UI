@@ -111,6 +111,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { contractService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { supabaseService } from "@/services/supabaseService";
 import { walletService, WALLET_STATE_EVENT } from "@/services/walletService";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
@@ -283,7 +284,7 @@ async function loadContract(hash) {
     manifest.value = manifestData || contract.value?.manifest || null;
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);
     error.value = t("errors.loadContractDetails");
   } finally {

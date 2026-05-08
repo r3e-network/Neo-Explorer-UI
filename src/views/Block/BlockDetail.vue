@@ -98,6 +98,7 @@ import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { blockService, executionService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -328,7 +329,7 @@ async function loadBlockAppLog(blockHash, requestId) {
   } catch (err) {
     if (requestId !== blockRequestId) return;
     // Aborted fetches (route change / re-init) aren't user failures
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.warn("Failed to load block application log:", err);
 
     // Fallback: try plain fetch
@@ -338,7 +339,7 @@ async function loadBlockAppLog(blockHash, requestId) {
       blockAppLog.value = appLog;
     } catch (fallbackErr) {
       if (requestId !== blockRequestId) return;
-      if (fallbackErr?.name === "AbortError" || fallbackErr?.code === "ERR_CANCELED") return;
+      if (isAbortError(fallbackErr)) return;
       blockAppLogError.value = t("blockDetail.appLogFailed");
     }
   } finally {

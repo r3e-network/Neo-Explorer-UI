@@ -201,6 +201,7 @@ import { ref, computed, watch, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { GAS_DECIMALS } from "@/constants";
 import { formatGas, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
@@ -434,7 +435,7 @@ async function loadEnrichedTrace(hash, gen) {
   } catch (err) {
     if (gen !== fetchGeneration) return;
     // Aborted fetches (route change / re-init) aren't user failures
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     enrichedTrace.value = null;
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
     try {
@@ -445,7 +446,7 @@ async function loadEnrichedTrace(hash, gen) {
       // Drop the error if a newer load has superseded this one — otherwise
       // the user sees the stale "failed to load" banner on the new tx.
       if (gen !== fetchGeneration) return;
-      if (fallbackErr?.name === "AbortError" || fallbackErr?.code === "ERR_CANCELED") return;
+      if (isAbortError(fallbackErr)) return;
       appLogError.value = t("errors.loadAppLog");
     }
   } finally {

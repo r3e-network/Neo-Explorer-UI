@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getCache } from "@/services/cache";
+import { isAbortError } from "@/utils/abortError";
 
 /**
  * Composition API composable for paginated data fetching.
@@ -85,7 +86,7 @@ export function usePagination(
       // re-fetch via AbortController) aren't user-visible failures — they're
       // intentional cancellations. Surfacing them as "Failed to load" caused
       // a flash of error UI on routes that re-fetch on watch tick.
-      if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+      if (isAbortError(err)) return;
       if (import.meta.env.DEV) console.error("Failed to load page:", err);
       if (!silent || items.value.length === 0) {
         error.value = typeof errorMessage === "function" ? errorMessage(err) : errorMessage || t("errors.generic");

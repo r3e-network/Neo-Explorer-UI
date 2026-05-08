@@ -158,6 +158,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { formatNumber, truncateHash } from "@/utils/explorerFormat";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
@@ -241,7 +242,7 @@ async function loadNftItems(skip = 0) {
     });
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
     error.value = t("errors.loadNftItems");
     tableData.value = [];

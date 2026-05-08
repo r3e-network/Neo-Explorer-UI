@@ -126,6 +126,7 @@ import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { accountService, transactionService, contractService, candidateService, tokenService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import {
@@ -608,7 +609,7 @@ async function loadAssets(addr) {
   } catch (err) {
     if (currentRequestId !== addressRequestId) return;
     // Aborted fetches (route change / re-init) aren't user failures
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     assetsError.value = t("addressDetail.failedLoadTokenHoldings");
   } finally {
     if (currentRequestId === addressRequestId) {

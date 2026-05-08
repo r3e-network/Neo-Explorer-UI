@@ -1,4 +1,5 @@
 import { ref, shallowRef, getCurrentInstance, onBeforeUnmount } from "vue";
+import { isAbortError } from "@/utils/abortError";
 
 /**
  * Composable for standardized async operation handling.
@@ -43,8 +44,8 @@ export function useAsync(asyncFn, options = {}) {
       return result;
     } catch (err) {
       if (myId !== requestId) return undefined;
-      // Swallow AbortError — it's intentional cancellation, not a failure
-      if (err?.name === "AbortError") return undefined;
+      // Swallow aborts — they're intentional cancellation, not a failure
+      if (isAbortError(err)) return undefined;
       error.value = err;
       if (typeof onError === "function") onError(err);
       return undefined;

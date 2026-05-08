@@ -94,6 +94,7 @@ import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { tokenService } from "@/services";
+import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveImageUrl } from "@/utils/neoHelpers";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -151,7 +152,7 @@ async function loadNFT() {
     }
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
-    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
     error.value = t("errors.loadNftDetails");
   } finally {

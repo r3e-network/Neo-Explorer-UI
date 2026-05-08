@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
 import { getRpcEndpointCandidates } from "../utils/rpcEndpoints";
+import { isAbortError } from "../utils/abortError";
 
 const LEGACY_RPC_BASE_URL = "/rpc";
 const parseTimeout = (value, fallbackMs) => {
@@ -133,7 +134,7 @@ const shouldUseStartupHedge = (method, preferredBaseUrl, fallbackBaseUrl) => {
 const isRetryableTransportError = (error) => {
   if (!error) return false;
   if (error.code === NETWORK_MISMATCH_ERROR_CODE || error.isNetworkMismatch) return true;
-  if (error.name === "CanceledError" || error.code === "ERR_CANCELED") return false;
+  if (isAbortError(error)) return false;
   if (error.name === "RpcError" || error.isRpcError) return false;
   if (error.response) {
     return error.response.status >= 500 || error.response.status === 429;
