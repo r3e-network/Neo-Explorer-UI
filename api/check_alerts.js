@@ -68,19 +68,35 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-const indexedRpcCall = async (network, method, params = {}) => {
+// REST helper for the indexer's account-transactions endpoint. The
+// legacy GetRawTransactionByAddress JSON-RPC was migrated to Postgres
+// (frontend tasks #171 / #178 / #182) and now returns empty for most
+// wallets, so the account_event alert path used to silently never
+// fire. The indexer exposes the canonical list at
+// /<network>/accounts/<addr>/transactions instead.
+const fetchLatestAccountTx = async (network, address) => {
   const candidates = getIndexedRpcCandidates(network);
   let lastError = null;
 
-  for (const url of candidates) {
+  const safeAddr = encodeURIComponent(String(address || "").trim());
+  if (!safeAddr) return null;
+
+  for (const baseUrl of candidates) {
     try {
-      return await postRpc(url, method, params);
+      const res = await fetch(`${baseUrl}/accounts/${safeAddr}/transactions?limit=1&offset=0`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const row = Array.isArray(json?.data) ? json.data[0] : null;
+      return row || null;
     } catch (error) {
       lastError = error;
     }
   }
 
-  throw lastError || new Error('No indexed RPC endpoint candidates available');
+  if (lastError) throw lastError;
+  return null;
 };
 
 const ALERT_FROM_ADDRESS = String(
@@ -177,16 +193,23 @@ async function checkNetworkAlerts(network) {
       else if (alert.alert_type === 'consensus_missed') {
         // Target is the public key of the consensus node
         const targetPubKey = alert.target;
-        
-        // Fetch committee if not already fetched
+
+        // block.primary is an index into the *active validator* list
+        // (7 entries from getnextblockvalidators), NOT the committee
+        // (21 entries from getcommittee). Mixing them caused the alert
+        // to never fire correctly: nodeIndex would land 0..20 while
+        // block.primary lands 0..6, so they never aligned.
         if (!committee) {
-          committee = await rpcCall(network, 'getcommittee', []);
+          const validators = await rpcCall(network, 'getnextblockvalidators', []);
+          committee = Array.isArray(validators)
+            ? validators.map((v) => v?.publickey || v?.publicKey || v)
+            : [];
         }
 
-        // Find the index of our target node in the active committee
+        // Find the index of our target node in the active validator set.
         const nodeIndex = committee.findIndex(c => c === targetPubKey);
-        
-        // Only evaluate if the node is actually in the active committee
+
+        // Only evaluate if the node is currently in the active validator set.
         if (nodeIndex !== -1) {
           const expectedPrimaryIndex = blockCount % committee.length;
           const actualPrimaryIndex = latestBlock.primary;
@@ -224,18 +247,13 @@ async function checkNetworkAlerts(network) {
       else if (alert.alert_type === 'account_event') {
         // Target is the address
         const targetAddress = alert.target;
-        
-        try {
-          const furaRes = await indexedRpcCall(network, 'GetRawTransactionByAddress', {
-            Address: targetAddress,
-            Limit: 1,
-            Skip: 0
-          });
 
-          if (furaRes && furaRes.result && furaRes.result.length > 0) {
-            const latestTx = furaRes.result[0];
-            const txHash = latestTx.hash;
-            
+        try {
+          const latestTx = await fetchLatestAccountTx(network, targetAddress);
+
+          if (latestTx?.txid) {
+            const txHash = latestTx.txid;
+
             // Compare with the last known tx hash we saved in the DB
             const lastSeenHash = alert.last_seen_state || '';
 
@@ -247,7 +265,7 @@ async function checkNetworkAlerts(network) {
                 <h2>Account Activity Detected</h2>
                 <p>A new transaction has occurred involving your tracked address: <strong>${escapeHtml(targetAddress)}</strong></p>
                 <p>Transaction Hash: <strong>${escapeHtml(txHash)}</strong></p>
-                <p>View it on the explorer: <a href="https://explorer.neo.org/transaction/${encodeURIComponent(txHash)}">https://explorer.neo.org/transaction/${escapeHtml(txHash)}</a></p>
+                <p>View it on the explorer: <a href="https://www.neo3scan.com/transaction-info/${encodeURIComponent(txHash)}">https://www.neo3scan.com/transaction-info/${escapeHtml(txHash)}</a></p>
               `;
             }
 
@@ -256,8 +274,8 @@ async function checkNetworkAlerts(network) {
                updateData.last_seen_state = txHash;
             }
           }
-        } catch (furaErr) {
-          console.warn(`NeoFura fetch failed for account ${targetAddress}:`, furaErr.message);
+        } catch (indexerErr) {
+          console.warn(`Indexer fetch failed for account ${targetAddress}:`, indexerErr.message);
         }
       }
 
