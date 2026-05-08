@@ -16,6 +16,7 @@
       <select
         v-if="mode === 'full'"
         v-model="activeFilter"
+        name="filter"
         class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 bg-transparent hover:bg-white/5 py-4 pl-4 pr-10 text-sm font-bold text-white transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         :aria-label="t('searchBox.ariaFilter')"
       >
@@ -57,6 +58,7 @@
         ref="searchInput"
         v-model="query"
         type="text"
+        name="q"
         :placeholder="currentPlaceholder"
         :class="[
           'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent font-medium',
