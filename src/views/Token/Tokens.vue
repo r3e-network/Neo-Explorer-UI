@@ -51,6 +51,7 @@
             <input
               v-model="searchQuery"
               type="text"
+              name="token-search"
               :placeholder="$t('tokenDetail.searchPlaceholder')"
               :aria-label="$t('tokenDetail.searchAria')"
               class="form-input pl-8 pr-3"

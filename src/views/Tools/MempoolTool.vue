@@ -39,6 +39,7 @@
             <input
               v-model="searchQuery"
               type="text"
+              name="mempool-search"
               :placeholder="$t('common.searchByHash')"
               :aria-label="$t('tools.mempool.searchAriaLabel')"
               class="form-input w-full pl-10 h-11 rounded-xl shadow-inner focus:ring-2 focus:ring-emerald-500/20 hover:border-emerald-400 focus:border-emerald-400 transition-all outline-none"

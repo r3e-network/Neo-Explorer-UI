@@ -39,6 +39,7 @@
           <input
             v-model="searchQuery"
             type="text"
+            name="contract-search"
             :placeholder="$t('common.searchByContract')"
             :aria-label="$t('contractsPage.searchAria')"
             class="form-input rounded-lg py-2 pl-10 pr-4"

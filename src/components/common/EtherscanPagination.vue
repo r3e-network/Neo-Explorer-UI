@@ -33,6 +33,7 @@
       <!-- Page size dropdown -->
       <select
         v-if="showPageSize"
+        name="page-size"
         :value="pageSize"
         :aria-label="$t('aria.paginationResultsPerPage')"
         class="ml-2 rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 soft-divider bg-surface-elevated text-mid"
