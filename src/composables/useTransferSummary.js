@@ -2,15 +2,7 @@ import { ref } from "vue";
 import { tokenService } from "@/services";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
-
-function tFallback(key, fallback) {
-  const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
-  if (i18n?.global?.t) {
-    const translated = i18n.global.t(key);
-    if (translated && translated !== key) return translated;
-  }
-  return fallback;
-}
+import { NATIVE_CONTRACTS } from "@/constants";
 
 const CONTRACT_HASH_ALIASES = [
   "contract",
@@ -21,6 +13,24 @@ const CONTRACT_HASH_ALIASES = [
   "assetHash",
   "assethash",
 ];
+
+// Resolve symbol + decimals for a contract hash. Native NEO/GAS are
+// well-known so we can scale the indexer's `amount_raw` correctly even
+// when the row carries no symbol metadata. For non-natives we fall
+// back to whatever the row itself provides; missing values surface as
+// undefined rather than the "Token" placeholder that previously
+// appeared after the value.
+function resolveTokenMeta(contractHash, row) {
+  const hash = String(contractHash || "").toLowerCase();
+  const native = NATIVE_CONTRACTS[hash];
+  if (native?.symbol) {
+    return { symbol: native.symbol, decimals: Number(native.decimals ?? 0) };
+  }
+  return {
+    symbol: row?.symbol || row?.tokenname || "",
+    decimals: Number(row?.decimals ?? 0),
+  };
+}
 
 /**
  * Composable for lazily loading and caching transfer value summaries
@@ -138,15 +148,26 @@ export function useTransferSummary() {
     if (!preferred) return false;
 
     if (standard === "nep17") {
-      const amount = formatTokenAmount(preferred.value ?? preferred.amount ?? 0, Number(preferred.decimals ?? 0), 8);
-      const symbol = preferred.symbol || preferred.tokenname || tFallback("txDetail.transferToken", "Token");
+      const contractHash = extractContractHash(preferred);
+      const meta = resolveTokenMeta(contractHash, preferred);
+      // The indexer's nep17_transfers row gives unscaled `amount_raw`
+      // (and `amount_text` is unfortunately just a copy of it for many
+      // contracts including GAS). Always scale by the contract's
+      // decimals — falling back to 0 only when the contract is truly
+      // unknown.
+      const amount = formatTokenAmount(preferred.value ?? preferred.amount ?? 0, meta.decimals, 8);
       const suffix = extraTransferSuffix(selection.transferCount);
+      // Drop the literal "Token" placeholder when no real symbol is
+      // available — the bare number is more honest than "<n> Token".
+      const text = meta.symbol
+        ? `${amount} ${meta.symbol}${suffix}`
+        : `${amount}${suffix}`;
       setSummary(
         hash,
         buildSummary(
           {
-            text: `${amount} ${symbol}${suffix}`,
-            contract: extractContractHash(preferred),
+            text,
+            contract: contractHash,
             type: "NEP17",
           },
           selection.targetCount,
@@ -154,16 +175,25 @@ export function useTransferSummary() {
         ),
       );
     } else {
-      const symbol = preferred.symbol || preferred.tokenname || tFallback("txDetail.transferNft", "NFT");
+      const contractHash = extractContractHash(preferred);
+      const meta = resolveTokenMeta(contractHash, preferred);
       const tokenId = preferred.tokenid || preferred.tokenId;
       const suffix = extraTransferSuffix(selection.transferCount);
       const readableId = truncateTokenId(tokenId);
+      // Same suffix-suppression idea as NEP-17: omit the generic "NFT"
+      // placeholder when no real symbol is known. With a tokenId we
+      // still show "#<id>" so the row stays informative.
+      let text;
+      if (meta.symbol && readableId) text = `1 ${meta.symbol} #${readableId}${suffix}`;
+      else if (meta.symbol) text = `1 ${meta.symbol}${suffix}`;
+      else if (readableId) text = `#${readableId}${suffix}`;
+      else text = `1${suffix}`;
       setSummary(
         hash,
         buildSummary(
           {
-            text: readableId ? `1 ${symbol} #${readableId}${suffix}` : `1 ${symbol}${suffix}`,
-            contract: extractContractHash(preferred),
+            text,
+            contract: contractHash,
             type: "NEP11",
           },
           selection.targetCount,
