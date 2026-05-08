@@ -210,6 +210,39 @@ describe("usePagination", () => {
     });
   });
 
+  describe("abort handling", () => {
+    it("does not surface AbortError as a user-facing failure", async () => {
+      const abortErr = new Error("aborted");
+      abortErr.name = "AbortError";
+      const fetchFn = vi.fn().mockRejectedValue(abortErr);
+
+      const p = usePagination(fetchFn, { errorMessage: "Failed to load" });
+      await p.loadPage(1);
+
+      expect(p.error.value).toBeNull();
+      expect(p.items.value).toEqual([]);
+    });
+
+    it("does not surface ERR_CANCELED as a user-facing failure", async () => {
+      const cancelErr = Object.assign(new Error("canceled"), { code: "ERR_CANCELED" });
+      const fetchFn = vi.fn().mockRejectedValue(cancelErr);
+
+      const p = usePagination(fetchFn, { errorMessage: "Failed to load" });
+      await p.loadPage(1);
+
+      expect(p.error.value).toBeNull();
+    });
+
+    it("still surfaces real fetch errors", async () => {
+      const fetchFn = vi.fn().mockRejectedValue(new Error("500 internal"));
+      const p = usePagination(fetchFn, { errorMessage: "Failed to load transactions" });
+
+      await p.loadPage(1);
+
+      expect(p.error.value).toBe("Failed to load transactions");
+    });
+  });
+
   describe("race condition guard", () => {
     it("discards stale responses from earlier requests", async () => {
       let callIndex = 0;

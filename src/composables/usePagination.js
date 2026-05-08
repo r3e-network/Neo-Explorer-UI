@@ -81,6 +81,11 @@ export function usePagination(
       currentPage.value = Math.min(page, lastPage);
     } catch (err) {
       if (myId !== requestId) return;
+      // Aborted requests (component unmount, route change, dependency
+      // re-fetch via AbortController) aren't user-visible failures — they're
+      // intentional cancellations. Surfacing them as "Failed to load" caused
+      // a flash of error UI on routes that re-fetch on watch tick.
+      if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
       if (import.meta.env.DEV) console.error("Failed to load page:", err);
       if (!silent || items.value.length === 0) {
         error.value = typeof errorMessage === "function" ? errorMessage(err) : errorMessage || t("errors.generic");
