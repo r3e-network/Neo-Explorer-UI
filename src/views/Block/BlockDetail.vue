@@ -327,6 +327,8 @@ async function loadBlockAppLog(blockHash, requestId) {
     }
   } catch (err) {
     if (requestId !== blockRequestId) return;
+    // Aborted fetches (route change / re-init) aren't user failures
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     if (import.meta.env.DEV) console.warn("Failed to load block application log:", err);
 
     // Fallback: try plain fetch
@@ -334,7 +336,9 @@ async function loadBlockAppLog(blockHash, requestId) {
       const appLog = await executionService.getBlockApplicationLog(blockHash);
       if (requestId !== blockRequestId) return;
       blockAppLog.value = appLog;
-    } catch {
+    } catch (fallbackErr) {
+      if (requestId !== blockRequestId) return;
+      if (fallbackErr?.name === "AbortError" || fallbackErr?.code === "ERR_CANCELED") return;
       blockAppLogError.value = t("blockDetail.appLogFailed");
     }
   } finally {

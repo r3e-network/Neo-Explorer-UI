@@ -433,16 +433,19 @@ async function loadEnrichedTrace(hash, gen) {
     appLog.value = enrichedTrace.value?.raw ?? null;
   } catch (err) {
     if (gen !== fetchGeneration) return;
+    // Aborted fetches (route change / re-init) aren't user failures
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     enrichedTrace.value = null;
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
     try {
       const fallback = await executionService.getExecutionTrace(hash);
       if (gen !== fetchGeneration) return;
       appLog.value = fallback;
-    } catch {
+    } catch (fallbackErr) {
       // Drop the error if a newer load has superseded this one — otherwise
       // the user sees the stale "failed to load" banner on the new tx.
       if (gen !== fetchGeneration) return;
+      if (fallbackErr?.name === "AbortError" || fallbackErr?.code === "ERR_CANCELED") return;
       appLogError.value = t("errors.loadAppLog");
     }
   } finally {
