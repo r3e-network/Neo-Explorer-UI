@@ -521,9 +521,15 @@ async function loadPrices() {
 }
 
 async function bootstrapChatSession() {
+  // Chat sessions require a connected wallet to be meaningful — every
+  // chat action signs against the connected address. Skip the
+  // GET /api/chat/session round-trip on page mount when no wallet is
+  // present (the common case). The session restore still fires on
+  // wallet connect via the connectedAccount watcher below.
+  if (!connectedAccount.value) return;
   try {
     await restoreChatSession();
-    if (connectedAccount.value && chatSession.value) {
+    if (chatSession.value) {
       await refreshNotifications();
     }
   } catch (_err) {
