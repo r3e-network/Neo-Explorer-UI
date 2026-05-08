@@ -605,8 +605,10 @@ async function loadAssets(addr) {
     fungibleAssets.value = split.fungibleAssets;
     nftAssets.value = split.nftAssets;
     tokenCount.value = assets.value.length;
-  } catch {
+  } catch (err) {
     if (currentRequestId !== addressRequestId) return;
+    // Aborted fetches (route change / re-init) aren't user failures
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     assetsError.value = t("addressDetail.failedLoadTokenHoldings");
   } finally {
     if (currentRequestId === addressRequestId) {
