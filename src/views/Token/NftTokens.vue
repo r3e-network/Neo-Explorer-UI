@@ -241,6 +241,7 @@ async function loadNftItems(skip = 0) {
     });
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
     error.value = t("errors.loadNftItems");
     tableData.value = [];

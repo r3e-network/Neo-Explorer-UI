@@ -283,6 +283,7 @@ async function loadContract(hash) {
     manifest.value = manifestData || contract.value?.manifest || null;
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);
     error.value = t("errors.loadContractDetails");
   } finally {

@@ -151,6 +151,7 @@ async function loadNFT() {
     }
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
+    if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") return;
     if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
     error.value = t("errors.loadNftDetails");
   } finally {
