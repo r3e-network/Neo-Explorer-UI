@@ -106,7 +106,11 @@ const ALERT_FROM_ADDRESS = String(
 // Helper to send email via Resend API
 async function sendEmailAlert(emailAddress, subject, htmlContent) {
   if (!RESEND_API_KEY) {
-    // Fail silently in dev without throwing if no API key is provided
+    // Surface this loudly enough that an operator notices in the
+    // Vercel function logs — previously a missing key was a silent
+    // no-op, so a stuck network produced zero alerts AND zero log
+    // signal that something was misconfigured.
+    console.error("Alert email send skipped: RESEND_API_KEY env var is not configured.");
     return false;
   }
   if (!ALERT_FROM_ADDRESS) {
