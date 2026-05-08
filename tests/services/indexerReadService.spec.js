@@ -128,6 +128,54 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc");
   });
 
+  it("serves getSummary from a short result cache when calls land within the TTL", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { last_indexed_block: 100 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    // First call hits the wire (probe + actual = 2 fetches). The second
+    // and third calls land within the 500ms TTL window and should be
+    // served from the result cache, no new network calls. The
+    // in-flight dedup alone wouldn't catch these — by the time call 2
+    // runs, call 1 has already settled and cleared its slot.
+    await indexerReadService.getSummary();
+    await indexerReadService.getSummary();
+    await indexerReadService.getSummary();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("getSummary forceRefresh bypasses the result cache", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { last_indexed_block: 100, freshness_seconds: 5 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    await indexerReadService.getSummary();
+    const baseline = fetchMock.mock.calls.length;
+
+    // forceRefresh path: must not return cached data, must hit wire again.
+    await indexerReadService.getSummary({ forceRefresh: true });
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(baseline);
+  });
+
   it("releases the in-flight slot after settle so subsequent calls re-fetch", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
@@ -142,13 +190,16 @@ describe("indexerReadService freshness controls", () => {
 
     const { indexerReadService } = await import("../../src/services/indexerReadService.js");
 
-    await indexerReadService.getSummary();
-    await indexerReadService.getSummary();
+    // forceRefresh bypasses the result cache so each call hits the
+    // wire (or the freshest-base cache, but that's a separate layer).
+    await indexerReadService.getSummary({ forceRefresh: true });
+    await indexerReadService.getSummary({ forceRefresh: true });
 
-    // First call: 1 probe (freshest base) + 1 data fetch = 2.
+    // First call: 1 probe + 1 data fetch = 2.
     // Second call: probe cached for 30s (0 fetches) + 1 data fetch = 1.
-    // Total 3 — proves the dedup slot was released and the second
-    // sequential call actually hit the network again.
+    // Total 3 — proves the in-flight slot was released between calls
+    // (without that release, call 2 would return call 1's settled
+    // promise and fire 0 new fetches, total 2).
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

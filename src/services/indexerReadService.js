@@ -190,6 +190,15 @@ function shouldUseHotIndexerSelection({ pathType = "", forceRefresh = false, lim
 // promise settles, so the next call does hit the wire.
 const _inflightGetSummary = new Map();
 
+// Short-window result cache layered on top of the in-flight dedup. The
+// in-flight map only catches *concurrent* callers — when /summary
+// resolves fast (warm CDN), serial callers within the same render burst
+// each trigger their own fetch. A 500ms TTL keeps the in-burst fan-out
+// down to one fetch without serving meaningfully stale data (the chain
+// produces blocks every ~3s).
+const _summaryCache = new Map();
+const SUMMARY_CACHE_TTL_MS = 500;
+
 // Same pattern for /contracts/<hash> overview. The contract-detail page
 // mounts ContractDetail (calls contractService.getByHash) + ScCallTable
 // (calls contractService.getScCalls's overviewPromise) at the same tick;
@@ -200,6 +209,15 @@ const _inflightGetContractOverview = new Map();
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
+
+    // Result cache (skipped when caller explicitly asked for fresh data).
+    if (!options?.forceRefresh) {
+      const cached = _summaryCache.get(network);
+      if (cached && Date.now() - cached.t < SUMMARY_CACHE_TTL_MS) {
+        return cached.data;
+      }
+    }
+
     const inflight = _inflightGetSummary.get(network);
     if (inflight) return inflight;
 
@@ -211,7 +229,9 @@ export const indexerReadService = {
         hotPaths,
         options,
       );
-      return payload?.data || null;
+      const data = payload?.data || null;
+      if (data) _summaryCache.set(network, { t: Date.now(), data });
+      return data;
     })().finally(() => {
       _inflightGetSummary.delete(network);
     });
