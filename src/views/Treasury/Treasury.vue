@@ -280,6 +280,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { usePriceCache } from "@/composables/usePriceCache";
+import { isAbortError } from "@/utils/abortError";
 import { formatNumber, formatLargeNumber } from "@/utils/explorerFormat";
 import { getTreasuryKnownAddresses } from "@/constants/knownAddresses";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -432,6 +433,7 @@ async function loadTreasuryData(forceRefresh = false) {
 
     balances.value = withUsd.sort((a, b) => b.usdValue - a.usdValue);
   } catch (err) {
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load treasury data", err);
     error.value = t("treasuryPage.failedToLoadRetry");
   } finally {

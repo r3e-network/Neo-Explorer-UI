@@ -100,6 +100,7 @@ import TokenTransferFlow from "@/components/trace/TokenTransferFlow.vue";
 import ExecutionTraceView from "@/components/trace/ExecutionTraceView.vue";
 import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
+import { isAbortError } from "@/utils/abortError";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -140,6 +141,7 @@ async function loadTrace(hash) {
     enrichedData.value = result;
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load trace:", err);
     error.value = t("errors.loadExecutionTrace");
   } finally {

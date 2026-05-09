@@ -166,6 +166,7 @@ import { formatNumber } from "@/utils/explorerFormat";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 import { useTheme } from "@/composables/useTheme";
 import { toBcp47 } from "@/utils/timeFormat";
+import { isAbortError } from "@/utils/abortError";
 
 // --- State ---
 const { t, locale } = useI18n();
@@ -392,6 +393,7 @@ async function loadData() {
     dailyRows.value = await statsService.getDailyAnalytics(selectedDays.value);
     await renderCharts();
   } catch (err) {
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load chart data:", err);
     dailyRows.value = [];
     error.value = t("errors.loadChartData");
