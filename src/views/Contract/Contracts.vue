@@ -195,6 +195,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import { isAbortError } from "@/utils/abortError";
 
 const route = useRoute();
 const router = useRouter();
@@ -271,6 +272,7 @@ async function loadPage() {
     total.value = response?.totalCount || 0;
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load contracts:", err);
     error.value = t("errors.loadContracts");
     contracts.value = [];

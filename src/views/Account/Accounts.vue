@@ -118,6 +118,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import { isAbortError } from "@/utils/abortError";
 
 const route = useRoute();
 const router = useRouter();
@@ -150,6 +151,7 @@ async function loadPage() {
     accounts.value = response?.result || [];
   } catch (err) {
     if (myRequestId !== pageRequestId) return;
+    if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load accounts:", err);
     error.value = t("errors.loadAccounts");
     accounts.value = [];
