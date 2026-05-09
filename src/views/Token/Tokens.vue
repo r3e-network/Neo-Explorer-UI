@@ -281,6 +281,7 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import { isAbortError } from "@/utils/abortError";
 
 const route = useRoute();
 const router = useRouter();
@@ -319,6 +320,7 @@ async function loadPage(page = currentPage.value) {
     currentPage.value = page;
   } catch (err) {
     if (myRequestId !== currentRequestId) return;
+    if (isAbortError(err)) return;
     const message = String(err?.message || "").toLowerCase();
     error.value =
       message.includes("not found") || message.includes("unknown rpc error")

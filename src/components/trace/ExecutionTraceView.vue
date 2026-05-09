@@ -229,6 +229,7 @@ import StackViewer from "./StackViewer.vue";
 import TraceSection from "./TraceSection.vue";
 import StateChangeSummary from "./StateChangeSummary.vue";
 import GasBreakdown from "./GasBreakdown.vue";
+import { isAbortError } from "@/utils/abortError";
 import { vmStateClass, vmStateDot, formatGas, opcodeColorClass } from "@/utils/explorerFormat";
 
 const props = defineProps({
@@ -338,6 +339,7 @@ async function loadTrace() {
     void loadEnrichedTrace({ requestId, txHash });
   } catch (err) {
     if (requestId !== activeTraceRequestId) return;
+    if (isAbortError(err)) return;
     error.value = err?.message ?? t("errorTitles.failedFetchExecutionTrace");
   } finally {
     if (requestId === activeTraceRequestId) {
