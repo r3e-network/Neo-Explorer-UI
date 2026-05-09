@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { tokenService, contractService } from "@/services";
 import { useAsync } from "@/composables/useAsync";
+import { isAbortError } from "@/utils/abortError";
 import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
 import { responseConverter } from "@/utils/neoHelpers";
 import { invokeContractFunction } from "@/utils/contractInvocation";
@@ -72,6 +73,9 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
       manifestError.value = null;
     },
     onError: (err) => {
+      // Don't surface aborts (route change, fast-toggle network) as a
+      // banner — just clear and let the next load resolve.
+      if (isAbortError(err)) return;
       manifestError.value = t("errors.loadContractData");
       if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
     },
