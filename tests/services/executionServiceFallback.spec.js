@@ -15,6 +15,11 @@ describe("Execution Service Fallback Parser", () => {
 
   afterEach(() => {
     consoleWarnSpy?.mockRestore();
+    // executionService is a singleton; vi.spyOn mutations on its methods leak
+    // across test files in the same worker unless explicitly restored. Without
+    // this, parallel suite runs occasionally fail at task-collection time with
+    // STACK_TRACE_ERROR when another test re-imports the polluted singleton.
+    vi.restoreAllMocks();
   });
 
   it("should successfully parse a legacy application log into an enriched trace without throwing", async () => {
