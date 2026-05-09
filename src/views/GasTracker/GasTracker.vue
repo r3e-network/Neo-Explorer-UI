@@ -72,6 +72,7 @@ import { statsService, blockService } from "@/services";
 import { indexerReadService } from "@/services/indexerReadService";
 import { BURN_RATE } from "@/constants";
 import { createRollingTxBuffer, feePercentileEstimates, txTotalFee } from "@/utils/rollingTxBuffer";
+import { isAbortError } from "@/utils/abortError";
 
 // --- State ---
 const { t } = useI18n();
@@ -115,6 +116,7 @@ async function loadGasTracker(forceRefresh = false) {
     const data = await statsService.getGasTracker(forceRefresh);
     gasData.value = data;
   } catch (e) {
+    if (isAbortError(e)) return;
     if (import.meta.env.DEV) console.error("Gas tracker load failed:", e);
     gasError.value = true;
   } finally {
@@ -135,6 +137,7 @@ async function loadBlocks(forceRefresh = false) {
     ]);
     blocks.value = blockRes?.result || [];
   } catch (e) {
+    if (isAbortError(e)) return;
     blocksError.value = e.message || t("gasTracker.failedLoadBlocks");
   } finally {
     blocksLoading.value = false;

@@ -65,6 +65,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useAutoRefresh } from "@/composables/useAutoRefresh";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
+import { isAbortError } from "@/utils/abortError";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
@@ -386,7 +387,8 @@ async function loadLatestData(forceRefresh = false) {
         updateTps();
         void hydrateLatestBlocks(nextBlocks, requestOptions);
       })
-      .catch(() => {
+      .catch((err) => {
+        if (isAbortError(err)) return;
         blocksError.value = true;
       })
       .finally(() => {
@@ -439,6 +441,7 @@ async function loadLatestData(forceRefresh = false) {
       // Live homepage snapshot removed — single server, indexer is the source of truth.
     })()
       .catch((err) => {
+        if (isAbortError(err)) return;
         if (import.meta.env.DEV) console.warn("txs load err:", err);
         txsError.value = true;
       })
