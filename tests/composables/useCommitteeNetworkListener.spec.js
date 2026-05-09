@@ -1,6 +1,6 @@
 import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpcMock = vi.hoisted(() => vi.fn());
 const cachedRequestMock = vi.hoisted(() => vi.fn());
@@ -26,6 +26,13 @@ describe("useCommittee network listener cleanup", () => {
     getValidatorMetadataMock.mockResolvedValue([]);
     cachedRequestMock.mockResolvedValue([]);
     rpcMock.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    // Restore window.addEventListener / removeEventListener spies. Without
+    // this, the next test in the worker that calls window.addEventListener
+    // hits a stale spy whose mock state can interfere with assertions.
+    vi.restoreAllMocks();
   });
 
   it("removes its network-change listener on unmount", async () => {
