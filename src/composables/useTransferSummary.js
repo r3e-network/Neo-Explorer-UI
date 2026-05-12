@@ -14,21 +14,60 @@ const CONTRACT_HASH_ALIASES = [
   "assethash",
 ];
 
+// Module-level decimals cache for the tx-list "Value" column. Keyed by
+// lowercased contract hash. Populated lazily via tokenService — entries
+// are reused across all useTransferSummary instances on the page.
+// Without this, the indexer's amount_raw (which carries no decimals
+// column on nep17_transfers) renders as a raw integer for every
+// non-NEO/non-GAS NEP-17 — e.g. an 8-decimal token of 1.0 shows "100000000".
+const tokenDecimalsCache = new Map();
+
+async function ensureDecimalsCached(contractHashes) {
+  const missing = [];
+  for (const ch of contractHashes) {
+    const k = String(ch || "").toLowerCase();
+    if (!k || NATIVE_CONTRACTS[k] || tokenDecimalsCache.has(k)) continue;
+    missing.push(k);
+  }
+  if (missing.length === 0) return;
+  await Promise.all(
+    missing.map(async (k) => {
+      try {
+        const meta = await tokenService.getByHashWithFallback(k);
+        if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
+          tokenDecimalsCache.set(k, Number(meta.decimals));
+        } else {
+          // Remember we tried (don't refetch on the next page render).
+          tokenDecimalsCache.set(k, null);
+        }
+      } catch (_e) {
+        tokenDecimalsCache.set(k, null);
+      }
+    }),
+  );
+}
+
 // Resolve symbol + decimals for a contract hash. Native NEO/GAS are
-// well-known so we can scale the indexer's `amount_raw` correctly even
-// when the row carries no symbol metadata. For non-natives we fall
-// back to whatever the row itself provides; missing values surface as
-// undefined rather than the "Token" placeholder that previously
-// appeared after the value.
+// well-known and resolved synchronously. For non-natives, prefer (in order):
+// row.decimals (rare; indexer doesn't carry it), the populated
+// tokenDecimalsCache, and finally 0 as a safe-but-imperfect last resort.
 function resolveTokenMeta(contractHash, row) {
   const hash = String(contractHash || "").toLowerCase();
   const native = NATIVE_CONTRACTS[hash];
   if (native?.symbol) {
     return { symbol: native.symbol, decimals: Number(native.decimals ?? 0) };
   }
+  const rowDecimals = row?.decimals;
+  if (rowDecimals !== undefined && rowDecimals !== null) {
+    return {
+      symbol: row?.symbol || row?.tokenname || "",
+      decimals: Number(rowDecimals),
+    };
+  }
+  const cached = tokenDecimalsCache.get(hash);
   return {
     symbol: row?.symbol || row?.tokenname || "",
-    decimals: Number(row?.decimals ?? 0),
+    decimals: cached === null || cached === undefined ? 0 : Number(cached),
   };
 }
 
@@ -224,6 +263,23 @@ export function useTransferSummary() {
       // 2 batched PostgREST queries (NEP-17, then NEP-11 for whichever
       // txids didn't have NEP-17 transfers) instead of one fetch per row.
       const nep17Buckets = await tokenService.getTransfersByTxHashesBatch(hashes, "nep17");
+
+      // Pre-warm the per-contract decimals cache for every non-native
+      // contract in this batch. Without this, applyTransferBucket below
+      // would scale amount_raw against 0 decimals for unknown NEP-17s
+      // (the indexer's nep17_transfers view doesn't carry a decimals
+      // column), making 1.0-of-X tokens render as raw integers like
+      // "100000000 X".
+      const contractHashes = new Set();
+      for (const bucket of nep17Buckets.values()) {
+        for (const t of bucket || []) {
+          const ch = extractContractHash(t);
+          if (ch) contractHashes.add(String(ch).toLowerCase());
+        }
+      }
+      if (contractHashes.size) {
+        await ensureDecimalsCached(contractHashes);
+      }
 
       const remaining = [];
       for (const hash of hashes) {
