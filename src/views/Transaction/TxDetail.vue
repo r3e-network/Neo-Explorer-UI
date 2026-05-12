@@ -203,7 +203,7 @@ import { useRoute } from "vue-router";
 import { transactionService, tokenService, executionService, blockService } from "@/services";
 import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { GAS_DECIMALS } from "@/constants";
+import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
 import { formatGas, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
 import { extractFailureReasonFromAppLog } from "@/utils/txFailureReason";
@@ -337,7 +337,23 @@ const actionSummary = computed(() => buildActionSummary());
 // --- Methods ---
 function formatTransferAmount(transfer) {
   const raw = transfer.value ?? transfer.amount ?? 0;
-  const decimals = Number(transfer.decimals ?? GAS_DECIMALS);
+  // Resolution order:
+  //   1. The transfer row's own decimals (set by the enrichment path)
+  //   2. NATIVE_CONTRACTS lookup — NEO is 0, GAS is 8; the indexer's
+  //      nep17_transfers view doesn't carry decimals so without this
+  //      branch NEO transfers got divided by 10^8 and rendered as e.g.
+  //      "0.00002213 NEO" for a true value of 2213 NEO.
+  //   3. GAS_DECIMALS as last-resort fallback for unknown tokens.
+  const hash = String(transfer.contract || transfer.contractHash || "").toLowerCase();
+  let decimals = transfer.decimals;
+  if (decimals === undefined || decimals === null) {
+    if (NATIVE_CONTRACTS[hash]) {
+      decimals = NATIVE_CONTRACTS[hash].decimals;
+    } else {
+      decimals = GAS_DECIMALS;
+    }
+  }
+  decimals = Number(decimals);
   return formatTokenAmount(raw, decimals, Math.min(decimals, 8));
 }
 

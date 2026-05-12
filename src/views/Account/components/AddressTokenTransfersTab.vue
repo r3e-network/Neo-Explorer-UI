@@ -63,7 +63,7 @@
                 <span v-else class="text-low">Null</span>
               </td>
               <td class="table-cell-right font-medium text-status-success">
-                {{ formatTransferAmount(transfer.amount, transfer.decimals) }}
+                {{ formatTransferAmount(transfer.amount, transfer.decimals, transfer.tokenHash) }}
               </td>
               <td class="table-cell">
                 <router-link
@@ -97,6 +97,7 @@
 </template>
 
 <script setup>
+import { NATIVE_CONTRACTS } from "@/constants";
 import { formatAge, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
 import { getTransferDirection } from "@/utils/addressDetail";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -122,7 +123,20 @@ function getDirection(from, to) {
   return getTransferDirection(from, to, props.address);
 }
 
-function formatTransferAmount(amount, decimals = 8) {
-  return formatTokenAmount(amount ?? 0, decimals, decimals);
+function formatTransferAmount(amount, decimals, tokenHash) {
+  // Indexer's nep17_transfers view doesn't carry decimals — without the
+  // native-contract fallback NEO transfers got divided by 10^8 (default
+  // = 8 for unknowns) and rendered with eight bogus decimal places.
+  let dec = decimals;
+  if (dec === undefined || dec === null) {
+    const hash = String(tokenHash || "").toLowerCase();
+    if (NATIVE_CONTRACTS[hash]) {
+      dec = NATIVE_CONTRACTS[hash].decimals;
+    } else {
+      dec = 8;
+    }
+  }
+  dec = Number(dec);
+  return formatTokenAmount(amount ?? 0, dec, dec);
 }
 </script>
