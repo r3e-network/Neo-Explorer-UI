@@ -239,7 +239,7 @@ import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { formatGas, formatAge, formatTime, formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
-import { GAS_DECIMALS } from "@/constants";
+import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
 import { supabaseService } from "@/services/supabaseService";
 
 const props = defineProps({
@@ -283,7 +283,19 @@ function getTokenLogo(t) {
 
 function formatTransferAmount(t) {
   const raw = t.value ?? t.amount ?? 0;
-  const decimals = Number(t.decimals ?? GAS_DECIMALS);
+  // Same fix as TxDetail/AddressTokenTransfersTab: the indexer's
+  // nep17_transfers view doesn't carry decimals, so without the
+  // NATIVE_CONTRACTS lookup NEO transfers get rendered with 8 decimals.
+  const hash = String(t.contract || t.contractHash || "").toLowerCase();
+  let decimals = t.decimals;
+  if (decimals === undefined || decimals === null) {
+    if (NATIVE_CONTRACTS[hash]) {
+      decimals = NATIVE_CONTRACTS[hash].decimals;
+    } else {
+      decimals = GAS_DECIMALS;
+    }
+  }
+  decimals = Number(decimals);
   return formatTokenAmount(raw, decimals, Math.min(decimals, 8));
 }
 
