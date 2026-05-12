@@ -198,11 +198,20 @@ export function normalizeNep17Transfers(transfers = []) {
     const hash = String(t?.contract || t?.contractHash || t?.assethash || "").toLowerCase();
     let tokenName = t?.tokenname || t?.symbol || t?.name;
     let decimals = t?.decimals;
-    if (!tokenName && hash) {
+    // Native lookup runs whether or not tokenName is already set —
+    // previously this was gated behind `if (!tokenName)`, which meant
+    // the indexer's NEO row (symbol present, decimals absent) never
+    // got the native decimals stamped, falling through to the bottom
+    // toNumber default. Harmless for NEO/GAS thanks to the fallback,
+    // but it's the same bug shape if KNOWN_CONTRACTS ever gains a
+    // non-native entry whose row arrives with a symbol.
+    if (hash) {
       const known = NATIVE_CONTRACTS[hash] || KNOWN_CONTRACTS[hash];
       if (known) {
-        if (known.symbol) tokenName = known.symbol;
-        if (decimals === undefined && known.decimals !== undefined) decimals = known.decimals;
+        if (!tokenName && known.symbol) tokenName = known.symbol;
+        if ((decimals === undefined || decimals === null) && known.decimals !== undefined) {
+          decimals = known.decimals;
+        }
       }
     }
 
