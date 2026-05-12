@@ -238,8 +238,48 @@ const {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
     const response = await accountService.getNep17Transfers(addr, pageSize, skip);
+    const rows = normalizeNep17Transfers(response?.result || []);
+
+    // Enrich rows whose decimals weren't supplied by the indexer
+    // (which is nearly all of them — the nep17_transfers view doesn't
+    // carry a decimals column). Without this every non-NEO/GAS NEP-17
+    // would render against the 0/8 fallback baked into the normalizer
+    // — wrong for tokens with e.g. 6 decimals like USDT-style assets.
+    // getByHashWithFallback probes the contract's decimals() method via
+    // RPC when the indexer's value looks suspect.
+    const needsDecimals = new Set();
+    for (const r of rows) {
+      const ch = String(r.tokenHash || "").toLowerCase();
+      if (!ch || NATIVE_CONTRACTS[ch]) continue;
+      // normalizeNep17Transfers always returns a number — treat 0
+      // outside the NATIVE list as "unknown, please verify"; the
+      // tokenService cache makes the repeat free.
+      if (r.decimals === 0) needsDecimals.add(ch);
+    }
+    if (needsDecimals.size) {
+      const decimalsByContract = new Map();
+      await Promise.all(
+        [...needsDecimals].map(async (ch) => {
+          try {
+            const meta = await tokenService.getByHashWithFallback(ch);
+            if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
+              decimalsByContract.set(ch, Number(meta.decimals));
+            }
+          } catch (_e) {
+            /* leave at 0 fallback */
+          }
+        }),
+      );
+      for (const r of rows) {
+        const ch = String(r.tokenHash || "").toLowerCase();
+        if (decimalsByContract.has(ch)) {
+          r.decimals = decimalsByContract.get(ch);
+        }
+      }
+    }
+
     return {
-      result: normalizeNep17Transfers(response?.result || []),
+      result: rows,
       totalCount: Number(response?.totalCount || 0),
     };
   },

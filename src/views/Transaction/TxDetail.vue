@@ -481,10 +481,53 @@ async function loadTransfers(hash, gen) {
       tokenService.getNep11TransfersByTxHash(hash, 500).catch(() => ({ result: [] })),
     ]);
     if (gen !== fetchGeneration) return;
-    nep17Transfers.value = (nep17Res?.result || []).map((t) => ({
-      ...t,
-      _standard: "NEP-17",
-    }));
+
+    const rawNep17 = (nep17Res?.result || []).map((t) => ({ ...t, _standard: "NEP-17" }));
+
+    // Enrich transfers with per-contract decimals. The indexer's
+    // nep17_transfers view doesn't carry a decimals column, so without
+    // this enrichment any non-native NEP-17 amount renders against the
+    // 8-decimal fallback (correct for GAS, wrong for everything else
+    // including NEO and most custom NEP-17s). For each unique non-native
+    // contract referenced in this tx, fetch its decimals via
+    // tokenService.getByHashWithFallback (which itself probes the
+    // contract's decimals() method via RPC when the indexer's value
+    // looks suspect).
+    const contractsNeedingDecimals = new Set();
+    for (const t of rawNep17) {
+      if (t.decimals !== undefined && t.decimals !== null) continue;
+      const ch = String(t.contract || t.contractHash || "").toLowerCase();
+      if (!ch || NATIVE_CONTRACTS[ch]) continue;
+      contractsNeedingDecimals.add(ch);
+    }
+    const decimalsByContract = new Map();
+    if (contractsNeedingDecimals.size) {
+      await Promise.all(
+        [...contractsNeedingDecimals].map(async (ch) => {
+          try {
+            const meta = await tokenService.getByHashWithFallback(ch);
+            if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
+              decimalsByContract.set(ch, Number(meta.decimals));
+            }
+          } catch (_e) {
+            /* leave decimals null; formatTransferAmount has a fallback */
+          }
+        }),
+      );
+      if (gen !== fetchGeneration) return;
+    }
+
+    nep17Transfers.value = rawNep17.map((t) => {
+      if (t.decimals !== undefined && t.decimals !== null) return t;
+      const ch = String(t.contract || t.contractHash || "").toLowerCase();
+      if (NATIVE_CONTRACTS[ch]) {
+        return { ...t, decimals: NATIVE_CONTRACTS[ch].decimals };
+      }
+      if (decimalsByContract.has(ch)) {
+        return { ...t, decimals: decimalsByContract.get(ch) };
+      }
+      return t;
+    });
     nep11Transfers.value = (nep11Res?.result || []).map((t) => ({
       ...t,
       _standard: "NEP-11",
