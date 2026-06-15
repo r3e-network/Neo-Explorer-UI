@@ -16,7 +16,13 @@ export function formatGas(value, decimals = 8) {
   if (!value) return "0";
   const num = Number(value);
   if (!Number.isFinite(num)) return "0";
-  return (num / GAS_DIVISOR).toFixed(decimals);
+  // Values that fit safely in a JS Number keep the existing fixed-decimal
+  // formatting. Larger raw integers (above 2^53) lose precision via Number(),
+  // so route them through the BigInt-safe path used by formatTokenAmount.
+  if (Math.abs(num) <= Number.MAX_SAFE_INTEGER) {
+    return (num / GAS_DIVISOR).toFixed(decimals);
+  }
+  return formatTokenAmount(value, 8, decimals);
 }
 
 /**

@@ -391,6 +391,11 @@ async function loadData() {
   error.value = null;
   try {
     dailyRows.value = await statsService.getDailyAnalytics(selectedDays.value);
+    // Clear loading first so the v-else branch (which holds the <canvas>
+    // refs) mounts; renderCharts() bails on its null-ref guard otherwise and
+    // the charts never draw on the initial load.
+    loading.value = false;
+    await nextTick();
     await renderCharts();
   } catch (err) {
     if (isAbortError(err)) return;

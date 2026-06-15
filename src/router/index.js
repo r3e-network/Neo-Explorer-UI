@@ -125,7 +125,6 @@ const routes = [
       { path: "/multi-sig", redirect: "/tools/multisig" },
       { path: "/sponsored", redirect: "/tools/sponsored" },
       { path: "/sponsored-transactions", redirect: "/tools/sponsored" },
-      { path: "/governance", redirect: "/tools/governance" },
       { path: "/neofs", redirect: "/tools/neofs" },
       { path: "/mempool", redirect: "/tools/mempool" },
       { path: "/burn-fee", redirect: "/burn" },

@@ -22,7 +22,10 @@ function _mapTransferRow(r, standard) {
     contract: r.contract_hash,
     contractHash: r.contract_hash,
     blockindex: r.block_index,
-    timestamp: r.indexed_at,
+    // Prefer the numeric epoch fields the indexer emits (timestamp_ms /
+    // block_time_ms) over the ISO `indexed_at` string — the latter sorts to
+    // NaN under the Number()-based comparators downstream.
+    timestamp: r.timestamp_ms ?? r.block_time_ms ?? r.indexed_at,
     ...(standard === "nep11" && r.token_id_raw
       ? { tokenId: r.token_id_raw }
       : {}),
@@ -52,7 +55,10 @@ async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, s
       result: rows.map((r) => _mapTransferRow(r, standard)),
       totalCount: rows.length,
     };
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(`[tokenService] ${table} tx-hash indexer fetch failed for ${txHash}:`, err);
+    }
     return { result: [], totalCount: 0 };
   }
 }
@@ -93,8 +99,59 @@ async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
       if (bucket) bucket.push(_mapTransferRow(row, standard));
     }
     return buckets;
-  } catch {
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(`[tokenService] ${table} batch indexer fetch failed:`, err);
+    }
     return new Map();
+  }
+}
+
+// Page a transfer-only population for a contract straight from the
+// Postgres-indexed nep17_transfers / nep11_transfers REST table. Unlike the
+// notifications endpoint (which interleaves Transfer rows with other event
+// names, so an `offset` advances the *notification* window while the total
+// counts only transfers — skipping/duplicating rows on busy contracts), this
+// query filters to transfers up front: `offset` and the `count=exact` total
+// share one filtered population. Returns null on transport failure so the
+// caller can fall through to the notifications/legacy path.
+async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
+  const network = resolveTokenNetwork();
+  const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
+  const safeHash = encodeURIComponent(String(hash || "").trim());
+  if (!safeHash) return null;
+  const params = new URLSearchParams({
+    contract_hash: `eq.${safeHash}`,
+    network: `eq.${network}`,
+    limit: String(limit),
+    offset: String(skip),
+    order: "block_index.desc,execution_index.desc,notification_index.desc",
+  });
+  try {
+    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+      // Prefer: count=exact makes PostgREST return the true total of the
+      // *filtered* population in the Content-Range header (e.g. "0-19/1543").
+      headers: { Accept: "application/json", Prefer: "count=exact" },
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+    // Content-Range: items <start>-<end>/<total>. Parse the total off the
+    // same filtered query that produced the page so offset + total agree.
+    const contentRange = res.headers.get("Content-Range") || "";
+    const totalFromHeader = Number(contentRange.split("/")[1]);
+    const totalCount = Number.isFinite(totalFromHeader) && totalFromHeader >= 0
+      ? totalFromHeader
+      : skip + rows.length;
+    return {
+      result: rows.map((r) => _mapTransferRow(r, standard)),
+      totalCount,
+    };
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(`[tokenService] ${table} indexer fetch failed for ${hash}:`, err);
+    }
+    return null;
   }
 }
 
@@ -445,6 +502,13 @@ export const tokenService = createService(
     // indexer's contract notifications endpoint instead, decoding the
     // Transfer event state into {from, to, amount}.
     async getNep17Transfers(hash, limit = 20, skip = 0, options = {}) {
+      // Prefer the transfer-only REST population: paging there keeps `skip`
+      // (offset) and the count=exact total bound to the same filtered query,
+      // so busy contracts don't skip/duplicate rows across pages. The
+      // notifications path below interleaves event names and is kept only as
+      // a fallback for when the dedicated transfer table is unavailable.
+      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep17", limit, skip);
+      if (transferPage && transferPage.result.length > 0) return transferPage;
       try {
         // Fetch the page of transfers and the token's authoritative total
         // in parallel — transfer_event_count from the indexer's tokens
@@ -501,6 +565,11 @@ export const tokenService = createService(
     // path as getNep17Transfers; both standards emit a "Transfer" event
     // with [from, to, amount/tokenId] state.
     async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
+      // Transfer-only REST population first — same offset/total coherence
+      // rationale as getNep17Transfers. Falls through to the notifications
+      // path when the dedicated table yields nothing.
+      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep11", limit, skip);
+      if (transferPage && transferPage.result.length > 0) return transferPage;
       try {
         // Same slow-endpoint accommodation as getNep17Transfers.
         const slowOptions = { ...options, timeoutMs: 12000 };
@@ -528,7 +597,10 @@ export const tokenService = createService(
                   ?? (rows.length === Math.max(limit * 3, 50) ? skip + limit + 1 : skip + transfers.length),
               ),
         };
-      } catch {
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn(`[tokenService] getNep11Transfers indexer fetch failed for ${hash}:`, err);
+        }
         return { result: [], totalCount: 0 };
       }
     },

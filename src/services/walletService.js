@@ -956,23 +956,57 @@ export const walletService = {
       if (!accounts || accounts.length === 0) throw new Error(tWallet("wallet.errors.evmNoAccounts", null, "No EVM accounts found."));
 
       const evmAddress = accounts[0].toLowerCase();
+      const aaHash = getAbstractAccountHash();
+
+      // The uncompressed pubkey derives the Neo AA address, so it must
+      // provably belong to the connected EVM address. An uncompressed
+      // secp256k1 key recovered from a signMessage payload has the form
+      // 04 || X(32) || Y(32) (130 hex chars). ethers.computeAddress accepts
+      // the 0x04-prefixed key and yields the canonical EVM address.
+      const pubKeyMatchesEvmAddress = (candidate) => {
+        try {
+          if (!candidate || candidate.length !== 130 || !candidate.startsWith("04")) return false;
+          return ethers.computeAddress("0x" + candidate).toLowerCase() === evmAddress;
+        } catch {
+          return false;
+        }
+      };
+
       let uncompressedPubKey = localStorage.getItem(`evm_pubkey_${evmAddress}`);
+      // Cached value is keyed only by EVM address and is fully attacker-writable;
+      // never trust it without verifying it derives back to that EVM address.
+      if (uncompressedPubKey && !pubKeyMatchesEvmAddress(uncompressedPubKey)) {
+        localStorage.removeItem(`evm_pubkey_${evmAddress}`);
+        uncompressedPubKey = null;
+      }
 
       if (!uncompressedPubKey) {
         try {
           const signer = await provider.getSigner();
+          // Bind the identity message to this app origin, the active Neo
+          // network, and the AA contract hash so a signature captured on one
+          // site/chain can't be replayed to derive an identity elsewhere.
           const message =
-            "Welcome to Neo N3 Explorer!\n\nPlease sign this message to derive your cross-chain Abstract Account identity. This operation does not cost any gas.";
+            "Welcome to Neo N3 Explorer!\n\n" +
+            "Please sign this message to derive your cross-chain Abstract Account identity. " +
+            "This operation does not cost any gas.\n\n" +
+            `Origin: ${typeof window !== "undefined" ? window.location.origin : ""}\n` +
+            `Network: ${getDapiNetworkName()}\n` +
+            `Abstract Account: ${aaHash}`;
           const signature = await signer.signMessage(message);
           const digest = ethers.hashMessage(message);
           uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature).slice(2);
+          // Confirm the recovered key actually belongs to the connected EVM
+          // address before caching/using it.
+          if (!pubKeyMatchesEvmAddress(uncompressedPubKey)) {
+            throw new Error("Recovered public key does not match the connected EVM address.");
+          }
           localStorage.setItem(`evm_pubkey_${evmAddress}`, uncompressedPubKey);
         } catch (e) {
           throw new Error(tWallet("wallet.errors.aaSignatureRequired", null, "Signature is required to generate your Abstract Account identity."));
         }
       }
 
-      const aaHash = getAbstractAccountHash();
       const sb = new ScriptBuilder();
       sb.emitContractCall(aaHash, "verify", undefined, [hexToBytes(uncompressedPubKey)]);
       const verifyScript = sb.toBytes();
@@ -1166,10 +1200,12 @@ export const walletService = {
     if (_connectedProvider === PROVIDERS.WEB3AUTH) {
       const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
-      // the unsigned tx hex needs to be hashed before signing
-      const hash = await resolveUnsignedTransactionHash(unsignedTxHex);
+      // Sign the network-magic-prefixed signing payload (magic(4) + reverse(hash)),
+      // not the bare transaction hash — signing the bare hash yields on-chain-invalid
+      // witnesses. This must match the TESTNET_WIF branch below.
+      const { payload } = await buildRawTransactionSigningPayload(unsignedTxHex);
       return {
-        signature: account.sign(hash),
+        signature: account.sign(payload),
         publicKey: normalizePublicKeyResult(account?.publicKey),
         signerAddress: String(account?.address || _account?.address || "").trim(),
       };

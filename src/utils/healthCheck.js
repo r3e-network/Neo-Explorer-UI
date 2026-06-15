@@ -3,8 +3,8 @@ import { NET_ENV, getActiveBasePath, getCurrentEnv, setActiveBasePath } from "./
 import { getRpcEndpointCandidates } from "./rpcEndpoints";
 
 const checkedState = {
-  [NET_ENV.Mainnet]: { done: false, lastCheckedAt: 0 },
-  [NET_ENV.TestT5]: { done: false, lastCheckedAt: 0 },
+  [NET_ENV.Mainnet]: { done: false, lastCheckedAt: 0, inFlight: null },
+  [NET_ENV.TestT5]: { done: false, lastCheckedAt: 0, inFlight: null },
 };
 
 const EXPECTED_NETWORK_MAGIC = {
@@ -15,6 +15,13 @@ const HEALTHCHECK_TIMEOUT_MS = Math.max(500, Number(import.meta.env.VITE_RPC_HEA
 const HEALTHCHECK_RECHECK_INTERVAL_MS = Math.max(
   10_000,
   Number(import.meta.env.VITE_RPC_HEALTHCHECK_RECHECK_MS || 60_000),
+);
+// After a failed probe we only mark a short backoff window instead of the
+// full recheck interval, so an endpoint that recovers can be re-probed
+// quickly rather than being blocked for the whole interval.
+const HEALTHCHECK_FAILURE_BACKOFF_MS = Math.max(
+  1_000,
+  Number(import.meta.env.VITE_RPC_HEALTHCHECK_FAILURE_BACKOFF_MS || 5_000),
 );
 const ENDPOINT_SWITCH_HYSTERESIS_MS = Math.max(
   0,
@@ -74,7 +81,7 @@ const readNetworkMagic = async (url) => {
 };
 
 const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
-  const start = Date.now();
+  let start = Date.now();
   try {
     const networkMagic = await readNetworkMagic(url);
     if (
@@ -88,6 +95,10 @@ const checkEndpointHeight = async (url, expectedNetworkMagic = null) => {
         networkMagic,
       };
     }
+
+    // Reset the timer so latencyMs measures only the height probe below,
+    // not the preceding getversion call (readNetworkMagic).
+    start = Date.now();
 
     // Standard `getblockcount` works against any Neo node and outlives
     // Mongo cleanup. Was previously calling PascalCase GetBlockCount
@@ -136,63 +147,91 @@ const checkNetworkEndpoints = async (network) => {
   if (!network) return;
   const state = checkedState[network.env];
   const now = Date.now();
-  if (state?.done && now - state.lastCheckedAt < HEALTHCHECK_RECHECK_INTERVAL_MS) return;
+
+  // Recheck gate: a successful probe is trusted for the full interval; a
+  // failed probe is only suppressed for the short failure backoff so a
+  // recovered endpoint is re-probed promptly.
   if (state) {
-    state.done = true;
-    state.lastCheckedAt = now;
+    const sinceLast = now - state.lastCheckedAt;
+    if (state.done && sinceLast < HEALTHCHECK_RECHECK_INTERVAL_MS) return;
+    if (!state.done && sinceLast < HEALTHCHECK_FAILURE_BACKOFF_MS) return;
+    // Single-flight: coalesce concurrent callers onto the running probe.
+    if (state.inFlight) return state.inFlight;
   }
 
-  try {
-    const expectedNetworkMagic = EXPECTED_NETWORK_MAGIC[network.env] ?? null;
-    const candidates = getProbeCandidates(network);
-    const probeResults = await Promise.all(
-      candidates.map(async (candidate) => ({
-        basePath: candidate,
-        ...(await checkEndpointHeight(candidate, expectedNetworkMagic)),
-      })),
-    );
-    const healthyCandidates = probeResults.filter((candidate) => candidate.height >= 0);
-    const current = getActiveBasePath(network.env);
-    const normalizedCurrent = normalizePrimaryAlias(current);
-    const currentCandidate = healthyCandidates.find(
-      (candidate) => normalizePrimaryAlias(candidate.basePath) === normalizedCurrent
-    );
-
-    const commitSelection = (path, message) => {
-      if (normalizePrimaryAlias(path) === normalizedCurrent) return;
-      setActiveBasePath(network.env, path);
-      if (import.meta.env.DEV) console.info(message);
-    };
-
-    if (healthyCandidates.length > 0) {
-      const maxHeight = healthyCandidates.reduce((highest, candidate) => Math.max(highest, candidate.height), -1);
-      const freshestCandidates = healthyCandidates.filter((candidate) => candidate.height === maxHeight);
-      const fastestFreshCandidate = freshestCandidates.reduce((best, candidate) =>
-        candidate.latencyMs < best.latencyMs ? candidate : best
+  const runProbe = async () => {
+    let succeeded = false;
+    try {
+      const expectedNetworkMagic = EXPECTED_NETWORK_MAGIC[network.env] ?? null;
+      const candidates = getProbeCandidates(network);
+      const probeResults = await Promise.all(
+        candidates.map(async (candidate) => ({
+          basePath: candidate,
+          ...(await checkEndpointHeight(candidate, expectedNetworkMagic)),
+        })),
+      );
+      const healthyCandidates = probeResults.filter((candidate) => candidate.height >= 0);
+      const current = getActiveBasePath(network.env);
+      const normalizedCurrent = normalizePrimaryAlias(current);
+      const currentCandidate = healthyCandidates.find(
+        (candidate) => normalizePrimaryAlias(candidate.basePath) === normalizedCurrent
       );
 
-      if (
-        currentCandidate &&
-        currentCandidate.height === maxHeight &&
-        currentCandidate.latencyMs <= fastestFreshCandidate.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS
-      ) {
+      const commitSelection = (path, message) => {
+        if (normalizePrimaryAlias(path) === normalizedCurrent) return;
+        setActiveBasePath(network.env, path);
+        if (import.meta.env.DEV) console.info(message);
+      };
+
+      if (healthyCandidates.length > 0) {
+        // At least one endpoint answered — this is a successful probe.
+        succeeded = true;
+        const maxHeight = healthyCandidates.reduce((highest, candidate) => Math.max(highest, candidate.height), -1);
+        const freshestCandidates = healthyCandidates.filter((candidate) => candidate.height === maxHeight);
+        const fastestFreshCandidate = freshestCandidates.reduce((best, candidate) =>
+          candidate.latencyMs < best.latencyMs ? candidate : best
+        );
+
+        if (
+          currentCandidate &&
+          currentCandidate.height === maxHeight &&
+          currentCandidate.latencyMs <= fastestFreshCandidate.latencyMs + ENDPOINT_SWITCH_HYSTERESIS_MS
+        ) {
+          return;
+        }
+
+        commitSelection(
+          fastestFreshCandidate.basePath,
+          `[HealthCheck] ${network.env} using ${fastestFreshCandidate.basePath}. Height=${fastestFreshCandidate.height}, latency=${fastestFreshCandidate.latencyMs}ms`,
+        );
         return;
       }
 
-      commitSelection(
-        fastestFreshCandidate.basePath,
-        `[HealthCheck] ${network.env} using ${fastestFreshCandidate.basePath}. Height=${fastestFreshCandidate.height}, latency=${fastestFreshCandidate.latencyMs}ms`,
-      );
-      return;
+      // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
+      if (import.meta.env.DEV && import.meta.env.MODE !== "test") {
+        console.warn(`[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`);
+      }
+    } catch (e) {
+      if (import.meta.env.DEV && import.meta.env.MODE !== "test") console.warn(`[HealthCheck] Failed for ${network.env}`, e);
+    } finally {
+      if (state) {
+        // Record the attempt time only now that probes have finished, and
+        // only mark `done` on success. On failure `done` stays false so the
+        // short failure backoff (not the full interval) governs re-probe.
+        state.lastCheckedAt = Date.now();
+        state.done = succeeded;
+      }
     }
+  };
 
-    // Keep current endpoint when both probes fail to avoid forcing a bad primary path.
-    if (import.meta.env.DEV && import.meta.env.MODE !== "test") {
-      console.warn(`[HealthCheck] ${network.env} both probes failed. Keeping current endpoint: ${current}`);
-    }
-  } catch (e) {
-    if (import.meta.env.DEV && import.meta.env.MODE !== "test") console.warn(`[HealthCheck] Failed for ${network.env}`, e);
+  if (state) {
+    state.inFlight = runProbe().finally(() => {
+      state.inFlight = null;
+    });
+    return state.inFlight;
   }
+
+  return runProbe();
 };
 
 export const checkAndSetEndpoints = async (preferredEnv = getCurrentEnv(), { preloadOtherNetworks = false } = {}) => {

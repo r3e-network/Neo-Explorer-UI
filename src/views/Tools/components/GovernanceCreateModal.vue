@@ -150,7 +150,7 @@
         <div class="space-y-6">
           <div
             v-for="(inv, idx) in createForm.invocations"
-            :key="idx"
+            :key="inv.id"
             class="p-5 rounded-2xl bg-surface-muted/50 border border-line-soft space-y-5 relative group transition-colors hover:border-amber-400"
           >
             <div class="flex justify-between items-center pb-2 border-b border-line-soft">
@@ -442,10 +442,20 @@ const NATIVE_METHODS = {
   ],
 };
 
+// Monotonic counter for stable v-for keys on invocation rows. Keying on the
+// array index causes native input/select/IME state to land on the wrong row
+// after a middle row is removed via splice, so every row gets a unique id.
+let invocationIdCounter = 0;
+function nextInvocationId() {
+  invocationIdCounter += 1;
+  return invocationIdCounter;
+}
+
 function createInvocation() {
   const defaultContract = "PolicyContract";
   const methods = getAvailableMethods(defaultContract);
   return {
+    id: nextInvocationId(),
     selectedContract: defaultContract,
     selectedMethod: methods.length > 0 ? methods[0].name : "",
     params: {},
@@ -561,6 +571,7 @@ function setCreateMode(mode) {
 
 function cloneDraftInvocations(invocations = []) {
   return invocations.map((invocation) => ({
+    id: nextInvocationId(),
     selectedContract: invocation?.selectedContract || "",
     selectedMethod: invocation?.selectedMethod || "",
     params: { ...(invocation?.params || {}) },
@@ -579,6 +590,7 @@ function buildInvocationDrafts(proposalLike) {
 
   return [
     {
+      id: nextInvocationId(),
       selectedContract,
       selectedMethod: selectedMethod || getAvailableMethods(selectedContract)[0]?.name || "",
       params: {},
@@ -1047,7 +1059,11 @@ async function handleCreateProposal() {
         lab_signer_addresses: activeSignerConfig.mode === "lab" ? activeSignerConfig.signerAddresses : undefined,
         target_contracts: targetContracts,
         invocations: createForm.value.invocations.map((inv) => ({
-          ...inv,
+          // Pick explicit fields so the internal UI row `id` (used only for v-for
+          // keying) does not leak into the persisted/submitted proposal payload.
+          selectedContract: inv.selectedContract,
+          selectedMethod: inv.selectedMethod,
+          params: inv.params,
           targetHash: NATIVE_CONTRACTS[inv.selectedContract],
         })),
       },

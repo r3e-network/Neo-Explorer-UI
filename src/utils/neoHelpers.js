@@ -266,8 +266,13 @@ export function responseConverter(_key, val) {
       if (text && /^[\x20-\x7F]*$/.test(text)) {
         return { ...val, type: "String", value: text };
       } else {
-        const parsed = Number.parseInt(hex || "0", 16);
-        return { ...val, type: "BigInteger", value: Number.isFinite(parsed) ? parsed : 0 };
+        // NeoVM integers are little-endian; accumulate from the most-significant
+        // (last) byte to preserve precision beyond 2^53 and emit as a string.
+        let parsed = 0n;
+        for (let i = bytes.length - 1; i >= 0; i--) {
+          parsed = (parsed * 256n) + BigInt(bytes[i]);
+        }
+        return { ...val, type: "BigInteger", value: parsed.toString() };
       }
     }
   }

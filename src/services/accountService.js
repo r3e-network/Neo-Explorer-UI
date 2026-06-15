@@ -26,8 +26,12 @@ async function fetchJsonWithFallback(urls) {
       });
       if (!res.ok) continue;
       return await res.json();
-    } catch {
-      // try next fallback
+    } catch (err) {
+      // Log before trying the next fallback so a broken indexer surfaces in
+      // dev instead of silently masquerading as "no data".
+      if (import.meta.env.DEV) {
+        console.warn(`[accountService] indexer fetch failed for ${url}:`, err);
+      }
     }
   }
   return null;
@@ -58,28 +62,58 @@ async function fetchAccountOverviewRows(network, limit, skip) {
 // return empty for an active address. Reads from the Postgres-indexed
 // nep17_transfers / nep11_transfers REST table, querying both
 // from_address and to_address sides and merging by block_index DESC.
+function parseContentRangeTotal(res) {
+  // PostgREST Content-Range with Prefer: count=exact looks like
+  // "items 0-19/1543"; the segment after the slash is the true total of the
+  // filtered population. "*" (unknown) or a missing header yields NaN, which
+  // callers treat as "no authoritative total".
+  const header = res?.headers?.get?.("Content-Range") || "";
+  return Number(header.split("/")[1]);
+}
+
 async function fetchAddressTransfersFromIndexer(network, table, address, limit, skip) {
   const safeAddr = encodeURIComponent(String(address || "").trim());
   if (!safeAddr) return null;
-  // Pull a generous window (3x) so client-side merge of the from+to
-  // streams still yields a full page after dedup. The two queries are
-  // cheap (indexed on from_address / to_address respectively).
-  const window = Math.max((Number(limit) + Number(skip)) * 2, Number(limit) * 3, 60);
+  // Fetch enough of each direction to cover the requested page after the
+  // from+to streams are merged and sorted. We page from offset 0 up through
+  // skip+limit (not a fixed window cap) so rows on deep pages are actually
+  // reachable — the old fixed 3x window silently dropped everything past it.
+  const fetchCount = Math.max(Number(limit) + Number(skip), Number(limit), 1);
   const order = "block_index.desc,execution_index.desc,notification_index.desc";
-  const baseQuery = `network=eq.${network}&limit=${window}&order=${order}`;
+  const baseQuery = `network=eq.${network}&limit=${fetchCount}&offset=0&order=${order}`;
   const basePath = `/rest/${network}/${table}`;
   try {
+    // Prefer: count=exact makes PostgREST report the true total of each
+    // filtered stream in the Content-Range header, so the page count no
+    // longer depends on the size of the merged window.
+    const countHeaders = { Accept: "application/json", Prefer: "count=exact" };
     const [sentRes, receivedRes] = await Promise.all([
-      fetch(`${basePath}?${baseQuery}&from_address=eq.${safeAddr}`),
-      fetch(`${basePath}?${baseQuery}&to_address=eq.${safeAddr}`),
+      fetch(`${basePath}?${baseQuery}&from_address=eq.${safeAddr}`, { headers: countHeaders }),
+      fetch(`${basePath}?${baseQuery}&to_address=eq.${safeAddr}`, { headers: countHeaders }),
     ]);
     if (!sentRes.ok && !receivedRes.ok) return null;
     const [sent, received] = await Promise.all([
       sentRes.ok ? sentRes.json() : [],
       receivedRes.ok ? receivedRes.json() : [],
     ]);
-    return { sent: Array.isArray(sent) ? sent : [], received: Array.isArray(received) ? received : [] };
-  } catch {
+    const sentTotal = sentRes.ok ? parseContentRangeTotal(sentRes) : NaN;
+    const receivedTotal = receivedRes.ok ? parseContentRangeTotal(receivedRes) : NaN;
+    // True per-address transfer total is the union of the two directions.
+    // Both counters come from the same filtered queries that produced the
+    // rows, so offset and total agree. NaN (header absent) drops to
+    // undefined → callers fall back to the merged length.
+    const totalCount = (Number.isFinite(sentTotal) || Number.isFinite(receivedTotal))
+      ? (Number.isFinite(sentTotal) ? sentTotal : 0) + (Number.isFinite(receivedTotal) ? receivedTotal : 0)
+      : undefined;
+    return {
+      sent: Array.isArray(sent) ? sent : [],
+      received: Array.isArray(received) ? received : [],
+      totalCount,
+    };
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(`[accountService] ${table} indexer fetch failed for ${address}:`, err);
+    }
     return null;
   }
 }
@@ -412,17 +446,31 @@ export const accountService = createService(
       };
     },
 
-    _paginateTransfers(transfers, limit = 20, skip = 0) {
+    // `totalCount` is the authoritative population size (e.g. from the
+    // indexer's count=exact headers). When supplied it overrides the merged
+    // window length — that length only reflects the rows we fetched for this
+    // page, so using it as the total produced wrong page counts and hid rows
+    // past the window.
+    _paginateTransfers(transfers, limit = 20, skip = 0, totalCount) {
       const safeLimit = Math.max(1, Number(limit) || 20);
       const safeSkip = Math.max(0, Number(skip) || 0);
+      // Coerce timestamps numerically before comparing. Indexer rows may
+      // carry epoch-ms numbers or ISO strings (indexed_at); Number("2024-…")
+      // is NaN and corrupts the sort, so fall back to Date.parse for strings.
+      const toEpoch = (value) => {
+        const n = Number(value);
+        if (Number.isFinite(n)) return n;
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      };
       const sorted = [...(Array.isArray(transfers) ? transfers : [])].sort((a, b) => {
-        const tsDiff = Number(b?.timestamp || 0) - Number(a?.timestamp || 0);
+        const tsDiff = toEpoch(b?.timestamp) - toEpoch(a?.timestamp);
         if (tsDiff !== 0) return tsDiff;
         return Number(b?.blockindex || 0) - Number(a?.blockindex || 0);
       });
       return {
         result: sorted.slice(safeSkip, safeSkip + safeLimit),
-        totalCount: sorted.length,
+        totalCount: Number.isFinite(Number(totalCount)) ? Number(totalCount) : sorted.length,
       };
     },
 
@@ -546,7 +594,9 @@ export const accountService = createService(
             ...indexer.sent.map((row) => mapIndexerNep17TransferRow(row, "sent", tokenInfoMap)),
             ...indexer.received.map((row) => mapIndexerNep17TransferRow(row, "received", tokenInfoMap)),
           ].filter((item) => item.txid);
-          if (indexerMerged.length > 0) return this._paginateTransfers(indexerMerged, limit, skip);
+          if (indexerMerged.length > 0) {
+            return this._paginateTransfers(indexerMerged, limit, skip, indexer.totalCount);
+          }
         }
 
         const nep17Transfers = await this._getNativeNep17Transfers(normalizedAddress, options);
@@ -582,7 +632,9 @@ export const accountService = createService(
             ...indexer.sent.map((row) => mapIndexerNep11TransferRow(row, "sent")),
             ...indexer.received.map((row) => mapIndexerNep11TransferRow(row, "received")),
           ].filter((item) => item.txid);
-          if (indexerMerged.length > 0) return this._paginateTransfers(indexerMerged, limit, skip);
+          if (indexerMerged.length > 0) {
+            return this._paginateTransfers(indexerMerged, limit, skip, indexer.totalCount);
+          }
         }
 
         const nep11Transfers = await this._getNativeNep11Transfers(normalizedAddress, options);

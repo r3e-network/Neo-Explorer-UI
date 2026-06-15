@@ -19,7 +19,11 @@ function safeEqualStrings(a, b) {
 function isCronAuthorized(req) {
   const secret = String(process.env.CRON_SECRET || "").trim();
   if (!secret) {
-    return process.env.NODE_ENV !== "production";
+    // Fail closed: when no CRON_SECRET is configured, reject the request in
+    // ALL environments by default. The previously-open dev path is now behind
+    // an explicit opt-in flag so a missing secret can never silently expose
+    // the cron endpoints (e.g. if NODE_ENV is unset on a deployed instance).
+    return String(process.env.ALLOW_UNAUTHENTICATED_CRON || "").trim().toLowerCase() === "true";
   }
 
   const authorization = String(getHeader(req, "authorization") || "").trim();

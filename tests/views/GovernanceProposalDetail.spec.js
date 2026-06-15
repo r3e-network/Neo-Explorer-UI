@@ -383,11 +383,14 @@ describe("GovernanceProposalDetail", () => {
     expect(createModalState.createForm.mode).toBe("official");
     expect(createModalState.createForm.invocations).toEqual([
       {
+        // id is an internal, non-deterministic UI key for v-for row tracking.
+        id: expect.any(Number),
         selectedContract: "PolicyContract",
         selectedMethod: "setMillisecondsPerBlock",
         params: { value: "3000" },
       },
       {
+        id: expect.any(Number),
         selectedContract: "NEO",
         selectedMethod: "setGasPerBlock",
         params: { gasPerBlock: "100000000" },

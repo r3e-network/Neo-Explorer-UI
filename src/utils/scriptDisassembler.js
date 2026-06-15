@@ -178,7 +178,11 @@ function formatOperand(opDef, operandBytes) {
      for (let i = operandBytes.length - 1; i >= 0; i--) {
         val = (val * 256n) + BigInt(operandBytes[i]);
      }
-     // very naive signed decoding for visual fallback, better to use proper BigInt decoding
+     // Sign-extend: if the top bit of the most-significant byte is set,
+     // the value is negative (two's complement) for its byte width.
+     if (operandBytes[operandBytes.length - 1] & 0x80) {
+        val -= 1n << BigInt(operandBytes.length * 8);
+     }
      return val.toString();
   }
   
@@ -257,9 +261,16 @@ function formatOperand(opDef, operandBytes) {
     name === "TRY_L"
   ) {
     if (operandBytes.length <= 4) {
-      let val = readUIntLE(operandBytes, 0, operandBytes.length);
-      const bits = operandBytes.length * 8;
-      if (val >= 1 << (bits - 1)) val -= 1 << bits;
+      // Decode as little-endian signed integer. Use BigInt sign extension so
+      // 4-byte (32-bit) offsets are correct (JS `1 << 32` === 1 overflows).
+      let mag = 0n;
+      for (let i = operandBytes.length - 1; i >= 0; i--) {
+        mag = (mag * 256n) + BigInt(operandBytes[i]);
+      }
+      if (operandBytes[operandBytes.length - 1] & 0x80) {
+        mag -= 1n << BigInt(operandBytes.length * 8);
+      }
+      const val = Number(mag);
       return val >= 0 ? `+${val}` : String(val);
     }
     return `0x${hex}`;

@@ -101,7 +101,13 @@ const resolveRpcBaseUrl = () => {
   return ensureNetworkEndpointBase(getRpcApiBasePath());
 };
 
-// Single server — only primary endpoint.
+// Single-server architecture: a parsed network-aware base resolves to just its
+// own /primary endpoint. We intentionally do NOT append the default
+// rpc.n3index.dev candidates here — when a user pins VITE_RPC_BASE_URL to their
+// own proxy, silently failing over to unrelated default endpoints would change
+// routing semantics (and breaks the configured-base routing contract). The
+// default-base failover path lives in buildRetryBaseUrls' non-parsed branch,
+// which does append getRpcEndpointCandidates().
 const buildNetworkRetryBaseUrls = (parsed) => {
   return [`${parsed.prefix}/primary`];
 };
@@ -256,9 +262,13 @@ const validateEndpointNetwork = async ({ baseURL, timeout, signal }) => {
     if (error?.code === NETWORK_MISMATCH_ERROR_CODE || error?.isNetworkMismatch) {
       throw error;
     }
-    // If getversion is unavailable on an endpoint (e.g., Fura), continue without hard-failing.
-    // Cache it as valid so we don't penalize every subsequent request with a failing getversion call.
-    endpointNetworkCache.set(cacheKey, true);
+    // Transport failures (timeout/5xx/abort) tell us nothing about the
+    // endpoint's network. Do NOT cache on these — a wrong-network endpoint
+    // that merely timed out must remain re-probable. Only a successful
+    // getversion that confirms the network writes the cache (handled above).
+    // If getversion is unavailable on an endpoint (e.g., Fura), continue
+    // without hard-failing, but leave the cache untouched so a later
+    // successful probe can still validate the network.
   }
 };
 
@@ -303,6 +313,12 @@ const executeRpcRequestWithStartupHedge = async (
     settled = true;
     return { result, baseURL: fallbackBaseURL };
   })();
+
+  // Promise.any resolves on the first winner; the loser may still reject
+  // later. Swallow the loser's rejection so it never surfaces as an
+  // unhandled rejection (the meaningful error is already aggregated below).
+  primaryPromise.catch(() => {});
+  fallbackPromise.catch(() => {});
 
   try {
     return await Promise.any([primaryPromise, fallbackPromise]);

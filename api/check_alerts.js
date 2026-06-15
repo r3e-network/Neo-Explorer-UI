@@ -13,13 +13,15 @@ let supabaseClient = null;
 function getSupabaseClient() {
   if (supabaseClient) return supabaseClient;
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY;
+  // This cron performs privileged writes (network_alerts state updates), so it
+  // MUST use a service-role key. Never silently fall back to the public anon
+  // key — that key cannot bypass RLS and would make the writes fail or, worse,
+  // expose a public key for privileged operations.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) {
-    throw new Error("Network alerts storage is not configured.");
+    throw new Error(
+      "Network alerts storage is not configured: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.",
+    );
   }
   supabaseClient = createClient(url, key);
   return supabaseClient;

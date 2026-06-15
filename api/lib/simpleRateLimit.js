@@ -29,6 +29,23 @@ function getHeader(req, name) {
   return req?.headers?.[lower] || req?.headers?.[name] || "";
 }
 
+function isRunningOnVercel() {
+  return Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+}
+
+// Default to trusting proxy headers when deployed on Vercel: there, the
+// platform terminates the connection so req.socket.remoteAddress is always
+// the platform proxy and every client would otherwise collapse into one
+// rate-limit bucket. Locally (no VERCEL env) we keep trustProxy false so a
+// spoofed X-Forwarded-For can't bypass the limiter. An explicit
+// API_RATE_LIMIT_TRUST_PROXY of "0"/"1" always overrides the default.
+function resolveDefaultTrustProxy() {
+  const flag = String(process.env.API_RATE_LIMIT_TRUST_PROXY || "").trim();
+  if (flag === "1") return true;
+  if (flag === "0") return false;
+  return isRunningOnVercel();
+}
+
 function getClientIp(req, { trustProxy = false } = {}) {
   if (trustProxy) {
     const candidates = [
@@ -100,7 +117,7 @@ function enforceSimpleRateLimit({
   key,
   windowMs = DEFAULT_WINDOW_MS,
   maxRequests = DEFAULT_MAX_REQUESTS,
-  trustProxy = String(process.env.API_RATE_LIMIT_TRUST_PROXY || "").trim() === "1",
+  trustProxy = resolveDefaultTrustProxy(),
   nowMs = Date.now(),
 }) {
   const ip = getClientIp(req, { trustProxy });

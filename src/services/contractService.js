@@ -399,12 +399,16 @@ export const contractService = createService(
     async uploadVerification(nodeUrl, formData) {
       const ALLOWED_HOSTS = ["n3magnet.xyz", "ngd.network"];
       try {
-        const host = new URL(nodeUrl).hostname;
+        const url = new URL(nodeUrl);
+        if (url.protocol !== "https:") {
+          throw new Error("Verification node URL must use https");
+        }
+        const host = url.hostname;
         if (!ALLOWED_HOSTS.some((d) => host === d || host.endsWith("." + d))) {
           throw new Error("Verification node URL not in allowlist");
         }
       } catch (e) {
-        if (e.message.includes("allowlist")) throw e;
+        if (e.message.includes("allowlist") || e.message.includes("https")) throw e;
         throw new Error("Invalid verification node URL");
       }
       try {

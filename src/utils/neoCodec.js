@@ -156,7 +156,7 @@ export function decodeStackItem(stackItem, depth = 0, options = {}) {
     case "Array":
     case "Struct":
       if (Array.isArray(value)) {
-        const items = value.map((v) => decodeStackItem(v, depth + 1));
+        const items = value.map((v) => decodeStackItem(v, depth + 1, options));
         result.decodedValue = items.map((i) => i.displayValue).join(", ");
         result.displayValue = `[${result.decodedValue}]`;
       } else {
@@ -168,8 +168,8 @@ export function decodeStackItem(stackItem, depth = 0, options = {}) {
     case "Map":
       if (Array.isArray(value)) {
         const entries = value.map((entry) => {
-          const k = decodeStackItem(entry.key, depth + 1);
-          const v = decodeStackItem(entry.value, depth + 1);
+          const k = decodeStackItem(entry.key, depth + 1, options);
+          const v = decodeStackItem(entry.value, depth + 1, options);
           return `${k.displayValue}: ${v.displayValue}`;
         });
         result.decodedValue = entries.join(", ");

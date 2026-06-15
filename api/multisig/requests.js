@@ -1,10 +1,50 @@
 const { query } = require("../lib/db");
 const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
+const { callWithRpcEndpointFallback, normalizeNetwork } = require("../lib/rpcEndpoints");
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+// Caller-controlled committee fields. These MUST NOT be trusted from the
+// request body: downstream signature verification (api/lib/governanceSignature.js
+// -> resolveCommitteePubkeys) treats params.committee_pubkeys / committee /
+// pubkeys as the canonical committee membership set. An unauthenticated POST
+// could otherwise pin an attacker-controlled committee and have attacker
+// pubkeys pass the membership check.
+const COMMITTEE_PARAM_FIELDS = ["committee_pubkeys", "committee", "pubkeys"];
+
+function normalizePubkeyHex(value) {
+  return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
+}
+
+function paramsDeclareCommittee(params) {
+  if (!params || typeof params !== "object") return false;
+  return COMMITTEE_PARAM_FIELDS.some((field) => params[field] !== undefined);
+}
+
+async function resolveCanonicalCommittee(network) {
+  const committee = await callWithRpcEndpointFallback(network, async (url) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getcommittee", params: [] }),
+    });
+    if (!res.ok) throw new Error(`getcommittee HTTP ${res.status}`);
+    const json = await res.json();
+    if (json?.error) throw new Error(json.error.message || "getcommittee RPC error");
+    return json?.result;
+  });
+
+  const pubkeys = Array.isArray(committee)
+    ? committee.map(normalizePubkeyHex).filter(Boolean)
+    : [];
+  if (!pubkeys.length) {
+    throw new Error("getcommittee returned an empty committee set.");
+  }
+  return pubkeys;
 }
 
 module.exports = async function handler(req, res) {
@@ -65,6 +105,42 @@ module.exports = async function handler(req, res) {
         return;
       }
 
+      // Resolve the canonical committee server-side and overwrite any
+      // caller-supplied committee/allowlist fields in params. We never trust
+      // the committee set from the request body (it gates signature
+      // verification downstream). If the body declares a committee but we
+      // cannot resolve the canonical set, reject rather than store an
+      // unverifiable (caller-pinned) one.
+      const requestNetwork = normalizeNetwork(body.network || body.network_mode);
+      const incomingParams =
+        body.params && typeof body.params === "object" && !Array.isArray(body.params)
+          ? body.params
+          : null;
+
+      let resolvedCommittee = null;
+      try {
+        resolvedCommittee = await resolveCanonicalCommittee(requestNetwork);
+      } catch (committeeErr) {
+        console.error("[api/multisig/requests] committee resolution failed:", committeeErr);
+        if (paramsDeclareCommittee(incomingParams)) {
+          return res.status(502).json({
+            error: "Unable to resolve the canonical committee server-side; refusing to trust a caller-supplied committee.",
+          });
+        }
+      }
+
+      let sanitizedParams = incomingParams;
+      if (resolvedCommittee) {
+        sanitizedParams = { ...(incomingParams || {}) };
+        // Strip any caller-provided committee aliases, then pin the
+        // server-resolved canonical set so downstream verification only ever
+        // trusts pubkeys derived here.
+        for (const field of COMMITTEE_PARAM_FIELDS) {
+          delete sanitizedParams[field];
+        }
+        sanitizedParams.committee_pubkeys = resolvedCommittee;
+      }
+
       const columns = [];
       const values = [];
       const placeholders = [];
@@ -76,10 +152,17 @@ module.exports = async function handler(req, res) {
       ];
 
       for (const col of allowedColumns) {
+        if (col === "params") {
+          if (sanitizedParams === null || sanitizedParams === undefined) continue;
+          columns.push(col);
+          values.push(JSON.stringify(sanitizedParams));
+          placeholders.push(`$${values.length}`);
+          continue;
+        }
         if (body[col] !== undefined) {
           columns.push(col);
           values.push(
-            (col === "params" || col === "metadata") && typeof body[col] === "object"
+            col === "metadata" && typeof body[col] === "object"
               ? JSON.stringify(body[col])
               : body[col]
           );
