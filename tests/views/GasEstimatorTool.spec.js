@@ -90,6 +90,8 @@ vi.mock("@/components/common/Breadcrumb.vue", () => ({
 describe("GasEstimatorTool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+    callWithRpcEndpointFallbackMock.mockImplementation(async (_env, callback) => callback("https://rpc.example"));
     window.Neon = {
       rpc: { RPCClient: MockRpcClient },
       tx: {
@@ -126,5 +128,31 @@ describe("GasEstimatorTool", () => {
     expect(calculateNetworkFeeMock).toHaveBeenCalledTimes(1);
     expect(toast.success).toHaveBeenCalledWith("tools.gasEstimator.toastComplete");
     expect(wrapper.text()).toContain("tools.gasEstimator.totalEstimatedCost");
+  });
+
+  it("surfaces a timeout when RPC fee simulation does not settle", async () => {
+    vi.useFakeTimers();
+    callWithRpcEndpointFallbackMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    const GasEstimatorTool = (await import("@/views/Tools/GasEstimatorTool.vue")).default;
+    const wrapper = mount(GasEstimatorTool, {
+      global: {
+        plugins: [i18nPlugin],
+      },
+    });
+
+    await wrapper.find("textarea").setValue("AQ==");
+    const estimateButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("tools.gasEstimator.estimateFees"));
+    await estimateButton.trigger("click");
+
+    await vi.advanceTimersByTimeAsync(15000);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("tools.gasEstimator.timeoutError");
+    expect(toast.error).toHaveBeenCalledWith("tools.gasEstimator.toastFailed");
+
+    vi.useRealTimers();
   });
 });

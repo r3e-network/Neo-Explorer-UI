@@ -5,6 +5,12 @@ import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { resolveNetworkName } from "@/utils/env";
 
+const unsupportedContractCallsRestNetworks = new Set();
+
+function shouldUseContractCallsRest(options = {}) {
+  return Boolean(options.enableContractCallsRest || import.meta.env.VITE_ENABLE_CONTRACT_CALLS_REST === "true");
+}
+
 // state_json arrives from the indexer as a JSON-encoded string; the
 // table renderer expects the parsed object. Fall back to the original
 // string if it's malformed so the row still surfaces.
@@ -51,38 +57,43 @@ export const contractService = createService(
       const overviewPromise = indexerReadService.getContractOverview(hash, options).catch(() => null);
 
       // Source 1: the new dedicated REST endpoint.
-      try {
-        const params = new URLSearchParams({
-          network: `eq.${network}`,
-          contract_hash: `eq.${hash}`,
-          limit: String(limit),
-          offset: String(skip),
-        });
-        const [restRes, overview] = await Promise.all([
-          fetch(`/rest/${network}/contract_calls?${params}`, { headers: { Accept: "application/json" } }),
-          overviewPromise,
-        ]);
-        if (restRes.ok) {
-          const rows = await restRes.json();
-          if (Array.isArray(rows) && rows.length > 0) {
-            const authoritativeTxCount = Number(overview?.tx_count);
-            return {
-              result: rows.map((r) => ({
-                txid: r.txid,
-                blockindex: r.block_index,
-                method: r.first_event_name || "—",
-                callFlags: "",
-                originSender: r.origin_sender || null,
-              })),
-              totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
-                ? authoritativeTxCount
-                : skip + rows.length + (rows.length === limit ? 1 : 0),
-            };
+      if (shouldUseContractCallsRest(options) && !unsupportedContractCallsRestNetworks.has(network)) {
+        try {
+          const params = new URLSearchParams({
+            network: `eq.${network}`,
+            contract_hash: `eq.${hash}`,
+            limit: String(limit),
+            offset: String(skip),
+          });
+          const [restRes, overview] = await Promise.all([
+            fetch(`/rest/${network}/contract_calls?${params}`, { headers: { Accept: "application/json" } }),
+            overviewPromise,
+          ]);
+          if (restRes.ok) {
+            const rows = await restRes.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+              const authoritativeTxCount = Number(overview?.tx_count);
+              return {
+                result: rows.map((r) => ({
+                  txid: r.txid,
+                  blockindex: r.block_index,
+                  method: r.first_event_name || "—",
+                  callFlags: "",
+                  originSender: r.origin_sender || null,
+                })),
+                totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
+                  ? authoritativeTxCount
+                  : skip + rows.length + (rows.length === limit ? 1 : 0),
+              };
+            }
           }
-        }
-        // 404 here means the read-api hasn't been redeployed yet with
-        // the new endpoint. Fall through to source 2.
-      } catch { /* network error; fall through */ }
+          if (restRes.status === 404) {
+            unsupportedContractCallsRestNetworks.add(network);
+          }
+          // 404 here means the read-api hasn't been redeployed yet with
+          // the new endpoint. Fall through to source 2.
+        } catch { /* network error; fall through */ }
+      }
 
       // Source 2: derive client-side from contract_notifications + signers.
       try {

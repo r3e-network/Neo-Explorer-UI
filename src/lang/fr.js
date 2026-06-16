@@ -1302,6 +1302,7 @@ const fr = {
       toastSimulating: "Simulation de l'exécution...",
       toastFaulted: "Erreur de simulation. Consultez les détails de l'exception.",
       toastComplete: "Simulation terminée !",
+      timeoutError: "La simulation a expiré. Réessayez plus tard.",
       invalidScript: "Format de script invalide ou nœud inaccessible.",
       toastFailed: "Échec de la simulation",
     },

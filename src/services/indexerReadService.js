@@ -400,26 +400,36 @@ export const indexerReadService = {
   async getToken(contractHash, options = {}) {
     const network = resolveIndexerNetworkPath();
     if (!contractHash) return null;
+
+    const { standard = "", ...fetchOptions } = options || {};
+    const isNep11 = String(standard || "")
+      .trim()
+      .toUpperCase() === "NEP11";
+    const findNep11Token = async () => {
+      // The single-token endpoint is NEP-17-only on the indexer side
+      // (GetTokenOverview gates on nep17_transfers). For NEP-11 contracts it
+      // returns 404; when the caller already knows the standard, skip that
+      // noisy request and fetch the compact NEP-11 catalog directly.
+      const list = await fetchIndexerJsonWithFallback(
+        buildIndexerFallbackPaths(network, `tokens?standard=NEP11&limit=200`),
+        fetchOptions,
+      );
+      const target = String(contractHash).toLowerCase();
+      return (list?.data || []).find(
+        (r) => String(r.contract_hash || "").toLowerCase() === target,
+      ) || null;
+    };
+
+    if (isNep11) {
+      return findNep11Token();
+    }
+
     const payload = await fetchIndexerJsonWithFallback(
       buildIndexerFallbackPaths(network, `tokens/${contractHash}`),
-      options,
+      fetchOptions,
     );
-    if (payload?.data) return payload.data;
-    // The single-token endpoint is NEP-17-only on the indexer side
-    // (GetTokenOverview gates on nep17_transfers). For NEP-11 contracts it
-    // returns 404 (fetchIndexerJsonWithFallback yields null); the list
-    // endpoint's `search` only matches display_name/symbol/manifest-name,
-    // not contract_hash, so we fetch the full NEP-11 list (~72 rows on
-    // mainnet) and filter client-side.
-    const list = await fetchIndexerJsonWithFallback(
-      buildIndexerFallbackPaths(network, `tokens?standard=NEP11&limit=200`),
-      options,
-    );
-    const target = String(contractHash).toLowerCase();
-    const row = (list?.data || []).find(
-      (r) => String(r.contract_hash || "").toLowerCase() === target,
-    );
-    return row || null;
+    if (payload?.data && !Array.isArray(payload.data)) return payload.data;
+    return findNep11Token();
   },
 
   async getDailyAnalytics(days = 30, options = {}) {

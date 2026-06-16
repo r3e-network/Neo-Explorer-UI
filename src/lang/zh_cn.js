@@ -1305,6 +1305,7 @@ const zh = {
       toastSimulating: "正在模拟执行...",
       toastFaulted: "模拟发生错误。请查看异常详细信息。",
       toastComplete: "模拟完成！",
+      timeoutError: "模拟超时，请稍后重试。",
       invalidScript: "脚本格式无效或节点不可达。",
       toastFailed: "模拟失败",
     },

@@ -142,7 +142,7 @@ describe("contractService.getScCalls fallback chain", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const { contractService } = await import("../../src/services/contractService.js");
-    const result = await contractService.getScCalls(HASH, 20, 0);
+    const result = await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/contract_calls"),
@@ -181,7 +181,7 @@ describe("contractService.getScCalls fallback chain", () => {
     });
 
     const { contractService } = await import("../../src/services/contractService.js");
-    const result = await contractService.getScCalls(HASH, 20, 0);
+    const result = await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
 
     expect(getContractNotificationsMock).toHaveBeenCalled();
     expect(result.result).toEqual([
@@ -189,6 +189,48 @@ describe("contractService.getScCalls fallback chain", () => {
     ]);
     expect(result.totalCount).toBe(99);
     expect(safeRpcListMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("does not keep probing the dedicated REST endpoint after it returns unsupported", async () => {
+    getContractOverviewMock.mockResolvedValue({ tx_count: 2 });
+    getContractNotificationsMock.mockResolvedValue({
+      data: [{ txid: "0xt1", block_index: 50, event_name: "Transfer" }],
+      paging: { total: 1 },
+    });
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
+      if (url.includes("/transaction_signers")) return { ok: true, json: async () => [] };
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
+    await contractService.getScCalls(HASH, 20, 20, { enableContractCallsRest: true });
+
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/contract_calls"))).toHaveLength(1);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("skips the dedicated REST endpoint by default until the read-api route is enabled", async () => {
+    getContractOverviewMock.mockResolvedValue({ tx_count: 1 });
+    getContractNotificationsMock.mockResolvedValue({
+      data: [{ txid: "0xt1", block_index: 50, event_name: "Transfer" }],
+      paging: { total: 1 },
+    });
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/transaction_signers")) return { ok: true, json: async () => [] };
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    await contractService.getScCalls(HASH, 20, 0);
+
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/contract_calls"))).toBe(false);
 
     vi.unstubAllGlobals();
   });
@@ -208,7 +250,7 @@ describe("contractService.getScCalls fallback chain", () => {
     });
 
     const { contractService } = await import("../../src/services/contractService.js");
-    const result = await contractService.getScCalls(HASH, 20, 0);
+    const result = await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
 
     expect(safeRpcListMock).not.toHaveBeenCalled();
     expect(result).toEqual({ result: [], totalCount: 0 });

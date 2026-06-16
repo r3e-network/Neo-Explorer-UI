@@ -128,6 +128,31 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc");
   });
 
+  it("can load a NEP-11 token without first hitting the NEP-17-only token detail endpoint", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          { contract_hash: "0xother", standard: "NEP11" },
+          { contract_hash: "0xabc", standard: "NEP11", display_name: "Example NFT" },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const token = await indexerReadService.getToken("0xabc", { standard: "NEP11" });
+
+    expect(token).toEqual({ contract_hash: "0xabc", standard: "NEP11", display_name: "Example NFT" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/tokens?standard=NEP11&limit=200");
+  });
+
   it("serves getSummary from a short result cache when calls land within the TTL", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),

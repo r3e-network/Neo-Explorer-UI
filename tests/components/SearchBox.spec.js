@@ -87,6 +87,16 @@ describe("SearchBox", () => {
     expect(wrapper.find("button[aria-label='searchBox.ariaSubmit']").classes()).toContain("search-submit-btn");
   });
 
+  it("allows the full search controls to shrink inside a mobile viewport", () => {
+    const wrapper = factory({ mode: "full" });
+    const shell = wrapper.find(".search-input-shell");
+    const input = wrapper.find("input");
+
+    expect(shell.exists()).toBe(true);
+    expect(shell.classes()).toContain("min-w-0");
+    expect(input.classes()).toContain("min-w-0");
+  });
+
   it("selects highlighted suggestion with Enter", async () => {
     const wrapper = factory();
     const input = wrapper.find("input");

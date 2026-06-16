@@ -3,11 +3,11 @@
     <div class="mx-auto flex h-8 max-w-[1400px] items-center justify-between px-4 text-xs">
       <div class="flex items-center gap-3 text-white/70">
         <span>NEO:</span>
-        <span class="font-semibold text-white">${{ formatPrice(neoPrice) }}</span>
-        <span :class="Number(neoPriceChange || 0) >= 0 ? 'text-green-400' : 'text-red-400'">({{ formatPriceChange(neoPriceChange) }})</span>
+        <span class="font-semibold text-white">{{ formatPriceLabel(neoPrice) }}</span>
+        <span :class="priceUnavailable ? 'text-white/50' : Number(neoPriceChange || 0) >= 0 ? 'text-green-400' : 'text-red-400'">({{ formatChangeLabel(neoPriceChange) }})</span>
         <span class="hidden text-white/30 sm:inline">|</span>
         <span class="hidden sm:inline">GAS:</span>
-        <span class="hidden font-semibold text-white sm:inline">${{ formatPrice(gasPrice) }}</span>
+        <span class="hidden font-semibold text-white sm:inline">{{ formatPriceLabel(gasPrice) }}</span>
       </div>
       <div class="flex items-center gap-2">
         <div ref="networkDropdown" class="relative">
@@ -56,10 +56,11 @@ import { formatPrice, formatPriceChange } from "@/utils/explorerFormat";
 
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
   neoPrice: { type: Number, default: 0 },
   gasPrice: { type: Number, default: 0 },
   neoPriceChange: { type: Number, default: 0 },
+  priceUnavailable: { type: Boolean, default: false },
   currentNetworkLabel: { type: String, default: "" },
   currentNetwork: { type: String, default: "" },
   networks: { type: Array, default: () => [] },
@@ -69,6 +70,14 @@ defineProps({
 defineEmits(["select-network", "toggle-network-dropdown"]);
 
 const networkDropdown = ref(null);
+
+function formatPriceLabel(value) {
+  return props.priceUnavailable ? "N/A" : `$${formatPrice(value)}`;
+}
+
+function formatChangeLabel(value) {
+  return props.priceUnavailable ? "N/A" : formatPriceChange(value);
+}
 
 defineExpose({ networkDropdown });
 </script>

@@ -12,7 +12,7 @@
       />
 
       <!-- Page header -->
-      <div class="mb-6 flex items-center gap-3">
+      <div class="tx-trace-page-header mb-6 flex items-start gap-3 sm:items-center">
         <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -23,11 +23,13 @@
             />
           </svg>
         </div>
-        <div>
+        <div class="tx-trace-title-block min-w-0 flex-1">
           <h1 class="page-title">{{ $t('executionTracePage.title') }}</h1>
-          <div class="flex items-center gap-2">
-            <span class="page-subtitle">{{ $t('executionTracePage.transactionLabel') }}</span>
-            <HashLink :hash="txHash" type="tx" :truncated="false" />
+          <div class="tx-trace-hash-row flex min-w-0 flex-wrap items-center gap-2">
+            <span class="page-subtitle flex-shrink-0">{{ $t('executionTracePage.transactionLabel') }}</span>
+            <span class="min-w-0 max-w-full">
+              <HashLink :hash="txHash" type="tx" :truncated="false" />
+            </span>
           </div>
         </div>
       </div>

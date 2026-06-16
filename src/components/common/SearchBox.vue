@@ -6,7 +6,7 @@
   >
     <div
       :class="[
-        'relative flex items-center transition-all duration-300 rounded-xl backdrop-blur-md shadow-card focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)]',
+        'search-input-shell relative flex min-w-0 items-center transition-all duration-300 rounded-xl backdrop-blur-md shadow-card focus-within:shadow-[0_0_20px_rgba(0,229,153,0.3)]',
         mode === 'full' 
           ? 'h-[64px] border border-white/20 bg-white/10 hover:border-white/30 focus-within:border-primary-500' 
           : 'h-[44px] border border-line-soft bg-surface/80 hover:border-primary-400 focus-within:border-primary-500',
@@ -17,7 +17,7 @@
         v-if="mode === 'full'"
         v-model="activeFilter"
         name="filter"
-        class="h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 bg-transparent hover:bg-white/5 py-4 pl-4 pr-10 text-sm font-bold text-white transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
+        class="search-filter-select h-full cursor-pointer appearance-none rounded-l-xl border-r border-white/20 bg-transparent hover:bg-white/5 py-4 pl-4 pr-10 text-sm font-bold text-white transition-colors focus:outline-none focus:ring-0 flex-shrink-0"
         :aria-label="t('searchBox.ariaFilter')"
       >
         <option v-for="f in filters" :key="f.value" :value="f.value" class="bg-slate-900 text-white">
@@ -26,7 +26,7 @@
       </select>
 
       <!-- Search Icon -->
-      <div class="flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-5' : 'pl-4'">
+      <div class="search-icon-cell flex-shrink-0 flex items-center gap-1.5" :class="mode === 'full' ? 'pl-5' : 'pl-4'">
         <svg
           class="w-4 h-4 transition-colors duration-300 group-focus-within:text-primary-500"
           :class="mode === 'full' ? 'text-white/70' : 'text-mid'"
@@ -61,7 +61,7 @@
         name="q"
         :placeholder="currentPlaceholder"
         :class="[
-          'flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent font-medium',
+          'search-input min-w-0 flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent font-medium',
           mode === 'full'
             ? 'px-4 py-4 pr-28 text-base border-none text-high placeholder:text-mid'
             : 'px-3 py-2 pr-12 text-sm border-none text-high placeholder:text-mid',
@@ -514,6 +514,29 @@ onBeforeUnmount(() => {
 .search-tip-code {
   background: var(--surface-hover);
   color: var(--text-high);
+}
+
+@media (max-width: 480px) {
+  .search-filter-select {
+    max-width: 8.5rem;
+    padding-left: 1rem;
+    padding-right: 2rem;
+  }
+
+  .search-icon-cell {
+    padding-left: 0.75rem;
+  }
+
+  .search-input {
+    padding-left: 0.75rem;
+    padding-right: 5.75rem;
+  }
+
+  .search-submit-btn.btn-primary {
+    min-width: 5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 
 .dropdown-enter-active,

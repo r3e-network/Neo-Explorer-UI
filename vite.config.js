@@ -12,6 +12,11 @@ const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 const PRICE_ENDPOINT_PATH = "/api/prices";
 const PRICE_UPSTREAM_PATH = "/api/v3/simple/price?ids=neo,gas&vs_currencies=usd&include_24hr_change=true";
 const DEV_PRICE_CACHE_TTL_MS = 60 * 1000;
+const UNAVAILABLE_PRICE_PAYLOAD = {
+  neo: { usd: null, usd_24h_change: null },
+  gas: { usd: null, usd_24h_change: null },
+  pricingUnavailable: true,
+};
 
 let devPriceCache = {
   payload: null,
@@ -26,13 +31,21 @@ function createDevMultisigApiPlugin() {
 
       // Always register the middleware so /api/multisig/* never falls through
       // to Vite's static-asset handler (which would serve the raw source file).
-      // When DATABASE_URL is unset, return a clear 503 JSON instead.
+      // When DATABASE_URL is unset, keep read-only pages inspectable in dev
+      // while still blocking mutations that need persistence.
       if (!DATABASE_URL) {
-        server.middlewares.use("/api/multisig", (_req, res) => {
+        server.middlewares.use("/api/multisig", (req, res) => {
+          if (req.method === "GET" && req.url.startsWith("/requests")) {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify([]));
+            return;
+          }
+
           res.statusCode = 503;
           res.setHeader("Content-Type", "application/json");
           res.end(JSON.stringify({
-            error: "DATABASE_URL not configured for dev — multisig API unavailable.",
+            error: "Multisig mutations require DATABASE_URL in dev.",
           }));
         });
         return;
@@ -150,9 +163,12 @@ function createDevPriceProxyPlugin(target) {
             return;
           }
 
-          res.statusCode = 502;
           res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ error: error.message || "Price fetch failed" }));
+          res.setHeader("Cache-Control", "no-store");
+          res.end(JSON.stringify({
+            ...UNAVAILABLE_PRICE_PAYLOAD,
+            error: error.message || "Price fetch failed",
+          }));
         }
       });
     },

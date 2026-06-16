@@ -1305,6 +1305,7 @@ const ja = {
       toastSimulating: "実行をシミュレートしています...",
       toastFaulted: "シミュレーションが失敗しました。例外の詳細を確認してください。",
       toastComplete: "シミュレーション完了！",
+      timeoutError: "シミュレーションがタイムアウトしました。後でもう一度お試しください。",
       invalidScript: "無効なスクリプト形式、またはノードに到達できません。",
       toastFailed: "シミュレーションに失敗しました",
     },

@@ -1305,6 +1305,7 @@ const en = {
       toastSimulating: "Simulating execution...",
       toastFaulted: "Simulation FAULTED. See exception details.",
       toastComplete: "Simulation complete!",
+      timeoutError: "Simulation timed out. Please try again later.",
       invalidScript: "Invalid script format or node unreachable.",
       toastFailed: "Simulation failed",
     },

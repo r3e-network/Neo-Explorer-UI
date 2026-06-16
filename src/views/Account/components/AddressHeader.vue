@@ -30,12 +30,12 @@
         <div class="flex items-center gap-2 flex-wrap">
           <span
             v-if="publicTag"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
+            class="inline-flex min-w-0 max-w-full items-center gap-1.5 break-all rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
           >
             <img
               v-if="publicTagLogo"
               :src="publicTagLogo"
-              class="h-3.5 w-3.5 rounded-full object-cover bg-white"
+              class="h-3.5 w-3.5 flex-shrink-0 rounded-full object-cover bg-white"
               :alt="$t('addressDetail.publicTagAlt')"
             />
             {{ publicTag }}

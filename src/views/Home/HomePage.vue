@@ -23,6 +23,7 @@
       :neo-price-change="neoPriceChange"
       :gas-price-change="gasPriceChange"
       :market-cap="marketCap"
+      :price-unavailable="priceUnavailable"
       :tx-count="txCount"
       :block-count="blockCount"
       :latest-block-timestamp="latestBlocks[0]?.timestamp"
@@ -87,6 +88,7 @@ const gasPrice = ref(0);
 const neoPriceChange = ref(0);
 const gasPriceChange = ref(0);
 const marketCap = ref(0);
+const priceUnavailable = ref(false);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
@@ -584,6 +586,7 @@ async function loadPrices() {
     neoPriceChange.value = data.neoChange;
     gasPriceChange.value = data.gasChange;
     marketCap.value = data.marketCap;
+    priceUnavailable.value = Boolean(data.pricingUnavailable);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("[HomePage] loadPrices failed:", err);
   }

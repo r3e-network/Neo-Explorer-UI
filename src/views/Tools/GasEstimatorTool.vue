@@ -255,6 +255,7 @@ import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 
 const { t } = useI18n();
 const toast = useToast();
+const ESTIMATE_TIMEOUT_MS = 15000;
 const scriptFormat = ref("base64");
 const scriptInput = ref("");
 const signers = ref([]);
@@ -284,6 +285,19 @@ function removeSigner(index) {
 function formatFee(rawIntStr) {
   if (!rawIntStr) return "0";
   return (Number(rawIntStr) / 100000000).toFixed(8).replace(/\.?0+$/, "");
+}
+
+function withEstimateTimeout(promise) {
+  let timeoutId = null;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(t("tools.gasEstimator.timeoutError")));
+    }, ESTIMATE_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 }
 
 async function estimateGas() {
@@ -335,28 +349,30 @@ async function estimateGas() {
     }
 
     toast.info(t("tools.gasEstimator.toastSimulating"));
-    const { invokeRes, rawNetworkFee } = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-      const rpcClient = new rpc.RPCClient(endpoint);
-      // neon-js's RPC client takes positional args, not object-wrapped:
-      //   invokeScript(script, signers)
-      //   calculateNetworkFee(tx)  — accepts Transaction; serializes + base64-encodes internally.
-      const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
+    const { invokeRes, rawNetworkFee } = await withEstimateTimeout(
+      callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+        const rpcClient = new rpc.RPCClient(endpoint);
+        // neon-js's RPC client takes positional args, not object-wrapped:
+        //   invokeScript(script, signers)
+        //   calculateNetworkFee(tx)  — accepts Transaction; serializes + base64-encodes internally.
+        const invokeRes = await rpcClient.invokeScript(base64Script, invokeSigners);
 
-      // Build a dummy transaction for precise network-fee sizing.
-      const txn = new tx.Transaction({
-        signers: invokeSigners,
-        validUntilBlock: (await rpcClient.getBlockCount()) + 1000,
-        script: hexScript,
-        systemFee: invokeRes.gasconsumed || 0,
-      });
+        // Build a dummy transaction for precise network-fee sizing.
+        const txn = new tx.Transaction({
+          signers: invokeSigners,
+          validUntilBlock: (await rpcClient.getBlockCount()) + 1000,
+          script: hexScript,
+          systemFee: invokeRes.gasconsumed || 0,
+        });
 
-      for (const acc of accounts) {
-        txn.sign(acc, 860833102); // magic does not affect serialized size
-      }
+        for (const acc of accounts) {
+          txn.sign(acc, 860833102); // magic does not affect serialized size
+        }
 
-      const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
-      return { invokeRes, rawNetworkFee };
-    });
+        const rawNetworkFee = await rpcClient.calculateNetworkFee(txn);
+        return { invokeRes, rawNetworkFee };
+      }),
+    );
 
     const sysFeeDec = Number(invokeRes.gasconsumed || 0) / 100000000;
     const netFeeDec = Number(rawNetworkFee || 0) / 100000000;

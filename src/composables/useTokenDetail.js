@@ -20,9 +20,10 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
  * @param {string}   config.defaultTab  - Initial active tab key (e.g. "transfers" | "nfts").
  * @param {Array<{key: string, label: string}>} config.tabs - Tab definitions.
  * @param {(info: Object) => void} [config.onTokenLoaded] - Optional callback fired after token data loads.
+ * @param {string} [config.standard] - Optional known token standard, e.g. "NEP11".
  * @returns {Object} Reactive state and methods for the token detail view.
  */
-export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
+export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" } = {}) {
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -43,7 +44,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded } = {}) {
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
   // ---------------------------------------------------------------------------
   const { data: tokenInfo, loading: tokenLoading, error: tokenError, execute: executeTokenFetch } = useAsync(
-    (id, { signal }) => tokenService.getByHashWithFallback(id, { signal }),
+    (id, { signal }) => tokenService.getByHashWithFallback(id, { signal, standard }),
     {
       initialData: {},
       onSuccess: (res) => {

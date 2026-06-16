@@ -12,12 +12,18 @@ const prices = ref({
   neoChange: 0,
   gasChange: 0,
   marketCap: 0,
+  pricingUnavailable: false,
 });
 
 const loading = ref(false);
 const lastFetch = ref(0);
 const CACHE_TTL = 60 * 1000; // 60秒缓存
 let pendingPromise = null; // shared promise for concurrent callers
+
+function toFiniteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
 
 /**
  * 获取价格数据
@@ -38,14 +44,19 @@ async function fetchPrices(force = false) {
   pendingPromise = (async () => {
     try {
       const response = await fetch("/api/prices", { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) throw new Error(`Price endpoint status ${response.status}`);
       const data = await response.json();
+      const pricingUnavailable = Boolean(data?.pricingUnavailable);
+      const neo = pricingUnavailable ? 0 : toFiniteNumber(data?.neo?.usd);
+      const gas = pricingUnavailable ? 0 : toFiniteNumber(data?.gas?.usd);
 
       prices.value = {
-        neo: data.neo?.usd || 0,
-        gas: data.gas?.usd || 0,
-        neoChange: data.neo?.usd_24h_change || 0,
-        gasChange: data.gas?.usd_24h_change || 0,
-        marketCap: (data.neo?.usd || 0) * 100000000,
+        neo,
+        gas,
+        neoChange: pricingUnavailable ? 0 : toFiniteNumber(data?.neo?.usd_24h_change),
+        gasChange: pricingUnavailable ? 0 : toFiniteNumber(data?.gas?.usd_24h_change),
+        marketCap: neo * 100000000,
+        pricingUnavailable,
       };
       lastFetch.value = now;
     } catch {

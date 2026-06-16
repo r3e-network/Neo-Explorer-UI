@@ -25,16 +25,16 @@
               <div class="stat-label">{{ $t("homePage.statNeoPrice") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !neoPrice" width="80px" height="28px" class="mt-1 inline-block" />
-                <span v-else>${{ formatPrice(neoPrice) }}</span>
+                <span v-else>{{ formatPriceLabel(neoPrice) }}</span>
               </div>
             </div>
           </div>
           <div
             class="mt-1 text-xs"
-            :class="priceChangeClass(neoPriceChange)"
+            :class="priceUnavailable ? 'text-mid' : priceChangeClass(neoPriceChange)"
             :aria-label="$t('homePage.neo24hChangeAria', { description: describePriceChange(neoPriceChange) })"
           >
-            {{ formatPriceChange(neoPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
+            {{ formatChangeLabel(neoPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
         </div>
 
@@ -56,16 +56,16 @@
               <div class="stat-label">{{ $t("homePage.statGasPrice") }}</div>
               <div class="stat-value">
                 <Skeleton v-if="loading && !gasPrice" width="80px" height="28px" class="mt-1 inline-block" />
-                <span v-else>${{ formatPrice(gasPrice) }}</span>
+                <span v-else>{{ formatPriceLabel(gasPrice) }}</span>
               </div>
             </div>
           </div>
           <div
             class="mt-1 text-xs"
-            :class="priceChangeClass(gasPriceChange)"
+            :class="priceUnavailable ? 'text-mid' : priceChangeClass(gasPriceChange)"
             :aria-label="$t('homePage.gas24hChangeAria', { description: describePriceChange(gasPriceChange) })"
           >
-            {{ formatPriceChange(gasPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
+            {{ formatChangeLabel(gasPriceChange) }} <span class="text-low">{{ $t("homePage.over24h") }}</span>
           </div>
         </div>
 
@@ -145,7 +145,7 @@
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="mini-stat">
             <span class="mini-label">{{ $t("homePage.miniMarketCap") }}</span>
-            <span class="mini-value">${{ formatLargeNumber(marketCap) }}</span>
+            <span class="mini-value">{{ formatLargeUsdLabel(marketCap) }}</span>
           </div>
           <div class="mini-stat">
             <span class="mini-label">{{ $t("homePage.miniLastFinalized") }}</span>
@@ -159,7 +159,7 @@
           </div>
           <div class="mini-stat">
             <span class="mini-label">{{ $t("homePage.miniEstFeeCost") }}</span>
-            <span class="mini-value">~${{ gasCostUsd }}</span>
+            <span class="mini-value">{{ gasCostUsdLabel }}</span>
           </div>
         </div>
       </div>
@@ -185,6 +185,7 @@ const props = defineProps({
   neoPriceChange: { type: Number, default: 0 },
   gasPriceChange: { type: Number, default: 0 },
   marketCap: { type: Number, default: 0 },
+  priceUnavailable: { type: Boolean, default: false },
   txCount: { type: Number, default: 0 },
   blockCount: { type: Number, default: 0 },
   tps: { type: Number, default: 0 },
@@ -247,7 +248,22 @@ const gasCostUsd = computed(() => {
   return usd < 0.01 ? "<0.01" : usd.toFixed(2);
 });
 
+const gasCostUsdLabel = computed(() => (props.priceUnavailable ? "N/A" : `~$${gasCostUsd.value}`));
+
+function formatPriceLabel(value) {
+  return props.priceUnavailable ? "N/A" : `$${formatPrice(value)}`;
+}
+
+function formatChangeLabel(value) {
+  return props.priceUnavailable ? "N/A" : formatPriceChange(value);
+}
+
+function formatLargeUsdLabel(value) {
+  return props.priceUnavailable ? "N/A" : `$${formatLargeNumber(value)}`;
+}
+
 function describePriceChange(value) {
+  if (props.priceUnavailable) return "N/A";
   const change = Number(value) || 0;
   if (change > 0) return t("homePage.priceChangeUp", { percent: Math.abs(change).toFixed(2) });
   if (change < 0) return t("homePage.priceChangeDown", { percent: Math.abs(change).toFixed(2) });

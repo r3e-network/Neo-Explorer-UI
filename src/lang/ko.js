@@ -1305,6 +1305,7 @@ const ko = {
       toastSimulating: "실행을 시뮬레이션하는 중...",
       toastFaulted: "시뮬레이션이 실패했습니다. 예외 세부 정보를 확인하세요.",
       toastComplete: "시뮬레이션 완료!",
+      timeoutError: "시뮬레이션 시간이 초과되었습니다. 잠시 후 다시 시도하세요.",
       invalidScript: "잘못된 스크립트 형식이거나 노드에 연결할 수 없습니다.",
       toastFailed: "시뮬레이션 실패",
     },

@@ -51,7 +51,7 @@ describe("api/prices", () => {
     expect(JSON.parse(res.getBody())).toEqual(payload);
   });
 
-  it("returns a JSON error instead of hanging when the upstream fetch fails", async () => {
+  it("returns a structured unavailable payload instead of a failed page resource", async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("upstream timeout"));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -60,10 +60,13 @@ describe("api/prices", () => {
 
     await handler({ method: "GET" }, res);
 
-    expect(res.statusCode).toBe(502);
+    expect(res.statusCode).toBe(200);
     expect(res.headers["Content-Type"]).toBe("application/json");
-    expect(JSON.parse(res.getBody())).toEqual({
-      error: "Price fetch failed",
+    expect(res.headers["Cache-Control"]).toBe("no-store");
+    expect(JSON.parse(res.getBody())).toMatchObject({
+      pricingUnavailable: true,
+      neo: { usd: null, usd_24h_change: null },
+      gas: { usd: null, usd_24h_change: null },
     });
   });
 });

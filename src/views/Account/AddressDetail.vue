@@ -158,6 +158,7 @@ import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { supabaseService } from "@/services/supabaseService";
 import nnsService from "@/services/nnsService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { isHash160Hex } from "@/utils/walletNormalization";
 import { useToast } from "vue-toastification";
 
 const route = useRoute();
@@ -470,12 +471,14 @@ async function loadSummary(addr) {
     txCount.value = summary.txCount;
     tokenCount.value = summary.tokenCount;
 
-    try {
-      const contract = await contractService.getByHashWithFallback(addr);
-      if (currentRequestId !== addressRequestId) return;
-      isContract.value = !!(contract && contract.hash);
-    } catch {
-      isContract.value = false;
+    if (isHash160Hex(addr)) {
+      try {
+        const contract = await contractService.getByHashWithFallback(addr);
+        if (currentRequestId !== addressRequestId) return;
+        isContract.value = !!(contract && contract.hash);
+      } catch {
+        isContract.value = false;
+      }
     }
 
     try {

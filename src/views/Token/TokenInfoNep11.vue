@@ -142,6 +142,7 @@ const {
   reloadToken,
 } = useTokenDetail({
   defaultTab: "transfers",
+  standard: "NEP11",
   tabs: [
     { key: "transfers", label: t("tokenDetail.nep11TabTransfers") },
     { key: "nfts", label: t("tokenDetail.nep11TabNfts") },

@@ -6,6 +6,7 @@
       :neo-price="neoPrice"
       :gas-price="gasPrice"
       :neo-price-change="neoPriceChange"
+      :price-unavailable="priceUnavailable"
       :current-network-label="currentNetworkLabel"
       :current-network="currentNetwork"
       :networks="NETWORKS"
@@ -240,6 +241,7 @@ const neoPrice = ref(0);
 const gasPrice = ref(0);
 const neoPriceChange = ref(0);
 const gasPriceChange = ref(0);
+const priceUnavailable = ref(false);
 
 const currentNetwork = ref(getCurrentEnv());
 const walletLoading = ref(false);
@@ -518,6 +520,7 @@ async function loadPrices() {
   gasPrice.value = data.gas;
   neoPriceChange.value = data.neoChange;
   gasPriceChange.value = data.gasChange;
+  priceUnavailable.value = Boolean(data.pricingUnavailable);
 }
 
 async function bootstrapChatSession() {
