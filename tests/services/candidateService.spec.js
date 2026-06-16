@@ -70,40 +70,63 @@ describe("candidateService", () => {
     });
   });
 
-  describe("getByAddress", () => {
-    it("calls safeRpc with the given address", async () => {
-      const candidate = { address: "NAddr1", votes: "100" };
-      api.safeRpc.mockResolvedValueOnce(candidate);
+  const PK1 = "020a135910609c72930b9ed4701b396065346aeb96b54f920827d8efe61f2ec855";
+  const PK2 = "02237309a0633ff930d51856db01d17c829a5b2e5cc2638e9c03b4cfa8e9c9f971";
 
-      const result = await candidateService.getByAddress("NAddr1");
-      expect(api.safeRpc).toHaveBeenCalledWith(
+  describe("getByAddress", () => {
+    it("derives candidate status + votes from node getcandidates (#186)", async () => {
+      api.safeRpc.mockResolvedValueOnce([
+        { publickey: PK1, votes: "944344", active: true },
+        { publickey: PK2, votes: "5", active: false },
+      ]);
+
+      const result = await candidateService.getByAddress(PK1);
+      expect(api.safeRpc).toHaveBeenCalledWith("getcandidates", [], null, expect.any(Object));
+      // Legacy GetCandidateByAddress must not fire on the happy path.
+      expect(api.safeRpc).not.toHaveBeenCalledWith(
         "GetCandidateByAddress",
-        { Address: "NAddr1" },
+        expect.any(Object),
         null,
         expect.any(Object),
       );
-      expect(result).toEqual(candidate);
+      expect(result).toMatchObject({
+        candidatePubKey: PK1,
+        votes: "944344",
+        votesOfCandidate: "944344",
+        active: true,
+        isCommittee: true,
+      });
     });
 
-    it("returns null fallback for unknown address", async () => {
-      api.safeRpc.mockResolvedValueOnce(null);
-      const result = await candidateService.getByAddress("NUnknown");
+    it("returns null for a valid address that is not a candidate", async () => {
+      api.safeRpc.mockResolvedValueOnce([{ publickey: PK1, votes: "1", active: false }]);
+      const result = await candidateService.getByAddress(PK2);
       expect(result).toBeNull();
+    });
+
+    it("falls back to legacy GetCandidateByAddress when the node is unreachable", async () => {
+      const legacy = { candidate: "0xabc", candidatePubKey: PK1 };
+      api.safeRpc
+        .mockResolvedValueOnce(null) // getcandidates unreachable
+        .mockResolvedValueOnce(legacy); // legacy _getByAddressRpc
+      const result = await candidateService.getByAddress("NAddr1");
+      expect(result).toEqual(legacy);
     });
   });
 
   describe("getVotesByAddress", () => {
-    it("calls safeRpc with CandidateAddress param", async () => {
-      api.safeRpc.mockResolvedValueOnce(500000);
+    it("returns the candidate's vote total from node getcandidates", async () => {
+      api.safeRpc.mockResolvedValueOnce([{ publickey: PK1, votes: "500000", active: false }]);
 
-      const result = await candidateService.getVotesByAddress("NAddr1");
-      expect(api.safeRpc).toHaveBeenCalledWith(
-        "GetVotesByCandidateAddress",
-        { CandidateAddress: "NAddr1" },
-        0,
-        expect.any(Object),
-      );
-      expect(result).toBe(500000);
+      const result = await candidateService.getVotesByAddress(PK1);
+      expect(api.safeRpc).toHaveBeenCalledWith("getcandidates", [], null, expect.any(Object));
+      expect(result).toBe("500000");
+    });
+
+    it("returns 0 for a non-candidate address", async () => {
+      api.safeRpc.mockResolvedValueOnce([{ publickey: PK1, votes: "1", active: false }]);
+      const result = await candidateService.getVotesByAddress(PK2);
+      expect(result).toBe(0);
     });
   });
 
@@ -149,24 +172,29 @@ describe("candidateService", () => {
     });
 
     it("returns cached result on second call for getByAddress with same address", async () => {
-      api.safeRpc.mockResolvedValueOnce({ address: "NAddr1" });
+      api.safeRpc.mockResolvedValueOnce([{ publickey: PK1, votes: "100", active: true }]);
 
-      const first = await candidateService.getByAddress("NAddr1");
-      const second = await candidateService.getByAddress("NAddr1");
+      const first = await candidateService.getByAddress(PK1);
+      const second = await candidateService.getByAddress(PK1);
 
-      expect(first).toEqual({ address: "NAddr1" });
-      expect(second).toEqual({ address: "NAddr1" });
+      expect(first).toMatchObject({ candidatePubKey: PK1, votes: "100" });
+      expect(second).toMatchObject({ candidatePubKey: PK1, votes: "100" });
       expect(api.safeRpc).toHaveBeenCalledTimes(1);
     });
 
-    it("does not use cache for different addresses", async () => {
-      api.safeRpc.mockResolvedValueOnce({ address: "NAddr1" });
-      api.safeRpc.mockResolvedValueOnce({ address: "NAddr2" });
+    it("shares the cached getcandidates set across different addresses", async () => {
+      api.safeRpc.mockResolvedValueOnce([
+        { publickey: PK1, votes: "100", active: true },
+        { publickey: PK2, votes: "50", active: false },
+      ]);
 
-      await candidateService.getByAddress("NAddr1");
-      await candidateService.getByAddress("NAddr2");
+      const a = await candidateService.getByAddress(PK1);
+      const b = await candidateService.getByAddress(PK2);
 
-      expect(api.safeRpc).toHaveBeenCalledTimes(2);
+      expect(a).toMatchObject({ votes: "100" });
+      expect(b).toMatchObject({ votes: "50" });
+      // Both derive from one shared, cached getcandidates round-trip.
+      expect(api.safeRpc).toHaveBeenCalledTimes(1);
     });
   });
 });
