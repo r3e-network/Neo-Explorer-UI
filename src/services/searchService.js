@@ -2,6 +2,7 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
 import { contractService } from "./contractService";
+import { accountService } from "./accountService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
@@ -34,23 +35,15 @@ function _dedupe(key, fn) {
 }
 
 /**
- * Lookup an account address with backend-compatibility fallback.
- * Neo3Fura-style backends may require script-hash form for address queries.
- *
  * @param {string} address
  * @returns {Promise<Object|null>}
  * @private
  */
 async function _lookupAddress(address) {
   const scriptHash = addressToScriptHash(address);
-  const candidates = [];
-  if (scriptHash) candidates.push(scriptHash);
-  if (!candidates.includes(address)) candidates.push(address);
-  for (const candidate of candidates) {
-    const account = await safeRpc("GetAddressByAddress", { Address: candidate }, null);
-    if (account) return account;
-  }
-  return null;
+  const account = await accountService.getByAddress(address).catch(() => null);
+  if (account) return account;
+  return { address: scriptHash || address };
 }
 
 /**
@@ -66,34 +59,27 @@ async function _lookupAddress(address) {
 async function _classifyAndDispatch(query) {
   const hits = {};
 
-  // Block height (pure digits) — standard getblock works regardless of
-  // whether neo3fura_http is in the path; falls back to the legacy
-  // PascalCase wrapper for backends that route through Mongo.
+  // Block height (pure digits) — standard getblock works directly against
+  // neo-go.
   if (/^\d+$/.test(query)) {
     const blockHeight = parseInt(query);
     if (blockHeight >= 0 && blockHeight < 100_000_000) {
-      const block =
-        (await safeRpc("getblock", [blockHeight, 1], null).catch(() => null)) ||
-        (await safeRpc("GetBlockByBlockHeight", { BlockHeight: blockHeight }, null));
+      const block = await safeRpc("getblock", [blockHeight, 1], null).catch(() => null);
       if (block) hits.block = block;
     }
   }
 
   // Full hash (64 hex chars) — parallel exact lookups via standard
   // node RPCs (getrawtransaction, getblock, getcontractstate) which are
-  // unaffected by the Mongo backend's removal. Each falls back to the
-  // legacy PascalCase wrapper if the standard call returns null.
+  // unaffected by the Mongo backend's removal.
   if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
     const lookupTx = async () =>
-      (await safeRpc("getrawtransaction", [hash, 1], null)) ||
-      (await safeRpc("GetRawTransactionByTransactionHash", { TransactionHash: hash }, null));
+      safeRpc("getrawtransaction", [hash, 1], null);
     const lookupBlock = async () =>
-      (await safeRpc("getblock", [hash, 1], null)) ||
-      (await safeRpc("GetBlockByBlockHash", { BlockHash: hash }, null));
+      safeRpc("getblock", [hash, 1], null);
     const lookupContract = async () =>
-      (await safeRpc("getcontractstate", [hash], null)) ||
-      (await safeRpc("GetContractByContractHash", { ContractHash: hash }, null));
+      safeRpc("getcontractstate", [hash], null);
 
     const [txResult, blockResult, contractResult] = await Promise.allSettled([
       lookupTx(),

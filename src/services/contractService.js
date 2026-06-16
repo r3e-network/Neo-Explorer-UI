@@ -1,5 +1,5 @@
 import axios from "axios";
-import { safeRpc, safeRpcList } from "./api";
+import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
@@ -25,75 +25,6 @@ function tryParseStateJson(value) {
 
 export const contractService = createService(
   {
-    getCount: {
-      cacheKey: "contract_count",
-      rpcMethod: "GetContractCount",
-      fallback: 0,
-      ttl: CACHE_TTL.stats,
-      realtime: true,
-      buildParams: () => ({}),
-    },
-    getList: {
-      _type: "list",
-      cacheKey: "contract_list",
-      rpcMethod: "GetContractList",
-      errorLabel: "get contract list",
-      ttl: CACHE_TTL.contract,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
-    },
-    getByHash: {
-      cacheKey: "contract_hash",
-      rpcMethod: "GetContractByContractHash",
-      fallback: null,
-      ttl: CACHE_TTL.contract,
-      buildParams: ([hash]) => ({ ContractHash: hash }),
-      buildCacheParams: ([hash]) => ({ hash }),
-    },
-    searchByName: {
-      _type: "list",
-      cacheKey: "contract_search",
-      rpcMethod: "GetContractListByName",
-      errorLabel: "search contracts",
-      ttl: CACHE_TTL.contract,
-      buildParams: ([name, limit = 20, skip = 0]) => ({ Name: name, Limit: limit, Skip: skip }),
-      buildCacheParams: ([name, limit = 20, skip = 0]) => ({ name, limit, skip }),
-    },
-    getVerifiedByHash: {
-      cacheKey: "contract_verified",
-      rpcMethod: "GetVerifiedContractByContractHash",
-      fallback: null,
-      ttl: CACHE_TTL.contract,
-      buildParams: ([hash, updateCounter = 0]) => ({ ContractHash: hash, UpdateCounter: updateCounter }),
-      buildCacheParams: ([hash, updateCounter = 0]) => ({ hash, updateCounter }),
-    },
-    getVerifiedList: {
-      _type: "list",
-      cacheKey: "contract_verified_list",
-      rpcMethod: "GetVerifiedContracts",
-      errorLabel: "get verified contracts",
-      ttl: CACHE_TTL.contract,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
-    },
-    getScCalls: {
-      _type: "list",
-      cacheKey: "contract_sc_calls",
-      rpcMethod: "GetScCallByContractHash",
-      errorLabel: "get SC calls",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ ContractHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
-    getNotifications: {
-      _type: "list",
-      cacheKey: "contract_notifications",
-      rpcMethod: "GetNotificationByContractHash",
-      errorLabel: "get contract notifications",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ ContractHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
     invokeRead: {
       cacheKey: "contract_invoke_read",
       rpcMethod: "invokefunction",
@@ -104,18 +35,13 @@ export const contractService = createService(
     },
   },
   {
-    // Override the auto-generated getNotifications: route through the
-    // indexer REST endpoint, which has actual data, then fall back to
-    // the legacy RPC when the indexer is unreachable.
-    // Override getScCalls — same Mongo→Postgres pattern as #150/#152/#153.
-    // Legacy GetScCallByContractHash queries an unpopulated Mongo collection.
+    // Contract calls come from the read-api, with a notification-derived
+    // fallback when the dedicated REST table is unavailable.
     //
-    // Tries three sources in order:
+    // Tries two sources in order:
     //   1. The new /rest/v1/contract_calls endpoint (single round-trip).
     //   2. The contract_notifications + transaction_signers derivation
     //      (works against any current read-api; what we shipped first).
-    //   3. The legacy JSON-RPC handler (returns empty but keeps the page
-    //      renderable if both Postgres paths fail).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
       const network = resolveNetworkName();
       // Pull the per-contract overview in parallel with the calls request
@@ -174,12 +100,7 @@ export const contractService = createService(
         const authoritativeTxCount = Number(overview?.tx_count);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
         if (rows.length === 0) {
-          return safeRpcList(
-            "GetScCallByContractHash",
-            { ContractHash: hash, Limit: limit, Skip: skip },
-            "get SC calls",
-            options,
-          );
+          return { result: [], totalCount: 0 };
         }
         const seen = new Set();
         const calls = [];
@@ -230,14 +151,9 @@ export const contractService = createService(
                   ?? (rows.length === Math.max(limit * 4, 100) ? skip + limit + 1 : skip + calls.length),
               ),
         };
-      } catch { /* fall through to legacy RPC */ }
+      } catch { /* fall through to empty state */ }
 
-      return safeRpcList(
-        "GetScCallByContractHash",
-        { ContractHash: hash, Limit: limit, Skip: skip },
-        "get SC calls",
-        options,
-      );
+      return { result: [], totalCount: 0 };
     },
 
     async getNotifications(hash, limit = 20, skip = 0, options = {}) {
@@ -275,15 +191,13 @@ export const contractService = createService(
           };
         }
       } catch {
-        // Indexer down — let legacy RPC try.
+        // Indexer down — fall through to empty state.
       }
-      return safeRpcList("GetNotificationByContractHash", { ContractHash: hash, Limit: limit, Skip: skip }, "get contract notifications", options);
+      return { result: [], totalCount: 0 };
     },
 
     async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
-      // Indexer first — same Mongo→Postgres pattern as #171/#172. The
-      // legacy GetContractList / GetContractListByName handlers query an
-      // unpopulated Mongo collection.
+      // Indexer first — same Mongo-to-Postgres pattern as #171/#172.
       try {
         const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh });
         const rows = Array.isArray(payload?.data) ? payload.data : [];
@@ -300,12 +214,9 @@ export const contractService = createService(
             totalCount: Number(payload?.paging?.total || rows.length || 0),
           };
         }
-      } catch { /* fall through to legacy */ }
+      } catch { /* fall through to empty state */ }
 
-      const legacy = search
-        ? await contractService.searchByName(search, limit, skip, { forceRefresh }).catch(() => null)
-        : await contractService.getList(limit, skip, { forceRefresh }).catch(() => null);
-      return legacy || { result: [], totalCount: 0 };
+      return { result: [], totalCount: 0 };
     },
 
     async getChainStateByHash(hash, options = {}) {
@@ -320,10 +231,7 @@ export const contractService = createService(
 
     async getByHashWithFallback(hash, options = {}) {
       // Fetch in parallel: on-chain state (canonical) and the indexer's
-      // per-contract overview (authoritative tx_count). The legacy
-      // GetContractByContractHash Mongo path was previously also fired
-      // here but always returned `{result: null, error: "not found"}`
-      // post-Mongo-deletion (verified live on /contract-info pages).
+      // per-contract overview (authoritative tx_count).
       const [chainState, indexerOverview] = await Promise.all([
         this.getChainStateByHash(hash, options),
         indexerReadService.getContractOverview(hash, options).catch(() => null),
@@ -356,10 +264,7 @@ export const contractService = createService(
         });
       }
 
-      // Final defence-in-depth — try the legacy Mongo row in case the
-      // chain node is unreachable AND the indexer is down.
-      const indexedContract = await contractService.getByHash(hash, options);
-      return indexedContract ? mergeIndexerExtras(indexedContract) : null;
+      return null;
     },
 
     /**

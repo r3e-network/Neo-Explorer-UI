@@ -42,59 +42,7 @@ function matchCandidateRow(rows, address) {
 }
 
 export const candidateService = createService(
-  {
-    _getCountRpc: {
-      cacheKey: "candidate_count",
-      rpcMethod: "GetCandidateCount",
-      fallback: 0,
-      ttl: CACHE_TTL.stats,
-      realtime: true,
-      buildParams: () => ({}),
-    },
-    _getListRpc: {
-      _type: "list",
-      cacheKey: "candidate_list",
-      rpcMethod: "GetCandidate",
-      errorLabel: "get candidate list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
-    },
-    // Legacy Mongo wrappers — kept only as last-resort fallbacks behind the
-    // node `getcandidates` derivation below (the Mongo collections they query
-    // are no longer populated, so they return empty in production).
-    _getByAddressRpc: {
-      cacheKey: "candidate_address",
-      rpcMethod: "GetCandidateByAddress",
-      fallback: null,
-      ttl: CACHE_TTL.address,
-      realtime: true,
-      buildParams: ([address]) => ({ Address: address }),
-      buildCacheParams: ([address]) => ({ address }),
-    },
-    _getVotesByAddressRpc: {
-      cacheKey: "candidate_votes",
-      rpcMethod: "GetVotesByCandidateAddress",
-      fallback: 0,
-      ttl: CACHE_TTL.stats,
-      realtime: true,
-      buildParams: ([address]) => ({ CandidateAddress: address }),
-      buildCacheParams: ([address]) => ({ address }),
-    },
-    _getVotersByAddressRpc: {
-      _type: "list",
-      cacheKey: "candidate_voters",
-      rpcMethod: "GetVotersByCandidateAddress",
-      errorLabel: "get voters",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({
-        CandidateAddress: address,
-        Limit: limit,
-        Skip: skip,
-      }),
-      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
-    },
-  },
+  {},
   {
     // Shared, cached fetch of the node candidate set mapped to rows. Keyed by
     // network so getByAddress / getVotesByAddress reuse a single round-trip.
@@ -116,18 +64,13 @@ export const candidateService = createService(
       return cachedRequest(
         key,
         async () => {
-          // Standard `getcandidates` is the canonical chain source — works
-          // against any Neo node. The legacy GetCandidateCount RPC queried
-          // a Mongo collection that's no longer populated (verified live
-          // on /candidates). Same flip pattern as #178/#181/#182.
+          // Standard `getcandidates` is the canonical chain source and works
+          // against any Neo node.
           const rows = await safeRpc("getcandidates", [], [], options);
           if (Array.isArray(rows)) {
             return { "total counts": rows.length };
           }
-          // Fallback to the legacy Mongo wrapper only if the chain node
-          // is unreachable (extremely rare).
-          const rpcResult = await this._getCountRpc(options).catch(() => null);
-          return rpcResult || { "total counts": 0 };
+          return { "total counts": 0 };
         },
         CACHE_TTL.stats,
         options,
@@ -150,10 +93,7 @@ export const candidateService = createService(
               totalCount: mapped.length,
             };
           }
-          // Fallback to the legacy Mongo wrapper only if the chain node
-          // is unreachable.
-          const rpcResult = await this._getListRpc(limit, skip, options).catch(() => null);
-          return rpcResult || { result: [], totalCount: 0 };
+          return { result: [], totalCount: 0 };
         },
         CACHE_TTL.chart,
         options,
@@ -165,9 +105,7 @@ export const candidateService = createService(
       return cachedRequest(
         key,
         async () => {
-          // The legacy GetCandidateByAddress queried dead Mongo, so candidate
-          // addresses showed no candidate status/votes. Derive both from the
-          // node `getcandidates` set instead.
+          // Derive candidate status/votes from the node `getcandidates` set.
           const rows = await this._getCandidateRows(options);
           if (rows) {
             const row = matchCandidateRow(rows, address);
@@ -182,8 +120,7 @@ export const candidateService = createService(
               active: row.active === true,
             };
           }
-          // Node unreachable → legacy Mongo wrapper (last resort).
-          return this._getByAddressRpc(address, options).catch(() => null);
+          return null;
         },
         CACHE_TTL.address,
         options,
@@ -200,7 +137,7 @@ export const candidateService = createService(
             const row = matchCandidateRow(rows, address);
             return row ? String(row.votes ?? "0") : 0;
           }
-          return this._getVotesByAddressRpc(address, options).catch(() => 0);
+          return 0;
         },
         CACHE_TTL.stats,
         options,
@@ -208,8 +145,7 @@ export const candidateService = createService(
     },
 
     // Current voters for a candidate, derived from the NEO contract's Vote
-    // notifications via the indexer (the legacy GetVotersByCandidateAddress
-    // queried dead Mongo). `publicKey` is the candidate's compressed public
+    // notifications via the indexer. `publicKey` is the candidate's compressed public
     // key (hex). Returns voters with a 0x script hash + their voted amount.
     async getVotersByAddress(publicKey, limit = 20, skip = 0, options = {}) {
       const pk = String(publicKey || "").trim();
@@ -232,12 +168,9 @@ export const candidateService = createService(
               }
             }
           } catch {
-            // fall through to the legacy wrapper (returns empty post-Mongo)
+            // fall through to the empty no-data state
           }
-          return this._getVotersByAddressRpc(pk, limit, skip, options).catch(() => ({
-            result: [],
-            totalCount: 0,
-          }));
+          return { result: [], totalCount: 0 };
         },
         CACHE_TTL.chart,
         options,

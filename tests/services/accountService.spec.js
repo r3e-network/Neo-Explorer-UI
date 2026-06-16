@@ -32,17 +32,10 @@ describe("accountService", () => {
   });
 
   describe("getList", () => {
-    it("calls rpc with pagination", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
-      
-      await accountService.getList(10, 5);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetAddressList",
-        { Limit: 10, Skip: 5 },
-        "get account list",
-        expect.any(Object)
-      );
+    it("returns empty without calling legacy RPC when indexer has no rows", async () => {
+      const result = await accountService.getList(10, 5);
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
     it("returns empty on error", async () => {
@@ -93,32 +86,33 @@ describe("accountService", () => {
       );
     });
 
-    it("falls back to the legacy wrapper only when the node is unreachable", async () => {
+    it("returns null without calling legacy RPC when the node is unreachable", async () => {
       api.safeRpc
         .mockResolvedValueOnce(null) // getnep17balances (node down)
         .mockResolvedValueOnce(null) // getnep11balances
         .mockResolvedValueOnce(null) // getnep17transfers
-        .mockResolvedValueOnce(null) // getnep11transfers
-        .mockResolvedValueOnce({ totalCount: 1, neoBalance: "5" }); // legacy GetAddressByAddress
+        .mockResolvedValueOnce(null); // getnep11transfers
 
       const result = await accountService.getByAddress("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
-      expect(api.safeRpc).toHaveBeenCalledWith(
+      expect(api.safeRpc).not.toHaveBeenCalledWith(
         "GetAddressByAddress",
-        expect.any(Object),
-        null,
-        expect.any(Object)
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
       );
-      expect(result).toEqual({ totalCount: 1, neoBalance: "5" });
+      expect(result).toBeNull();
     });
   });
 
   describe("getAssets", () => {
     it("uses native getnep17balances/getnep11balances first (#182)", async () => {
-      api.safeRpc
-        .mockResolvedValueOnce({
+      api.safeRpc.mockImplementation(async (method) => {
+        if (method === "getnep17balances") return {
           balance: [{ assethash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", symbol: "NEO", amount: "5", decimals: "0" }],
-        }) // getnep17balances
-        .mockResolvedValueOnce({ balance: [] }); // getnep11balances
+        };
+        if (method === "getnep11balances") return { balance: [] };
+        return null;
+      });
 
       const result = await accountService.getAssets("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
 
@@ -147,21 +141,20 @@ describe("accountService", () => {
       );
     });
 
-    it("falls back to legacy GetAssetsHeldByAddress only when both native balances are empty", async () => {
+    it("returns empty without legacy asset fallback when native balances are empty", async () => {
       api.safeRpc
         .mockResolvedValueOnce({ balance: [] }) // getnep17balances empty
-        .mockResolvedValueOnce({ balance: [] }) // getnep11balances empty
-        .mockResolvedValueOnce([{ asset: "0xfoo", balance: "1" }]); // GetAssetsHeldByAddress (final fallback)
+        .mockResolvedValueOnce({ balance: [] }); // getnep11balances empty
 
       const result = await accountService.getAssets("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
 
-      expect(api.safeRpc).toHaveBeenCalledWith(
+      expect(api.safeRpc).not.toHaveBeenCalledWith(
         "GetAssetsHeldByAddress",
-        expect.any(Object),
-        [],
-        expect.any(Object),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
       );
-      expect(result).toEqual([{ asset: "0xfoo", balance: "1" }]);
+      expect(result).toEqual([]);
     });
   });
 
@@ -169,11 +162,11 @@ describe("accountService", () => {
     it("uses native getnep17transfers first when indexer returns nothing (#182)", async () => {
       // fetch (indexer /rest/) returns ok: false in the default mock,
       // so fetchAddressTransfersFromIndexer returns null.
-      api.safeRpc
-        .mockResolvedValueOnce({
+      api.safeRpc.mockImplementation(async (method) => {
+        if (method === "getnep17balances") return {
           balance: [{ assethash: "0xabc", symbol: "ABC", name: "ABC Token", decimals: "8" }],
-        }) // getnep17balances (preloaded for tokenInfoMap)
-        .mockResolvedValueOnce({
+        };
+        if (method === "getnep17transfers") return {
           sent: [
             {
               txhash: "0x10",
@@ -184,10 +177,9 @@ describe("accountService", () => {
             },
           ],
           received: [],
-        }) // getnep17transfers
-        .mockResolvedValueOnce({
-          balance: [{ assethash: "0xabc", symbol: "ABC", name: "ABC Token", decimals: "8" }],
-        }); // getnep17balances second await
+        };
+        return null;
+      });
 
       const result = await accountService.getNep17Transfers("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp", 10, 0);
       expect(result.totalCount).toBe(1);

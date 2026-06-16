@@ -32,12 +32,11 @@ describe("candidateService", () => {
       expect(result).toEqual({ "total counts": 2 });
     });
 
-    it("falls back to legacy GetCandidateCount when chain node returns null", async () => {
-      api.safeRpc
-        .mockResolvedValueOnce(null) // getcandidates returns nothing
-        .mockResolvedValueOnce({ "total counts": 5 }); // legacy
+    it("returns zero without legacy fallback when chain node returns null", async () => {
+      api.safeRpc.mockResolvedValueOnce(null);
       const result = await candidateService.getCount();
-      expect(result).toEqual({ "total counts": 5 });
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetCandidateCount", expect.anything(), expect.anything(), expect.anything());
+      expect(result).toEqual({ "total counts": 0 });
     });
   });
 
@@ -109,13 +108,11 @@ describe("candidateService", () => {
       expect(result).toBeNull();
     });
 
-    it("falls back to legacy GetCandidateByAddress when the node is unreachable", async () => {
-      const legacy = { candidate: "0xabc", candidatePubKey: PK1 };
-      api.safeRpc
-        .mockResolvedValueOnce(null) // getcandidates unreachable
-        .mockResolvedValueOnce(legacy); // legacy _getByAddressRpc
+    it("returns null without legacy fallback when the node is unreachable", async () => {
+      api.safeRpc.mockResolvedValueOnce(null);
       const result = await candidateService.getByAddress("NAddr1");
-      expect(result).toEqual(legacy);
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetCandidateByAddress", expect.anything(), expect.anything(), expect.anything());
+      expect(result).toBeNull();
     });
   });
 
@@ -163,17 +160,11 @@ describe("candidateService", () => {
       expect(api.safeRpcList).not.toHaveBeenCalled();
     });
 
-    it("falls back to the legacy wrapper when the indexer endpoint fails", async () => {
+    it("returns empty without legacy wrapper when the indexer endpoint fails", async () => {
       indexerRead.indexerReadService.getCandidateVoters.mockRejectedValueOnce(new Error("down"));
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
 
       const result = await candidateService.getVotersByAddress(PK1, 50, 10);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetVotersByCandidateAddress",
-        { CandidateAddress: PK1, Limit: 50, Skip: 10 },
-        "get voters",
-        expect.any(Object),
-      );
+      expect(api.safeRpcList).not.toHaveBeenCalled();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
   });

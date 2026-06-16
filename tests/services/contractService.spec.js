@@ -193,7 +193,7 @@ describe("contractService.getScCalls fallback chain", () => {
     vi.unstubAllGlobals();
   });
 
-  it("Source 3: falls back to legacy GetScCallByContractHash when both Postgres paths empty", async () => {
+  it("Source 3: returns empty when both Postgres paths are empty", async () => {
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) return { ok: false, status: 404 };
       if (url.includes("/contracts/")) return { ok: false };
@@ -210,13 +210,8 @@ describe("contractService.getScCalls fallback chain", () => {
     const { contractService } = await import("../../src/services/contractService.js");
     const result = await contractService.getScCalls(HASH, 20, 0);
 
-    expect(safeRpcListMock).toHaveBeenCalledWith(
-      "GetScCallByContractHash",
-      { ContractHash: HASH, Limit: 20, Skip: 0 },
-      "get SC calls",
-      expect.any(Object),
-    );
-    expect(result.result[0].txid).toBe("0xtleg");
+    expect(safeRpcListMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ result: [], totalCount: 0 });
 
     vi.unstubAllGlobals();
   });
@@ -264,17 +259,13 @@ describe("contractService.getListWithFallback indexer-first", () => {
     });
   });
 
-  it("falls back to legacy when indexer returns empty", async () => {
+  it("returns empty when indexer returns empty", async () => {
     getContractsMock.mockResolvedValueOnce({ data: [], paging: { total: 0 } });
-    safeRpcListMock.mockResolvedValueOnce({
-      result: [{ hash: "0xleg", name: "LegacyContract" }],
-      totalCount: 1,
-    });
 
     const { contractService } = await import("../../src/services/contractService.js");
     const result = await contractService.getListWithFallback(20, 0);
 
-    expect(result.result[0].hash).toBe("0xleg");
-    expect(safeRpcListMock).toHaveBeenCalled();
+    expect(result).toEqual({ result: [], totalCount: 0 });
+    expect(safeRpcListMock).not.toHaveBeenCalled();
   });
 });

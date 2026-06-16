@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tokenService } from "../../src/services/tokenService.js";
 import * as api from "../../src/services/api.js";
 
@@ -29,26 +29,41 @@ describe("tokenService", () => {
     indexerReadService.getContractNotifications.mockRejectedValue(new Error("indexer offline"));
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   describe("getByHash", () => {
-    it("calls safeRpc with hash", async () => {
-      api.safeRpc.mockResolvedValueOnce({ name: "NEO" });
-      await tokenService.getByHash("0xhash");
-      expect(api.safeRpc).toHaveBeenCalledWith("GetAssetInfoByContractHash", { ContractHash: "0xhash" }, null, expect.any(Object));
+    it("returns token detail from the indexer without legacy RPC", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce({
+        contract_hash: "0xhash",
+        display_name: "NEO",
+        symbol: "NEO",
+        holder_count: 10,
+        total_supply_raw: "100",
+        decimals: 0,
+        standard: "NEP17",
+      });
+      const result = await tokenService.getByHash("0xhash");
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetAssetInfoByContractHash", expect.anything(), expect.anything(), expect.anything());
+      expect(result).toMatchObject({ hash: "0xhash", tokenname: "NEO", symbol: "NEO" });
     });
   });
 
   describe("getHolders", () => {
-    it("calls rpc with hash and pagination", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
+    it("reads holders from the REST balance view", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce({ total_supply_raw: "100", holder_count: 1 });
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => [{ address: "Nholder", balance_raw: "5" }],
+      })));
 
-      await tokenService.getHolders("0xhash", 10, 5);
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetAssetHoldersByContractHash",
-        { ContractHash: "0xhash", Limit: 10, Skip: 5 },
-        "get token holders",
-        expect.any(Object)
-      );
+      const result = await tokenService.getHolders("0xhash", 10, 5);
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        result: [{ address: "Nholder", balance: "5", percentage: 0.05 }],
+        totalCount: 1,
+      });
     });
   });
 
@@ -90,17 +105,13 @@ describe("tokenService", () => {
       });
     });
 
-    it("falls back to legacy when indexer returns empty", async () => {
+    it("returns empty when indexer returns empty", async () => {
       indexerReadService.getTokens.mockResolvedValue({ data: [], paging: { total: 0 } });
-      api.safeRpcList.mockResolvedValueOnce({
-        result: [{ hash: "0xleg", tokenname: "LegacyTok" }],
-        totalCount: 1,
-      });
 
       const result = await tokenService.getTokenListWithFallback("NEP17", 20, 0);
 
-      expect(result.result[0].hash).toBe("0xleg");
-      expect(api.safeRpcList).toHaveBeenCalled();
+      expect(result).toEqual({ result: [], totalCount: 0 });
+      expect(api.safeRpcList).not.toHaveBeenCalled();
     });
   });
 
@@ -136,21 +147,14 @@ describe("tokenService", () => {
       });
     });
 
-    it("falls back to legacy GetNep11Properties RPC when invokefunction faults", async () => {
+    it("returns null when invokefunction faults", async () => {
       const tokenId = "dG9rZW4tMQ==";
-      api.safeRpc
-        .mockResolvedValueOnce({ state: "FAULT", stack: [] })
-        .mockResolvedValueOnce({ result: [{ tokenId, name: "Legacy" }] });
+      api.safeRpc.mockResolvedValueOnce({ state: "FAULT", stack: [] });
 
       const result = await tokenService.getNep11Properties("0xnft", [tokenId]);
 
-      expect(api.safeRpc).toHaveBeenCalledWith(
-        "GetNep11PropertiesByContractHashTokenId",
-        { ContractHash: "0xnft", TokenIds: [tokenId] },
-        null,
-        expect.any(Object),
-      );
-      expect(result.result[0].name).toBe("Legacy");
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetNep11PropertiesByContractHashTokenId", expect.anything(), expect.anything(), expect.anything());
+      expect(result).toBeNull();
     });
   });
 });

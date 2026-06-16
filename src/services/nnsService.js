@@ -1,11 +1,10 @@
-import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { getCurrentEnv, NET_ENV } from "../utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { NNS_HASH } from "@/constants";
-import { addressToScriptHash, reverseHex, scriptHashToAddress } from "@/utils/neoHelpers";
+import { reverseHex, scriptHashToAddress } from "@/utils/neoHelpers";
 
 const NNS_CONTRACT_HASH = NNS_HASH; // Mainnet
 const NNS_SUFFIX = ".neo";
@@ -39,14 +38,6 @@ const normalizeHash160WithPrefix = (value) => {
   return "";
 };
 
-const normalizeHashLookupValue = (value) => {
-  const hash = normalizeHash160WithPrefix(value);
-  if (hash) return hash;
-  return String(value || "")
-    .trim()
-    .toLowerCase();
-};
-
 const extractResolvedTarget = (value) => {
   const text = String(value || "").trim();
   if (text.length === 34 && text.startsWith("N")) {
@@ -56,26 +47,6 @@ const extractResolvedTarget = (value) => {
   const hash = normalizeHash160WithPrefix(value);
   if (hash) return hash;
   return null;
-};
-
-const normalizeExpirationMs = (raw) => {
-  const candidates = [
-    raw?.expiration,
-    raw?.expire,
-    raw?.expires,
-    raw?.expiredAt,
-    raw?.expiresAt,
-    raw?.expirationTime,
-    raw?.expiration_time,
-  ];
-
-  for (const item of candidates) {
-    const numeric = Number(item);
-    if (!Number.isFinite(numeric) || numeric <= 0) continue;
-    return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
-  }
-
-  return 0;
 };
 
 const decodeBooleanStackItem = (item) => {
@@ -149,26 +120,6 @@ const toDomainCandidate = (name) => {
     suffix,
     label: normalizedName.slice(0, normalizedName.length - suffix.length),
   };
-};
-
-const collectActiveDomains = (domains = [], suffix = NNS_SUFFIX) => {
-  const now = Date.now();
-  const candidates = [];
-
-  for (const domain of domains) {
-    const candidate = toDomainCandidate(domain?.name);
-    if (!candidate || candidate.suffix !== suffix) continue;
-
-    if (suffix === MATRIX_SUFFIX) {
-      candidates.push(candidate);
-    } else {
-      const expirationMs = normalizeExpirationMs(domain);
-      if (!Number.isFinite(expirationMs) || expirationMs <= now) continue;
-      candidates.push(candidate);
-    }
-  }
-
-  return candidates;
 };
 
 const compareDomainCandidates = (left, right) => {
@@ -288,87 +239,6 @@ export const nnsService = {
           } catch (metadataErr) {
             if (import.meta.env.DEV) console.warn("[nnsService] metadata read failed:", metadataErr);
           }
-        }
-
-        if (env === NET_ENV.Mainnet) {
-          for (const lookupTarget of lookupTargets) {
-            try {
-              const result = await safeRpc(
-                "GetNNSNameByOwner",
-                {
-                  Asset: NNS_CONTRACT_HASH,
-                  Owner: lookupTarget,
-                },
-                [],
-              );
-
-              if (Array.isArray(result) && result.length > 0) {
-                candidates.push(...collectActiveDomains(result, NNS_SUFFIX));
-              }
-            } catch (e) {
-              if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile for address:", lookupTarget, e);
-            }
-          }
-
-          if (normalizedHash) {
-            try {
-              const adminDomains = await safeRpc(
-                "GetNNSNameByAdmin",
-                {
-                  Asset: NNS_CONTRACT_HASH,
-                  Admin: normalizedHash,
-                },
-                [],
-              );
-
-              if (Array.isArray(adminDomains) && adminDomains.length > 0) {
-                candidates.push(...collectActiveDomains(adminDomains, NNS_SUFFIX));
-              }
-            } catch (e) {
-              if (import.meta.env.DEV) console.warn("Failed to resolve NNS profile by admin:", normalizedHash, e);
-            }
-          }
-        }
-
-        try {
-          const scriptHash = normalizedHash || normalizeHashLookupValue(addressToScriptHash(target));
-          if (!scriptHash) return null;
-          const transfersRes = await safeRpc("GetNep11TransferByAddress", { Address: scriptHash, Limit: 100 }, null);
-
-          if (transfersRes && Array.isArray(transfersRes.result)) {
-            const matrixContractHash = String(getMatrixContractHash(env)).toLowerCase();
-            const matrixTransfers = transfersRes.result.filter(
-              (t) => String(t.contract || "").toLowerCase() === matrixContractHash,
-            );
-
-            const tokenBalances = {};
-            for (const t of matrixTransfers) {
-              if (!t.tokenId) continue;
-              if (!tokenBalances[t.tokenId]) tokenBalances[t.tokenId] = 0;
-              if (normalizeHashLookupValue(t.to) === scriptHash) tokenBalances[t.tokenId]++;
-              if (normalizeHashLookupValue(t.from) === scriptHash) tokenBalances[t.tokenId]--;
-            }
-
-            const ownedTokens = Object.entries(tokenBalances)
-              .filter(([_, bal]) => bal > 0)
-              .map(([id]) => id);
-
-            if (ownedTokens.length > 0) {
-              const domains = [];
-              for (const b64Id of ownedTokens) {
-                try {
-                  const decoded = atob(b64Id);
-                  if (decoded.endsWith(MATRIX_SUFFIX)) domains.push({ name: decoded });
-                } catch (e) {
-                  // Invalid base64 or other decode error, skip
-                }
-              }
-
-              candidates.push(...collectActiveDomains(domains, MATRIX_SUFFIX));
-            }
-          }
-        } catch (matrixErr) {
-          if (import.meta.env.DEV) console.warn("Matrix fallback failed:", matrixErr);
         }
 
         const preferredDomain = pickPreferredDomain(candidates);

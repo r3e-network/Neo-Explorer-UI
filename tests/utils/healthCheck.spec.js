@@ -55,7 +55,7 @@ describe("healthCheck endpoint selection", () => {
       if (url.includes("/rpc/mainnet/") && method === "getversion") {
         return { data: { result: { protocol: { network: 894710606 } } } };
       }
-      if (url.includes("/rpc/mainnet/") && method === "GetBlockCount") {
+      if (url.includes("/rpc/mainnet/") && method === "getblockcount") {
         return { data: { result: { index: 100 } } };
       }
       throw new Error(`unexpected call: ${url} ${method}`);
@@ -100,7 +100,7 @@ describe("healthCheck endpoint selection", () => {
       if (payload?.method === "getversion") {
         return { data: { result: { protocol: { network: 860833102 } } } };
       }
-      if (url.includes("/rpc/mainnet/primary") && payload?.method === "GetBlockCount") {
+      if (url.includes("/rpc/mainnet/primary") && payload?.method === "getblockcount") {
         return { data: { result: { index: 500 } } };
       }
       throw new Error("ignore deferred network calls");

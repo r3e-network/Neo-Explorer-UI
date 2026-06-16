@@ -11,7 +11,7 @@ describe("endpoint defaults", () => {
   it("keeps vite proxy defaults on a single external endpoint", () => {
     const viteConfig = readFile("vite.config.js");
 
-    expect(viteConfig).toContain('const DEFAULT_RPC_PROXY_TARGET = "https://api.n3index.dev";');
+    expect(viteConfig).toContain('const DEFAULT_RPC_PROXY_TARGET = "https://rpc.n3index.dev";');
     expect(viteConfig).toContain('const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";');
     expect(viteConfig).toContain('"/rpc/mainnet": {');
     expect(viteConfig).toContain('"/rpc/testnet": {');
@@ -55,25 +55,23 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('return "syntax";');
   });
 
-  it("keeps vercel rewrites pointing all routes to the single server", () => {
+  it("keeps vercel rewrites on direct node RPC plus the read-api data plane", () => {
     const vercelConfig = JSON.parse(readFile("vercel.json"));
     const rewrites = vercelConfig.rewrites || [];
 
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
 
-    // Frontend block/tx pages call indexed Get* methods through /rpc/mainnet/primary,
-    // so the primary rewrite must target the indexed API rather than the native node.
-    expect(routeDest("/rpc/mainnet/primary")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/mainnet/fallback")).toBe("https://mainnet1.neo.coz.io:443");
-    expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://mainnet2.neo.coz.io:443");
-    expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://rpc.n3index.dev");
-    expect(routeDest("/rpc/testnet/primary")).toBe("https://api.n3index.dev/testnet");
+    expect(routeDest("/rpc/mainnet/primary")).toBe("https://rpc.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://api.n3index.dev/mainnet");
+    expect(routeDest("/rpc/testnet/primary")).toBe("https://rpc.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback2")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback3")).toBe("https://api.n3index.dev/testnet");
-    expect(routeDest("/rpc/mainnet")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/testnet")).toBe("https://api.n3index.dev/testnet");
+    expect(routeDest("/rpc/mainnet")).toBe("https://rpc.n3index.dev/mainnet");
+    expect(routeDest("/rpc/testnet")).toBe("https://rpc.n3index.dev/testnet");
     expect(routeDest("/data/mainnet/fallback/(.*)")).toBe(
       "https://api.n3index.dev/mainnet/$1"
     );

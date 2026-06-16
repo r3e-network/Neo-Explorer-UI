@@ -281,7 +281,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { connectedAccount } from "@/utils/wallet";
 import nnsService from "@/services/nnsService";
-import { safeRpc } from "@/services/api";
+import { rpc } from "@/services/api";
 import { isValidNeoAddress, truncateHash } from "@/utils/addressFormat";
 import { scriptHashHexToAddress } from "@/utils/neoHelpers";
 import { NNS_HASH } from "@/constants";
@@ -314,6 +314,65 @@ function formatDate(timestampMs) {
   return d.toLocaleDateString() + " " + d.toLocaleTimeString();
 }
 
+function decodeBase64Utf8(value) {
+  try {
+    return atob(String(value || ""));
+  } catch {
+    return "";
+  }
+}
+
+function decodeBase64HashAddress(value) {
+  try {
+    const raw = atob(String(value || ""));
+    const hex = Array.from(raw)
+      .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
+      .join("");
+    return scriptHashHexToAddress(hex) || null;
+  } catch {
+    return null;
+  }
+}
+
+async function invokeNnsRead(operation, args = []) {
+  return rpc("invokefunction", [NNS_CONTRACT_HASH, operation, args], { suppressLog: true });
+}
+
+function decodePropertiesResult(result, domain) {
+  if (result?.state !== "HALT") return null;
+  const entries = Array.isArray(result?.stack?.[0]?.value) ? result.stack[0].value : [];
+  if (!entries.length) return null;
+
+  const props = {};
+  for (const entry of entries) {
+    const key = decodeBase64Utf8(entry?.key?.value);
+    if (!key) continue;
+    const value = entry?.value;
+    if (value?.type === "Integer") {
+      props[key] = value.value;
+    } else if (key === "admin" && value?.type === "ByteString") {
+      props[key] = decodeBase64HashAddress(value.value);
+    } else if (value?.type === "ByteString") {
+      props[key] = decodeBase64Utf8(value.value);
+    } else {
+      props[key] = null;
+    }
+  }
+
+  return props.name === domain ? props : { ...props, name: props.name || domain };
+}
+
+async function getDomainProperties(domain) {
+  const result = await invokeNnsRead("properties", [{ type: "String", value: domain }]).catch(() => null);
+  return decodePropertiesResult(result, domain);
+}
+
+async function getDomainOwner(domain) {
+  const result = await invokeNnsRead("ownerOf", [{ type: "ByteArray", value: btoa(domain) }]).catch(() => null);
+  if (result?.state !== "HALT") return null;
+  return decodeBase64HashAddress(result?.stack?.[0]?.value);
+}
+
 async function handleSearch() {
   let query = searchQuery.value.trim().toLowerCase();
   if (!query) return;
@@ -335,32 +394,9 @@ async function handleSearch() {
 
   try {
     const resolvedAddress = await nnsService.resolveDomain(query);
-    const tokenBase64 = btoa(query);
+    const propData = await getDomainProperties(query);
 
-    const props = await safeRpc(
-      "GetNep11PropertiesByContractHashTokenId",
-      {
-        ContractHash: NNS_CONTRACT_HASH,
-        TokenIds: [tokenBase64],
-      },
-      null,
-    );
-
-    // Fallback if the token ID is actually required as hex or another format
-    // some backends might not wrap TokenIds in base64 properly.
-    const fallbackProps =
-      props && props.result
-        ? props
-        : await safeRpc(
-            "GetNep11PropertiesByContractHashTokenId",
-            {
-              ContractHash: NNS_CONTRACT_HASH,
-              TokenId: btoa(query),
-            },
-            null,
-          );
-
-    if (!fallbackProps && !props) {
+    if (!propData) {
       searchResult.value = {
         domain: query,
         available: true,
@@ -369,40 +405,9 @@ async function handleSearch() {
       let expired = false;
       let expirationMs = null;
       let admin = null;
-      let ownerAddressFromNNS = null;
-      try {
-        const ownerRes = await safeRpc(
-          "GetNep11TransferByContractHashTokenId",
-          {
-            ContractHash: NNS_CONTRACT_HASH,
-            TokenId: btoa(query),
-          },
-          null,
-        );
-        if (ownerRes && Array.isArray(ownerRes) && ownerRes.length > 0) {
-          ownerAddressFromNNS = ownerRes[0].to;
-        } else if (ownerRes && ownerRes.result && Array.isArray(ownerRes.result) && ownerRes.result.length > 0) {
-          ownerAddressFromNNS = ownerRes.result[0].to;
-        }
-      } catch (_e) {
-        /* ignore */
-      }
+      const ownerAddressFromNNS = await getDomainOwner(query);
 
       let ownerAddr = resolvedAddress || ownerAddressFromNNS;
-
-      let propData = null;
-      const activeProps = fallbackProps || props;
-      if (activeProps && Array.isArray(activeProps.result) && activeProps.result.length > 0) {
-        // Neo3fura might return unrelated domains if the requested token is not found.
-        // We must strictly enforce that the returned name matches our query.
-        propData = activeProps.result.find((p) => p.name === query);
-      } else if (Array.isArray(activeProps) && activeProps.length > 0) {
-        propData = activeProps.find((p) => p.name === query);
-      } else if (activeProps && !Array.isArray(activeProps) && !activeProps.result) {
-        if (activeProps.name === query) {
-          propData = activeProps;
-        }
-      }
 
       if (propData) {
         if (propData.expiration) {

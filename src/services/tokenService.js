@@ -1,4 +1,4 @@
-import { safeRpc, safeRpcList } from "./api";
+import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
@@ -155,6 +155,44 @@ async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
   }
 }
 
+async function fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit = 20, skip = 0) {
+  const network = resolveTokenNetwork();
+  const safeHash = String(hash || "").trim();
+  const safeTokenId = String(tokenId || "").trim();
+  if (!safeHash || !safeTokenId) return null;
+
+  const params = new URLSearchParams({
+    contract_hash: `eq.${safeHash}`,
+    token_id_raw: `eq.${safeTokenId}`,
+    network: `eq.${network}`,
+    limit: String(limit),
+    offset: String(skip),
+    order: "block_index.desc,execution_index.desc,notification_index.desc",
+  });
+
+  try {
+    const res = await fetch(`/rest/${network}/nep11_transfers?${params}`, {
+      headers: { Accept: "application/json", Prefer: "count=exact" },
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+    const contentRange = res.headers.get("Content-Range") || "";
+    const totalFromHeader = Number(contentRange.split("/")[1]);
+    return {
+      result: rows.map((r) => _mapTransferRow(r, "nep11")),
+      totalCount: Number.isFinite(totalFromHeader) && totalFromHeader >= 0
+        ? totalFromHeader
+        : skip + rows.length,
+    };
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn(`[tokenService] nep11 token-id transfer fetch failed for ${hash}/${tokenId}:`, err);
+    }
+    return null;
+  }
+}
+
 // Indexer contract notifications carry Transfer events as a JSON-encoded
 // stack: state.value = [from, to, amount]. Both addresses are 20-byte
 // little-endian script hashes wrapped in base64 ByteString; the amount
@@ -235,194 +273,33 @@ function decodeTransferNotification(row) {
  */
 
 export const tokenService = createService(
+  {},
   {
-    /**
-     * 获取代币列表（通用）
-     * @param {string} type - 代币类型 ("NEP17" | "NEP11")
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @param {{ forceRefresh?: boolean }} [options={}] - 缓存控制
-     * @returns {Promise<{result: Array, totalCount: number}>} 代币列表
-     */
-    getTokenList: {
-      _type: "list",
-      cacheKey: "token_list",
-      rpcMethod: "GetAssetInfos",
-      errorLabel: "get token list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([type, limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip, Standard: type }),
-      buildCacheParams: ([type, limit = 20, skip = 0]) => ({ type, limit, skip }),
+    async getTokenList(type, limit = 20, skip = 0, options = {}) {
+      return this.getTokenListWithFallback(type, limit, skip, options);
     },
 
-    /**
-     * 根据哈希获取代币信息
-     * @param {string} hash - 合约哈希
-     * @returns {Promise<Object|null>} 代币数据
-     */
-    getByHash: {
-      cacheKey: "token_hash",
-      rpcMethod: "GetAssetInfoByContractHash",
-      fallback: null,
-      ttl: CACHE_TTL.token,
-      buildParams: ([hash]) => ({ ContractHash: hash }),
-      buildCacheParams: ([hash]) => ({ hash }),
+    async getByHash(hash, options = {}) {
+      return this.getByHashWithFallback(hash, options);
     },
 
-    /**
-     * 获取代币持有者列表
-     * @param {string} hash - 合约哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 持有者列表
-     */
-    getHolders: {
-      _type: "list",
-      cacheKey: "token_holders",
-      rpcMethod: "GetAssetHoldersByContractHash",
-      errorLabel: "get token holders",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ ContractHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
-
-    /**
-     * 获取 NEP17 转账记录
-     * @param {string} hash - 合约哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-     */
-    getNep17Transfers: {
-      _type: "list",
-      cacheKey: "token_nep17_transfers",
-      rpcMethod: "GetNep17TransferByContractHash",
-      errorLabel: "get NEP17 transfers",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ ContractHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
-
-    /**
-     * 获取 NEP11 转账记录
-     * @param {string} hash - 合约哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-     */
-    // NOTE: No backend endpoint GetNep11TransferByContractHash exists.
-    // Use getNep11TransfersByTokenId for token-specific transfers,
-    // or accountService.getNep11Transfers for address-based queries.
-
-    /**
-     * 获取指定 TokenId 的 NEP11 转账记录
-     * @param {string} hash - 合约哈希
-     * @param {string} tokenId - Token ID
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-     */
-    getNep11TransfersByTokenId: {
-      _type: "list",
-      cacheKey: "token_nep11_transfers_token",
-      rpcMethod: "GetNep11TransferByContractHashTokenId",
-      errorLabel: "get NEP11 transfers by token",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, tokenId, limit = 20, skip = 0]) => ({
-        ContractHash: hash,
-        TokenId: tokenId,
-        Limit: limit,
-        Skip: skip,
-      }),
-      buildCacheParams: ([hash, tokenId, limit = 20, skip = 0]) => ({ hash, tokenId, limit, skip }),
-    },
-
-    /**
-     * 获取 NFT 资产持有者列表（含余额）
-     * @param {string} hash - 合约哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 持有者列表
-     */
-    getNftHoldersList: {
-      _type: "list",
-      cacheKey: "token_nft_holders",
-      rpcMethod: "GetAssetHoldersListByContractHash",
-      errorLabel: "get NFT holders list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ ContractHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
-
-    /**
-     * 根据交易哈希获取 NEP17 转账记录（分页）
-     * @param {string} txHash - 交易哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-     */
-    getTransfersByTxHash: {
-      _type: "list",
-      cacheKey: "token_nep17_transfers_tx",
-      rpcMethod: "GetNep17TransferByTransactionHash",
-      errorLabel: "get NEP17 transfers by tx",
-      ttl: CACHE_TTL.trace,
-      buildParams: ([txHash, limit = 20, skip = 0]) => ({ TransactionHash: txHash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([txHash, limit = 20, skip = 0]) => ({ txHash, limit, skip }),
-    },
-
-    /**
-     * 根据交易哈希获取 NEP11 转账记录（分页）
-     * @param {string} txHash - 交易哈希
-     * @param {number} [limit=20] - 每页数量
-     * @param {number} [skip=0] - 跳过数量
-     * @returns {Promise<{result: Array, totalCount: number}>} 转账列表
-     */
-    getNep11TransfersByTxHash: {
-      _type: "list",
-      cacheKey: "token_nep11_transfers_tx",
-      rpcMethod: "GetNep11TransferByTransactionHash",
-      errorLabel: "get NEP11 transfers by tx",
-      ttl: CACHE_TTL.trace,
-      buildParams: ([txHash, limit = 20, skip = 0]) => ({ TransactionHash: txHash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([txHash, limit = 20, skip = 0]) => ({ txHash, limit, skip }),
-    },
-  },
-  {
-    // Override getTransfersByTxHash / getNep11TransfersByTxHash —
-    // both legacy RPC handlers query the empty Mongo `Nep17Transfer` /
-    // `Nep11Transfer` collections. The Postgres indexer is the
-    // authoritative source: when it returns an array (even empty), we
-    // trust it. Only fall back to legacy if the indexer throws or
-    // returns null. The previous "fall back when length === 0" version
-    // was firing the legacy RPC for every tx without NEP-17 transfers
-    // (vote ops, contract calls, etc.) — verified live: thousands of
-    // wasted POSTs per page. See #178.
-    async getTransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+    // The Postgres indexer is the authoritative transfer source. When it
+    // cannot answer, return an empty list rather than touching retired
+    // transaction-hash handlers.
+    async getTransfersByTxHash(txHash, limit = 20, skip = 0, _options = {}) {
       try {
         const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
         if (indexed && Array.isArray(indexed.result)) return indexed;
-      } catch { /* indexer threw — try legacy as defence-in-depth */ }
-      const direct = await safeRpcList(
-        "GetNep17TransferByTransactionHash",
-        { TransactionHash: txHash, Limit: limit, Skip: skip },
-        "get NEP17 transfers by tx",
-        options,
-      ).catch(() => null);
-      return direct || { result: [], totalCount: 0 };
+      } catch { /* fall through to empty state */ }
+      return { result: [], totalCount: 0 };
     },
 
-    async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
+    async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, _options = {}) {
       try {
         const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
         if (indexed && Array.isArray(indexed.result)) return indexed;
-      } catch { /* indexer threw — try legacy as defence-in-depth */ }
-      const direct = await safeRpcList(
-        "GetNep11TransferByTransactionHash",
-        { TransactionHash: txHash, Limit: limit, Skip: skip },
-        "get NEP11 transfers by tx",
-        options,
-      ).catch(() => null);
-      return direct || { result: [], totalCount: 0 };
+      } catch { /* fall through to empty state */ }
+      return { result: [], totalCount: 0 };
     },
 
     // Batch sibling of getTransfersByTxHash. Single PostgREST query for
@@ -435,11 +312,13 @@ export const tokenService = createService(
       return fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard);
     },
 
-    // Override the default getNftHoldersList. The legacy
-    // GetAssetHoldersListByContractHash JSON-RPC handler queried an
-    // unpopulated Mongo collection. Pull the holder ranking from the
-    // indexer's token_holder_balances table via the read-api holders
-    // endpoint instead, falling back to an empty list if it's unavailable.
+    async getNep11TransfersByTokenId(hash, tokenId, limit = 20, skip = 0) {
+      const indexed = await fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit, skip);
+      return indexed || { result: [], totalCount: 0 };
+    },
+
+    // Pull the holder ranking from the indexer's token_holder_balances table
+    // via the read-api holders endpoint.
     async getNftHoldersList(hash, limit = 20, skip = 0, options = {}) {
       try {
         const payload = await indexerReadService.getTokenHolders(hash, limit, skip, options);
@@ -456,11 +335,8 @@ export const tokenService = createService(
       return { result: [], totalCount: 0 };
     },
 
-    // Override getHolders — the legacy GetAssetHoldersByContractHash RPC
-    // queries a Mongo collection that the Postgres-migrated indexer no
-    // longer populates. Pull from v_nep17_balances instead, ranked by
-    // balance_raw DESC, and compute % share against the token's
-    // total_supply_raw (sourced from the indexer's tokens endpoint).
+    // Pull from v_nep17_balances, ranked by balance_raw DESC, and compute
+    // percentage share against total_supply_raw from the token endpoint.
     async getHolders(hash, limit = 20, skip = 0, options = {}) {
       try {
         const network = resolveTokenNetwork();
@@ -496,20 +372,13 @@ export const tokenService = createService(
           }
         }
       } catch {
-        // fall through to legacy RPC
+        // fall through to empty state
       }
-      return safeRpcList(
-        "GetAssetHoldersByContractHash",
-        { ContractHash: hash, Limit: limit, Skip: skip },
-        "get token holders",
-        options,
-      );
+      return { result: [], totalCount: 0 };
     },
 
-    // Override the default getNep17Transfers (legacy GetNep17TransferByContractHash
-    // RPC) which returns empty for nearly every contract. Derive from the
-    // indexer's contract notifications endpoint instead, decoding the
-    // Transfer event state into {from, to, amount}.
+    // Contract-level NEP-17 transfers from the read-api, with decoded
+    // notifications as a fallback when the dedicated table is unavailable.
     async getNep17Transfers(hash, limit = 20, skip = 0, options = {}) {
       // Prefer the transfer-only REST population: paging there keeps `skip`
       // (offset) and the count=exact total bound to the same filtered query,
@@ -559,20 +428,10 @@ export const tokenService = createService(
       } catch {
         // Indexer unreachable — fall through.
       }
-      return safeRpcList(
-        "GetNep17TransferByContractHash",
-        { ContractHash: hash, Limit: limit, Skip: skip },
-        "get NEP17 transfers",
-        options,
-      );
+      return { result: [], totalCount: 0 };
     },
 
-    // Contract-level NEP-11 transfers. There's no
-    // GetNep11TransferByContractHash JSON-RPC handler — only the per-token
-    // variant exists — so the NFT collection page's "Recent Transfers" tab
-    // had no working data source. Reuse the same indexer-notifications
-    // path as getNep17Transfers; both standards emit a "Transfer" event
-    // with [from, to, amount/tokenId] state.
+    // Contract-level NEP-11 transfers from the same read-api paths.
     async getNep11Transfers(hash, limit = 20, skip = 0, options = {}) {
       // Transfer-only REST population first — same offset/total coherence
       // rationale as getNep17Transfers. Falls through to the notifications
@@ -615,7 +474,7 @@ export const tokenService = createService(
     },
 
     async getTokenListWithFallback(type, limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
-      // Indexer first — same Mongo→Postgres pattern as #171/#172/#173. The
+      // Indexer first — same Mongo-to-Postgres pattern as #171/#172/#173. The
       // indexer's /tokens endpoint also handles `search` natively (matches
       // by display_name or symbol), so a search-mode call goes there too.
       try {
@@ -640,25 +499,17 @@ export const tokenService = createService(
             totalCount: Number(payload?.paging?.total || rows.length || 0),
           };
         }
-      } catch { /* fall through to legacy */ }
+      } catch { /* fall through to empty state */ }
 
-      const legacy = search
-        ? await tokenService.searchTokenByName(type, search, limit, skip, { forceRefresh }).catch(() => null)
-        : await tokenService.getTokenList(type, limit, skip, { forceRefresh }).catch(() => null);
-      return legacy || { result: [], totalCount: 0 };
+      return { result: [], totalCount: 0 };
     },
 
     async getByHashWithFallback(hash, options = {}) {
-      // Indexer first — same Mongo→Postgres pattern as #171/#172/#173.
-      // The legacy GetAssetInfoByContractHash returns null for most
-      // contracts. The enrichment block below (manifest invokefunction
-      // for missing decimals/symbol) still runs against the indexer row.
+      // Indexer first — same Mongo-to-Postgres pattern as #171/#172/#173.
+      // The enrichment block below (manifest invokefunction for missing
+      // decimals/symbol) still runs against the indexer row.
       const item = await indexerReadService.getToken(hash, options).catch(() => null);
-      if (!item) {
-        const legacy = await tokenService.getByHash(hash, options).catch(() => null);
-        if (legacy?.hash || legacy?.tokenname || legacy?.symbol) return legacy;
-        return null;
-      }
+      if (!item) return null;
 
       // Indexer currently mis-reports decimals/symbol as 0/"" for some
       // NEP-17 contracts (notably the GAS native, which has 8 decimals).
@@ -723,13 +574,26 @@ export const tokenService = createService(
       const key = getCacheKey("token_search", { type, name, limit, skip });
       return cachedRequest(
         key,
-        () =>
-          safeRpcList(
-            "GetAssetInfosByName",
-            { Name: name, Limit: limit, Skip: skip, Standard: type },
-            `search ${type}`,
-            cacheOpts
-          ),
+        async () => {
+          const payload = await indexerReadService.getTokens(type, limit, skip, {
+            search: name,
+            ...cacheOpts,
+          }).catch(() => null);
+          const rows = Array.isArray(payload?.data) ? payload.data : [];
+          return {
+            result: rows.map((item) => ({
+              hash: item.contract_hash,
+              tokenname: item.display_name || item.contract_hash,
+              symbol: item.symbol || "",
+              holders: item.holder_count || 0,
+              totalsupply: item.total_supply_raw || "0",
+              decimals: Number(item.decimals || 0),
+              type: item.standard || type,
+              standard: item.standard || type,
+            })),
+            totalCount: Number(payload?.paging?.total || rows.length || 0),
+          };
+        },
         CACHE_TTL.chart,
         cacheOpts
       );
@@ -751,9 +615,7 @@ export const tokenService = createService(
      * Calls the contract's standard `properties(tokenId)` NEP-11 method
      * via `invokefunction` and decodes the returned Map. This is the
      * authoritative on-chain source — works against any compliant NEP-11
-     * contract regardless of whether neo3fura_http is in the path. Falls
-     * back to the legacy GetNep11PropertiesByContractHashTokenId for
-     * backends that still proxy through Mongo.
+     * contract regardless of whether neo3fura_http is in the path.
      *
      * @param {string} hash - Contract hash
      * @param {string[]} tokenIds - Array of base64-encoded token IDs
@@ -767,8 +629,7 @@ export const tokenService = createService(
         async () => {
           // Standard path — call properties(tokenId) on the contract for
           // each id. Most NFT detail loads pass a single id, so this is
-          // typically one round-trip. Falls back to the legacy Mongo
-          // helper if the standard call doesn't HALT for any id.
+          // typically one round-trip.
           try {
             const ids = Array.isArray(tokenIds) ? tokenIds : [tokenIds];
             const results = await Promise.all(
@@ -798,13 +659,8 @@ export const tokenService = createService(
             if (decoded.length > 0) {
               return { result: decoded };
             }
-          } catch { /* fall through to legacy */ }
-          return safeRpc(
-            "GetNep11PropertiesByContractHashTokenId",
-            { ContractHash: hash, TokenIds: tokenIds },
-            null,
-            options,
-          );
+          } catch { /* fall through to null */ }
+          return null;
         },
         CACHE_TTL.token,
         options

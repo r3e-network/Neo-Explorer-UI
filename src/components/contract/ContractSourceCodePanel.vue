@@ -70,9 +70,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { rpc } from "@/services";
 import { truncateHash } from "@/utils/explorerFormat";
-import { normalizeUpdateCounter } from "@/utils/detailRouting";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -102,8 +100,6 @@ const totalCount = ref(0);
 const isLoading = ref(false);
 const loadError = ref(false);
 
-const safeUpdateCounter = computed(() => normalizeUpdateCounter(props.updatecounter));
-
 const fileCardClass = computed(() => {
   if (props.compact) {
     return "panel-muted overflow-hidden rounded-md shadow-card";
@@ -130,16 +126,11 @@ async function loadSourceCode() {
   loadError.value = false;
 
   try {
-    // Suppress dev console.error for the common "unverified contract" case —
-    // the failure is handled gracefully via loadError.value below, and the
-    // noise drowns out real errors when browsing standard NEP-17 tokens.
-    const result = await rpc("GetSourceCodeByContractHash", {
-      ContractHash: props.contractHash,
-      updatecounter: safeUpdateCounter.value,
-    }, { suppressLog: true });
-
-    sourceCodeList.value = Array.isArray(result?.result) ? result.result : [];
-    totalCount.value = Number(result?.totalCount || sourceCodeList.value.length || 0);
+    // Verified source files were stored behind the legacy Mongo RPC handler.
+    // After Phase 2e that handler is retired, so this panel degrades to the
+    // existing empty state until a Postgres-backed source-code API exists.
+    sourceCodeList.value = [];
+    totalCount.value = 0;
   } catch (_error) {
     sourceCodeList.value = [];
     totalCount.value = 0;

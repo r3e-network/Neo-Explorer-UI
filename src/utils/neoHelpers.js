@@ -261,7 +261,6 @@ export function responseConverter(_key, val) {
       }
     } else if (val["type"] === "Buffer" && typeof val["value"] === "string") {
       const bytes = base64ToBytes(val["value"]);
-      const hex = bytesToHex(bytes);
       const text = bytesToUtf8(bytes);
       if (text && /^[\x20-\x7F]*$/.test(text)) {
         return { ...val, type: "String", value: text };

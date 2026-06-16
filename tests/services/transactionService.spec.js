@@ -12,6 +12,7 @@ class MockRpcClient {
 vi.mock("@cityofzion/neon-js", () => {
   const neonMock = { RpcClient: MockRpcClient };
   neonMock.rpc = { RPCClient: MockRpcClient };
+  neonMock.tx = {};
   neonMock.default = neonMock;
   return neonMock;
 });
@@ -49,88 +50,68 @@ describe("transactionService", () => {
   beforeEach(() => {
     vi.clearAllMocks(); vi.resetAllMocks();
     clearAllCache();
-    // Default: indexer offline, so existing tests exercise legacy fallback.
+    // Default: indexer offline.
     indexerReadService.getTransactions.mockRejectedValue(new Error("indexer offline"));
     indexerReadService.getSummary.mockRejectedValue(new Error("indexer offline"));
   });
 
   describe("getCount", () => {
-    it("calls safeRpc correctly", async () => {
-      api.safeRpc.mockResolvedValueOnce(50000);
+    it("returns 0 without legacy RPC when summary is unavailable", async () => {
       const result = await transactionService.getCount();
-      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, expect.any(Object));
-      expect(result).toBe(50000);
+      expect(api.safeRpc).not.toHaveBeenCalled();
+      expect(result).toBe(0);
     });
 
   });
 
   describe("getList", () => {
-    it("calls rpc with pagination and backfills vmstate", async () => {
-      const mockData = { result: [{ hash: "0xTest" }, { hash: "0x2", vmstate: "HALT" }], totalCount: 2 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
-      
-      // Mock the getByHash internal call
-      api.safeRpc.mockResolvedValueOnce({ hash: "0xTest", vmstate: "FAULT" });
-      
+    it("returns empty without legacy RPC when indexer is unavailable", async () => {
       const result = await transactionService.getList(10, 5, { enrichMissingFields: true });
-      expect(api.safeRpcList).toHaveBeenCalled();
-      
-      // Check if it backfilled the missing vmstate for 0x1
-      expect(result.result[0].vmstate).toBe("FAULT");
-      // Check if it preserved the existing vmstate for 0x2
-      expect(result.result[1].vmstate).toBe("HALT");
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
     it("returns empty on error", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
       const result = await transactionService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
     it("does not default missing enriched vmstate to HALT", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xNoState" }], totalCount: 1 });
-      api.safeRpc.mockResolvedValueOnce({ hash: "0xNoState", blocktime: 1700000000 });
+      indexerReadService.getTransactions.mockResolvedValueOnce({
+        data: [{ txid: "0xNoState", block_index: 1, block_time_ms: 1700000000 }],
+        paging: { total: 1 },
+      });
+      indexerReadService.getSummary.mockResolvedValueOnce({ total_tx_count: 1 });
 
       const result = await transactionService.getList(10, 0, { enrichMissingFields: true });
 
-      expect(result.result[0].vmstate).toBeUndefined();
+      expect(result.result[0].vmstate).not.toBe("HALT");
     });
 
   });
 
   describe("getByHash", () => {
-    it("calls safeRpc with hash", async () => {
+    it("does not call legacy safeRpc when native detail is unavailable", async () => {
       const hash = "0xabc123";
-      api.safeRpc.mockResolvedValueOnce({ hash, sender: "addr1", vmstate: "HALT" });
-      await transactionService.getByHash(hash);
-      expect(api.safeRpc).toHaveBeenCalledWith(
-        "GetRawTransactionByTransactionHash",
-        { TransactionHash: hash },
-        null,
-        expect.any(Object)
-      );
+      const result = await transactionService.getByHash(hash);
+      expect(api.safeRpc).not.toHaveBeenCalledWith("GetRawTransactionByTransactionHash", expect.anything(), expect.anything(), expect.anything());
+      expect(result).toBeNull();
     });
   });
 
   describe("getByAddress", () => {
-    it("calls rpc with address and pagination and backfills vmstate", async () => {
-      const mockData = { result: [{ hash: "0xAnother" }], totalCount: 1 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
-      api.safeRpc.mockResolvedValueOnce({ hash: "0xAnother", vmstate: "HALT" });
-      
+    it("uses indexer account transactions without legacy RPC", async () => {
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [{ txid: "0xAnother", block_index: 1, block_time_ms: 10, vm_state: "HALT" }],
+        paging: { total: 1 },
+      });
       const result = await transactionService.getByAddress("0xNAddr", 15, 10, { enrichMissingFields: true });
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetRawTransactionByAddress",
-        { Address: "0xNAddr", Limit: 15, Skip: 10 },
-        "get transactions by address",
-        expect.any(Object)
-      );
-      
+      expect(api.safeRpcList).not.toHaveBeenCalled();
       expect(result.result[0].vmstate).toBe("HALT");
     });
 
     it("falls back to transfer txids when address transaction list is empty", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce(null);
       accountService.getNep17Transfers.mockResolvedValueOnce({
         result: [
           { txid: "0x111", timestamp: 100 },
@@ -144,17 +125,6 @@ describe("transactionService", () => {
           { txid: "0x333", timestamp: 150 },
         ],
         totalCount: 2,
-      });
-
-      api.safeRpc.mockImplementation(async (method, params) => {
-        if (method === "GetRawTransactionByTransactionHash") {
-          return {
-            hash: params.TransactionHash,
-            vmstate: "HALT",
-            blocktime: 1700000000,
-          };
-        }
-        return null;
       });
 
       const result = await transactionService.getByAddress("NdzY4...", 2, 0);
@@ -180,14 +150,13 @@ describe("transactionService", () => {
       expect(api.safeRpc).not.toHaveBeenCalled();
     });
 
-    it("getCount falls back to legacy GetTransactionCount when indexer summary is empty", async () => {
+    it("getCount returns 0 when indexer summary is empty", async () => {
       indexerReadService.getSummary.mockResolvedValue({ total_tx_count: 0 });
-      api.safeRpc.mockResolvedValueOnce(99);
 
       const result = await transactionService.getCount();
 
-      expect(api.safeRpc).toHaveBeenCalledWith("GetTransactionCount", {}, 0, expect.any(Object));
-      expect(result).toBe(99);
+      expect(api.safeRpc).not.toHaveBeenCalled();
+      expect(result).toBe(0);
     });
 
     it("getList maps indexer rows to legacy field names and skips legacy RPC", async () => {
@@ -226,20 +195,14 @@ describe("transactionService", () => {
       });
     });
 
-    it("getList falls back to legacy when indexer rows empty", async () => {
+    it("getList returns empty when indexer rows empty", async () => {
       indexerReadService.getTransactions.mockResolvedValue({ data: [], paging: { total: 0 } });
       indexerReadService.getSummary.mockResolvedValue(null);
-      api.safeRpcList.mockResolvedValueOnce({ result: [{ hash: "0xleg" }], totalCount: 1 });
 
       const result = await transactionService.getList();
 
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetTransactionList",
-        expect.any(Object),
-        expect.any(String),
-        expect.any(Object),
-      );
-      expect(result.result[0].hash).toBe("0xleg");
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+      expect(result).toEqual({ result: [], totalCount: 0 });
     });
   });
 });

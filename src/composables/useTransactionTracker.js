@@ -5,22 +5,10 @@ import { getNetworkRefreshIntervalMs } from "@/utils/env";
 
 const MAX_POLL_ATTEMPTS = 8;
 
-function isMethodNotFoundError(error) {
-  const msg = String(error?.message || "").toLowerCase();
-  return msg.includes("method not found") || msg.includes("-32601");
-}
-
 async function fetchApplicationLog(txid) {
   // Standard `getapplicationlog` is the canonical chain source — works
-  // against any Neo node and outlives Mongo cleanup. Was previously
-  // calling PascalCase GetApplicationLogByTransactionHash first which
-  // proxies through neo3fura_http (#180 / #185).
-  try {
-    return await rpc("getapplicationlog", [txid]);
-  } catch (error) {
-    if (!isMethodNotFoundError(error)) throw error;
-    return rpc("GetApplicationLogByTransactionHash", { TransactionHash: txid });
-  }
+  // against any Neo node and outlives Mongo cleanup.
+  return rpc("getapplicationlog", [txid]);
 }
 
 function getTxStatusFromApplicationLog(result) {

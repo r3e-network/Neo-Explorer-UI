@@ -4,8 +4,8 @@ import compression from "vite-plugin-compression";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
-// Single server: api.n3index.dev (95.216.148.60 via Cloudflare)
-const DEFAULT_RPC_PROXY_TARGET = "https://api.n3index.dev";
+// Direct node RPC plus read-api data plane.
+const DEFAULT_RPC_PROXY_TARGET = "https://rpc.n3index.dev";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 const PRICE_ENDPOINT_PATH = "/api/prices";
@@ -313,7 +313,7 @@ export default defineConfig(({ mode }) => {
   const appRelease =
     String(env.VITE_APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || process.env.npm_package_version || "dev")
       .trim() || "dev";
-  // Single server — all traffic goes to api.n3index.dev
+  // Split node RPC from the read-api data plane.
   const rpcTarget = env.VITE_RPC_PROXY_TARGET || DEFAULT_RPC_PROXY_TARGET;
   const indexerTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
   const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
@@ -356,7 +356,7 @@ export default defineConfig(({ mode }) => {
         "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       },
       proxy: {
-        // All traffic → single server: api.n3index.dev
+        // Node RPC goes direct; indexer/read-api routes stay on api.n3index.dev.
         "/data/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/data\/mainnet(?:\/fallback\d?)?/, "/mainnet") },
         "/data/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/data\/testnet(?:\/fallback\d?)?/, "/testnet") },
         "/indexer/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/indexer\/mainnet(?:\/fallback\d?)?/, "/mainnet") },
@@ -365,8 +365,8 @@ export default defineConfig(({ mode }) => {
         "/rpc/testnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/testnet" },
         "/api/mainnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/mainnet" },
         "/api/testnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/testnet" },
-        "/rest/mainnet": { target: rpcTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/mainnet/, "/rest/v1") },
-        "/rest/testnet": { target: rpcTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1") },
+        "/rest/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/mainnet/, "/rest/v1") },
+        "/rest/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1") },
       },
     },
     optimizeDeps: {

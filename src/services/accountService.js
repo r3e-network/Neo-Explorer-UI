@@ -57,11 +57,10 @@ async function fetchAccountOverviewRows(network, limit, skip) {
   return fetchJsonWithFallback([`${basePath}/v_account_overview?${query}`]);
 }
 
-// Per-address transfer fallback when both the legacy MongoDB-backed RPC
-// (GetNep17/11TransferByAddress) and the native getnep17/11transfers RPC
-// return empty for an active address. Reads from the Postgres-indexed
-// nep17_transfers / nep11_transfers REST table, querying both
-// from_address and to_address sides and merging by block_index DESC.
+// Per-address transfer fallback for when the native getnep17/11transfers RPC
+// returns empty for an active address. Reads from the Postgres-indexed
+// nep17_transfers / nep11_transfers REST table, querying both from_address
+// and to_address sides and merging by block_index DESC.
 function parseContentRangeTotal(res) {
   // PostgREST Content-Range with Prefer: count=exact looks like
   // "items 0-19/1543"; the segment after the slash is the true total of the
@@ -185,93 +184,20 @@ async function fetchAccountBalances(network, rows = []) {
 }
 
 export const accountService = createService(
-  {
-    _getCountRpc: {
-      cacheKey: "account_count",
-      rpcMethod: "GetAddressCount",
-      fallback: 0,
-      ttl: CACHE_TTL.stats,
-      realtime: true,
-      buildParams: () => ({}),
-    },
-    _getListRpc: {
-      _type: "list",
-      cacheKey: "account_list",
-      rpcMethod: "GetAddressList",
-      errorLabel: "get account list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
-    },
-    _getByAddressRpc: {
-      cacheKey: "account_address",
-      rpcMethod: "GetAddressByAddress",
-      fallback: null,
-      ttl: CACHE_TTL.address,
-      realtime: true,
-      buildParams: ([address]) => ({ Address: addressToScriptHash(address) || address }),
-      buildCacheParams: ([address]) => ({ address }),
-    },
-    _getAssetsRpc: {
-      cacheKey: "addr_assets",
-      rpcMethod: "GetAssetsHeldByAddress",
-      fallback: [],
-      ttl: CACHE_TTL.token,
-      realtime: true,
-      buildParams: ([address]) => ({ Address: addressToScriptHash(address) || address }),
-      buildCacheParams: ([address]) => ({ address }),
-    },
-    _getNep17TransfersRpc: {
-      _type: "list",
-      cacheKey: "account_nep17_transfers",
-      rpcMethod: "GetNep17TransferByAddress",
-      errorLabel: "get NEP17 transfers by address",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({
-        Address: addressToScriptHash(address) || address,
-        Limit: limit,
-        Skip: skip,
-      }),
-      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
-    },
-    _getNep11TransfersRpc: {
-      _type: "list",
-      cacheKey: "account_nep11_transfers",
-      rpcMethod: "GetNep11TransferByAddress",
-      errorLabel: "get NEP11 transfers by address",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({
-        Address: addressToScriptHash(address) || address,
-        Limit: limit,
-        Skip: skip,
-      }),
-      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
-    },
-  },
+  {},
   {
     async getCount(options = {}) {
       const key = getCacheKey("account_count_fallback", {});
       return cachedRequest(
         key,
         async () => {
-          // Indexer summary is the authoritative address count; the legacy
-          // GetAddressCount queried dead Mongo and is only a last resort.
+          // Indexer summary is the authoritative address count.
           const summary = await indexerReadService.getSummary(options).catch(() => null);
           const total = Number(summary?.total_address_count ?? 0);
           if (Number.isFinite(total) && total > 0) {
             return { "total counts": total };
           }
 
-          let rpcResult = null;
-          try {
-            rpcResult = await this._getCountRpc(options);
-          } catch (_err) {
-            rpcResult = null;
-          }
-          const directCount = Number(rpcResult?.["total counts"] ?? rpcResult?.count ?? rpcResult ?? 0);
-          if (Number.isFinite(directCount) && directCount > 0) {
-            return rpcResult;
-          }
           return { "total counts": 0 };
         },
         CACHE_TTL.stats,
@@ -284,8 +210,7 @@ export const accountService = createService(
       return cachedRequest(
         key,
         async () => {
-          // Read-api (Postgres) is the authoritative account list; the legacy
-          // GetAddressList queried dead Mongo and is only a last resort.
+          // Read-api (Postgres) is the authoritative account list.
           const network = resolveAccountNetwork();
           const [rows, summary] = await Promise.all([
             fetchAccountOverviewRows(network, limit, skip).catch(() => null),
@@ -299,16 +224,6 @@ export const accountService = createService(
             };
           }
 
-          let rpcResult = null;
-          try {
-            rpcResult = await this._getListRpc(limit, skip, options);
-          } catch (_err) {
-            rpcResult = null;
-          }
-          const existingRows = Array.isArray(rpcResult?.result) ? rpcResult.result : [];
-          if (existingRows.length > 0 || Number(rpcResult?.totalCount ?? 0) > 0) {
-            return rpcResult;
-          }
           return { result: [], totalCount: Number(summary?.total_address_count ?? 0) };
         },
         CACHE_TTL.chart,
@@ -508,10 +423,8 @@ export const accountService = createService(
     },
 
     async getByAddress(address, options = {}) {
-      // Authoritative on-chain sources first: getnep17balances/getnep11balances
-      // (+ transfers for the tx count). The legacy GetAddressByAddress queried
-      // dead Mongo and was a guaranteed-empty wasted round-trip on every load;
-      // it is now only a last resort for when the node itself is unreachable.
+      // Authoritative on-chain sources: getnep17balances/getnep11balances
+      // (+ transfers for the tx count).
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
         const [nep17Balances, nep11Balances, nep17Transfers, nep11Transfers] = await Promise.all([
@@ -522,8 +435,8 @@ export const accountService = createService(
         ]);
 
         // A non-null balances response means the node answered (even when the
-        // address holds nothing) — trust it. Only the node being unreachable
-        // (all native calls null) falls through to the legacy wrapper.
+        // address holds nothing) — trust it. If all native calls return null,
+        // the address details are unavailable.
         if (nep17Balances !== null || nep11Balances !== null) {
           const balances = Array.isArray(nep17Balances?.balance) ? nep17Balances.balance : [];
           const nep11Collections = Array.isArray(nep11Balances?.balance) ? nep11Balances.balance : [];
@@ -545,21 +458,13 @@ export const accountService = createService(
         }
       }
 
-      // Last resort: the legacy Mongo wrapper (returns empty post-migration).
-      try {
-        return await this._getByAddressRpc(address, options);
-      } catch (_err) {
-        return null;
-      }
+      return null;
     },
 
     async getAssets(address, options = {}) {
       // Standard `getnep17balances` / `getnep11balances` are the
       // canonical on-chain sources — work against any Neo node and
-      // outlive the Mongo cleanup. The legacy GetAssetsHeldByAddress
-      // RPC was previously the primary path but returned `{result: [],
-      // totalCount: 0}` for every address (verified live on
-      // /account-profile). Flipping per #181/#182.
+      // outlive the Mongo cleanup.
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
         const [nep17Balances, nep11Balances] = await Promise.all([
@@ -577,17 +482,14 @@ export const accountService = createService(
         if (assets.length > 0) return assets;
       }
 
-      // Legacy fallback — only reached if the chain node is unreachable.
-      const primary = await this._getAssetsRpc(address, options);
-      return Array.isArray(primary) ? primary : [];
+      return [];
     },
 
     async getNep17Transfers(address, limit = 20, skip = 0, options = {}) {
       // Indexer-first per #182 — same Mongo-empty pattern as the
       // NEP-11 sibling. Postgres /rest/<n>/nep17_transfers is the
       // authoritative source; native getnep17transfers is the
-      // defence-in-depth chain probe; legacy GetNep17TransferByAddress
-      // is the final fallback (returns empty post-Mongo-deletion).
+      // defence-in-depth chain probe.
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
         // Pull native balances in parallel so we have token info ready
@@ -623,14 +525,12 @@ export const accountService = createService(
         if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
       }
 
-      return await this._getNep17TransfersRpc(address, limit, skip, options) || { result: [], totalCount: 0 };
+      return { result: [], totalCount: 0 };
     },
 
     async getNep11Transfers(address, limit = 20, skip = 0, options = {}) {
-      // Indexer-first per #182 — the legacy GetNep11TransferByAddress
-      // RPC always returns {result:[], totalCount:0} (verified live on
-      // /account-profile). Try the Postgres-indexed nep11_transfers
-      // table first, then native getnep11transfers, then legacy.
+      // Indexer-first per #182. Try the Postgres-indexed nep11_transfers
+      // table first, then native getnep11transfers.
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
         const indexer = await fetchAddressTransfersFromIndexer(
@@ -660,8 +560,7 @@ export const accountService = createService(
         if (merged.length > 0) return this._paginateTransfers(merged, limit, skip);
       }
 
-      // Legacy fallback — only reached if indexer + native both empty.
-      return await this._getNep11TransfersRpc(address, limit, skip, options) || { result: [], totalCount: 0 };
+      return { result: [], totalCount: 0 };
     },
 
     /**

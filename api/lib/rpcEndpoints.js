@@ -1,20 +1,16 @@
 const DEFAULT_NETWORK = 'mainnet';
 
 const PRIMARY_RPC_ENDPOINTS = Object.freeze({
-  mainnet: 'https://api.n3index.dev/mainnet',
-  testnet: 'https://api.n3index.dev/testnet',
+  mainnet: 'https://rpc.n3index.dev/mainnet',
+  testnet: 'https://rpc.n3index.dev/testnet',
 });
 
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   mainnet: [
-    'https://api1.n3index.dev/mainnet',
-    'https://api2.n3index.dev/mainnet',
-    'https://api3.n3index.dev/mainnet',
+    'https://api.n3index.dev/mainnet',
   ],
   testnet: [
-    'https://api1.n3index.dev/testnet',
-    'https://api2.n3index.dev/testnet',
-    'https://api3.n3index.dev/testnet',
+    'https://api.n3index.dev/testnet',
   ],
 });
 

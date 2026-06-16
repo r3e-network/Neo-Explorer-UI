@@ -33,45 +33,35 @@ describe("searchService address lookup", () => {
     getByHashWithFallback.mockReset();
   });
 
-  it("finds account by converting Neo address to script hash first", async () => {
+  it("classifies Neo addresses without legacy address RPC", async () => {
     const query = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
     const scriptHash = addressToScriptHash(query);
 
-    safeRpc.mockImplementation(async (_method, params) => {
-      if (params?.Address === scriptHash) {
-        return { address: scriptHash, firstusetime: 1627978102039 };
-      }
-      return null;
-    });
+    safeRpc.mockResolvedValue(null);
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(safeRpc).toHaveBeenCalledWith("GetAddressByAddress", { Address: scriptHash }, null);
+    expect(safeRpc).not.toHaveBeenCalledWith("GetAddressByAddress", expect.anything(), expect.anything());
     expect(result).toEqual({
       type: "address",
-      data: { address: scriptHash, firstusetime: 1627978102039 },
+      data: { address: scriptHash },
     });
   });
 
-  it("resolves .neo domains using script-hash address lookup", async () => {
+  it("resolves .neo domains without legacy address RPC", async () => {
     const nns = "neo3.neo";
     const resolvedAddress = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
     const scriptHash = addressToScriptHash(resolvedAddress);
 
     resolveDomain.mockResolvedValueOnce(resolvedAddress);
-    safeRpc.mockImplementation(async (_method, params) => {
-      if (params?.Address === scriptHash) {
-        return { address: scriptHash };
-      }
-      return null;
-    });
+    safeRpc.mockResolvedValue(null);
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(nns);
 
     expect(resolveDomain).toHaveBeenCalledWith(nns);
-    expect(safeRpc).toHaveBeenCalledWith("GetAddressByAddress", { Address: scriptHash }, null);
+    expect(safeRpc).not.toHaveBeenCalledWith("GetAddressByAddress", expect.anything(), expect.anything());
     expect(result).toEqual({
       type: "address",
       data: { address: scriptHash, resolvedNns: nns },
@@ -104,23 +94,20 @@ describe("searchService address lookup", () => {
     expect(result).toEqual({ type: null, data: null });
   });
 
-  it("classifies a base58 address as type=address via legacy RPC", async () => {
+  it("classifies a base58 address as type=address without legacy RPC", async () => {
     const query = "NZ6bKQGT6mWqbXRNjX9ohAr5fVZwifWtGW";
-    safeRpc.mockImplementation(async (method) => {
-      if (method === "GetAddressByAddress") {
-        return { address: query, txCount: 5 };
-      }
-      return null;
-    });
+    const scriptHash = addressToScriptHash(query);
+    safeRpc.mockResolvedValue(null);
 
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
     expect(result.type).toBe("address");
-    expect(result.data).toMatchObject({ address: query });
+    expect(result.data).toMatchObject({ address: scriptHash });
+    expect(safeRpc).not.toHaveBeenCalledWith("GetAddressByAddress", expect.anything(), expect.anything());
   });
 
-  it("uses standard getblock RPC for block-height query before legacy fallback", async () => {
+  it("uses standard getblock RPC for block-height query", async () => {
     const query = "12345";
     safeRpc.mockImplementation(async (method, params) => {
       if (method === "getblock" && params?.[0] === 12345) {
@@ -142,7 +129,7 @@ describe("searchService address lookup", () => {
     expect(result.data.hash).toBe("0xstdblock");
   });
 
-  it("uses standard getrawtransaction for 64-hex hash before legacy fallback", async () => {
+  it("uses standard getrawtransaction for 64-hex hash", async () => {
     const query = "a".repeat(64);
     const fullHash = `0x${query}`;
     safeRpc.mockImplementation(async (method, params) => {

@@ -123,32 +123,16 @@ describe("nnsService.resolveDomain", () => {
     expect(resolved).toBeNull();
   });
 
-  it("resolves .matrix aliases on testnet via owned NEP-11 tokens", async () => {
+  it("does not call legacy transfer RPC for .matrix reverse lookup on testnet", async () => {
     currentEnv = "TestT5";
     getAddressTag.mockResolvedValueOnce(null);
     addressToScriptHashMock.mockReturnValueOnce("0xabc123");
 
-    safeRpc.mockImplementation(async (method) => {
-      if (method === "GetNep11TransferByAddress") {
-        return {
-          result: [
-            {
-              contract: "0x89908093c5ccc463e2c5744d6bacb06108b60a75",
-              tokenId: "YWxpY2UubWF0cml4",
-              to: "0xabc123",
-              from: null,
-            },
-          ],
-        };
-      }
-      return [];
-    });
-
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveAddressToNNS("NTestAddress123");
 
-    expect(safeRpc).toHaveBeenCalledWith("GetNep11TransferByAddress", { Address: "0xabc123", Limit: 100 }, null);
-    expect(resolved).toEqual({ nns: "alice.matrix" });
+    expect(safeRpc).not.toHaveBeenCalled();
+    expect(resolved).toBeNull();
   });
 
   it("loads matrix domain profile from standard contract methods on testnet", async () => {
@@ -202,49 +186,19 @@ describe("nnsService.resolveDomain", () => {
     expect(profile.resolvedAddress === null || profile.resolvedAddress === resolvedAddress).toBe(true);
   });
 
-  it("resolves hash160 targets via admin lookup when owner lookup is empty", async () => {
+  it("returns null for hash160 targets when metadata has no NNS tag", async () => {
     currentEnv = "Mainnet";
     getAddressTag.mockResolvedValueOnce(null);
     const targetHash = "0x1111111111111111111111111111111111111111";
 
-    safeRpc.mockImplementation(async (method) => {
-      if (method === "GetNNSNameByOwner") return [];
-      if (method === "GetNNSNameByAdmin") {
-        return [
-          {
-            name: "oracle.morpheus.neo",
-            expiration: Date.now() + 60_000,
-          },
-        ];
-      }
-      return [];
-    });
-
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveAddressToNNS(targetHash);
 
-    expect(safeRpc).toHaveBeenNthCalledWith(
-      1,
-      "GetNNSNameByOwner",
-      {
-        Asset: "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
-        Owner: targetHash,
-      },
-      [],
-    );
-    expect(safeRpc).toHaveBeenNthCalledWith(
-      2,
-      "GetNNSNameByAdmin",
-      {
-        Asset: "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
-        Admin: targetHash,
-      },
-      [],
-    );
-    expect(resolved).toEqual({ nns: "oracle.morpheus.neo" });
+    expect(safeRpc).not.toHaveBeenCalled();
+    expect(resolved).toBeNull();
   });
 
-  it("prefers the shortest available domain across .neo and .matrix candidates", async () => {
+  it("uses active metadata domain without legacy owner or transfer RPC probes", async () => {
     currentEnv = "Mainnet";
     getAddressTag.mockResolvedValueOnce({
       nns_domain: "betadomain.neo",
@@ -252,66 +206,22 @@ describe("nnsService.resolveDomain", () => {
     });
     addressToScriptHashMock.mockReturnValueOnce("0xabc123");
 
-    safeRpc.mockImplementation(async (method) => {
-      if (method === "GetNNSNameByOwner") {
-        return [
-          { name: "betadomain.neo", expiration: Date.now() + 60_000 },
-          { name: "zeta.neo", expiration: Date.now() + 60_000 },
-        ];
-      }
-      if (method === "GetNNSNameByAdmin") return [];
-      if (method === "GetNep11TransferByAddress") {
-        return {
-          result: [
-            {
-              contract: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
-              tokenId: btoa("alpha.matrix"),
-              to: "0xabc123",
-              from: null,
-            },
-          ],
-        };
-      }
-      return [];
-    });
-
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveAddressToNNS("NTestAddress123");
 
-    expect(resolved).toEqual({ nns: "zeta.neo" });
+    expect(safeRpc).not.toHaveBeenCalled();
+    expect(resolved).toEqual({ nns: "betadomain.neo" });
   });
 
-  it("breaks equal-length ties alphabetically and then prefers .matrix over .neo", async () => {
+  it("returns null when no metadata domain exists instead of probing legacy fallbacks", async () => {
     currentEnv = "Mainnet";
     getAddressTag.mockResolvedValueOnce(null);
     addressToScriptHashMock.mockReturnValueOnce("0xabc123");
 
-    safeRpc.mockImplementation(async (method) => {
-      if (method === "GetNNSNameByOwner") {
-        return [
-          { name: "zeta.neo", expiration: Date.now() + 60_000 },
-          { name: "beta.neo", expiration: Date.now() + 60_000 },
-        ];
-      }
-      if (method === "GetNNSNameByAdmin") return [];
-      if (method === "GetNep11TransferByAddress") {
-        return {
-          result: [
-            {
-              contract: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
-              tokenId: btoa("beta.matrix"),
-              to: "0xabc123",
-              from: null,
-            },
-          ],
-        };
-      }
-      return [];
-    });
-
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveAddressToNNS("NTestAddress123");
 
-    expect(resolved).toEqual({ nns: "beta.matrix" });
+    expect(safeRpc).not.toHaveBeenCalled();
+    expect(resolved).toBeNull();
   });
 });

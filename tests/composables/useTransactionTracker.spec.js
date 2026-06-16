@@ -73,19 +73,16 @@ describe("useTransactionTracker", () => {
     unmount();
   });
 
-  it("falls back to legacy PascalCase RPC when standard getapplicationlog is unavailable (#186)", async () => {
+  it("keeps polling without calling legacy PascalCase RPC when standard getapplicationlog is unavailable", async () => {
     rpc.mockRejectedValueOnce(new Error("RPC Error -32601: JSON RPC method not found"));
-    rpc.mockResolvedValueOnce({ executions: [{ vmstate: "FAULT" }] });
     const { track, txStatuses, unmount } = mountTrackerComposable();
 
     track("0xtx-legacy");
-    await waitForStatus(txStatuses, "0xtx-legacy", "failed");
+    await flushPromises();
 
-    // Standard `getapplicationlog` is now the primary; legacy
-    // GetApplicationLogByTransactionHash is the fallback.
-    expect(rpc).toHaveBeenNthCalledWith(1, "getapplicationlog", ["0xtx-legacy"]);
-    expect(rpc).toHaveBeenNthCalledWith(2, "GetApplicationLogByTransactionHash", { TransactionHash: "0xtx-legacy" });
-    expect(txStatuses.value["0xtx-legacy"]).toBe("failed");
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"]);
+    expect(rpc).not.toHaveBeenCalledWith("GetApplicationLogByTransactionHash", expect.anything());
+    expect(txStatuses.value["0xtx-legacy"]).toBe("pending");
 
     unmount();
   });

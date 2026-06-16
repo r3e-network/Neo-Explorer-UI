@@ -16,23 +16,23 @@
   "rewrites": [
     {
       "source": "/rpc/mainnet/primary",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "https://rpc.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/mainnet/fallback",
-      "destination": "https://mainnet1.neo.coz.io:443"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/mainnet/fallback2",
-      "destination": "https://mainnet2.neo.coz.io:443"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/mainnet/fallback3",
-      "destination": "https://rpc.n3index.dev"
+      "destination": "https://api.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/testnet/primary",
-      "destination": "https://api.n3index.dev/testnet"
+      "destination": "https://rpc.n3index.dev/testnet"
     },
     {
       "source": "/rpc/testnet/fallback",
@@ -48,11 +48,11 @@
     },
     {
       "source": "/rpc/mainnet",
-      "destination": "https://api.n3index.dev/mainnet"
+      "destination": "https://rpc.n3index.dev/mainnet"
     },
     {
       "source": "/rpc/testnet",
-      "destination": "https://api.n3index.dev/testnet"
+      "destination": "https://rpc.n3index.dev/testnet"
     },
     {
       "source": "/api/mainnet/primary",

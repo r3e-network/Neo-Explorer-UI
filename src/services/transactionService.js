@@ -1,7 +1,5 @@
-import { safeRpc, safeRpcList } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
-import { addressToScriptHash } from "../utils/neoHelpers";
 import { accountService } from "./accountService";
 import { indexerReadService } from "./indexerReadService";
 import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
@@ -13,58 +11,7 @@ import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints
  */
 
 export const transactionService = createService(
-  {
-    getCount: {
-      cacheKey: "tx_count",
-      rpcMethod: "GetTransactionCount",
-      fallback: 0,
-      ttl: CACHE_TTL.stats,
-      realtime: true,
-      buildParams: () => ({}),
-    },
-    _getList: {
-      _type: "list",
-      cacheKey: "tx_list",
-      rpcMethod: "GetTransactionList",
-      realtime: true,
-      errorLabel: "get transaction list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
-    },
-    _getByHash: {
-      cacheKey: "tx_hash",
-      rpcMethod: "GetRawTransactionByTransactionHash",
-      fallback: null,
-      ttl: CACHE_TTL.txDetail,
-      buildParams: ([hash]) => ({ TransactionHash: hash }),
-      buildCacheParams: ([hash]) => ({ hash }),
-    },
-    getCountByAddress: {
-      cacheKey: "tx_count_address",
-      rpcMethod: "GetTransactionCountByAddress",
-      fallback: 0,
-      ttl: CACHE_TTL.address,
-      realtime: true,
-      buildParams: ([address]) => ({ Address: addressToScriptHash(address) || address }),
-      buildCacheParams: ([address]) => ({ address }),
-    },
-    _getByAddress: {
-      _type: "list",
-      cacheKey: "tx_address_list",
-      rpcMethod: "GetRawTransactionByAddress",
-      errorLabel: "get transactions by address",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([address, limit = 20, skip = 0]) => ({
-        Address: addressToScriptHash(address) || address,
-        Limit: limit,
-        Skip: skip,
-      }),
-      buildCacheParams: ([address, limit = 20, skip = 0]) => ({ address, limit, skip }),
-    },
-    // NOTE: Notifications are extracted from GetApplicationLogByTransactionHash
-    // via executionService — no dedicated backend endpoint exists.
-  },
+  {},
   {
     _extractCount(res) {
       const direct = Number(res);
@@ -87,13 +34,9 @@ export const transactionService = createService(
       return "";
     },
 
-    async getByHash(hash, options = {}) {
+    async getByHash(hash, _options = {}) {
       // Native RPC first — `getrawtransaction` is the canonical source
-      // and works against any Neo node. The legacy
-      // GetRawTransactionByTransactionHash JSON-RPC was the previous
-      // primary path but always returned `{result: null, error: "not
-      // found"}` post-Mongo-deletion; live audit caught it firing on
-      // every tx-detail page load with no useful payload.
+      // and works against any Neo node.
       let tx = null;
       try {
         const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
@@ -129,12 +72,6 @@ export const transactionService = createService(
       } catch (err) {
         if (import.meta.env.DEV) console.warn("[transactionService] native RPC primary failed:", err);
       }
-
-      // Legacy fallback — only reached if the chain node is unreachable
-      // entirely. Once neo3fura_http is removed this returns "not found"
-      // and we'll fall through to the mempool lookup below.
-      tx = await this._getByHash(hash, options);
-      if (tx && tx.hash && (tx.blocktime || tx.blockhash || tx.vmstate)) return tx;
 
       try {
         // Final fallback: mempool — the tx may not be on chain yet.
@@ -281,15 +218,13 @@ export const transactionService = createService(
         key,
         async () => {
           // Indexer first — total_tx_count is the authoritative chain-wide
-          // counter. The legacy GetTransactionCount RPC reads from a Mongo
-          // collection that's no longer being populated.
+          // counter.
           try {
             const summary = await indexerReadService.getSummary(cacheOpts);
             const fromSummary = Number(summary?.total_tx_count);
             if (Number.isFinite(fromSummary) && fromSummary > 0) return fromSummary;
           } catch { /* fall through */ }
-          const res = await safeRpc("GetTransactionCount", {}, 0, cacheOpts);
-          return this._extractCount(res);
+          return 0;
         },
         CACHE_TTL.stats,
         cacheOpts,
@@ -304,10 +239,7 @@ export const transactionService = createService(
       const res = await cachedRequest(
         key,
         async () => {
-          // Indexer first — same Mongo→Postgres pattern as #150/#152/#153/#168.
-          // The legacy GetTransactionList queries a Mongo collection that's
-          // not being populated; without this branch the homepage tx list and
-          // /transactions page render empty once neo3fura_http is removed.
+          // Indexer first — same Mongo-to-Postgres pattern as #150/#152/#153/#168.
           try {
             const [indexerRes, summary] = await Promise.all([
               indexerReadService.getTransactions(limit, skip, cacheOpts),
@@ -324,8 +256,8 @@ export const transactionService = createService(
                 ),
               };
             }
-          } catch { /* fall through to legacy */ }
-          return safeRpcList("GetTransactionList", { Limit: limit, Skip: skip }, "get transaction list", cacheOpts);
+          } catch { /* fall through to empty state */ }
+          return { result: [], totalCount: 0 };
         },
         CACHE_TTL.chart,
         cacheOpts,
@@ -372,9 +304,7 @@ export const transactionService = createService(
     async getByAddress(address, limit = 20, skip = 0, options = {}) {
       const { enrichMissingFields = false, ...requestOptions } = options;
 
-      // Prefer the indexer's per-account transaction list — the legacy
-      // GetRawTransactionByAddress RPC returns empty for many wallets
-      // even when the indexer has full coverage.
+      // Prefer the indexer's per-account transaction list.
       let response = null;
       try {
         const indexerRes = await indexerReadService.getAccountTransactions(address, limit, skip, requestOptions);
@@ -408,25 +338,22 @@ export const transactionService = createService(
       }
 
       if (!response) {
-        const res = await this._getByAddress(address, limit, skip, requestOptions);
-        if (!res || !res.result) return res;
-        response = res;
-        if (Array.isArray(res.result) && res.result.length === 0 && Number(res.totalCount || 0) === 0) {
-          try {
-            const transferFallback = await this._getAddressTransactionsFromTransferFallback(
-              address,
-              limit,
-              skip,
-              requestOptions,
-            );
-            if (transferFallback?.result?.length) {
-              response = transferFallback;
-            }
-          } catch (error) {
-            // Keep primary response when fallback retrieval fails.
+        try {
+          const transferFallback = await this._getAddressTransactionsFromTransferFallback(
+            address,
+            limit,
+            skip,
+            requestOptions,
+          );
+          if (transferFallback?.result?.length) {
+            response = transferFallback;
           }
+        } catch (error) {
+          // Fall through to empty state.
         }
       }
+
+      if (!response) return { result: [], totalCount: 0 };
 
       const enriched = await Promise.all(
         response.result.map(async (tx) => {

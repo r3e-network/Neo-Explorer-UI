@@ -1,4 +1,4 @@
-import { rpc, safeRpc, safeRpcList } from "./api";
+import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
@@ -30,87 +30,50 @@ export const blockService = createService(
   {
     getBestHash: {
       cacheKey: "block_best_hash",
-      rpcMethod: "GetBestBlockHash",
+      rpcMethod: "getbestblockhash",
       fallback: null,
       ttl: CACHE_TTL.block,
       realtime: true,
-      buildParams: () => ({}),
-    },
-    _getList: {
-      _type: "list",
-      cacheKey: "block_list",
-      rpcMethod: "GetBlockInfoList",
-      errorLabel: "get block list",
-      ttl: CACHE_TTL.chart,
-      buildParams: ([limit = 20, skip = 0]) => ({ Limit: limit, Skip: skip }),
-      buildCacheParams: ([limit = 20, skip = 0]) => ({ limit, skip }),
+      buildParams: () => [],
     },
     getByHash: {
       cacheKey: "block_hash",
-      rpcMethod: "GetBlockByBlockHash",
+      rpcMethod: "getblock",
       fallback: null,
       ttl: CACHE_TTL.block,
-      buildParams: ([hash]) => ({ BlockHash: hash }),
+      buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
-    },
-    getByHeight: {
-      cacheKey: "block_height",
-      rpcMethod: "GetBlockByBlockHeight",
-      fallback: null,
-      ttl: CACHE_TTL.block,
-      buildParams: ([height]) => ({ BlockHeight: height }),
-      buildCacheParams: ([height]) => ({ height }),
     },
     getInfoByHash: {
       cacheKey: "block_info_hash",
-      rpcMethod: "GetBlockInfoByBlockHash",
+      rpcMethod: "getblock",
       fallback: null,
       ttl: CACHE_TTL.block,
-      buildParams: ([hash]) => ({ BlockHash: hash }),
+      buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
     },
     getHeaderByHash: {
       cacheKey: "block_header_hash",
-      rpcMethod: "GetBlockHeaderByBlockHash",
+      rpcMethod: "getblockheader",
       fallback: null,
       ttl: CACHE_TTL.block,
-      buildParams: ([hash]) => ({ BlockHash: hash }),
+      buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
     },
     getHeaderByHeight: {
       cacheKey: "block_header_height",
-      rpcMethod: "GetBlockHeaderByBlockHeight",
+      rpcMethod: "getblockheader",
       fallback: null,
       ttl: CACHE_TTL.block,
-      buildParams: ([height]) => ({ BlockHeight: height }),
+      buildParams: ([height]) => [Number(height), 1],
       buildCacheParams: ([height]) => ({ height }),
-    },
-    getTransactionsByHash: {
-      _type: "list",
-      cacheKey: "block_transactions_hash",
-      rpcMethod: "GetRawTransactionByBlockHash",
-      errorLabel: "get transactions by block hash",
-      ttl: CACHE_TTL.txDetail,
-      realtime: false,
-      buildParams: ([hash, limit = 20, skip = 0]) => ({ BlockHash: hash, Limit: limit, Skip: skip }),
-      buildCacheParams: ([hash, limit = 20, skip = 0]) => ({ hash, limit, skip }),
-    },
-    getTransactionsByHeight: {
-      _type: "list",
-      cacheKey: "block_transactions_height",
-      rpcMethod: "GetRawTransactionByBlockHeight",
-      errorLabel: "get transactions by block height",
-      ttl: CACHE_TTL.txDetail,
-      realtime: false,
-      buildParams: ([height, limit = 20, skip = 0]) => ({ BlockHeight: height, Limit: limit, Skip: skip }),
-      buildCacheParams: ([height, limit = 20, skip = 0]) => ({ height, limit, skip }),
     },
     getStateRootRaw: {
       cacheKey: "block_stateroot",
-      rpcMethod: "GetStateRoot",
+      rpcMethod: "getstateroot",
       fallback: null,
       ttl: CACHE_TTL.block,
-      buildParams: ([height]) => ({ BlockHeight: Number(height) }),
+      buildParams: ([height]) => [Number(height)],
       buildCacheParams: ([height]) => ({ height: Number(height) }),
     },
   },
@@ -183,11 +146,7 @@ export const blockService = createService(
       };
     },
 
-    // Override getByHeight + getTransactionsByHeight to use standard
-    // `getblock` first. The legacy GetBlockByBlockHeight Mongo wrapper
-    // does proxy through to `getblock` upstream, but firing it from
-    // the frontend wastes a hop. GetRawTransactionByBlockHeight
-    // returns empty Mongo per live audit on /homepage and /block-info.
+    // Use standard `getblock` so block detail works directly against neo-go.
     async getByHeight(height, options = {}) {
       const cacheOpts = options;
       const numericHeight = Number(height);
@@ -196,21 +155,15 @@ export const blockService = createService(
       return cachedRequest(
         key,
         async () => {
-          // Standard getblock(height, true) — returns full block + tx
-          // list in one round-trip. Replaces both legacy probes.
+          // Standard getblock(height, true) returns full block + tx list in
+          // one round-trip.
           try {
             const block = await safeRpc("getblock", [numericHeight, 1], null, cacheOpts);
             if (block && (block.hash || block.index !== undefined)) return block;
           } catch (err) {
             if (import.meta.env.DEV) console.warn("[blockService] getblock primary failed:", err);
           }
-          // Legacy fallback for backends still routing through Mongo.
-          return await safeRpc(
-            "GetBlockByBlockHeight",
-            { BlockHeight: numericHeight },
-            null,
-            cacheOpts,
-          );
+          return null;
         },
         CACHE_TTL.block,
         cacheOpts,
@@ -236,21 +189,30 @@ export const blockService = createService(
       } catch (err) {
         if (import.meta.env.DEV) console.warn("[blockService] getblock-derived tx list failed:", err);
       }
-      return safeRpcList(
-        "GetRawTransactionByBlockHeight",
-        { BlockHeight: Number(height), Limit: limit, Skip: skip },
-        "get transactions by block height",
-        options,
-      );
+      return { result: [], totalCount: 0 };
+    },
+
+    async getTransactionsByHash(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const block = await this.getByHash(hash, options);
+        const allTxs = Array.isArray(block?.tx) ? block.tx : [];
+        if (allTxs.length > 0) {
+          const pageStart = Math.max(0, skip);
+          const pageEnd = pageStart + Math.max(0, limit);
+          return {
+            result: allTxs.slice(pageStart, pageEnd),
+            totalCount: allTxs.length,
+          };
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.warn("[blockService] getblock(hash)-derived tx list failed:", err);
+      }
+      return { result: [], totalCount: 0 };
     },
 
     /**
-     * Fetch the official state root for a block height. Primary path is
-     * neo3fura's `GetStateRoot` (which proxies the Neo node's
-     * `getstateroot`, with server-side LRU caching). Falls back to a
-     * direct node RPC call if the neo3fura method is unavailable
-     * (e.g. during a backend rollout window before the new handler is
-     * deployed, or against a neo3fura instance that hasn't enabled it).
+     * Fetch the official state root for a block height from neo-go's
+     * standard `getstateroot` method.
      *
      * State roots are produced by the StateRootService and reflect the
      * MPT root of the contract storage trie at the end of the block.
@@ -262,42 +224,15 @@ export const blockService = createService(
       const numericHeight = Number(height);
       if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
 
-      // Primary: neo3fura GetStateRoot. We pass WithWitnesses=false (the
-      // server default) since the explorer only needs the roothash —
-      // skipping the witness array shaves ~600 bytes per response.
+      // Standard getstateroot. We only need the roothash.
       try {
         const res = await this.getStateRootRaw(numericHeight, options);
         const roothash = res?.roothash || res?.rootHash;
         if (roothash) return roothash;
       } catch (e) {
-        // Only fall back on errors that suggest the method itself is
-        // missing. Genuine "block not yet has state root" responses
-        // shouldn't trigger a fallback (the node will return the same
-        // not-found from the lowercase path).
-        if (!isMethodMissingError(e)) {
-          if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot upstream error:", e);
-          return null;
-        }
-        if (import.meta.env.DEV) console.warn("[blockService] GetStateRoot not exposed, falling back to node RPC:", e);
+        if (!isMethodMissingError(e) && import.meta.env.DEV) console.warn("[blockService] getstateroot upstream error:", e);
       }
-
-      // Fallback: direct node RPC (lowercase getstateroot) via the same proxy.
-      const cacheOpts = getRealtimeListCacheOptions(options);
-      const key = getCacheKey("block_stateroot_node", { height: numericHeight });
-      return cachedRequest(
-        key,
-        async () => {
-          try {
-            const res = await rpc("getstateroot", [numericHeight], { suppressLog: true });
-            return res?.roothash || res?.rootHash || null;
-          } catch (e) {
-            if (import.meta.env.DEV) console.warn("[blockService] getstateroot fallback failed:", e);
-            return null;
-          }
-        },
-        CACHE_TTL.block,
-        cacheOpts,
-      );
+      return null;
     },
 
     /**
@@ -341,7 +276,7 @@ export const blockService = createService(
       const res = await cachedRequest(
         key,
         async () => {
-          // Indexer first — same Mongo→Postgres pattern as #171.
+          // Indexer first — same Mongo-to-Postgres pattern as #171.
           try {
             const [indexerRes, summary] = await Promise.all([
               indexerReadService.getBlocks(limit, skip, cacheOpts),
@@ -358,8 +293,8 @@ export const blockService = createService(
                 ),
               };
             }
-          } catch { /* fall through to legacy */ }
-          return safeRpcList("GetBlockInfoList", { Limit: limit, Skip: skip }, "get block list", cacheOpts);
+          } catch { /* fall through to empty state */ }
+          return { result: [], totalCount: 0 };
         },
         CACHE_TTL.chart,
         cacheOpts,

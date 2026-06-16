@@ -20,7 +20,7 @@ describe("rpcEndpoints configured base URL", () => {
     ]);
   });
 
-  it("defaults to same-origin primary proxy route", async () => {
+  it("defaults to direct-node primary plus worker fallback proxy routes", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
 
@@ -30,11 +30,11 @@ describe("rpcEndpoints configured base URL", () => {
     // resolved against window.location.origin.
     expect(getRpcEndpointCandidates()).toEqual([
       `${window.location.origin}/rpc/mainnet/primary`,
-      "https://rpc.n3index.dev",
+      `${window.location.origin}/rpc/mainnet/fallback`,
     ]);
   });
 
-  it("calls runtime endpoint with only primary (no fallback chain)", async () => {
+  it("calls runtime endpoint with primary first", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
 
@@ -74,7 +74,7 @@ describe("rpcEndpoints configured base URL", () => {
 
     expect(getRpcEndpointCandidates()).toEqual([
       `${window.location.origin}/rpc/mainnet/primary`,
-      "https://rpc.n3index.dev",
+      `${window.location.origin}/rpc/mainnet/fallback`,
     ]);
   });
 });

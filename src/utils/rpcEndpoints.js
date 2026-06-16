@@ -7,13 +7,16 @@ const PRIMARY_RPC_ENDPOINTS = Object.freeze({
   testnet: "/rpc/testnet/primary",
 });
 
-// Browser-side fallbacks must go through Vercel rewrites (CORS-safe proxied)
-// or our own CORS-enabled endpoint. Direct third-party endpoints hit CORS.
+// Browser-side fallback goes through Vercel so it stays CORS-safe. The
+// fallback destination is the Cloudflare worker, whose RPC route is repointed
+// to direct neo-go during Phase 2e.
 const FALLBACK_RPC_ENDPOINTS = Object.freeze({
   mainnet: [
-    "https://rpc.n3index.dev",
+    "/rpc/mainnet/fallback",
   ],
-  testnet: [],
+  testnet: [
+    "/rpc/testnet/fallback",
+  ],
 });
 
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
@@ -103,7 +106,7 @@ export const callWithRpcEndpointFallback = async (value, handler) => {
 
   for (const endpoint of candidates) {
     try {
-      // Execute against primary first, then legacy backups if needed.
+      // Execute against direct-node primary first, then the worker RPC route.
       return await handler(endpoint);
     } catch (error) {
       lastError = error;

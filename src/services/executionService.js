@@ -3,7 +3,7 @@ import { createService } from "./serviceFactory";
 import { contractService } from "./contractService";
 import { NATIVE_CONTRACTS, CONTRACT_MANAGEMENT_HASH } from "@/constants";
 import { decodeNotificationParams } from "@/utils/neoCodec";
-import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
+import { extractVmStateFromObject } from "@/utils/txVmState";
 import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
@@ -13,14 +13,6 @@ import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints
  */
 export const executionService = createService(
   {
-    _getExecutionTraceIndexed: {
-      cacheKey: "exec_trace",
-      rpcMethod: "GetApplicationLogByTransactionHash",
-      fallback: null,
-      ttl: CACHE_TTL.trace,
-      buildParams: ([txHash]) => ({ TransactionHash: txHash }),
-      buildCacheParams: ([txHash]) => ({ txHash }),
-    },
     _getExecutionTraceLegacy: {
       cacheKey: "exec_trace_legacy",
       rpcMethod: "getapplicationlog",
@@ -28,22 +20,6 @@ export const executionService = createService(
       ttl: CACHE_TTL.trace,
       buildParams: ([txHash]) => [txHash],
       buildCacheParams: ([txHash]) => ({ txHash }),
-    },
-    getDetailedTrace: {
-      cacheKey: "exec_detailed_trace",
-      rpcMethod: "GetExecutionByTransactionHash",
-      fallback: null,
-      ttl: CACHE_TTL.trace,
-      buildParams: ([txHash]) => ({ TransactionHash: txHash }),
-      buildCacheParams: ([txHash]) => ({ txHash }),
-    },
-    _getBlockApplicationLogIndexed: {
-      cacheKey: "block_app_log",
-      rpcMethod: "GetApplicationLogByBlockHash",
-      fallback: null,
-      ttl: CACHE_TTL.trace,
-      buildParams: ([blockHash]) => ({ BlockHash: blockHash }),
-      buildCacheParams: ([blockHash]) => ({ blockHash }),
     },
     _getBlockApplicationLogLegacy: {
       cacheKey: "block_app_log_legacy",
@@ -55,24 +31,23 @@ export const executionService = createService(
     },
   },
   {
+    async _getExecutionTraceIndexed() {
+      return null;
+    },
+
+    async _getBlockApplicationLogIndexed() {
+      return null;
+    },
+
+    async getDetailedTrace() {
+      return null;
+    },
+
     /**
      * Fetch block-level application log (OnPersist / PostPersist executions).
-     * Tries the indexed neo3fura endpoint first, then falls back to legacy RPC,
-     * then to native Neo node RPC.
+     * Uses the standard application-log path against direct neo-go.
      */
     async getBlockApplicationLog(blockHash, options = {}) {
-      let indexed = null;
-      try {
-        const raw = await this._getBlockApplicationLogIndexed(blockHash, options);
-        indexed = this._normalizeBlockAppLog(raw);
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn("[executionService] indexed block app log fetch failed:", err);
-      }
-
-      if (indexed && this._countNotifications(indexed) > 0) {
-        return indexed;
-      }
-
       let legacy = null;
       try {
         legacy = this._normalizeBlockAppLog(await this._getBlockApplicationLogLegacy(blockHash, options));
@@ -80,8 +55,8 @@ export const executionService = createService(
         if (import.meta.env.DEV) console.warn("[executionService] legacy block app log fetch failed:", err);
       }
 
-      // Native Node RPC fallback
-      if (!indexed && !legacy) {
+      // Native Node RPC fallback through neon-js.
+      if (!legacy) {
         try {
           const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
           const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
@@ -98,9 +73,7 @@ export const executionService = createService(
         }
       }
 
-      if (!indexed && legacy) return legacy;
-      if (legacy && this._countNotifications(legacy) > this._countNotifications(indexed)) return legacy;
-      return indexed || legacy;
+      return legacy;
     },
 
     /**
@@ -133,11 +106,7 @@ export const executionService = createService(
 
     async getExecutionTrace(txHash, options = {}) {
       // Standard `getapplicationlog` is the canonical source — it works
-      // against any Neo node and returns the authoritative execution
-      // trace. Try it first; the legacy
-      // GetApplicationLogByTransactionHash JSON-RPC was previously the
-      // primary path but always returned `{result: null, error: "not
-      // found"}` post-Mongo-deletion (verified live).
+      // against any Neo node and returns the authoritative execution trace.
       let primary = null;
       try {
         const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
@@ -155,18 +124,6 @@ export const executionService = createService(
         if (import.meta.env.DEV) console.warn("[executionService] native RPC applog fetch failed:", nativeErr);
       }
 
-      // Defence-in-depth: try the indexed and legacy PascalCase
-      // wrappers if the native call returned a partial trace (no
-      // notifications) or threw entirely.
-      let indexed = null;
-      try {
-        indexed = this._normalizeExecutionTrace(await this._getExecutionTraceIndexed(txHash, options));
-      } catch (err) {
-        if (import.meta.env.DEV) console.warn("[executionService] indexed trace fetch failed:", err);
-      }
-      const indexedNotifications = this._countNotifications(indexed);
-      if (indexedNotifications > 0) return indexed;
-
       let legacy = null;
       try {
         legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
@@ -176,11 +133,7 @@ export const executionService = createService(
 
       if (this._countNotifications(legacy) > 0) return legacy;
       if (primary) return primary;
-      // When neither has notifications, prefer whichever surfaced a
-      // vmstate (FAULT trace, etc.) — legacy sometimes has fields
-      // the indexed Mongo row dropped.
-      if (!extractVmStateFromAppLog(indexed) && extractVmStateFromAppLog(legacy)) return legacy;
-      return indexed || legacy;
+      return legacy;
     },
 
     /**
