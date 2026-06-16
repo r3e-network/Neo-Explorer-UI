@@ -582,6 +582,61 @@ async function testAccountPage() {
   });
 }
 
+async function testAccountsListPage() {
+  setPage("Accounts List Page (/account/1)");
+
+  await test("Frontend route /account/1 serves the SPA", async () => {
+    const res = await webGet("/account/1");
+    assert(res.status === 200, "GET /account/1 frontend route → 200", `status=${res.status}`);
+    assert(header(res.headers, "content-type").includes("text/html"), "/account/1 returns HTML shell");
+  });
+
+  await test("Same-origin /data/mainnet/summary supports account totals", async () => {
+    const res = await webGet("/data/mainnet/summary", { Accept: "application/json" });
+    assert(res.status === 200, "GET /data/mainnet/summary → 200", `status=${res.status}`);
+    const data = res.json?.data || res.json || {};
+    assert(
+      Number(data.total_address_count || data.last_indexed_block || 0) > 0,
+      "summary has account total or indexed height",
+      `keys=${Object.keys(data).join(", ")}`,
+    );
+  });
+
+  let accountRows = [];
+  await test("Same-origin /rest/mainnet/v_account_overview powers account table", async () => {
+    const query = new URLSearchParams({
+      select: "address,tx_sent,tx_signed,nep11_sent_events,nep11_received_events,last_tx_ms",
+      network: "eq.mainnet",
+      limit: "5",
+      offset: "0",
+      order: "nep17_net_raw.desc,last_tx_ms.desc",
+    });
+    const res = await webGet(`/rest/mainnet/v_account_overview?${query}`, { Accept: "application/json" });
+    assert(res.status === 200, "GET /rest/mainnet/v_account_overview → 200", `status=${res.status}`);
+    accountRows = Array.isArray(res.json) ? res.json : [];
+    assert(accountRows.length > 0, "account overview returns rows", `count=${accountRows.length}`);
+    assert(Boolean(accountRows[0]?.address), "account overview rows include address");
+  });
+
+  await test("Same-origin /rest/mainnet/v_nep17_balances supports account NEO/GAS columns", async () => {
+    const addresses = [...new Set(accountRows.map((row) => row?.address).filter(Boolean))].slice(0, 5);
+    if (!addresses.length) {
+      skip("GET /rest/mainnet/v_nep17_balances", "no account rows discovered");
+      return;
+    }
+
+    const query = new URLSearchParams({
+      select: "address,contract_hash,balance_raw",
+      network: "eq.mainnet",
+      address: `in.(${addresses.join(",")})`,
+      contract_hash: `in.(${NEO_HASH},${GAS_HASH})`,
+    });
+    const res = await webGet(`/rest/mainnet/v_nep17_balances?${query}`, { Accept: "application/json" });
+    assert(res.status === 200, "GET /rest/mainnet/v_nep17_balances → 200", `status=${res.status}`);
+    assert(Array.isArray(res.json), "v_nep17_balances returns array", `type=${typeof res.json}`);
+  });
+}
+
 async function testGovernanceToolPage() {
   setPage("Governance Tool (/tools/governance) [CRITICAL]");
 
@@ -1100,6 +1155,7 @@ async function main() {
   await testContractsPage();
   await testTokensPage();
   await testAccountPage();
+  await testAccountsListPage();
   await testGovernanceToolPage();
   await testCandidatesPage();
   await testAnalyticsPage();
