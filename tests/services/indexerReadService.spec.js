@@ -128,6 +128,32 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc");
   });
 
+  it("reads per-contract calls from the short read-api route", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ txid: "0xt1", block_index: 100 }],
+        paging: { total: 1 },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const payload = await indexerReadService.getContractCalls("0xabc", 20, 40);
+
+    expect(payload).toEqual({
+      data: [{ txid: "0xt1", block_index: 100 }],
+      paging: { total: 1 },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc/calls?limit=20&offset=40");
+  });
+
   it("can load a NEP-11 token without first hitting the NEP-17-only token detail endpoint", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),

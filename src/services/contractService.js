@@ -41,12 +41,13 @@ export const contractService = createService(
     },
   },
   {
-    // Contract calls come from the read-api, with a notification-derived
-    // fallback when the dedicated REST table is unavailable.
+    // Contract calls come from the read-api, with fallback paths for older
+    // Worker deployments and notification-derived history.
     //
-    // Tries two sources in order:
-    //   1. The new /rest/v1/contract_calls endpoint (single round-trip).
-    //   2. The contract_notifications + transaction_signers derivation
+    // Tries three sources in order:
+    //   1. The short read-api route /contracts/<hash>/calls.
+    //   2. The /rest/v1/contract_calls endpoint when explicitly enabled.
+    //   3. The contract_notifications + transaction_signers derivation
     //      (works against any current read-api; what we shipped first).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
       const network = resolveNetworkName();
@@ -56,7 +57,38 @@ export const contractService = createService(
       // paths (header + ScCallTable) collapse to one /contracts/<hash> hit.
       const overviewPromise = indexerReadService.getContractOverview(hash, options).catch(() => null);
 
-      // Source 1: the new dedicated REST endpoint.
+      // Source 1: short read-api route. This is currently healthy in
+      // production even while the public Worker /rest/v1/contract_calls
+      // compatibility route is still waiting on a Cloudflare deploy.
+      try {
+        const slowOptions = { ...options, timeoutMs: 12000 };
+        const [indexerRes, overview] = await Promise.all([
+          indexerReadService.getContractCalls(hash, limit, skip, slowOptions),
+          overviewPromise,
+        ]);
+        if (Array.isArray(indexerRes?.data)) {
+          const rows = indexerRes.data;
+          const authoritativeTxCount = Number(overview?.tx_count);
+          return {
+            result: rows.map((r) => ({
+              txid: r.txid,
+              blockindex: r.block_index,
+              method: r.first_event_name || "—",
+              callFlags: "",
+              originSender: r.origin_sender || null,
+            })),
+            totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
+              ? authoritativeTxCount
+              : Number(
+                  indexerRes?.paging?.total
+                    ?? (rows.length === limit ? skip + rows.length + 1 : skip + rows.length),
+                ),
+          };
+        }
+      } catch { /* fall through */ }
+
+      // Source 2: the dedicated REST endpoint, kept opt-in until the public
+      // Worker compatibility route is deployed everywhere.
       if (shouldUseContractCallsRest(options) && !unsupportedContractCallsRestNetworks.has(network)) {
         try {
           const params = new URLSearchParams({
@@ -95,7 +127,7 @@ export const contractService = createService(
         } catch { /* network error; fall through */ }
       }
 
-      // Source 2: derive client-side from contract_notifications + signers.
+      // Source 3: derive client-side from contract_notifications + signers.
       try {
         // Same slow-endpoint accommodation as tokenService.getNep17Transfers.
         const slowOptions = { ...options, timeoutMs: 12000 };

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const safeRpcMock = vi.hoisted(() => vi.fn());
 const safeRpcListMock = vi.hoisted(() => vi.fn());
 const getContractsMock = vi.hoisted(() => vi.fn());
+const getContractCallsMock = vi.hoisted(() => vi.fn());
 const getContractNotificationsMock = vi.hoisted(() => vi.fn());
 const getContractOverviewMock = vi.hoisted(() => vi.fn());
 
@@ -14,6 +15,7 @@ vi.mock("../../src/services/api.js", () => ({
 vi.mock("../../src/services/indexerReadService.js", () => ({
   indexerReadService: {
     getContracts: getContractsMock,
+    getContractCalls: getContractCallsMock,
     getContractNotifications: getContractNotificationsMock,
     getContractOverview: getContractOverviewMock,
   },
@@ -24,6 +26,7 @@ describe("contractService manifest fallback", () => {
     vi.resetModules();
     vi.clearAllMocks();
     getContractsMock.mockRejectedValue(new Error("indexer offline"));
+    getContractCallsMock.mockRejectedValue(new Error("indexer offline"));
     getContractNotificationsMock.mockRejectedValue(new Error("indexer offline"));
     getContractOverviewMock.mockResolvedValue(null);
   });
@@ -116,18 +119,53 @@ describe("contractService manifest fallback", () => {
   });
 });
 
-// Three-tier fallback chain (#168 + #169) for getScCalls.
+// Read-api-first fallback chain (#168 + #169) for getScCalls.
 describe("contractService.getScCalls fallback chain", () => {
   const HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"; // NEO native
 
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    // Default: indexer notifications offline so Source 2 is unreachable.
+    // Default: indexer calls/notifications offline so later sources are unreachable unless enabled per test.
+    getContractCallsMock.mockRejectedValue(new Error("indexer calls offline"));
     getContractNotificationsMock.mockRejectedValue(new Error("indexer offline"));
   });
 
-  it("Source 1: returns rows from /rest/v1/contract_calls when present", async () => {
+  it("Source 1: returns rows from the short read-api contract calls route", async () => {
+    getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
+    getContractCallsMock.mockResolvedValueOnce({
+      data: [
+        { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
+        { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+      ],
+      paging: { total: 1234 },
+    });
+    const fetchMock = vi.fn(async () => ({ ok: false }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0);
+
+    expect(getContractCallsMock).toHaveBeenCalledWith(
+      HASH,
+      20,
+      0,
+      expect.objectContaining({ timeoutMs: 12000 }),
+    );
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/contract_calls"))).toBe(false);
+    expect(result).toEqual({
+      result: [
+        { txid: "0xt1", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
+        { txid: "0xt2", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+      ],
+      totalCount: 1234,
+    });
+    expect(safeRpcListMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("Source 2: returns rows from /rest/v1/contract_calls when explicitly enabled", async () => {
     const restRows = [
       { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
       { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
@@ -161,7 +199,7 @@ describe("contractService.getScCalls fallback chain", () => {
     vi.unstubAllGlobals();
   });
 
-  it("Source 2: falls back to client-side derivation when REST endpoint 404s", async () => {
+  it("Source 3: falls back to client-side derivation when direct calls and REST are unavailable", async () => {
     getContractOverviewMock.mockResolvedValue({ tx_count: 99 });
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
@@ -217,6 +255,7 @@ describe("contractService.getScCalls fallback chain", () => {
 
   it("skips the dedicated REST endpoint by default until the read-api route is enabled", async () => {
     getContractOverviewMock.mockResolvedValue({ tx_count: 1 });
+    getContractCallsMock.mockRejectedValueOnce(new Error("indexer calls unavailable"));
     getContractNotificationsMock.mockResolvedValue({
       data: [{ txid: "0xt1", block_index: 50, event_name: "Transfer" }],
       paging: { total: 1 },

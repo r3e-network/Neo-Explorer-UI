@@ -297,6 +297,20 @@ export const indexerReadService = {
     );
   },
 
+  async getContractCalls(contractHash, limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(contractHash || "").trim());
+    if (!safe) return null;
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    return await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `contracts/${safe}/calls?${params.toString()}`),
+      options,
+    );
+  },
+
   async getTokenHolders(contractHash, limit = 20, offset = 0, options = {}) {
     const network = resolveIndexerNetworkPath();
     const safe = encodeURIComponent(String(contractHash || "").trim());
