@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { candidateService } from "../../src/services/candidateService.js";
 import * as api from "../../src/services/api.js";
+import * as indexerRead from "../../src/services/indexerReadService.js";
 import { clearAllCache } from "../../src/services/cache.js";
 
 vi.mock("../../src/services/api.js", () => ({
@@ -8,6 +9,10 @@ vi.mock("../../src/services/api.js", () => ({
   safeRpc: vi.fn(),
   safeRpcList: vi.fn(),
   formatListResponse: vi.fn((r) => r),
+}));
+
+vi.mock("../../src/services/indexerReadService.js", () => ({
+  indexerReadService: { getCandidateVoters: vi.fn() },
 }));
 
 describe("candidateService", () => {
@@ -131,31 +136,45 @@ describe("candidateService", () => {
   });
 
   describe("getVotersByAddress", () => {
-    it("calls safeRpcList with address and default pagination", async () => {
-      const mockData = { result: [{ voter: "NVoter1" }], totalCount: 1 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
+    it("derives voters from the indexer endpoint and maps the shape", async () => {
+      indexerRead.indexerReadService.getCandidateVoters.mockResolvedValueOnce({
+        data: [
+          { script_hash: "0xaaa", votes: "100000" },
+          { script_hash: "0xbbb", votes: "5" },
+        ],
+        meta: { total: 248 },
+      });
 
-      const result = await candidateService.getVotersByAddress("NAddr1");
-      expect(api.safeRpcList).toHaveBeenCalledWith(
-        "GetVotersByCandidateAddress",
-        { CandidateAddress: "NAddr1", Limit: 20, Skip: 0 },
-        "get voters",
+      const result = await candidateService.getVotersByAddress(PK1, 20, 0);
+      expect(indexerRead.indexerReadService.getCandidateVoters).toHaveBeenCalledWith(
+        PK1,
+        20,
+        0,
         expect.any(Object),
       );
-      expect(result).toEqual(mockData);
+      expect(result).toEqual({
+        result: [
+          { voter: "0xaaa", balanceOfVoter: "100000" },
+          { voter: "0xbbb", balanceOfVoter: "5" },
+        ],
+        totalCount: 248,
+      });
+      // Legacy GetVotersByCandidateAddress must not fire on the happy path.
+      expect(api.safeRpcList).not.toHaveBeenCalled();
     });
 
-    it("calls safeRpcList with custom pagination", async () => {
-      const mockData = { result: [], totalCount: 0 };
-      api.safeRpcList.mockResolvedValueOnce(mockData);
+    it("falls back to the legacy wrapper when the indexer endpoint fails", async () => {
+      indexerRead.indexerReadService.getCandidateVoters.mockRejectedValueOnce(new Error("down"));
+      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
 
-      await candidateService.getVotersByAddress("NAddr1", 50, 10);
+      const result = await candidateService.getVotersByAddress(PK1, 50, 10);
       expect(api.safeRpcList).toHaveBeenCalledWith(
         "GetVotersByCandidateAddress",
-        { CandidateAddress: "NAddr1", Limit: 50, Skip: 10 },
+        { CandidateAddress: PK1, Limit: 50, Skip: 10 },
         "get voters",
         expect.any(Object),
       );
+      expect(result).toEqual({ result: [], totalCount: 0 });
     });
   });
 

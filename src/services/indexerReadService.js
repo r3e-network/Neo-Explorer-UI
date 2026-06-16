@@ -297,6 +297,28 @@ export const indexerReadService = {
     );
   },
 
+  async getTokenHolders(contractHash, limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const safe = encodeURIComponent(String(contractHash || "").trim());
+    if (!safe) return null;
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    return await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `tokens/${safe}/holders?${params.toString()}`),
+      options,
+    );
+  },
+
+  async getCandidateVoters(publicKey, limit = 20, offset = 0, options = {}) {
+    const network = resolveIndexerNetworkPath();
+    const pk = String(publicKey || "").trim();
+    if (!pk) return null;
+    const params = new URLSearchParams({ candidate: pk, limit: String(limit), offset: String(offset) });
+    return await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `governance/voters?${params.toString()}`),
+      options,
+    );
+  },
+
   // Per-account transaction list. The legacy GetRawTransactionByAddress
   // RPC also returns empty for active wallets; the indexer is the only
   // reliable source. Returns the raw `{ data, paging }` payload so the

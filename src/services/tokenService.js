@@ -436,14 +436,23 @@ export const tokenService = createService(
     },
 
     // Override the default getNftHoldersList. The legacy
-    // GetAssetHoldersListByContractHash JSON-RPC handler queries an
-    // unpopulated Mongo collection and surfaces "RpcError: Unknown RPC
-    // error" in the console plus a red error state on the NftTokens tab.
-    // The indexer doesn't (yet) expose a per-NFT holdings endpoint, so
-    // there's nothing better to fall back to. Until that ships, swallow
-    // the failure and return an empty list so the tab renders its
-    // existing no-data state instead of an alarming error.
-    async getNftHoldersList(_hash, _limit = 20, _skip = 0) {
+    // GetAssetHoldersListByContractHash JSON-RPC handler queried an
+    // unpopulated Mongo collection. Pull the holder ranking from the
+    // indexer's token_holder_balances table via the read-api holders
+    // endpoint instead, falling back to an empty list if it's unavailable.
+    async getNftHoldersList(hash, limit = 20, skip = 0, options = {}) {
+      try {
+        const payload = await indexerReadService.getTokenHolders(hash, limit, skip, options);
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        if (payload && payload.data) {
+          return {
+            result: rows.map((r) => ({ address: r.address, balance: String(r.balance_raw ?? "0") })),
+            totalCount: Number(payload?.meta?.total ?? rows.length),
+          };
+        }
+      } catch {
+        // fall through to the empty no-data state
+      }
       return { result: [], totalCount: 0 };
     },
 

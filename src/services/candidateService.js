@@ -2,6 +2,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { safeRpc } from "./api";
 import { mapRpcCandidatesToCandidateRows } from "./legacyFallbacks";
+import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 
 /**
@@ -80,7 +81,7 @@ export const candidateService = createService(
       buildParams: ([address]) => ({ CandidateAddress: address }),
       buildCacheParams: ([address]) => ({ address }),
     },
-    getVotersByAddress: {
+    _getVotersByAddressRpc: {
       _type: "list",
       cacheKey: "candidate_voters",
       rpcMethod: "GetVotersByCandidateAddress",
@@ -202,6 +203,43 @@ export const candidateService = createService(
           return this._getVotesByAddressRpc(address, options).catch(() => 0);
         },
         CACHE_TTL.stats,
+        options,
+      );
+    },
+
+    // Current voters for a candidate, derived from the NEO contract's Vote
+    // notifications via the indexer (the legacy GetVotersByCandidateAddress
+    // queried dead Mongo). `publicKey` is the candidate's compressed public
+    // key (hex). Returns voters with a 0x script hash + their voted amount.
+    async getVotersByAddress(publicKey, limit = 20, skip = 0, options = {}) {
+      const pk = String(publicKey || "").trim();
+      const key = getCacheKey("candidate_voters_node", { pk, limit, skip });
+      return cachedRequest(
+        key,
+        async () => {
+          try {
+            if (pk) {
+              const payload = await indexerReadService.getCandidateVoters(pk, limit, skip, options);
+              if (payload && payload.data) {
+                const rows = Array.isArray(payload.data) ? payload.data : [];
+                return {
+                  result: rows.map((r) => ({
+                    voter: r.script_hash,
+                    balanceOfVoter: String(r.votes ?? "0"),
+                  })),
+                  totalCount: Number(payload?.meta?.total ?? rows.length),
+                };
+              }
+            }
+          } catch {
+            // fall through to the legacy wrapper (returns empty post-Mongo)
+          }
+          return this._getVotersByAddressRpc(pk, limit, skip, options).catch(() => ({
+            result: [],
+            totalCount: 0,
+          }));
+        },
+        CACHE_TTL.chart,
         options,
       );
     },

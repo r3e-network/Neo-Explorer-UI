@@ -325,13 +325,12 @@ const {
   changePageSize: changeVotersPageSize,
 } = usePagination(
   async (pageSize, skip) => {
-    const addr = address.value;
-    if (!addr) return { result: [], totalCount: 0 };
+    // Voters are looked up by the candidate's public key (the on-chain Vote
+    // notifications key voters by candidate pubkey, not address).
+    const pubKey = candidateData.value?.candidatePubKey || candidateData.value?.publickey || "";
+    if (!pubKey) return { result: [], totalCount: 0 };
 
-    const scriptHash = addressToScriptHash(addr);
-    if (!scriptHash) return { result: [], totalCount: 0 };
-
-    const response = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+    const response = await candidateService.getVotersByAddress(pubKey, pageSize, skip);
 
     // Map script hashes back to base58 addresses
     const mappedResult = (response?.result || []).map((v) => {
@@ -429,8 +428,9 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
     let accumulatedVotes = 0n;
     let totalCount = null;
 
+    const candidatePubKey = candidate?.candidatePubKey || candidate?.publickey || "";
     for (let page = 0; page < MAX_VOTER_FALLBACK_PAGES; page += 1) {
-      const votersResponse = await candidateService.getVotersByAddress(scriptHash, pageSize, skip);
+      const votersResponse = await candidateService.getVotersByAddress(candidatePubKey, pageSize, skip);
       if (currentRequestId !== addressRequestId) return resolvedVotes;
 
       const votersList = Array.isArray(votersResponse?.result) ? votersResponse.result : [];
