@@ -11,19 +11,34 @@
 // work (returning empty) until that's done, instead of erroring.
 
 module.exports.config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 const VALID_NETWORKS = new Set(['mainnet', 'testnet']);
 
-module.exports = async function handler(req) {
-  const url = new URL(req.url);
+function sendJson(res, statusCode, payload, extraHeaders = {}) {
+  if (!res) {
+    return new Response(JSON.stringify(payload), {
+      status: statusCode,
+      headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    });
+  }
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json');
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    res.setHeader(key, value);
+  }
+  res.end(JSON.stringify(payload));
+  return undefined;
+}
+
+module.exports = async function handler(req, res) {
+  const proto = req.headers["x-forwarded-proto"] || "https";
+  const host = req.headers.host || "www.neo3scan.com";
+  const url = new URL(req.url || "/api/liveness", `${proto}://${host}`);
   const network = String(url.searchParams.get('network') || 'mainnet').trim().toLowerCase();
   if (!VALID_NETWORKS.has(network)) {
-    return new Response(JSON.stringify({ success: false, error: 'Unsupported network' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return sendJson(res, 400, { success: false, error: 'Unsupported network' });
   }
 
   // Historical edge-config key path. Kept as a literal so a future
@@ -32,14 +47,7 @@ module.exports = async function handler(req) {
   const _edgeConfigKey = `liveness_${network}`;
   void _edgeConfigKey;
 
-  return new Response(
-    JSON.stringify({ success: true, liveness: [], note: 'edge-config-unavailable' }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 's-maxage=300, stale-while-revalidate=3600',
-      },
-    },
-  );
+  return sendJson(res, 200, { success: true, liveness: [], note: 'edge-config-unavailable' }, {
+    'Cache-Control': 's-maxage=300, stale-while-revalidate=3600',
+  });
 };

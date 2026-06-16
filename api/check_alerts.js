@@ -1,9 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
-const { isCronAuthorized, unauthorizedCronResponse } = require('./lib/cronAuth');
+const { isCronAuthorized } = require('./lib/cronAuth');
 
 module.exports.config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
+  maxDuration: 60,
 };
 
 // Lazy-init the Supabase client so a missing env var does not crash module load.
@@ -315,29 +316,29 @@ async function checkNetworkAlerts(network) {
   }
 }
 
-module.exports = async function handler(req) {
+function sendJson(res, statusCode, payload) {
+  res.statusCode = statusCode;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(payload));
+}
+
+module.exports = async function handler(req, res) {
   if (!isCronAuthorized(req)) {
-    return unauthorizedCronResponse();
+    return sendJson(res, 401, { success: false, error: 'Unauthorized cron request' });
   }
 
   try {
     const mainnetCount = await checkNetworkAlerts('mainnet');
     const testnetCount = await checkNetworkAlerts('testnet');
-    
-    return new Response(JSON.stringify({
+
+    return sendJson(res, 200, {
       success: true,
       alerts_triggered: {
         mainnet: mainnetCount,
         testnet: testnetCount
       }
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return sendJson(res, 500, { success: false, error: err.message });
   }
 }
