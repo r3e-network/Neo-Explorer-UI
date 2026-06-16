@@ -14,19 +14,27 @@
            "Unknown Contract / -" row doesn't sit alongside the
            not-found banner. -->
       <ContractHeader
-        v-if="!error"
+        v-if="!error && hasContract"
         :contract="contract" :metadata="contractMetadata"
         :is-verified="isVerified"
         :supported-standards="supportedStandards"
         @copy-hash="copyHash"
       />
 
+      <div v-else-if="!error" class="etherscan-card mb-6 p-6">
+        <div class="animate-pulse space-y-4" role="status" aria-live="polite">
+          <div class="h-8 w-56 rounded bg-surface-muted"></div>
+          <div class="h-4 w-full max-w-xl rounded bg-surface-muted"></div>
+          <span class="sr-only">{{ $t("contractDetail.loadingDetails") }}</span>
+        </div>
+      </div>
+
       <!-- Error State -->
       <ErrorState v-if="error" :title="$t('contractDetail.notFound')" :message="error" @retry="loadContract(route.params.hash)" />
 
       <!-- Overview Card -->
       <ContractOverviewCard
-        v-if="!error"
+        v-if="!error && hasContract"
         :contract="contract"
         :metadata="contractMetadata"
         :manifest="manifest"
@@ -38,7 +46,7 @@
       />
 
       <!-- Tabs Card -->
-      <div v-if="!error" class="etherscan-card overflow-hidden">
+      <div v-if="!error && hasContract" class="etherscan-card overflow-hidden">
         <div class="p-3 pb-0">
           <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
@@ -144,6 +152,7 @@ const tabs = computed(() =>
   getContractDetailTabs().map((tab) => ({ key: tab.key, label: t(tab.labelKey) })),
 );
 const isVerified = ref(false);
+const hasContract = computed(() => Boolean(contract.value?.hash));
 
 // Wallet state
 const walletConnected = ref(false);
@@ -263,6 +272,7 @@ async function loadContract(hash) {
   loading.value = true;
   error.value = null;
   manifest.value = null;
+  contractMetadata.value = null;
   // Clear contract.value so the previous contract's header doesn't flash
   // while the new fetch resolves; also drop verification state so the prior
   // green badge doesn't linger across navigation.
@@ -299,6 +309,7 @@ async function checkVerification(hash) {
   // error" post-cleanup (verified live on /contract-info).
   try {
     const metadata = await supabaseService.getContractMetadata(hash);
+    contractMetadata.value = metadata || null;
     isVerified.value = Boolean(metadata?.is_verified);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Contract verification check failed:", err);

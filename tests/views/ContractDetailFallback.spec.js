@@ -11,6 +11,7 @@ const route = { params: { hash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd" } }
 const getByHashWithFallback = vi.fn();
 const getManifest = vi.fn();
 const getVerifiedByHash = vi.fn();
+const getContractMetadata = vi.fn();
 const invokeRead = vi.fn();
 const connect = vi.fn();
 const disconnect = vi.fn();
@@ -48,6 +49,12 @@ vi.mock("@/services/walletService", () => ({
   WALLET_STATE_EVENT: "neo-explorer:wallet-state-changed",
 }));
 
+vi.mock("@/services/supabaseService", () => ({
+  supabaseService: {
+    getContractMetadata,
+  },
+}));
+
 vi.mock("@/composables/useMethodInteraction", () => ({
   useMethodInteraction: () => ({
     methodState: {},
@@ -82,6 +89,53 @@ describe("ContractDetail indexed miss fallback", () => {
     });
     getManifest.mockResolvedValue(null);
     getVerifiedByHash.mockResolvedValue(null);
+    getContractMetadata.mockResolvedValue(null);
+  });
+
+  it("shows a loading state instead of an unknown contract placeholder before details resolve", async () => {
+    let resolveContract;
+    getByHashWithFallback.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveContract = resolve;
+      }),
+    );
+
+    const ContractDetail = (await import("@/views/Contract/ContractDetail.vue")).default;
+    const wrapper = mount(ContractDetail, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          TabsNav: true,
+          ScCallTable: true,
+          EventsTable: true,
+          ContractCodeTab: true,
+          ContractReadTab: true,
+          ContractWriteTab: true,
+          ErrorState: true,
+          ContractHeader: {
+            template: '<div data-test="header">{{ contract.name }}</div>',
+            props: ["contract", "metadata", "isVerified", "supportedStandards"],
+          },
+          ContractOverviewCard: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="header"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("contractDetail.loadingDetails");
+    expect(wrapper.text()).not.toContain("contractDetail.headerUnknownContract");
+
+    resolveContract({
+      hash: route.params.hash,
+      name: "NameService",
+      manifest: { name: "NameService", abi: { methods: [], events: [] } },
+    });
+    await flushPromises();
+
+    expect(wrapper.get('[data-test="header"]').text()).toBe("NameService");
   });
 
   it("renders contract details from native chain state when the indexed contract record is missing", async () => {
@@ -120,5 +174,46 @@ describe("ContractDetail indexed miss fallback", () => {
     expect(wrapper.get('[data-test="header"]').text()).toBe("NameService");
     expect(wrapper.get('[data-test="overview"]').text()).toContain(route.params.hash);
     expect(wrapper.get('[data-test="overview"]').text()).toContain("|1|1");
+  });
+
+  it("passes indexed contract metadata through to the detail header", async () => {
+    getByHashWithFallback.mockResolvedValueOnce({
+      hash: route.params.hash,
+      name: "",
+      updatecounter: 0,
+      manifest: { abi: { methods: [], events: [] } },
+    });
+    getContractMetadata.mockResolvedValueOnce({
+      name: "NeoToken",
+      display_name: "NeoToken",
+      is_verified: true,
+    });
+
+    const ContractDetail = (await import("@/views/Contract/ContractDetail.vue")).default;
+    const wrapper = mount(ContractDetail, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          TabsNav: true,
+          ScCallTable: true,
+          EventsTable: true,
+          ContractCodeTab: true,
+          ContractReadTab: true,
+          ContractWriteTab: true,
+          ErrorState: true,
+          ContractHeader: {
+            template: '<div data-test="header">{{ metadata && metadata.name }}|{{ isVerified }}</div>',
+            props: ["contract", "metadata", "isVerified", "supportedStandards"],
+          },
+          ContractOverviewCard: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getContractMetadata).toHaveBeenCalledWith(route.params.hash);
+    expect(wrapper.get('[data-test="header"]').text()).toBe("NeoToken|true");
   });
 });

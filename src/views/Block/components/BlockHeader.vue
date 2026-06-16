@@ -21,7 +21,13 @@ const emit = defineEmits(["navigate"]);
           </svg>
         </div>
         <div class="min-w-0 flex-1">
-          <h1 class="page-title">{{ $t("blockDetail.breadcrumbBlockN", { n: formatNumber(block.index ?? 0) }) }}</h1>
+          <h1 class="page-title">
+            {{
+              block.index != null
+                ? $t("blockDetail.breadcrumbBlockN", { n: formatNumber(block.index) })
+                : $t("blockDetail.breadcrumbBlock")
+            }}
+          </h1>
           <p v-if="!loading" class="page-subtitle">{{ timeAgo }}</p>
         </div>
       </div>
