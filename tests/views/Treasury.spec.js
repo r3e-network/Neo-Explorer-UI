@@ -149,7 +149,7 @@ describe("Treasury view", () => {
     await flushPromises();
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/rest/mainnet/v_nep17_balances?"),
+      expect.stringMatching(/\/rest\/mainnet\/v_nep17_balances\?.*select=address%2Ccontract_hash%2Cbalance_raw/),
       expect.objectContaining({
         headers: { Accept: "application/json" },
       }),

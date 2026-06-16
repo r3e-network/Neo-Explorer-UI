@@ -297,6 +297,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
+const READ_API_BATCH_SIZE = 5;
 const loading = ref(true);
 const error = ref(null);
 const neoPrice = ref(0);
@@ -417,6 +418,14 @@ function formatAddressInFilter(addresses) {
   return `in.(${addresses.join(",")})`;
 }
 
+function chunkAddresses(addresses, size) {
+  const chunks = [];
+  for (let i = 0; i < addresses.length; i += size) {
+    chunks.push(addresses.slice(i, i + size));
+  }
+  return chunks;
+}
+
 function treasuryRowsToBalances(treasuryAddresses, rows) {
   const byAddress = new Map(
     treasuryAddresses.map((item) => [item.address, { ...item, neo: 0, gas: 0, usdValue: 0 }]),
@@ -443,21 +452,27 @@ function treasuryRowsToBalances(treasuryAddresses, rows) {
 async function fetchTreasuryDataFromReadApi() {
   const treasuryAddresses = getTreasuryKnownAddresses();
   const network = resolveNetworkName(activeEnv.value);
-  const params = new URLSearchParams({
-    network: `eq.${network}`,
-    address: formatAddressInFilter(treasuryAddresses.map((item) => item.address)),
-    contract_hash: `in.(${NEO_HASH},${GAS_HASH})`,
-    limit: String(treasuryAddresses.length * 2),
+  const requests = chunkAddresses(treasuryAddresses, READ_API_BATCH_SIZE).map(async (batch) => {
+    const params = new URLSearchParams({
+      select: "address,contract_hash,balance_raw",
+      network: `eq.${network}`,
+      address: formatAddressInFilter(batch.map((item) => item.address)),
+      contract_hash: `in.(${NEO_HASH},${GAS_HASH})`,
+      limit: String(batch.length * 2),
+    });
+
+    const response = await fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, {
+      headers: { Accept: "application/json" },
+    }, 6000);
+    if (!response.ok) throw new Error(`Treasury read-api request failed with HTTP ${response.status}`);
+
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error("Treasury read-api response was not an array");
+    return rows;
   });
 
-  const response = await fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, {
-    headers: { Accept: "application/json" },
-  }, 6000);
-  if (!response.ok) return null;
-
-  const rows = await response.json();
-  if (!Array.isArray(rows)) return null;
-  return treasuryRowsToBalances(treasuryAddresses, rows);
+  const rowGroups = await Promise.all(requests);
+  return treasuryRowsToBalances(treasuryAddresses, rowGroups.flat());
 }
 
 async function fetchTreasuryData() {
