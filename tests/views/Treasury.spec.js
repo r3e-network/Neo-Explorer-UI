@@ -112,6 +112,53 @@ describe("Treasury view", () => {
     });
   });
 
+  it("loads treasury balances from the indexed read-api without RPC fan-out", async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes("/rest/mainnet/v_nep17_balances")) {
+        return new Response(JSON.stringify([
+          { address: "NtestTreasuryAddress", contract_hash: "0xneo", balance_raw: "12" },
+          { address: "NtestTreasuryAddress", contract_hash: "0xgas", balance_raw: "150000000" },
+        ]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { protocol: { network: 860833102 } },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
+    const wrapper = mount(Treasury, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          HashLink: true,
+          Skeleton: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rest/mainnet/v_nep17_balances?"),
+      expect.objectContaining({
+        headers: { Accept: "application/json" },
+      }),
+    );
+    expect(getNep17BalancesMock).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain("12");
+    expect(wrapper.text()).toContain("1.5");
+  });
+
   it("loads treasury balances through the r3e RpcClient object input contract", async () => {
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {

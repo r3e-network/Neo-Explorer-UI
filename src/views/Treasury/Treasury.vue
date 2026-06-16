@@ -290,8 +290,9 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { loadNeonJs } from "@/utils/neonLoader";
-import { getCurrentEnv } from "@/utils/env";
+import { getCurrentEnv, resolveNetworkName } from "@/utils/env";
 import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
+import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { t } = useI18n();
@@ -370,7 +371,7 @@ async function loadPrices() {
 
 async function fetchTreasuryDataFromRpc() {
   const treasuryAddresses = getTreasuryKnownAddresses();
-  const BATCH_SIZE = 5;
+  const BATCH_SIZE = 12;
 
   return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
     const rpcClient = await createRpcClient(endpoint);
@@ -412,6 +413,64 @@ async function fetchTreasuryDataFromRpc() {
   });
 }
 
+function formatAddressInFilter(addresses) {
+  return `in.(${addresses.join(",")})`;
+}
+
+function treasuryRowsToBalances(treasuryAddresses, rows) {
+  const byAddress = new Map(
+    treasuryAddresses.map((item) => [item.address, { ...item, neo: 0, gas: 0, usdValue: 0 }]),
+  );
+
+  for (const row of rows) {
+    const item = byAddress.get(row?.address);
+    if (!item) continue;
+
+    const contractHash = String(row.contract_hash || "").toLowerCase();
+    const balanceRaw = Number(row.balance_raw || 0);
+    if (!Number.isFinite(balanceRaw)) continue;
+
+    if (contractHash === NEO_HASH.toLowerCase()) {
+      item.neo = balanceRaw;
+    } else if (contractHash === GAS_HASH.toLowerCase()) {
+      item.gas = balanceRaw / 100000000;
+    }
+  }
+
+  return Array.from(byAddress.values());
+}
+
+async function fetchTreasuryDataFromReadApi() {
+  const treasuryAddresses = getTreasuryKnownAddresses();
+  const network = resolveNetworkName(activeEnv.value);
+  const params = new URLSearchParams({
+    network: `eq.${network}`,
+    address: formatAddressInFilter(treasuryAddresses.map((item) => item.address)),
+    contract_hash: `in.(${NEO_HASH},${GAS_HASH})`,
+    limit: String(treasuryAddresses.length * 2),
+  });
+
+  const response = await fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, {
+    headers: { Accept: "application/json" },
+  }, 6000);
+  if (!response.ok) return null;
+
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return null;
+  return treasuryRowsToBalances(treasuryAddresses, rows);
+}
+
+async function fetchTreasuryData() {
+  try {
+    const readApiBalances = await fetchTreasuryDataFromReadApi();
+    if (readApiBalances) return readApiBalances;
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Treasury read-api fetch failed; falling back to RPC", err);
+  }
+
+  return fetchTreasuryDataFromRpc();
+}
+
 async function loadTreasuryData(forceRefresh = false) {
   loading.value = true;
   error.value = null;
@@ -424,7 +483,7 @@ async function loadTreasuryData(forceRefresh = false) {
     const network = activeEnv.value;
     const cacheKey = `${network}:treasury_data`;
 
-    const results = await cachedRequest(cacheKey, fetchTreasuryDataFromRpc, CACHE_TTL.chart, { forceRefresh });
+    const results = await cachedRequest(cacheKey, fetchTreasuryData, CACHE_TTL.chart, { forceRefresh });
 
     const withUsd = results.map((item) => ({
       ...item,
