@@ -62,7 +62,7 @@ import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
 import { isAbortError } from "@/utils/abortError";
@@ -610,7 +610,7 @@ async function handleSearch(inputValue) {
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
 let avgTpsTickCounter = 0;
-const { start: startAutoRefresh } = useAutoRefresh(() => {
+const { start: startAutoRefresh } = useRealtimeHead(() => {
   void loadLatestData(true);
   // Refresh the 24h-baseline TPS once a minute so a slow first-call timeout
   // (3s indexer budget vs occasional cold-cache latency) self-recovers without

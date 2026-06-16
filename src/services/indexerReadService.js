@@ -206,6 +206,16 @@ const SUMMARY_CACHE_TTL_MS = 500;
 // network:hash so different contracts and networks stay isolated.
 const _inflightGetContractOverview = new Map();
 
+// Build the Server-Sent Events URL for the realtime head lane. Uses the same
+// base resolution as the read-api polls so SSE follows the exact host they hit
+// (the dev proxy / Vercel rewrite maps `/data/<net>` to the read-api `/<net>`).
+// Returns a plain HTTP(S) URL for EventSource — never a ws:// URL.
+export function getIndexerSseUrl(network) {
+  const net = String(network || resolveIndexerNetworkPath() || "mainnet").trim().toLowerCase();
+  const base = getIndexerBaseUrls(net)[0] || `/data/${net}`;
+  return `${base}/sse/head`;
+}
+
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();

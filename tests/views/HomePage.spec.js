@@ -25,7 +25,7 @@ const getIndexerTransactions = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
-const useAutoRefreshMock = vi.fn();
+const useRealtimeHeadMock = vi.fn();
 const loadCommitteeMock = vi.hoisted(() => vi.fn());
 const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
   enrichTransactionsMock: vi.fn(),
@@ -69,11 +69,13 @@ vi.mock("@/composables/usePriceCache", () => ({
   }),
 }));
 
-vi.mock("@/composables/useAutoRefresh", () => ({
-  useAutoRefresh: (...args) => {
-    useAutoRefreshMock(...args);
+vi.mock("@/composables/useRealtimeHead", () => ({
+  useRealtimeHead: (...args) => {
+    useRealtimeHeadMock(...args);
     return {
       start: startAutoRefresh,
+      stop: vi.fn(),
+      isConnected: { value: false },
     };
   },
 }));
@@ -187,7 +189,7 @@ describe("HomePage initial loading", () => {
     search.mockResolvedValue(null);
     fetchPrices.mockImplementation(() => new Promise(() => {}));
     startAutoRefresh.mockImplementation(() => {});
-    useAutoRefreshMock.mockClear();
+    useRealtimeHeadMock.mockClear();
   });
 
   afterEach(() => {
@@ -371,8 +373,8 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(useAutoRefreshMock).toHaveBeenCalled();
-    expect(useAutoRefreshMock.mock.calls[0][1]).toEqual(
+    expect(useRealtimeHeadMock).toHaveBeenCalled();
+    expect(useRealtimeHeadMock.mock.calls[0][1]).toEqual(
       expect.objectContaining({
         intervalMs: 3000,
       }),

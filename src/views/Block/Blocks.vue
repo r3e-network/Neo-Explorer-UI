@@ -211,7 +211,7 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { blockService, statsService } from "@/services";
 import { getCacheKey } from "@/services/cache";
-import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, truncateHash } from "@/utils/explorerFormat";
@@ -308,7 +308,7 @@ async function loadStats(forceRefresh = false) {
 }
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
-const { start: startAutoRefresh } = useAutoRefresh(() => {
+const { start: startAutoRefresh } = useRealtimeHead(() => {
   loadPage(currentPage.value, { silent: true, forceRefresh: true });
   loadStats(true);
 });

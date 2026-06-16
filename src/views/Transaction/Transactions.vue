@@ -124,7 +124,7 @@ import { ref, watch, onMounted } from "vue";
 import { transactionService, executionService } from "@/services";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
-import { useAutoRefresh } from "@/composables/useAutoRefresh";
+import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
@@ -226,7 +226,7 @@ async function hydrateVmState(txList = []) {
 }
 
 // Auto-refresh via composable (handles cleanup + visibility pause)
-const { start: startAutoRefresh } = useAutoRefresh(() => {
+const { start: startAutoRefresh } = useRealtimeHead(() => {
   loadPage(currentPage.value, { silent: true, forceRefresh: true });
 });
 
