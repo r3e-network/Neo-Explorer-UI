@@ -24,6 +24,7 @@ const { URL } = require("url");
 // ---------------------------------------------------------------------------
 
 const BASE = (process.env.TEST_API_URL || "https://api.n3index.dev").replace(/\/+$/, "");
+const WEB_BASE = (process.env.TEST_WEB_URL || "https://www.neo3scan.com").replace(/\/+$/, "");
 const SUPABASE_ANON_KEY =
   process.env.TEST_SUPABASE_KEY ||
   "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogIndlYl9hbm9uIiwgImlzcyI6ICJuZW8zZnVyYS1zZWxmLWhvc3RlZCIsICJpYXQiOiAxNzc0NzczNjEwLCAiZXhwIjogMjA5MDEzMzYxMH0.NbfPVKehpKbVQznFWd6GrPlcD151GBuZCxwMvKmvsG8";
@@ -94,6 +95,20 @@ function get(path, extraHeaders = {}) {
   return httpRequest(url, { method: "GET", headers: { Accept: "application/json", ...extraHeaders } });
 }
 
+function webGet(path, extraHeaders = {}) {
+  const url = path.startsWith("http") ? path : `${WEB_BASE}${path}`;
+  return httpRequest(url, { method: "GET", headers: { Accept: "text/html,application/json", ...extraHeaders } });
+}
+
+function webPost(path, payload = {}, extraHeaders = {}) {
+  const url = path.startsWith("http") ? path : `${WEB_BASE}${path}`;
+  return httpRequest(url, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...extraHeaders },
+  });
+}
+
 function rpcPost(network, method, params) {
   const url = `${BASE}/${network}`;
   const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
@@ -110,6 +125,10 @@ function supabaseGet(path) {
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
   });
+}
+
+function header(headers, name) {
+  return String(headers[String(name).toLowerCase()] || "");
 }
 
 // ---------------------------------------------------------------------------
@@ -888,6 +907,78 @@ async function testCachePerformance() {
   });
 }
 
+async function testSecurityPosture() {
+  setPage("Security Headers & API Guards");
+
+  await test("Frontend root has defensive browser headers", async () => {
+    const res = await webGet("/");
+    assert(res.status === 200, "frontend root → 200", `status=${res.status}`);
+
+    const csp = header(res.headers, "content-security-policy");
+    assert(csp.includes("default-src 'self'"), "CSP has default-src self", `csp=${csp}`);
+    assert(csp.includes("object-src 'none'"), "CSP blocks plugins/objects");
+    assert(csp.includes("frame-ancestors 'none'"), "CSP blocks framing");
+    assert(csp.includes("base-uri 'self'"), "CSP constrains base-uri");
+    assert(csp.includes("form-action 'self'"), "CSP constrains form posts");
+    assert(header(res.headers, "x-frame-options").toUpperCase() === "DENY", "X-Frame-Options DENY");
+    assert(header(res.headers, "x-content-type-options").toLowerCase() === "nosniff", "X-Content-Type-Options nosniff");
+    assert(
+      header(res.headers, "referrer-policy").toLowerCase() === "strict-origin-when-cross-origin",
+      "Referrer-Policy strict-origin-when-cross-origin",
+    );
+    assert(header(res.headers, "strict-transport-security").includes("max-age="), "HSTS max-age present");
+  });
+
+  await test("API edge has JSON safety and CORS headers", async () => {
+    const res = await get("/mainnet/status");
+    assert(res.status === 200, "API /mainnet/status → 200", `status=${res.status}`);
+    assert(header(res.headers, "content-type").includes("application/json"), "API content-type is JSON");
+    assert(header(res.headers, "x-content-type-options").toLowerCase() === "nosniff", "API X-Content-Type-Options nosniff");
+    assert(header(res.headers, "x-frame-options").toUpperCase() === "DENY", "API X-Frame-Options DENY");
+    assert(header(res.headers, "access-control-allow-origin") === "*", "API CORS allows public reads");
+    const cacheControl = header(res.headers, "cache-control");
+    const maxAge = Number.parseInt(cacheControl.match(/max-age=(\d+)/)?.[1] || "0", 10);
+    const sMaxAge = Number.parseInt(cacheControl.match(/s-maxage=(\d+)/)?.[1] || "0", 10);
+    assert(
+      cacheControl.includes("no-store") || (maxAge > 0 && maxAge <= 300) || (sMaxAge > 0 && sMaxAge <= 300),
+      "API status edge freshness is bounded",
+      `cache-control=${cacheControl}`,
+    );
+  });
+
+  await test("API edge OPTIONS preflight is handled", async () => {
+    const res = await httpRequest(`${BASE}/mainnet/status`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: WEB_BASE,
+        "Access-Control-Request-Method": "GET",
+      },
+    });
+    assert([200, 204].includes(res.status), "API OPTIONS /mainnet/status → 200/204", `status=${res.status}`);
+    assert(header(res.headers, "access-control-allow-origin") === "*", "OPTIONS CORS allow-origin present");
+    assert(header(res.headers, "access-control-allow-methods").includes("GET"), "OPTIONS allows GET");
+  });
+
+  await test("Cron write endpoints reject unauthenticated requests", async () => {
+    for (const path of ["/api/sync_mempool", "/api/check_alerts"]) {
+      const res = await webPost(path, {});
+      assert(res.status === 401, `${path} unauthenticated → 401`, `status=${res.status}`);
+    }
+  });
+
+  await test("Chat notification endpoint rejects unauthenticated reads", async () => {
+    const res = await webGet("/api/chat/notifications", { Accept: "application/json" });
+    assert(res.status === 401, "chat notifications unauthenticated → 401", `status=${res.status}`);
+  });
+
+  await test("Relayer and sponsor reject non-POST requests", async () => {
+    for (const path of ["/api/relayer", "/api/sponsor"]) {
+      const res = await webGet(path, { Accept: "application/json" });
+      assert(res.status === 405, `${path} GET → 405`, `status=${res.status}`);
+    }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -924,6 +1015,7 @@ async function main() {
   await testRestCompatTables();
   await testProxyRPCs();
   await testCachePerformance();
+  await testSecurityPosture();
 
   // ---------------------------------------------------------------------------
   // Summary
