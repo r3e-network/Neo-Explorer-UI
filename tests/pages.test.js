@@ -396,6 +396,13 @@ async function testContractsPage() {
     assert(Array.isArray(items) || (typeof items === "object"), "notifications response is valid", `type=${typeof items}`);
   });
 
+  await test("GET /mainnet/contracts/{NEO}/calls?limit=5", async () => {
+    const res = await get(`/mainnet/contracts/${NEO_HASH}/calls?limit=5`);
+    assert(res.status === 200, "GET /mainnet/contracts/{NEO}/calls → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(Array.isArray(items), "contract calls response has data array", `type=${typeof items}`);
+  });
+
   await test("RPC GetContractList", async () => {
     const res = await rpcPost("mainnet", "GetContractList", { Limit: 5, Skip: 0 });
     assert(res.status === 200, "RPC GetContractList → 200", `status=${res.status}`);
