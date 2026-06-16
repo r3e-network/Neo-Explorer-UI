@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 describe("rpcEndpoints configured base URL", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
     vi.resetModules();
     window.localStorage.clear();
   });
@@ -63,6 +64,37 @@ describe("rpcEndpoints configured base URL", () => {
         throw new Error("primary down");
       })
     ).rejects.toThrow("primary down");
+  });
+
+  it("skips a candidate when getversion reports the wrong network", async () => {
+    const env = await import("../../src/utils/env.js");
+    env.setCurrentEnv(env.NET_ENV.TestT5);
+
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const endpoint = String(input instanceof Request ? input.url : input);
+      const network = endpoint.includes("/fallback") ? 894710606 : 860833102;
+      return new Response(JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { protocol: { network } },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }));
+
+    const { callWithRpcEndpointFallback } = await import("../../src/utils/rpcEndpoints.js");
+    const visited = [];
+
+    const result = await callWithRpcEndpointFallback(env.NET_ENV.TestT5, async (endpoint) => {
+      visited.push(endpoint);
+      return "testnet-ok";
+    });
+
+    expect(result).toBe("testnet-ok");
+    expect(visited).toEqual([
+      `${window.location.origin}/rpc/testnet/fallback`,
+    ]);
   });
 
   it("returns only primary even when active base path is set", async () => {

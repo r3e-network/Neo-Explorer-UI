@@ -52,13 +52,6 @@ export const API_DOCS_RPC_METHODS = [
     type: "indexed",
   },
   {
-    name: "GetScCallByTransactionHash",
-    desc: "Get contract call traces related to a transaction hash.",
-    category: "transactions",
-    params: { TransactionHash: "0x...", Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
     name: "GetAddressByAddress",
     desc: "Get address summary by wallet address.",
     category: "addresses",
@@ -140,27 +133,6 @@ export const API_DOCS_RPC_METHODS = [
     desc: "Get voters for a candidate.",
     category: "governance",
     params: { Address: "N...", Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetDailyTransactions",
-    desc: "Get daily transaction trend.",
-    category: "stats",
-    params: { Days: 30 },
-    type: "indexed",
-  },
-  {
-    name: "GetNewAddresses",
-    desc: "Get daily new-address growth trend.",
-    category: "stats",
-    params: { Days: 30 },
-    type: "indexed",
-  },
-  {
-    name: "GetHourlyTransactions",
-    desc: "Get hourly transaction trend.",
-    category: "stats",
-    params: { Hours: 24 },
     type: "indexed",
   },
   {

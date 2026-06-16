@@ -6,6 +6,7 @@ import { addressToScriptHash } from "../utils/neoHelpers";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { indexerReadService } from "./indexerReadService";
 import { mapAccountOverviewRowsToAccounts } from "./legacyFallbacks";
+import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 
 /**
  * Account Service - Neo3 账户相关 API 调用
@@ -20,7 +21,7 @@ const buildAccountRestBasePath = (network) => `/rest/${network}`;
 async function fetchJsonWithFallback(urls) {
   for (const url of urls.filter(Boolean)) {
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         method: "GET",
         headers: { Accept: "application/json" },
       });
@@ -87,8 +88,8 @@ async function fetchAddressTransfersFromIndexer(network, table, address, limit, 
     // longer depends on the size of the merged window.
     const countHeaders = { Accept: "application/json", Prefer: "count=exact" };
     const [sentRes, receivedRes] = await Promise.all([
-      fetch(`${basePath}?${baseQuery}&from_address=eq.${safeAddr}`, { headers: countHeaders }),
-      fetch(`${basePath}?${baseQuery}&to_address=eq.${safeAddr}`, { headers: countHeaders }),
+      fetchWithTimeout(`${basePath}?${baseQuery}&from_address=eq.${safeAddr}`, { headers: countHeaders }),
+      fetchWithTimeout(`${basePath}?${baseQuery}&to_address=eq.${safeAddr}`, { headers: countHeaders }),
     ]);
     if (!sentRes.ok && !receivedRes.ok) return null;
     const [sent, received] = await Promise.all([

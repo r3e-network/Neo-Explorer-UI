@@ -8,6 +8,7 @@
 import { cachedRequest } from "./cache";
 import { getDoraCommitteeUrl, getDoraCommitteeCacheKey } from "@/utils/dora";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 
 /** Dora committee data TTL — 5 minutes (matches all prior usages) */
 const DORA_TTL = 300_000;
@@ -41,7 +42,7 @@ export async function getCommittee(network = NET_ENV.Mainnet) {
   return cachedRequest(
     cacheKey,
     () =>
-      fetch(url)
+      fetchWithTimeout(url)
         .then((r) => (r.ok ? r.json() : []))
         .catch((err) => {
           if (import.meta.env.DEV) console.warn("[doraService] Failed to fetch committee", err);
@@ -66,7 +67,7 @@ export async function getLiveness(doraEnv) {
   try {
     const data = await cachedRequest(
       cacheKey,
-      () => fetch(`/api/liveness?network=${env}`).then((r) => r.json()),
+      () => fetchWithTimeout(`/api/liveness?network=${env}`).then((r) => r.json()),
       DORA_TTL,
     );
 

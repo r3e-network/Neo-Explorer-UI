@@ -32,7 +32,7 @@
     },
     {
       "source": "/rpc/testnet/primary",
-      "destination": "https://rpc.n3index.dev/testnet"
+      "destination": "https://testnet1.neo.coz.io"
     },
     {
       "source": "/rpc/testnet/fallback",
@@ -52,7 +52,7 @@
     },
     {
       "source": "/rpc/testnet",
-      "destination": "https://rpc.n3index.dev/testnet"
+      "destination": "https://testnet1.neo.coz.io"
     },
     {
       "source": "/api/mainnet/primary",

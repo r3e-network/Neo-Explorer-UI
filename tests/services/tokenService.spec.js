@@ -59,6 +59,10 @@ describe("tokenService", () => {
       })));
 
       const result = await tokenService.getHolders("0xhash", 10, 5);
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/rest/"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
       expect(api.safeRpcList).not.toHaveBeenCalled();
       expect(result).toEqual({
         result: [{ address: "Nholder", balance: "5", percentage: 0.05 }],

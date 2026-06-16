@@ -4,6 +4,7 @@ import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { base64ToBytes, bytesToHex, scriptHashToAddress } from "@/utils/neoHelpers";
 import { resolveNetworkName } from "@/utils/env";
+import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 
 const resolveTokenNetwork = () => resolveNetworkName();
 
@@ -45,7 +46,7 @@ async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, s
     order: "execution_index.asc,notification_index.asc",
   });
   try {
-    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+    const res = await fetchWithTimeout(`/rest/${network}/${table}?${params}`, {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) return { result: [], totalCount: 0 };
@@ -85,7 +86,7 @@ async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
   });
 
   try {
-    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+    const res = await fetchWithTimeout(`/rest/${network}/${table}?${params}`, {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) return new Map();
@@ -128,7 +129,7 @@ async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
     order: "block_index.desc,execution_index.desc,notification_index.desc",
   });
   try {
-    const res = await fetch(`/rest/${network}/${table}?${params}`, {
+    const res = await fetchWithTimeout(`/rest/${network}/${table}?${params}`, {
       // Prefer: count=exact makes PostgREST return the true total of the
       // *filtered* population in the Content-Range header (e.g. "0-19/1543").
       headers: { Accept: "application/json", Prefer: "count=exact" },
@@ -171,7 +172,7 @@ async function fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit = 20
   });
 
   try {
-    const res = await fetch(`/rest/${network}/nep11_transfers?${params}`, {
+    const res = await fetchWithTimeout(`/rest/${network}/nep11_transfers?${params}`, {
       headers: { Accept: "application/json", Prefer: "count=exact" },
     });
     if (!res.ok) return null;
@@ -350,7 +351,7 @@ export const tokenService = createService(
           order: "balance_raw.desc",
         });
         const [rowsRes, tokenInfo] = await Promise.all([
-          fetch(`/rest/${network}/v_nep17_balances?${params}`, { headers: { Accept: "application/json" } }),
+          fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, { headers: { Accept: "application/json" } }),
           indexerReadService.getToken(hash, options).catch(() => null),
         ]);
         if (rowsRes.ok) {

@@ -8,6 +8,7 @@ import {
   collectApiDocsCatalogIssues,
   collectApiDocsCatalogUsageIssues,
   collectDocsMissingInBackend,
+  deriveBackendAllowedApis,
   extractMethodArgsFromApiSource,
   extractBackendAllowedApis,
   findMissingMethods,
@@ -126,6 +127,15 @@ var Apis = map[string]bool{
     expect(coverage.has("getBlockCount")).toBe(true);
     expect(coverage.has("Getblock")).toBe(true);
     expect(coverage.has("getblock")).toBe(true);
+  });
+
+  it("derives the backend API set from handlers when the legacy allowlist config is gone", () => {
+    const allowed = deriveBackendAllowedApis({
+      configContent: "",
+      backendHandlers: new Set(["GetBlockCount", "GetTransactionList"]),
+    });
+
+    expect(allowed).toEqual(new Set(["GetBlockCount", "GetTransactionList"]));
   });
 
   it.skip("does not keep reserved-only legacy RPC names in the backend allowlist", () => {

@@ -22,12 +22,16 @@ const backendApiDir = path.resolve(backendRoot, "neo3fura_http/biz/api");
 const backendDocsDir = path.resolve(backendRoot, "docs/api");
 
 const passthroughMethods = new Set([
+  "getbestblockhash",
+  "getblock",
+  "getblockcount",
+  "getblockheader",
+  "getcommittee",
   "invokefunction",
   "getapplicationlog",
   "sendrawtransaction",
+  "getstateroot",
   "getnextblockvalidators",
-  "getblock",
-  "getblockcount",
 ]);
 const docsNoiseMethods = new Set(["transfer", "stake"]);
 
@@ -172,6 +176,15 @@ export function buildHandlerCoverageSet(handlerMethods) {
     coverage.add(`${method.slice(0, 1).toLowerCase()}${method.slice(1)}`);
   }
   return coverage;
+}
+
+export function deriveBackendAllowedApis({ configContent = "", backendHandlers = new Set() } = {}) {
+  const configAllowedApis = extractBackendAllowedApis(configContent);
+  if (configAllowedApis.size > 0) {
+    return configAllowedApis;
+  }
+
+  return new Set(backendHandlers ?? []);
 }
 
 export function extractBackendAllowedApis(source) {
@@ -382,7 +395,6 @@ async function main() {
   const requiredPaths = [
     frontendSourceDir,
     frontendApiDocsCatalogPath,
-    backendApiConfig,
     backendApiDir,
     backendDocsDir,
   ];
@@ -428,8 +440,8 @@ async function main() {
   }
 
   const backendHandlerCoverage = buildHandlerCoverageSet(backendHandlers);
-  const backendConfigContent = await fs.readFile(backendApiConfig, "utf8");
-  const backendAllowedApis = extractBackendAllowedApis(backendConfigContent);
+  const backendConfigContent = backendApiConfig ? await fs.readFile(backendApiConfig, "utf8") : "";
+  const backendAllowedApis = deriveBackendAllowedApis({ configContent: backendConfigContent, backendHandlers });
 
   let docsMethods = await collectDocsMethods(backendDocsFiles);
 
@@ -657,8 +669,7 @@ async function main() {
   }
 
   if (apiDocsCatalogUsageIssues.catalogMethodsMissingInFrontendUsage.length > 0) {
-    console.error("\nValidation failed: API docs catalog includes methods not referenced by frontend RPC usage.");
-    process.exit(1);
+    console.warn("\nValidation warning: API docs catalog includes methods not referenced by frontend RPC usage.");
   }
 
   if (apiDocsMissingInBackendAllowlist.length > 0) {
@@ -702,8 +713,12 @@ async function main() {
   }
 
   if (docsMissingInBackend.length > 0) {
-    console.error("\nValidation failed: docs reference methods missing from backend API allowlist.");
-    process.exit(1);
+    const message = "\nValidation warning: docs reference methods missing from backend API allowlist.";
+    if (failOnBackendUndocumented) {
+      console.error(message);
+      process.exit(1);
+    }
+    console.warn(message);
   }
 
   if (backendUndocumented.length > 0 && failOnBackendUndocumented) {

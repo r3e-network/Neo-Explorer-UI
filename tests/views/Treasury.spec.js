@@ -80,6 +80,15 @@ vi.mock("@cityofzion/neon-js", () => {
 describe("Treasury view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      result: { protocol: { network: 860833102 } },
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })));
     window.Neon = {
       rpc: {
         RPCClient: class {

@@ -66,12 +66,12 @@ describe("endpoint defaults", () => {
     expect(routeDest("/rpc/mainnet/fallback")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/rpc/mainnet/fallback3")).toBe("https://api.n3index.dev/mainnet");
-    expect(routeDest("/rpc/testnet/primary")).toBe("https://rpc.n3index.dev/testnet");
+    expect(routeDest("/rpc/testnet/primary")).toBe("https://testnet1.neo.coz.io");
     expect(routeDest("/rpc/testnet/fallback")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback2")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/testnet/fallback3")).toBe("https://api.n3index.dev/testnet");
     expect(routeDest("/rpc/mainnet")).toBe("https://rpc.n3index.dev/mainnet");
-    expect(routeDest("/rpc/testnet")).toBe("https://rpc.n3index.dev/testnet");
+    expect(routeDest("/rpc/testnet")).toBe("https://testnet1.neo.coz.io");
     expect(routeDest("/data/mainnet/fallback/(.*)")).toBe(
       "https://api.n3index.dev/mainnet/$1"
     );

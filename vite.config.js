@@ -6,6 +6,7 @@ import path from "path";
 
 // Direct node RPC plus read-api data plane.
 const DEFAULT_RPC_PROXY_TARGET = "https://rpc.n3index.dev";
+const DEFAULT_TESTNET_RPC_PROXY_TARGET = "https://testnet1.neo.coz.io";
 const DEFAULT_INDEXER_PROXY_TARGET = "https://api.n3index.dev";
 const DEFAULT_COINGECKO_PROXY_TARGET = "https://api.coingecko.com";
 const PRICE_ENDPOINT_PATH = "/api/prices";
@@ -315,6 +316,7 @@ export default defineConfig(({ mode }) => {
       .trim() || "dev";
   // Split node RPC from the read-api data plane.
   const rpcTarget = env.VITE_RPC_PROXY_TARGET || DEFAULT_RPC_PROXY_TARGET;
+  const testnetRpcTarget = env.VITE_TESTNET_RPC_PROXY_TARGET || DEFAULT_TESTNET_RPC_PROXY_TARGET;
   const indexerTarget = env.VITE_INDEXER_PROXY_TARGET || DEFAULT_INDEXER_PROXY_TARGET;
   const coingeckoProxyTarget = env.VITE_COINGECKO_PROXY_TARGET || DEFAULT_COINGECKO_PROXY_TARGET;
 
@@ -362,9 +364,9 @@ export default defineConfig(({ mode }) => {
         "/indexer/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/indexer\/mainnet(?:\/fallback\d?)?/, "/mainnet") },
         "/indexer/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/indexer\/testnet(?:\/fallback\d?)?/, "/testnet") },
         "/rpc/mainnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/mainnet" },
-        "/rpc/testnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/testnet" },
-        "/api/mainnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/mainnet" },
-        "/api/testnet": { target: rpcTarget, changeOrigin: true, rewrite: () => "/testnet" },
+        "/rpc/testnet": { target: testnetRpcTarget, changeOrigin: true, rewrite: () => "/" },
+        "/api/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: () => "/mainnet" },
+        "/api/testnet": { target: indexerTarget, changeOrigin: true, rewrite: () => "/testnet" },
         "/rest/mainnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/mainnet/, "/rest/v1") },
         "/rest/testnet": { target: indexerTarget, changeOrigin: true, rewrite: (p) => p.replace(/^\/rest\/testnet/, "/rest/v1") },
       },

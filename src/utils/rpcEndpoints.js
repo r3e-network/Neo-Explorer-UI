@@ -20,6 +20,13 @@ const FALLBACK_RPC_ENDPOINTS = Object.freeze({
 });
 
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
+const EXPECTED_NETWORK_MAGIC = Object.freeze({
+  mainnet: 860833102,
+  testnet: 894710606,
+});
+const NETWORK_VALIDATION_TIMEOUT_MS = 1200;
+const endpointNetworkCache = new Map();
+
 const normalizeBaseUrl = (value) => {
   if (typeof value !== "string") return "";
   return value.trim().replace(/\/+$/, "");
@@ -100,12 +107,65 @@ export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
 export const getPrimaryRpcEndpoint = (value = getCurrentEnv()) =>
   getRpcEndpointCandidates(value)[0];
 
+function createNetworkMismatchError(endpoint, expected, actual) {
+  const error = new Error(`RPC endpoint network mismatch on ${endpoint}: expected ${expected}, got ${actual}`);
+  error.code = "RPC_NETWORK_MISMATCH";
+  error.isNetworkMismatch = true;
+  error.expectedNetworkMagic = expected;
+  error.actualNetworkMagic = actual;
+  error.endpoint = endpoint;
+  return error;
+}
+
+function isNetworkMismatchError(error) {
+  return error?.code === "RPC_NETWORK_MISMATCH" || error?.isNetworkMismatch;
+}
+
+function extractNetworkMagic(payload) {
+  return Number(payload?.result?.protocol?.network ?? payload?.result?.network);
+}
+
+async function validateEndpointNetwork(endpoint, network) {
+  const expected = EXPECTED_NETWORK_MAGIC[toNetworkMode(network)];
+  if (!Number.isFinite(expected) || typeof fetch !== "function") return;
+
+  const normalizedEndpoint = normalizeBaseUrl(endpoint);
+  const cacheKey = `${normalizedEndpoint}::${expected}`;
+  if (endpointNetworkCache.get(cacheKey)) return;
+
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), NETWORK_VALIDATION_TIMEOUT_MS) : null;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getversion", params: [] }),
+      signal: controller?.signal,
+    });
+    if (!response.ok) return;
+    const payload = await response.json();
+    const actual = extractNetworkMagic(payload);
+    if (!Number.isFinite(actual)) return;
+    if (actual !== expected) {
+      throw createNetworkMismatchError(endpoint, expected, actual);
+    }
+    endpointNetworkCache.set(cacheKey, true);
+  } catch (error) {
+    if (isNetworkMismatchError(error)) throw error;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export const callWithRpcEndpointFallback = async (value, handler) => {
   const candidates = getRpcEndpointCandidates(value);
+  const network = toNetworkMode(value);
   let lastError = null;
 
   for (const endpoint of candidates) {
     try {
+      await validateEndpointNetwork(endpoint, network);
       // Execute against direct-node primary first, then the worker RPC route.
       return await handler(endpoint);
     } catch (error) {

@@ -34,6 +34,10 @@ describe("accountService", () => {
   describe("getList", () => {
     it("returns empty without calling legacy RPC when indexer has no rows", async () => {
       const result = await accountService.getList(10, 5);
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/rest/"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
       expect(api.safeRpcList).not.toHaveBeenCalled();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });

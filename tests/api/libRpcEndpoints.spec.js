@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const require = createRequire(import.meta.url);
 const rpcEndpoints = require("../../api/lib/rpcEndpoints.js");
@@ -7,6 +7,21 @@ const rpcEndpoints = require("../../api/lib/rpcEndpoints.js");
 describe("api/lib/rpcEndpoints defaults", () => {
   beforeEach(() => {
     rpcEndpoints.__resetPreferredRpcEndpointsForTests();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const endpoint = String(input instanceof Request ? input.url : input);
+      const network = endpoint.includes("testnet") || endpoint.includes("testnet1.neo.coz.io")
+        ? 894710606
+        : 860833102;
+      return new Response(JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { protocol: { network } },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }));
   });
 
   it("uses direct neo-go primary with the worker as fallback", () => {
@@ -16,7 +31,7 @@ describe("api/lib/rpcEndpoints defaults", () => {
     ]);
 
     expect(rpcEndpoints.getRpcEndpointCandidates("testnet")).toEqual([
-      "https://rpc.n3index.dev/testnet",
+      "https://testnet1.neo.coz.io",
       "https://api.n3index.dev/testnet",
     ]);
   });
@@ -62,5 +77,29 @@ describe("api/lib/rpcEndpoints defaults", () => {
 
     expect(secondResult).toBe("ok-second");
     expect(secondVisited).toEqual(["https://api.n3index.dev/mainnet"]);
+  });
+
+  it("skips a candidate when getversion reports the wrong network", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const endpoint = String(input instanceof Request ? input.url : input);
+      const network = endpoint.includes("api.n3index.dev") ? 894710606 : 860833102;
+      return new Response(JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: { protocol: { network } },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }));
+
+    const visited = [];
+    const result = await rpcEndpoints.callWithRpcEndpointFallback("testnet", async (endpoint) => {
+      visited.push(endpoint);
+      return "testnet-ok";
+    });
+
+    expect(result).toBe("testnet-ok");
+    expect(visited).toEqual(["https://api.n3index.dev/testnet"]);
   });
 });
