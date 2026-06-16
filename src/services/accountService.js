@@ -499,7 +499,18 @@ export const accountService = createService(
     },
 
     async getByAddress(address, options = {}) {
-      const primary = await this._getByAddressRpc(address, options);
+      // The legacy GetAddressByAddress RPC runs with realtime/throwOnError
+      // semantics, so an RPC-level error (e.g. "not found" for an address
+      // the legacy index doesn't know) PROPAGATES instead of yielding the
+      // null fallback. Swallow it here so the authoritative native
+      // getnep17balances fallback below still runs; otherwise the caller
+      // zeroes the balance for wallets the legacy table is missing.
+      let primary = null;
+      try {
+        primary = await this._getByAddressRpc(address, options);
+      } catch (_err) {
+        primary = null;
+      }
       // The legacy RPC returns a truthy {result:[], totalCount:0} envelope
       // even when the address has no on-chain activity according to its
       // table. Treat that as "no data" so the downstream native fallback

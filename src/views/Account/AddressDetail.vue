@@ -560,9 +560,15 @@ async function loadSummary(addr) {
     }
   } catch {
     if (currentRequestId !== addressRequestId) return;
-    neoBalance.value = "0";
-    gasBalance.value = "0";
-    txCount.value = 0;
+    // getByAddress failed (e.g. legacy RPC error). Don't wipe the header:
+    // the authoritative NEO/GAS balances loaded via getAssets
+    // (getnep17balances) are already in assets.value. Derive the summary
+    // from them so the balance stays correct instead of showing zero.
+    const summary = normalizeAccountSummary({}, assets.value);
+    neoBalance.value = summary.neoBalance;
+    gasBalance.value = summary.gasBalance;
+    txCount.value = summary.txCount;
+    tokenCount.value = summary.tokenCount;
   } finally {
     if (currentRequestId === addressRequestId) summaryLoading.value = false;
   }

@@ -123,16 +123,24 @@ export function getAddressDetailTabs(isCandidate = false) {
 export function normalizeAccountSummary(account = {}, assets = []) {
   const normalizedAssets = Array.isArray(assets) ? assets : [];
 
-  let neoBalance = account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance;
-  let gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance;
+  // NEO/GAS balances: the authoritative source is the on-chain
+  // getnep17balances result (carried in `assets`). The `account.*` fields
+  // can originate from the legacy/indexer path, which over-counts GAS — it
+  // sums NEP17 Transfer events, but system-fee burns are not Transfer
+  // events, so the indexed balance drifts above chain truth. Prefer the
+  // on-chain asset balance whenever it is present, and only fall back to
+  // the account-level fields when the asset is absent from the chain list.
+  const neoToken = normalizedAssets.find((a) => a.asset === NEO_HASH);
+  const gasToken = normalizedAssets.find((a) => a.asset === GAS_HASH);
+
+  let neoBalance = neoToken ? String(neoToken.balance) : undefined;
+  let gasBalance = gasToken ? String(gasToken.balance) : undefined;
 
   if (neoBalance === undefined) {
-    const neoToken = normalizedAssets.find((a) => a.asset === NEO_HASH);
-    neoBalance = neoToken ? String(neoToken.balance) : "0";
+    neoBalance = account.neoBalance ?? account.neo ?? account.NEO ?? account.neo_balance;
   }
   if (gasBalance === undefined) {
-    const gasToken = normalizedAssets.find((a) => a.asset === GAS_HASH);
-    gasBalance = gasToken ? String(gasToken.balance) : "0";
+    gasBalance = account.gasBalance ?? account.gas ?? account.GAS ?? account.gas_balance;
   }
 
   const txCount = toNumber(

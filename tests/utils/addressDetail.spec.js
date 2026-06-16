@@ -8,6 +8,7 @@ import {
   normalizeAddressTransactions,
   getPageCount,
 } from "../../src/utils/addressDetail";
+import { NEO_HASH, GAS_HASH } from "../../src/constants";
 
 describe("addressDetail utils", () => {
   it("returns standard address detail tabs", () => {
@@ -36,6 +37,33 @@ describe("addressDetail utils", () => {
       txCount: 9,
       tokenCount: 3,
     });
+  });
+
+  it("prefers authoritative on-chain asset balances over over-counted account fields", () => {
+    // The legacy/indexer path over-counts GAS (it sums NEP17 Transfer
+    // events but system-fee burns are not Transfer events). The on-chain
+    // getnep17balances result (carried in `assets`) is authoritative and
+    // must win for NEO/GAS even when account.* carries a different value.
+    expect(
+      normalizeAccountSummary(
+        { neo: "9", gas: "65671.314", txcount: 11 },
+        [
+          { asset: NEO_HASH, balance: "0" },
+          { asset: GAS_HASH, balance: "65560.87916126" },
+        ]
+      )
+    ).toEqual({
+      neoBalance: "0",
+      gasBalance: "65560.87916126",
+      txCount: 11,
+      tokenCount: 2,
+    });
+  });
+
+  it("falls back to account balances when the asset is absent on-chain", () => {
+    expect(
+      normalizeAccountSummary({ neo: "12.5", gas: "4.2" }, []).gasBalance
+    ).toBe("4.2");
   });
 
   it("splits fungible and nft assets", () => {
