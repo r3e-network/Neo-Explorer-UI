@@ -53,15 +53,8 @@ describe("accountService", () => {
   });
 
   describe("getByAddress", () => {
-    it("calls safeRpc with address", async () => {
-      api.safeRpc.mockResolvedValueOnce({ balance: 100 });
-      await accountService.getByAddress("0xNAddr");
-      expect(api.safeRpc).toHaveBeenCalledWith("GetAddressByAddress", { Address: "0xNAddr" }, null, expect.any(Object));
-    });
-
-    it("falls back to native balance/transfer RPCs when indexed address is not found", async () => {
+    it("derives balances + tx count from native RPCs without the legacy first-attempt", async () => {
       api.safeRpc
-        .mockResolvedValueOnce(null) // GetAddressByAddress
         .mockResolvedValueOnce({
           balance: [
             { assethash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", amount: "12" },
@@ -91,6 +84,31 @@ describe("accountService", () => {
         null,
         expect.any(Object)
       );
+      // The dead-Mongo GetAddressByAddress must not be the first attempt.
+      expect(api.safeRpc).not.toHaveBeenCalledWith(
+        "GetAddressByAddress",
+        expect.anything(),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it("falls back to the legacy wrapper only when the node is unreachable", async () => {
+      api.safeRpc
+        .mockResolvedValueOnce(null) // getnep17balances (node down)
+        .mockResolvedValueOnce(null) // getnep11balances
+        .mockResolvedValueOnce(null) // getnep17transfers
+        .mockResolvedValueOnce(null) // getnep11transfers
+        .mockResolvedValueOnce({ totalCount: 1, neoBalance: "5" }); // legacy GetAddressByAddress
+
+      const result = await accountService.getByAddress("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "GetAddressByAddress",
+        expect.any(Object),
+        null,
+        expect.any(Object)
+      );
+      expect(result).toEqual({ totalCount: 1, neoBalance: "5" });
     });
   });
 

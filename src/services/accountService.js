@@ -254,6 +254,14 @@ export const accountService = createService(
       return cachedRequest(
         key,
         async () => {
+          // Indexer summary is the authoritative address count; the legacy
+          // GetAddressCount queried dead Mongo and is only a last resort.
+          const summary = await indexerReadService.getSummary(options).catch(() => null);
+          const total = Number(summary?.total_address_count ?? 0);
+          if (Number.isFinite(total) && total > 0) {
+            return { "total counts": total };
+          }
+
           let rpcResult = null;
           try {
             rpcResult = await this._getCountRpc(options);
@@ -264,10 +272,7 @@ export const accountService = createService(
           if (Number.isFinite(directCount) && directCount > 0) {
             return rpcResult;
           }
-
-          const summary = await indexerReadService.getSummary(options);
-          const total = Number(summary?.total_address_count ?? 0);
-          return { "total counts": Number.isFinite(total) ? total : 0 };
+          return { "total counts": 0 };
         },
         CACHE_TTL.stats,
         options,
@@ -279,6 +284,21 @@ export const accountService = createService(
       return cachedRequest(
         key,
         async () => {
+          // Read-api (Postgres) is the authoritative account list; the legacy
+          // GetAddressList queried dead Mongo and is only a last resort.
+          const network = resolveAccountNetwork();
+          const [rows, summary] = await Promise.all([
+            fetchAccountOverviewRows(network, limit, skip).catch(() => null),
+            indexerReadService.getSummary(options).catch(() => null),
+          ]);
+          if (Array.isArray(rows) && rows.length > 0) {
+            const balanceRows = await fetchAccountBalances(network, rows);
+            return {
+              result: mapAccountOverviewRowsToAccounts(rows, balanceRows),
+              totalCount: Number(summary?.total_address_count ?? rows.length),
+            };
+          }
+
           let rpcResult = null;
           try {
             rpcResult = await this._getListRpc(limit, skip, options);
@@ -286,21 +306,10 @@ export const accountService = createService(
             rpcResult = null;
           }
           const existingRows = Array.isArray(rpcResult?.result) ? rpcResult.result : [];
-          const existingCount = Number(rpcResult?.totalCount ?? 0);
-          if (existingRows.length > 0 || existingCount > 0) {
+          if (existingRows.length > 0 || Number(rpcResult?.totalCount ?? 0) > 0) {
             return rpcResult;
           }
-
-          const network = resolveAccountNetwork();
-          const [rows, summary] = await Promise.all([
-            fetchAccountOverviewRows(network, limit, skip),
-            indexerReadService.getSummary(options),
-          ]);
-          const balanceRows = await fetchAccountBalances(network, rows);
-          return {
-            result: mapAccountOverviewRowsToAccounts(rows || [], balanceRows),
-            totalCount: Number(summary?.total_address_count ?? 0),
-          };
+          return { result: [], totalCount: Number(summary?.total_address_count ?? 0) };
         },
         CACHE_TTL.chart,
         options,
@@ -499,56 +508,49 @@ export const accountService = createService(
     },
 
     async getByAddress(address, options = {}) {
-      // The legacy GetAddressByAddress RPC runs with realtime/throwOnError
-      // semantics, so an RPC-level error (e.g. "not found" for an address
-      // the legacy index doesn't know) PROPAGATES instead of yielding the
-      // null fallback. Swallow it here so the authoritative native
-      // getnep17balances fallback below still runs; otherwise the caller
-      // zeroes the balance for wallets the legacy table is missing.
-      let primary = null;
-      try {
-        primary = await this._getByAddressRpc(address, options);
-      } catch (_err) {
-        primary = null;
-      }
-      // The legacy RPC returns a truthy {result:[], totalCount:0} envelope
-      // even when the address has no on-chain activity according to its
-      // table. Treat that as "no data" so the downstream native fallback
-      // below can run; otherwise the page renders zeros for active wallets.
-      if (primary && Number(primary.totalCount || 0) > 0) return primary;
-
+      // Authoritative on-chain sources first: getnep17balances/getnep11balances
+      // (+ transfers for the tx count). The legacy GetAddressByAddress queried
+      // dead Mongo and was a guaranteed-empty wasted round-trip on every load;
+      // it is now only a last resort for when the node itself is unreachable.
       const normalizedAddress = this._normalizeAddress(address);
-      if (!normalizedAddress) return primary;
+      if (normalizedAddress) {
+        const [nep17Balances, nep11Balances, nep17Transfers, nep11Transfers] = await Promise.all([
+          this._getNativeNep17Balances(normalizedAddress, options),
+          this._getNativeNep11Balances(normalizedAddress, options),
+          this._getNativeNep17Transfers(normalizedAddress, options),
+          this._getNativeNep11Transfers(normalizedAddress, options),
+        ]);
 
-      const [nep17Balances, nep11Balances, nep17Transfers, nep11Transfers] = await Promise.all([
-        this._getNativeNep17Balances(normalizedAddress, options),
-        this._getNativeNep11Balances(normalizedAddress, options),
-        this._getNativeNep17Transfers(normalizedAddress, options),
-        this._getNativeNep11Transfers(normalizedAddress, options),
-      ]);
-
-      const balances = Array.isArray(nep17Balances?.balance) ? nep17Balances.balance : [];
-      const nep11Collections = Array.isArray(nep11Balances?.balance) ? nep11Balances.balance : [];
-
-      if (balances.length === 0 && nep11Collections.length === 0) {
-        return primary;
+        // A non-null balances response means the node answered (even when the
+        // address holds nothing) — trust it. Only the node being unreachable
+        // (all native calls null) falls through to the legacy wrapper.
+        if (nep17Balances !== null || nep11Balances !== null) {
+          const balances = Array.isArray(nep17Balances?.balance) ? nep17Balances.balance : [];
+          const nep11Collections = Array.isArray(nep11Balances?.balance) ? nep11Balances.balance : [];
+          const neoBalance =
+            balances.find((item) => this._normalizeAssetHash(item?.assethash) === NEO_HASH)?.amount || "0";
+          const gasBalance =
+            balances.find((item) => this._normalizeAssetHash(item?.assethash) === GAS_HASH)?.amount || "0";
+          const txHashes = new Set([
+            ...this._extractTxHashesFromTransfers(nep17Transfers),
+            ...this._extractTxHashesFromTransfers(nep11Transfers),
+          ]);
+          return {
+            address: this._toScriptHash(normalizedAddress),
+            neoBalance,
+            gasBalance,
+            txCount: txHashes.size,
+            tokenCount: balances.length + nep11Collections.length,
+          };
+        }
       }
 
-      const neoBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === NEO_HASH)?.amount || "0";
-      const gasBalance = balances.find((item) => this._normalizeAssetHash(item?.assethash) === GAS_HASH)?.amount || "0";
-
-      const txHashes = new Set([
-        ...this._extractTxHashesFromTransfers(nep17Transfers),
-        ...this._extractTxHashesFromTransfers(nep11Transfers),
-      ]);
-
-      return {
-        address: this._toScriptHash(normalizedAddress),
-        neoBalance,
-        gasBalance,
-        txCount: txHashes.size,
-        tokenCount: balances.length + nep11Collections.length,
-      };
+      // Last resort: the legacy Mongo wrapper (returns empty post-migration).
+      try {
+        return await this._getByAddressRpc(address, options);
+      } catch (_err) {
+        return null;
+      }
     },
 
     async getAssets(address, options = {}) {
