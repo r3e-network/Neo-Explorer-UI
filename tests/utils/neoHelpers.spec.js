@@ -8,6 +8,7 @@ import {
   hexToBase64,
   publicKeyToAddress,
   reverseHex,
+  resolveImageUrl,
   scriptHashBase64ToAddress,
   scriptHashHexToAddress,
 } from "../../src/utils/neoHelpers.js";
@@ -52,5 +53,10 @@ describe("neoHelpers", () => {
     expect(reverseHex("a1b2c3")).toBe("c3b2a1");
     expect(reverseHex("0xa1b2c3")).toBe("c3b2a1");
     expect(reverseHex("invalid")).toBe("");
+  });
+
+  it("filters known broken NFT image URLs before rendering them", () => {
+    expect(resolveImageUrl("https://neo3.azureedge.net/images/neons.png")).toBe("");
+    expect(resolveImageUrl("https://example.com/nft.png")).toBe("https://example.com/nft.png");
   });
 });

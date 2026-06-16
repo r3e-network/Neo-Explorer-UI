@@ -58,10 +58,15 @@ describe("endpoint defaults", () => {
   it("keeps vercel rewrites on direct node RPC plus the read-api data plane", () => {
     const vercelConfig = JSON.parse(readFile("vercel.json"));
     const rewrites = vercelConfig.rewrites || [];
+    const redirects = vercelConfig.redirects || [];
 
     const routeDest = (source) =>
       rewrites.find((rewrite) => rewrite.source === source)?.destination;
+    const redirectDest = (source) =>
+      redirects.find((redirect) => redirect.source === source)?.destination;
 
+    expect(redirectDest("/api")).toBe("/api-docs");
+    expect(routeDest("/api")).toBeUndefined();
     expect(routeDest("/rpc/mainnet/primary")).toBe("https://rpc.n3index.dev/mainnet");
     expect(routeDest("/rpc/mainnet/fallback")).toBe("https://api.n3index.dev/mainnet");
     expect(routeDest("/rpc/mainnet/fallback2")).toBe("https://api.n3index.dev/mainnet");

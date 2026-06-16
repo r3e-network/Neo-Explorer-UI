@@ -4,6 +4,9 @@ import { ripemd160 } from "ethereum-cryptography/ripemd160";
 
 const ADDRESS_VERSION = 0x35;
 const CHECKSIG_SCRIPT_SUFFIX = "4156e7b327";
+const KNOWN_BROKEN_IMAGE_URLS = new Set([
+  "https://neo3.azureedge.net/images/neons.png",
+]);
 
 export function strip0x(value = "") {
   return String(value).replace(/^0x/i, "");
@@ -212,6 +215,7 @@ export function resolveImageUrl(raw) {
   if (url.startsWith("ipfs")) {
     url = url.replace(/^(ipfs:\/\/)|^(ipfs-video:\/\/)/, "https://ipfs.io/ipfs/");
   }
+  if (KNOWN_BROKEN_IMAGE_URLS.has(url.toLowerCase())) return "";
   if (url.startsWith("https://") || url.startsWith("http://")) return url;
   if (url.startsWith("data:image/")) return url;
   return "";
