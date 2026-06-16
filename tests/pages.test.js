@@ -42,6 +42,7 @@ const discovered = {
   blockHash: null,
   txid: null,
   address: null,
+  candidatePublicKey: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,58 @@ function httpRequest(url, { method = "GET", headers = {}, body = null, timeoutMs
     }, timeoutMs);
     req.on("close", () => clearTimeout(timer));
     if (body) req.write(body);
+    req.end();
+  });
+}
+
+function httpReadPrefix(url, { headers = {}, timeoutMs = REQUEST_TIMEOUT_MS, maxBytes = 512 } = {}) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const transport = parsed.protocol === "https:" ? https : http;
+    const opts = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: "GET",
+      headers: { ...headers },
+    };
+    const startMs = Date.now();
+    let settled = false;
+    const req = transport.request(opts, (res) => {
+      const chunks = [];
+      let bytes = 0;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        req.destroy();
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          body: Buffer.concat(chunks, Math.min(bytes, maxBytes)).toString("utf-8"),
+          elapsedMs: Date.now() - startMs,
+        });
+      };
+      res.on("data", (chunk) => {
+        if (bytes < maxBytes) {
+          const remaining = maxBytes - bytes;
+          chunks.push(chunk.length > remaining ? chunk.subarray(0, remaining) : chunk);
+          bytes += Math.min(chunk.length, remaining);
+        }
+        finish();
+      });
+      res.on("end", finish);
+    });
+    req.on("error", (err) => {
+      if (settled) return;
+      reject(err);
+    });
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      req.destroy(new Error("TIMEOUT"));
+      reject(new Error("TIMEOUT"));
+    }, timeoutMs);
+    req.on("close", () => clearTimeout(timer));
     req.end();
   });
 }
@@ -205,11 +258,17 @@ async function discoverTestData() {
   if (!discovered.address) {
     discovered.address = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
   }
+  const validatorsRes = await get("/mainnet/metadata/validators");
+  const validators = validatorsRes.json?.data || validatorsRes.json || [];
+  if (Array.isArray(validators) && validators.length > 0) {
+    discovered.candidatePublicKey = validators.find((item) => item?.public_key)?.public_key || null;
+  }
   console.log(`Discovered test data:`);
   console.log(`  blockIndex: ${discovered.blockIndex}`);
   console.log(`  blockHash:  ${discovered.blockHash}`);
   console.log(`  txid:       ${discovered.txid}`);
   console.log(`  address:    ${discovered.address}`);
+  console.log(`  candidate:  ${discovered.candidatePublicKey}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -451,6 +510,13 @@ async function testTokensPage() {
     assert(res.status === 200, "GET /mainnet/tokens/{GAS} → 200", `status=${res.status}`);
   });
 
+  await test("GET /mainnet/tokens/{GAS}/holders?limit=5", async () => {
+    const res = await get(`/mainnet/tokens/${GAS_HASH}/holders?limit=5`);
+    assert(res.status === 200, "GET /mainnet/tokens/{GAS}/holders → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(Array.isArray(items), "token holders response has data array", `type=${typeof items}`);
+  });
+
   await test("RPC GetAssetInfos", async () => {
     const res = await rpcPost("mainnet", "GetAssetInfos", { Limit: 5, Skip: 0 });
     assert(res.status === 200, "RPC GetAssetInfos → 200", `status=${res.status}`);
@@ -548,6 +614,9 @@ async function testGovernanceToolPage() {
       "validators metadata is non-empty",
       `type=${typeof items}, length=${Array.isArray(items) ? items.length : "n/a"}`,
     );
+    if (Array.isArray(items) && items.length > 0 && !discovered.candidatePublicKey) {
+      discovered.candidatePublicKey = items.find((item) => item?.public_key)?.public_key || null;
+    }
   });
 
   await test("Proxy getcommittee", async () => {
@@ -573,6 +642,20 @@ async function testCandidatesPage() {
       (Array.isArray(items) && items.length > 0) || (typeof items === "object" && Object.keys(items).length > 0),
       "validators non-empty",
     );
+    if (Array.isArray(items) && items.length > 0 && !discovered.candidatePublicKey) {
+      discovered.candidatePublicKey = items.find((item) => item?.public_key)?.public_key || null;
+    }
+  });
+
+  await test("GET /mainnet/governance/voters?candidate={validator}", async () => {
+    if (!discovered.candidatePublicKey) {
+      skip("GET /mainnet/governance/voters?candidate={validator}", "no candidate public key discovered");
+      return;
+    }
+    const res = await get(`/mainnet/governance/voters?candidate=${encodeURIComponent(discovered.candidatePublicKey)}&limit=5`);
+    assert(res.status === 200, "GET /mainnet/governance/voters → 200", `status=${res.status}`);
+    const items = res.json?.data || [];
+    assert(Array.isArray(items), "candidate voters response has data array", `type=${typeof items}`);
   });
 
   await test("RPC GetCandidateCount", async () => {
@@ -904,6 +987,20 @@ async function testCachePerformance() {
     } else {
       pass("status endpoint (no cache-control, may be bypassed)");
     }
+  });
+
+  await test("Realtime head SSE opens with event-stream prefix", async () => {
+    const res = await httpReadPrefix(`${BASE}/mainnet/sse/head`, {
+      headers: { Accept: "text/event-stream" },
+      timeoutMs: 8000,
+    });
+    assert(res.status === 200, "SSE /mainnet/sse/head → 200", `status=${res.status}`);
+    assert(header(res.headers, "content-type").includes("text/event-stream"), "SSE content-type is event-stream");
+    assert(
+      res.body.includes(": connected") || res.body.includes("event:"),
+      "SSE prefix contains heartbeat or event",
+      `prefix=${JSON.stringify(res.body.slice(0, 80))}`,
+    );
   });
 }
 

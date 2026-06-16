@@ -154,6 +154,70 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/contracts/0xabc/calls?limit=20&offset=40");
   });
 
+  it("reads token holders from the short read-api route", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ address: "Nabc", balance_raw: "100" }],
+        meta: { total: 1 },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const payload = await indexerReadService.getTokenHolders("0xgas", 10, 5);
+
+    expect(payload).toEqual({
+      data: [{ address: "Nabc", balance_raw: "100" }],
+      meta: { total: 1 },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/tokens/0xgas/holders?limit=10&offset=5");
+  });
+
+  it("reads candidate voters from the short read-api route", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ script_hash: "0xabc", votes: "42" }],
+        meta: { total: 1 },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const payload = await indexerReadService.getCandidateVoters("02abc", 10, 5);
+
+    expect(payload).toEqual({
+      data: [{ script_hash: "0xabc", votes: "42" }],
+      meta: { total: 1 },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/governance/voters?candidate=02abc&limit=10&offset=5");
+  });
+
+  it("builds the realtime head SSE URL from the active network base", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "TestT5"),
+      resolveNetworkName: vi.fn(() => "testnet"),
+    }));
+
+    const { getIndexerSseUrl } = await import("../../src/services/indexerReadService.js");
+
+    expect(getIndexerSseUrl()).toBe("/data/testnet/sse/head");
+    expect(getIndexerSseUrl("mainnet")).toBe("/data/mainnet/sse/head");
+  });
+
   it("can load a NEP-11 token without first hitting the NEP-17-only token detail endpoint", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
