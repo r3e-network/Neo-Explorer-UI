@@ -267,6 +267,32 @@ function decodeTransferNotification(row) {
   };
 }
 
+function _normalizeTokenStandard(value) {
+  return String(value || "").trim().toUpperCase().replace("-", "");
+}
+
+function _standardsFromManifest(manifest) {
+  const raw = manifest?.supportedstandards || manifest?.supportedStandards || [];
+  return Array.isArray(raw) ? raw.map(_normalizeTokenStandard).filter(Boolean) : [];
+}
+
+function _tokenItemFromContractState(hash, state) {
+  const standards = _standardsFromManifest(state?.manifest);
+  const standard = standards.includes("NEP17") ? "NEP17" : standards.includes("NEP11") ? "NEP11" : "";
+  if (!standard) return null;
+  const contractHash = state?.hash || hash;
+  const displayName = state?.manifest?.name || contractHash;
+  return {
+    contract_hash: contractHash,
+    display_name: displayName,
+    symbol: "",
+    holder_count: 0,
+    total_supply_raw: "0",
+    decimals: 0,
+    standard,
+  };
+}
+
 /**
  * Token Service - Neo3 代币相关 API 调用
  * @module services/tokenService
@@ -509,7 +535,11 @@ export const tokenService = createService(
       // Indexer first — same Mongo-to-Postgres pattern as #171/#172/#173.
       // The enrichment block below (manifest invokefunction for missing
       // decimals/symbol) still runs against the indexer row.
-      const item = await indexerReadService.getToken(hash, options).catch(() => null);
+      let item = await indexerReadService.getToken(hash, options).catch(() => null);
+      if (!item) {
+        const chainState = await safeRpc("getcontractstate", [hash], null, options).catch(() => null);
+        item = _tokenItemFromContractState(hash, chainState);
+      }
       if (!item) return null;
 
       // Indexer currently mis-reports decimals/symbol as 0/"" for some

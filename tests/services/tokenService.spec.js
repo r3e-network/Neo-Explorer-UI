@@ -48,6 +48,55 @@ describe("tokenService", () => {
       expect(api.safeRpc).not.toHaveBeenCalledWith("GetAssetInfoByContractHash", expect.anything(), expect.anything(), expect.anything());
       expect(result).toMatchObject({ hash: "0xhash", tokenname: "NEO", symbol: "NEO" });
     });
+
+    it("falls back to chain contract state for indexed tokens without stats", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce(null);
+      api.safeRpc.mockImplementation(async (method, params) => {
+        if (method === "getcontractstate") {
+          return {
+            hash: params[0],
+            manifest: {
+              name: "FreshToken",
+              supportedstandards: ["NEP-17"],
+            },
+          };
+        }
+        if (method === "invokefunction" && params[1] === "decimals") {
+          return { state: "HALT", stack: [{ value: "8" }] };
+        }
+        if (method === "invokefunction" && params[1] === "symbol") {
+          return { state: "HALT", stack: [{ value: btoa("FRESH") }] };
+        }
+        return null;
+      });
+
+      const result = await tokenService.getByHash("0xhash");
+
+      expect(api.safeRpc).toHaveBeenCalledWith("getcontractstate", ["0xhash"], null, expect.any(Object));
+      expect(result).toMatchObject({
+        hash: "0xhash",
+        tokenname: "FreshToken",
+        symbol: "FRESH",
+        decimals: 8,
+        totalsupply: "0",
+        standard: "NEP17",
+      });
+    });
+
+    it("does not treat plain contracts as tokens when detail is missing", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce(null);
+      api.safeRpc.mockResolvedValueOnce({
+        hash: "0xplain",
+        manifest: {
+          name: "PlainContract",
+          supportedstandards: [],
+        },
+      });
+
+      const result = await tokenService.getByHash("0xplain");
+
+      expect(result).toBeNull();
+    });
   });
 
   describe("getHolders", () => {
