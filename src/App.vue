@@ -1,5 +1,8 @@
 <template>
   <div id="app">
-    <router-view />
+    <a href="#main-content" class="skip-to-content">{{ $t("a11y.skipToContent") }}</a>
+    <main id="main-content">
+      <router-view />
+    </main>
   </div>
 </template>

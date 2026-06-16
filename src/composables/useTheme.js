@@ -19,6 +19,9 @@ export function useTheme() {
     const saved = localStorage.getItem("theme");
     if (saved) {
       isDark.value = saved === "dark";
+    } else if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      // No saved preference -> follow the OS color scheme.
+      isDark.value = window.matchMedia("(prefers-color-scheme: dark)").matches;
     } else {
       isDark.value = false;
     }

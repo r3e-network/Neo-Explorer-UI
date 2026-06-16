@@ -1,4 +1,6 @@
 const ja = {
+  a11y: { skipToContent: "コンテンツにスキップ" },
+  status: { success: "成功", failed: "失敗", pending: "保留中" },
   nav: {
     home: "ホーム",
     blockchain: "ブロックチェーン",

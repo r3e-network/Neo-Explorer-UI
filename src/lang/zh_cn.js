@@ -1,4 +1,6 @@
 const zh = {
+  a11y: { skipToContent: "跳到主要内容" },
+  status: { success: "成功", failed: "失败", pending: "待确认" },
   nav: {
     home: "首页",
     blockchain: "区块链",

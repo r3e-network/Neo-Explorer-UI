@@ -10,11 +10,14 @@
 
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const STATUS_MAP = {
-  success: { label: "Success", color: "var(--status-success)", bg: "var(--status-success-bg)" },
-  failed: { label: "Failed", color: "var(--status-error)", bg: "var(--status-error-bg)" },
-  pending: { label: "Pending", color: "var(--status-warning)", bg: "var(--status-warning-bg)" },
+  success: { key: "status.success", color: "var(--status-success)", bg: "var(--status-success-bg)" },
+  failed: { key: "status.failed", color: "var(--status-error)", bg: "var(--status-error-bg)" },
+  pending: { key: "status.pending", color: "var(--status-warning)", bg: "var(--status-warning-bg)" },
 };
 
 const props = defineProps({
@@ -31,7 +34,7 @@ const props = defineProps({
 
 const normalizedStatus = computed(() => String(props.status || "success").toLowerCase());
 const config = computed(() => STATUS_MAP[normalizedStatus.value] || STATUS_MAP.success);
-const label = computed(() => props.text || config.value.label);
+const label = computed(() => props.text || t(config.value.key));
 const statusColor = computed(() => config.value.color);
 const badgeStyle = computed(() => ({
   borderColor: config.value.color,

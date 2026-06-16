@@ -1,4 +1,6 @@
 const fr = {
+  a11y: { skipToContent: "Aller au contenu" },
+  status: { success: "Réussi", failed: "Échoué", pending: "En attente" },
   nav: {
     home: "Accueil",
     blockchain: "Blockchain",

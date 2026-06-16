@@ -1,4 +1,6 @@
 const en = {
+  a11y: { skipToContent: "Skip to content" },
+  status: { success: "Success", failed: "Failed", pending: "Pending" },
   nav: {
     home: "Home",
     blockchain: "Blockchain",

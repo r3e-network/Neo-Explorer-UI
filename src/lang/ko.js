@@ -1,4 +1,6 @@
 const ko = {
+  a11y: { skipToContent: "콘텐츠로 건너뛰기" },
+  status: { success: "성공", failed: "실패", pending: "대기 중" },
   nav: {
     home: "홈",
     blockchain: "블록체인",
