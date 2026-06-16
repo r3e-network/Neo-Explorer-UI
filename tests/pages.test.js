@@ -745,30 +745,33 @@ async function testTestnet() {
 async function testRestCompatTables() {
   setPage("REST Compatibility (all tables)");
 
-  // Read-API compat tables route through the indexer, so they need auth headers
-  // and specific query parameters depending on the table schema.
+  // Read-API compat tables are network-scoped. Query the production shape that
+  // Explorer pages use and require 200 so missing allowlist/nginx entries are
+  // caught here instead of hidden behind a broad 400/404 allowance.
   const readApiTables = [
-    { table: "contract_notifications", query: "limit=2&order=id.desc" },
-    { table: "nep17_transfers", query: "limit=2&order=id.desc" },
-    { table: "nep11_transfers", query: "limit=2&order=id.desc" },
-    { table: "validator_metadata_cache", query: "limit=2" },
-    { table: "address_metadata_cache", query: "limit=2" },
-    { table: "contract_metadata_cache", query: "limit=2" },
-    { table: "indexer_state", query: "limit=2" },
-    { table: "transaction_executions", query: "limit=2&order=id.desc" },
-    { table: "transaction_signers", query: "limit=2&order=id.desc" },
+    { table: "contract_notifications", query: "network=eq.mainnet&limit=2&order=id.desc" },
+    { table: "nep17_transfers", query: "network=eq.mainnet&limit=2&order=id.desc" },
+    { table: "nep11_transfers", query: "network=eq.mainnet&limit=2&order=id.desc" },
+    { table: "validator_metadata_cache", query: "network=eq.mainnet&limit=2" },
+    { table: "address_metadata_cache", query: "network=eq.mainnet&limit=2" },
+    { table: "contract_metadata_cache", query: "network=eq.mainnet&limit=2" },
+    { table: "indexer_state", query: "network=eq.mainnet&limit=2" },
+    { table: "transaction_executions", query: "network=eq.mainnet&limit=2&order=id.desc" },
+    { table: "transaction_signers", query: "network=eq.mainnet&limit=2&order=id.desc" },
   ];
 
   for (const { table, query } of readApiTables) {
     await test(`GET /rest/v1/${table}?${query}`, async () => {
-      // Read-API compat tables may need auth headers (routed to indexer, but
-      // the worker may still strip auth). Try both ways.
       const res = await supabaseGet(`/rest/v1/${table}?${query}`);
-      assert(
-        res.status === 200 || res.status === 404 || res.status === 400,
-        `REST /rest/v1/${table} → 200, 404, or 400`,
-        `status=${res.status}`,
-      );
+      assert(res.status === 200, `REST /rest/v1/${table} → 200`, `status=${res.status}`);
+      assert(Array.isArray(res.json), `REST /rest/v1/${table} returns array`, `type=${typeof res.json}`);
+    });
+  }
+
+  for (const table of ["contract_notifications", "nep17_transfers", "indexer_state"]) {
+    await test(`GET /rest/v1/${table}?limit=1 without network is rejected`, async () => {
+      const res = await supabaseGet(`/rest/v1/${table}?limit=1`);
+      assert(res.status === 400, `REST /rest/v1/${table} network guard → 400`, `status=${res.status}`);
     });
   }
 
