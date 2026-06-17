@@ -41,7 +41,16 @@ const isValidHex = (hexStr, expectedLen) => {
 };
 
 // Helper to convert hex strings or integers to Neo ContractParams.
-function parseToContractParam(arg) {
+// Upper bound on args array length and nesting depth so a hostile or buggy
+// client cannot blow the stack / consume unbounded RPC quota while building
+// the argsHash script or the execute script.
+const MAX_META_ARGS = 16;
+const MAX_META_ARG_DEPTH = 8;
+
+function parseToContractParam(arg, depth = 0) {
+    if (depth > MAX_META_ARG_DEPTH) {
+        throw new Error('Contract argument nesting too deep');
+    }
     if (arg === null || arg === undefined) return scLib.ContractParam.any(null);
     if (typeof arg === 'object' && arg.type && arg.value !== undefined) {
         if (arg.type === 'Hash160') return scLib.ContractParam.hash160(sanitizeHex(arg.value));
@@ -51,7 +60,12 @@ function parseToContractParam(arg) {
         if (arg.type === 'String') return scLib.ContractParam.string(arg.value);
         if (arg.type === 'Boolean') return scLib.ContractParam.boolean(arg.value);
         if (arg.type === 'PublicKey') return scLib.ContractParam.publicKey(sanitizeHex(arg.value));
-        if (arg.type === 'Array') return scLib.ContractParam.array(...arg.value.map(parseToContractParam));
+        if (arg.type === 'Array') {
+            if (!Array.isArray(arg.value) || arg.value.length > MAX_META_ARGS) {
+                throw new Error('Nested Array argument exceeds size limit');
+            }
+            return scLib.ContractParam.array(...arg.value.map((v) => parseToContractParam(v, depth + 1)));
+        }
         if (arg.type === 'Any') return scLib.ContractParam.any(arg.value);
     }
     return scLib.ContractParam.any(arg);
@@ -395,6 +409,13 @@ async function handler(req, res) {
         }
 
         if (normalizedAction === 'info') {
+            // The relayer/sponsor account address is the funder wallet; exposing
+            // it to any caller lets an attacker monitor the wallet balance and
+            // time attacks. Only return it when explicitly enabled by config.
+            const expose = String(process.env.RELAYER_EXPOSE_ADDRESS || '').trim().toLowerCase();
+            if (expose !== '1' && expose !== 'true') {
+                return res.status(200).json({ relayerEnabled: true });
+            }
             return res.status(200).json({ relayerAddress: relayerAccount.address });
         }
 
@@ -488,7 +509,10 @@ async function handler(req, res) {
         } catch (e) {
             return res.status(400).json({ error: e.message || 'Invalid method' });
         }
-        const parsedArgs = Array.isArray(args) ? args : [];
+        const parsedArgs = Array.isArray(args) ? args.slice(0, MAX_META_ARGS) : [];
+        if (Array.isArray(args) && args.length > MAX_META_ARGS) {
+            return res.status(400).json({ error: `Too many meta-tx args (max ${MAX_META_ARGS}).` });
+        }
 
         if (!cleanAaHash || !cleanTargetContract || !parsedMethod || !cleanSignerAddress) {
             return res.status(400).json({ error: 'Missing required meta-transaction parameters payload.' });
@@ -594,6 +618,27 @@ async function handler(req, res) {
             parsedDeadline = parseDeadlineSeconds(deadline);
         } catch (e) {
             return res.status(400).json({ error: e.message || 'Invalid nonce/deadline' });
+        }
+
+        // Defense-in-depth nonce freshness: replay protection is ultimately
+        // enforced by the on-chain AA contract, but we also check server-side
+        // that the submitted nonce is not already stale. This rejects obvious
+        // replays before spending an argsHash simulation + signature verify on
+        // them, and protects against any AA-contract nonce-handling weakness.
+        // We tolerate the submitted nonce being >= the current chain nonce
+        // (allowing the client to have pre-fetched a slightly-ahead nonce).
+        try {
+            const currentNonce = hasAddressBinding
+                ? await getNonceForAddress(rpcClient, cleanAaHash, cleanAccountAddress, cleanSignerAddress)
+                : await getNonceForAccount(rpcClient, cleanAaHash, cleanAccountId, cleanSignerAddress);
+            if (parsedNonce < currentNonce) {
+                return res.status(409).json({ error: 'Nonce already consumed.', currentNonce });
+            }
+        } catch (e) {
+            // If we cannot read the nonce (RPC hiccup), fail open for the
+            // freshness check and let the downstream simulation/verify + on-chain
+            // enforcement handle it; do not block execution on RPC availability.
+            console.warn('[Relayer API] nonce freshness check skipped:', e?.message || e);
         }
 
         const cleanSignature = sanitizeHex(signature);

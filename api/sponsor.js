@@ -114,6 +114,13 @@ async function handler(req, res) {
     const sponsorAccount = new wallet.Account(sponsorWif);
 
     if (normalizedAction === 'info') {
+       // The sponsor account address is the funder wallet; exposing it to any
+       // caller lets an attacker monitor the wallet balance and time attacks.
+       // Only return it when explicitly enabled by config.
+       const expose = String(process.env.SPONSOR_EXPOSE_ADDRESS || '').trim().toLowerCase();
+       if (expose !== '1' && expose !== 'true') {
+         return res.status(200).json({ sponsorEnabled: true });
+       }
        return res.status(200).json({ sponsorAddress: sponsorAccount.address });
     }
 
