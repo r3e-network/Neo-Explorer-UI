@@ -180,7 +180,7 @@
       </p>
     </div>
     <div v-if="totalUsdValue" class="stat-card">
-      <p class="stat-label">Total Value (NEO + GAS)</p>
+      <p class="stat-label">{{ $t("addressDetail.statTotalValue") }}</p>
       <p class="stat-value text-emerald-600 dark:text-emerald-400">
         {{ formatUsd(totalUsdValue) }}
       </p>

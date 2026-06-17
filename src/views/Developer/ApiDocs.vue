@@ -41,7 +41,7 @@
           :class="apiMode === 'rest' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
           @click="setApiMode('rest')"
         >
-          Read API (REST) — recommended
+          {{ $t('apiDocsPage.modeRestRecommended') }}
         </button>
         <button
           type="button"
@@ -49,7 +49,7 @@
           :class="apiMode === 'rpc' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
           @click="setApiMode('rpc')"
         >
-          JSON-RPC (legacy)
+          {{ $t('apiDocsPage.modeRpc') }}
         </button>
       </div>
 

@@ -53,7 +53,7 @@
                 <th scope="col" class="table-header-cell">{{ $t("accounts.colAddress") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colNeoBalance") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colGasBalance") }}</th>
-                <th scope="col" class="table-header-cell-right">Value (USD)</th>
+                <th scope="col" class="table-header-cell-right">{{ $t("accounts.colValueUsd") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colTxnCount") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colLastActive") }}</th>
               </tr>
