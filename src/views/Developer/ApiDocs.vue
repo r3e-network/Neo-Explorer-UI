@@ -23,10 +23,34 @@
       </div>
 
       <div class="panel-muted mb-4 px-4 py-3 text-sm">
-        <p class="text-mid">
+        <p v-if="apiMode === 'rpc'" class="text-mid">
           {{ $t('apiDocsPage.endpointPrefix') }}
           <span class="text-high font-mono">POST {{ rpcBasePath }}</span>
         </p>
+        <p v-else class="text-mid">
+          {{ $t('apiDocsPage.endpointPrefix') }}
+          <span class="text-high font-mono">GET https://api.n3index.dev/v1/networks/&#123;network&#125;/...</span>
+        </p>
+      </div>
+
+      <!-- API mode switcher: REST (current) vs JSON-RPC (legacy) -->
+      <div class="mb-4 flex gap-2">
+        <button
+          type="button"
+          class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+          :class="apiMode === 'rest' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
+          @click="setApiMode('rest')"
+        >
+          Read API (REST) — recommended
+        </button>
+        <button
+          type="button"
+          class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+          :class="apiMode === 'rpc' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
+          @click="setApiMode('rpc')"
+        >
+          JSON-RPC (legacy)
+        </button>
       </div>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -48,13 +72,51 @@
               "
               @click="activeCategory = category.key"
             >
-              {{ $t(`apiDocsPage.categories.${category.key}`) }}
+              {{ apiMode === 'rest' ? category.label : $t(`apiDocsPage.categories.${category.key}`) }}
             </button>
           </nav>
         </aside>
 
         <main class="space-y-3 lg:col-span-3">
-          <template v-if="filteredMethods.length">
+          <!-- REST (Read API) mode -->
+          <template v-if="apiMode === 'rest'">
+            <article v-for="ep in filteredEndpoints" :key="ep.path" class="etherscan-card p-5">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span
+                  class="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  >{{ ep.method }}</span
+                >
+                <h3 class="text-high font-mono text-sm font-semibold break-all">{{ ep.path }}</h3>
+              </div>
+              <p class="text-mid mb-3 text-sm">{{ ep.desc }}</p>
+              <div v-if="ep.pathParams && ep.pathParams.length" class="mb-2">
+                <p class="text-low mb-1 text-xs font-semibold uppercase">Path params</p>
+                <ul class="space-y-1">
+                  <li v-for="p in ep.pathParams" :key="p.name" class="text-mid text-xs">
+                    <span class="text-high font-mono">{{ p.name }}</span> — {{ p.desc }}
+                  </li>
+                </ul>
+              </div>
+              <div v-if="ep.queryParams && ep.queryParams.length" class="mb-2">
+                <p class="text-low mb-1 text-xs font-semibold uppercase">Query params</p>
+                <ul class="space-y-1">
+                  <li v-for="p in ep.queryParams" :key="p.name" class="text-mid text-xs">
+                    <span class="text-high font-mono">{{ p.name }}</span>
+                    <span class="text-low"> ({{ p.type }})</span> — {{ p.desc }}
+                  </li>
+                </ul>
+              </div>
+              <pre
+                class="font-hash text-high overflow-x-auto rounded border border-card-border bg-gray-50 p-3 text-xs leading-relaxed dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
+              ><code>{{ ep.example }}</code></pre>
+            </article>
+            <div v-if="!filteredEndpoints.length" class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm">
+              No endpoints in this category.
+            </div>
+          </template>
+
+          <!-- JSON-RPC (legacy) mode -->
+          <template v-else>
             <article v-for="method in filteredMethods" :key="method.name" class="etherscan-card p-5">
               <div class="mb-2 flex items-center gap-2">
                 <span
@@ -85,13 +147,10 @@
                 class="font-hash text-high overflow-x-auto rounded border border-card-border bg-gray-50 p-3 text-xs leading-relaxed dark:border-card-border-dark dark:bg-gray-800 dark:text-gray-200"
               ><code>{{ buildRequestBody(method) }}</code></pre>
             </article>
+            <div v-if="!filteredMethods.length" class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm">
+              {{ $t('apiDocsPage.noMethods') }}
+            </div>
           </template>
-          <div
-            v-else
-            class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm"
-          >
-            {{ $t('apiDocsPage.noMethods') }}
-          </div>
         </main>
       </div>
     </section>
@@ -102,15 +161,26 @@
 import { ref, computed } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
+import { READ_API_CATEGORIES, READ_API_ENDPOINTS } from "@/constants/readApiDocs.mjs";
 import { getCurrentEnv, getNetworkLabel, getRpcApiBasePath } from "@/utils/env";
 
-const categories = API_DOCS_RPC_CATEGORIES;
+// Top-level mode: legacy JSON-RPC (Get*) vs the current Postgres Read API (REST).
+const apiMode = ref("rest"); // default to the current, recommended API
+const categories = computed(() => (apiMode.value === "rest" ? READ_API_CATEGORIES : API_DOCS_RPC_CATEGORIES));
 const methods = API_DOCS_RPC_METHODS;
-const activeCategory = ref(categories[0]?.key || "");
+const restEndpoints = READ_API_ENDPOINTS;
+const activeCategory = ref(READ_API_CATEGORIES[0]?.key || "");
 const networkLabel = computed(() => getNetworkLabel(getCurrentEnv()));
 const rpcBasePath = computed(() => getRpcApiBasePath());
 
+// Reset the active category when switching modes.
+function setApiMode(mode) {
+  apiMode.value = mode;
+  activeCategory.value = (mode === "rest" ? READ_API_CATEGORIES : API_DOCS_RPC_CATEGORIES)[0]?.key || "";
+}
+
 const filteredMethods = computed(() => methods.filter((method) => method.category === activeCategory.value));
+const filteredEndpoints = computed(() => restEndpoints.filter((ep) => ep.category === activeCategory.value));
 
 function buildRequestBody(method) {
   return JSON.stringify(
