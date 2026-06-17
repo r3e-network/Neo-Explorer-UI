@@ -766,6 +766,7 @@ export const supabaseService = {
     try {
       const body = {
         status,
+        signer_address: extras.signer_address || "",
         ...(extras.tx_hash ? { broadcast_tx_hash: extras.tx_hash } : {}),
         ...(extras.executed_at ? { broadcast_at: extras.executed_at } : {}),
         ...(extras.params ? { params: extras.params } : {}),

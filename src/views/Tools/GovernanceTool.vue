@@ -298,6 +298,7 @@ async function handleBroadcast(req) {
 
     toast.success(t("tools.governance.toasts.broadcastSuccess", { txid }));
     await supabaseService.updateMultisigRequestStatus(req.id, "EXECUTED", {
+      signer_address: connectedAccount.value,
       tx_hash: txid,
       executed_at: new Date().toISOString(),
       params: {

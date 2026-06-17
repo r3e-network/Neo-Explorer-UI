@@ -740,6 +740,7 @@ async function handleBroadcast(currentProposal) {
     const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
     const txid = await rpcClient.sendRawTransaction(tx.serialize(true));
     const updateResult = await supabaseService.updateMultisigRequestStatus(currentProposal.id, "EXECUTED", {
+      signer_address: connectedAccount.value,
       tx_hash: txid,
       executed_at: new Date().toISOString(),
       params: {

@@ -1,6 +1,12 @@
 const { query } = require("../../lib/db");
 const { enforceMultisigMutationPolicy } = require("../../lib/multisigMutations");
 const { enforceMutationSameOrigin } = require("../../lib/sameOriginGuard");
+const { resolveCommitteePubkeys } = require("../../lib/governanceSignature");
+const {
+  deriveCommitteeAddresses,
+  isCreatorForProposal,
+  requireCommitteeSigner,
+} = require("../../lib/multisigAuthorization");
 
 function cors(res) {
   // Tightened from `*`: only the explorer's own origins may call this endpoint
@@ -80,6 +86,39 @@ module.exports = async function handler(req, res) {
         key: `${id}:${body.status || "status"}`,
       })) {
         return;
+      }
+
+      // Authorization: only a member of the proposal's committee (or its
+      // creator) may mutate its state. The CSRF/same-origin gate blocks
+      // third-party sites; this gate blocks any logged-in visitor from
+      // overwriting status/broadcast_tx_hash/params/metadata on proposals
+      // they did not create and have no committee standing on. The broadcast
+      // flow in the governance views already has the connected committee
+      // member's address and sends it as signer_address.
+      const signerAddress = String(body.signer_address || "").trim();
+      if (!signerAddress) {
+        return res.status(401).json({
+          error: "signer_address is required to mutate a multisig request.",
+        });
+      }
+      const currentRow = await query(
+        `SELECT id, creator_address, network, network_mode, params FROM multisig_requests WHERE id = $1`,
+        [id],
+      );
+      const proposal = currentRow.rows[0];
+      if (!proposal) {
+        return res.status(404).json({ error: "Request not found." });
+      }
+      let authorized = isCreatorForProposal(signerAddress, proposal.creator_address);
+      if (!authorized) {
+        const committeePubkeys = resolveCommitteePubkeys(proposal);
+        const committeeAddresses = await deriveCommitteeAddresses(committeePubkeys);
+        authorized = requireCommitteeSigner(signerAddress, committeeAddresses).ok;
+      }
+      if (!authorized) {
+        return res.status(403).json({
+          error: "Signer is not authorized to mutate this proposal (must be the creator or a committee member).",
+        });
       }
 
       const sets = [];
