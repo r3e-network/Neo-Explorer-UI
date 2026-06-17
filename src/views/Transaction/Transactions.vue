@@ -56,10 +56,11 @@
           <button
             v-if="transactions.length > 0"
             @click="exportData"
+            :disabled="exporting"
             class="btn-outline gap-1.5 text-xs"
             :title="$t('transactionsPage.exportToCsv')"
           >
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="!exporting" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -67,7 +68,10 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            {{ $t("transactionsPage.exportCsv") }}
+            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8" />
+            </svg>
+            {{ exporting ? `${$t("transactionsPage.exportCsv")} (${exportProgress})` : $t("transactionsPage.exportCsv") }}
           </button>
         </div>
 
@@ -130,6 +134,7 @@ import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
+import { exportAllPagesToCsv } from "@/utils/pagedExport";
 import { extractVmStateFromAppLog } from "@/utils/txVmState";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -230,9 +235,32 @@ const { start: startAutoRefresh } = useRealtimeHead(() => {
   loadPage(currentPage.value, { silent: true, forceRefresh: true });
 });
 
-function exportData() {
+const exporting = ref(false);
+const exportProgress = ref(0);
+
+async function exportData() {
   if (!transactions.value || transactions.value.length === 0) return;
-  exportTransactionsToCSV(transactions.value);
+  // Full paginated export (up to 5000 rows) rather than just the visible page.
+  exporting.value = true;
+  exportProgress.value = 0;
+  try {
+    await exportAllPagesToCsv({
+      fetchPage: (limit, offset) => transactionService.getList(limit, offset, { __suppressDevErrorLog: true }),
+      exporter: (rows, filename) => exportTransactionsToCSV(rows, filename),
+      filename: `transactions_${Date.now()}`,
+      pageSize: 100,
+      maxRows: 5000,
+      onPage: (received) => {
+        exportProgress.value = received;
+      },
+    });
+  } catch {
+    // fall back to exporting just the current page if the full fetch fails
+    exportTransactionsToCSV(transactions.value);
+  } finally {
+    exporting.value = false;
+    exportProgress.value = 0;
+  }
 }
 
 onMounted(() => {

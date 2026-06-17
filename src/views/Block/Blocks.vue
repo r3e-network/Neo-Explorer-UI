@@ -70,10 +70,11 @@
           <button
             v-if="blocks.length > 0"
             @click="exportData"
+            :disabled="exporting"
             class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
             :title="$t('blocks.export.title')"
           >
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="!exporting" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -81,7 +82,10 @@
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            {{ $t("blocks.export.label") }}
+            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8" />
+            </svg>
+            {{ exporting ? `${$t("blocks.export.label")} (${exportProgress})` : $t("blocks.export.label") }}
           </button>
         </div>
 
@@ -223,6 +227,7 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import { exportBlocksToCSV } from "@/utils/dataExport";
+import { exportAllPagesToCsv } from "@/utils/pagedExport";
 
 const { t } = useI18n();
 
@@ -313,9 +318,32 @@ const { start: startAutoRefresh } = useRealtimeHead(() => {
   loadStats(true);
 });
 
-function exportData() {
+const exporting = ref(false);
+const exportProgress = ref(0);
+
+async function exportData() {
   if (!blocks.value || blocks.value.length === 0) return;
-  exportBlocksToCSV(blocks.value);
+  // Full paginated export (up to 5000 rows) rather than just the visible page.
+  exporting.value = true;
+  exportProgress.value = 0;
+  try {
+    await exportAllPagesToCsv({
+      fetchPage: (limit, offset) =>
+        blockService.getList(limit, offset, { __suppressDevErrorLog: true, enrichMissingFields: true }),
+      exporter: (rows, filename) => exportBlocksToCSV(rows, filename),
+      filename: `blocks_${Date.now()}`,
+      pageSize: 100,
+      maxRows: 5000,
+      onPage: (received) => {
+        exportProgress.value = received;
+      },
+    });
+  } catch {
+    exportBlocksToCSV(blocks.value);
+  } finally {
+    exporting.value = false;
+    exportProgress.value = 0;
+  }
 }
 
 onMounted(() => {

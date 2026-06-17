@@ -77,7 +77,7 @@ export function flattenObject(obj, prefix = "") {
   }, {});
 }
 
-export function exportTransactionsToCSV(transactions) {
+export function exportTransactionsToCSV(transactions, filename) {
   if (!Array.isArray(transactions) || !transactions.length) return;
   const flatData = transactions.map((tx) => ({
     hash: tx.hash,
@@ -89,10 +89,10 @@ export function exportTransactionsToCSV(transactions) {
     fee: tx.netfee || tx.sysfee || 0,
     status: tx.status || tx.vmstate || "",
   }));
-  exportToCSV(flatData, `transactions_${Date.now()}`);
+  exportToCSV(flatData, filename || `transactions_${Date.now()}`);
 }
 
-export function exportBlocksToCSV(blocks) {
+export function exportBlocksToCSV(blocks, filename) {
   if (!Array.isArray(blocks) || !blocks.length) return;
   const flatData = blocks.map((block) => ({
     index: block.index || block.blockindex,
@@ -102,6 +102,6 @@ export function exportBlocksToCSV(blocks) {
     size: block.size,
     gas_used: block.gasused || block.netfee || 0,
   }));
-  exportToCSV(flatData, `blocks_${Date.now()}`);
+  exportToCSV(flatData, filename || `blocks_${Date.now()}`);
 }
 
