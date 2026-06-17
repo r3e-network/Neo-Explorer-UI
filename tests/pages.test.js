@@ -168,6 +168,20 @@ function rpcPost(network, method, params) {
   return httpRequest(url, { method: "POST", body, headers: { "Content-Type": "application/json" } });
 }
 
+function assertRpcOk(res, label) {
+  assert(res.status === 200, `${label} -> 200`, `status=${res.status}`);
+  assert(!res.json?.error, `${label} has no JSON-RPC error`, JSON.stringify(res.json?.error || {}));
+}
+
+function rpcNumberResult(res) {
+  return Number(
+    res.json?.result?.["total counts"] ??
+    res.json?.result?.count ??
+    res.json?.result?.index ??
+    res.json?.result
+  );
+}
+
 function supabaseGet(path) {
   const url = `${BASE}${path}`;
   return httpRequest(url, {
@@ -308,41 +322,11 @@ async function testHomePage() {
     assert(res.status === 200, "GET /mainnet/status → 200", `status=${res.status}`);
   });
 
-  await test("RPC GetBlockCount", async () => {
-    const res = await rpcPost("mainnet", "GetBlockCount", {});
-    assert(res.status === 200, "RPC GetBlockCount → 200", `status=${res.status}`);
-    const count = Number(
-      res.json?.result?.["total counts"] ??
-      res.json?.result?.count ??
-      res.json?.result?.index ??
-      res.json?.result
-    );
-    assert(count > 0, "RPC GetBlockCount returns positive result", `count=${count}`);
-  });
-
-  await test("RPC GetTransactionCount", async () => {
-    const res = await rpcPost("mainnet", "GetTransactionCount", {});
-    assert(res.status === 200, "RPC GetTransactionCount → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetAddressCount", async () => {
-    const res = await rpcPost("mainnet", "GetAddressCount", {});
-    assert(res.status === 200, "RPC GetAddressCount → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetContractCount", async () => {
-    const res = await rpcPost("mainnet", "GetContractCount", {});
-    assert(res.status === 200, "RPC GetContractCount → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetAssetCount", async () => {
-    const res = await rpcPost("mainnet", "GetAssetCount", {});
-    assert(res.status === 200, "RPC GetAssetCount → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetCandidateCount", async () => {
-    const res = await rpcPost("mainnet", "GetCandidateCount", {});
-    assert(res.status === 200, "RPC GetCandidateCount → 200", `status=${res.status}`);
+  await test("Proxy getblockcount", async () => {
+    const res = await rpcPost("mainnet", "getblockcount", []);
+    assertRpcOk(res, "Proxy getblockcount");
+    const count = rpcNumberResult(res);
+    assert(count > 0, "getblockcount returns positive result", `count=${count}`);
   });
 }
 
@@ -385,16 +369,18 @@ async function testBlocksPage() {
     });
   }
 
-  await test("RPC GetBlockByBlockHeight", async () => {
+  await test("Proxy getblock by height", async () => {
     const height = discovered.blockIndex || 1000;
-    const res = await rpcPost("mainnet", "GetBlockByBlockHeight", { BlockHeight: height });
-    assert(res.status === 200, "RPC GetBlockByBlockHeight → 200", `status=${res.status}`);
+    const res = await rpcPost("mainnet", "getblock", [height, 1]);
+    assertRpcOk(res, "Proxy getblock");
+    assert(res.json?.result?.hash, "getblock returns block hash");
   });
 
-  await test("RPC GetBlockHeaderByBlockHeight", async () => {
+  await test("Proxy getblockheader by height", async () => {
     const height = discovered.blockIndex || 1000;
-    const res = await rpcPost("mainnet", "GetBlockHeaderByBlockHeight", { BlockHeight: height });
-    assert(res.status === 200, "RPC GetBlockHeaderByBlockHeight → 200", `status=${res.status}`);
+    const res = await rpcPost("mainnet", "getblockheader", [height, 1]);
+    assertRpcOk(res, "Proxy getblockheader");
+    assert(res.json?.result?.hash, "getblockheader returns block hash");
   });
 }
 
@@ -420,24 +406,27 @@ async function testTransactionsPage() {
       );
     });
 
-    await test("RPC GetRawTransactionByTransactionHash", async () => {
-      const res = await rpcPost("mainnet", "GetRawTransactionByTransactionHash", { TransactionHash: discovered.txid });
-      assert(res.status === 200, "RPC GetRawTransactionByTransactionHash → 200", `status=${res.status}`);
+    await test("Proxy getrawtransaction", async () => {
+      const res = await rpcPost("mainnet", "getrawtransaction", [discovered.txid, 1]);
+      assertRpcOk(res, "Proxy getrawtransaction");
+      assert(res.json?.result?.hash || res.json?.result?.txid, "getrawtransaction returns tx id/hash");
     });
 
-    await test("RPC GetApplicationLogByTransactionHash", async () => {
-      const res = await rpcPost("mainnet", "GetApplicationLogByTransactionHash", { TransactionHash: discovered.txid });
-      assert(res.status === 200, "RPC GetApplicationLogByTransactionHash → 200", `status=${res.status}`);
+    await test("Proxy getapplicationlog", async () => {
+      const res = await rpcPost("mainnet", "getapplicationlog", [discovered.txid]);
+      assertRpcOk(res, "Proxy getapplicationlog");
     });
 
-    await test("RPC GetScCallByTransactionHash", async () => {
-      const res = await rpcPost("mainnet", "GetScCallByTransactionHash", { TransactionHash: discovered.txid, Limit: 5, Skip: 0 });
-      assert(res.status === 200, "RPC GetScCallByTransactionHash → 200", `status=${res.status}`);
+    await test("REST transaction_executions by txid", async () => {
+      const res = await get(`/rest/v1/transaction_executions?network=eq.mainnet&txid=eq.${discovered.txid}&limit=5`);
+      assert(res.status === 200, "REST transaction_executions by txid -> 200", `status=${res.status}`);
+      assert(Array.isArray(res.json), "transaction_executions returns array", `type=${typeof res.json}`);
     });
 
-    await test("RPC GetNep17TransferByTransactionHash", async () => {
-      const res = await rpcPost("mainnet", "GetNep17TransferByTransactionHash", { TransactionHash: discovered.txid, Limit: 5, Skip: 0 });
-      assert(res.status === 200, "RPC GetNep17TransferByTransactionHash → 200", `status=${res.status}`);
+    await test("REST nep17_transfers by txid", async () => {
+      const res = await get(`/rest/v1/nep17_transfers?network=eq.mainnet&txid=eq.${discovered.txid}&limit=5`);
+      assert(res.status === 200, "REST nep17_transfers by txid -> 200", `status=${res.status}`);
+      assert(Array.isArray(res.json), "nep17_transfers returns array", `type=${typeof res.json}`);
     });
   }
 }
@@ -481,19 +470,10 @@ async function testContractsPage() {
     assert(Array.isArray(items), "contract calls response has data array", `type=${typeof items}`);
   });
 
-  await test("RPC GetContractList", async () => {
-    const res = await rpcPost("mainnet", "GetContractList", { Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetContractList → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetContractByContractHash (NEO)", async () => {
-    const res = await rpcPost("mainnet", "GetContractByContractHash", { ContractHash: NEO_HASH });
-    assert(res.status === 200, "RPC GetContractByContractHash → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetNotificationByContractHash (NEO)", async () => {
-    const res = await rpcPost("mainnet", "GetNotificationByContractHash", { ContractHash: NEO_HASH, Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetNotificationByContractHash → 200", `status=${res.status}`);
+  await test("Proxy getcontractstate (NEO)", async () => {
+    const res = await rpcPost("mainnet", "getcontractstate", [NEO_HASH]);
+    assertRpcOk(res, "Proxy getcontractstate");
+    assert(res.json?.result, "getcontractstate returns result");
   });
 }
 
@@ -517,14 +497,10 @@ async function testTokensPage() {
     assert(Array.isArray(items), "token holders response has data array", `type=${typeof items}`);
   });
 
-  await test("RPC GetAssetInfos", async () => {
-    const res = await rpcPost("mainnet", "GetAssetInfos", { Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetAssetInfos → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetAssetInfoByContractHash (NEO)", async () => {
-    const res = await rpcPost("mainnet", "GetAssetInfoByContractHash", { ContractHash: NEO_HASH });
-    assert(res.status === 200, "RPC GetAssetInfoByContractHash → 200", `status=${res.status}`);
+  await test("Proxy getcontractstate (GAS)", async () => {
+    const res = await rpcPost("mainnet", "getcontractstate", [GAS_HASH]);
+    assertRpcOk(res, "Proxy getcontractstate GAS");
+    assert(res.json?.result, "getcontractstate GAS returns result");
   });
 }
 
@@ -556,29 +532,9 @@ async function testAccountPage() {
     assert(res.status === 200, "GET /mainnet/accounts/{addr}/balances → 200", `status=${res.status}`);
   });
 
-  await test("RPC GetAddressByAddress", async () => {
-    const res = await rpcPost("mainnet", "GetAddressByAddress", { Address: addr });
-    assert(res.status === 200, "RPC GetAddressByAddress → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetAssetsHeldByAddress", async () => {
-    const res = await rpcPost("mainnet", "GetAssetsHeldByAddress", { Address: addr, Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetAssetsHeldByAddress → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetNep17TransferByAddress", async () => {
-    const res = await rpcPost("mainnet", "GetNep17TransferByAddress", { Address: addr, Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetNep17TransferByAddress → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetNep11TransferByAddress", async () => {
-    const res = await rpcPost("mainnet", "GetNep11TransferByAddress", { Address: addr, Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetNep11TransferByAddress → 200", `status=${res.status}`);
-  });
-
   await test("Proxy getnep17balances", async () => {
     const res = await rpcPost("mainnet", "getnep17balances", [addr]);
-    assert(res.status === 200, "Proxy getnep17balances → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getnep17balances");
   });
 }
 
@@ -676,13 +632,13 @@ async function testGovernanceToolPage() {
 
   await test("Proxy getcommittee", async () => {
     const res = await rpcPost("mainnet", "getcommittee", []);
-    assert(res.status === 200, "Proxy getcommittee → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getcommittee");
     assert(Array.isArray(res.json?.result), "getcommittee returns array result", `type=${typeof res.json?.result}`);
   });
 
   await test("Proxy getcandidates", async () => {
     const res = await rpcPost("mainnet", "getcandidates", []);
-    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getcandidates");
   });
 }
 
@@ -713,29 +669,16 @@ async function testCandidatesPage() {
     assert(Array.isArray(items), "candidate voters response has data array", `type=${typeof items}`);
   });
 
-  await test("RPC GetCandidateCount", async () => {
-    const res = await rpcPost("mainnet", "GetCandidateCount", {});
-    assert(res.status === 200, "RPC GetCandidateCount → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetCandidate", async () => {
-    const res = await rpcPost("mainnet", "GetCandidate", { Limit: 5, Skip: 0 });
-    assert(res.status === 200, "RPC GetCandidate → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetCommittee", async () => {
-    const res = await rpcPost("mainnet", "GetCommittee", {});
-    assert(res.status === 200, "RPC GetCommittee → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetTotalVotes", async () => {
-    const res = await rpcPost("mainnet", "GetTotalVotes", {});
-    assert(res.status === 200, "RPC GetTotalVotes → 200", `status=${res.status}`);
+  await test("Proxy getcommittee", async () => {
+    const res = await rpcPost("mainnet", "getcommittee", []);
+    assertRpcOk(res, "Proxy getcommittee");
+    assert(Array.isArray(res.json?.result), "getcommittee returns array result", `type=${typeof res.json?.result}`);
   });
 
   await test("Proxy getcandidates", async () => {
     const res = await rpcPost("mainnet", "getcandidates", []);
-    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getcandidates");
+    assert(Array.isArray(res.json?.result), "getcandidates returns array result", `type=${typeof res.json?.result}`);
   });
 }
 
@@ -749,24 +692,11 @@ async function testAnalyticsPage() {
     assert(Array.isArray(items) && items.length > 0, "daily analytics has items", `count=${items.length}`);
   });
 
-  await test("RPC GetDailyTransactions", async () => {
-    const res = await rpcPost("mainnet", "GetDailyTransactions", { Days: 7 });
-    assert(res.status === 200, "RPC GetDailyTransactions → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetHourlyTransactions", async () => {
-    const res = await rpcPost("mainnet", "GetHourlyTransactions", { Hours: 24 });
-    assert(res.status === 200, "RPC GetHourlyTransactions → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetNewAddresses", async () => {
-    const res = await rpcPost("mainnet", "GetNewAddresses", { Days: 7 });
-    assert(res.status === 200, "RPC GetNewAddresses → 200", `status=${res.status}`);
-  });
-
-  await test("RPC GetActiveAddresses", async () => {
-    const res = await rpcPost("mainnet", "GetActiveAddresses", { Days: 7 });
-    assert(res.status === 200, "RPC GetActiveAddresses → 200", `status=${res.status}`);
+  await test("GET /mainnet/stats → 200", async () => {
+    const res = await get("/mainnet/stats");
+    assert(res.status === 200, "GET /mainnet/stats → 200", `status=${res.status}`);
+    const data = res.json?.data || res.json || {};
+    assert(Number(data.tx_count || data.total_tx_count || data.last_indexed_block || 0) > 0, "stats has indexed totals");
   });
 }
 
@@ -783,10 +713,10 @@ async function testNNSPage() {
     assert(res.status === 200, "GET /mainnet/metadata/addresses → 200", `status=${res.status}`);
   });
 
-  await test("RPC GetNNSNameByOwner", async () => {
+  await test("GET /mainnet/nns/domains?owner={address}", async () => {
     const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-    const res = await rpcPost("mainnet", "GetNNSNameByOwner", { Address: addr });
-    assert(res.status === 200, "RPC GetNNSNameByOwner → 200", `status=${res.status}`);
+    const res = await get(`/mainnet/nns/domains?owner=${encodeURIComponent(addr)}&limit=5`);
+    assert(res.status === 200, "GET /mainnet/nns/domains?owner → 200", `status=${res.status}`);
   });
 }
 
@@ -886,16 +816,11 @@ async function testTestnet() {
     assert(res.status === 200, "GET /testnet/transactions → 200", `status=${res.status}`);
   });
 
-  await test("Testnet RPC GetBlockCount", async () => {
-    const res = await rpcPost("testnet", "GetBlockCount", {});
-    assert(res.status === 200, "Testnet RPC GetBlockCount → 200", `status=${res.status}`);
-    const count = Number(
-      res.json?.result?.["total counts"] ??
-      res.json?.result?.count ??
-      res.json?.result?.index ??
-      res.json?.result
-    );
-    assert(count > 0, "Testnet GetBlockCount returns positive result", `count=${count}`);
+  await test("Testnet proxy getblockcount", async () => {
+    const res = await rpcPost("testnet", "getblockcount", []);
+    assertRpcOk(res, "Testnet proxy getblockcount");
+    const count = rpcNumberResult(res);
+    assert(count > 0, "Testnet getblockcount returns positive result", `count=${count}`);
   });
 }
 
@@ -956,42 +881,37 @@ async function testProxyRPCs() {
 
   await test("Proxy getversion", async () => {
     const res = await rpcPost("mainnet", "getversion", []);
-    assert(res.status === 200, "Proxy getversion → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getversion");
     assert(res.json?.result, "getversion has result", `keys: ${Object.keys(res.json?.result || {}).join(", ")}`);
   });
 
   await test("Proxy getblockcount", async () => {
     const res = await rpcPost("mainnet", "getblockcount", []);
-    assert(res.status === 200, "Proxy getblockcount → 200", `status=${res.status}`);
-    const result = Number(
-      res.json?.result?.["total counts"] ??
-      res.json?.result?.count ??
-      res.json?.result?.index ??
-      res.json?.result
-    );
+    assertRpcOk(res, "Proxy getblockcount");
+    const result = rpcNumberResult(res);
     assert(Number.isFinite(result) && result > 0, "getblockcount returns positive", `result=${res.json?.result}`);
   });
 
   await test("Proxy getcandidates", async () => {
     const res = await rpcPost("mainnet", "getcandidates", []);
-    assert(res.status === 200, "Proxy getcandidates → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getcandidates");
   });
 
   await test("Proxy getnep17balances", async () => {
     const addr = discovered.address || "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
     const res = await rpcPost("mainnet", "getnep17balances", [addr]);
-    assert(res.status === 200, "Proxy getnep17balances → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getnep17balances");
   });
 
   await test("Proxy getcontractstate (NEO)", async () => {
     const res = await rpcPost("mainnet", "getcontractstate", [NEO_HASH]);
-    assert(res.status === 200, "Proxy getcontractstate → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy getcontractstate");
     assert(res.json?.result, "getcontractstate has result");
   });
 
   await test("Proxy invokefunction (NEO symbol)", async () => {
     const res = await rpcPost("mainnet", "invokefunction", [NEO_HASH, "symbol", []]);
-    assert(res.status === 200, "Proxy invokefunction → 200", `status=${res.status}`);
+    assertRpcOk(res, "Proxy invokefunction");
     assert(res.json?.result?.state === "HALT", "invokefunction HALT state", `state=${res.json?.result?.state}`);
   });
 }
