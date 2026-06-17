@@ -2,6 +2,28 @@
 
 All notable changes to Neo Explorer UI will be documented in this file.
 
+## [1.3.0] — 2026-06-17
+
+### Added
+
+- **Realtime transaction stream (SSE)**: home page now prepends newly-confirmed transactions live via a `sse/transactions` channel, with graceful polling fallback.
+- **Full paginated CSV export**: Transactions and Blocks pages now export up to 5000 rows (all pages) instead of just the visible ~20.
+- **Read-API REST documentation**: `/api-docs` now documents the current Postgres-backed REST endpoints (30+ endpoints with curl examples, params, categories) alongside the legacy JSON-RPC docs.
+- **USD portfolio valuation**: address page shows per-asset (NEO/GAS) ≈ USD values and a Total Value card, powered by the `/api/prices` endpoint.
+- **Rich-list Value (USD) column**: the Accounts page rich list now shows each account's NEO+GAS value in USD.
+
+### Fixed
+
+- **Multisig CSRF + authorization**: blocked cross-origin mutations (same-origin guard + tightened CORS); PATCH now requires committee membership or creator ownership.
+- **Sponsor rate limiting + fee cap**: replaced bypassable in-memory limiter with the shared Upstash-backed limiter; added systemFee cap + pre-broadcast simulation.
+- **PostgREST injection surface**: contract/token/account services now validate hash/address/token-id shapes before building `eq.`/`in.()` predicates.
+- **Relayer hardening**: info action no longer leaks the funder address; meta-tx args bounded (depth 8, length 16) and Integer range-checked against the Neo VM 256-bit limit; nonce freshness checked server-side.
+- **i18n**: all new feature strings internationalized across 5 languages (en, zh_cn, ko, ja, fr).
+
+### Changed
+
+- Cleaned up low-severity issues: testnet NNS resolution, dead executionService stubs, `legacyFallbacks`→`mappers` rename, axios interceptor structured logging, sessionStorage cache validation, in-flight dedup map caps, uploadVerification tagged-error paths.
+
 ## [Unreleased]
 
 ### Fixed
