@@ -216,6 +216,15 @@ export function getIndexerSseUrl(network) {
   return `${base}/sse/head`;
 }
 
+// SSE endpoint for the realtime transaction stream. Same base resolution as
+// sse/head; the read-api emits one "transactions" event per confirmed block
+// carrying that block's transactions.
+export function getIndexerSseTransactionsUrl(network) {
+  const net = String(network || resolveIndexerNetworkPath() || "mainnet").trim().toLowerCase();
+  const base = getIndexerBaseUrls(net)[0] || `/data/${net}`;
+  return `${base}/sse/transactions`;
+}
+
 export const indexerReadService = {
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();

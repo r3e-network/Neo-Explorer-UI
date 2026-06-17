@@ -64,6 +64,7 @@ import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useRealtimeHead } from "@/composables/useRealtimeHead";
+import { useRealtimeTransactions } from "@/composables/useRealtimeTransactions";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
 import { isAbortError } from "@/utils/abortError";
@@ -622,10 +623,33 @@ const { start: startAutoRefresh } = useRealtimeHead(() => {
   if (avgTpsTickCounter % 20 === 0 || tps.value === 0) void loadAvgTps();
 }, { intervalMs: HOMEPAGE_REFRESH_INTERVAL_MS });
 
+// Realtime transaction stream: prepend each confirmed block's transactions to
+// the list so the home page updates live between head-driven refreshes. The
+// full list is still reconciled by loadLatestData on each head, so this is a
+// responsiveness enhancement, not the source of truth.
+const { start: startRealtimeTransactions } = useRealtimeTransactions((payload) => {
+  if (!payload || !Array.isArray(payload.transactions)) return;
+  const newRows = payload.transactions.map(normalizeHomepageTransaction).filter(Boolean);
+  if (!newRows.length) return;
+  const previous = Array.isArray(latestTxs.value) ? latestTxs.value : [];
+  // Prepend new txs, drop duplicates by txid, cap at the home page's 6 rows.
+  const seen = new Set();
+  const merged = [...newRows, ...previous]
+    .filter((tx) => {
+      const id = tx?.txid || tx?.hash;
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    })
+    .slice(0, 6);
+  latestTxs.value = merged;
+}, { immediate: true });
+
 function handleNetworkChange() {
   void loadCommittee(true);
   void loadLatestData(true);
   startAutoRefresh();
+  startRealtimeTransactions();
 }
 
 // Lifecycle
