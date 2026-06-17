@@ -4,6 +4,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { resolveNetworkName } from "@/utils/env";
+import { eqHash, inHashes } from "@/utils/postgrest";
 
 const unsupportedContractCallsRestNetworks = new Set();
 
@@ -91,9 +92,11 @@ export const contractService = createService(
       // Worker compatibility route is deployed everywhere.
       if (shouldUseContractCallsRest(options) && !unsupportedContractCallsRestNetworks.has(network)) {
         try {
+          const contractHashFilter = eqHash(hash);
+          if (!contractHashFilter) return { result: [], totalCount: 0 };
           const params = new URLSearchParams({
             network: `eq.${network}`,
-            contract_hash: `eq.${hash}`,
+            contract_hash: contractHashFilter,
             limit: String(limit),
             offset: String(skip),
           });
@@ -161,11 +164,12 @@ export const contractService = createService(
         }
         try {
           const txids = calls.map((c) => c.txid).filter(Boolean);
-          if (txids.length > 0) {
+          const txidInFilter = inHashes(txids);
+          if (txidInFilter) {
             const params = new URLSearchParams({
               select: "txid,account,position",
               network: `eq.${network}`,
-              txid: `in.(${txids.join(",")})`,
+              txid: txidInFilter,
               order: "position.asc",
             });
             const r = await fetch(`/rest/${network}/transaction_signers?${params}`, {

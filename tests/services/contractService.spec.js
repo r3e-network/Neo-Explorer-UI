@@ -135,8 +135,8 @@ describe("contractService.getScCalls fallback chain", () => {
     getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
     getContractCallsMock.mockResolvedValueOnce({
       data: [
-        { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
-        { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
       ],
       paging: { total: 1234 },
     });
@@ -155,8 +155,8 @@ describe("contractService.getScCalls fallback chain", () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/contract_calls"))).toBe(false);
     expect(result).toEqual({
       result: [
-        { txid: "0xt1", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
-        { txid: "0xt2", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
       ],
       totalCount: 1234,
     });
@@ -167,8 +167,8 @@ describe("contractService.getScCalls fallback chain", () => {
 
   it("Source 2: returns rows from /rest/v1/contract_calls when explicitly enabled", async () => {
     const restRows = [
-      { txid: "0xt1", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
-      { txid: "0xt2", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
+      { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
     ];
     getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
     const fetchMock = vi.fn(async (url) => {
@@ -188,8 +188,8 @@ describe("contractService.getScCalls fallback chain", () => {
     );
     expect(result).toEqual({
       result: [
-        { txid: "0xt1", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
-        { txid: "0xt2", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
       ],
       totalCount: 1234,
     });
@@ -204,7 +204,7 @@ describe("contractService.getScCalls fallback chain", () => {
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
       if (url.includes("/transaction_signers")) {
-        return { ok: true, json: async () => [{ txid: "0xt1", account: "Nsender", position: 0 }] };
+        return { ok: true, json: async () => [{ txid: "0x1111111111111111111111111111111111111111111111111111111111111111", account: "Nsender", position: 0 }] };
       }
       return { ok: false };
     });
@@ -212,8 +212,8 @@ describe("contractService.getScCalls fallback chain", () => {
 
     getContractNotificationsMock.mockResolvedValueOnce({
       data: [
-        { txid: "0xt1", block_index: 50, event_name: "Transfer" },
-        { txid: "0xt1", block_index: 50, event_name: "Approval" }, // duplicate dedup'd
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 50, event_name: "Transfer" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 50, event_name: "Approval" }, // duplicate dedup'd
       ],
       paging: { total: 50 },
     });
@@ -223,7 +223,7 @@ describe("contractService.getScCalls fallback chain", () => {
 
     expect(getContractNotificationsMock).toHaveBeenCalled();
     expect(result.result).toEqual([
-      { txid: "0xt1", blockindex: 50, method: "Transfer", callFlags: "", originSender: "Nsender" },
+      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 50, method: "Transfer", callFlags: "", originSender: "Nsender" },
     ]);
     expect(result.totalCount).toBe(99);
     expect(safeRpcListMock).not.toHaveBeenCalled();
@@ -234,7 +234,7 @@ describe("contractService.getScCalls fallback chain", () => {
   it("does not keep probing the dedicated REST endpoint after it returns unsupported", async () => {
     getContractOverviewMock.mockResolvedValue({ tx_count: 2 });
     getContractNotificationsMock.mockResolvedValue({
-      data: [{ txid: "0xt1", block_index: 50, event_name: "Transfer" }],
+      data: [{ txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 50, event_name: "Transfer" }],
       paging: { total: 1 },
     });
     const fetchMock = vi.fn(async (url) => {
@@ -257,7 +257,7 @@ describe("contractService.getScCalls fallback chain", () => {
     getContractOverviewMock.mockResolvedValue({ tx_count: 1 });
     getContractCallsMock.mockRejectedValueOnce(new Error("indexer calls unavailable"));
     getContractNotificationsMock.mockResolvedValue({
-      data: [{ txid: "0xt1", block_index: 50, event_name: "Transfer" }],
+      data: [{ txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 50, event_name: "Transfer" }],
       paging: { total: 1 },
     });
     const fetchMock = vi.fn(async (url) => {

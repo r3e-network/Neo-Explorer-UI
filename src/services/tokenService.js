@@ -5,6 +5,7 @@ import { indexerReadService } from "./indexerReadService";
 import { base64ToBytes, bytesToHex, scriptHashToAddress } from "@/utils/neoHelpers";
 import { resolveNetworkName } from "@/utils/env";
 import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
+import { eqHash, inHashes, safeTokenId } from "@/utils/postgrest";
 
 const resolveTokenNetwork = () => resolveNetworkName();
 
@@ -38,8 +39,9 @@ function _mapTransferRow(r, standard) {
 async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, skip = 0) {
   const network = resolveTokenNetwork();
   const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
+  const txidFilter = eqHash(txHash);
   const params = new URLSearchParams({
-    txid: `eq.${txHash}`,
+    txid: txidFilter,
     network: `eq.${network}`,
     limit: String(limit),
     offset: String(skip),
@@ -76,8 +78,10 @@ async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
 
   const network = resolveTokenNetwork();
   const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
+  const txidInFilter = inHashes(list);
+  if (!txidInFilter) return new Map();
   const params = new URLSearchParams({
-    txid: `in.(${list.join(",")})`,
+    txid: txidInFilter,
     network: `eq.${network}`,
     // Per-row preview only needs a handful of rows per tx; oversize the
     // global cap so we don't truncate a high-event tx mid-result.
@@ -158,13 +162,13 @@ async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
 
 async function fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit = 20, skip = 0) {
   const network = resolveTokenNetwork();
-  const safeHash = String(hash || "").trim();
-  const safeTokenId = String(tokenId || "").trim();
-  if (!safeHash || !safeTokenId) return null;
+  const contractHashFilter = eqHash(hash);
+  const cleanTokenId = safeTokenId(tokenId);
+  if (!contractHashFilter || !cleanTokenId) return null;
 
   const params = new URLSearchParams({
-    contract_hash: `eq.${safeHash}`,
-    token_id_raw: `eq.${safeTokenId}`,
+    contract_hash: contractHashFilter,
+    token_id_raw: `eq.${cleanTokenId}`,
     network: `eq.${network}`,
     limit: String(limit),
     offset: String(skip),

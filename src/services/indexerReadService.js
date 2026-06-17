@@ -439,7 +439,7 @@ export const indexerReadService = {
     }
 
     const payload = await fetchIndexerJsonWithFallback(
-      buildIndexerFallbackPaths(network, `tokens/${contractHash}`),
+      buildIndexerFallbackPaths(network, `tokens/${encodeURIComponent(String(contractHash || "").trim())}`),
       fetchOptions,
     );
     if (payload?.data && !Array.isArray(payload.data)) return payload.data;
