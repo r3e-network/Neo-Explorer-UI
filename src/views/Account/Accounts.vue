@@ -53,6 +53,7 @@
                 <th scope="col" class="table-header-cell">{{ $t("accounts.colAddress") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colNeoBalance") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colGasBalance") }}</th>
+                <th scope="col" class="table-header-cell-right">Value (USD)</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colTxnCount") }}</th>
                 <th scope="col" class="table-header-cell-right">{{ $t("accounts.colLastActive") }}</th>
               </tr>
@@ -74,6 +75,9 @@
                 </td>
                 <td class="table-cell-right font-medium">
                   {{ formatGasBalance(account.gasbalance) }}
+                </td>
+                <td class="table-cell-secondary-right text-emerald-600 dark:text-emerald-400">
+                  {{ formatUsdValue(account) }}
                 </td>
                 <td class="table-cell-secondary-right">
                   {{ formatNumber(getTxnCount(account)) }}
@@ -119,6 +123,20 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { isAbortError } from "@/utils/abortError";
+import { usePriceCache } from "@/composables/usePriceCache";
+
+const { prices, fetchPrices } = usePriceCache();
+
+// Compute the USD value of an account's NEO + GAS holdings using cached prices.
+function formatUsdValue(account) {
+  const neo = Number(account?.neobalance || 0);
+  const gas = Number(account?.gasbalance || 0);
+  const neoPrice = Number(prices.value?.neo || 0);
+  const gasPrice = Number(prices.value?.gas || 0);
+  const total = neo * neoPrice + gas * gasPrice;
+  if (!total) return "—";
+  return total.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: total < 1 ? 4 : 2 });
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -192,6 +210,7 @@ watch(
     const parsed = parseInt(page, 10) || 1;
     currentPage.value = Math.max(1, parsed);
     loadPage();
+    fetchPrices();
   },
   { immediate: true }
 );

@@ -151,12 +151,18 @@
         <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
         <span v-else>{{ formatBalance(neoBalance, 8) }}</span>
       </p>
+      <p v-if="!summaryLoading && neoUsdValue" class="text-mid mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+        ≈ {{ formatUsd(neoUsdValue) }}
+      </p>
     </div>
     <div class="stat-card">
       <p class="stat-label">{{ $t("addressDetail.statGasBalance") }}</p>
       <p class="stat-value">
         <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
         <span v-else>{{ formatTokenAmount(gasBalance, 8, 8) }}</span>
+      </p>
+      <p v-if="!summaryLoading && gasUsdValue" class="text-mid mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+        ≈ {{ formatUsd(gasUsdValue) }}
       </p>
     </div>
     <div class="stat-card">
@@ -173,11 +179,17 @@
         <span v-else>{{ formatNumber(tokenCount) }}</span>
       </p>
     </div>
+    <div v-if="totalUsdValue" class="stat-card">
+      <p class="stat-label">Total Value (NEO + GAS)</p>
+      <p class="stat-value text-emerald-600 dark:text-emerald-400">
+        {{ formatUsd(totalUsdValue) }}
+      </p>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import QrcodeVue from "qrcode.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
@@ -190,6 +202,7 @@ import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { addressToScriptHash } from "@/utils/neoHelpers";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
+import { usePriceCache } from "@/composables/usePriceCache";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -204,6 +217,30 @@ const props = defineProps({
 });
 
 defineEmits(["update:showQr"]);
+
+const { prices, fetchPrices } = usePriceCache();
+onMounted(() => {
+  fetchPrices();
+});
+
+// USD valuations for the native NEO + GAS holdings.
+const neoUsdValue = computed(() => {
+  const bal = Number(props.neoBalance || 0);
+  if (!bal || !prices.value.neo) return 0;
+  return bal * prices.value.neo;
+});
+const gasUsdValue = computed(() => {
+  const bal = Number(props.gasBalance || 0);
+  if (!bal || !prices.value.gas) return 0;
+  return bal * prices.value.gas;
+});
+const totalUsdValue = computed(() => neoUsdValue.value + gasUsdValue.value);
+
+function formatUsd(value) {
+  const n = Number(value || 0);
+  if (!n) return "";
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 1 ? 4 : 2 });
+}
 
 const nnsName = ref("");
 const publicTag = ref(null);
