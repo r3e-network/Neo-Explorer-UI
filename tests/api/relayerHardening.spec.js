@@ -68,3 +68,36 @@ describe("relayer info action no longer leaks funder address (M-S1)", () => {
     expect(gated).toBe(false);
   });
 });
+
+describe("relayer meta-tx Integer argument bound (L-relayer-int)", () => {
+  // Mirror of the relayer's VM Integer range guard.
+  const MAX_VM_INT = (1n << 256n) - 1n;
+
+  function inRange(value) {
+    try {
+      const big = BigInt(String(value));
+      return big <= MAX_VM_INT && big >= -MAX_VM_INT - 1n;
+    } catch {
+      return false;
+    }
+  }
+
+  it("accepts in-range integers", () => {
+    expect(inRange(0)).toBe(true);
+    expect(inRange(123456789)).toBe(true);
+    expect(inRange("1000000000000")).toBe(true);
+    expect(inRange(MAX_VM_INT.toString())).toBe(true);
+  });
+
+  it("rejects out-of-range integers (> 256 bits)", () => {
+    expect(inRange((MAX_VM_INT + 1n).toString())).toBe(false);
+    expect(inRange((-MAX_VM_INT - 2n).toString())).toBe(false);
+  });
+
+  it("rejects non-numeric values", () => {
+    expect(inRange("abc")).toBe(false);
+    expect(inRange(null)).toBe(false);
+    expect(inRange(undefined)).toBe(false);
+    expect(inRange("1.5")).toBe(false);
+  });
+});

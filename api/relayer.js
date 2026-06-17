@@ -56,7 +56,20 @@ function parseToContractParam(arg, depth = 0) {
         if (arg.type === 'Hash160') return scLib.ContractParam.hash160(sanitizeHex(arg.value));
         if (arg.type === 'Hash256') return scLib.ContractParam.hash256(sanitizeHex(arg.value));
         if (arg.type === 'ByteArray') return scLib.ContractParam.byteArray(uLib.HexString.fromHex(sanitizeHex(arg.value), false));
-        if (arg.type === 'Integer') return scLib.ContractParam.integer(arg.value);
+        if (arg.type === 'Integer') {
+            // Neo VM Integer is a 256-bit BigInteger. Reject out-of-range or
+            // non-numeric values before they reach the VM (DoS via huge ints).
+            try {
+                const big = BigInt(String(arg.value));
+                const MAX_VM_INT = (1n << 256n) - 1n;
+                if (big > MAX_VM_INT || big < -MAX_VM_INT - 1n) {
+                    throw new Error('out of range');
+                }
+            } catch {
+                throw new Error('Invalid Integer argument');
+            }
+            return scLib.ContractParam.integer(arg.value);
+        }
         if (arg.type === 'String') return scLib.ContractParam.string(arg.value);
         if (arg.type === 'Boolean') return scLib.ContractParam.boolean(arg.value);
         if (arg.type === 'PublicKey') return scLib.ContractParam.publicKey(sanitizeHex(arg.value));
