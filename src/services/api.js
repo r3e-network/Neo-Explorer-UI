@@ -376,8 +376,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (import.meta.env.DEV && !error?.config?.__suppressDevErrorLog) {
-      console.error("API Error:", error.message);
+    // Log a concise, actionable summary on every failure (status + baseURL +
+    // message) so production outages are visible in browser dev-tools replay.
+    // no-console allows console.error in production. __suppressDevErrorLog
+    // opts specific call sites out of logging expected-noted errors.
+    if (!error?.config?.__suppressDevErrorLog) {
+      const status = error?.response?.status ?? "n/a";
+      const baseURL = error?.config?.baseURL ?? error?.config?.url ?? "n/a";
+      console.error("[api] request failed", { status, baseURL, message: error?.message });
     }
     return Promise.reject(error);
   }

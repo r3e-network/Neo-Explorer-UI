@@ -5,7 +5,7 @@ import { resolveNetworkName } from "@/utils/env";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { NEO_HASH, GAS_HASH } from "@/constants";
 import { indexerReadService } from "./indexerReadService";
-import { mapAccountOverviewRowsToAccounts } from "./legacyFallbacks";
+import { mapAccountOverviewRowsToAccounts } from "./mappers";
 import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 
 /**
@@ -562,13 +562,6 @@ export const accountService = createService(
       }
 
       return { result: [], totalCount: 0 };
-    },
-
-    /**
-     * @deprecated Use getAssets instead — identical RPC call.
-     */
-    getTokenHoldings(address, options = {}) {
-      return this.getAssets(address, options);
     },
   },
 );

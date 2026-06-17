@@ -29,9 +29,24 @@ if (typeof window !== "undefined" && window.sessionStorage) {
     if (data) {
       const parsed = JSON.parse(data);
       const now = Date.now();
-      parsed.forEach(([k, v]) => {
-        if (v.expiry > now) cache.set(k, v);
-      });
+      // Validate the restored payload before trusting it: it must be an array
+      // of [key, entry] pairs, each entry must have a numeric future expiry and
+      // a defined value, and the key must look like a real cache key (non-empty
+      // string within a sane length). A crafted sessionStorage payload (browser
+      // extension, a separate XSS primitive) cannot then inject arbitrary
+      // cached responses for any key. Bound the count to the persistence cap.
+      if (Array.isArray(parsed) && parsed.length <= 100) {
+        for (const entry of parsed) {
+          if (!Array.isArray(entry) || entry.length !== 2) continue;
+          const [k, v] = entry;
+          if (typeof k !== "string" || k.length === 0 || k.length > 256) continue;
+          if (!v || typeof v !== "object") continue;
+          if (typeof v.expiry !== "number" || !Number.isFinite(v.expiry)) continue;
+          if (v.expiry <= now) continue;
+          if (v.value === undefined) continue;
+          cache.set(k, v);
+        }
+      }
     }
   } catch (e) {
     if (import.meta.env.DEV) console.warn("Restoring cache from session storage failed", e);

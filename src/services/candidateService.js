@@ -1,7 +1,7 @@
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService } from "./serviceFactory";
 import { safeRpc } from "./api";
-import { mapRpcCandidatesToCandidateRows } from "./legacyFallbacks";
+import { mapRpcCandidatesToCandidateRows } from "./mappers";
 import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 

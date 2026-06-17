@@ -4,7 +4,7 @@ import { GAS_HASH, NEO_HASH } from "@/constants";
 import {
   mapAccountOverviewRowsToAccounts,
   mapRpcCandidatesToCandidateRows,
-} from "@/services/legacyFallbacks";
+} from "@/services/mappers";
 
 describe("legacy fallback helpers", () => {
   it("maps indexed account overview rows into account list rows", () => {

@@ -29,6 +29,12 @@ const _pending = new Map();
  */
 function _dedupe(key, fn) {
   if (_pending.has(key)) return _pending.get(key);
+  // Defensive cap: keys are user-supplied search strings; a request that never
+  // settles (no abort) would otherwise leak. Entries self-clean on settle, so
+  // this only catches pathological cases.
+  if (_pending.size > 256) {
+    _pending.clear();
+  }
   const p = fn().finally(() => _pending.delete(key));
   _pending.set(key, p);
   return p;

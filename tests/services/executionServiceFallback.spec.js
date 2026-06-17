@@ -42,7 +42,6 @@ describe("Execution Service Fallback Parser", () => {
       ],
     };
 
-    vi.spyOn(executionService, "_getExecutionTraceIndexed").mockResolvedValue(null);
     vi.spyOn(executionService, "_getExecutionTraceLegacy").mockResolvedValue(appLog);
     vi.spyOn(executionService, "getDetailedTrace").mockResolvedValue(null);
     vi.spyOn(executionService, "_fetchManifests").mockResolvedValue({

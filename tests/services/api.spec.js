@@ -275,10 +275,17 @@ describe("api response interceptor logging", () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
-  it("logs dev errors for non-suppressed requests", async () => {
-    const error = { message: "Network error", config: {} };
+  it("logs a structured error summary for non-suppressed requests", async () => {
+    const error = { message: "Network error", config: { baseURL: "/rpc/mainnet/primary" } };
 
     await expect(responseErrorHandler(error)).rejects.toBe(error);
-    expect(consoleErrorSpy).toHaveBeenCalledWith("API Error:", "Network error");
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    const [label, summary] = consoleErrorSpy.mock.calls[0];
+    expect(label).toBe("[api] request failed");
+    expect(summary).toMatchObject({
+      status: "n/a",
+      baseURL: "/rpc/mainnet/primary",
+      message: "Network error",
+    });
   });
 });

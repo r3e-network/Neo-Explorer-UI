@@ -364,6 +364,13 @@ export const indexerReadService = {
     const inflight = _inflightGetContractOverview.get(key);
     if (inflight) return inflight;
 
+    // Defensive cap: keys are user-supplied (contract hashes); a request that
+    // never settles (no abort) would otherwise leak. Clear the map if it grows
+    // abnormally; entries self-clean on settle so this only catches leaks.
+    if (_inflightGetContractOverview.size > 256) {
+      _inflightGetContractOverview.clear();
+    }
+
     const promise = (async () => {
       const payload = await fetchIndexerJsonWithFallback(
         buildIndexerFallbackPaths(network, `contracts/${safe}`),

@@ -258,7 +258,10 @@ export const nnsService = {
     if (domain.endsWith(MATRIX_SUFFIX)) return this.resolveMatrixDomain(domain);
     if (!domain.endsWith(NNS_SUFFIX)) return null;
     const env = getCurrentEnv();
-    if (env !== NET_ENV.Mainnet) return null;
+    // NNS (NameService) is deployed on both mainnet and testnet at the same
+    // contract hash; resolve against the active network's RPC so testnet
+    // domains resolve instead of silently returning null. Previously this
+    // hard-coded mainnet and dropped all testnet resolution.
 
     const key = getCacheKey("nns_domain_to_address", { domain });
     return cachedRequest(
@@ -266,7 +269,7 @@ export const nnsService = {
       async () => {
         try {
           const { RPCClient: RpcClient } = (await loadSdk()).rpc;
-          const res = await callWithRpcEndpointFallback(NET_ENV.Mainnet, async (endpoint) => {
+          const res = await callWithRpcEndpointFallback(env, async (endpoint) => {
             const rpcClient = new RpcClient(endpoint);
             // Positional args, not object wrapper — see invokeContract above.
             return rpcClient.invokeFunction(

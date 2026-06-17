@@ -31,14 +31,10 @@ export const executionService = createService(
     },
   },
   {
-    async _getExecutionTraceIndexed() {
-      return null;
-    },
-
-    async _getBlockApplicationLogIndexed() {
-      return null;
-    },
-
+    // Detailed opcode-level trace (stepping) is not provided by the current
+    // read path. getEnrichedTrace calls this and degrades gracefully to the
+    // app-log-only trace when it returns null; keep it as an explicit,
+    // documented no-op rather than removing it so the call site stays stable.
     async getDetailedTrace() {
       return null;
     },

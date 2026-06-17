@@ -350,18 +350,22 @@ export const contractService = createService(
      */
     async uploadVerification(nodeUrl, formData) {
       const ALLOWED_HOSTS = ["n3magnet.xyz", "ngd.network"];
+      // Validate the URL and its host against an allowlist. We throw a tagged
+      // validation error for policy violations and a generic error for a
+      // malformed URL — distinguished by a flag instead of message-substring
+      // sniffing so a future wording change cannot flip the branch.
+      let parsedUrl;
       try {
-        const url = new URL(nodeUrl);
-        if (url.protocol !== "https:") {
-          throw new Error("Verification node URL must use https");
-        }
-        const host = url.hostname;
-        if (!ALLOWED_HOSTS.some((d) => host === d || host.endsWith("." + d))) {
-          throw new Error("Verification node URL not in allowlist");
-        }
-      } catch (e) {
-        if (e.message.includes("allowlist") || e.message.includes("https")) throw e;
+        parsedUrl = new URL(nodeUrl);
+      } catch {
         throw new Error("Invalid verification node URL");
+      }
+      if (parsedUrl.protocol !== "https:") {
+        throw new Error("Verification node URL must use https");
+      }
+      const host = parsedUrl.hostname;
+      if (!ALLOWED_HOSTS.some((d) => host === d || host.endsWith("." + d))) {
+        throw new Error("Verification node URL not in allowlist");
       }
       try {
         const { data } = await axios.post(nodeUrl, formData, {
