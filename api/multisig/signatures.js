@@ -1,9 +1,14 @@
 const { query } = require("../lib/db");
 const { verifyGovernanceWitness } = require("../lib/governanceSignature");
 const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
+const { enforceMutationSameOrigin } = require("../lib/sameOriginGuard");
 
 function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // Tightened from `*`: only the explorer's own origins may post signatures
+  // cross-origin. (Signature insertion still requires a valid governance
+  // witness; this gate additionally blocks the cross-origin CSRF path.)
+  res.setHeader("Access-Control-Allow-Origin", "https://www.neo3scan.com");
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -14,6 +19,12 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed." });
+  }
+
+  // Block cross-origin signature submissions (CSRF). The legitimate explorer
+  // SPA is same-origin; a third-party site cannot forge the Origin header.
+  if (!enforceMutationSameOrigin(req, res)) {
+    return;
   }
 
   try {

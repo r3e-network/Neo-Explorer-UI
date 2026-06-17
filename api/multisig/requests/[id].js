@@ -1,8 +1,12 @@
 const { query } = require("../../lib/db");
 const { enforceMultisigMutationPolicy } = require("../../lib/multisigMutations");
+const { enforceMutationSameOrigin } = require("../../lib/sameOriginGuard");
 
 function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // Tightened from `*`: only the explorer's own origins may call this endpoint
+  // cross-origin. Same-origin SPA usage is unaffected.
+  res.setHeader("Access-Control-Allow-Origin", "https://www.neo3scan.com");
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -64,6 +68,12 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "PATCH") {
+      // Block cross-origin PATCH (CSRF). Without this, any website could
+      // overwrite status/broadcast_tx_hash/params/metadata on any multisig
+      // request by id. The same-origin explorer SPA always passes this guard.
+      if (!enforceMutationSameOrigin(req, res)) {
+        return;
+      }
       const body = req.body || {};
       if (!enforceMultisigMutationPolicy(req, res, {
         operation: "update-request",
@@ -112,6 +122,6 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed." });
   } catch (err) {
     console.error("[api/multisig/requests/[id]]", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "Internal error processing multisig request." });
   }
 };

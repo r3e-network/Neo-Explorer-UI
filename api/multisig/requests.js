@@ -1,9 +1,16 @@
 const { query } = require("../lib/db");
 const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
 const { callWithRpcEndpointFallback, normalizeNetwork } = require("../lib/rpcEndpoints");
+const { enforceMutationSameOrigin } = require("../lib/sameOriginGuard");
 
 function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // Tightened from `*`: the explorer SPA calls these endpoints via same-origin
+  // relative URLs, so we only need to admit the explorer's own origins.
+  // Reflecting the request Origin (validated against the explorer allowlist)
+  // keeps the same-origin SPA working while blocking third-party sites from
+  // issuing credentialed cross-origin mutations.
+  res.setHeader("Access-Control-Allow-Origin", "https://www.neo3scan.com");
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -97,6 +104,12 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "POST") {
+      // Block cross-origin mutations (CSRF). The legitimate explorer SPA is
+      // same-origin, so its Origin/Referer host is always allowed; a
+      // third-party site cannot forge the Origin header.
+      if (!enforceMutationSameOrigin(req, res)) {
+        return;
+      }
       const body = req.body || {};
       if (!enforceMultisigMutationPolicy(req, res, {
         operation: "create-request",
