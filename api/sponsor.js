@@ -1,50 +1,20 @@
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 const { captureApiException, withApiTelemetry } = require('./lib/telemetry');
+const { enforceRelayerRateLimit } = require('./lib/relayerRateLimit');
 
 const loadSdk = () => import("@r3e/neo-js-sdk/browser");
 const NEO_CONTRACT_HASH = "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const DEFAULT_MAX_NETWORK_FEE = 50000000n; // 0.5 GAS
-const SPONSOR_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const SPONSOR_RATE_LIMIT_MAX = 10;
-const SPONSOR_RATE_LIMIT_CLEANUP_EVERY = 128;
-const sponsorRateLimits = new Map();
-let sponsorRateLimitCalls = 0;
+// Cap the gas the sponsor will underwrite for a sponsored claim/vote.
+// Sponsored operations are fixed-shape NEO contract calls (claim transfer /
+// vote) and should cost a fraction of a GAS; this bounds griefing exposure.
+const DEFAULT_MAX_SYSTEM_FEE = 100000000n; // 1 GAS
 
 const normalizeHex = (value = "") => String(value || "").trim().replace(/^0x/i, "").toLowerCase();
 
 const isSponsorEnabled = () => {
   const value = String(process.env.SPONSOR_ENABLED || process.env.SPONSORED_ENABLED || "").trim().toLowerCase();
   return value === "true" || value === "1";
-};
-
-const getClientKey = (req) =>
-  String(
-    req.headers["x-forwarded-for"] ||
-      req.headers["x-real-ip"] ||
-      req.socket?.remoteAddress ||
-      "unknown",
-  )
-    .split(",")[0]
-    .trim();
-
-const checkRateLimit = (key) => {
-  const now = Date.now();
-  sponsorRateLimitCalls += 1;
-  if (sponsorRateLimitCalls % SPONSOR_RATE_LIMIT_CLEANUP_EVERY === 0) {
-    for (const [k, v] of sponsorRateLimits) {
-      if (!v || now - v.startedAt > SPONSOR_RATE_LIMIT_WINDOW_MS) {
-        sponsorRateLimits.delete(k);
-      }
-    }
-  }
-  const current = sponsorRateLimits.get(key);
-  if (!current || now - current.startedAt > SPONSOR_RATE_LIMIT_WINDOW_MS) {
-    sponsorRateLimits.set(key, { startedAt: now, count: 1 });
-    return true;
-  }
-
-  current.count += 1;
-  return current.count <= SPONSOR_RATE_LIMIT_MAX;
 };
 
 const getSignerScope = (signer) => Number(signer?.scopes ?? signer?.scope ?? 0);
@@ -55,6 +25,15 @@ const getMaxNetworkFee = () => {
     return configured > 0n ? configured : DEFAULT_MAX_NETWORK_FEE;
   } catch {
     return DEFAULT_MAX_NETWORK_FEE;
+  }
+};
+
+const getMaxSystemFee = () => {
+  try {
+    const configured = BigInt(String(process.env.SPONSOR_MAX_SYSTEM_FEE || DEFAULT_MAX_SYSTEM_FEE));
+    return configured > 0n ? configured : DEFAULT_MAX_SYSTEM_FEE;
+  } catch {
+    return DEFAULT_MAX_SYSTEM_FEE;
   }
 };
 
@@ -107,24 +86,39 @@ async function handler(req, res) {
       return res.status(503).json({ error: "Sponsored transactions are disabled." });
     }
 
-    if (!checkRateLimit(getClientKey(req))) {
-      return res.status(429).json({ error: "Too many sponsored transaction requests." });
+    const normalizedAction = String(action || 'execute').toLowerCase();
+    const normalizedNetwork = normalizeNetwork(network);
+    const userScriptHashForRate = normalizeHex(userAddress ? new wallet.Account(userAddress).scriptHash : '');
+
+    // Use the shared Upstash-backed limiter (same one the relayer uses) instead
+    // of the previous in-memory Map. The Map reset on every Vercel cold start
+    // and read the client-controllable x-forwarded-for with no trust-proxy
+    // gate, so the 10/min cap was trivially bypassable by rotating the first
+    // hop IP header. The shared limiter fail-closes (503) when the backend is
+    // unreachable rather than silently allowing.
+    if (!(await enforceRelayerRateLimit({
+      req,
+      res,
+      accountId: userScriptHashForRate,
+      action: normalizedAction,
+      network: normalizedNetwork,
+    }))) {
+      return;
     }
-    
+
     const sponsorWif = process.env.SPONSORED_WIF;
     if (!sponsorWif) {
       return res.status(500).json({ error: 'Sponsor WIF not configured on the server' });
     }
-    
+
     const sponsorAccount = new wallet.Account(sponsorWif);
-    
-    if (action === 'info') {
+
+    if (normalizedAction === 'info') {
        return res.status(200).json({ sponsorAddress: sponsorAccount.address });
     }
 
     if (!transactionHex) return res.status(400).json({ error: 'Missing transaction hex' });
 
-    const normalizedNetwork = normalizeNetwork(network);
     const magic = normalizedNetwork === 'testnet' ? 894710606 : 860833102;
 
     // Deserialize transaction
@@ -152,7 +146,9 @@ async function handler(req, res) {
       return res.status(400).json({ error: "Unexpected signer scopes for sponsored transaction." });
     }
     
-    // Check fee limit (e.g. max network fee 0.5 GAS)
+    // Check fee limit (e.g. max network fee 0.5 GAS). The client supplies the
+    // networkFee in the serialized transaction; cap it so the sponsor doesn't
+    // underwrite an attacker-set fee.
     if (BigInt(String(transaction.networkFee || 0)) > getMaxNetworkFee()) {
        return res.status(400).json({ error: 'Network fee too high' });
     }
@@ -181,8 +177,38 @@ async function handler(req, res) {
 
     transaction.witnesses = [sponsorWitnessObj, userWitness];
 
-    // Broadcast
     const fullySignedHex = transaction.serialize(true);
+
+    // Pre-broadcast simulation: learn the real on-chain gas consumption and
+    // reject before broadcast if it exceeds the sponsor cap or faults. This
+    // mirrors the relayer execute path and closes the previous gap where the
+    // sponsor paid whatever systemFee the client embedded in the tx (unlike
+    // relayer.js, sponsor had no simulation and no systemFee cap). We simulate
+    // the script under the same two signers so the AA/contract sees the
+    // realistic execution context.
+    let invokeRes;
+    try {
+      invokeRes = await callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
+        const rpcClient = new rpc.RPCClient(endpoint);
+        return rpcClient.invokeScript({
+          script: transaction.script,
+          signers: [
+            { account: sponsorAccount.scriptHash, scopes: 0 },
+            { account: userScriptHash, scopes: 1 },
+          ],
+        });
+      });
+    } catch (simErr) {
+      return res.status(400).json({ error: `Simulation failed: ${String(simErr?.message || simErr).split('\n')[0]}` });
+    }
+    if (!invokeRes || invokeRes.state === 'FAULT') {
+      const exceptionMsg = String(invokeRes?.exception || 'Unknown VM fault').split('\n')[0];
+      return res.status(400).json({ error: `Simulation failed: ${exceptionMsg}` });
+    }
+    const systemFee = BigInt(String(invokeRes.gasconsumed || '0'));
+    if (systemFee > getMaxSystemFee()) {
+      return res.status(400).json({ error: `Transaction too expensive. Allowed systemFee ${getMaxSystemFee()}, required ${systemFee}` });
+    }
     
     try {
        const txid = await callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
