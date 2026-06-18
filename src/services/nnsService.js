@@ -1,6 +1,6 @@
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
+import { safeRpc } from "./api";
 import { getCurrentEnv, NET_ENV } from "../utils/env";
-import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { supabaseService } from "@/services/supabaseService";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { NNS_HASH } from "@/constants";
@@ -9,7 +9,6 @@ import { reverseHex, scriptHashToAddress } from "@/utils/neoHelpers";
 const NNS_CONTRACT_HASH = NNS_HASH; // Mainnet
 const NNS_SUFFIX = ".neo";
 const MATRIX_SUFFIX = ".matrix";
-const loadSdk = () => import("@/utils/neonLoader.js").then(m => m.loadNeonJs());
 
 const getMatrixContractHash = (env = getCurrentEnv()) =>
   env === NET_ENV.TestT5
@@ -92,17 +91,8 @@ const decodePropertiesMap = (stackItem) => {
   return out;
 };
 
-const invokeContract = async (env, contractHash, operation, args = []) => {
-  return callWithRpcEndpointFallback(env, async (endpoint) => {
-    const { RPCClient: RpcClient } = (await loadSdk()).rpc;
-    const rpcClient = new RpcClient(endpoint);
-    // neon-js RpcClient.invokeFunction takes positional args
-    // (scriptHash, operation, params, signers) — passing an object wrapper
-    // sends the whole object as the first arg, which neo-go rejects with
-    // "Invalid UInt160". Same root cause as the Gas Estimator fix.
-    return rpcClient.invokeFunction(contractHash, operation, args);
-  });
-};
+const invokeContract = (contractHash, operation, args = []) =>
+  safeRpc("invokefunction", [contractHash, operation, args], null, { throwOnError: true });
 
 const getDomainSuffix = (name) => {
   if (name.endsWith(MATRIX_SUFFIX)) return MATRIX_SUFFIX;
@@ -176,7 +166,7 @@ export const nnsService = {
     const env = getCurrentEnv();
     const contractHash = getMatrixContractHash(env);
 
-    const availability = await invokeContract(env, contractHash, "isAvailable", [
+    const availability = await invokeContract(contractHash, "isAvailable", [
       { type: "String", value: normalizedDomain },
     ]);
     const available = decodeBooleanStackItem(availability?.stack?.[0]);
@@ -192,8 +182,8 @@ export const nnsService = {
 
     const tokenId = btoa(normalizedDomain);
     const [ownerRes, propertiesRes, resolvedAddress] = await Promise.all([
-      invokeContract(env, contractHash, "ownerOf", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
-      invokeContract(env, contractHash, "properties", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
+      invokeContract(contractHash, "ownerOf", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
+      invokeContract(contractHash, "properties", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
       this.resolveMatrixDomain(normalizedDomain),
     ]);
 
@@ -257,30 +247,19 @@ export const nnsService = {
     if (!domain) return null;
     if (domain.endsWith(MATRIX_SUFFIX)) return this.resolveMatrixDomain(domain);
     if (!domain.endsWith(NNS_SUFFIX)) return null;
-    const env = getCurrentEnv();
     // NNS (NameService) is deployed on both mainnet and testnet at the same
     // contract hash; resolve against the active network's RPC so testnet
-    // domains resolve instead of silently returning null. Previously this
-    // hard-coded mainnet and dropped all testnet resolution.
+    // domains resolve instead of silently returning null.
 
     const key = getCacheKey("nns_domain_to_address", { domain });
     return cachedRequest(
       key,
       async () => {
         try {
-          const { RPCClient: RpcClient } = (await loadSdk()).rpc;
-          const res = await callWithRpcEndpointFallback(env, async (endpoint) => {
-            const rpcClient = new RpcClient(endpoint);
-            // Positional args, not object wrapper — see invokeContract above.
-            return rpcClient.invokeFunction(
-              NNS_CONTRACT_HASH,
-              "resolve",
-              [
-                { type: "String", value: domain },
-                { type: "Integer", value: 16 },
-              ],
-            );
-          });
+          const res = await invokeContract(NNS_CONTRACT_HASH, "resolve", [
+            { type: "String", value: domain },
+            { type: "Integer", value: 16 },
+          ]);
 
           if (res.state === "HALT" && res.stack && res.stack.length > 0) {
             const item = res.stack[0];
@@ -293,7 +272,7 @@ export const nnsService = {
             }
           }
         } catch (e) {
-          if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain via native RPC:", domain, e);
+          if (import.meta.env.DEV) console.warn("Failed to resolve NNS Domain via RPC:", domain, e);
         }
         return null;
       },
@@ -317,7 +296,7 @@ export const nnsService = {
       key,
       async () => {
         try {
-          const res = await invokeContract(env, MATRIX_CONTRACT_HASH, "resolve", [
+          const res = await invokeContract(MATRIX_CONTRACT_HASH, "resolve", [
             { type: "String", value: domain },
             { type: "Integer", value: 16 },
           ]);

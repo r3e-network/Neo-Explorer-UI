@@ -1,27 +1,21 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const safeRpc = vi.fn();
 const rpc = vi.fn();
-const callWithRpcEndpointFallback = vi.fn();
 const getCacheKey = vi.fn(() => "nns-cache-key");
 const cachedRequest = vi.fn((_key, fetchFn) => fetchFn());
 const getAddressTag = vi.fn();
 const addressToScriptHashMock = vi.hoisted(() => vi.fn());
 const scriptHashToAddressMock = vi.hoisted(() => vi.fn());
-const getScriptHashFromAddress = vi.fn();
-const getAddressFromScriptHash = vi.fn((value) => `N${String(value).slice(0, 10)}`);
-const reverseHex = vi.fn((value) => String(value).match(/../g)?.reverse().join("") || value);
-const invokeFunctionMock = vi.fn();
 
 let currentEnv = "Mainnet";
+const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
+const MATRIX_TESTNET_CONTRACT_HASH = "0x89908093c5ccc463e2c5744d6bacb06108b60a75";
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
   rpc,
-}));
-
-vi.mock("../../src/utils/rpcEndpoints.js", () => ({
-  callWithRpcEndpointFallback,
 }));
 
 vi.mock("../../src/services/cache.js", () => ({
@@ -45,31 +39,6 @@ vi.mock("@/utils/neoHelpers", async () => {
   };
 });
 
-vi.mock("@cityofzion/neon-js", () => {
-  const neonMock = {
-    RpcClient: class {
-      constructor() {}
-      invokeFunction(...args) {
-        return invokeFunctionMock(...args);
-      }
-    },
-    ContractParam: {
-      string: vi.fn(),
-      integer: vi.fn(),
-      byteArray: vi.fn((value) => value),
-    },
-    Wallet: {
-      getScriptHashFromAddress,
-      getAddressFromScriptHash,
-    },
-    reverseHex,
-  };
-  neonMock.rpc = { RPCClient: neonMock.RpcClient };
-  neonMock.tx = { Transaction: { deserialize: vi.fn() } };
-  neonMock.default = neonMock;
-  return neonMock;
-});
-
 vi.mock("../../src/utils/env.js", () => ({
   NET_ENV: {
     Mainnet: "Mainnet",
@@ -87,14 +56,13 @@ describe("nnsService.resolveDomain", () => {
       String(value || "").trim() === "NTestAddress123" ? "0xabc123" : null,
     );
     scriptHashToAddressMock.mockImplementation((value) => `N${String(value).replace(/^0x/, "").slice(0, 10)}`);
-    callWithRpcEndpointFallback.mockImplementation((_env, handler) => handler("https://rpc.test"));
   });
 
-  it("resolves .neo domains via native RPC invokeFunction", async () => {
+  it("resolves .neo domains via standard RPC invokefunction", async () => {
     const domain = "flamingo.neo";
     const expectedAddress = "NNf8jxEBxsahLSiYtuHWsMFn93THdTFryw";
 
-    callWithRpcEndpointFallback.mockResolvedValueOnce({
+    safeRpc.mockResolvedValueOnce({
       state: "HALT",
       stack: [
         {
@@ -107,19 +75,31 @@ describe("nnsService.resolveDomain", () => {
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveDomain(domain);
 
-    expect(callWithRpcEndpointFallback).toHaveBeenCalledTimes(1);
+    expect(safeRpc).toHaveBeenCalledWith(
+      "invokefunction",
+      [
+        NNS_CONTRACT_HASH,
+        "resolve",
+        [
+          { type: "String", value: domain },
+          { type: "Integer", value: 16 },
+        ],
+      ],
+      null,
+      { throwOnError: true },
+    );
     expect(resolved).toBe(expectedAddress);
   });
 
-  it("returns null when native RPC domain resolution fails", async () => {
+  it("returns null when standard RPC domain resolution fails", async () => {
     const domain = "flamingo.neo";
 
-    callWithRpcEndpointFallback.mockRejectedValueOnce(new Error("rpc failed"));
+    safeRpc.mockRejectedValueOnce(new Error("rpc failed"));
 
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const resolved = await nnsService.resolveDomain(domain);
 
-    expect(callWithRpcEndpointFallback).toHaveBeenCalledTimes(1);
+    expect(safeRpc).toHaveBeenCalledTimes(1);
     expect(resolved).toBeNull();
   });
 
@@ -139,7 +119,7 @@ describe("nnsService.resolveDomain", () => {
     currentEnv = "TestT5";
     const resolvedAddress = "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM";
 
-    invokeFunctionMock
+    safeRpc
       .mockResolvedValueOnce({
         state: "HALT",
         stack: [{ type: "Boolean", value: false }],
@@ -170,12 +150,53 @@ describe("nnsService.resolveDomain", () => {
     const { default: nnsService } = await import("../../src/services/nnsService.js");
     const profile = await nnsService.getMatrixDomainProfile("alice.matrix");
 
-    expect(callWithRpcEndpointFallback).toHaveBeenCalled();
-    expect(invokeFunctionMock).toHaveBeenNthCalledWith(
+    expect(safeRpc).toHaveBeenCalledTimes(4);
+    expect(safeRpc).toHaveBeenNthCalledWith(
       1,
-      "0x89908093c5ccc463e2c5744d6bacb06108b60a75",
-      "isAvailable",
-      expect.any(Array),
+      "invokefunction",
+      [
+        MATRIX_TESTNET_CONTRACT_HASH,
+        "isAvailable",
+        [{ type: "String", value: "alice.matrix" }],
+      ],
+      null,
+      { throwOnError: true },
+    );
+    expect(safeRpc).toHaveBeenNthCalledWith(
+      2,
+      "invokefunction",
+      [
+        MATRIX_TESTNET_CONTRACT_HASH,
+        "ownerOf",
+        [{ type: "ByteArray", value: btoa("alice.matrix") }],
+      ],
+      null,
+      { throwOnError: true },
+    );
+    expect(safeRpc).toHaveBeenNthCalledWith(
+      3,
+      "invokefunction",
+      [
+        MATRIX_TESTNET_CONTRACT_HASH,
+        "properties",
+        [{ type: "ByteArray", value: btoa("alice.matrix") }],
+      ],
+      null,
+      { throwOnError: true },
+    );
+    expect(safeRpc).toHaveBeenNthCalledWith(
+      4,
+      "invokefunction",
+      [
+        MATRIX_TESTNET_CONTRACT_HASH,
+        "resolve",
+        [
+          { type: "String", value: "alice.matrix" },
+          { type: "Integer", value: 16 },
+        ],
+      ],
+      null,
+      { throwOnError: true },
     );
     expect(profile).toMatchObject({
       domain: "alice.matrix",
@@ -223,5 +244,13 @@ describe("nnsService.resolveDomain", () => {
 
     expect(safeRpc).not.toHaveBeenCalled();
     expect(resolved).toBeNull();
+  });
+
+  it("keeps read-only name resolution off the Neon SDK and endpoint fallback path", () => {
+    const source = readFileSync(`${process.cwd()}/src/services/nnsService.js`, "utf8");
+
+    expect(source).not.toContain("neonLoader");
+    expect(source).not.toContain("RpcClient");
+    expect(source).not.toContain("callWithRpcEndpointFallback");
   });
 });
