@@ -5,6 +5,7 @@
  */
 
 import { getNeonJsSync as _getNeonSync } from "@/utils/neonLoader";
+import { WALLET_STATE_EVENT } from "@/constants/walletEvents";
 const neonJsStatic = _getNeonSync();
 const ScriptBuilder = neonJsStatic.sc.ScriptBuilder;
 const reverseHex = neonJsStatic.u.reverseHex;
@@ -86,7 +87,7 @@ function attachEvmListeners() {
   window.ethereum.on("chainChanged", _evmChainChangedHandler);
 }
 
-export const WALLET_STATE_EVENT = "neo-explorer:wallet-state-changed";
+export { WALLET_STATE_EVENT };
 
 function broadcastWalletStateChange() {
   if (typeof window === "undefined") return;

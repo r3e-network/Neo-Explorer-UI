@@ -115,29 +115,32 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, defineAsyncComponent, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import { isAbortError } from "@/utils/abortError";
 import { supabaseService } from "@/services/supabaseService";
-import { walletService, WALLET_STATE_EVENT } from "@/services/walletService";
+import { WALLET_STATE_EVENT } from "@/constants/walletEvents";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
 import { useTransactionTracker } from "@/composables/useTransactionTracker";
 import { invokeContractFunction } from "@/utils/contractInvocation";
 import { normalizeHash160 } from "@/utils/walletNormalization";
+import { connectedAccount } from "@/utils/walletState";
+import { loadWalletService } from "@/utils/lazyServices";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
-import EventsTable from "@/views/Contract/EventsTable.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import ContractHeader from "@/views/Contract/components/ContractHeader.vue";
 import ContractOverviewCard from "@/views/Contract/components/ContractOverviewCard.vue";
-import ContractCodeTab from "@/views/Contract/components/ContractCodeTab.vue";
-import ContractReadTab from "@/views/Contract/components/ContractReadTab.vue";
-import ContractWriteTab from "@/views/Contract/components/ContractWriteTab.vue";
+
+const EventsTable = defineAsyncComponent(() => import("@/views/Contract/EventsTable.vue"));
+const ContractCodeTab = defineAsyncComponent(() => import("@/views/Contract/components/ContractCodeTab.vue"));
+const ContractReadTab = defineAsyncComponent(() => import("@/views/Contract/components/ContractReadTab.vue"));
+const ContractWriteTab = defineAsyncComponent(() => import("@/views/Contract/components/ContractWriteTab.vue"));
 
 const route = useRoute();
 const { t } = useI18n();
@@ -162,24 +165,58 @@ const walletConnecting = ref(false);
 const walletError = ref("");
 const wcUri = ref("");
 const { txStatuses, track: trackTx } = useTransactionTracker();
+let walletServicePromise = null;
 
-// Restore wallet state if already connected
-function syncWalletStateFromService() {
-  walletConnected.value = walletService.isConnected;
-  walletAccount.value = walletService.isConnected ? walletService.account : null;
-  walletProvider.value = walletService.isConnected ? walletService.provider : null;
+function getWalletService() {
+  if (!walletServicePromise) {
+    walletServicePromise = loadWalletService();
+  }
+  return walletServicePromise;
 }
 
-syncWalletStateFromService();
+function syncWalletStateSnapshot(snapshot = {}) {
+  const account = snapshot.account || null;
+  const address = account?.address || connectedAccount.value || "";
+  const connected = Boolean(snapshot.connected ?? address);
+
+  walletConnected.value = connected;
+  walletAccount.value = connected ? account || { address } : null;
+  walletProvider.value = connected ? snapshot.provider || account?.label || walletProvider.value || "" : null;
+}
+
+function handleWalletStateEvent(event) {
+  syncWalletStateSnapshot(event?.detail || {});
+}
+
+async function syncWalletStateFromService() {
+  const walletService = await getWalletService();
+  syncWalletStateSnapshot({
+    connected: walletService.isConnected,
+    account: walletService.account,
+    provider: walletService.provider,
+  });
+}
+
+syncWalletStateSnapshot();
 
 if (typeof window !== "undefined") {
   onMounted(() => {
-    window.addEventListener(WALLET_STATE_EVENT, syncWalletStateFromService);
+    window.addEventListener(WALLET_STATE_EVENT, handleWalletStateEvent);
   });
   onBeforeUnmount(() => {
-    window.removeEventListener(WALLET_STATE_EVENT, syncWalletStateFromService);
+    window.removeEventListener(WALLET_STATE_EVENT, handleWalletStateEvent);
   });
 }
+
+watch(connectedAccount, () => {
+  syncWalletStateSnapshot();
+});
+
+watch(activeTab, (tab) => {
+  if (tab === "writeContract" && connectedAccount.value) {
+    syncWalletStateFromService().catch(() => {});
+  }
+});
 
 // Computed - source code link
 const sourceCodeLocation = computed(() =>
@@ -243,6 +280,7 @@ const {
 } = useMethodInteraction(
   writeMethods,
   async (name, params, { scope } = {}) => {
+    const walletService = await getWalletService();
     const args = params.map((p) => ({ type: p.type, value: p.value }));
     const result = await walletService.invoke({
       scriptHash: contract.value.hash,
@@ -342,6 +380,7 @@ async function connectWallet(providerName) {
   walletConnecting.value = true;
   walletError.value = "";
   try {
+    const walletService = await getWalletService();
     const result = await walletService.connect(providerName);
     if (result?.uri && result?.approval) {
       wcUri.value = result.uri;
@@ -364,7 +403,8 @@ async function connectWallet(providerName) {
   }
 }
 
-function disconnectWallet() {
+async function disconnectWallet() {
+  const walletService = await getWalletService();
   walletService.disconnect();
   walletConnected.value = false;
   walletAccount.value = null;

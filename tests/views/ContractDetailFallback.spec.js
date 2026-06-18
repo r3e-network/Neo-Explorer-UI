@@ -31,7 +31,7 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/contractService", () => ({
   contractService: {
     getByHashWithFallback,
     getManifest,

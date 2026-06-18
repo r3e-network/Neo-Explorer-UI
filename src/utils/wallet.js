@@ -1,11 +1,10 @@
-import { ref } from "vue";
-
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 import { NEO_HASH } from "@/constants";
 import { loadWalletService } from "@/utils/lazyServices";
+import { connectedAccount } from "@/utils/walletState";
 import i18n from "@/lang/i18n";
 
 const t = (key, ...args) => i18n.global.t(key, ...args);
@@ -15,7 +14,7 @@ function getStoredWalletAddress() {
   return sessionStorage.getItem("connectedWallet") || localStorage.getItem("connectedWallet") || "";
 }
 
-export const connectedAccount = ref("");
+export { connectedAccount };
 
 function clearStoredWalletState() {
   connectedAccount.value = "";
