@@ -6,6 +6,10 @@ import i18n from "@/lang/i18n";
 
 const t = (key, ...args) => i18n.global.t(key, ...args);
 const NEO_TOKEN_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const PASSIVE_DAPI_RESTORE_VALIDATION = Object.freeze({
+  allowSwitch: false,
+  verifyAccount: false,
+});
 
 function getStoredWalletAddress() {
   if (typeof window === "undefined") return "";
@@ -127,7 +131,7 @@ export async function initWallet() {
         address: storedAddress,
         label: PROVIDERS.NEOLINE,
       });
-      await walletService.ensureNetworkConsistency?.({ allowSwitch: true });
+      await walletService.ensureNetworkConsistency?.(PASSIVE_DAPI_RESTORE_VALIDATION);
     } catch (e) {
       clearRestoredWalletState(walletService);
     }
@@ -144,7 +148,7 @@ export async function initWallet() {
         address: storedAddress,
         label: PROVIDERS.ONEGATE,
       });
-      await walletService.ensureNetworkConsistency?.({ allowSwitch: true });
+      await walletService.ensureNetworkConsistency?.(PASSIVE_DAPI_RESTORE_VALIDATION);
     } catch (e) {
       clearRestoredWalletState(walletService);
     }

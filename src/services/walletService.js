@@ -1401,7 +1401,7 @@ export const walletService = {
     broadcastWalletStateChange();
   },
 
-  async ensureNetworkConsistency({ allowSwitch = true } = {}) {
+  async ensureNetworkConsistency({ allowSwitch = true, verifyAccount = true } = {}) {
     if (!_account) return true;
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
@@ -1412,6 +1412,7 @@ export const walletService = {
         requireKnownNetwork: true,
         providerName: PROVIDERS.NEOLINE,
       });
+      if (!verifyAccount) return true;
       return ensureConnectedDapiAccountStillActive(n3, PROVIDERS.NEOLINE);
     }
 
@@ -1429,6 +1430,7 @@ export const walletService = {
         requireKnownNetwork: true,
         providerName: PROVIDERS.ONEGATE,
       });
+      if (!verifyAccount) return true;
       return ensureConnectedDapiAccountStillActive(dapi, PROVIDERS.ONEGATE);
     }
 

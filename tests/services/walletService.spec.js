@@ -748,6 +748,55 @@ describe("walletService", () => {
     expect(walletState.walletNetworkError.value).toMatch(/OneGate account changed/i);
   });
 
+  it("skips NeoLine account reads during passive restore validation", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    walletService.hydrateSession(walletService.PROVIDERS.NEOLINE, {
+      address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+      label: walletService.PROVIDERS.NEOLINE,
+    });
+
+    neoLineGetAccountMock.mockClear();
+    await expect(walletService.ensureNetworkConsistency({ allowSwitch: false, verifyAccount: false })).resolves.toBe(true);
+
+    expect(neoLineGetNetworksMock).toHaveBeenCalled();
+    expect(neoLineSwitchNetworkMock).not.toHaveBeenCalled();
+    expect(neoLineGetAccountMock).not.toHaveBeenCalled();
+  });
+
+  it("skips OneGate account reads during passive restore validation", async () => {
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      switchNetwork: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    walletService.hydrateSession(walletService.PROVIDERS.ONEGATE, {
+      address: "Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y",
+      label: walletService.PROVIDERS.ONEGATE,
+    });
+
+    oneGateGetAccountMock.mockClear();
+    await expect(walletService.ensureNetworkConsistency({ allowSwitch: false, verifyAccount: false })).resolves.toBe(true);
+
+    expect(oneGateGetNetworksMock).toHaveBeenCalled();
+    expect(window.OneGate.switchNetwork).not.toHaveBeenCalled();
+    expect(oneGateGetAccountMock).not.toHaveBeenCalled();
+  });
+
   it("rechecks and switches NeoLine back to the Explorer network before invoking", async () => {
     window.NEOLine = {};
     window.NEOLineN3 = {

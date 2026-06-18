@@ -128,7 +128,10 @@ describe("utils/wallet connectWallet", () => {
       walletServiceMock.PROVIDERS.NEOLINE,
       { address, label: walletServiceMock.PROVIDERS.NEOLINE }
     );
-    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({ allowSwitch: true });
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({
+      allowSwitch: false,
+      verifyAccount: false,
+    });
   });
 
   it("passively restores a stored Web3Auth session without calling interactive connect", async () => {
@@ -167,7 +170,10 @@ describe("utils/wallet connectWallet", () => {
       { address, label: walletServiceMock.PROVIDERS.ONEGATE }
     );
     expect(getAccount).not.toHaveBeenCalled();
-    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({ allowSwitch: true });
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({
+      allowSwitch: false,
+      verifyAccount: false,
+    });
   });
 
   it("clears the full global wallet state when no stored session exists", async () => {
