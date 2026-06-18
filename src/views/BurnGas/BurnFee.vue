@@ -115,7 +115,7 @@ import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
-import { statsService } from "@/services";
+import { statsService } from "@/services/statsService";
 import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/chartHelpers";
 import { useTheme } from "@/composables/useTheme";
 import { toBcp47 } from "@/utils/timeFormat";

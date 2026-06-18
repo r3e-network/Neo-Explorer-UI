@@ -157,7 +157,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { tokenService } from "@/services";
+import { tokenService } from "@/services/tokenService";
 import { isAbortError } from "@/utils/abortError";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { formatNumber, truncateHash } from "@/utils/explorerFormat";

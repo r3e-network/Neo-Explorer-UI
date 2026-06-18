@@ -201,7 +201,7 @@ import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import {
   COMPILER_VERSION_OPTIONS,
   COMPILE_COMMAND_OPTIONS,

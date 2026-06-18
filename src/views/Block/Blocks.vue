@@ -213,7 +213,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { blockService, statsService } from "@/services";
+import { blockService } from "@/services/blockService";
+import { statsService } from "@/services/statsService";
 import { getCacheKey } from "@/services/cache";
 import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";

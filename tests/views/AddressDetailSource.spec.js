@@ -11,4 +11,21 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain("if (isHash160Hex(addr))");
     expect(source).toContain("contractService.getByHashWithFallback(addr)");
   });
+
+  it("keeps the default address transactions tab lean", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    expect(source).toContain("defineAsyncComponent");
+    expect(source).not.toMatch(/from ["']@\/services["']/);
+    expect(source).toContain('from "@/services/accountService"');
+    expect(source).toContain('from "@/services/transactionService"');
+    expect(source).toContain('from "@/services/contractService"');
+    expect(source).toContain('from "@/services/candidateService"');
+    expect(source).toContain('from "@/services/tokenService"');
+    expect(source).toContain('import("./components/AddressTokenTransfersTab.vue")');
+    expect(source).toContain('import("./components/AddressNftTransfersTab.vue")');
+    expect(source).toContain('import("./components/AddressTokensTab.vue")');
+    expect(source).toContain('import("./components/AddressNftsTab.vue")');
+    expect(source).toContain('import("./components/AddressVotersTab.vue")');
+  });
 });

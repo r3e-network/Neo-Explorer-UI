@@ -18,10 +18,13 @@ vi.mock("vue-i18n", async () => {
 const getGasTrackerMock = vi.fn();
 const getBlockListMock = vi.fn();
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/statsService", () => ({
   statsService: {
     getGasTracker: getGasTrackerMock,
   },
+}));
+
+vi.mock("@/services/blockService", () => ({
   blockService: {
     getList: getBlockListMock,
   },

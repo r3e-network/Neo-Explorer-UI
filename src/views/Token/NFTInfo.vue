@@ -93,7 +93,7 @@
 import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { tokenService } from "@/services";
+import { tokenService } from "@/services/tokenService";
 import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveImageUrl } from "@/utils/neoHelpers";

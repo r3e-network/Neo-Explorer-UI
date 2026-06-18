@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import { formatAge, formatDateTime } from "@/utils/timeFormat";
 import { usePagination } from "@/composables/usePagination";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";

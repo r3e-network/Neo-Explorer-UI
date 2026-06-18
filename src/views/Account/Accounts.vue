@@ -112,7 +112,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { accountService } from "@/services";
+import { accountService } from "@/services/accountService";
 import { getCache, getCacheKey } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
 import { DEFAULT_PAGE_SIZE } from "@/constants";

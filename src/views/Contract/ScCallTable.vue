@@ -91,7 +91,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import { usePagination } from "@/composables/usePagination";
 import { NULL_TX_HASH } from "@/constants";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";

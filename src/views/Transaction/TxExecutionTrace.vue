@@ -91,7 +91,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { executionService } from "@/services";
+import { executionService } from "@/services/executionService";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

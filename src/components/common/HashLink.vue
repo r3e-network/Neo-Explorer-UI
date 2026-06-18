@@ -85,7 +85,7 @@ import { computed, ref, watch } from "vue";
 import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import { supabaseService } from "@/services/supabaseService";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
 import { GAS_HASH, NATIVE_CONTRACTS, NEO_HASH } from "@/constants/index";

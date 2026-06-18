@@ -32,10 +32,13 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/tokenService", () => ({
   tokenService: {
     getNep11Properties,
   },
+}));
+
+vi.mock("@/services/contractService", () => ({
   contractService: {
     getByHashWithFallback: vi.fn(async () => null),
   },

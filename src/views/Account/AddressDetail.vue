@@ -122,10 +122,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { accountService, transactionService, contractService, candidateService, tokenService } from "@/services";
+import { accountService } from "@/services/accountService";
+import { transactionService } from "@/services/transactionService";
+import { contractService } from "@/services/contractService";
+import { candidateService } from "@/services/candidateService";
+import { tokenService } from "@/services/tokenService";
 import { isAbortError } from "@/utils/abortError";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
@@ -146,11 +150,6 @@ import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import AddressHeader from "./components/AddressHeader.vue";
 import AddressTransactionsTab from "./components/AddressTransactionsTab.vue";
-import AddressTokenTransfersTab from "./components/AddressTokenTransfersTab.vue";
-import AddressNftTransfersTab from "./components/AddressNftTransfersTab.vue";
-import AddressTokensTab from "./components/AddressTokensTab.vue";
-import AddressNftsTab from "./components/AddressNftsTab.vue";
-import AddressVotersTab from "./components/AddressVotersTab.vue";
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { getCurrentEnv, NET_ENV, setCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
@@ -160,6 +159,12 @@ import nnsService from "@/services/nnsService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { isHash160Hex } from "@/utils/walletNormalization";
 import { useToast } from "vue-toastification";
+
+const AddressTokenTransfersTab = defineAsyncComponent(() => import("./components/AddressTokenTransfersTab.vue"));
+const AddressNftTransfersTab = defineAsyncComponent(() => import("./components/AddressNftTransfersTab.vue"));
+const AddressTokensTab = defineAsyncComponent(() => import("./components/AddressTokensTab.vue"));
+const AddressNftsTab = defineAsyncComponent(() => import("./components/AddressNftsTab.vue"));
+const AddressVotersTab = defineAsyncComponent(() => import("./components/AddressVotersTab.vue"));
 
 const route = useRoute();
 const router = useRouter();

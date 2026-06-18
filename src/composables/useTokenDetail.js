@@ -1,7 +1,8 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { tokenService, contractService } from "@/services";
+import { tokenService } from "@/services/tokenService";
+import { contractService } from "@/services/contractService";
 import { useAsync } from "@/composables/useAsync";
 import { isAbortError } from "@/utils/abortError";
 import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";

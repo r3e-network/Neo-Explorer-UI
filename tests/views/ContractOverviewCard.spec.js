@@ -16,7 +16,7 @@ vi.mock("@/services/supabaseService", () => ({
   },
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/contractService", () => ({
   contractService: {
     getByHashWithFallback: vi.fn(async () => null),
   },

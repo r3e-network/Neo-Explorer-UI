@@ -152,7 +152,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import { tokenService } from "@/services";
+import { tokenService } from "@/services/tokenService";
 import { formatNumber } from "@/utils/explorerFormat";
 import { convertToken, scriptHashToAddress } from "@/utils/neoHelpers";
 import { formatAge, formatDateTime } from "@/utils/timeFormat";

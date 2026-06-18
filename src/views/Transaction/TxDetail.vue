@@ -197,10 +197,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from "vue";
+import { ref, computed, watch, onUnmounted, defineAsyncComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { transactionService, tokenService, executionService, blockService } from "@/services";
+import { transactionService } from "@/services/transactionService";
+import { tokenService } from "@/services/tokenService";
+import { executionService } from "@/services/executionService";
+import { blockService } from "@/services/blockService";
 import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
@@ -209,17 +212,18 @@ import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVm
 import { extractFailureReasonFromAppLog } from "@/utils/txFailureReason";
 import TabsNav from "@/components/common/TabsNav.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import InternalOperations from "@/components/trace/InternalOperations.vue";
-import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import TxHeader from "./components/TxHeader.vue";
 import TxOverviewTab from "./components/TxOverviewTab.vue";
-import TxScriptTab from "./components/TxScriptTab.vue";
-import TxLogsTab from "./components/TxLogsTab.vue";
-import TxTransfersTab from "./components/TxTransfersTab.vue";
-import TxExecutionTraceTab from "./components/TxExecutionTraceTab.vue";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
+
+const StateChangeSummary = defineAsyncComponent(() => import("@/components/trace/StateChangeSummary.vue"));
+const InternalOperations = defineAsyncComponent(() => import("@/components/trace/InternalOperations.vue"));
+const TxScriptTab = defineAsyncComponent(() => import("./components/TxScriptTab.vue"));
+const TxLogsTab = defineAsyncComponent(() => import("./components/TxLogsTab.vue"));
+const TxTransfersTab = defineAsyncComponent(() => import("./components/TxTransfersTab.vue"));
+const TxExecutionTraceTab = defineAsyncComponent(() => import("./components/TxExecutionTraceTab.vue"));
 
 const route = useRoute();
 const { t } = useI18n();

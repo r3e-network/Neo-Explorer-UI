@@ -11,7 +11,7 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (value) => value }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/candidateService", () => ({
   candidateService: {
     getList: vi.fn(),
   },

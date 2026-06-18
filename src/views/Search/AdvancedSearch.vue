@@ -285,7 +285,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import { searchService } from "@/services";
+import { searchService } from "@/services/searchService";
 import { truncateHash, formatNumber } from "@/utils/explorerFormat";
 
 const { t } = useI18n();

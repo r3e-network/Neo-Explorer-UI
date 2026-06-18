@@ -20,7 +20,7 @@ vi.mock("@/services/nnsService", () => ({
   },
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/contractService", () => ({
   contractService: {
     getByHash,
     getByHashWithFallback,

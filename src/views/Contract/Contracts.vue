@@ -185,7 +185,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { contractService } from "@/services";
+import { contractService } from "@/services/contractService";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatUnixTime, formatNumber } from "@/utils/explorerFormat";

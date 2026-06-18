@@ -132,7 +132,7 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { candidateService } from "@/services";
+import { candidateService } from "@/services/candidateService";
 import { getCacheKey } from "@/services/cache";
 import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";

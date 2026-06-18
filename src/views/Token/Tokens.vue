@@ -263,7 +263,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { tokenService } from "@/services";
+import { tokenService } from "@/services/tokenService";
 import { supabaseService } from "@/services/supabaseService";
 import { useI18n } from "vue-i18n";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";

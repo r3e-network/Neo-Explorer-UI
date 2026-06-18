@@ -6,6 +6,7 @@ const source = fs.readFileSync(path.resolve(process.cwd(), "src/utils/wallet.js"
 const chatSessionSource = fs.readFileSync(path.resolve(process.cwd(), "src/composables/useChatSession.js"), "utf8");
 const appHeaderSource = fs.readFileSync(path.resolve(process.cwd(), "src/components/layout/AppHeader.vue"), "utf8");
 const contractDetailSource = fs.readFileSync(path.resolve(process.cwd(), "src/views/Contract/ContractDetail.vue"), "utf8");
+const txDetailSource = fs.readFileSync(path.resolve(process.cwd(), "src/views/Transaction/TxDetail.vue"), "utf8");
 
 describe("utils/wallet source", () => {
   it("uses the shared lazy wallet-service loader instead of inline dynamic imports", () => {
@@ -30,5 +31,20 @@ describe("utils/wallet source", () => {
     expect(contractDetailSource).toContain('import("@/views/Contract/components/ContractCodeTab.vue")');
     expect(contractDetailSource).toContain('import("@/views/Contract/components/ContractReadTab.vue")');
     expect(contractDetailSource).toContain('import("@/views/Contract/components/ContractWriteTab.vue")');
+  });
+
+  it("keeps transaction detail default render off non-default tab chunks", () => {
+    expect(txDetailSource).toContain("defineAsyncComponent");
+    expect(txDetailSource).not.toMatch(/from ["']@\/services["']/);
+    expect(txDetailSource).toContain('from "@/services/transactionService"');
+    expect(txDetailSource).toContain('from "@/services/tokenService"');
+    expect(txDetailSource).toContain('from "@/services/executionService"');
+    expect(txDetailSource).toContain('from "@/services/blockService"');
+    expect(txDetailSource).toContain('import("./components/TxScriptTab.vue")');
+    expect(txDetailSource).toContain('import("./components/TxLogsTab.vue")');
+    expect(txDetailSource).toContain('import("./components/TxTransfersTab.vue")');
+    expect(txDetailSource).toContain('import("./components/TxExecutionTraceTab.vue")');
+    expect(txDetailSource).toContain('import("@/components/trace/InternalOperations.vue")');
+    expect(txDetailSource).toContain('import("@/components/trace/StateChangeSummary.vue")');
   });
 });

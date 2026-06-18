@@ -22,7 +22,7 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/tokenService", () => ({
   tokenService: {
     getNep17List: getNep17ListMock,
     getNep11List: getNep11ListMock,

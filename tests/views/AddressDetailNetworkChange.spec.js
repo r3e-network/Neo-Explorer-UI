@@ -38,20 +38,29 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/accountService", () => ({
   accountService: {
     getByAddress,
     getAssets,
     getNep17Transfers,
     getNep11Transfers,
   },
+}));
+
+vi.mock("@/services/transactionService", () => ({
   transactionService: {
     getByAddress: vi.fn().mockResolvedValue({ result: [], totalCount: 0 }),
   },
+}));
+
+vi.mock("@/services/contractService", () => ({
   contractService: {
     getByHash: getContractByHash,
     getByHashWithFallback: getContractByHashWithFallback,
   },
+}));
+
+vi.mock("@/services/candidateService", () => ({
   candidateService: {
     getByAddress: getCandidateByAddress,
     getVotesByAddress,
@@ -59,8 +68,12 @@ vi.mock("@/services", () => ({
     getList: getCandidateList,
     getVotersByAddress,
   },
+}));
+
+vi.mock("@/services/tokenService", () => ({
   tokenService: {
     getByHash: getTokenByHash,
+    getByHashWithFallback: getTokenByHash,
   },
 }));
 

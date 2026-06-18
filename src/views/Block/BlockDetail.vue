@@ -97,7 +97,8 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { blockService, executionService } from "@/services";
+import { blockService } from "@/services/blockService";
+import { executionService } from "@/services/executionService";
 import { isAbortError } from "@/utils/abortError";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { useNetworkChange } from "@/composables/useNetworkChange";

@@ -125,7 +125,8 @@
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
-import { transactionService, executionService } from "@/services";
+import { transactionService } from "@/services/transactionService";
+import { executionService } from "@/services/executionService";
 import { getCacheKey } from "@/services/cache";
 import { useI18n } from "vue-i18n";
 import { useRealtimeHead } from "@/composables/useRealtimeHead";

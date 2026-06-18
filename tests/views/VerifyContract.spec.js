@@ -26,7 +26,7 @@ vi.mock("vue-router", () => ({
 
 const uploadVerificationMock = vi.fn();
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/contractService", () => ({
   contractService: {
     uploadVerification: uploadVerificationMock,
   },

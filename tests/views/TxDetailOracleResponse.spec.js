@@ -27,17 +27,26 @@ vi.mock("vue-i18n", () => ({
   }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/transactionService", () => ({
   transactionService: {
     getByHash,
   },
+}));
+
+vi.mock("@/services/tokenService", () => ({
   tokenService: {
     getTransfersByTxHash,
     getNep11TransfersByTxHash,
   },
+}));
+
+vi.mock("@/services/blockService", () => ({
   blockService: {
     getCount,
   },
+}));
+
+vi.mock("@/services/executionService", () => ({
   executionService: {
     getEnrichedTrace,
     getExecutionTrace,
