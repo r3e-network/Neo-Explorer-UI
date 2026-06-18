@@ -2038,6 +2038,8 @@ const fr = {
       connectionCanceled: "Connexion annulée par l'utilisateur.",
       networkMismatchSwitch: "Réseau incorrect. Basculez votre portefeuille sur {env} et réessayez.",
       networkUnknown: "{provider} n'a pas indiqué son réseau actif. Reconnectez-vous ou changez le réseau du portefeuille puis réessayez.",
+      walletAccountUnavailable: "{provider} n'a renvoyé aucun compte actif. Déverrouillez ou reconnectez le portefeuille puis réessayez.",
+      walletAccountChanged: "Le compte {provider} a changé. Reconnectez-vous ou changez le compte du portefeuille depuis l'explorateur avant de signer.",
       directWifLocalOnly: "Le test WIF direct n'est disponible qu'en développement local.",
       directWifTestnetOnly: "Le test WIF direct n'est autorisé que lorsque l'explorateur est sur testnet.",
       invalidWif: "WIF invalide.",

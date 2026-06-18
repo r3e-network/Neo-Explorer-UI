@@ -2041,6 +2041,8 @@ const ja = {
       connectionCanceled: "ユーザーによって接続がキャンセルされました。",
       networkMismatchSwitch: "ネットワークが一致しません。ウォレットを {env} に切り替えて再試行してください。",
       networkUnknown: "{provider} は現在のネットワークを返しませんでした。再接続するかウォレットのネットワークを切り替えてから再試行してください。",
+      walletAccountUnavailable: "{provider} は有効なアカウントを返しませんでした。ウォレットをロック解除するか再接続してから再試行してください。",
+      walletAccountChanged: "{provider} のアカウントが変更されました。署名前にウォレットを再接続するか、Explorer からウォレットアカウントを切り替えてください。",
       directWifLocalOnly: "直接 WIF テストはローカル開発でのみ使用できます。",
       directWifTestnetOnly: "直接 WIF テストは、エクスプローラーがテストネット上にある場合のみ許可されます。",
       invalidWif: "無効な WIF です。",

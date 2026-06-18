@@ -443,6 +443,26 @@ function getWalletNetworkUnknownError(providerName) {
   );
 }
 
+function getWalletAccountUnavailableError(providerName) {
+  return new Error(
+    tWallet(
+      "wallet.errors.walletAccountUnavailable",
+      { provider: providerName || "Wallet" },
+      `${providerName || "Wallet"} did not report an active account. Unlock or reconnect the wallet and try again.`,
+    ),
+  );
+}
+
+function getWalletAccountChangedError(providerName) {
+  return new Error(
+    tWallet(
+      "wallet.errors.walletAccountChanged",
+      { provider: providerName || "Wallet" },
+      `${providerName || "Wallet"} account changed. Reconnect or switch the wallet account from the Explorer before signing.`,
+    ),
+  );
+}
+
 async function readDapiNetwork(dapi) {
   if (!dapi || typeof dapi.getNetworks !== "function") return "";
   try {
@@ -489,6 +509,50 @@ async function ensureDapiNetworkCompatible(dapi, { switchTarget, allowSwitch = t
   _networkError = "";
   broadcastWalletStateChange();
   return true;
+}
+
+async function readDapiAccount(dapi, providerName) {
+  if (!dapi || typeof dapi.getAccount !== "function") {
+    const error = getWalletAccountUnavailableError(providerName);
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  let account = null;
+  try {
+    account = await dapi.getAccount();
+  } catch (err) {
+    if (isDapiCanceled(err)) {
+      throw new Error(tWallet("wallet.errors.connectionCanceled", null, "Connection canceled by user."));
+    }
+    const error = toReadableWalletError(err, getWalletAccountUnavailableError(providerName).message);
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  if (!account?.address) {
+    const error = getWalletAccountUnavailableError(providerName);
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  return account;
+}
+
+async function ensureConnectedDapiAccountStillActive(dapi, providerName) {
+  if (!_account?.address) return true;
+  const account = await readDapiAccount(dapi, providerName);
+  const expectedAddress = String(_account.address || "").trim();
+  const actualAddress = String(account.address || "").trim();
+  if (expectedAddress && actualAddress === expectedAddress) return true;
+
+  const error = getWalletAccountChangedError(providerName);
+  _networkError = error.message;
+  broadcastWalletStateChange();
+  throw error;
 }
 
 export function getAbstractAccountHash() {
@@ -969,10 +1033,11 @@ async function buildRawTransactionSigningPayload(unsignedTxHex) {
  */
 async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switchTarget, logNetworkMismatch = true }) {
   const dapi = await getDapiFn();
-  const account = await getAccountFn(dapi);
+  let account = await getAccountFn(dapi);
 
   const walletNetwork = await readDapiNetwork(dapi);
-  if (!isWalletNetworkCompatible(walletNetwork)) {
+  const shouldRefreshAccountAfterNetworkSwitch = !isWalletNetworkCompatible(walletNetwork);
+  if (shouldRefreshAccountAfterNetworkSwitch) {
     if (logNetworkMismatch && import.meta.env.DEV)
       console.warn(
         `Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`,
@@ -984,6 +1049,9 @@ async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switch
     requireKnownNetwork: true,
     providerName,
   });
+  if (shouldRefreshAccountAfterNetworkSwitch) {
+    account = await readDapiAccount(dapi, providerName);
+  }
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
   _networkError = "";
@@ -1315,12 +1383,13 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.NEOLINE) {
       const n3 = await getNeoLineN3();
-      return ensureDapiNetworkCompatible(n3, {
+      await ensureDapiNetworkCompatible(n3, {
         switchTarget: { testnet: "N3TestNet", mainnet: "N3MainNet" },
         allowSwitch,
         requireKnownNetwork: true,
         providerName: PROVIDERS.NEOLINE,
       });
+      return ensureConnectedDapiAccountStillActive(n3, PROVIDERS.NEOLINE);
     }
 
     if (_connectedProvider === PROVIDERS.ONEGATE) {
@@ -1331,12 +1400,13 @@ export const walletService = {
         broadcastWalletStateChange();
         throw error;
       }
-      return ensureDapiNetworkCompatible(dapi, {
+      await ensureDapiNetworkCompatible(dapi, {
         switchTarget: { testnet: "TestNet", mainnet: "MainNet" },
         allowSwitch,
         requireKnownNetwork: true,
         providerName: PROVIDERS.ONEGATE,
       });
+      return ensureConnectedDapiAccountStillActive(dapi, PROVIDERS.ONEGATE);
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {

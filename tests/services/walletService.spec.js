@@ -688,6 +688,65 @@ describe("walletService", () => {
     expect(localStorage.getItem("walletProvider")).toBeNull();
   });
 
+  it("blocks NeoLine invokes when the active wallet account changes outside the Explorer", async () => {
+    const changedNeoLineAccount = {
+      address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+      label: "NeoLine",
+    };
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    neoLineInvokeMock.mockClear();
+    neoLineGetAccountMock.mockResolvedValue(changedNeoLineAccount);
+
+    await expect(walletService.invoke({
+      scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+      operation: "register",
+      args: [{ type: "String", value: "accountguard.matrix" }],
+    })).rejects.toThrow(/NeoLine account changed/i);
+
+    expect(neoLineInvokeMock).not.toHaveBeenCalled();
+    expect(walletState.walletNetworkError.value).toMatch(/NeoLine account changed/i);
+  });
+
+  it("blocks OneGate signing when the active wallet account changes outside the Explorer", async () => {
+    const oneGateSignMessageMock = vi.fn(async () => ({ publicKey: "03dead", data: "sig" }));
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      invoke: oneGateInvokeMock,
+      signMessage: oneGateSignMessageMock,
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.ONEGATE);
+
+    oneGateGetAccountMock.mockResolvedValue({
+      address: "NChangedOneGateAccount11111111111111111",
+      label: "OneGate",
+    });
+
+    await expect(walletService.signMessage("hello")).rejects.toThrow(/OneGate account changed/i);
+    expect(oneGateSignMessageMock).not.toHaveBeenCalled();
+    expect(walletState.walletNetworkError.value).toMatch(/OneGate account changed/i);
+  });
+
   it("rechecks and switches NeoLine back to the Explorer network before invoking", async () => {
     window.NEOLine = {};
     window.NEOLineN3 = {
@@ -1275,6 +1334,18 @@ describe("walletService", () => {
   });
 
   it("switches the active NeoLine account through the dAPI", async () => {
+    neoLineGetAccountMock.mockImplementation(async () => {
+      if (neoLineSwitchWalletAccountMock.mock.calls.length) {
+        return {
+          address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+          label: "NeoLine",
+        };
+      }
+      return {
+        address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        label: "NeoLine",
+      };
+    });
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {
@@ -1305,6 +1376,18 @@ describe("walletService", () => {
   });
 
   it("rechecks and switches the NeoLine network after switching accounts", async () => {
+    neoLineGetAccountMock.mockImplementation(async () => {
+      if (neoLineSwitchWalletAccountMock.mock.calls.length) {
+        return {
+          address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+          label: "NeoLine",
+        };
+      }
+      return {
+        address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        label: "NeoLine",
+      };
+    });
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {
@@ -1334,6 +1417,18 @@ describe("walletService", () => {
   });
 
   it("rejects NeoLine account switching when the wallet no longer reports a network", async () => {
+    neoLineGetAccountMock.mockImplementation(async () => {
+      if (neoLineSwitchWalletAccountMock.mock.calls.length) {
+        return {
+          address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+          label: "NeoLine",
+        };
+      }
+      return {
+        address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        label: "NeoLine",
+      };
+    });
     window.NEOLine = {};
     window.NEOLineN3 = {
       Init: function Init() {

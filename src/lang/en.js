@@ -2041,6 +2041,8 @@ const en = {
       connectionCanceled: "Connection canceled by user.",
       networkMismatchSwitch: "Network mismatch. Switch your wallet to {env} and try again.",
       networkUnknown: "{provider} did not report its active network. Reconnect or switch the wallet network and try again.",
+      walletAccountUnavailable: "{provider} did not report an active account. Unlock or reconnect the wallet and try again.",
+      walletAccountChanged: "{provider} account changed. Reconnect or switch the wallet account from the Explorer before signing.",
       directWifLocalOnly: "Direct WIF testing is only available in local development.",
       directWifTestnetOnly: "Direct WIF testing is only allowed while the explorer is on testnet.",
       invalidWif: "Invalid WIF.",

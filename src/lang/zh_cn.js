@@ -2041,6 +2041,8 @@ const zh = {
       connectionCanceled: "用户取消了连接。",
       networkMismatchSwitch: "网络不匹配。请将您的钱包切换到 {env} 后重试。",
       networkUnknown: "{provider} 未返回当前网络。请重新连接或切换钱包网络后重试。",
+      walletAccountUnavailable: "{provider} 未返回当前账户。请解锁或重新连接钱包后重试。",
+      walletAccountChanged: "{provider} 账户已切换。请在签名前重新连接钱包，或从 Explorer 中切换钱包账户。",
       directWifLocalOnly: "直接 WIF 测试仅在本地开发中可用。",
       directWifTestnetOnly: "仅当浏览器在测试网时才允许直接 WIF 测试。",
       invalidWif: "无效的 WIF。",
