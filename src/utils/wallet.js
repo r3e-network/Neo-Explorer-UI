@@ -1,7 +1,7 @@
 import { useToast } from "vue-toastification";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { loadWalletService } from "@/utils/lazyServices";
-import { connectedAccount } from "@/utils/walletState";
+import { clearWalletState, connectedAccount } from "@/utils/walletState";
 import i18n from "@/lang/i18n";
 
 const t = (key, ...args) => i18n.global.t(key, ...args);
@@ -15,7 +15,7 @@ function getStoredWalletAddress() {
 export { connectedAccount };
 
 function clearStoredWalletState() {
-  connectedAccount.value = "";
+  clearWalletState();
   if (typeof window === "undefined") return;
   localStorage.removeItem("connectedWallet");
   localStorage.removeItem("walletProvider");

@@ -170,6 +170,26 @@ describe("utils/wallet connectWallet", () => {
     expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({ allowSwitch: true });
   });
 
+  it("clears the full global wallet state when no stored session exists", async () => {
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedAccount.value = "NStaleAccount111111111111111111111111";
+    walletState.connectedWalletProvider.value = walletServiceMock.PROVIDERS.NEOLINE;
+    walletState.connectedWalletAccount.value = {
+      address: "NStaleAccount111111111111111111111111",
+      label: walletServiceMock.PROVIDERS.NEOLINE,
+    };
+    walletState.walletNetworkError.value = "Stale network mismatch";
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(walletState.connectedAccount.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(walletState.connectedWalletAccount.value).toBeNull();
+    expect(walletState.walletNetworkError.value).toBe("");
+    expect(wallet.connectedAccount.value).toBe("");
+  });
+
   it("clears a restored NeoLine session when wallet network validation fails", async () => {
     const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
     window.NEOLine = {};
@@ -195,6 +215,14 @@ describe("utils/wallet connectWallet", () => {
 
   it("clears a stale stored session when NeoLine is unavailable on reload", async () => {
     const staleAddress = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedAccount.value = staleAddress;
+    walletState.connectedWalletProvider.value = walletServiceMock.PROVIDERS.NEOLINE;
+    walletState.connectedWalletAccount.value = {
+      address: staleAddress,
+      label: walletServiceMock.PROVIDERS.NEOLINE,
+    };
+    walletState.walletNetworkError.value = "NeoLine is on TestNet";
     localStorage.setItem("connectedWallet", staleAddress);
     localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
 
@@ -202,6 +230,9 @@ describe("utils/wallet connectWallet", () => {
     await wallet.initWallet();
 
     expect(wallet.connectedAccount.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(walletState.connectedWalletAccount.value).toBeNull();
+    expect(walletState.walletNetworkError.value).toBe("");
     expect(localStorage.getItem("connectedWallet")).toBeNull();
     expect(localStorage.getItem("walletProvider")).toBeNull();
   });
@@ -256,6 +287,31 @@ describe("utils/wallet connectWallet", () => {
     });
     expect(wallet.connectedAccount.value).toBe(address);
     expect(sessionStorage.getItem("connectedWallet")).toBe(address);
+  });
+
+  it("disconnectWallet clears the full global wallet state and persisted session", async () => {
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedAccount.value = "NStaleDisconnect111111111111111111111";
+    walletState.connectedWalletProvider.value = walletServiceMock.PROVIDERS.ONEGATE;
+    walletState.connectedWalletAccount.value = {
+      address: "NStaleDisconnect111111111111111111111",
+      label: walletServiceMock.PROVIDERS.ONEGATE,
+    };
+    walletState.walletNetworkError.value = "OneGate network mismatch";
+    localStorage.setItem("connectedWallet", "NStaleDisconnect111111111111111111111");
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.ONEGATE);
+    sessionStorage.setItem("devTestWif", "LstaleDevWif111111111111111111111111111111111111111111");
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.disconnectWallet();
+
+    expect(walletState.connectedAccount.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(walletState.connectedWalletAccount.value).toBeNull();
+    expect(walletState.walletNetworkError.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+    expect(sessionStorage.getItem("devTestWif")).toBeNull();
   });
 
   it("does not overwrite connected account from NeoLine focus when active provider is Web3Auth", async () => {
