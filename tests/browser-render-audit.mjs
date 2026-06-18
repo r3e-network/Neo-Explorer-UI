@@ -6,6 +6,11 @@
  * or Puppeteer dependency is required. It verifies real production rendering,
  * console/runtime errors, failed document/script/style loads, blank pages, and
  * obvious horizontal overflow.
+ *
+ * Useful filters:
+ *   BROWSER_AUDIT_ROUTE=homepage,apiDocs
+ *   BROWSER_AUDIT_ROUTE='/contractDetail|governance/'
+ *   BROWSER_AUDIT_VIEWPORT=desktop,mobile
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -88,6 +93,31 @@ const ROUTES = [
   ["search", (d) => `/search?keyword=${encodeURIComponent(d.txid)}`],
   ["notFound", () => "/__browser_audit_missing_route__"],
 ].map(([name, makePath, allowAuthFailures = false]) => ({ name, makePath, allowAuthFailures }));
+
+function parseNameFilter(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (item.length > 2 && item.startsWith("/") && item.endsWith("/")) {
+        return { type: "regex", value: new RegExp(item.slice(1, -1)) };
+      }
+      return { type: "exact", value: item };
+    });
+}
+
+function matchesNameFilter(name, filters) {
+  if (!filters.length) return true;
+  return filters.some((filter) => {
+    if (filter.type === "regex") return filter.value.test(name);
+    return name === filter.value;
+  });
+}
+
+function describeAvailableNames(items) {
+  return items.map((item) => item.name || item.label).join(", ");
+}
 
 class CDP {
   constructor(wsUrl) {
@@ -467,10 +497,20 @@ async function main() {
   try {
     console.log(`Browser render audit: ${WEB_BASE}`);
     console.log(`Output: ${outDir}`);
-    const routes = ROUTE_FILTER ? ROUTES.filter((route) => route.name === ROUTE_FILTER) : ROUTES;
-    const viewports = VIEWPORT_FILTER ? VIEWPORTS.filter((viewport) => viewport.label === VIEWPORT_FILTER) : VIEWPORTS;
-    if (!routes.length) throw new Error(`No route matched BROWSER_AUDIT_ROUTE=${ROUTE_FILTER}`);
-    if (!viewports.length) throw new Error(`No viewport matched BROWSER_AUDIT_VIEWPORT=${VIEWPORT_FILTER}`);
+    const routeFilters = parseNameFilter(ROUTE_FILTER);
+    const viewportFilters = parseNameFilter(VIEWPORT_FILTER);
+    const routes = ROUTES.filter((route) => matchesNameFilter(route.name, routeFilters));
+    const viewports = VIEWPORTS.filter((viewport) => matchesNameFilter(viewport.label, viewportFilters));
+    if (!routes.length) {
+      throw new Error(
+        `No route matched BROWSER_AUDIT_ROUTE=${ROUTE_FILTER}. Use an exact name, comma-separated names, or /regex/. Available: ${describeAvailableNames(ROUTES)}`
+      );
+    }
+    if (!viewports.length) {
+      throw new Error(
+        `No viewport matched BROWSER_AUDIT_VIEWPORT=${VIEWPORT_FILTER}. Use desktop, mobile, comma-separated names, or /regex/.`
+      );
+    }
     console.log(`Routes: ${routes.length}; viewports: ${viewports.map((v) => v.label).join(", ")}`);
     for (const route of routes) {
       for (const viewport of viewports) {
