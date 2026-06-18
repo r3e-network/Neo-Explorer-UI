@@ -2045,6 +2045,8 @@ const fr = {
       web3AuthNotConfigured: "Web3Auth n'est pas configuré. Définissez VITE_WEB3AUTH_CLIENT_ID pour activer la connexion Google / Email.",
       evmWalletNotInstalled: "Le portefeuille EVM n'est pas installé.",
       evmNoAccounts: "Aucun compte EVM trouvé.",
+      evmAccountUnavailable: "Le compte du portefeuille EVM n'est plus disponible. Déverrouillez ou reconnectez votre portefeuille EVM.",
+      evmAccountChanged: "Le compte du portefeuille EVM a changé. Reconnectez le portefeuille avant de signer.",
       aaSignatureRequired: "Une signature est requise pour générer votre identité Abstract Account.",
       txCanceledByUser: "Transaction annulée par l'utilisateur.",
       noWalletConnected: "Aucun portefeuille connecté",

@@ -2048,6 +2048,8 @@ const zh = {
       web3AuthNotConfigured: "Web3Auth 未配置。请设置 VITE_WEB3AUTH_CLIENT_ID 以启用 Google / Email 登录。",
       evmWalletNotInstalled: "未安装 EVM 钱包。",
       evmNoAccounts: "未找到 EVM 账户。",
+      evmAccountUnavailable: "EVM 钱包账户当前不可用。请解锁或重新连接您的 EVM 钱包。",
+      evmAccountChanged: "EVM 钱包账户已切换。请先重新连接钱包再签名。",
       aaSignatureRequired: "生成 Abstract Account 身份需要签名。",
       txCanceledByUser: "用户取消了交易。",
       noWalletConnected: "未连接钱包",

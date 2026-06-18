@@ -273,6 +273,68 @@ function isEthereumAvailable() {
   return typeof window !== "undefined" && window.ethereum !== undefined;
 }
 
+async function readEvmAccounts() {
+  if (!isEthereumAvailable() || typeof window.ethereum.request !== "function") return [];
+  let accounts = [];
+  try {
+    accounts = await window.ethereum.request({ method: "eth_accounts" });
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(accounts)) return [];
+  return accounts.map((account) => String(account || "").trim().toLowerCase()).filter(Boolean);
+}
+
+function getEvmAccountUnavailableError() {
+  return new Error(
+    tWallet(
+      "wallet.errors.evmAccountUnavailable",
+      null,
+      "EVM wallet account is no longer available. Unlock or reconnect your EVM wallet.",
+    ),
+  );
+}
+
+function getEvmAccountChangedError() {
+  return new Error(
+    tWallet(
+      "wallet.errors.evmAccountChanged",
+      null,
+      "EVM wallet account changed. Reconnect the wallet before signing.",
+    ),
+  );
+}
+
+async function ensureConnectedEvmAccountStillActive() {
+  if (_connectedProvider !== PROVIDERS.EVM_WALLET || !_account?.evmAddress) return true;
+  if (!isEthereumAvailable()) {
+    const error = new Error(tWallet("wallet.errors.evmWalletNotInstalled", null, "EVM Wallet is not installed."));
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  const accounts = await readEvmAccounts();
+  const activeAddress = accounts[0] || "";
+  const expectedAddress = String(_account.evmAddress || "").trim().toLowerCase();
+
+  if (!activeAddress) {
+    const error = getEvmAccountUnavailableError();
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  if (activeAddress !== expectedAddress) {
+    const error = getEvmAccountChangedError();
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  return true;
+}
+
 /**
  * Get the NeoLine N3 dapi instance.
  * NeoLine exposes N3 API via `new window.NEOLineN3.Init()`.
@@ -1290,6 +1352,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.EVM_WALLET && _account?.pubKey) {
+      await ensureConnectedEvmAccountStillActive();
       const nextAddress = await deriveEvmNeoAddressFromPublicKey(_account.pubKey);
       if (nextAddress && nextAddress !== _account.address) {
         _account = { ..._account, address: nextAddress };

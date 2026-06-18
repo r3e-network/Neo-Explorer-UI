@@ -2048,6 +2048,8 @@ const en = {
       web3AuthNotConfigured: "Web3Auth is not configured. Set VITE_WEB3AUTH_CLIENT_ID to enable Google / Email login.",
       evmWalletNotInstalled: "EVM Wallet is not installed.",
       evmNoAccounts: "No EVM accounts found.",
+      evmAccountUnavailable: "EVM wallet account is no longer available. Unlock or reconnect your EVM wallet.",
+      evmAccountChanged: "EVM wallet account changed. Reconnect the wallet before signing.",
       aaSignatureRequired: "Signature is required to generate your Abstract Account identity.",
       txCanceledByUser: "Transaction canceled by user.",
       noWalletConnected: "No wallet connected",

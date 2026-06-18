@@ -416,6 +416,68 @@ describe("walletService", () => {
     });
   });
 
+  it("blocks EVM signing when the wallet account is locked or no longer authorized", async () => {
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? [] : null)),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.signMessage("hello")).rejects.toThrow(
+      /EVM wallet account is no longer available/i,
+    );
+    expect(window.ethereum.request).toHaveBeenCalledWith({ method: "eth_accounts" });
+    expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account is no longer available/i);
+  });
+
+  it("blocks EVM signing when the active wallet account changes without a wallet event", async () => {
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xdef"] : null)),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.signMessage("hello")).rejects.toThrow(
+      /EVM wallet account changed/i,
+    );
+    expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account changed/i);
+  });
+
+  it("normalizes EVM account-read failures into a reconnectable wallet error", async () => {
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => {
+        if (method === "eth_accounts") throw new Error("provider unavailable");
+        return null;
+      }),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.signMessage("hello")).rejects.toThrow(
+      /EVM wallet account is no longer available/i,
+    );
+  });
+
   it("reports WalletConnect-style providers as unsupported for NeoChat auth until public key exposure is available", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     walletService.hydrateSession(walletService.PROVIDERS.NEON, {

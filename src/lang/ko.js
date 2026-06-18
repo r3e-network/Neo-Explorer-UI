@@ -2048,6 +2048,8 @@ const ko = {
       web3AuthNotConfigured: "Web3Auth가 구성되지 않았습니다. Google / Email 로그인을 활성화하려면 VITE_WEB3AUTH_CLIENT_ID를 설정하세요.",
       evmWalletNotInstalled: "EVM 지갑이 설치되어 있지 않습니다.",
       evmNoAccounts: "EVM 계정을 찾을 수 없습니다.",
+      evmAccountUnavailable: "EVM 지갑 계정을 더 이상 사용할 수 없습니다. EVM 지갑을 잠금 해제하거나 다시 연결하세요.",
+      evmAccountChanged: "EVM 지갑 계정이 변경되었습니다. 서명하기 전에 지갑을 다시 연결하세요.",
       aaSignatureRequired: "Abstract Account 신원을 생성하려면 서명이 필요합니다.",
       txCanceledByUser: "사용자가 트랜잭션을 취소했습니다.",
       noWalletConnected: "연결된 지갑이 없습니다",
