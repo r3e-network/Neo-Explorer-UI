@@ -257,7 +257,7 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
-    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: true });
+    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: false });
     expect(getIndexerBlocks).not.toHaveBeenCalled();
     expect(getIndexerTransactions).not.toHaveBeenCalled();
     wrapper.unmount();

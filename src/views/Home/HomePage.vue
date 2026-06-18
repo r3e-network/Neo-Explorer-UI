@@ -334,11 +334,17 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
+    // The aggregate endpoint is already a hot 15s Worker cache target and is
+    // warmed on every new block. Do not append the `_ts` cache-buster here:
+    // a cold aggregate response can trip the 900ms soft-timeout and fan out
+    // into the older summary/blocks/transactions paths. Fallback paths still
+    // receive the caller's forceRefresh option below.
+    const aggregateRequestOptions = { ...requestOptions, forceRefresh: false };
     const mySummaryGen = ++summaryGeneration;
     // Fastest path: one read-api payload for all home-page critical data.
     // If the deployed read-api does not have this endpoint yet, every caller
     // below falls back to the older per-resource APIs.
-    const homePayloadPromise = indexerReadService.getExplorerHome(6, requestOptions).catch(() => null);
+    const homePayloadPromise = indexerReadService.getExplorerHome(6, aggregateRequestOptions).catch(() => null);
     const fastHomePayloadPromise = softTimeout(homePayloadPromise, HOMEPAGE_AGGREGATE_WAIT_MS, null);
     const summaryPromise = fastHomePayloadPromise
       .then((homePayload) => homePayload?.summary || indexerReadService.getSummary(requestOptions).catch(() => null))
