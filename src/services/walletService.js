@@ -335,6 +335,18 @@ async function ensureConnectedEvmAccountStillActive() {
   return true;
 }
 
+function assertEvmAddressMatchesConnectedWallet(address) {
+  if (_connectedProvider !== PROVIDERS.EVM_WALLET) return true;
+  const expectedAddress = String(_account?.evmAddress || "").trim().toLowerCase();
+  const actualAddress = String(address || "").trim().toLowerCase();
+  if (expectedAddress && actualAddress === expectedAddress) return true;
+
+  const error = getEvmAccountChangedError();
+  _networkError = error.message;
+  broadcastWalletStateChange();
+  throw error;
+}
+
 /**
  * Get the NeoLine N3 dapi instance.
  * NeoLine exposes N3 API via `new window.NEOLineN3.Init()`.
@@ -1351,11 +1363,13 @@ export const walletService = {
       throw error;
     }
 
-    if (_connectedProvider === PROVIDERS.EVM_WALLET && _account?.pubKey) {
+    if (_connectedProvider === PROVIDERS.EVM_WALLET) {
       await ensureConnectedEvmAccountStillActive();
-      const nextAddress = await deriveEvmNeoAddressFromPublicKey(_account.pubKey);
-      if (nextAddress && nextAddress !== _account.address) {
-        _account = { ..._account, address: nextAddress };
+      if (_account?.pubKey) {
+        const nextAddress = await deriveEvmNeoAddressFromPublicKey(_account.pubKey);
+        if (nextAddress && nextAddress !== _account.address) {
+          _account = { ..._account, address: nextAddress };
+        }
       }
     }
 
@@ -1568,6 +1582,8 @@ export const walletService = {
       const { ethers } = await import("ethers");
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+      const signerAddress = typeof signer.getAddress === "function" ? await signer.getAddress() : "";
+      assertEvmAddressMatchesConnectedWallet(signerAddress);
       const signature = await signer.signMessage(message);
       return normalizeSignMessageResult({
         publicKey: "",
@@ -1801,6 +1817,7 @@ export const walletService = {
       }
 
       const signerAddress = (await signer.getAddress()).toLowerCase();
+      assertEvmAddressMatchesConnectedWallet(signerAddress);
       const parsedOperation = assertAllowedAaMetaMethod(operation);
 
       let accountId = _account?.pubKey || localStorage.getItem(`evm_pubkey_${signerAddress}`);
@@ -1878,8 +1895,10 @@ export const walletService = {
       }
 
       const signature = await signer.signTypedData(prepared.domain, prepared.types, prepared.message);
+      await ensureConnectedEvmAccountStillActive();
       const digest = ethers.TypedDataEncoder.hash(prepared.domain, prepared.types, prepared.message);
       const uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature);
+      assertEvmAddressMatchesConnectedWallet(ethers.computeAddress(uncompressedPubKey));
 
       // If the user switched networks while the wallet popup was open, abort
       // before broadcasting a payload bound to the previous network.

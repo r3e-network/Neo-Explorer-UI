@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const envState = vi.hoisted(() => ({ value: "Mainnet" }));
 const web3AuthAccount = {
@@ -130,6 +130,10 @@ class MockScriptBuilder {
   toHex() {
     return "51";
   }
+
+  toBytes() {
+    return "13ef519c362973f9a34648a9eac5b71250b2a80a";
+  }
 }
 
 class MockWalletAccount {
@@ -259,6 +263,11 @@ vi.mock("../../src/utils/env.js", () => ({
 }));
 
 describe("walletService", () => {
+  afterEach(() => {
+    vi.doUnmock("ethers");
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
@@ -426,7 +435,6 @@ describe("walletService", () => {
     walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
       address: "Nabc",
       label: "EVM Wallet",
-      pubKey: `04${"11".repeat(64)}`,
       evmAddress: "0xabc",
     });
 
@@ -447,13 +455,115 @@ describe("walletService", () => {
     walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
       address: "Nabc",
       label: "EVM Wallet",
-      pubKey: `04${"11".repeat(64)}`,
       evmAddress: "0xabc",
     });
 
     await expect(walletService.signMessage("hello")).rejects.toThrow(
       /EVM wallet account changed/i,
     );
+    expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account changed/i);
+  });
+
+  it("blocks EVM signing when the signer address drifts after the account precheck", async () => {
+    const evmSignMessageMock = vi.fn(async () => "0xsigned");
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async getSigner() {
+            return {
+              getAddress: vi.fn(async () => "0xdef"),
+              signMessage: evmSignMessageMock,
+            };
+          }
+        },
+      },
+    }));
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xabc"] : null)),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.signMessage("hello")).rejects.toThrow(
+      /EVM wallet account changed/i,
+    );
+    expect(evmSignMessageMock).not.toHaveBeenCalled();
+    expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account changed/i);
+  });
+
+  it("blocks EVM AA invokes when the active account changes after typed-data signing", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmSignTypedDataMock = vi.fn(async () => "0xsigned");
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async getSigner() {
+            return {
+              getAddress: vi.fn(async () => "0xabc"),
+              signTypedData: evmSignTypedDataMock,
+            };
+          }
+        },
+      },
+    }));
+
+    let accountReadCount = 0;
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => {
+        if (method !== "eth_accounts") return null;
+        accountReadCount += 1;
+        return accountReadCount >= 2 ? ["0xdef"] : ["0xabc"];
+      }),
+    };
+
+    const relayerFetchMock = vi.fn(async (_url, options) => {
+      const body = JSON.parse(options?.body || "{}");
+      if (body.action !== "prepare") {
+        throw new Error("execute should not be called after an EVM account drift");
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          domain: {
+            chainId: 1,
+            verifyingContract: `0x${"cd".repeat(20)}`,
+          },
+          types: {
+            MetaTx: [{ name: "argsHash", type: "bytes32" }],
+          },
+          message: {
+            argsHash: `0x${"11".repeat(32)}`,
+            deadline: Math.floor(Date.now() / 1000) + 60,
+            nonce: "1",
+          },
+          signerAddress: "0xabc",
+        }),
+      };
+    });
+    vi.stubGlobal("fetch", relayerFetchMock);
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "transfer",
+      args: [],
+    })).rejects.toThrow(/EVM wallet account changed/i);
+    expect(evmSignTypedDataMock).toHaveBeenCalledTimes(1);
+    expect(relayerFetchMock).toHaveBeenCalledTimes(1);
     expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account changed/i);
   });
 
