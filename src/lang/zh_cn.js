@@ -1926,6 +1926,15 @@ const zh = {
     rpcBadge: "RPC",
     examplePayloadAria: "示例请求 Payload",
     noMethods: "此分类下暂无可用的 RPC 方法。",
+    responseHeadersHeading: "响应头",
+    responseHeaders: {
+      cache: {
+        desc: "本次请求的区块版本响应缓存结果。",
+      },
+      serverTiming: {
+        desc: "与 Read API 缓存结果一致的浏览器开发者工具计时提示。",
+      },
+    },
     categories: {
       blocks: "区块",
       transactions: "交易",

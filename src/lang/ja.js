@@ -1926,6 +1926,15 @@ const ja = {
     rpcBadge: "RPC",
     examplePayloadAria: "リクエストペイロードの例",
     noMethods: "このカテゴリーで利用可能な RPC メソッドはまだありません。",
+    responseHeadersHeading: "レスポンスヘッダー",
+    responseHeaders: {
+      cache: {
+        desc: "このリクエストに対するブロックバージョン応答キャッシュの結果です。",
+      },
+      serverTiming: {
+        desc: "Read API のキャッシュ結果を反映するブラウザー開発者ツール向けのタイミングヒントです。",
+      },
+    },
     categories: {
       blocks: "ブロック",
       transactions: "トランザクション",

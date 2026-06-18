@@ -1926,6 +1926,15 @@ const en = {
     rpcBadge: "RPC",
     examplePayloadAria: "Example request payload",
     noMethods: "No RPC methods available for this category yet.",
+    responseHeadersHeading: "Response headers",
+    responseHeaders: {
+      cache: {
+        desc: "Block-version response-cache outcome for the request.",
+      },
+      serverTiming: {
+        desc: "Browser and devtools timing hint mirroring the read-api cache outcome.",
+      },
+    },
     categories: {
       blocks: "Blocks",
       transactions: "Transactions",

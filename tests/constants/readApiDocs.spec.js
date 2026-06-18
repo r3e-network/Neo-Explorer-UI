@@ -31,13 +31,17 @@ describe("readApiDocs catalog", () => {
   });
 
   it("documents unique response headers with values and descriptions", () => {
+    const headerKeys = READ_API_RESPONSE_HEADERS.map((header) => header.key);
     const headerNames = READ_API_RESPONSE_HEADERS.map((header) => header.name.toLowerCase());
 
+    expect(new Set(headerKeys).size).toBe(headerKeys.length);
     expect(new Set(headerNames).size).toBe(headerNames.length);
     for (const header of READ_API_RESPONSE_HEADERS) {
+      expect(header.key).toBeTruthy();
       expect(header.name).toBeTruthy();
       expect(header.values).toBeTruthy();
       expect(header.desc).toBeTruthy();
+      expect(header.descKey).toBe(`apiDocsPage.responseHeaders.${header.key}.desc`);
     }
   });
 

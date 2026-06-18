@@ -81,12 +81,14 @@
           <!-- REST (Read API) mode -->
           <template v-if="apiMode === 'rest'">
             <section class="panel-muted px-4 py-3">
-              <h2 class="text-high mb-2 text-sm font-semibold uppercase tracking-wide">Response headers</h2>
+              <h2 class="text-high mb-2 text-sm font-semibold uppercase tracking-wide">
+                {{ $t('apiDocsPage.responseHeadersHeading') }}
+              </h2>
               <dl class="grid gap-3 md:grid-cols-2">
-                <div v-for="header in responseHeaders" :key="header.name">
+                <div v-for="header in responseHeaders" :key="header.key">
                   <dt class="text-high font-mono text-xs font-semibold">{{ header.name }}</dt>
                   <dd class="text-low mt-1 font-mono text-xs">{{ header.values }}</dd>
-                  <dd class="text-mid mt-1 text-xs">{{ header.desc }}</dd>
+                  <dd class="text-mid mt-1 text-xs">{{ $t(header.descKey) }}</dd>
                 </div>
               </dl>
             </section>

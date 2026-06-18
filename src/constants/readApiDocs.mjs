@@ -23,14 +23,18 @@ export const READ_API_CATEGORIES = [
 
 export const READ_API_RESPONSE_HEADERS = [
   {
+    key: "cache",
     name: "X-Neo3fura-Cache",
     values: "hit | miss | bypass",
     desc: "Block-version response-cache outcome for the request.",
+    descKey: "apiDocsPage.responseHeaders.cache.desc",
   },
   {
+    key: "serverTiming",
     name: "Server-Timing",
     values: 'neo3fura-cache;desc="hit|miss|bypass"',
     desc: "Browser/devtools timing hint mirroring the read-api cache outcome.",
+    descKey: "apiDocsPage.responseHeaders.serverTiming.desc",
   },
 ];
 

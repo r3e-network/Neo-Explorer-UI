@@ -1926,6 +1926,15 @@ const ko = {
     rpcBadge: "RPC",
     examplePayloadAria: "예시 요청 페이로드",
     noMethods: "이 카테고리에서 사용할 수 있는 RPC 메서드가 아직 없습니다.",
+    responseHeadersHeading: "응답 헤더",
+    responseHeaders: {
+      cache: {
+        desc: "이 요청의 블록 버전 응답 캐시 결과입니다.",
+      },
+      serverTiming: {
+        desc: "Read API 캐시 결과를 반영하는 브라우저 개발자 도구용 타이밍 힌트입니다.",
+      },
+    },
     categories: {
       blocks: "블록",
       transactions: "트랜잭션",
