@@ -56,6 +56,7 @@ describe("fetchWithTimeout", () => {
         source: "fetch",
         method: "GET",
         url: "/data/mainnet/summary",
+        durationMs: expect.any(Number),
       }),
     ]);
   });

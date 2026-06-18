@@ -2,12 +2,19 @@ import { recordApiObservationFromResponse } from "../telemetry/apiObservability"
 
 export const DEFAULT_FETCH_TIMEOUT_MS = 3000;
 
+function nowMs() {
+  return typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
 export async function fetchWithTimeout(input, init = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
   const effectiveTimeout = Number(timeoutMs);
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const upstreamSignal = init?.signal;
   const fetchInit = { ...(init || {}) };
   let timer = null;
+  const startedAt = nowMs();
 
   if (controller) {
     fetchInit.signal = controller.signal;
@@ -28,6 +35,7 @@ export async function fetchWithTimeout(input, init = {}, timeoutMs = DEFAULT_FET
       init: fetchInit,
       method: fetchInit.method || "GET",
       source: "fetch",
+      durationMs: nowMs() - startedAt,
     });
     return response;
   } finally {

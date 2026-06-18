@@ -4,6 +4,7 @@ import router from "./router";
 import i18n, { initializeI18n } from "./lang/i18n.js";
 import directives from "./directives";
 import { useTheme } from "@/composables/useTheme";
+import { initWebVitalsTelemetry } from "@/telemetry/webVitals";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
@@ -25,6 +26,7 @@ appInstance.config.devtools = import.meta.env.DEV;
 
 const { initTheme } = useTheme();
 initTheme();
+initWebVitalsTelemetry();
 
 async function bootstrap() {
   await initializeI18n();

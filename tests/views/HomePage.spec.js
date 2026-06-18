@@ -19,6 +19,7 @@ const getBlockList = vi.fn();
 const getBlockCount = vi.fn();
 const getBlockByHeight = vi.fn();
 const getTxList = vi.fn();
+const getIndexerHome = vi.fn();
 const getIndexerSummary = vi.fn();
 const getIndexerBlocks = vi.fn();
 const getIndexerTransactions = vi.fn();
@@ -54,6 +55,7 @@ vi.mock("@/services", () => ({
     getList: getTxList,
   },
   indexerReadService: {
+    getExplorerHome: getIndexerHome,
     getSummary: getIndexerSummary,
     getBlocks: getIndexerBlocks,
     getTransactions: getIndexerTransactions,
@@ -172,6 +174,7 @@ describe("HomePage initial loading", () => {
     loadCommitteeMock.mockClear();
 
     // Default: indexer returns data successfully
+    getIndexerHome.mockResolvedValue(null);
     getIndexerSummary.mockResolvedValue(makeFreshSummary());
     getIndexerBlocks.mockResolvedValue(makeIndexerBlocks());
     getIndexerTransactions.mockResolvedValue(makeIndexerTransactions());
@@ -221,6 +224,42 @@ describe("HomePage initial loading", () => {
     // Should not fall back to RPC when indexer succeeds
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("renders homepage aggregate payload without per-list read-api requests", async () => {
+    getIndexerHome.mockResolvedValueOnce({
+      network: "mainnet",
+      summary: makeFreshSummary(13),
+      latest_blocks: makeIndexerBlocks(6, 12).data,
+      latest_transactions: makeIndexerTransactions(6).data,
+      paging: {
+        blocks_total: 13,
+        transactions_total: 999,
+      },
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
+    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: true });
+    expect(getIndexerBlocks).not.toHaveBeenCalled();
+    expect(getIndexerTransactions).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 

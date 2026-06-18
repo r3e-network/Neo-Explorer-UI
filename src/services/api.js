@@ -9,6 +9,16 @@ const parseTimeout = (value, fallbackMs) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
 };
+const nowMs = () => (
+  typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now()
+);
+const durationFromConfig = (config = {}) => {
+  const startedAt = Number(config.__neo3furaStartedAt);
+  if (!Number.isFinite(startedAt)) return undefined;
+  return nowMs() - startedAt;
+};
 // 10s default. Deep-skip list queries against the indexer (e.g., /blocks/2+,
 // /transactions/2+, /tokens/.../2+) routinely take 4–7s on a cold path,
 // and the previous 5s ceiling caused page-2 loads to fail with
@@ -368,6 +378,7 @@ api.interceptors.request.use(
       config.baseURL = resolveRpcBaseUrl();
     }
     delete config.__manualBaseURL;
+    config.__neo3furaStartedAt = nowMs();
     return config;
   },
   (error) => Promise.reject(error)
@@ -376,11 +387,17 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    response.apiObservation = recordApiObservationFromAxios(response, { source: "rpc" });
+    response.apiObservation = recordApiObservationFromAxios(response, {
+      source: "rpc",
+      durationMs: durationFromConfig(response?.config),
+    });
     return response;
   },
   (error) => {
-    const apiObservation = recordApiObservationFromAxios(error?.response, { source: "rpc" });
+    const apiObservation = recordApiObservationFromAxios(error?.response, {
+      source: "rpc",
+      durationMs: durationFromConfig(error?.response?.config || error?.config),
+    });
     attachApiObservation(error, apiObservation);
     // Log a concise, actionable summary on every failure (status + baseURL +
     // message) so production outages are visible in browser dev-tools replay.

@@ -29,7 +29,7 @@ describe("apiObservability", () => {
     const observation = recordApiObservationFromResponse(
       response,
       "/data/mainnet/summary?token=secret&limit=1",
-      { method: "GET", source: "indexer" },
+      { method: "GET", source: "indexer", durationMs: 12.5 },
     );
 
     expect(observation).toEqual(
@@ -42,6 +42,7 @@ describe("apiObservability", () => {
         method: "GET",
         status: 200,
         ok: true,
+        durationMs: 12.5,
         url: "/data/mainnet/summary?token=redacted&limit=1",
       }),
     );
@@ -84,6 +85,25 @@ describe("apiObservability", () => {
         status: 502,
         ok: false,
         url: "/rpc/mainnet/primary",
+      }),
+    );
+  });
+
+  it("records client-side timing even when no observability headers are exposed", () => {
+    const observation = recordApiObservationFromResponse(
+      new Response(null, { status: 204 }),
+      "/api/local",
+      { method: "GET", source: "fetch", durationMs: 3.75 },
+    );
+
+    expect(observation).toEqual(
+      expect.objectContaining({
+        source: "fetch",
+        method: "GET",
+        status: 204,
+        ok: true,
+        durationMs: 3.75,
+        url: "/api/local",
       }),
     );
   });

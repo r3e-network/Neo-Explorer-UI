@@ -98,8 +98,56 @@ describe("indexerReadService freshness controls", () => {
         source: "indexer",
         method: "GET",
         url: "/data/mainnet/transactions?limit=6&offset=0",
+        durationMs: expect.any(Number),
       }),
     ]);
+  });
+
+  it("fetches the aggregated explorer home payload from the read-api", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          network: "mainnet",
+          summary: { total_block_count: 123 },
+          latest_blocks: [{ hash: "0xblock" }],
+          latest_transactions: [{ txid: "0xtx" }],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const payload = await indexerReadService.getExplorerHome(6, { forceRefresh: true });
+
+    expect(fetchMock.mock.calls[0][0]).toMatch(/^\/data\/mainnet\/explorer\/home\?limit=6&_ts=\d+$/);
+    expect(payload).toEqual(
+      expect.objectContaining({
+        network: "mainnet",
+        summary: { total_block_count: 123 },
+      }),
+    );
+  });
+
+  it("temporarily skips the aggregated explorer home endpoint after it is unavailable", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response("not found", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    expect(await indexerReadService.getExplorerHome(6)).toBeNull();
+    expect(await indexerReadService.getExplorerHome(6)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   // Removed: "falls back through same-origin backup proxy routes" — single server, no fallback paths.

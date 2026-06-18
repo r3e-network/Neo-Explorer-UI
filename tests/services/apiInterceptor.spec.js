@@ -193,6 +193,7 @@ describe("API request interceptor startup behavior", () => {
         method: "post",
         baseURL: "/rpc/mainnet/primary",
         url: "",
+        __neo3furaStartedAt: performance.now() - 12,
       },
     });
 
@@ -201,6 +202,7 @@ describe("API request interceptor startup behavior", () => {
         requestId: "req_rpc_success",
         edgeCache: "HIT",
         source: "rpc",
+        durationMs: expect.any(Number),
       }),
     );
 
@@ -215,6 +217,7 @@ describe("API request interceptor startup behavior", () => {
           method: "post",
           baseURL: "/rpc/mainnet/primary",
           url: "",
+          __neo3furaStartedAt: performance.now() - 8,
         },
       },
       config: {
@@ -229,6 +232,7 @@ describe("API request interceptor startup behavior", () => {
         traceparent: "00-abcdefabcdefabcdefabcdefabcdefab-0123456789abcdef-01",
         source: "rpc",
         status: 503,
+        durationMs: expect.any(Number),
       }),
     );
     expect(getRecentApiObservations().map((item) => item.requestId)).toEqual([

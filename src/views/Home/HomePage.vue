@@ -101,6 +101,7 @@ let lastFetchLatestTime = 0;
 // refresh has run since.
 let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
+const HOMEPAGE_AGGREGATE_WAIT_MS = 900;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -131,6 +132,18 @@ function getLatestKnownHeight() {
 function resolveLiveBlockHeight(candidateHeight) {
   const candidate = Number(candidateHeight || 0);
   return Math.max(candidate, getLatestKnownHeight());
+}
+
+function softTimeout(promise, timeoutMs, fallbackValue = null) {
+  let timer = null;
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallbackValue), timeoutMs);
+    }),
+  ]);
 }
 
 function extractHeightFromBlocks(blocks = []) {
@@ -322,12 +335,33 @@ async function loadLatestData(forceRefresh = false) {
 
     const requestOptions = { forceRefresh };
     const mySummaryGen = ++summaryGeneration;
-    // Single fast path: indexer summary + blocks + transactions in parallel.
-    const summaryPromise = indexerReadService.getSummary(requestOptions).catch(() => null);
+    // Fastest path: one read-api payload for all home-page critical data.
+    // If the deployed read-api does not have this endpoint yet, every caller
+    // below falls back to the older per-resource APIs.
+    const homePayloadPromise = indexerReadService.getExplorerHome(6, requestOptions).catch(() => null);
+    const fastHomePayloadPromise = softTimeout(homePayloadPromise, HOMEPAGE_AGGREGATE_WAIT_MS, null);
+    const summaryPromise = fastHomePayloadPromise
+      .then((homePayload) => homePayload?.summary || indexerReadService.getSummary(requestOptions).catch(() => null))
+      .catch(() => indexerReadService.getSummary(requestOptions).catch(() => null));
 
     // Single server — fetch directly from indexer, one fallback to RPC.
     const fetchLatestBlocks = async () => {
       try {
+        const homePayload = await fastHomePayloadPromise;
+        const homeRows = Array.isArray(homePayload?.latest_blocks)
+          ? homePayload.latest_blocks.map(normalizeBlockSummary)
+          : [];
+        if (homeRows.length > 0) {
+          return {
+            result: homeRows,
+            totalCount: Number(
+              homePayload?.paging?.blocks_total ??
+                homePayload?.summary?.total_block_count ??
+                homeRows.length,
+            ),
+          };
+        }
+
         const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
@@ -346,6 +380,21 @@ async function loadLatestData(forceRefresh = false) {
     // Single server — fetch directly from indexer, one fallback to RPC.
     const fetchLatestTransactions = async () => {
       try {
+        const homePayload = await fastHomePayloadPromise;
+        const homeRows = Array.isArray(homePayload?.latest_transactions)
+          ? homePayload.latest_transactions.map(normalizeHomepageTransaction)
+          : [];
+        if (homeRows.length > 0) {
+          return {
+            result: homeRows,
+            totalCount: Number(
+              homePayload?.paging?.transactions_total ??
+                homePayload?.summary?.total_tx_count ??
+                homeRows.length,
+            ),
+          };
+        }
+
         const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {

@@ -6,7 +6,12 @@ const HOT_INDEXER_SELECTION_TTL_MS = Math.max(
   5_000,
   Number(import.meta.env.VITE_INDEXER_HOT_SELECTION_TTL_MS || 30_000),
 );
+const EXPLORER_HOME_UNAVAILABLE_RETRY_MS = Math.max(
+  5_000,
+  Number(import.meta.env.VITE_EXPLORER_HOME_UNAVAILABLE_RETRY_MS || 30_000),
+);
 const hotIndexerSelectionCache = new Map();
+let explorerHomeUnavailableUntil = 0;
 const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
 const CONFIGURED_INDEXER_READ_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_INDEXER_READ_BASE_URL || "");
 const CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS = String(
@@ -35,6 +40,12 @@ function isAbsoluteUrl(path) {
   return /^https?:\/\//i.test(String(path || "").trim());
 }
 
+function nowMs() {
+  return typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+}
+
 export function getIndexerBaseUrls(network) {
   const configuredBaseUrls = [
     CONFIGURED_INDEXER_READ_BASE_URL ? `${CONFIGURED_INDEXER_READ_BASE_URL}/${network}` : "",
@@ -58,6 +69,7 @@ async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRef
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     const headers = { Accept: "application/json" };
+    const startedAt = nowMs();
     if (forceRefresh && !isAbsoluteUrl(requestPath)) {
       headers["Cache-Control"] = "no-cache";
       headers.Pragma = "no-cache";
@@ -73,6 +85,7 @@ async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRef
       recordApiObservationFromResponse(res, requestPath, {
         method: "GET",
         source: "indexer",
+        durationMs: nowMs() - startedAt,
       });
       if (!res.ok) continue;
       return await res.json();
@@ -231,6 +244,26 @@ export function getIndexerSseTransactionsUrl(network) {
 }
 
 export const indexerReadService = {
+  async getExplorerHome(limit = 6, options = {}) {
+    if (Date.now() < explorerHomeUnavailableUntil) return null;
+
+    const network = resolveIndexerNetworkPath();
+    const params = new URLSearchParams({
+      limit: String(limit),
+    });
+    const payload = await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `explorer/home?${params.toString()}`),
+      options,
+    );
+    const data = payload?.data || null;
+    if (!data) {
+      explorerHomeUnavailableUntil = Date.now() + EXPLORER_HOME_UNAVAILABLE_RETRY_MS;
+      return null;
+    }
+    explorerHomeUnavailableUntil = 0;
+    return data;
+  },
+
   async getSummary(options = {}) {
     const network = resolveIndexerNetworkPath();
 

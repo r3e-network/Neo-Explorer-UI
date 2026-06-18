@@ -107,6 +107,11 @@ function hasObservationHeader(values) {
   return Object.values(values).some((value) => normalizeHeaderValue(value));
 }
 
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
 function publishObservations() {
   if (typeof window === "undefined") return;
   window[WINDOW_OBSERVATIONS_KEY] = getRecentApiObservations();
@@ -117,7 +122,10 @@ export function extractApiObservationFromHeaders(headers, options = {}) {
     Object.entries(OBSERVABILITY_HEADERS).map(([field, header]) => [field, readHeader(headers, header)])
   );
 
-  if (!hasObservationHeader(headerValues)) return null;
+  const durationMs = finiteNumber(options.durationMs);
+  const startedAt = normalizeHeaderValue(options.startedAt);
+
+  if (!hasObservationHeader(headerValues) && durationMs === undefined && !startedAt) return null;
 
   return compactObject({
     timestamp: new Date().toISOString(),
@@ -126,6 +134,8 @@ export function extractApiObservationFromHeaders(headers, options = {}) {
     url: normalizeUrl(options.url),
     status: Number.isFinite(Number(options.status)) ? Number(options.status) : undefined,
     ok: typeof options.ok === "boolean" ? options.ok : undefined,
+    durationMs,
+    startedAt,
     ...headerValues,
     serverTimingMetrics: parseServerTiming(headerValues.serverTiming),
   });
