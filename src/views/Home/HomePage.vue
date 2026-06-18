@@ -101,7 +101,7 @@ let lastFetchLatestTime = 0;
 // refresh has run since.
 let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
-const HOMEPAGE_AGGREGATE_WAIT_MS = 1_200;
+const HOMEPAGE_AGGREGATE_WAIT_MS = 2_200;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -338,7 +338,7 @@ async function loadLatestData(forceRefresh = false) {
     const requestOptions = { forceRefresh };
     // The aggregate endpoint is already a hot 15s Worker cache target and is
     // warmed on every new block. Do not append the `_ts` cache-buster here:
-    // a cold aggregate response can trip the 900ms soft-timeout and fan out
+    // a cold aggregate response can trip the soft-timeout and fan out
     // into the older summary/blocks/transactions paths. Fallback paths still
     // receive the caller's forceRefresh option below.
     const aggregateRequestOptions = { ...requestOptions, forceRefresh: false };
@@ -561,15 +561,20 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
     if (!block?.hash || blockDetailsByHash.has(block.hash)) return false;
     const missingConsensus = !block.nextconsensus && !block.nextConsensus && !block.speaker && !block.validator;
     const missingPrimary = block.primary === undefined;
-    const txCount = Number(block.txcount ?? block.transactioncount ?? 0);
-    const currentSysFee = Number(block.sysfee ?? block.systemFee);
-    const currentNetFee = Number(block.netfee ?? block.networkFee);
+    const txCount = Number(block.txcount ?? block.transactioncount ?? block.tx_count ?? block.transaction_count ?? 0);
+    const hasTransactions = Number.isFinite(txCount) && txCount > 0;
     const missingFees =
-      (block.sysfee === undefined && block.systemFee === undefined) ||
-      (Number.isFinite(currentSysFee) && currentSysFee === 0 && txCount > 0);
+      hasTransactions &&
+      block.sysfee === undefined &&
+      block.systemFee === undefined &&
+      block.sys_fee === undefined &&
+      block.totalSysFee === undefined;
     const missingNetFee =
-      (block.netfee === undefined && block.networkFee === undefined) ||
-      (Number.isFinite(currentNetFee) && currentNetFee === 0 && txCount > 0);
+      hasTransactions &&
+      block.netfee === undefined &&
+      block.networkFee === undefined &&
+      block.net_fee === undefined &&
+      block.totalNetFee === undefined;
     return missingConsensus || missingFees || missingNetFee || missingPrimary;
   });
 
@@ -711,7 +716,6 @@ function handleNetworkChange() {
 
 // Lifecycle
 onMounted(() => {
-  void loadCommittee();
   void loadData();
   void loadAvgTps();
   startAutoRefresh();

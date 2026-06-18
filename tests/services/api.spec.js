@@ -256,6 +256,32 @@ describe("rpc", () => {
       expect.any(Object)
     );
   });
+
+  it("coalesces concurrent endpoint network validation probes", async () => {
+    let resolveVersion;
+    const versionPromise = new Promise((resolve) => {
+      resolveVersion = resolve;
+    });
+
+    axios.post.mockImplementation((_url, payload) => {
+      if (payload?.method === "getversion") return versionPromise;
+      if (payload?.method === "getblockcount") return Promise.resolve({ data: { result: 123 } });
+      if (payload?.method === "getbestblockhash") return Promise.resolve({ data: { result: "0xabc" } });
+      throw new Error(`Unexpected RPC method: ${payload?.method}`);
+    });
+
+    const countPromise = rpc("getblockcount");
+    const hashPromise = rpc("getbestblockhash");
+
+    await Promise.resolve();
+
+    expect(axios.post.mock.calls.filter((call) => call[1]?.method === "getversion")).toHaveLength(1);
+
+    resolveVersion({ data: { result: { protocol: { network: 860833102 } } } });
+
+    await expect(Promise.all([countPromise, hashPromise])).resolves.toEqual([123, "0xabc"]);
+    expect(axios.post.mock.calls.filter((call) => call[1]?.method === "getversion")).toHaveLength(1);
+  });
 });
 
 describe("api response interceptor logging", () => {

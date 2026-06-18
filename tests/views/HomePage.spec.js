@@ -263,6 +263,88 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("does not hydrate aggregate blocks when zero fee fields are explicit", async () => {
+    const blocks = makeIndexerBlocks(6, 12).data.map((block) => ({
+      ...block,
+      tx_count: 2,
+      sysfee: 0,
+      netfee: 0,
+      next_consensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+    }));
+    getIndexerHome.mockResolvedValueOnce({
+      network: "mainnet",
+      summary: makeFreshSummary(13),
+      latest_blocks: blocks,
+      latest_transactions: makeIndexerTransactions(6).data,
+      paging: {
+        blocks_total: 13,
+        transactions_total: 999,
+      },
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(getBlockByHeight).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("does not hydrate aggregate empty blocks just because fee fields are omitted", async () => {
+    const blocks = makeIndexerBlocks(6, 12).data.map((block) => {
+      const rest = { ...block };
+      delete rest.sysfee;
+      delete rest.netfee;
+      return {
+        ...rest,
+        tx_count: 0,
+        txcount: 0,
+        next_consensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+      };
+    });
+    getIndexerHome.mockResolvedValueOnce({
+      network: "mainnet",
+      summary: makeFreshSummary(13),
+      latest_blocks: blocks,
+      latest_transactions: makeIndexerTransactions(6).data,
+      paging: {
+        blocks_total: 13,
+        transactions_total: 999,
+      },
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(getBlockByHeight).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it("displays block count from the indexer summary", async () => {
     getIndexerSummary.mockResolvedValueOnce(makeFreshSummary(13));
     getIndexerBlocks.mockResolvedValueOnce(makeIndexerBlocks(6, 12));
@@ -375,7 +457,7 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("preloads committee metadata on mount", async () => {
+  it("does not preload committee metadata on the homepage critical path", async () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
@@ -391,8 +473,7 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(loadCommitteeMock).toHaveBeenCalledTimes(1);
-    expect(loadCommitteeMock).toHaveBeenCalledWith();
+    expect(loadCommitteeMock).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 

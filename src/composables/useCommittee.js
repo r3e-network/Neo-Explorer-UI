@@ -28,6 +28,25 @@ const NEOFS_LOGO_GATEWAYS = [
 ];
 const NEOFS_LOGO_GATEWAY = NEOFS_LOGO_GATEWAYS[0];
 const CONSENSUS_VALIDATOR_COUNT = 7;
+const COMMITTEE_DEFERRED_LOAD_DELAY_MS = 2500;
+let deferredCommitteeLoadTimer = null;
+
+const clearDeferredCommitteeLoad = () => {
+  if (!deferredCommitteeLoadTimer) return;
+  const timerHost = typeof window !== "undefined" ? window : globalThis;
+  timerHost.clearTimeout(deferredCommitteeLoadTimer);
+  deferredCommitteeLoadTimer = null;
+};
+
+const scheduleDeferredCommitteeLoad = (loadFn, force = false) => {
+  if (initialized.value && !force) return;
+  if (deferredCommitteeLoadTimer) return;
+  const timerHost = typeof window !== "undefined" ? window : globalThis;
+  deferredCommitteeLoadTimer = timerHost.setTimeout(() => {
+    deferredCommitteeLoadTimer = null;
+    void loadFn(force);
+  }, COMMITTEE_DEFERRED_LOAD_DELAY_MS);
+};
 
 const normalizeCandidateScriptHash = (value) => {
   const normalized = String(value || "").trim();
@@ -342,6 +361,7 @@ const loadCommitteeMetadata = async () => {
 
 export function useCommittee() {
   async function loadCommittee(force = false) {
+    clearDeferredCommitteeLoad();
     if (initialized.value && !force) return;
     initialized.value = true;
     let validatorsLoaded = false;
@@ -398,8 +418,6 @@ export function useCommittee() {
     }
   }
 
-  // Kickoff load immediately if not done
-  loadCommittee();
   latestLoadCommittee = loadCommittee;
 
   const instance = getCurrentInstance();
@@ -424,6 +442,7 @@ export function useCommittee() {
         window.removeEventListener(NETWORK_CHANGE_EVENT, committeeNetworkListener);
         committeeNetworkListener = null;
         latestLoadCommittee = null;
+        clearDeferredCommitteeLoad();
       }
     });
   }
@@ -464,7 +483,7 @@ export function useCommittee() {
     if (!validators.value || validators.value.length === 0) {
       // Avoid permanent "Loading..." labels when endpoint metadata is temporarily unavailable.
       if (!initialized.value) {
-        void loadCommittee();
+        scheduleDeferredCommitteeLoad(loadCommittee);
       }
       return fallbackValidatorName(primaryIndex, fallbackAddress);
     }
@@ -490,7 +509,7 @@ export function useCommittee() {
     if (primaryIndex === undefined || primaryIndex === null) return null;
     if (!validators.value || validators.value.length === 0) {
       if (!initialized.value) {
-        void loadCommittee();
+        scheduleDeferredCommitteeLoad(loadCommittee);
       }
       return null;
     }

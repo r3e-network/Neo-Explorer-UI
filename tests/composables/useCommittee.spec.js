@@ -60,13 +60,46 @@ describe("useCommittee", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("does not eagerly call committee RPC when helpers are created", async () => {
+    const { useCommittee } = await import("@/composables/useCommittee");
+    useCommittee();
+
+    await flush();
+
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(getValidatorMetadataMock).not.toHaveBeenCalled();
+    expect(cachedRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("defers committee loading when a primary label can use a fallback first", async () => {
+    vi.useFakeTimers();
+    rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const { getPrimaryNodeName } = useCommittee();
+
+    expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
+    expect(rpcMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(2499);
+    expect(rpcMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+
+    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
   });
 
   it("falls back to standard getcommittee when getnextblockvalidators fails (#186)", async () => {
     rpcMock.mockRejectedValueOnce(new Error("temporary network failure")).mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -81,7 +114,8 @@ describe("useCommittee", () => {
     rpcMock.mockResolvedValueOnce([{ publickey: "PUBKEY1" }]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    useCommittee();
+    const { loadCommittee } = useCommittee();
+    await loadCommittee();
 
     await flush();
 
@@ -120,7 +154,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName } = committee;
 
     await flush();
 
@@ -148,7 +184,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -167,7 +205,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -188,7 +228,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -202,7 +244,9 @@ describe("useCommittee", () => {
     publicKeyToAddressMock.mockReturnValue("NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w");
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -216,7 +260,9 @@ describe("useCommittee", () => {
     publicKeyToAddressMock.mockReturnValue("NNoMetadataFallbackAddress");
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName } = committee;
 
     await flush();
 
@@ -237,7 +283,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress } = committee;
 
     await flush();
 
@@ -301,7 +349,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = committee;
 
     await flush();
 
@@ -324,7 +374,9 @@ describe("useCommittee", () => {
     ]);
 
     const { useCommittee } = await import("@/composables/useCommittee");
-    const { getPrimaryNodeLogo } = useCommittee();
+    const committee = useCommittee();
+    await committee.loadCommittee();
+    const { getPrimaryNodeLogo } = committee;
 
     await flush();
 

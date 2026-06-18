@@ -28,9 +28,9 @@ const durationFromConfig = (config = {}) => {
 const DEFAULT_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_TIMEOUT_MS, 10000);
 const FAILOVER_RPC_TIMEOUT_MS = parseTimeout(import.meta.env.VITE_RPC_FAILOVER_TIMEOUT_MS, 8000);
 const NETWORK_VALIDATION_TIMEOUT_MS = Number(import.meta.env.VITE_RPC_NETWORK_VALIDATION_TIMEOUT_MS || 350);
-const INITIAL_HEALTH_CHECK_MAX_WAIT_MS = parseTimeout(
-  import.meta.env.VITE_RPC_STARTUP_WAIT_MS,
-  120
+const STARTUP_HEALTH_CHECK_DELAY_MS = parseTimeout(
+  import.meta.env.VITE_RPC_STARTUP_HEALTHCHECK_DELAY_MS,
+  10000
 );
 // Hedge disabled — single server, no fallback to race against.
 const HEDGE_DELAY_MS = Math.max(50, Number(import.meta.env.VITE_RPC_HEDGE_DELAY_MS || 250));
@@ -50,9 +50,11 @@ const FALLBACK_FIRST_INDEXED_METHOD_PATTERNS = [
   /ByCandidateAddress$/i,
 ];
 const endpointNetworkCache = new Map();
+const endpointNetworkValidationInFlight = new Map();
 
 export const __resetEndpointNetworkCacheForTests = () => {
   endpointNetworkCache.clear();
+  endpointNetworkValidationInFlight.clear();
 };
 
 const normalizeBaseUrl = (baseUrl) => {
@@ -251,36 +253,46 @@ const validateEndpointNetwork = async ({ baseURL, timeout, signal }) => {
 
   const cacheKey = `${baseURL}::${expectedNetworkMagic}`;
   if (endpointNetworkCache.get(cacheKey)) return;
+  if (endpointNetworkValidationInFlight.has(cacheKey)) {
+    return endpointNetworkValidationInFlight.get(cacheKey);
+  }
 
-  try {
+  const validationPromise = (async () => {
     const versionPayload = { jsonrpc: "2.0", id: nextRpcId(), method: "getversion", params: [] };
     const validationTimeout = Number.isFinite(NETWORK_VALIDATION_TIMEOUT_MS)
       ? Math.max(300, NETWORK_VALIDATION_TIMEOUT_MS)
       : 1000;
-    const versionResult = await executeRpcRequest(versionPayload, {
-      baseURL,
-      timeout: Math.min(timeout, validationTimeout),
-      signal,
-    });
-    const reportedNetworkMagic = Number(versionResult?.protocol?.network ?? versionResult?.network);
-    if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic !== expectedNetworkMagic) {
-      throw createNetworkMismatchError(baseURL, expectedNetworkMagic, reportedNetworkMagic);
+    try {
+      const versionResult = await executeRpcRequest(versionPayload, {
+        baseURL,
+        timeout: Math.min(timeout, validationTimeout),
+        signal,
+      });
+      const reportedNetworkMagic = Number(versionResult?.protocol?.network ?? versionResult?.network);
+      if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic !== expectedNetworkMagic) {
+        throw createNetworkMismatchError(baseURL, expectedNetworkMagic, reportedNetworkMagic);
+      }
+      if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic === expectedNetworkMagic) {
+        endpointNetworkCache.set(cacheKey, true);
+      }
+    } catch (error) {
+      if (error?.code === NETWORK_MISMATCH_ERROR_CODE || error?.isNetworkMismatch) {
+        throw error;
+      }
+      // Transport failures (timeout/5xx/abort) tell us nothing about the
+      // endpoint's network. Do NOT cache on these — a wrong-network endpoint
+      // that merely timed out must remain re-probable. Only a successful
+      // getversion that confirms the network writes the cache (handled above).
+      // If getversion is unavailable on an endpoint (e.g., Fura), continue
+      // without hard-failing, but leave the cache untouched so a later
+      // successful probe can still validate the network.
     }
-    if (Number.isFinite(reportedNetworkMagic) && reportedNetworkMagic === expectedNetworkMagic) {
-      endpointNetworkCache.set(cacheKey, true);
-    }
-  } catch (error) {
-    if (error?.code === NETWORK_MISMATCH_ERROR_CODE || error?.isNetworkMismatch) {
-      throw error;
-    }
-    // Transport failures (timeout/5xx/abort) tell us nothing about the
-    // endpoint's network. Do NOT cache on these — a wrong-network endpoint
-    // that merely timed out must remain re-probable. Only a successful
-    // getversion that confirms the network writes the cache (handled above).
-    // If getversion is unavailable on an endpoint (e.g., Fura), continue
-    // without hard-failing, but leave the cache untouched so a later
-    // successful probe can still validate the network.
-  }
+  })().finally(() => {
+    endpointNetworkValidationInFlight.delete(cacheKey);
+  });
+
+  endpointNetworkValidationInFlight.set(cacheKey, validationPromise);
+  return validationPromise;
 };
 
 const executeRpcRequestWithStartupHedge = async (
@@ -349,30 +361,22 @@ const api = axios.create({
 
 import { checkAndSetEndpoints } from "../utils/healthCheck";
 
-// Wait for initial health check before making requests
-let initialCheckResolved = false;
-const initialCheckPromise = Promise.resolve(checkAndSetEndpoints())
-  .catch(() => {})
-  .finally(() => {
-    initialCheckResolved = true;
-  });
-
-const waitForInitialHealthCheck = async () => {
-  if (initialCheckResolved) return;
-
-  await Promise.race([
-    initialCheckPromise,
-    new Promise((resolve) => {
-      setTimeout(resolve, INITIAL_HEALTH_CHECK_MAX_WAIT_MS);
-    }),
-  ]);
+let startupHealthCheckScheduled = false;
+const scheduleStartupHealthCheck = () => {
+  if (startupHealthCheckScheduled) return;
+  if (typeof window === "undefined" || import.meta.env.MODE === "test") return;
+  startupHealthCheckScheduled = true;
+  window.setTimeout(() => {
+    void checkAndSetEndpoints().catch(() => {});
+  }, STARTUP_HEALTH_CHECK_DELAY_MS);
 };
+
+scheduleStartupHealthCheck();
 
 // Request interceptor
 api.interceptors.request.use(
   async (config) => {
-    await waitForInitialHealthCheck();
-    // Single server — no need to re-check endpoints on every request.
+    // Single server — startup endpoint probes run in the background after first paint.
 
     if (!config.__manualBaseURL) {
       config.baseURL = resolveRpcBaseUrl();
