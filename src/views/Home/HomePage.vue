@@ -101,7 +101,7 @@ let lastFetchLatestTime = 0;
 // refresh has run since.
 let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
-const HOMEPAGE_AGGREGATE_WAIT_MS = 900;
+const HOMEPAGE_AGGREGATE_WAIT_MS = 1_200;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -317,8 +317,10 @@ async function loadData() {
   void loadPrices();
 
   try {
-    // Force first-load freshness so session-restored SWR cache never shows minutes-old head data.
-    await loadLatestData(true);
+    // First paint should ride the Worker-warmed 15s hot cache. Realtime head
+    // updates below reconcile freshness without making the critical path add
+    // `_ts` cache-busters or fan out to cold fallback requests.
+    await loadLatestData(false);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to load homepage data:", err);
   }
