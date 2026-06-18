@@ -21,6 +21,7 @@ const NEO_N3_EVENTS = ["accountChanged"];
 
 let _client = null;
 let _session = null;
+const _sessionListeners = new Set();
 
 function getPreferredChain() {
   const env = getCurrentEnv().toLowerCase();
@@ -37,10 +38,62 @@ function chainToNetworkMode(chain) {
   return "";
 }
 
+function parseNeo3Account(account) {
+  const parts = String(account || "").split(":");
+  if (parts.length < 3 || parts[0] !== "neo3") return null;
+  const [namespace, chain, ...addressParts] = parts;
+  const address = addressParts.join(":").trim();
+  if (!address) return null;
+  return {
+    raw: `${namespace}:${chain}:${address}`,
+    chainId: `${namespace}:${chain}`,
+    address,
+  };
+}
+
+function getNeo3AccountEntries(session = _session) {
+  const accounts = session?.namespaces?.neo3?.accounts || [];
+  if (!Array.isArray(accounts)) return [];
+  return accounts.map(parseNeo3Account).filter(Boolean);
+}
+
+function getPreferredSessionAccount(session = _session) {
+  const entries = getNeo3AccountEntries(session);
+  if (!entries.length) return null;
+  const expectedChain = getPreferredChain();
+  return entries.find((entry) => chainToNetworkMode(entry.chainId) === chainToNetworkMode(expectedChain)) || entries[0];
+}
+
+function notifySessionListeners(reason, error = null) {
+  const account = getPreferredSessionAccount();
+  const payload = {
+    connected: !!_session,
+    account: account?.address ? { address: account.address, label: "WalletConnect" } : null,
+    session: _session,
+    reason,
+    error,
+  };
+  for (const listener of [..._sessionListeners]) {
+    try {
+      listener(payload);
+    } catch {
+      // Listener failures must not break WalletConnect event processing.
+    }
+  }
+}
+
 function assertSessionMatchesExplorerNetwork() {
   const sessionChain = getSessionChain();
   const expectedChain = getPreferredChain();
-  if (!sessionChain || chainToNetworkMode(sessionChain) === chainToNetworkMode(expectedChain)) return true;
+  if (!sessionChain) {
+    throw new Error(
+      tWc(
+        "wallet.errors.walletConnectNoAccount",
+        "WalletConnect session returned no Neo N3 account. Reconnect the wallet and try again.",
+      ),
+    );
+  }
+  if (chainToNetworkMode(sessionChain) === chainToNetworkMode(expectedChain)) return true;
   throw new Error(
     tWc(
       "wallet.errors.walletConnectNetworkMismatch",
@@ -51,15 +104,90 @@ function assertSessionMatchesExplorerNetwork() {
 }
 
 function getSessionChain() {
-  const account = _session?.namespaces?.neo3?.accounts?.[0];
-  if (!account) return null;
-  const [namespace, chain] = account.split(":");
-  if (!namespace || !chain) return null;
-  return `${namespace}:${chain}`;
+  return getPreferredSessionAccount()?.chainId || null;
 }
 
 function getActiveChain() {
   return getSessionChain() || getPreferredChain();
+}
+
+function handleSessionDelete(event = {}) {
+  if (!_session) return;
+  const topic = event?.topic || event?.params?.topic || "";
+  if (topic && topic !== _session.topic) return;
+  _session = null;
+  notifySessionListeners("session_delete");
+}
+
+function handleSessionUpdate(event = {}) {
+  if (!_session) return;
+  const topic = event?.topic || "";
+  if (topic && topic !== _session.topic) return;
+  const namespaces = event?.params?.namespaces;
+  if (!namespaces || typeof namespaces !== "object") return;
+
+  _session = { ..._session, namespaces };
+  try {
+    assertSessionMatchesExplorerNetwork();
+    notifySessionListeners("session_update");
+  } catch (error) {
+    _session = null;
+    notifySessionListeners("session_update", error);
+  }
+}
+
+function accountFromSessionEventData(data, chainId) {
+  if (Array.isArray(data)) {
+    if (data.length === 0) return "";
+    return accountFromSessionEventData(data[0], chainId);
+  }
+
+  if (data && typeof data === "object") {
+    const candidate = data.account || data.address || data.accounts;
+    return accountFromSessionEventData(candidate, chainId);
+  }
+
+  const value = String(data || "").trim();
+  if (!value) return "";
+
+  const parsed = parseNeo3Account(value);
+  if (parsed) return parsed.raw;
+
+  return `${chainId}:${value}`;
+}
+
+function handleSessionEvent(eventPayload = {}) {
+  if (!_session) return;
+  const topic = eventPayload?.topic || "";
+  if (topic && topic !== _session.topic) return;
+
+  const event = eventPayload?.event || eventPayload?.params?.event || {};
+  const eventName = String(event?.name || "").toLowerCase();
+  if (eventName !== "accountchanged" && eventName !== "accountschanged") return;
+
+  const chainId = eventPayload?.chainId || eventPayload?.params?.chainId || getActiveChain();
+  const account = accountFromSessionEventData(event?.data, chainId);
+  if (!account) {
+    _session = null;
+    notifySessionListeners("accountChanged");
+    return;
+  }
+
+  const namespaces = {
+    ...(_session.namespaces || {}),
+    neo3: {
+      ...(_session.namespaces?.neo3 || {}),
+      accounts: [account],
+    },
+  };
+  _session = { ..._session, namespaces };
+  try {
+    assertSessionMatchesExplorerNetwork();
+    notifySessionListeners("accountChanged");
+  } catch (error) {
+    _session = null;
+    notifySessionListeners("accountChanged", error);
+  }
 }
 
 export const walletConnectService = {
@@ -80,9 +208,18 @@ export const walletConnectService = {
       },
     });
 
-    _client.on("session_delete", () => {
-      _session = null;
-    });
+    _client.on("session_delete", handleSessionDelete);
+    _client.on("session_expire", handleSessionDelete);
+    _client.on("session_update", handleSessionUpdate);
+    _client.on("session_event", handleSessionEvent);
+  },
+
+  onSessionChange(listener) {
+    if (typeof listener !== "function") return () => {};
+    _sessionListeners.add(listener);
+    return () => {
+      _sessionListeners.delete(listener);
+    };
   },
 
   /**
@@ -110,6 +247,7 @@ export const walletConnectService = {
           _session = null;
           throw error;
         }
+        notifySessionListeners("connect");
         return session;
       }),
     };
@@ -134,6 +272,7 @@ export const walletConnectService = {
       _session = null;
       throw error;
     }
+    notifySessionListeners("restore");
     return this.account;
   },
 
@@ -185,6 +324,7 @@ export const walletConnectService = {
         .catch(() => {});
     }
     _session = null;
+    notifySessionListeners("disconnect");
   },
 
   get isConnected() {
@@ -193,11 +333,9 @@ export const walletConnectService = {
 
   get account() {
     if (!_session) return null;
-    const accounts = _session.namespaces?.neo3?.accounts || [];
-    if (!accounts.length) return null;
-    // Format: "neo3:mainnet:NAddress"
-    const address = accounts[0].split(":")[2];
-    return { address, label: "WalletConnect" };
+    const account = getPreferredSessionAccount();
+    if (!account?.address) return null;
+    return { address: account.address, label: "WalletConnect" };
   },
 
   ensureNetworkCompatible() {

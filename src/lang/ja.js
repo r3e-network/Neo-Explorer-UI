@@ -2040,6 +2040,7 @@ const ja = {
       oneGateNotDetected: "OneGate ウォレットが検出されませんでした",
       connectionCanceled: "ユーザーによって接続がキャンセルされました。",
       networkMismatchSwitch: "ネットワークが一致しません。ウォレットを {env} に切り替えて再試行してください。",
+      networkUnknown: "{provider} は現在のネットワークを返しませんでした。再接続するかウォレットのネットワークを切り替えてから再試行してください。",
       directWifLocalOnly: "直接 WIF テストはローカル開発でのみ使用できます。",
       directWifTestnetOnly: "直接 WIF テストは、エクスプローラーがテストネット上にある場合のみ許可されます。",
       invalidWif: "無効な WIF です。",
@@ -2054,6 +2055,7 @@ const ja = {
       walletConnectNotInitialized: "WalletConnect が初期化されていません",
       walletConnectNotConnected: "WalletConnect が接続されていません",
       walletConnectNoTxid: "WalletConnect は invoke の txid を返しませんでした。",
+      walletConnectNoAccount: "WalletConnect セッションから Neo N3 アカウントが返されませんでした。ウォレットを再接続してから再試行してください。",
       walletConnectNetworkMismatch: "WalletConnect セッションは {sessionChain} 上にあります。{expectedChain} で再接続するか、Explorer のネットワークを切り替えてください。",
     },
     chatSupport: {

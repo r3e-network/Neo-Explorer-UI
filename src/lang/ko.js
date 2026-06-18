@@ -2040,6 +2040,7 @@ const ko = {
       oneGateNotDetected: "OneGate 지갑이 감지되지 않았습니다",
       connectionCanceled: "사용자가 연결을 취소했습니다.",
       networkMismatchSwitch: "네트워크가 일치하지 않습니다. 지갑을 {env}로 전환하고 다시 시도하세요.",
+      networkUnknown: "{provider}가 현재 네트워크를 반환하지 않았습니다. 다시 연결하거나 지갑 네트워크를 전환한 뒤 다시 시도하세요.",
       directWifLocalOnly: "직접 WIF 테스트는 로컬 개발에서만 사용할 수 있습니다.",
       directWifTestnetOnly: "직접 WIF 테스트는 익스플로러가 테스트넷에 있을 때만 허용됩니다.",
       invalidWif: "잘못된 WIF입니다.",
@@ -2054,6 +2055,7 @@ const ko = {
       walletConnectNotInitialized: "WalletConnect가 초기화되지 않았습니다",
       walletConnectNotConnected: "WalletConnect가 연결되지 않았습니다",
       walletConnectNoTxid: "WalletConnect가 invoke에 대한 txid를 반환하지 않았습니다.",
+      walletConnectNoAccount: "WalletConnect 세션이 Neo N3 계정을 반환하지 않았습니다. 지갑을 다시 연결한 뒤 다시 시도하세요.",
       walletConnectNetworkMismatch: "WalletConnect 세션이 {sessionChain}에 있습니다. {expectedChain}에서 다시 연결하거나 Explorer 네트워크를 전환하세요.",
     },
     chatSupport: {

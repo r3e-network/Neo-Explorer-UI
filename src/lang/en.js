@@ -2055,6 +2055,7 @@ const en = {
       walletConnectNotInitialized: "WalletConnect not initialized",
       walletConnectNotConnected: "WalletConnect not connected",
       walletConnectNoTxid: "WalletConnect returned no txid for invoke.",
+      walletConnectNoAccount: "WalletConnect session returned no Neo N3 account. Reconnect the wallet and try again.",
       walletConnectNetworkMismatch: "WalletConnect session is on {sessionChain}; reconnect on {expectedChain} or switch the Explorer network.",
     },
     chatSupport: {

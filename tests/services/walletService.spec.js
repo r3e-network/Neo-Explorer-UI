@@ -50,6 +50,11 @@ const walletConnectInvokeMock = vi.fn(async () => ({ txid: "0xwalletconnect" }))
 const walletConnectSignMessageMock = vi.fn(async () => ({ data: "wc-signature" }));
 const walletConnectDisconnectMock = vi.fn();
 const walletConnectRestoreSessionMock = vi.fn(async () => null);
+const walletConnectOnSessionChangeMock = vi.fn((handler) => {
+  walletConnectSessionChangeHandler = handler;
+  return vi.fn();
+});
+let walletConnectSessionChangeHandler = null;
 const walletConnectAccount = { address: "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM", label: "WalletConnect" };
 const directWifHexSignMock = vi.fn(() => "f".repeat(128));
 const DIRECT_WIF = "LtestDirectWif11111111111111111111111111111111111111111111";
@@ -228,6 +233,7 @@ vi.mock("../../src/services/walletConnectService.js", () => ({
     invoke: walletConnectInvokeMock,
     signMessage: walletConnectSignMessageMock,
     disconnect: walletConnectDisconnectMock,
+    onSessionChange: walletConnectOnSessionChangeMock,
   },
 }));
 
@@ -266,13 +272,18 @@ describe("walletService", () => {
       neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: network });
       return { defaultNetwork: network };
     });
-    neoLineSwitchWalletAccountMock.mockReset();
+    neoLineSwitchWalletAccountMock.mockReset().mockResolvedValue({
+      address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+      label: "NeoLine",
+    });
     delete window.NEOLine;
     delete window.NEOLineN3;
     delete window.OneGate;
     delete window.neo;
     delete window.ethereum;
     localStorage.clear();
+    walletConnectSessionChangeHandler = null;
+    walletConnectOnSessionChangeMock.mockClear();
   });
 
   it("converts script to HexString/base64 before invokescript RPC and sends Transaction object for broadcast", async () => {
@@ -551,6 +562,53 @@ describe("walletService", () => {
       address: walletConnectAccount.address,
       label: walletService.PROVIDERS.NEON,
     });
+  });
+
+  it("clears WalletConnect-style global wallet state when the wallet deletes the session remotely", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+
+    const result = await walletService.connect(walletService.PROVIDERS.NEON);
+    await result.approval;
+
+    expect(walletService.isConnected).toBe(true);
+    expect(walletState.connectedAccount.value).toBe(walletConnectAccount.address);
+    expect(localStorage.getItem("connectedWallet")).toBe(walletConnectAccount.address);
+    expect(walletConnectSessionChangeHandler).toEqual(expect.any(Function));
+
+    walletConnectSessionChangeHandler({ connected: false, account: null, reason: "session_delete" });
+
+    expect(walletService.isConnected).toBe(false);
+    expect(walletService.account).toBeNull();
+    expect(walletState.connectedAccount.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
+  it("updates WalletConnect-style global wallet state when the wallet reports an account change", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+
+    const result = await walletService.connect(walletService.PROVIDERS.WALLETCONNECT);
+    await result.approval;
+
+    walletConnectSessionChangeHandler({
+      connected: true,
+      account: { address: "NChangedWalletConnectAccount", label: "WalletConnect" },
+      reason: "accountChanged",
+    });
+
+    expect(walletService.isConnected).toBe(true);
+    expect(walletService.account).toEqual({
+      address: "NChangedWalletConnectAccount",
+      label: walletService.PROVIDERS.WALLETCONNECT,
+    });
+    expect(walletState.connectedAccount.value).toBe("NChangedWalletConnectAccount");
+    expect(localStorage.getItem("connectedWallet")).toBe("NChangedWalletConnectAccount");
+    expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.WALLETCONNECT);
   });
 
   it("connects to the direct testnet WIF provider without persisting session state", async () => {
@@ -1052,6 +1110,66 @@ describe("walletService", () => {
       label: walletService.PROVIDERS.NEOLINE,
     });
     expect(walletService.account).toEqual(nextAccount);
+  });
+
+  it("rechecks and switches the NeoLine network after switching accounts", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+          switchWalletAccount: neoLineSwitchWalletAccountMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    neoLineSwitchNetworkMock.mockClear();
+    neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: "N3TestNet" });
+
+    await walletService.switchWalletAccount();
+
+    expect(neoLineSwitchWalletAccountMock).toHaveBeenCalledTimes(1);
+    expect(neoLineSwitchNetworkMock).toHaveBeenCalledWith({ network: "N3MainNet" });
+  });
+
+  it("rejects NeoLine account switching when the wallet no longer reports a network", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          getPublicKey: neoLineGetPublicKeyMock,
+          invoke: neoLineInvokeMock,
+          signTransaction: neoLineSignTransactionMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+          switchWalletAccount: neoLineSwitchWalletAccountMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: "" });
+    neoLineSwitchNetworkMock.mockResolvedValue({ defaultNetwork: "" });
+
+    await expect(walletService.switchWalletAccount()).rejects.toThrow(
+      /NeoLine did not report its active network/i,
+    );
+    expect(walletState.connectedAccount.value).toBe("Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv");
+    expect(walletState.walletNetworkError.value).toMatch(/NeoLine did not report its active network/i);
   });
 
   it("waits for a NeoLine connected event instead of immediately retrying account authorization", async () => {

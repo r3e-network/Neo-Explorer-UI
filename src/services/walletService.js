@@ -171,12 +171,38 @@ function getCompatTransactionClass(sdk) {
 
 let walletConnectServicePromise = null;
 let web3authServicePromise = null;
+let walletConnectSessionUnsubscribe = null;
 
 async function loadWalletConnectService() {
   if (!walletConnectServicePromise) {
     walletConnectServicePromise = import("./walletConnectService").then((module) => module.walletConnectService);
   }
   return walletConnectServicePromise;
+}
+
+async function loadWalletConnectServiceWithSessionSync() {
+  const walletConnectService = await loadWalletConnectService();
+  if (!walletConnectSessionUnsubscribe && typeof walletConnectService.onSessionChange === "function") {
+    walletConnectSessionUnsubscribe = walletConnectService.onSessionChange((event = {}) => {
+      if (_connectedProvider !== PROVIDERS.WALLETCONNECT && _connectedProvider !== PROVIDERS.NEON) return;
+
+      if (!event.connected || event.error || !event.account?.address) {
+        _networkError = event.error?.message || "";
+        _connectedProvider = null;
+        _account = null;
+        broadcastWalletStateChange();
+        return;
+      }
+
+      _account = {
+        ...event.account,
+        label: _connectedProvider,
+      };
+      _networkError = "";
+      broadcastWalletStateChange();
+    });
+  }
+  return walletConnectService;
 }
 
 async function loadWeb3authService() {
@@ -1032,7 +1058,7 @@ export const walletService = {
       if (!projectId) {
         throw new Error(tWallet("wallet.errors.walletConnectNotConfigured", null, "WalletConnect is not configured. Set VITE_WC_PROJECT_ID to enable this wallet."));
       }
-      const walletConnectService = await loadWalletConnectService();
+      const walletConnectService = await loadWalletConnectServiceWithSessionSync();
       await walletConnectService.init(projectId);
       const { uri, approval } = await walletConnectService.connect();
       return {
@@ -1162,7 +1188,7 @@ export const walletService = {
     const projectId = getWalletConnectProjectId();
     if (!projectId) return null;
 
-    const walletConnectService = await loadWalletConnectService();
+    const walletConnectService = await loadWalletConnectServiceWithSessionSync();
     await walletConnectService.init(projectId);
     const account = await walletConnectService.restoreSession();
     if (!account?.address) return null;
@@ -1180,7 +1206,7 @@ export const walletService = {
   /** Disconnect wallet */
   disconnect() {
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
-      void loadWalletConnectService().then((walletConnectService) => {
+      void loadWalletConnectServiceWithSessionSync().then((walletConnectService) => {
         walletConnectService.disconnect();
       }).catch(() => {});
     }
@@ -1229,7 +1255,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
-      const walletConnectService = await loadWalletConnectService();
+      const walletConnectService = await loadWalletConnectServiceWithSessionSync();
       if (typeof walletConnectService.ensureNetworkCompatible === "function") {
         try {
           await walletConnectService.ensureNetworkCompatible();
@@ -1411,7 +1437,7 @@ export const walletService = {
         address: nextAccount.address,
         label: String(nextAccount.label || PROVIDERS.NEOLINE).trim() || PROVIDERS.NEOLINE,
       };
-      broadcastWalletStateChange();
+      await this.ensureNetworkConsistency();
       return _account;
     }
 
@@ -1433,7 +1459,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
-      const walletConnectService = await loadWalletConnectService();
+      const walletConnectService = await loadWalletConnectServiceWithSessionSync();
       return normalizeSignMessageResult(await walletConnectService.signMessage(message));
     }
 
@@ -1534,7 +1560,7 @@ export const walletService = {
     }
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
-      const walletConnectService = await loadWalletConnectService();
+      const walletConnectService = await loadWalletConnectServiceWithSessionSync();
       return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
     }
 

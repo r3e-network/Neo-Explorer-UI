@@ -27,6 +27,12 @@ function makeMockClient() {
   };
 }
 
+function emitClientEvent(name, payload = {}) {
+  const handler = mockClient.on.mock.calls.find(([eventName]) => eventName === name)?.[1];
+  if (typeof handler !== "function") throw new Error(`Missing mock listener for ${name}`);
+  handler(payload);
+}
+
 describe("walletConnectService", () => {
   beforeEach(async () => {
     vi.resetModules();
@@ -55,9 +61,12 @@ describe("walletConnectService", () => {
       expect(signClientInitMock).toHaveBeenCalledTimes(1);
     });
 
-    it("registers a session_delete listener that clears the session", async () => {
+    it("registers lifecycle listeners that keep the dapp session in sync", async () => {
       await walletConnectService.init("p");
       expect(mockClient.on).toHaveBeenCalledWith("session_delete", expect.any(Function));
+      expect(mockClient.on).toHaveBeenCalledWith("session_expire", expect.any(Function));
+      expect(mockClient.on).toHaveBeenCalledWith("session_update", expect.any(Function));
+      expect(mockClient.on).toHaveBeenCalledWith("session_event", expect.any(Function));
     });
   });
 
@@ -68,7 +77,10 @@ describe("walletConnectService", () => {
 
     it("requests neo3:mainnet chain on mainnet env", async () => {
       await walletConnectService.init("p");
-      mockClient.connect.mockResolvedValue({ uri: "wc:abc", approval: () => Promise.resolve({}) });
+      mockClient.connect.mockResolvedValue({
+        uri: "wc:abc",
+        approval: () => Promise.resolve({ topic: "tp", namespaces: { neo3: { accounts: ["neo3:mainnet:NAddr"] } } }),
+      });
       await walletConnectService.connect();
       expect(mockClient.connect).toHaveBeenCalledWith({
         requiredNamespaces: {
@@ -84,7 +96,10 @@ describe("walletConnectService", () => {
     it("requests neo3:testnet on testnet env", async () => {
       getCurrentEnvMock.mockReturnValue("testT5");
       await walletConnectService.init("p");
-      mockClient.connect.mockResolvedValue({ uri: "wc:abc", approval: () => Promise.resolve({}) });
+      mockClient.connect.mockResolvedValue({
+        uri: "wc:abc",
+        approval: () => Promise.resolve({ topic: "tp", namespaces: { neo3: { accounts: ["neo3:testnet:NAddr"] } } }),
+      });
       await walletConnectService.connect();
       expect(mockClient.connect.mock.calls[0][0].requiredNamespaces.neo3.chains).toEqual(["neo3:testnet"]);
     });
@@ -155,6 +170,128 @@ describe("walletConnectService", () => {
       const account = walletConnectService.restoreSession();
       expect(account).toEqual({ address: "NA1", label: "WalletConnect" });
       expect(mockClient.session.getAll).not.toHaveBeenCalled();
+    });
+
+    it("uses the account matching the current explorer network when a session has multiple neo3 accounts", async () => {
+      await walletConnectService.init("p");
+      mockClient.session.getAll.mockReturnValue([
+        {
+          topic: "multi",
+          namespaces: {
+            neo3: {
+              accounts: ["neo3:testnet:NWrongNetwork", "neo3:mainnet:NMainAccount"],
+            },
+          },
+        },
+      ]);
+
+      expect(walletConnectService.restoreSession()).toEqual({ address: "NMainAccount", label: "WalletConnect" });
+      expect(walletConnectService.account).toEqual({ address: "NMainAccount", label: "WalletConnect" });
+    });
+  });
+
+  describe("session lifecycle events", () => {
+    async function setupConnectedSession() {
+      await walletConnectService.init("p");
+      const session = { topic: "tp", namespaces: { neo3: { accounts: ["neo3:mainnet:NAddr"] } } };
+      mockClient.connect.mockResolvedValue({ uri: "u", approval: () => Promise.resolve(session) });
+      await (await walletConnectService.connect()).approval;
+    }
+
+    it("notifies listeners and clears state when the wallet deletes the session remotely", async () => {
+      await setupConnectedSession();
+      const listener = vi.fn();
+      walletConnectService.onSessionChange(listener);
+
+      emitClientEvent("session_delete", { topic: "tp" });
+
+      expect(walletConnectService.isConnected).toBe(false);
+      expect(walletConnectService.account).toBeNull();
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connected: false,
+          account: null,
+          reason: "session_delete",
+        }),
+      );
+    });
+
+    it("updates the active account from session_update namespaces", async () => {
+      await setupConnectedSession();
+      const listener = vi.fn();
+      walletConnectService.onSessionChange(listener);
+
+      emitClientEvent("session_update", {
+        topic: "tp",
+        params: {
+          namespaces: {
+            neo3: {
+              accounts: ["neo3:mainnet:NUpdated"],
+            },
+          },
+        },
+      });
+
+      expect(walletConnectService.isConnected).toBe(true);
+      expect(walletConnectService.account).toEqual({ address: "NUpdated", label: "WalletConnect" });
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connected: true,
+          account: { address: "NUpdated", label: "WalletConnect" },
+          reason: "session_update",
+        }),
+      );
+    });
+
+    it("updates the active account from a WalletConnect accountChanged session_event", async () => {
+      await setupConnectedSession();
+      const listener = vi.fn();
+      walletConnectService.onSessionChange(listener);
+
+      emitClientEvent("session_event", {
+        topic: "tp",
+        chainId: "neo3:mainnet",
+        event: {
+          name: "accountChanged",
+          data: "NEventAccount",
+        },
+      });
+
+      expect(walletConnectService.account).toEqual({ address: "NEventAccount", label: "WalletConnect" });
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connected: true,
+          account: { address: "NEventAccount", label: "WalletConnect" },
+          reason: "accountChanged",
+        }),
+      );
+    });
+
+    it("clears state when a session update moves the wallet to the wrong network", async () => {
+      await setupConnectedSession();
+      const listener = vi.fn();
+      walletConnectService.onSessionChange(listener);
+
+      emitClientEvent("session_update", {
+        topic: "tp",
+        params: {
+          namespaces: {
+            neo3: {
+              accounts: ["neo3:testnet:NWrongNetwork"],
+            },
+          },
+        },
+      });
+
+      expect(walletConnectService.isConnected).toBe(false);
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connected: false,
+          account: null,
+          reason: "session_update",
+          error: expect.any(Error),
+        }),
+      );
     });
   });
 
@@ -281,11 +418,12 @@ describe("walletConnectService", () => {
       expect(walletConnectService.account).toEqual({ address: "NA1234", label: "WalletConnect" });
     });
 
-    it("returns null when session has no neo3 accounts", async () => {
+    it("rejects an approved session with no neo3 accounts", async () => {
       await walletConnectService.init("p");
       const session = { topic: "tp", namespaces: { neo3: { accounts: [] } } };
       mockClient.connect.mockResolvedValue({ uri: "u", approval: () => Promise.resolve(session) });
-      await (await walletConnectService.connect()).approval;
+      await expect((await walletConnectService.connect()).approval).rejects.toThrow(/no Neo N3 account/i);
+      expect(walletConnectService.isConnected).toBe(false);
       expect(walletConnectService.account).toBeNull();
     });
   });
