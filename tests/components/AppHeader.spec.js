@@ -132,7 +132,7 @@ describe("AppHeader wallet CTA", () => {
   });
 
   it("shows all supported wallet options even when only some are available", async () => {
-    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+    walletServiceMock.getAvailableProviders.mockReturnValue([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
       "Google / Email (Web3Auth)",
@@ -174,7 +174,7 @@ describe("AppHeader wallet CTA", () => {
   });
 
   it("renders the wallet modal as a dark floating panel without a fullscreen backdrop tint", async () => {
-    walletServiceMock.getAvailableProviders.mockReturnValueOnce([
+    walletServiceMock.getAvailableProviders.mockReturnValue([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
     ]);
@@ -361,15 +361,104 @@ describe("AppHeader wallet CTA", () => {
     await connectButton.trigger("click");
     await flushPromises();
 
-    const buttons = wrapper.findAll("button");
+    let buttons = wrapper.findAll("button");
     const neonButton = buttons.find((candidate) => candidate.text().includes("Neon Wallet"));
-    const oneGateButton = buttons.find((candidate) => candidate.text().includes("OneGate"));
 
     await neonButton.trigger("click");
+    await flushPromises();
+
+    buttons = wrapper.findAll("button");
+    const oneGateButton = buttons.find((candidate) => candidate.text().includes("OneGate"));
     await oneGateButton.trigger("click");
+    await flushPromises();
 
     expect(window.open).toHaveBeenCalledWith("https://neon.coz.io/", "_blank", "noopener,noreferrer");
     expect(window.open).toHaveBeenCalledWith("https://onegate.space/", "_blank", "noopener,noreferrer");
+  });
+
+  it("refreshes provider availability before connecting a wallet that became available", async () => {
+    walletServiceMock.getAvailableProviders
+      .mockReturnValueOnce(["NeoLine"])
+      .mockReturnValueOnce(["OneGate"]);
+    walletServiceMock.connect.mockResolvedValueOnce({
+      address: "NOneGateAvailableAfterInstall111111111",
+      label: "OneGate",
+    });
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const oneGateButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("OneGate"));
+    expect(oneGateButton.text()).toContain("header.providerOneGate");
+
+    await oneGateButton.trigger("click");
+    await flushPromises();
+
+    expect(window.open).not.toHaveBeenCalled();
+    expect(walletServiceMock.connect).toHaveBeenCalledWith("OneGate");
+    expect(toast.success).toHaveBeenCalledWith("header.connectedAs");
+  });
+
+  it("refreshes the open wallet modal when NeoLine finishes injecting", async () => {
+    walletServiceMock.getAvailableProviders
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce(["NeoLine"]);
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    let neoLineButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("NeoLine"));
+    expect(neoLineButton.text()).toContain("header.providerNeoLine");
+
+    window.dispatchEvent(new Event("NEOLine.N3.EVENT.READY"));
+    await flushPromises();
+
+    neoLineButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("NeoLine"));
+    expect(neoLineButton.text()).not.toContain("header.providerNeoLine");
   });
 
   it("validates an already connected wallet when the Explorer network changes", async () => {

@@ -296,7 +296,37 @@ function getProviderUnavailableReason(provider) {
   return t(getProviderUnavailableReasonKey(provider));
 }
 
+async function refreshWalletProviderAvailability(walletServiceArg = null) {
+  const walletService = walletServiceArg || await loadWalletService();
+  availableProviders.value = typeof walletService.getAvailableProviders === "function"
+    ? walletService.getAvailableProviders()
+    : [];
+  supportedProviders.value = typeof walletService.getSupportedProviders === "function"
+    ? walletService.getSupportedProviders()
+    : availableProviders.value;
+}
+
+function refreshOpenWalletModalAvailability() {
+  if (!showWalletModal.value || connectedAccount.value) return;
+  refreshWalletProviderAvailability().catch(() => {
+    availableProviders.value = [];
+  });
+}
+
+function handleDocumentVisibilityChange() {
+  if (document.visibilityState === "visible") refreshOpenWalletModalAvailability();
+}
+
 async function handleConnect(provider) {
+  let walletService = null;
+  try {
+    walletService = await loadWalletService();
+    await refreshWalletProviderAvailability(walletService);
+  } catch (err) {
+    toast.error(err?.message || t("header.connectWalletFailed"));
+    return;
+  }
+
   if (provider === PROVIDERS.TESTNET_WIF && !isProviderAvailable(provider)) {
     toast.info(getProviderUnavailableReason(provider));
     return;
@@ -313,7 +343,6 @@ async function handleConnect(provider) {
   showWalletModal.value = false;
   walletLoading.value = true;
   try {
-     const walletService = await loadWalletService();
      const result = await walletService.connect(provider);
      if (result?.uri && result?.approval) {
         wcUri.value = result.uri;
@@ -380,10 +409,7 @@ async function toggleWallet() {
       return;
     }
     const walletService = await loadWalletService();
-    availableProviders.value = walletService.getAvailableProviders();
-    supportedProviders.value = typeof walletService.getSupportedProviders === "function"
-      ? walletService.getSupportedProviders()
-      : walletService.getAvailableProviders();
+    await refreshWalletProviderAvailability(walletService);
     showWalletModal.value = true;
   } finally {
     walletLoading.value = false;
@@ -536,6 +562,11 @@ onMounted(async () => {
     if (import.meta.env.DEV) console.error("Failed to load prices:", err);
   }
   window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+  window.addEventListener("focus", refreshOpenWalletModalAvailability);
+  window.addEventListener("NEOLine.NEO.EVENT.READY", refreshOpenWalletModalAvailability);
+  window.addEventListener("NEOLine.N3.EVENT.READY", refreshOpenWalletModalAvailability);
+  window.addEventListener("ethereum#initialized", refreshOpenWalletModalAvailability);
+  document.addEventListener("visibilitychange", handleDocumentVisibilityChange);
   document.addEventListener("click", handleClickOutside);
 });
 
@@ -550,6 +581,11 @@ onDeactivated(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+  window.removeEventListener("focus", refreshOpenWalletModalAvailability);
+  window.removeEventListener("NEOLine.NEO.EVENT.READY", refreshOpenWalletModalAvailability);
+  window.removeEventListener("NEOLine.N3.EVENT.READY", refreshOpenWalletModalAvailability);
+  window.removeEventListener("ethereum#initialized", refreshOpenWalletModalAvailability);
+  document.removeEventListener("visibilitychange", handleDocumentVisibilityChange);
   document.removeEventListener("click", handleClickOutside);
   if (dropdownTimeout) clearTimeout(dropdownTimeout);
 });

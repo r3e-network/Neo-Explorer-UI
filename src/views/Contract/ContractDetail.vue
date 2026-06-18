@@ -215,14 +215,33 @@ async function refreshWriteWalletAvailability(walletServiceArg = null) {
   }
 }
 
+function refreshVisibleWriteWalletAvailability() {
+  if (activeTab.value !== "writeContract" || walletConnected.value) return;
+  refreshWriteWalletAvailability().catch(() => {});
+}
+
+function handleWriteWalletVisibilityChange() {
+  if (document.visibilityState === "visible") refreshVisibleWriteWalletAvailability();
+}
+
 syncWalletStateSnapshot();
 
 if (typeof window !== "undefined") {
   onMounted(() => {
     window.addEventListener(WALLET_STATE_EVENT, handleWalletStateEvent);
+    window.addEventListener("focus", refreshVisibleWriteWalletAvailability);
+    window.addEventListener("NEOLine.NEO.EVENT.READY", refreshVisibleWriteWalletAvailability);
+    window.addEventListener("NEOLine.N3.EVENT.READY", refreshVisibleWriteWalletAvailability);
+    window.addEventListener("ethereum#initialized", refreshVisibleWriteWalletAvailability);
+    document.addEventListener("visibilitychange", handleWriteWalletVisibilityChange);
   });
   onBeforeUnmount(() => {
     window.removeEventListener(WALLET_STATE_EVENT, handleWalletStateEvent);
+    window.removeEventListener("focus", refreshVisibleWriteWalletAvailability);
+    window.removeEventListener("NEOLine.NEO.EVENT.READY", refreshVisibleWriteWalletAvailability);
+    window.removeEventListener("NEOLine.N3.EVENT.READY", refreshVisibleWriteWalletAvailability);
+    window.removeEventListener("ethereum#initialized", refreshVisibleWriteWalletAvailability);
+    document.removeEventListener("visibilitychange", handleWriteWalletVisibilityChange);
   });
 }
 

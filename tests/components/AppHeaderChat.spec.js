@@ -131,8 +131,8 @@ describe("AppHeader chat notifications", () => {
     notificationsRef.value = [];
 
     const { walletService } = await import("@/services/walletService");
-    walletService.getAvailableProviders.mockReturnValueOnce(["NeoLine"]);
-    walletService.getSupportedProviders.mockReturnValueOnce(["NeoLine"]);
+    walletService.getAvailableProviders.mockReturnValue(["NeoLine"]);
+    walletService.getSupportedProviders.mockReturnValue(["NeoLine"]);
     walletServiceConnectMock.mockResolvedValueOnce({
       address: "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w",
     });
