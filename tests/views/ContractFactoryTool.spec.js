@@ -1,6 +1,5 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ref } from "vue";
 
 function fakeT(key, params) {
   if (!params || Object.keys(params).length === 0) return key;
@@ -14,48 +13,13 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: fakeT }),
 }));
 
-const sharedConnectedAccount = ref("");
-const invokeMock = vi.fn();
-const isConnectedRef = { value: false };
-
 const toast = {
-  info: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 };
 
-const walletServiceMock = {
-  get isConnected() { return isConnectedRef.value; },
-  invoke: invokeMock,
-};
-
-class MockAccount {
-  constructor(value) {
-    this.address = value;
-    this.scriptHash = `0x${String(value).slice(0, 40).padEnd(40, "0")}`;
-  }
-}
-
-vi.mock("@/utils/wallet", () => ({
-  connectedAccount: sharedConnectedAccount,
-}));
-
-vi.mock("@/services/walletService", () => ({
-  walletService: walletServiceMock,
-}));
-
 vi.mock("vue-toastification", () => ({
   useToast: () => toast,
-}));
-
-vi.mock("@/utils/neonLoader", () => ({
-  loadNeonJs: () => Promise.resolve({
-    wallet: { Account: MockAccount },
-  }),
-}));
-
-vi.mock("@/constants", () => ({
-  GAS_HASH: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
 }));
 
 const i18nPlugin = {
@@ -77,87 +41,70 @@ async function mountTool() {
   });
 }
 
-describe("ContractFactoryTool deployment guards", () => {
+function buttonByText(wrapper, text) {
+  return wrapper.findAll("button").find((button) => button.text().includes(text));
+}
+
+describe("ContractFactoryTool blueprint generator", () => {
   beforeEach(() => {
-    sharedConnectedAccount.value = "";
-    isConnectedRef.value = false;
-    invokeMock.mockReset();
-    toast.info.mockClear();
     toast.success.mockClear();
     toast.error.mockClear();
-    // Default to demo enabled (DEV-mode equivalent)
-    import.meta.env.VITE_ENABLE_CONTRACT_FACTORY_MOCK = "true";
   });
 
-  it("renders the page header without throwing", async () => {
+  it("renders the template selector and blueprint guidance", async () => {
     const wrapper = await mountTool();
     await flushPromises();
-    // Component mounted; template references templates collection
+
     expect(wrapper.text()).toContain("tools.contractFactory.templates.nep17Name");
+    expect(wrapper.text()).toContain("tools.contractFactory.blueprintModeLabel");
+    expect(wrapper.text()).toContain("tools.contractFactory.blueprintEmpty");
   });
 
-  it("blocks deployment when wallet is not connected", async () => {
-    sharedConnectedAccount.value = ""; // disconnected
+  it("generates a deterministic NEP-17 blueprint from the form", async () => {
     const wrapper = await mountTool();
     await flushPromises();
-    // The deploy CTA is gated by isFormValid + connectedAccount; clicking
-    // when disconnected is a no-op (function early-returns). Verify no
-    // wallet invoke happened.
-    const button = wrapper.findAll("button").find((b) => b.text().toLowerCase().includes("deploy"));
-    if (button) {
-      await button.trigger("click");
-      await flushPromises();
-    }
-    expect(invokeMock).not.toHaveBeenCalled();
-  });
 
-  it("shows demo-disabled toast when factory mock is off and form is filled", async () => {
-    sharedConnectedAccount.value = "Nabc1234567890abcdef1234567890abcdef12";
-    isConnectedRef.value = true;
-    import.meta.env.VITE_ENABLE_CONTRACT_FACTORY_MOCK = "false";
+    const inputs = wrapper.findAll("input");
+    await inputs[3].setValue("Audit Token");
+    await inputs[4].setValue("AUD");
 
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-    const src = fs.readFileSync(
-      path.resolve(process.cwd(), "src/views/Tools/ContractFactoryTool.vue"),
-      "utf8",
-    );
-    // Verify the gate is wired in source — UI assertion would require
-    // also filling the form which is template-driven.
-    expect(src).toMatch(/isFactoryMockEnabled\.value[\s\S]{0,80}demoActionsDisabled/);
+    await buttonByText(wrapper, "tools.contractFactory.generateBlueprint").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("neo3scan.contract-blueprint.v1");
+    expect(wrapper.text()).toContain('"standard": "NEP-17"');
+    expect(wrapper.text()).toContain('"symbol": "AUD"');
+    expect(wrapper.text()).toContain('"deployerPath": "/tools/deployer"');
+    expect(toast.success).toHaveBeenCalledWith("tools.contractFactory.toasts.blueprintGenerated");
   });
 });
 
 describe("ContractFactoryTool source-level invariants", () => {
-  it("uses the GAS_HASH self-transfer trick to simulate factory deploy", async () => {
+  it("does not retain production mock deployment or fake NeoFS upload paths", async () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const src = fs.readFileSync(
       path.resolve(process.cwd(), "src/views/Tools/ContractFactoryTool.vue"),
       "utf8",
     );
-    expect(src).toMatch(/scriptHash:\s*GAS_HASH/);
-    expect(src).toMatch(/operation:\s*['"]transfer['"]/);
-    expect(src).toMatch(/FactoryDeploy:/);
+
+    expect(src).not.toMatch(/FactoryDeploy:/);
+    expect(src).not.toMatch(/GAS_HASH/);
+    expect(src).not.toMatch(/walletService/);
+    expect(src).not.toMatch(/VITE_ENABLE_CONTRACT_FACTORY_MOCK/);
+    expect(src).not.toMatch(/Mock successful upload/);
   });
 
-  it("guards on connectedAccount + isFormValid before deploying", async () => {
+  it("supports copy and download handoff actions", async () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const src = fs.readFileSync(
       path.resolve(process.cwd(), "src/views/Tools/ContractFactoryTool.vue"),
       "utf8",
     );
-    expect(src).toMatch(/!connectedAccount\.value\s*\|\|\s*!isFormValid\.value/);
-  });
 
-  it("rejects with localized noTxId key when wallet returns no txid", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
-    const src = fs.readFileSync(
-      path.resolve(process.cwd(), "src/views/Tools/ContractFactoryTool.vue"),
-      "utf8",
-    );
-    expect(src).toMatch(/tools\.contractFactory\.toasts\.noTxId/);
+    expect(src).toMatch(/navigator\.clipboard/);
+    expect(src).toMatch(/URL\.createObjectURL/);
+    expect(src).toMatch(/deployerPath/);
   });
 });
