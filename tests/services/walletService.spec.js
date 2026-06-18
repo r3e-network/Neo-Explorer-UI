@@ -865,6 +865,34 @@ describe("walletService", () => {
     });
   });
 
+  it("does not commit WalletConnect state after a pending connection is canceled", async () => {
+    let resolveApproval;
+    walletConnectConnectMock.mockResolvedValueOnce({
+      uri: "wc:stale-service-approval",
+      approval: new Promise((resolve) => {
+        resolveApproval = resolve;
+      }),
+    });
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+
+    const result = await walletService.connect(walletService.PROVIDERS.WALLETCONNECT);
+    expect(result.uri).toBe("wc:stale-service-approval");
+
+    walletService.cancelPendingConnection();
+    resolveApproval();
+
+    await expect(result.approval).rejects.toThrow(/canceled or superseded/i);
+    expect(walletConnectDisconnectMock).toHaveBeenCalled();
+    expect(walletService.isConnected).toBe(false);
+    expect(walletService.account).toBeNull();
+    expect(walletState.connectedAccount.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
   it("clears WalletConnect-style global wallet state when the wallet deletes the session remotely", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     const walletState = await import("../../src/utils/walletState.js");

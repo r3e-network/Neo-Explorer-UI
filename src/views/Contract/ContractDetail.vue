@@ -104,7 +104,7 @@
             :wallet-provider-availability-loaded="writeWalletAvailabilityLoaded"
             @connect-wallet="connectWallet"
             @disconnect-wallet="disconnectWallet"
-            @clear-wc-uri="wcUri = ''"
+            @clear-wc-uri="cancelPendingWriteWalletConnectApproval"
             @toggle-method="toggleWriteMethod"
             @invoke-method="invokeWriteMethod"
             @update-param="updateWriteParam"
@@ -171,12 +171,34 @@ const writeAvailableProviders = ref([]);
 const writeWalletAvailabilityLoaded = ref(false);
 const { txStatuses, track: trackTx } = useTransactionTracker();
 let walletServicePromise = null;
+let writeWalletConnectionAttemptId = 0;
+let pendingWriteWalletConnectService = null;
 
 function getWalletService() {
   if (!walletServicePromise) {
     walletServicePromise = loadWalletService();
   }
   return walletServicePromise;
+}
+
+function beginWriteWalletConnectionAttempt() {
+  writeWalletConnectionAttemptId += 1;
+  wcUri.value = "";
+  pendingWriteWalletConnectService?.cancelPendingConnection?.();
+  pendingWriteWalletConnectService = null;
+  return writeWalletConnectionAttemptId;
+}
+
+function cancelPendingWriteWalletConnectApproval() {
+  writeWalletConnectionAttemptId += 1;
+  wcUri.value = "";
+  const walletService = pendingWriteWalletConnectService;
+  pendingWriteWalletConnectService = null;
+  walletService?.cancelPendingConnection?.();
+}
+
+function isCurrentWriteWalletConnectionAttempt(attemptId) {
+  return attemptId === writeWalletConnectionAttemptId;
 }
 
 function syncWalletStateSnapshot(snapshot = {}) {
@@ -417,6 +439,7 @@ watch(
 
 // --- Wallet Methods ---
 async function connectWallet(providerName) {
+  const connectionAttemptId = beginWriteWalletConnectionAttempt();
   walletConnecting.value = true;
   walletError.value = "";
   try {
@@ -433,28 +456,43 @@ async function connectWallet(providerName) {
     }
 
     const result = await walletService.connect(providerName);
+    if (!isCurrentWriteWalletConnectionAttempt(connectionAttemptId)) return;
     if (result?.uri && result?.approval) {
+      pendingWriteWalletConnectService = walletService;
       wcUri.value = result.uri;
       walletConnecting.value = false;
-      const account = await result.approval;
-      wcUri.value = "";
-      walletConnected.value = true;
-      walletAccount.value = account;
-      walletProvider.value = providerName;
+      try {
+        const account = await result.approval;
+        if (!isCurrentWriteWalletConnectionAttempt(connectionAttemptId) || !account?.address) return;
+        pendingWriteWalletConnectService = null;
+        wcUri.value = "";
+        walletConnected.value = true;
+        walletAccount.value = account;
+        walletProvider.value = providerName;
+      } catch (err) {
+        if (!isCurrentWriteWalletConnectionAttempt(connectionAttemptId)) return;
+        pendingWriteWalletConnectService = null;
+        wcUri.value = "";
+        walletError.value = err?.message || t("contract.walletConnectFailed");
+      }
       return;
     }
+    if (!isCurrentWriteWalletConnectionAttempt(connectionAttemptId)) return;
     walletConnected.value = true;
     walletAccount.value = result;
     walletProvider.value = providerName;
   } catch (err) {
+    if (!isCurrentWriteWalletConnectionAttempt(connectionAttemptId)) return;
     wcUri.value = "";
+    pendingWriteWalletConnectService = null;
     walletError.value = err?.message || t("contract.walletConnectFailed");
   } finally {
-    walletConnecting.value = false;
+    if (isCurrentWriteWalletConnectionAttempt(connectionAttemptId)) walletConnecting.value = false;
   }
 }
 
 async function disconnectWallet() {
+  cancelPendingWriteWalletConnectApproval();
   const walletService = await getWalletService();
   walletService.disconnect();
   walletConnected.value = false;

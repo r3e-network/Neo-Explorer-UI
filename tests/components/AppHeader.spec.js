@@ -35,6 +35,7 @@ const walletServiceMock = {
   getSupportedProviders: vi.fn(() => []),
   connect: vi.fn(),
   disconnect: vi.fn(),
+  cancelPendingConnection: vi.fn(),
   ensureNetworkConsistency: vi.fn(),
 };
 
@@ -419,6 +420,62 @@ describe("AppHeader wallet CTA", () => {
     expect(window.open).not.toHaveBeenCalled();
     expect(walletServiceMock.connect).toHaveBeenCalledWith("OneGate");
     expect(toast.success).toHaveBeenCalledWith("header.connectedAs");
+  });
+
+  it("does not connect from a stale WalletConnect approval after the QR modal is closed", async () => {
+    let resolveApproval;
+    walletServiceMock.getAvailableProviders.mockReturnValue(["WalletConnect"]);
+    walletServiceMock.connect.mockResolvedValueOnce({
+      uri: "wc:stale-header-approval",
+      approval: new Promise((resolve) => {
+        resolveApproval = resolve;
+      }),
+    });
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const walletConnectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().includes("WalletConnect"));
+    await walletConnectButton.trigger("click");
+    await flushPromises();
+
+    const walletConnectModal = wrapper.findComponent({ name: "WalletConnectModal" });
+    expect(walletConnectModal.exists()).toBe(true);
+
+    walletConnectModal.vm.$emit("close");
+    await flushPromises();
+
+    resolveApproval({ address: "NStaleWalletConnectApproval111111111111" });
+    await flushPromises();
+
+    expect(walletServiceMock.cancelPendingConnection).toHaveBeenCalledTimes(1);
+    expect(connectedAccountRef.value).toBeNull();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(wrapper.findComponent({ name: "WalletConnectModal" }).exists()).toBe(false);
   });
 
   it("refreshes the open wallet modal when NeoLine finishes injecting", async () => {

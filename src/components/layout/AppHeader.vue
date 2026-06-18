@@ -179,7 +179,7 @@
       @dev-wif-connect="handleDevWifConnect"
     />
     
-    <WalletConnectModal v-if="wcUri" :uri="wcUri" :visible="!!wcUri" @close="wcUri = ''" />
+    <WalletConnectModal v-if="wcUri" :uri="wcUri" :visible="!!wcUri" @close="cancelPendingWalletConnectApproval" />
 
   </header>
 </template>
@@ -287,6 +287,28 @@ const availableProviders = ref([]);
 const supportedProviders = ref([]);
 const wcUri = ref("");
 let walletNetworkValidationPromise = null;
+let walletConnectionAttemptId = 0;
+let pendingWalletConnectService = null;
+
+function beginWalletConnectionAttempt() {
+  walletConnectionAttemptId += 1;
+  wcUri.value = "";
+  pendingWalletConnectService?.cancelPendingConnection?.();
+  pendingWalletConnectService = null;
+  return walletConnectionAttemptId;
+}
+
+function cancelPendingWalletConnectApproval() {
+  walletConnectionAttemptId += 1;
+  wcUri.value = "";
+  const walletService = pendingWalletConnectService;
+  pendingWalletConnectService = null;
+  walletService?.cancelPendingConnection?.();
+}
+
+function isCurrentWalletConnectionAttempt(attemptId) {
+  return attemptId === walletConnectionAttemptId;
+}
 
 function isProviderAvailable(provider) {
   return availableProviders.value.includes(provider);
@@ -341,63 +363,76 @@ async function handleConnect(provider) {
     return;
   }
   showWalletModal.value = false;
+  const connectionAttemptId = beginWalletConnectionAttempt();
   walletLoading.value = true;
   try {
-     const result = await walletService.connect(provider);
-     if (result?.uri && result?.approval) {
-        wcUri.value = result.uri;
-        walletLoading.value = false;
+    const result = await walletService.connect(provider);
+    if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
+    if (result?.uri && result?.approval) {
+      pendingWalletConnectService = walletService;
+      wcUri.value = result.uri;
+      walletLoading.value = false;
 
-        try {
-          const account = await result.approval;
-          wcUri.value = "";
-          connectedAccount.value = account.address;
-          await bootstrapChatSession();
-          toast.success(t("header.connectedAs", { address: truncateHash(account.address, 6, 4) }));
-        } catch(e) {
-          wcUri.value = "";
-          toast.error(e?.message || t("header.walletConnectRejected"));
-        }
-        return;
-     }
-     
-     if (result && result.address) {
-       connectedAccount.value = result.address;
-       showWalletModal.value = false;
-       await bootstrapChatSession();
-       toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
-     }
-  } catch (err) {
-     let errMsg = err?.message;
-     if (!errMsg && err?.description) errMsg = err.description;
-     if (!errMsg && err?.error?.message) errMsg = err.error.message;
-     toast.error(errMsg || t("header.connectWalletFailed"));
-  } finally {
-     walletLoading.value = false;
-  }
-}
+      try {
+        const account = await result.approval;
+        if (!isCurrentWalletConnectionAttempt(connectionAttemptId) || !account?.address) return;
+        wcUri.value = "";
+        pendingWalletConnectService = null;
+        connectedAccount.value = account.address;
+        await bootstrapChatSession();
+        toast.success(t("header.connectedAs", { address: truncateHash(account.address, 6, 4) }));
+      } catch (e) {
+        if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
+        wcUri.value = "";
+        pendingWalletConnectService = null;
+        toast.error(e?.message || t("header.walletConnectRejected"));
+      }
+      return;
+    }
 
-async function handleDevWifConnect(wif) {
-  walletLoading.value = true;
-  try {
-    const walletService = await loadWalletService();
-    const result = await walletService.connect(PROVIDERS.TESTNET_WIF, { wif });
     if (result?.address) {
+      if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
       connectedAccount.value = result.address;
       showWalletModal.value = false;
       await bootstrapChatSession();
       toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
     }
   } catch (err) {
+    if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
+    let errMsg = err?.message;
+    if (!errMsg && err?.description) errMsg = err.description;
+    if (!errMsg && err?.error?.message) errMsg = err.error.message;
+    toast.error(errMsg || t("header.connectWalletFailed"));
+  } finally {
+    if (isCurrentWalletConnectionAttempt(connectionAttemptId)) walletLoading.value = false;
+  }
+}
+
+async function handleDevWifConnect(wif) {
+  const connectionAttemptId = beginWalletConnectionAttempt();
+  walletLoading.value = true;
+  try {
+    const walletService = await loadWalletService();
+    const result = await walletService.connect(PROVIDERS.TESTNET_WIF, { wif });
+    if (result?.address) {
+      if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
+      connectedAccount.value = result.address;
+      showWalletModal.value = false;
+      await bootstrapChatSession();
+      toast.success(t("header.connectedAs", { address: truncateHash(result.address, 6, 4) }));
+    }
+  } catch (err) {
+    if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
     const errMsg = err?.message || err?.description || t("header.connectWalletFailed");
     toast.error(errMsg);
   } finally {
-    walletLoading.value = false;
+    if (isCurrentWalletConnectionAttempt(connectionAttemptId)) walletLoading.value = false;
   }
 }
 
 async function toggleWallet() {
   if (walletLoading.value) return;
+  cancelPendingWalletConnectApproval();
   walletLoading.value = true;
   try {
     if (connectedAccount.value) {

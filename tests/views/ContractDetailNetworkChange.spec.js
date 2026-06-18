@@ -15,6 +15,7 @@ const getVerifiedByHash = vi.fn();
 const invokeRead = vi.fn();
 const connect = vi.fn();
 const disconnect = vi.fn();
+const cancelPendingConnection = vi.fn();
 const invoke = vi.fn();
 const getAvailableProviders = vi.fn();
 const getSupportedProviders = vi.fn();
@@ -22,6 +23,7 @@ const getSupportedProviders = vi.fn();
 const walletServiceMock = {
   connect,
   disconnect,
+  cancelPendingConnection,
   invoke,
   isConnected: false,
   account: null,
@@ -166,6 +168,77 @@ describe("ContractDetail network changes", () => {
     await flushPromises();
 
     expect(wrapper.get('[data-test="write-panel"]').text()).toBe("true|NeoLine");
+    wrapper.unmount();
+  });
+
+  it("does not mark the write tab connected from a stale WalletConnect approval after closing the QR modal", async () => {
+    let resolveApproval;
+    getAvailableProviders.mockReturnValue(["WalletConnect"]);
+    connect.mockResolvedValueOnce({
+      uri: "wc:stale-contract-write",
+      approval: new Promise((resolve) => {
+        resolveApproval = resolve;
+      }),
+    });
+
+    const ContractDetail = (await import("@/views/Contract/ContractDetail.vue")).default;
+    const wrapper = mount(ContractDetail, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          ScCallTable: true,
+          EventsTable: true,
+          ErrorState: true,
+          ContractHeader: true,
+          ContractOverviewCard: true,
+          ContractCodeTab: true,
+          ContractReadTab: true,
+          TabsNav: {
+            props: ["tabs", "modelValue"],
+            emits: ["update:modelValue"],
+            template: '<button data-test="write-tab" @click="$emit(\'update:modelValue\', \'writeContract\')">Write</button>',
+          },
+          ContractWriteTab: {
+            props: [
+              "walletConnected",
+              "walletAccount",
+              "walletProvider",
+              "walletConnecting",
+              "walletError",
+              "wcUri",
+            ],
+            emits: ["connectWallet", "clearWcUri"],
+            template: `
+              <div data-test="write-panel">
+                <button data-test="connect-walletconnect" @click="$emit('connectWallet', 'WalletConnect')">WalletConnect</button>
+                <button v-if="wcUri" data-test="close-walletconnect" @click="$emit('clearWcUri')">Close</button>
+                <span data-test="wc-uri">{{ wcUri }}</span>
+                <span data-test="connected-address">{{ walletConnected ? walletAccount?.address : '' }}</span>
+              </div>
+            `,
+          },
+        },
+      },
+    });
+
+    await flushPromises();
+    await wrapper.get('[data-test="write-tab"]').trigger("click");
+    await flushPromises();
+
+    await wrapper.get('[data-test="connect-walletconnect"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get('[data-test="wc-uri"]').text()).toBe("wc:stale-contract-write");
+    await wrapper.get('[data-test="close-walletconnect"]').trigger("click");
+    await flushPromises();
+
+    resolveApproval({ address: "NStaleContractWriteApproval1111111111" });
+    await flushPromises();
+
+    expect(cancelPendingConnection).toHaveBeenCalledTimes(1);
+    expect(wrapper.get('[data-test="wc-uri"]').text()).toBe("");
+    expect(wrapper.get('[data-test="connected-address"]').text()).toBe("");
     wrapper.unmount();
   });
 });

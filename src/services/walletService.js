@@ -42,6 +42,7 @@ let _account = null;
 let _neolineN3 = null;
 let _directWifAccount = null;
 let _networkError = "";
+let _connectionAttemptId = 0;
 
 // EIP-1193 listener bookkeeping. We hold references so we can detach them
 // cleanly on disconnect (window.ethereum survives the wallet session).
@@ -143,6 +144,28 @@ function broadcastWalletStateChange() {
     // CustomEvent may not be available in some non-browser environments — best-effort only.
   }
 }
+
+function beginConnectionAttempt() {
+  _connectionAttemptId += 1;
+  return _connectionAttemptId;
+}
+
+function isCurrentConnectionAttempt(attemptId) {
+  return attemptId === _connectionAttemptId;
+}
+
+function assertCurrentConnectionAttempt(attemptId) {
+  if (!isCurrentConnectionAttempt(attemptId)) {
+    throw new Error(
+      tWallet(
+        "wallet.errors.connectionSuperseded",
+        null,
+        "Wallet connection was canceled or superseded by a newer request.",
+      ),
+    );
+  }
+}
+
 const AA_ALLOWED_META_METHODS = new Set(
   Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : [],
 );
@@ -1051,10 +1074,18 @@ async function buildRawTransactionSigningPayload(unsignedTxHex) {
  * @param {function(): (Promise<object>|object)} opts.getDapiFn - Returns the dapi instance (may be async)
  * @param {function(object): Promise<{address:string, label?:string}>} opts.getAccountFn - Retrieves account from dapi
  * @param {{testnet:string, mainnet:string}} opts.switchTarget - Network names for auto-switch
+ * @param {number} opts.connectionAttemptId - Last-write-wins guard for async connects
  * @param {boolean} [opts.logNetworkMismatch=true] - Whether to log initial mismatch warning in DEV
  * @returns {Promise<{address:string, label:string}>}
  */
-async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switchTarget, logNetworkMismatch = true }) {
+async function connectDapiWallet({
+  providerName,
+  getDapiFn,
+  getAccountFn,
+  switchTarget,
+  connectionAttemptId,
+  logNetworkMismatch = true,
+}) {
   const dapi = await getDapiFn();
   let account = await getAccountFn(dapi);
 
@@ -1075,6 +1106,7 @@ async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switch
   if (shouldRefreshAccountAfterNetworkSwitch) {
     account = await readDapiAccount(dapi, providerName);
   }
+  assertCurrentConnectionAttempt(connectionAttemptId);
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
   _networkError = "";
@@ -1177,6 +1209,8 @@ export const walletService = {
    * @returns {Promise<{address: string, label: string}>}
    */
   async connect(providerName, options = {}) {
+    const connectionAttemptId = beginConnectionAttempt();
+
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
       return connectDapiWallet({
@@ -1184,6 +1218,7 @@ export const walletService = {
         getDapiFn: getNeoLineN3,
         getAccountFn: (n3) => requestNeoLineAccount(n3),
         switchTarget: { testnet: "N3TestNet", mainnet: "N3MainNet" },
+        connectionAttemptId,
       });
     }
 
@@ -1195,6 +1230,7 @@ export const walletService = {
         getDapiFn: () => dapi,
         getAccountFn: (d) => requestAccountWithDeniedRetry(PROVIDERS.ONEGATE, () => d.getAccount()),
         switchTarget: { testnet: "TestNet", mainnet: "MainNet" },
+        connectionAttemptId,
       });
     }
 
@@ -1215,6 +1251,7 @@ export const walletService = {
         throw new Error(tWallet("wallet.errors.invalidWif", null, "Invalid WIF."));
       }
 
+      assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.TESTNET_WIF;
       _directWifAccount = account;
       _account = {
@@ -1234,9 +1271,18 @@ export const walletService = {
       const walletConnectService = await loadWalletConnectServiceWithSessionSync();
       await walletConnectService.init(projectId);
       const { uri, approval } = await walletConnectService.connect();
+      assertCurrentConnectionAttempt(connectionAttemptId);
       return {
         uri,
-        approval: approval.then(() => {
+        approval: approval.then(async () => {
+          if (!isCurrentConnectionAttempt(connectionAttemptId)) {
+            try {
+              await walletConnectService.disconnect();
+            } catch {
+              // Best-effort cleanup; the stale approval must not commit state.
+            }
+            assertCurrentConnectionAttempt(connectionAttemptId);
+          }
           _connectedProvider = providerName;
           _account = {
             ...(walletConnectService.account || {}),
@@ -1254,6 +1300,7 @@ export const walletService = {
       }
       const web3authService = await loadWeb3authService();
       const account = await web3authService.connect();
+      assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
       broadcastWalletStateChange();
@@ -1313,14 +1360,16 @@ export const walletService = {
           if (!pubKeyMatchesEvmAddress(uncompressedPubKey)) {
             throw new Error("Recovered public key does not match the connected EVM address.");
           }
-          localStorage.setItem(`evm_pubkey_${evmAddress}`, uncompressedPubKey);
         } catch (e) {
           throw new Error(tWallet("wallet.errors.aaSignatureRequired", null, "Signature is required to generate your Abstract Account identity."));
         }
+        assertCurrentConnectionAttempt(connectionAttemptId);
+        localStorage.setItem(`evm_pubkey_${evmAddress}`, uncompressedPubKey);
       }
 
       const neoAddress = await deriveEvmNeoAddressFromPublicKey(uncompressedPubKey);
 
+      assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
       attachEvmListeners();
@@ -1379,8 +1428,13 @@ export const walletService = {
     return _account;
   },
 
+  cancelPendingConnection() {
+    beginConnectionAttempt();
+  },
+
   /** Disconnect wallet */
   disconnect() {
+    beginConnectionAttempt();
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       void loadWalletConnectServiceWithSessionSync().then((walletConnectService) => {
         walletConnectService.disconnect();
