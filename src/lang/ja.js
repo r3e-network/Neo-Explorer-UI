@@ -1487,6 +1487,7 @@ const ja = {
     unableToLoad: "実行トレースを読み込めません",
     noCallMap: "呼び出しマップは利用できません",
     failedToLoad: "実行トレースの読み込みに失敗しました",
+    traceStillLoading: "トレースを読み込み中です。結果は自動的に表示されます。",
     toggleExecution: "実行 {n} を切り替え：{trigger} ({vmState})",
   },
   candidatesPage: {

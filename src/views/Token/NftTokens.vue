@@ -181,6 +181,7 @@ const loading = ref(true);
 const { t } = useI18n();
 const error = ref(null);
 const viewMode = ref("grid");
+const NFT_ITEMS_LOAD_TIMEOUT_MS = 4500;
 
 const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / resultsPerPage)));
 
@@ -189,6 +190,26 @@ const CONCURRENCY_LIMIT = 5;
 
 let fetchGeneration = 0;
 
+function createTimeoutError(timeoutMs) {
+  const err = new Error(`NFT items request timed out after ${timeoutMs}ms`);
+  err.name = "TimeoutError";
+  return err;
+}
+
+async function withTimeout(promise, timeoutMs) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(createTimeoutError(timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Fetch NFT properties in batches of CONCURRENCY_LIMIT to avoid
  * saturating the browser connection pool.
@@ -196,7 +217,6 @@ let fetchGeneration = 0;
 async function fetchNftProperties(generation) {
   const items = tableData.value;
   if (items.length === 0) {
-    loading.value = false;
     return;
   }
 
@@ -223,8 +243,6 @@ async function fetchNftProperties(generation) {
       };
     });
   }
-
-  if (generation === fetchGeneration) loading.value = false;
 }
 
 async function loadNftItems(skip = 0) {
@@ -233,12 +251,16 @@ async function loadNftItems(skip = 0) {
   loading.value = true;
   error.value = null;
   try {
-    const res = await tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip);
+    const res = await withTimeout(
+      tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip),
+      NFT_ITEMS_LOAD_TIMEOUT_MS,
+    );
     if (myGeneration !== fetchGeneration) return;
     tableData.value = res?.result || [];
     totalCount.value = res?.totalCount || 0;
+    loading.value = false;
     fetchNftProperties(myGeneration).catch(() => {
-      if (myGeneration === fetchGeneration) loading.value = false;
+      if (import.meta.env.DEV) console.warn("Failed to load NFT metadata");
     });
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;

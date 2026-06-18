@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = fs.readFileSync(path.resolve(process.cwd(), "src/views/Transaction/TxExecutionTrace.vue"), "utf8");
+const traceViewSource = fs.readFileSync(path.resolve(process.cwd(), "src/components/trace/ExecutionTraceView.vue"), "utf8");
 
 describe("TxExecutionTrace source", () => {
   it("keeps the transaction hash header shrinkable on mobile", () => {
@@ -14,5 +15,11 @@ describe("TxExecutionTrace source", () => {
   it("keeps the summary panels from skeleton-loading indefinitely", () => {
     expect(source).toContain("TRACE_SUMMARY_SOFT_TIMEOUT_MS");
     expect(source).toContain("timedOut");
+  });
+
+  it("keeps the detailed trace panel from skeleton-loading indefinitely", () => {
+    expect(traceViewSource).toContain("TRACE_VIEW_SOFT_TIMEOUT_MS");
+    expect(traceViewSource).toContain("backgroundPending");
+    expect(traceViewSource).toContain("traceStillLoading");
   });
 });

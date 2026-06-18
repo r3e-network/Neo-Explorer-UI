@@ -1,4 +1,6 @@
 import { mount, flushPromises } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const COZ_ADDRESS = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
@@ -8,7 +10,7 @@ const voteForCandidateMock = vi.hoisted(() => vi.fn());
 const unvoteCandidateMock = vi.hoisted(() => vi.fn());
 const getValidatorMetadataMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const toastInfoMock = vi.hoisted(() => vi.fn());
-const executeMock = vi.hoisted(() => vi.fn());
+const safeRpcMock = vi.hoisted(() => vi.fn());
 const connectedAccountRef = vi.hoisted(() => ({ value: null }));
 
 vi.mock("vue-i18n", () => ({
@@ -68,67 +70,33 @@ vi.mock("@/utils/logoOptimization", () => ({
   resolveCandidateLogoUrl: (value) => value,
 }));
 
-vi.mock("@cityofzion/neon-js", () => {
-  // The Governance view now resolves neon-js via @/utils/neonLoader, which
-  // only treats a value as the SDK when both `tx.Transaction.deserialize`
-  // and `rpc.RPCClient` are present. Provide both so loadNeonJs() returns
-  // this mock instead of falling back to null.
-  const Query = class {
-    constructor(config) {
-      this.config = config || {};
+vi.mock("@/services/api", () => ({
+  safeRpc: safeRpcMock,
+}));
+
+function mockSafeRpc({
+  candidates = [{ publickey: CANDIDATE_PUBKEY, votes: "100", active: true }],
+  accountState = { stack: [{ type: "Any" }] },
+  gasPerBlockRaw = "100000000",
+} = {}) {
+  safeRpcMock.mockImplementation(async (method, params = []) => {
+    if (method === "getcandidates") return candidates;
+    if (method === "invokefunction" && params[1] === "getGasPerBlock") {
+      return { state: "HALT", stack: [{ type: "Integer", value: gasPerBlockRaw }] };
     }
-    static invokeFunction(scriptHash, method, params, signers) {
-      return new Query({ method: "invokefunction", params: [scriptHash, method, params, signers] });
+    if (method === "invokefunction" && params[1] === "getAccountState") {
+      return accountState;
     }
-  };
-  const RPCClient = class {
-    async execute(query) {
-      return executeMock(query);
-    }
-    async invokeFunction(scriptHash, method, params, signers) {
-      return executeMock(Query.invokeFunction(scriptHash, method, params, signers));
-    }
-  };
-  const Transaction = class {
-    static deserialize() {
-      return new Transaction();
-    }
-  };
-  const neonMock = {
-    rpc: { RPCClient, Query },
-    tx: { Transaction },
-  };
-  neonMock.default = neonMock;
-  return neonMock;
-});
+    return null;
+  });
+}
 
 describe("Governance view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.Neon = {
-      rpc: {
-        RPCClient: class {
-          async getCandidates() {
-            return executeMock({ config: { method: "getcandidates" } });
-          }
-          async invokeFunction(_scriptHash, _method, _params, _signers) {
-            return executeMock({ config: { method: "invokefunction" } });
-          }
-        },
-      },
-    };
     connectedAccountRef.value = null;
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
-    executeMock.mockImplementation((query) => {
-      const method = query?.config?.method;
-      if (method === "getcandidates") {
-        return [{ publickey: CANDIDATE_PUBKEY, votes: "100", active: true }];
-      }
-      if (method === "invokefunction") {
-        return { stack: [{ type: "Any" }] };
-      }
-      return [];
-    });
+    mockSafeRpc();
     getValidatorMetadataMock.mockResolvedValue([]);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -176,27 +144,20 @@ describe("Governance view", () => {
 
   it("shows Unvote for the candidate currently selected by the connected account", async () => {
     connectedAccountRef.value = COZ_ADDRESS;
-    executeMock.mockImplementation((query) => {
-      const method = query?.config?.method;
-      if (method === "getcandidates") {
-        return [{ publickey: CANDIDATE_PUBKEY, votes: "100", active: true }];
-      }
-      if (method === "invokefunction") {
-        return {
-          stack: [
-            {
-              type: "Struct",
-              value: [
-                { type: "Integer", value: "1" },
-                { type: "Integer", value: "1" },
-                { type: "ByteString", value: Buffer.from(CANDIDATE_PUBKEY, "hex").toString("base64") },
-                { type: "Integer", value: "1" },
-              ],
-            },
-          ],
-        };
-      }
-      return [];
+    mockSafeRpc({
+      accountState: {
+        stack: [
+          {
+            type: "Struct",
+            value: [
+              { type: "Integer", value: "1" },
+              { type: "Integer", value: "1" },
+              { type: "ByteString", value: Buffer.from(CANDIDATE_PUBKEY, "hex").toString("base64") },
+              { type: "Integer", value: "1" },
+            ],
+          },
+        ],
+      },
     });
 
     const Governance = (await import("@/views/Governance/Governance.vue")).default;
@@ -232,19 +193,9 @@ describe("Governance view", () => {
     //   APR      ≈ 1.11 %
     // The pre-fix formula would have yielded ~5.55 % at the same prices,
     // so any number above 2.0 % means the regression is back.
-    executeMock.mockImplementation((query) => {
-      const method = query?.config?.method;
-      const params = query?.config?.params || [];
-      if (method === "getcandidates") {
-        return [{ publickey: CANDIDATE_PUBKEY, votes: "1000000000", active: true }];
-      }
-      if (method === "invokefunction" && params[1] === "getGasPerBlock") {
-        return { state: "HALT", stack: [{ type: "Integer", value: "100000000" }] };
-      }
-      if (method === "invokefunction") {
-        return { stack: [{ type: "Any" }] };
-      }
-      return [];
+    mockSafeRpc({
+      candidates: [{ publickey: CANDIDATE_PUBKEY, votes: "1000000000", active: true }],
+      gasPerBlockRaw: "100000000",
     });
 
     const Governance = (await import("@/views/Governance/Governance.vue")).default;
@@ -268,5 +219,17 @@ describe("Governance view", () => {
     const aprPercent = Number(aprMatch[1]);
     expect(aprPercent).toBeGreaterThan(0);
     expect(aprPercent).toBeLessThan(2.0);
+  });
+
+  it("keeps the read-only governance page off the heavy neon-js runtime path", () => {
+    const source = readFileSync(path.resolve(process.cwd(), "src/views/Governance/Governance.vue"), "utf8");
+
+    expect(source).toContain('safeRpc("getcandidates"');
+    expect(source).toContain("CANDIDATES_LOAD_TIMEOUT_MS");
+    expect(source).toContain("buildCandidateRows(rawCandidates)");
+    expect(source).toContain("void enrichCandidateMetadata");
+    expect(source).not.toContain("@/utils/neonLoader");
+    expect(source).not.toContain("@cityofzion/neon-js");
+    expect(source).not.toContain("new RpcClient");
   });
 });

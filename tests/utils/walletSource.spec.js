@@ -19,6 +19,13 @@ describe("utils/wallet source", () => {
     expect(appHeaderSource).not.toMatch(/import\(['"]@\/services\/walletService['"]\)/);
   });
 
+  it("keeps wallet boot state off vote-only hash normalization helpers", () => {
+    expect(source).not.toMatch(/from ["']@\/utils\/walletNormalization["']/);
+    expect(source).not.toMatch(/from ["']@\/constants["']/);
+    expect(source).toContain('import("@/utils/walletNormalization")');
+    expect(source).not.toContain('import("@/constants")');
+  });
+
   it("keeps contract detail read-only rendering off the heavy wallet-service path", () => {
     expect(contractDetailSource).toContain('from "@/utils/lazyServices"');
     expect(contractDetailSource).not.toMatch(/from ["']@\/services\/walletService["']/);

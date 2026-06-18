@@ -1,4 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const i18nPlugin = {
@@ -70,5 +72,13 @@ describe("GasTracker view", () => {
 
     expect(getBlockListMock).toHaveBeenCalledWith(20, 0, { forceRefresh: false, enrichMissingFields: true });
     wrapper.unmount();
+  });
+
+  it("bounds recent block loading so the page cannot remain in skeleton state indefinitely", () => {
+    const source = readFileSync(path.resolve(process.cwd(), "src/views/GasTracker/GasTracker.vue"), "utf8");
+
+    expect(source).toContain("BLOCKS_LOAD_TIMEOUT_MS");
+    expect(source).toContain("withTimeout(");
+    expect(source).toContain("blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true })");
   });
 });

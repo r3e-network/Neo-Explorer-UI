@@ -1,8 +1,8 @@
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
+import { safeRpc } from "./api";
 import { accountService } from "./accountService";
 import { indexerReadService } from "./indexerReadService";
-import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
  * Transaction Service - Neo3 交易相关 API 调用
@@ -34,35 +34,39 @@ export const transactionService = createService(
       return "";
     },
 
-    async getByHash(hash, _options = {}) {
+    async getByHash(hash, options = {}) {
       // Native RPC first — `getrawtransaction` is the canonical source
       // and works against any Neo node.
       let tx = null;
       try {
-        const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-        const { getCurrentEnv } = await import("@/utils/env");
-        const network = toNetworkMode(getCurrentEnv());
-        const { toAbsoluteUrl } = await import("@/utils/env");
-        const nativeTx = await callWithRpcEndpointFallback(network, async (endpoint) => {
-          const client = new RpcClient(toAbsoluteUrl(endpoint));
-          return client.getRawTransaction(hash, true);
-        });
-        if (nativeTx && nativeTx.hash) {
-          let blockIndex = 0;
+        const cacheOpts = { ...options, throwOnError: true };
+        const nativeTx = await cachedRequest(
+          getCacheKey("tx_hash_native", { hash }),
+          () => safeRpc("getrawtransaction", [hash, 1], null, cacheOpts),
+          CACHE_TTL.txDetail,
+          options,
+        );
+
+        if (nativeTx && (nativeTx.hash || nativeTx.txid)) {
+          let blockIndex = Number(nativeTx.blockindex ?? nativeTx.blockIndex ?? 0) || 0;
           if (nativeTx.blockhash) {
             try {
-              const blockHeader = await callWithRpcEndpointFallback(network, async (endpoint) => {
-                const client = new RpcClient(toAbsoluteUrl(endpoint));
-                return client.getBlockHeader(nativeTx.blockhash, true);
-              });
-              blockIndex = blockHeader.index;
+              const blockHeader = await cachedRequest(
+                getCacheKey("tx_hash_block_header", { blockhash: nativeTx.blockhash }),
+                () => safeRpc("getblockheader", [nativeTx.blockhash, 1], null, cacheOpts),
+                CACHE_TTL.block,
+                options,
+              );
+              blockIndex = Number(blockHeader?.index ?? blockIndex) || 0;
             } catch (e) {
               if (import.meta.env.DEV) console.warn("[transactionService] block header fetch failed:", e);
             }
           }
           return {
             ...nativeTx,
-            vmstate: nativeTx.vmstate || "",
+            hash: nativeTx.hash || nativeTx.txid || hash,
+            txid: nativeTx.txid || nativeTx.hash || hash,
+            vmstate: nativeTx.vmstate || nativeTx.Vmstate || nativeTx.VMState || "",
             netfee: nativeTx.netfee,
             sysfee: nativeTx.sysfee,
             blockindex: blockIndex,

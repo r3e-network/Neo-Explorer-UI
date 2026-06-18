@@ -1487,6 +1487,7 @@ const ko = {
     unableToLoad: "실행 추적을 불러올 수 없습니다",
     noCallMap: "호출 맵을 사용할 수 없습니다",
     failedToLoad: "실행 추적을 불러오지 못했습니다",
+    traceStillLoading: "추적을 계속 불러오는 중입니다. 결과가 자동으로 표시됩니다.",
     toggleExecution: "실행 {n} 토글: {trigger} ({vmState})",
   },
   candidatesPage: {

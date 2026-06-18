@@ -22,6 +22,9 @@ vi.mock("../../src/services/indexerReadService.js", () => ({
 describe("accountService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    api.rpc.mockReset();
+    api.safeRpc.mockReset();
+    api.safeRpcList.mockReset();
     clearAllCache();
     summaryMock.mockResolvedValue({ total_address_count: 0 });
     fetchMock.mockResolvedValue({
@@ -50,7 +53,7 @@ describe("accountService", () => {
   });
 
   describe("getByAddress", () => {
-    it("derives balances + tx count from native RPCs without the legacy first-attempt", async () => {
+    it("derives balances from native RPCs without the legacy first-attempt", async () => {
       api.safeRpc
         .mockResolvedValueOnce({
           balance: [
@@ -58,12 +61,7 @@ describe("accountService", () => {
             { assethash: "0xd2a4cff31913016155e38e474a2c06d08be276cf", amount: "34" },
           ],
         }) // getnep17balances
-        .mockResolvedValueOnce({ balance: [] }) // getnep11balances
-        .mockResolvedValueOnce({
-          sent: [{ txhash: "0x01" }],
-          received: [{ txhash: "0x02" }],
-        }) // getnep17transfers
-        .mockResolvedValueOnce({ sent: [], received: [] }); // getnep11transfers
+        .mockResolvedValueOnce({ balance: [] }); // getnep11balances
 
       const result = await accountService.getByAddress("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
 
@@ -71,7 +69,7 @@ describe("accountService", () => {
         expect.objectContaining({
           neoBalance: "12",
           gasBalance: "34",
-          txCount: 2,
+          txCount: 0,
           tokenCount: 2,
         })
       );
@@ -93,9 +91,7 @@ describe("accountService", () => {
     it("returns null without calling legacy RPC when the node is unreachable", async () => {
       api.safeRpc
         .mockResolvedValueOnce(null) // getnep17balances (node down)
-        .mockResolvedValueOnce(null) // getnep11balances
-        .mockResolvedValueOnce(null) // getnep17transfers
-        .mockResolvedValueOnce(null); // getnep11transfers
+        .mockResolvedValueOnce(null); // getnep11balances
 
       const result = await accountService.getByAddress("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp");
       expect(api.safeRpc).not.toHaveBeenCalledWith(

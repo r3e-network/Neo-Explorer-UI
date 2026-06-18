@@ -289,15 +289,15 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { cachedRequest, CACHE_TTL } from "@/services/cache";
 import { NEO_HASH, GAS_HASH } from "@/constants";
-import { loadNeonJs } from "@/utils/neonLoader";
+import { safeRpc } from "@/services/api";
 import { getCurrentEnv, resolveNetworkName } from "@/utils/env";
-import { callWithRpcEndpointFallback } from "@/utils/rpcEndpoints";
 import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
 const READ_API_BATCH_SIZE = 5;
+const READ_API_ORIGIN = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
 const loading = ref(true);
 const error = ref(null);
 const neoPrice = ref(0);
@@ -336,19 +336,6 @@ const groups = computed(() => {
   return [da, erik, ops].sort((a, b) => b.neo - a.neo);
 });
 
-async function createRpcClient(endpoint) {
-  // Match the Governance fix: don't read window.Neon directly — on a cold
-  // /treasury mount the SDK chunk hasn't finished loading yet, and the
-  // page fails with "Neo RPC client is not available." loadNeonJs()
-  // resolves the same module the rest of the app uses.
-  const sdk = await loadNeonJs();
-  const RpcClient = sdk?.rpc?.RPCClient;
-  if (typeof RpcClient !== "function") {
-    throw new Error("Neo RPC client is not available.");
-  }
-  return new RpcClient(endpoint);
-}
-
 function groupWidthStyle(group) {
   if (!totalNeo.value) return { width: "0%" };
   return { width: `${(group.neo / totalNeo.value) * 100}%` };
@@ -373,45 +360,38 @@ async function loadPrices() {
 async function fetchTreasuryDataFromRpc() {
   const treasuryAddresses = getTreasuryKnownAddresses();
   const BATCH_SIZE = 12;
+  const results = [];
 
-  return callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
-    const rpcClient = await createRpcClient(endpoint);
-    const results = [];
+  for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
+    const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
+    const responses = await Promise.allSettled(
+      batch.map((item) => safeRpc("getnep17balances", [item.address], null, { throwOnError: true })),
+    );
 
-    for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
-      const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
-      const responses = await Promise.allSettled(
-        // neon-js's getNep17Balances takes a positional address string,
-        // not an object. The previous { account: addr } shape stringified
-        // to "[object Object]" inside the call, returning empty results.
-        batch.map((item) => rpcClient.getNep17Balances(item.address)),
-      );
+    batch.forEach((item, index) => {
+      const res = responses[index];
+      let neo = 0;
+      let gas = 0;
 
-      batch.forEach((item, index) => {
-        const res = responses[index];
-        let neo = 0;
-        let gas = 0;
+      if (res.status === "fulfilled" && res.value && Array.isArray(res.value.balance)) {
+        const balances = res.value.balance;
+        const neoToken = balances.find((b) => String(b.assethash || "").toLowerCase() === NEO_HASH.toLowerCase());
+        const gasToken = balances.find((b) => String(b.assethash || "").toLowerCase() === GAS_HASH.toLowerCase());
 
-        if (res.status === "fulfilled" && res.value && Array.isArray(res.value.balance)) {
-          const balances = res.value.balance;
-          const neoToken = balances.find((b) => b.assethash === NEO_HASH);
-          const gasToken = balances.find((b) => b.assethash === GAS_HASH);
+        neo = neoToken ? Number(neoToken.amount) : 0;
+        gas = gasToken ? Number(gasToken.amount) / 100000000 : 0;
+      }
 
-          neo = neoToken ? Number(neoToken.amount) : 0;
-          gas = gasToken ? Number(gasToken.amount) / 100000000 : 0;
-        }
-
-        results.push({
-          ...item,
-          neo: Number.isFinite(neo) ? neo : 0,
-          gas: Number.isFinite(gas) ? gas : 0,
-          usdValue: 0,
-        });
+      results.push({
+        ...item,
+        neo: Number.isFinite(neo) ? neo : 0,
+        gas: Number.isFinite(gas) ? gas : 0,
+        usdValue: 0,
       });
-    }
+    });
+  }
 
-    return results;
-  });
+  return results;
 }
 
 function formatAddressInFilter(addresses) {
@@ -424,6 +404,12 @@ function chunkAddresses(addresses, size) {
     chunks.push(addresses.slice(i, i + size));
   }
   return chunks;
+}
+
+function buildReadApiUrl(network, table, params) {
+  const query = params.toString();
+  if (READ_API_ORIGIN) return `${READ_API_ORIGIN}/rest/v1/${table}?${query}`;
+  return `/rest/${network}/${table}?${query}`;
 }
 
 function treasuryRowsToBalances(treasuryAddresses, rows) {
@@ -461,7 +447,7 @@ async function fetchTreasuryDataFromReadApi() {
       limit: String(batch.length * 2),
     });
 
-    const response = await fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, {
+    const response = await fetchWithTimeout(buildReadApiUrl(network, "v_nep17_balances", params), {
       headers: { Accept: "application/json" },
     }, 6000);
     if (!response.ok) throw new Error(`Treasury read-api request failed with HTTP ${response.status}`);

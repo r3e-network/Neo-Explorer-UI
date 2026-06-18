@@ -1,13 +1,12 @@
 import { useToast } from "vue-toastification";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { PROVIDERS } from "@/constants/walletProviders";
-import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
-import { NEO_HASH } from "@/constants";
 import { loadWalletService } from "@/utils/lazyServices";
 import { connectedAccount } from "@/utils/walletState";
 import i18n from "@/lang/i18n";
 
 const t = (key, ...args) => i18n.global.t(key, ...args);
+const NEO_TOKEN_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
 function getStoredWalletAddress() {
   if (typeof window === "undefined") return "";
@@ -293,6 +292,16 @@ export async function disconnectWallet() {
   clearStoredWalletState();
 }
 
+async function loadVoteHelpers() {
+  const normalization = await import("@/utils/walletNormalization");
+
+  return {
+    isHash160Hex: normalization.isHash160Hex,
+    normalizeHash160: normalization.normalizeHash160,
+    neoHash: NEO_TOKEN_HASH,
+  };
+}
+
 async function submitVote(candidatePubkey = null) {
   const toast = useToast();
   const walletService = await loadWalletService();
@@ -307,6 +316,7 @@ async function submitVote(candidatePubkey = null) {
     return;
   }
 
+  const { isHash160Hex, normalizeHash160, neoHash } = await loadVoteHelpers();
   const voterHash160 = normalizeHash160(voterAddress);
   if (!isHash160Hex(voterHash160)) {
     toast.error(t('wallet.addressInvalid'));
@@ -319,7 +329,7 @@ async function submitVote(candidatePubkey = null) {
       : { type: "Any", value: null };
 
     const result = await walletService.invoke({
-      scriptHash: NEO_HASH,
+      scriptHash: neoHash,
       operation: "vote",
       args: [{ type: "Hash160", value: voterHash160 }, voteTargetArg],
       signers: [{ account: voterHash160, scopes: 1 }],

@@ -154,12 +154,12 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { formatGas } from "@/utils/explorerFormat";
 import CopyButton from "@/components/common/CopyButton.vue";
 import ScriptViewer from "@/components/trace/ScriptViewer.vue";
-import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
+import { decodeUnsignedTransaction, ensureNeonJs } from "@/utils/unsignedTransaction";
 import { describeGovernanceTxExpiry } from "@/utils/governanceTiming";
 
 const { t } = useI18n();
@@ -176,8 +176,17 @@ const props = defineProps({
 const labelText = computed(() => props.label || t("unsignedTx.defaultLabel"));
 
 const showRaw = ref(false);
+const decoderReadyTick = ref(0);
 
-const decodedTx = computed(() => decodeUnsignedTransaction(props.transactionHex));
+onMounted(async () => {
+  await ensureNeonJs();
+  decoderReadyTick.value += 1;
+});
+
+const decodedTx = computed(() => {
+  decoderReadyTick.value;
+  return decodeUnsignedTransaction(props.transactionHex);
+});
 const rawHex = computed(() => decodedTx.value?.rawHex || String(props.transactionHex || "").trim().replace(/^0x/i, ""));
 
 // Compute authoritative tx hash using neon-js (the @cityofzion/neon-js decoder produces a different hash)

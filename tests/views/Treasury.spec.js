@@ -11,7 +11,7 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key) => key }),
 }));
 
-const getNep17BalancesMock = vi.fn();
+const safeRpcMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/composables/usePriceCache", () => ({
   usePriceCache: () => ({
@@ -55,66 +55,29 @@ vi.mock("@/composables/useNetworkChange", () => ({
   useNetworkChange: vi.fn(),
 }));
 
-vi.mock("@cityofzion/neon-js", () => {
-  // @/utils/neonLoader's findNeonJs only accepts modules whose `tx.Transaction.deserialize`
-  // and `rpc.RPCClient` are both present. Provide that shape so loadNeonJs() picks
-  // this mock instead of returning null and falling back to the test's window.Neon.
-  const RPCClient = class {
-    async getNep17Balances(addr) {
-      return getNep17BalancesMock(addr);
-    }
-  };
-  const Transaction = class {
-    static deserialize() {
-      return new Transaction();
-    }
-  };
-  const neonMock = {
-    rpc: { RPCClient },
-    tx: { Transaction },
-  };
-  neonMock.default = neonMock;
-  return neonMock;
-});
+vi.mock("@/services/api", () => ({
+  safeRpc: safeRpcMock,
+}));
 
 describe("Treasury view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      result: { protocol: { network: 860833102 } },
-    }), {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify([]), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     })));
-    window.Neon = {
-      rpc: {
-        RPCClient: class {
-          async getNep17Balances(input) {
-            return getNep17BalancesMock(input);
-          }
-        },
-      },
-    };
-    getNep17BalancesMock.mockImplementation(async (input) => {
-      if (typeof input !== "string" || !input) {
-        throw new Error("expected positional address string input");
-      }
-
-      return {
-        balance: [
-          { assethash: "0xneo", amount: "12" },
-          { assethash: "0xgas", amount: "150000000" },
-        ],
-      };
+    safeRpcMock.mockResolvedValue({
+      balance: [
+        { assethash: "0xneo", amount: "12" },
+        { assethash: "0xgas", amount: "150000000" },
+      ],
     });
   });
 
   it("loads treasury balances from the indexed read-api without RPC fan-out", async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      if (String(url).includes("/rest/mainnet/v_nep17_balances")) {
+      if (String(url).includes("/rest/v1/v_nep17_balances")) {
         return new Response(JSON.stringify([
           { address: "NtestTreasuryAddress", contract_hash: "0xneo", balance_raw: "12" },
           { address: "NtestTreasuryAddress", contract_hash: "0xgas", balance_raw: "150000000" },
@@ -149,17 +112,19 @@ describe("Treasury view", () => {
     await flushPromises();
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/rest\/mainnet\/v_nep17_balances\?.*select=address%2Ccontract_hash%2Cbalance_raw/),
+      expect.stringMatching(/\/rest\/v1\/v_nep17_balances\?.*select=address%2Ccontract_hash%2Cbalance_raw/),
       expect.objectContaining({
         headers: { Accept: "application/json" },
       }),
     );
-    expect(getNep17BalancesMock).not.toHaveBeenCalled();
+    expect(safeRpcMock).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("12");
     expect(wrapper.text()).toContain("1.5");
   });
 
-  it("loads treasury balances through the r3e RpcClient object input contract", async () => {
+  it("falls back to standard getnep17balances RPC when the read-api is unavailable", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response("{}", { status: 500 }));
+
     const Treasury = (await import("@/views/Treasury/Treasury.vue")).default;
     const wrapper = mount(Treasury, {
       global: {
@@ -174,7 +139,12 @@ describe("Treasury view", () => {
 
     await flushPromises();
 
-    expect(getNep17BalancesMock).toHaveBeenCalledWith("NtestTreasuryAddress");
+    expect(safeRpcMock).toHaveBeenCalledWith(
+      "getnep17balances",
+      ["NtestTreasuryAddress"],
+      null,
+      { throwOnError: true },
+    );
     expect(wrapper.text()).toContain("12");
     expect(wrapper.text()).toContain("1.5");
   });

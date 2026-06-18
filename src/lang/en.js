@@ -1487,6 +1487,7 @@ const en = {
     unableToLoad: "Unable to load execution trace",
     noCallMap: "No call map available",
     failedToLoad: "Failed to load execution trace",
+    traceStillLoading: "Trace is still loading. Results will appear automatically.",
     toggleExecution: "Toggle execution {n}: {trigger} ({vmState})",
   },
   candidatesPage: {

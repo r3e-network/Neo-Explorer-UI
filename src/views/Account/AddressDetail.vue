@@ -174,6 +174,7 @@ let addressRequestId = 0;
 const MAX_CANDIDATE_LIST_LOOKUP = 1000;
 const MAX_VOTER_FALLBACK_PAGES = 10;
 const MAX_VOTER_FALLBACK_ENTRIES = 2000;
+const SUMMARY_LOAD_TIMEOUT_MS = 4500;
 const abortController = ref(null);
 const neoBalance = ref("0");
 const gasBalance = ref("0");
@@ -226,6 +227,14 @@ const networkHintDismissed = ref(false);
 // this hint the page silently renders the raw domain string with all
 // stats at zero, which looks like an empty-but-real account.
 const unresolvedDomain = ref("");
+
+function withTimeout(promise, timeoutMs, message) {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
+}
 
 // NEP-17 Token Transfers via composable
 const {
@@ -468,7 +477,11 @@ async function loadSummary(addr) {
   const currentRequestId = addressRequestId;
   summaryLoading.value = true;
   try {
-    const account = (await accountService.getByAddress(addr)) || {};
+    const account = (await withTimeout(
+      accountService.getByAddress(addr, { signal: abortController.value?.signal }),
+      SUMMARY_LOAD_TIMEOUT_MS,
+      "Address summary timed out",
+    )) || {};
     if (currentRequestId !== addressRequestId) return;
     const summary = normalizeAccountSummary(account, assets.value);
     neoBalance.value = summary.neoBalance;
@@ -660,6 +673,10 @@ async function loadAssets(addr) {
     fungibleAssets.value = split.fungibleAssets;
     nftAssets.value = split.nftAssets;
     tokenCount.value = assets.value.length;
+
+    const assetSummary = normalizeAccountSummary({}, assets.value);
+    neoBalance.value = assetSummary.neoBalance;
+    gasBalance.value = assetSummary.gasBalance;
   } catch (err) {
     if (currentRequestId !== addressRequestId) return;
     // Aborted fetches (route change / re-init) aren't user failures
@@ -702,10 +719,7 @@ async function initializeData(addr) {
   }
 
   const txPagePromise = loadTxPage(1);
-  // Load assets before the summary so NEO/GAS balances can be derived from
-  // getnep17balances, but start the default transactions tab in parallel.
-  await loadAssets(addr);
-  const results = await Promise.allSettled([loadSummary(addr), txPagePromise]);
+  const results = await Promise.allSettled([loadAssets(addr), loadSummary(addr), txPagePromise]);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);

@@ -41,10 +41,6 @@ vi.mock("@/utils/env", () => ({
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 
-vi.mock("@highlightjs/vue-plugin", () => ({
-  default: { component: { name: "highlightjs", template: "<pre><slot /></pre>" } },
-}));
-
 vi.mock("vue-toastification", () => ({
   useToast: () => ({ error: vi.fn(), success: vi.fn(), info: vi.fn() }),
 }));

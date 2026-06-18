@@ -9,6 +9,7 @@ describe("vite config warning and chunk helpers", () => {
     expect(getManualChunkName("\0vite/preload-helper.js")).toBe("preload-helper");
     expect(getManualChunkName("/tmp/node_modules/ox/_esm/core/Base64.js")).toBe("ox");
     expect(getManualChunkName("/tmp/node_modules/pino/file.js")).toBe("pino");
+    expect(getManualChunkName("/tmp/node_modules/@cityofzion/neon-js/lib/index.js")).toBeUndefined();
     expect(getManualChunkName("/tmp/node_modules/@cityofzion/neon-core/lib/index.js")).toBe("legacy-crypto");
     expect(getManualChunkName("/tmp/node_modules/crypto-js/index.js")).toBe("legacy-crypto");
     expect(getManualChunkName("/tmp/node_modules/http-proxy-agent/dist/index.js")).toBe("proxy-agents");

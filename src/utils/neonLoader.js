@@ -10,9 +10,6 @@
  *   const rpcClient = new neonJs.rpc.RPCClient(url);
  */
 
-import neonJsDefault from "@cityofzion/neon-js";
-import * as neonJsNamespace from "@cityofzion/neon-js";
-
 function findNeonJs(...candidates) {
   for (const c of candidates) {
     if (c?.tx?.Transaction?.deserialize && c?.rpc?.RPCClient) return c;
@@ -23,23 +20,28 @@ function findNeonJs(...candidates) {
   return null;
 }
 
-// Resolve at module init. Check every possible location:
-// 1. default import (works in Rollup production & Node ESM)
-// 2. namespace import (works in Vite dev)
-// 3. namespace.default (Vite dev wraps CJS with { ...mod, default: mod })
-const resolved = findNeonJs(
-  neonJsDefault,
-  neonJsNamespace,
-  neonJsNamespace?.default,
-);
+let bundledNeonJs = null;
+let bundledNeonJsPromise = null;
+
+async function loadBundledNeonJs() {
+  if (bundledNeonJs) return bundledNeonJs;
+  if (!bundledNeonJsPromise) {
+    bundledNeonJsPromise = import("@cityofzion/neon-js")
+      .then((module) => {
+        bundledNeonJs = findNeonJs(module?.default, module, module?.default?.default);
+        return bundledNeonJs;
+      })
+      .catch(() => null);
+  }
+  return bundledNeonJsPromise;
+}
 
 export async function loadNeonJs() {
   if (typeof window !== "undefined") {
     const runtime = findNeonJs(window.Neon);
     if (runtime) return runtime;
   }
-  if (resolved) return resolved;
-  return null;
+  return loadBundledNeonJs();
 }
 
 export function getNeonJsSync() {
@@ -47,6 +49,5 @@ export function getNeonJsSync() {
     const runtime = findNeonJs(window.Neon);
     if (runtime) return runtime;
   }
-  if (resolved) return resolved;
-  return null;
+  return bundledNeonJs;
 }

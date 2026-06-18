@@ -1487,6 +1487,7 @@ const zh = {
     unableToLoad: "无法加载执行追踪",
     noCallMap: "没有可用的调用图",
     failedToLoad: "加载执行追踪失败",
+    traceStillLoading: "执行追踪仍在加载，结果会自动显示。",
     toggleExecution: "切换执行 {n}：{trigger} ({vmState})",
   },
   candidatesPage: {

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { transactionService } from "../../src/services/transactionService.js";
 import * as api from "../../src/services/api.js";
 import { accountService } from "../../src/services/accountService.js";
@@ -51,6 +53,7 @@ describe("transactionService", () => {
     vi.clearAllMocks(); vi.resetAllMocks();
     clearAllCache();
     // Default: indexer offline.
+    api.safeRpc.mockResolvedValue(null);
     indexerReadService.getTransactions.mockRejectedValue(new Error("indexer offline"));
     indexerReadService.getSummary.mockRejectedValue(new Error("indexer offline"));
   });
@@ -96,6 +99,46 @@ describe("transactionService", () => {
       const result = await transactionService.getByHash(hash);
       expect(api.safeRpc).not.toHaveBeenCalledWith("GetRawTransactionByTransactionHash", expect.anything(), expect.anything(), expect.anything());
       expect(result).toBeNull();
+    });
+
+    it("uses standard JSON-RPC transaction and block header methods without neon RPCClient", async () => {
+      const hash = "0xabc123";
+      api.safeRpc.mockImplementation(async (method, params) => {
+        if (method === "getrawtransaction" && params[0] === hash) {
+          return {
+            hash,
+            blockhash: "0xblock",
+            netfee: "1",
+            sysfee: "2",
+            vmstate: "HALT",
+          };
+        }
+        if (method === "getblockheader" && params[0] === "0xblock") {
+          return { hash: "0xblock", index: 12345 };
+        }
+        return null;
+      });
+
+      const result = await transactionService.getByHash(hash);
+
+      expect(api.safeRpc).toHaveBeenCalledWith("getrawtransaction", [hash, 1], null, { throwOnError: true });
+      expect(api.safeRpc).toHaveBeenCalledWith("getblockheader", ["0xblock", 1], null, { throwOnError: true });
+      expect(result).toMatchObject({
+        hash,
+        txid: hash,
+        blockindex: 12345,
+        vmstate: "HALT",
+      });
+    });
+
+    it("keeps transaction detail lookup off the neon-js RPC client path", () => {
+      const source = fs.readFileSync(path.resolve(process.cwd(), "src/services/transactionService.js"), "utf8");
+
+      expect(source).not.toContain("@/utils/neonLoader");
+      expect(source).not.toContain("RpcClient");
+      expect(source).not.toContain("callWithRpcEndpointFallback");
+      expect(source).toContain('safeRpc("getrawtransaction"');
+      expect(source).toContain('safeRpc("getblockheader"');
     });
   });
 

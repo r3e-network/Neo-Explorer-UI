@@ -35,7 +35,7 @@
 
       <GovernanceProposalList
         :requests="requests"
-        :loading="loading"
+        :loading="requestsLoading"
         :connected-account="connectedAccount"
         :threshold="threshold"
         :council-identity-map="councilIdentityMap"
@@ -101,6 +101,7 @@ import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const toast = useToast();
 const loading = ref(true);
+const requestsLoading = ref(true);
 const requests = ref([]);
 const showCreateModal = ref(false);
 const forkProposalDraft = ref(null);
@@ -173,6 +174,7 @@ async function loadCommittee() {
 }
 
 async function loadRequests() {
+  requestsLoading.value = true;
   requestsError.value = null;
   try {
     const data = await supabaseService.getMultisigRequests();
@@ -185,6 +187,8 @@ async function loadRequests() {
   } catch (e) {
     if (import.meta.env.DEV) console.error("Error loading requests", e);
     requestsError.value = "Failed to load governance proposals. Please try again.";
+  } finally {
+    requestsLoading.value = false;
   }
 }
 
@@ -317,13 +321,13 @@ async function handleBroadcast(req) {
 }
 
 async function handleNetworkChange() {
-  await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
+  await Promise.allSettled([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
 }
 
 onMounted(async () => {
   try {
     neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
-    await Promise.all([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
+    await Promise.allSettled([loadCommittee(), loadValidatorMetadata(), loadRequests()]);
   } catch (e) {
     if (import.meta.env.DEV) console.error("Initialization error", e);
   } finally {

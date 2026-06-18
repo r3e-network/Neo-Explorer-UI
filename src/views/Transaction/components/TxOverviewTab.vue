@@ -260,7 +260,7 @@ const props = defineProps({
 
 const supabaseMeta = ref({});
 watch(
-  () => (Array.isArray(props.transfers) ? props.transfers : []),
+  () => (Array.isArray(props.allTransfers) ? props.allTransfers : []),
   async (newTransfers) => {
     if (newTransfers && newTransfers.length) {
       const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);

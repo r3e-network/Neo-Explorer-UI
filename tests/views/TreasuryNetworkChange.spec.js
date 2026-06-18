@@ -39,30 +39,17 @@ vi.mock("@/services/cache", () => ({
   CACHE_TTL: { chart: 300000 },
 }));
 
+vi.mock("@/services/api", () => ({
+  safeRpc: vi.fn(),
+}));
+
 vi.mock("@/constants/knownAddresses", () => ({
   getTreasuryKnownAddresses: () => [{ name: "Treasury A", address: "Naddr" }],
 }));
 
-vi.mock("@cityofzion/neon-js", () => {
-  // Match the shape findNeonJs requires (rpc.RPCClient + tx.Transaction.deserialize)
-  // so loadNeonJs() resolves to this mock.
-  const RPCClient = class {};
-  const Transaction = class {
-    static deserialize() { return new Transaction(); }
-  };
-  const neonMock = { rpc: { RPCClient }, tx: { Transaction } };
-  neonMock.default = neonMock;
-  return neonMock;
-});
-
 describe("Treasury network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.Neon = {
-      rpc: {
-        RPCClient: class {},
-      },
-    };
     envState.value = "MainNet";
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
     cachedRequestMock.mockResolvedValue([{ name: "Treasury A", address: "Naddr", neo: 1, gas: 2, usdValue: 0 }]);

@@ -261,8 +261,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { loadNeonJs } from "@/utils/neonLoader";
-import { getRpcClientUrl, getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
 import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wallet";
@@ -278,6 +277,7 @@ import { truncateHash } from "@/utils/addressFormat";
 import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 import { NEO_HASH } from "@/constants";
+import { safeRpc } from "@/services/api";
 
 const toast = useToast();
 const { t } = useI18n();
@@ -314,6 +314,9 @@ const BLOCKS_PER_MONTH = BLOCKS_PER_YEAR / 12;
 const GAS_DECIMALS = 100_000_000;
 const DEFAULT_GAS_PER_BLOCK = 1.0;
 const gasPerBlock = ref(DEFAULT_GAS_PER_BLOCK);
+const CANDIDATES_LOAD_TIMEOUT_MS = 4500;
+
+let candidatesLoadGeneration = 0;
 
 const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
@@ -339,23 +342,6 @@ const neoBurgerMonthlyGas = computed(() => {
   }
   return maxGas;
 });
-
-async function createRpcClient(url = getRpcClientUrl()) {
-  // Don't depend on window.Neon being eagerly populated by the app entry —
-  // on a cold mount of /governance the SDK chunk hasn't finished loading
-  // yet, and the page would error out with "Neo RPC client is not
-  // available". loadNeonJs() resolves the same module the rest of the app
-  // uses and works on first call.
-  const sdk = await loadNeonJs();
-  const RpcClient = sdk?.rpc?.RPCClient;
-  if (typeof RpcClient !== "function") {
-    throw new Error("Neo RPC client is not available.");
-  }
-  const client = new RpcClient(url);
-  // Stash the Query constructor so callers don't have to re-resolve sdk.
-  client._sdk = sdk;
-  return client;
-}
 
 const sortedCandidates = computed(() => {
   const list = [...candidates.value];
@@ -470,11 +456,11 @@ async function loadPrices() {
 // place — no toast, since the rest of the page is still informative.
 async function loadGasPerBlock() {
   try {
-    const rpcClient = await createRpcClient();
-    const Query = rpcClient._sdk?.rpc?.Query;
-    if (typeof Query !== "function") return;
-    const result = await rpcClient.execute(
-      new Query({ method: "invokefunction", params: [NEO_HASH, "getGasPerBlock", []] }),
+    const result = await safeRpc(
+      "invokefunction",
+      [NEO_HASH, "getGasPerBlock", []],
+      null,
+      { throwOnError: true },
     );
     if (result?.state !== "HALT") return;
     const raw = result?.stack?.[0]?.value;
@@ -488,26 +474,107 @@ async function loadGasPerBlock() {
   }
 }
 
+function createTimeoutError(timeoutMs) {
+  const err = new Error(`Governance candidates request timed out after ${timeoutMs}ms`);
+  err.name = "TimeoutError";
+  return err;
+}
+
+async function withTimeout(promise, timeoutMs) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(createTimeoutError(timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function buildCandidateRows(rawCandidates, metadataMap = {}) {
+  return rawCandidates
+    .map((c) => {
+      const key = String(c.publickey || "").toLowerCase();
+      return {
+        ...c,
+        name: metadataMap[key]?.name || null,
+        logo: metadataMap[key]?.logo || null,
+        location: metadataMap[key]?.location || null,
+      };
+    })
+    .sort((a, b) => Number(b.votes) - Number(a.votes));
+}
+
+async function enrichCandidateMetadata({ rawCandidates, isTestnet, requestId }) {
+  let indexerRows = [];
+  try {
+    indexerRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+  } catch (metadataErr) {
+    if (import.meta.env.DEV) console.warn("Failed to load cached validator metadata", metadataErr);
+  }
+
+  let doraRows = [];
+  if (!isTestnet) {
+    try {
+      doraRows = await fetchDoraCommittee(NET_ENV.Mainnet);
+    } catch (fallbackErr) {
+      if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
+    }
+  }
+
+  if (requestId !== candidatesLoadGeneration) return;
+
+  const metadataMap = {};
+
+  // 1. Populate with Dora defaults first
+  for (const item of Array.isArray(doraRows) ? doraRows : []) {
+    const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
+    if (pubkey) {
+      metadataMap[pubkey] = {
+        name: item.name || item.display_name || null,
+        logo: item.logo || item.logo_url || null,
+        description: item.description || null,
+        location: item.location || null,
+      };
+    }
+  }
+
+  // 2. Override with Indexer/Supabase customizations
+  for (const item of Array.isArray(indexerRows) ? indexerRows : []) {
+    const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
+    if (pubkey) {
+      metadataMap[pubkey] = {
+        ...metadataMap[pubkey],
+        ...(item.name || item.display_name ? { name: item.name || item.display_name } : {}),
+        ...(item.logo || item.logo_url ? { logo: item.logo || item.logo_url } : {}),
+        ...(item.description ? { description: item.description } : {}),
+        ...(item.location ? { location: item.location } : {}),
+      };
+    }
+  }
+
+  candidates.value = buildCandidateRows(rawCandidates, metadataMap);
+}
+
 async function loadCandidates() {
+  const requestId = ++candidatesLoadGeneration;
   loading.value = true;
   error.value = "";
   try {
-    const rpcClient = await createRpcClient();
-
     // Determine the environment string for Dora API
     const env = getCurrentEnv().toLowerCase();
     const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
 
     const isTestnet = doraEnv !== "mainnet";
 
-    // neon-js's RPCClient doesn't expose getCandidates as a typed helper.
-    // Route through `execute(new Query(...))` to invoke the JSON-RPC
-    // method directly using the same client instance.
-    const Query = rpcClient._sdk?.rpc?.Query;
-    if (typeof Query !== "function") {
-      throw new Error(t("governancePage.rpcQueryUnavailable"));
-    }
-    const rpcRes = await rpcClient.execute(new Query({ method: "getcandidates", params: [] }));
+    const rpcRes = await withTimeout(
+      safeRpc("getcandidates", [], [], { throwOnError: true }),
+      CANDIDATES_LOAD_TIMEOUT_MS,
+    );
+    if (requestId !== candidatesLoadGeneration) return;
 
     let rawCandidates = [];
     if (rpcRes && rpcRes.length > 0) {
@@ -516,74 +583,19 @@ async function loadCandidates() {
       throw new Error(t("governancePage.fetchCandidatesFailed"));
     }
 
-    let indexerRows = [];
-    try {
-      indexerRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
-    } catch (metadataErr) {
-      if (import.meta.env.DEV) console.warn("Failed to load cached validator metadata", metadataErr);
-    }
-
-    let doraRows = [];
-    if (!isTestnet) {
-      try {
-        doraRows = await fetchDoraCommittee(NET_ENV.Mainnet);
-      } catch (fallbackErr) {
-        if (import.meta.env.DEV) console.warn("Failed to load Dora metadata fallback", fallbackErr);
-      }
-    }
-
-    // Create a map of pubkey -> cached validator metadata
-    const metadataMap = {};
-
-    // 1. Populate with Dora defaults first
-    for (const item of Array.isArray(doraRows) ? doraRows : []) {
-      const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
-      if (pubkey) {
-        metadataMap[pubkey] = {
-          name: item.name || item.display_name || null,
-          logo: item.logo || item.logo_url || null,
-          description: item.description || null,
-          location: item.location || null,
-        };
-      }
-    }
-
-    // 2. Override with Indexer/Supabase customizations
-    for (const item of Array.isArray(indexerRows) ? indexerRows : []) {
-      const pubkey = String(item.pubkey || item.public_key || item.publicKey || "").toLowerCase();
-      if (pubkey) {
-        metadataMap[pubkey] = {
-          ...metadataMap[pubkey],
-          ...(item.name || item.display_name ? { name: item.name || item.display_name } : {}),
-          ...(item.logo || item.logo_url ? { logo: item.logo || item.logo_url } : {}),
-          ...(item.description ? { description: item.description } : {}),
-          ...(item.location ? { location: item.location } : {}),
-        };
-      }
-    }
-
-    // Merge RPC candidate list with cached metadata, sorting by votes descending
-    candidates.value = rawCandidates
-      .map((c) => {
-        const key = String(c.publickey || "").toLowerCase();
-        return {
-          ...c,
-          name: metadataMap[key]?.name || null,
-          logo: metadataMap[key]?.logo || null,
-          location: metadataMap[key]?.location || null,
-        };
-      })
-      .sort((a, b) => Number(b.votes) - Number(a.votes));
+    candidates.value = buildCandidateRows(rawCandidates);
+    void enrichCandidateMetadata({ rawCandidates, isTestnet, requestId });
 
     // Fetch liveness data passively in the background
     fetchDoraLiveness(doraEnv).then((map) => {
-      livenessData.value = map;
+      if (requestId === candidatesLoadGeneration) livenessData.value = map;
     }).catch(() => {});
   } catch (err) {
+    if (requestId !== candidatesLoadGeneration) return;
     if (import.meta.env.DEV) console.error("Failed to load candidates", err);
     error.value = err.message || t("governancePage.fetchCandidatesFailed");
   } finally {
-    loading.value = false;
+    if (requestId === candidatesLoadGeneration) loading.value = false;
   }
 }
 
@@ -594,17 +606,16 @@ async function loadCurrentVoteState() {
   }
 
   try {
-    const rpcClient = await createRpcClient();
     const scriptHash = addressToScriptHash(account.value);
     if (!scriptHash) {
       currentVotePublicKey.value = "";
       return;
     }
-    // neon-js's invokeFunction is positional: (scriptHash, operation, params, signers).
-    const result = await rpcClient.invokeFunction(
-      NEO_HASH,
-      "getAccountState",
-      [{ type: "Hash160", value: scriptHash }],
+    const result = await safeRpc(
+      "invokefunction",
+      [NEO_HASH, "getAccountState", [{ type: "Hash160", value: scriptHash }]],
+      null,
+      { throwOnError: true },
     );
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;

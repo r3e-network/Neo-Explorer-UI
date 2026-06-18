@@ -210,7 +210,7 @@
                     <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                   </button>
                 </div>
-                <highlightjs language="csharp" :code="sourceFiles[activeFileIdx].content" class="text-xs font-mono m-0" />
+                <pre class="m-0"><code class="hljs language-csharp block text-xs font-mono" v-html="highlightedSourceCode"></code></pre>
               </div>
             </div>
           </div>
@@ -229,13 +229,7 @@ import { useToast } from "vue-toastification";
 import { useI18n } from "vue-i18n";
 import { useNetworkChange } from '@/composables/useNetworkChange';
 
-import hljs from 'highlight.js/lib/core';
-import csharp from 'highlight.js/lib/languages/csharp';
-import hljsVuePlugin from "@highlightjs/vue-plugin";
 import 'highlight.js/styles/github-dark.css';
-
-hljs.registerLanguage('csharp', csharp);
-const highlightjs = hljsVuePlugin.component;
 
 import code_Main from '../../../contracts/AbstractAccount/AbstractAccount.cs?raw';
 import code_AccountLifecycle from '../../../contracts/AbstractAccount/AbstractAccount.AccountLifecycle.cs?raw';
@@ -258,6 +252,47 @@ const sourceFiles = [
 const activeFileIdx = ref(0);
 const activeTab = ref('create');
 const copied = ref(false);
+const highlightedSourceCode = ref("");
+let highlighter = null;
+let highlighterPromise = null;
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function loadHighlighter() {
+  if (highlighter) return highlighter;
+  if (!highlighterPromise) {
+    highlighterPromise = Promise.all([
+      import('highlight.js/lib/core'),
+      import('highlight.js/lib/languages/csharp'),
+    ]).then(([coreModule, csharpModule]) => {
+      const runtime = coreModule.default || coreModule;
+      runtime.registerLanguage('csharp', csharpModule.default || csharpModule);
+      highlighter = runtime;
+      return runtime;
+    });
+  }
+  return highlighterPromise;
+}
+
+async function updateHighlightedSourceCode() {
+  const code = sourceFiles[activeFileIdx.value]?.content || "";
+  highlightedSourceCode.value = escapeHtml(code);
+  const runtime = await loadHighlighter();
+  highlightedSourceCode.value = runtime.highlight(code, { language: "csharp", ignoreIllegals: true }).value;
+}
+
+watch([activeFileIdx, activeTab], () => {
+  if (activeTab.value === 'source') {
+    void updateHighlightedSourceCode();
+  }
+}, { immediate: true });
 
 function copyCode(text) {
   navigator.clipboard.writeText(text);

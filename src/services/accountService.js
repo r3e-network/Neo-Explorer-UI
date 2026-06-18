@@ -249,19 +249,6 @@ export const accountService = createService(
       return raw.startsWith("0x") ? raw : `0x${raw}`;
     },
 
-    _extractTxHashesFromTransfers(payload) {
-      const sent = Array.isArray(payload?.sent) ? payload.sent : [];
-      const received = Array.isArray(payload?.received) ? payload.received : [];
-      const hashes = new Set();
-
-      [...sent, ...received].forEach((item) => {
-        const hash = String(item?.txhash || item?.txid || item?.hash || "").trim();
-        if (hash) hashes.add(hash);
-      });
-
-      return hashes;
-    },
-
     _buildTokenInfoMap(nep17BalancesPayload) {
       const balances = Array.isArray(nep17BalancesPayload?.balance) ? nep17BalancesPayload.balance : [];
       const infoMap = new Map();
@@ -424,15 +411,15 @@ export const accountService = createService(
     },
 
     async getByAddress(address, options = {}) {
-      // Authoritative on-chain sources: getnep17balances/getnep11balances
-      // (+ transfers for the tx count).
+      // Authoritative on-chain sources for the summary cards:
+      // getnep17balances/getnep11balances. Transaction counts are loaded by
+      // the address transaction tab, so don't block the header on full
+      // transfer-history RPC calls.
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
-        const [nep17Balances, nep11Balances, nep17Transfers, nep11Transfers] = await Promise.all([
+        const [nep17Balances, nep11Balances] = await Promise.all([
           this._getNativeNep17Balances(normalizedAddress, options),
           this._getNativeNep11Balances(normalizedAddress, options),
-          this._getNativeNep17Transfers(normalizedAddress, options),
-          this._getNativeNep11Transfers(normalizedAddress, options),
         ]);
 
         // A non-null balances response means the node answered (even when the
@@ -445,15 +432,11 @@ export const accountService = createService(
             balances.find((item) => this._normalizeAssetHash(item?.assethash) === NEO_HASH)?.amount || "0";
           const gasBalance =
             balances.find((item) => this._normalizeAssetHash(item?.assethash) === GAS_HASH)?.amount || "0";
-          const txHashes = new Set([
-            ...this._extractTxHashesFromTransfers(nep17Transfers),
-            ...this._extractTxHashesFromTransfers(nep11Transfers),
-          ]);
           return {
             address: this._toScriptHash(normalizedAddress),
             neoBalance,
             gasBalance,
-            txCount: txHashes.size,
+            txCount: 0,
             tokenCount: balances.length + nep11Collections.length,
           };
         }

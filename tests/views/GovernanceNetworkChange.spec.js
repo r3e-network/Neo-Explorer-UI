@@ -7,7 +7,7 @@ const voteForCandidateMock = vi.hoisted(() => vi.fn());
 const unvoteCandidateMock = vi.hoisted(() => vi.fn());
 const getValidatorMetadataMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const toastInfoMock = vi.hoisted(() => vi.fn());
-const executeMock = vi.hoisted(() => vi.fn().mockResolvedValue([{ publickey: "PUBKEY1", votes: "100", active: true }]));
+const safeRpcMock = vi.hoisted(() => vi.fn());
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
@@ -54,59 +54,28 @@ vi.mock("@/services/supabaseService", () => ({
   },
 }));
 
-vi.mock("@cityofzion/neon-js", () => {
-  // Mirror the shape that @/utils/neonLoader's findNeonJs guard checks for
-  // (tx.Transaction.deserialize + rpc.RPCClient) so loadNeonJs() resolves
-  // to this mock instead of returning null.
-  const Query = class {
-    constructor(config) {
-      this.config = config || {};
+vi.mock("@/services/api", () => ({
+  safeRpc: safeRpcMock,
+}));
+
+function mockSafeRpc() {
+  safeRpcMock.mockImplementation(async (method, params = []) => {
+    if (method === "getcandidates") {
+      return [{ publickey: "PUBKEY1", votes: "100", active: true }];
     }
-    static invokeFunction(scriptHash, method, params, signers) {
-      return new Query({ method: "invokefunction", params: [scriptHash, method, params, signers] });
+    if (method === "invokefunction" && params[1] === "getGasPerBlock") {
+      return { state: "HALT", stack: [{ type: "Integer", value: "100000000" }] };
     }
-  };
-  const RPCClient = class {
-    async execute(query) {
-      return executeMock(query);
-    }
-  };
-  const Transaction = class {
-    static deserialize() {
-      return new Transaction();
-    }
-  };
-  const neonMock = {
-    rpc: { RPCClient, Query },
-    tx: { Transaction },
-  };
-  neonMock.default = neonMock;
-  return neonMock;
-});
+    return { stack: [{ type: "Any" }] };
+  });
+}
 
 describe("Governance network changes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.Neon = {
-      rpc: {
-        RPCClient: class {
-          async getCandidates() {
-            return executeMock({ config: { method: "getcandidates" } });
-          }
-        },
-      },
-    };
     envState.value = "MainNet";
     fetchPricesMock.mockResolvedValue({ neo: 1, gas: 1 });
-    executeMock.mockImplementation((query) => {
-      const method = query?.config?.method;
-      if (method === "invokefunction") {
-        // NeoToken.getGasPerBlock — returns raw integer (1e8 = 1 GAS).
-        return { state: "HALT", stack: [{ type: "Integer", value: "100000000" }] };
-      }
-      // getcandidates
-      return [{ publickey: "PUBKEY1", votes: "100", active: true }];
-    });
+    mockSafeRpc();
     getValidatorMetadataMock.mockResolvedValue([]);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -131,7 +100,7 @@ describe("Governance network changes", () => {
     await flushPromises();
     await flushPromises();
     const candidateCalls = () =>
-      executeMock.mock.calls.filter(([q]) => q?.config?.method === "getcandidates").length;
+      safeRpcMock.mock.calls.filter(([method]) => method === "getcandidates").length;
     expect(candidateCalls()).toBe(1);
 
     envState.value = "TestT5";

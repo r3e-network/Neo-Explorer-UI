@@ -154,6 +154,7 @@ const loading = ref(true);
 const currentBlockHeight = ref(null);
 const millisecondsPerBlock = ref(null);
 const networkMagic = ref(null);
+const neonReadyTick = ref(0);
 let neonJs = null;
 const NEO_LOGO_FALLBACK = "/img/brand/neo.png";
 
@@ -180,6 +181,7 @@ const proposalUnsignedTx = computed(() => {
 });
 const proposalExecutionScript = computed(() => String(proposal.value?.metadata?.execution_script || "").trim());
 const proposalContextJson = computed(() => {
+  neonReadyTick.value;
   const txHex = proposalUnsignedTx.value;
   if (!txHex || networkMagic.value == null) return "";
   try {
@@ -766,6 +768,7 @@ async function handleBroadcast(currentProposal) {
 onMounted(async () => {
   try {
     neonJs = await (await import("@/utils/neonLoader.js")).loadNeonJs();
+    neonReadyTick.value += 1;
     await handleNetworkChange();
   } finally {
     loading.value = false;

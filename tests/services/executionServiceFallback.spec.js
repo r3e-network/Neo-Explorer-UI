@@ -42,7 +42,7 @@ describe("Execution Service Fallback Parser", () => {
       ],
     };
 
-    vi.spyOn(executionService, "_getExecutionTraceLegacy").mockResolvedValue(appLog);
+    vi.spyOn(executionService, "getExecutionTrace").mockResolvedValue(appLog);
     vi.spyOn(executionService, "getDetailedTrace").mockResolvedValue(null);
     vi.spyOn(executionService, "_fetchManifests").mockResolvedValue({
       manifests: new Map([["0xd2a4cff31913016155e38e474a2c06d08be276cf", null]]),

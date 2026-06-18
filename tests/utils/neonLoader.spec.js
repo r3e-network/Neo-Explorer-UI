@@ -9,6 +9,9 @@ const { neonJsDefaultMock, neonJsNamespaceMock } = vi.hoisted(() => ({
   },
 }));
 
+import fs from "node:fs";
+import path from "node:path";
+
 vi.mock("@cityofzion/neon-js", () => ({
   default: neonJsDefaultMock,
   ...neonJsNamespaceMock,
@@ -60,7 +63,13 @@ describe("neonLoader", () => {
   });
 
   describe("getNeonJsSync", () => {
-    it("returns the same resolved instance synchronously", () => {
+    it("returns null before the bundled SDK has been loaded", () => {
+      const result = getNeonJsSync();
+      expect(result).toBeNull();
+    });
+
+    it("returns the same resolved instance synchronously after preload", async () => {
+      await loadNeonJs();
       const result = getNeonJsSync();
       expect(result).toBeTruthy();
       expect(result.tx.Transaction).toBeDefined();
@@ -78,5 +87,12 @@ describe("neonLoader", () => {
       const result = mod.getNeonJsSync();
       expect(result).toBe(globalThis.window.Neon);
     });
+  });
+
+  it("keeps the bundled neon-js dependency behind a dynamic import", () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), "src/utils/neonLoader.js"), "utf8");
+
+    expect(source).not.toMatch(/from ["']@cityofzion\/neon-js["']/);
+    expect(source).toContain('import("@cityofzion/neon-js")');
   });
 });

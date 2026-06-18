@@ -4,7 +4,6 @@ import { contractService } from "./contractService";
 import { NATIVE_CONTRACTS, CONTRACT_MANAGEMENT_HASH } from "@/constants";
 import { decodeNotificationParams } from "@/utils/neoCodec";
 import { extractVmStateFromObject } from "@/utils/txVmState";
-import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints";
 
 /**
  * Execution Service - Neo3 交易执行追踪
@@ -13,16 +12,16 @@ import { callWithRpcEndpointFallback, toNetworkMode } from "@/utils/rpcEndpoints
  */
 export const executionService = createService(
   {
-    _getExecutionTraceLegacy: {
-      cacheKey: "exec_trace_legacy",
+    _getApplicationLogByTransactionHash: {
+      cacheKey: "exec_trace_application_log",
       rpcMethod: "getapplicationlog",
       fallback: null,
       ttl: CACHE_TTL.trace,
       buildParams: ([txHash]) => [txHash],
       buildCacheParams: ([txHash]) => ({ txHash }),
     },
-    _getBlockApplicationLogLegacy: {
-      cacheKey: "block_app_log_legacy",
+    _getApplicationLogByBlockHash: {
+      cacheKey: "block_app_log",
       rpcMethod: "getapplicationlog",
       fallback: null,
       ttl: CACHE_TTL.trace,
@@ -44,32 +43,12 @@ export const executionService = createService(
      * Uses the standard application-log path against direct neo-go.
      */
     async getBlockApplicationLog(blockHash, options = {}) {
-      let legacy = null;
       try {
-        legacy = this._normalizeBlockAppLog(await this._getBlockApplicationLogLegacy(blockHash, options));
+        return this._normalizeBlockAppLog(await this._getApplicationLogByBlockHash(blockHash, options));
       } catch (err) {
-        if (import.meta.env.DEV) console.warn("[executionService] legacy block app log fetch failed:", err);
+        if (import.meta.env.DEV) console.warn("[executionService] block app log fetch failed:", err);
+        return null;
       }
-
-      // Native Node RPC fallback through neon-js.
-      if (!legacy) {
-        try {
-          const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-          const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
-          const network = toNetworkMode(getCurrentEnv());
-          const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-            const client = new RpcClient(toAbsoluteUrl(endpoint));
-            return client.getApplicationLog(blockHash);
-          });
-          if (nativeLog) {
-            legacy = this._normalizeBlockAppLog(nativeLog);
-          }
-        } catch (nativeErr) {
-          if (import.meta.env.DEV) console.warn("[executionService] native RPC block applog fetch failed:", nativeErr);
-        }
-      }
-
-      return legacy;
     },
 
     /**
@@ -103,33 +82,12 @@ export const executionService = createService(
     async getExecutionTrace(txHash, options = {}) {
       // Standard `getapplicationlog` is the canonical source — it works
       // against any Neo node and returns the authoritative execution trace.
-      let primary = null;
       try {
-        const { loadNeonJs: _loadNeon } = await import("@/utils/neonLoader.js"); const _njs = await _loadNeon(); if (!_njs) throw new Error("neon-js not available"); const RpcClient = _njs.rpc.RPCClient;
-        const { getCurrentEnv, toAbsoluteUrl } = await import("@/utils/env");
-        const network = toNetworkMode(getCurrentEnv());
-        const nativeLog = await callWithRpcEndpointFallback(network, async (endpoint) => {
-          const client = new RpcClient(toAbsoluteUrl(endpoint));
-          return client.getApplicationLog(txHash);
-        });
-        if (nativeLog) {
-          primary = this._normalizeExecutionTrace(nativeLog);
-          if (this._countNotifications(primary) > 0) return primary;
-        }
-      } catch (nativeErr) {
-        if (import.meta.env.DEV) console.warn("[executionService] native RPC applog fetch failed:", nativeErr);
-      }
-
-      let legacy = null;
-      try {
-        legacy = this._normalizeExecutionTrace(await this._getExecutionTraceLegacy(txHash, options));
+        return this._normalizeExecutionTrace(await this._getApplicationLogByTransactionHash(txHash, options));
       } catch (err) {
-        if (import.meta.env.DEV) console.warn("[executionService] legacy trace fetch failed:", err);
+        if (import.meta.env.DEV) console.warn("[executionService] application log fetch failed:", err);
+        return null;
       }
-
-      if (this._countNotifications(legacy) > 0) return legacy;
-      if (primary) return primary;
-      return legacy;
     },
 
     /**

@@ -77,6 +77,7 @@ import { isAbortError } from "@/utils/abortError";
 
 // --- State ---
 const { t } = useI18n();
+const BLOCKS_LOAD_TIMEOUT_MS = 4500;
 
 const loading = ref(true);
 const blocksLoading = ref(true);
@@ -102,6 +103,14 @@ const feeTxBuffer = createRollingTxBuffer({
   fetchPage: (limit, offset, options) =>
     indexerReadService.getRecentTransactions(limit, offset, options),
 });
+
+function withTimeout(promise, timeoutMs, message) {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
+}
 
 async function refreshFeeBuffer(forceRefresh = false) {
   await feeTxBuffer.refresh(forceRefresh);
@@ -129,13 +138,11 @@ async function loadBlocks(forceRefresh = false) {
   blocksLoading.value = true;
   blocksError.value = null;
   try {
-    const [blockRes] = await Promise.all([
+    const blockRes = await withTimeout(
       blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true }),
-      // Fee buffer updates incrementally — see refreshFeeBuffer comment.
-      // First call fetches 1000 tx; subsequent calls fetch only the
-      // latest 100 and dedup against the last-seen txid.
-      refreshFeeBuffer(forceRefresh),
-    ]);
+      BLOCKS_LOAD_TIMEOUT_MS,
+      t("gasTracker.failedLoadBlocks"),
+    );
     blocks.value = blockRes?.result || [];
   } catch (e) {
     if (isAbortError(e)) return;
@@ -143,6 +150,13 @@ async function loadBlocks(forceRefresh = false) {
   } finally {
     blocksLoading.value = false;
   }
+
+  // Fee buffer updates incrementally and may touch a much larger transaction
+  // window than the visible block table. Keep it off the table/chart loading
+  // path so a slow estimator refresh never leaves the page in skeleton state.
+  refreshFeeBuffer(forceRefresh).catch((e) => {
+    if (import.meta.env.DEV && !isAbortError(e)) console.warn("Gas fee estimate refresh failed:", e);
+  });
 }
 
 async function loadData(forceRefresh = false) {

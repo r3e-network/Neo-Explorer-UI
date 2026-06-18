@@ -11,6 +11,38 @@ import { invokeContractFunction } from "@/utils/contractInvocation";
 import { supabaseService } from "@/services/supabaseService";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 
+const TOKEN_DETAIL_LOAD_TIMEOUT_MS = 4500;
+
+function createTimeoutError(timeoutMs) {
+  const err = new Error(`Token detail request timed out after ${timeoutMs}ms`);
+  err.name = "TimeoutError";
+  return err;
+}
+
+async function withTimeout(promise, timeoutMs) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(createTimeoutError(timeoutMs)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function createMinimalTokenInfo(id, standard) {
+  return {
+    hash: id,
+    type: standard || "NEP-17",
+    totalsupply: null,
+    holders: 0,
+    decimals: 0,
+  };
+}
+
 /**
  * Shared composable for NEP-17 and NEP-11 token detail views.
  *
@@ -45,7 +77,18 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
   // ---------------------------------------------------------------------------
   const { data: tokenInfo, loading: tokenLoading, error: tokenError, execute: executeTokenFetch } = useAsync(
-    (id, { signal }) => tokenService.getByHashWithFallback(id, { signal, standard }),
+    async (id, { signal }) => {
+      try {
+        return await withTimeout(
+          tokenService.getByHashWithFallback(id, { signal, standard }),
+          TOKEN_DETAIL_LOAD_TIMEOUT_MS,
+        );
+      } catch (err) {
+        if (isAbortError(err)) throw err;
+        if (err?.name === "TimeoutError") return createMinimalTokenInfo(id, standard);
+        throw err;
+      }
+    },
     {
       initialData: {},
       onSuccess: (res) => {

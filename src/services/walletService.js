@@ -4,14 +4,8 @@
  * @description Detects browser wallet extensions and provides invoke/sign capabilities
  */
 
-import { getNeonJsSync as _getNeonSync } from "@/utils/neonLoader";
+import { loadNeonJs } from "@/utils/neonLoader";
 import { WALLET_STATE_EVENT } from "@/constants/walletEvents";
-const neonJsStatic = _getNeonSync();
-const ScriptBuilder = neonJsStatic.sc.ScriptBuilder;
-const reverseHex = neonJsStatic.u.reverseHex;
-const num2hexstring = neonJsStatic.u.num2hexstring;
-const hash160 = neonJsStatic.u.hash160;
-const str2hexstring = neonJsStatic.u.str2hexstring;
 function hexToBytes(hex) {
   const h = String(hex || "").replace(/^0x/i, "");
   return Uint8Array.from(h.match(/../g) || [], (b) => parseInt(b, 16));
@@ -108,7 +102,22 @@ const AA_ALLOWED_META_METHODS = new Set(
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
 
-const loadSdk = () => import("@/utils/neonLoader.js").then(m => m.loadNeonJs());
+async function loadSdk() {
+  const sdk = await loadNeonJs();
+  if (!sdk) throw new Error("neon-js is not available.");
+  return sdk;
+}
+
+async function getSdkTools() {
+  const sdk = await loadSdk();
+  return {
+    ScriptBuilder: sdk.sc.ScriptBuilder,
+    hash160: sdk.u.hash160,
+    num2hexstring: sdk.u.num2hexstring,
+    reverseHex: sdk.u.reverseHex,
+    str2hexstring: sdk.u.str2hexstring,
+  };
+}
 
 function getCompatTransactionClass(sdk) {
   return sdk?.tx?.Transaction;
@@ -692,6 +701,7 @@ async function resolveUnsignedTransactionHash(unsignedTxHex) {
 async function buildRawTransactionSigningPayload(unsignedTxHex) {
   const sdk = await loadSdk();
   const { RPCClient: RpcClient } = sdk.rpc;
+  const { num2hexstring, reverseHex } = await getSdkTools();
   const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
     const rpcClient = new RpcClient(endpoint);
     return rpcClient.getVersion();
@@ -1008,6 +1018,7 @@ export const walletService = {
         }
       }
 
+      const { ScriptBuilder, hash160, reverseHex } = await getSdkTools();
       const sb = new ScriptBuilder();
       sb.emitContractCall(aaHash, "verify", undefined, [hexToBytes(uncompressedPubKey)]);
       const verifyScript = sb.toBytes();
@@ -1279,6 +1290,7 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {
       if (!_directWifAccount) throw new Error("Direct WIF account unavailable.");
+      const { str2hexstring } = await getSdkTools();
       const messageHex = str2hexstring(message);
       return normalizeSignMessageResult({
         publicKey: _directWifAccount.publicKey.toHex(),
@@ -1292,6 +1304,7 @@ export const walletService = {
       const web3authService = await loadWeb3authService();
       const account = await web3authService.getAccount();
       // Emulate NeoLine's returned structure
+      const { str2hexstring } = await getSdkTools();
       const messageHex = str2hexstring(message);
       const signature = account.sign(messageHex);
       return normalizeSignMessageResult({
@@ -1417,6 +1430,7 @@ export const walletService = {
         throw new Error(`Invalid signer account for "${operation}".`);
       }
 
+      const { ScriptBuilder } = await getSdkTools();
       const sb = new ScriptBuilder();
       sb.emitContractCall(
         scriptHash,
@@ -1485,6 +1499,7 @@ export const walletService = {
         throw new Error(`Invalid signer account for "${operation}".`);
       }
 
+      const { ScriptBuilder } = await getSdkTools();
       const sb = new ScriptBuilder();
       sb.emitContractCall(
         scriptHash,
@@ -1569,6 +1584,7 @@ export const walletService = {
         throw new Error("Missing public key identity. Please reconnect your EVM wallet.");
       }
 
+      const { ScriptBuilder, hash160, reverseHex } = await getSdkTools();
       const verifyScript = new ScriptBuilder()
         .emitContractCall(aaHash, "verify", undefined, [hexToBytes(accountId)])
         .toBytes();
@@ -1699,6 +1715,7 @@ export const walletService = {
       throw new Error(`Invalid signer account for "${operation}".`);
     }
 
+    const { ScriptBuilder } = await getSdkTools();
     const sb = new ScriptBuilder();
     sb.emitContractCall(
       scriptHash,

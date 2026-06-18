@@ -198,7 +198,7 @@ export function getManualChunkName(id) {
     return "neo-sdk";
   }
   if (id.includes("@cityofzion/neon-js")) {
-    return "neon-js";
+    return undefined;
   }
   if (id.includes("@walletconnect")) {
     return "walletconnect";

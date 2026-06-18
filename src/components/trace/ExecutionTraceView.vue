@@ -205,6 +205,13 @@
       </div>
     </div>
 
+    <!-- Background request still running after the soft timeout -->
+    <EmptyState
+      v-else-if="backgroundPending"
+      icon="tx"
+      :message="$t('executionTracePage.traceStillLoading')"
+    />
+
     <!-- No data -->
     <EmptyState
       v-else-if="!loading"
@@ -257,8 +264,13 @@ const callTree = ref([]);
 const expandedExecs = reactive({});
 const enrichedTrace = ref(null);
 const enrichedLoading = ref(false);
+const backgroundPending = ref(false);
 
 let activeTraceRequestId = 0;
+const TRACE_VIEW_SOFT_TIMEOUT_MS = Math.max(
+  1500,
+  Number(import.meta.env.VITE_TRACE_VIEW_SOFT_TIMEOUT_MS || 4500),
+);
 
 function toggleExec(index) {
   expandedExecs[index] = !expandedExecs[index];
@@ -266,6 +278,7 @@ function toggleExec(index) {
 
 function applyPreloadedData(data) {
   if (!data) return;
+  backgroundPending.value = false;
   appLog.value = data.raw || null;
   isComplex.value = data.isComplex || false;
   enrichedTrace.value = data;
@@ -286,6 +299,42 @@ function applyPreloadedData(data) {
     });
   } else {
     callTree.value = [];
+  }
+}
+
+function createSoftTimeout(ms) {
+  let timer = null;
+  const promise = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ timedOut: true }), ms);
+  });
+  return {
+    promise,
+    cancel: () => {
+      if (timer) clearTimeout(timer);
+    },
+  };
+}
+
+function applyExecutionLog(data, { requestId, txHash, loadEnriched = true } = {}) {
+  backgroundPending.value = false;
+  appLog.value = data;
+
+  if (!data) {
+    callTree.value = [];
+    isComplex.value = false;
+    enrichedTrace.value = null;
+    enrichedLoading.value = false;
+    return;
+  }
+
+  isComplex.value = executionService.isComplexTransaction(data);
+  callTree.value = isComplex.value ? executionService.buildCallTree(data) : [];
+  callTree.value.forEach((_, i) => {
+    expandedExecs[i] = true;
+  });
+
+  if (loadEnriched) {
+    void loadEnrichedTrace({ requestId, txHash });
   }
 }
 
@@ -316,27 +365,40 @@ async function loadTrace() {
 
   loading.value = true;
   error.value = null;
+  backgroundPending.value = false;
 
   try {
-    const data = await executionService.getExecutionTrace(txHash);
-    if (requestId !== activeTraceRequestId) return;
-    appLog.value = data;
+    const request = executionService.getExecutionTrace(txHash);
+    request
+      .then((lateData) => {
+        if (requestId !== activeTraceRequestId || appLog.value) return;
+        applyExecutionLog(lateData, { requestId, txHash });
+      })
+      .catch((lateErr) => {
+        if (requestId !== activeTraceRequestId || appLog.value) return;
+        if (isAbortError(lateErr)) return;
+        backgroundPending.value = false;
+        error.value = lateErr?.message ?? t("errorTitles.failedFetchExecutionTrace");
+      });
 
-    if (!data) {
-      callTree.value = [];
-      isComplex.value = false;
+    const timeout = createSoftTimeout(TRACE_VIEW_SOFT_TIMEOUT_MS);
+    const outcome = await Promise.race([
+      request.then(
+        (data) => ({ data }),
+        (err) => ({ err }),
+      ),
+      timeout.promise,
+    ]);
+    timeout.cancel();
+
+    if (requestId !== activeTraceRequestId) return;
+    if (outcome.timedOut) {
+      backgroundPending.value = true;
       return;
     }
+    if (outcome.err) throw outcome.err;
 
-    isComplex.value = executionService.isComplexTransaction(data);
-    callTree.value = isComplex.value ? executionService.buildCallTree(data) : [];
-    // Auto-expand all execution groups
-    callTree.value.forEach((_, i) => {
-      expandedExecs[i] = true;
-    });
-
-    // Load enriched trace for summary and gas breakdown
-    void loadEnrichedTrace({ requestId, txHash });
+    applyExecutionLog(outcome.data, { requestId, txHash });
   } catch (err) {
     if (requestId !== activeTraceRequestId) return;
     if (isAbortError(err)) return;

@@ -1,5 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 const i18nPlugin = {
@@ -54,5 +56,31 @@ describe("TokenDetail view", () => {
     });
 
     expect(wrapper.text()).toContain("NeoToken");
+  });
+
+  it("bounds token-detail child tables so slow indexer requests cannot leave visible skeletons", () => {
+    const transferTable = readFileSync(
+      path.resolve(process.cwd(), "src/components/common/TransferTable.vue"),
+      "utf8",
+    );
+    const tokenHolder = readFileSync(
+      path.resolve(process.cwd(), "src/views/Token/TokenHolder.vue"),
+      "utf8",
+    );
+    const nftTokens = readFileSync(
+      path.resolve(process.cwd(), "src/views/Token/NftTokens.vue"),
+      "utf8",
+    );
+    const useTokenDetail = readFileSync(
+      path.resolve(process.cwd(), "src/composables/useTokenDetail.js"),
+      "utf8",
+    );
+
+    expect(useTokenDetail).toContain("TOKEN_DETAIL_LOAD_TIMEOUT_MS");
+    expect(useTokenDetail).toContain("createMinimalTokenInfo");
+    expect(transferTable).toContain("TOKEN_DETAIL_TABLE_TIMEOUT_MS");
+    expect(tokenHolder).toContain("TOKEN_HOLDERS_TABLE_TIMEOUT_MS");
+    expect(nftTokens).toContain("NFT_ITEMS_LOAD_TIMEOUT_MS");
+    expect(nftTokens).toContain("loading.value = false;");
   });
 });

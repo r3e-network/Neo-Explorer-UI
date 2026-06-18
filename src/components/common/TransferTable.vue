@@ -178,6 +178,7 @@ const props = defineProps({
 
 const showAbsoluteTime = ref(false);
 const showAddress = ref(true);
+const TOKEN_DETAIL_TABLE_TIMEOUT_MS = 4500;
 
 function getDirectionStyle(item) {
   if (item.from === null) {
@@ -213,7 +214,7 @@ const {
   totalPages,
   loadPage,
   goToPage: handlePageChange,
-} = usePagination(fetchTransfers);
+} = usePagination(fetchTransfers, { timeoutMs: TOKEN_DETAIL_TABLE_TIMEOUT_MS });
 
 watch(
   () => props.contractHash,

@@ -110,6 +110,7 @@ const props = defineProps({
 });
 
 const showAddress = ref(true);
+const TOKEN_HOLDERS_TABLE_TIMEOUT_MS = 4500;
 
 const {
   items: holders,
@@ -121,7 +122,10 @@ const {
   totalPages,
   loadPage,
   goToPage: handlePageChange,
-} = usePagination((limit, skip) => tokenService.getHolders(props.contractHash, limit, skip));
+} = usePagination(
+  (limit, skip) => tokenService.getHolders(props.contractHash, limit, skip),
+  { timeoutMs: TOKEN_HOLDERS_TABLE_TIMEOUT_MS },
+);
 
 function rankIndex(index) {
   return index + (currentPage.value - 1) * resultsPerPage.value + 1;

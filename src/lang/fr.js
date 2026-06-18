@@ -1484,6 +1484,7 @@ const fr = {
     unableToLoad: "Impossible de charger la trace d'exécution",
     noCallMap: "Aucune carte d'appel disponible",
     failedToLoad: "Échec du chargement de la trace d'exécution",
+    traceStillLoading: "La trace est encore en cours de chargement. Les résultats s'afficheront automatiquement.",
     toggleExecution: "Basculer l'exécution {n} : {trigger} ({vmState})",
   },
   candidatesPage: {

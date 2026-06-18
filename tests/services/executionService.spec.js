@@ -1,7 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../../src/services/api.js";
-
-const callWithRpcEndpointFallback = vi.hoisted(() => vi.fn());
+import { clearAllCache } from "../../src/services/cache.js";
 
 vi.mock("../../src/services/api.js", () => ({
   rpc: vi.fn(),
@@ -10,100 +12,36 @@ vi.mock("../../src/services/api.js", () => ({
   formatListResponse: vi.fn((r) => r),
 }));
 
-vi.mock("@/utils/rpcEndpoints", () => ({
-  callWithRpcEndpointFallback,
-  toNetworkMode: vi.fn((env) => env),
-}));
-
-vi.mock("@/utils/neonLoader.js", () => ({
-  loadNeonJs: vi.fn(async () => ({
-    rpc: {
-      RPCClient: class {
-        constructor(endpoint) {
-          this.endpoint = endpoint;
-        }
-
-        async getApplicationLog(hash) {
-          return { hash };
-        }
-      },
-    },
-  })),
-}));
-
-vi.mock("@/utils/env", () => ({
-  getCurrentEnv: vi.fn(() => "Mainnet"),
-  toAbsoluteUrl: vi.fn((endpoint) => endpoint),
-}));
-
 import { executionService } from "../../src/services/executionService.js";
 
-describe("executionService getExecutionTrace fallback behavior", () => {
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const executionServicePath = path.resolve(dirname, "../../src/services/executionService.js");
+
+describe("executionService application-log path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    callWithRpcEndpointFallback.mockReset();
+    clearAllCache();
     api.rpc.mockReset();
     api.safeRpc.mockReset();
     api.safeRpcList.mockReset();
   });
 
-  it("uses native getapplicationlog when notifications are present", async () => {
+  it("uses the standard cached getapplicationlog RPC path for transaction traces", async () => {
     const indexedTrace = {
       executions: [{ vmstate: "HALT", notifications: [{ eventname: "Transfer" }] }],
     };
 
-    callWithRpcEndpointFallback.mockResolvedValueOnce(indexedTrace);
+    api.safeRpc.mockResolvedValueOnce(indexedTrace);
 
     const result = await executionService.getExecutionTrace("0xtx-indexed", { forceRefresh: true });
 
     expect(result).toEqual(indexedTrace);
-    expect(callWithRpcEndpointFallback).toHaveBeenCalledTimes(1);
-    expect(api.safeRpc).not.toHaveBeenCalled();
+    expect(api.safeRpc).toHaveBeenCalledTimes(1);
+    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"], null, expect.any(Object));
   });
 
-  it("falls back to safe standard getapplicationlog when native endpoint is unavailable", async () => {
-    const fallbackTrace = {
-      executions: [{ vmstate: "HALT", notifications: [{ eventname: "UserWithdrew" }] }],
-    };
-
-    callWithRpcEndpointFallback.mockRejectedValueOnce(new Error("direct rpc down"));
-    api.safeRpc.mockImplementation(async (method) => {
-      if (method === "getapplicationlog") return fallbackTrace;
-      return null;
-    });
-
-    const result = await executionService.getExecutionTrace("0xtx-fallback", { forceRefresh: true });
-
-    expect(result).toEqual(fallbackTrace);
-    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-fallback"], null, expect.any(Object));
-    expect(api.safeRpc).not.toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"], null, expect.any(Object));
-    expect(api.safeRpc).not.toHaveBeenCalledWith(
-      "GetApplicationLogByTransactionHash",
-      expect.anything(),
-      expect.anything(),
-      expect.anything()
-    );
-  });
-
-  it("uses safe standard result when native trace is unavailable", async () => {
-    const standardTrace = {
-      executions: [{ vmstate: "FAULT", notifications: [{ eventname: "Transfer" }] }],
-    };
-
-    callWithRpcEndpointFallback.mockResolvedValueOnce(null);
-    api.safeRpc.mockImplementation(async (method) => {
-      if (method === "getapplicationlog") return standardTrace;
-      return null;
-    });
-
-    const result = await executionService.getExecutionTrace("0xtx-standard", { forceRefresh: true });
-
-    expect(result).toEqual(standardTrace);
-    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-standard"], null, expect.any(Object));
-  });
-
-  it("normalizes flattened native trace shape into executions array", async () => {
-    const indexedTrace = {
+  it("normalizes flattened transaction application-log shape into executions array", async () => {
+    const flattenedTrace = {
       txid: "0xtx-flat",
       trigger: "Application",
       vmstate: "FAULT",
@@ -112,35 +50,29 @@ describe("executionService getExecutionTrace fallback behavior", () => {
       stack: [],
     };
 
-    callWithRpcEndpointFallback.mockResolvedValueOnce(indexedTrace);
+    api.safeRpc.mockResolvedValueOnce(flattenedTrace);
 
     const result = await executionService.getExecutionTrace("0xtx-flat", { forceRefresh: true });
 
     expect(result.executions?.[0]?.vmstate).toBe("FAULT");
     expect(result.executions?.[0]?.trigger).toBe("Application");
+    expect(result.executions?.[0]?.gasconsumed).toBe("1000");
   });
 
-  it("keeps native trace when neither candidate has notifications", async () => {
-    const nativeTrace = {
+  it("keeps notification-less application logs instead of probing legacy fallbacks", async () => {
+    const traceWithoutNotifications = {
       txid: "0xtx-missing-state",
       trigger: "Application",
       notifications: [],
       stack: [],
     };
-    const safeStandardTrace = {
-      executions: [{ vmstate: "FAULT", notifications: [] }],
-    };
 
-    callWithRpcEndpointFallback.mockResolvedValueOnce(nativeTrace);
-    api.safeRpc.mockImplementation(async (method) => {
-      if (method === "getapplicationlog") return safeStandardTrace;
-      return null;
-    });
+    api.safeRpc.mockResolvedValueOnce(traceWithoutNotifications);
 
     const result = await executionService.getExecutionTrace("0xtx-missing-state", { forceRefresh: true });
 
     expect(result).toEqual({
-      ...nativeTrace,
+      ...traceWithoutNotifications,
       executions: [
         {
           trigger: "Application",
@@ -152,5 +84,43 @@ describe("executionService getExecutionTrace fallback behavior", () => {
         },
       ],
     });
+    expect(api.safeRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the same lightweight getapplicationlog path for block application logs", async () => {
+    const blockLog = {
+      result: [
+        {
+          trigger: "OnPersist",
+          vmstate: "HALT",
+          gasconsumed: "42",
+          notifications: [],
+        },
+      ],
+    };
+
+    api.safeRpc.mockResolvedValueOnce(blockLog);
+
+    const result = await executionService.getBlockApplicationLog("0xblock", { forceRefresh: true });
+
+    expect(result.executions).toEqual([
+      {
+        trigger: "OnPersist",
+        vmstate: "HALT",
+        exception: null,
+        gasconsumed: "42",
+        stack: [],
+        notifications: [],
+      },
+    ]);
+    expect(api.safeRpc).toHaveBeenCalledWith("getapplicationlog", ["0xblock"], null, expect.any(Object));
+  });
+
+  it("does not load neon-js from the application-log hot path", () => {
+    const source = fs.readFileSync(executionServicePath, "utf8");
+
+    expect(source).not.toContain("@/utils/neonLoader");
+    expect(source).not.toContain("callWithRpcEndpointFallback");
+    expect(source).toContain('rpcMethod: "getapplicationlog"');
   });
 });
