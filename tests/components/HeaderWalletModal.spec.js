@@ -71,6 +71,26 @@ describe("HeaderWalletModal", () => {
     expect(wrapper.emitted("connect")).toEqual([["NeoLine"]]);
   });
 
+  it("shows unavailable wallet reasons inline while keeping the install action clickable", async () => {
+    const wrapper = await mountModal();
+    await flushPromises();
+
+    const evm = wrapper
+      .findAll(".wallet-modal-option")
+      .find((button) => button.text().includes("EVM Wallets"));
+    expect(evm.text()).toContain("not installed");
+    expect(evm.text()).toContain("header.open");
+    expect(evm.attributes("title")).toBe("not installed");
+    expect(evm.attributes("aria-label")).toBe("EVM Wallets (MetaMask, OKX, Rabby, etc.). not installed");
+
+    const helpId = evm.attributes("aria-describedby");
+    expect(helpId).toMatch(/^wallet-provider-help-/);
+    expect(wrapper.find(`[id="${helpId}"]`).text()).toBe("not installed");
+
+    await evm.trigger("click");
+    expect(wrapper.emitted("connect")).toEqual([["EVM Wallets (MetaMask, OKX, Rabby, etc.)"]]);
+  });
+
   it("emits connect for WIF when not available (e.g. prod)", async () => {
     const wrapper = await mountModal({
       isProviderAvailable: () => false,

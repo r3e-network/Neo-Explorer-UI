@@ -100,6 +100,8 @@
             :wallet-error="walletError"
             :wc-uri="wcUri"
             :tx-statuses="txStatuses"
+            :available-wallet-providers="writeAvailableProviders"
+            :wallet-provider-availability-loaded="writeWalletAvailabilityLoaded"
             @connect-wallet="connectWallet"
             @disconnect-wallet="disconnectWallet"
             @clear-wc-uri="wcUri = ''"
@@ -130,6 +132,7 @@ import { invokeContractFunction } from "@/utils/contractInvocation";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { connectedAccount } from "@/utils/walletState";
 import { loadWalletService } from "@/utils/lazyServices";
+import { getProviderInstallUrl, getProviderUnavailableReasonKey } from "@/utils/walletProviderMeta";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -164,6 +167,8 @@ const walletProvider = ref(null);
 const walletConnecting = ref(false);
 const walletError = ref("");
 const wcUri = ref("");
+const writeAvailableProviders = ref([]);
+const writeWalletAvailabilityLoaded = ref(false);
 const { txStatuses, track: trackTx } = useTransactionTracker();
 let walletServicePromise = null;
 
@@ -197,6 +202,19 @@ async function syncWalletStateFromService() {
   });
 }
 
+async function refreshWriteWalletAvailability(walletServiceArg = null) {
+  try {
+    const walletService = walletServiceArg || await getWalletService();
+    writeAvailableProviders.value = typeof walletService.getAvailableProviders === "function"
+      ? walletService.getAvailableProviders()
+      : [];
+    writeWalletAvailabilityLoaded.value = true;
+  } catch {
+    writeAvailableProviders.value = [];
+    writeWalletAvailabilityLoaded.value = false;
+  }
+}
+
 syncWalletStateSnapshot();
 
 if (typeof window !== "undefined") {
@@ -215,6 +233,9 @@ watch(connectedAccount, () => {
 watch(activeTab, (tab) => {
   if (tab === "writeContract" && connectedAccount.value) {
     syncWalletStateFromService().catch(() => {});
+  }
+  if (tab === "writeContract") {
+    refreshWriteWalletAvailability().catch(() => {});
   }
 });
 
@@ -381,6 +402,17 @@ async function connectWallet(providerName) {
   walletError.value = "";
   try {
     const walletService = await getWalletService();
+    await refreshWriteWalletAvailability(walletService);
+    if (writeWalletAvailabilityLoaded.value && !writeAvailableProviders.value.includes(providerName)) {
+      const installUrl = getProviderInstallUrl(providerName);
+      if (installUrl && typeof window !== "undefined" && typeof window.open === "function") {
+        window.open(installUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      walletError.value = t(getProviderUnavailableReasonKey(providerName));
+      return;
+    }
+
     const result = await walletService.connect(providerName);
     if (result?.uri && result?.approval) {
       wcUri.value = result.uri;

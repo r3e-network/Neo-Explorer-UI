@@ -19,14 +19,19 @@
         </div>
         <div class="p-7 space-y-4">
           <button
-            v-for="provider in props.supportedProviders"
+            v-for="(provider, index) in props.supportedProviders"
             :key="provider"
             :disabled="props.walletLoading"
-            :title="props.isProviderAvailable(provider) ? provider : props.getProviderUnavailableReason(provider)"
+            :title="isAvailable(provider) ? provider : props.getProviderUnavailableReason(provider)"
+            :aria-label="getProviderAriaLabel(provider)"
+            :aria-describedby="isAvailable(provider) ? undefined : getProviderHelpId(index)"
             @click="onProviderClick(provider)"
-            class="wallet-modal-option w-full flex items-center justify-between p-5 rounded-xl border border-white/10 bg-slate-800 text-slate-100 transition-all group disabled:cursor-not-allowed disabled:opacity-60 hover:bg-slate-700 hover:border-emerald-400/40"
+            class="wallet-modal-option w-full flex items-center justify-between gap-4 p-5 rounded-xl border text-slate-100 transition-all group disabled:cursor-not-allowed disabled:opacity-60"
+            :class="isAvailable(provider)
+              ? 'border-white/10 bg-slate-800 hover:bg-slate-700 hover:border-emerald-400/40'
+              : 'wallet-modal-option--unavailable border-amber-300/25 bg-slate-800/80 hover:bg-slate-700 hover:border-amber-300/45'"
           >
-            <div class="flex items-center gap-4">
+            <div class="flex min-w-0 items-center gap-4">
               <div class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-slate-200/80 bg-white p-2">
                 <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="wallet-modal-logo-wordmark h-5 w-5 object-cover object-left" onerror="this.src='/img/brand/neo.png'" />
                 <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
@@ -37,9 +42,24 @@
                 <img v-else-if="provider === 'EVM Wallets (MetaMask, OKX, Rabby, etc.)'" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="w-full h-full object-contain" />
                 <svg v-else class="w-6 h-6 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 15.92 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
               </div>
-              <span class="wallet-modal-option-label font-semibold group-hover:text-emerald-600">{{ provider }}</span>
+              <span class="min-w-0 text-left">
+                <span class="wallet-modal-option-label block truncate font-semibold group-hover:text-emerald-600">{{ provider }}</span>
+                <span
+                  v-if="!isAvailable(provider)"
+                  :id="getProviderHelpId(index)"
+                  class="wallet-modal-option-help mt-1 block text-xs leading-snug text-amber-100/80"
+                >
+                  {{ props.getProviderUnavailableReason(provider) }}
+                </span>
+              </span>
             </div>
-            <svg class="wallet-modal-chevron w-5 h-5 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <span
+              v-if="!isAvailable(provider)"
+              class="wallet-modal-option-action shrink-0 rounded-full border border-amber-300/30 px-2 py-1 text-[11px] font-semibold text-amber-100/90"
+            >
+              {{ $t('header.open') }}
+            </span>
+            <svg v-else class="wallet-modal-chevron h-5 w-5 shrink-0 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
           </button>
 
           <div v-if="showDevWifForm" class="wallet-modal-dev-panel mt-4 rounded-xl border border-white/10 bg-slate-950 p-4 space-y-3">
@@ -103,9 +123,22 @@ function resetDevWifForm() {
   devWifInput.value = "";
 }
 
+function isAvailable(provider) {
+  return props.isProviderAvailable(provider);
+}
+
+function getProviderHelpId(index) {
+  return `wallet-provider-help-${index}`;
+}
+
+function getProviderAriaLabel(provider) {
+  if (isAvailable(provider)) return provider;
+  return `${provider}. ${props.getProviderUnavailableReason(provider)}`;
+}
+
 function onProviderClick(provider) {
   if (provider === PROVIDERS.TESTNET_WIF) {
-    if (!props.isProviderAvailable(provider)) {
+    if (!isAvailable(provider)) {
       emit("connect", provider);
       return;
     }

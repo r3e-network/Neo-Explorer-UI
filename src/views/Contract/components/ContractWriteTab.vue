@@ -19,13 +19,26 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              v-for="provider in CONTRACT_WRITE_WALLET_PROVIDERS"
+              v-for="(provider, index) in CONTRACT_WRITE_WALLET_PROVIDERS"
               :key="provider"
-              class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/45"
+              class="inline-flex min-h-[2.75rem] min-w-[8.5rem] flex-col items-start justify-center rounded-lg border px-4 py-2 text-left text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              :class="isProviderReady(provider)
+                ? 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/45'
+                : 'border-amber-300/50 bg-white/80 text-amber-800 hover:bg-amber-50 dark:border-amber-700/80 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/35'"
               :disabled="walletConnecting"
+              :title="getProviderTitle(provider)"
+              :aria-label="getProviderAriaLabel(provider)"
+              :aria-describedby="isProviderReady(provider) ? undefined : getProviderHelpId(index)"
               @click="emit('connectWallet', provider)"
             >
-              {{ walletConnecting ? $t("contractDetail.writeConnecting") : provider }}
+              <span>{{ walletConnecting ? $t("contractDetail.writeConnecting") : provider }}</span>
+              <span
+                v-if="!isProviderReady(provider)"
+                :id="getProviderHelpId(index)"
+                class="mt-0.5 text-[11px] font-medium leading-snug text-amber-700/80 dark:text-amber-200/80"
+              >
+                {{ getProviderUnavailableReason(provider) }}
+              </span>
             </button>
           </div>
           <p v-if="walletError" class="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">{{ walletError }}</p>
@@ -244,9 +257,11 @@
 
 <script setup>
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { truncateHash } from "@/utils/explorerFormat";
 import ParamInput from "@/components/contract/ContractParamInput.vue";
 import { CONTRACT_WRITE_WALLET_PROVIDERS } from "@/constants/walletProviders";
+import { getProviderUnavailableReasonKey } from "@/utils/walletProviderMeta";
 import WalletConnectModal from "./WalletConnectModal.vue";
 
 const props = defineProps({
@@ -260,6 +275,8 @@ const props = defineProps({
   walletError: { type: String, default: "" },
   wcUri: { type: String, default: "" },
   txStatuses: { type: Object, default: () => ({}) },
+  availableWalletProviders: { type: Array, default: () => [] },
+  walletProviderAvailabilityLoaded: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -277,6 +294,7 @@ const emit = defineEmits([
 // previously chosen for method #0 on contract A leaks onto whatever method
 // #0 turns out to be on contract B.
 const signerScopes = ref({});
+const { t } = useI18n();
 watch(
   () => props.writeMethods,
   () => {
@@ -287,5 +305,26 @@ watch(
 function getTxStatus(txid) {
   if (!txid) return null;
   return props.txStatuses[txid] || "pending";
+}
+
+function isProviderReady(provider) {
+  if (!props.walletProviderAvailabilityLoaded) return true;
+  return props.availableWalletProviders.includes(provider);
+}
+
+function getProviderHelpId(index) {
+  return `contract-write-wallet-provider-help-${index}`;
+}
+
+function getProviderUnavailableReason(provider) {
+  return t(getProviderUnavailableReasonKey(provider));
+}
+
+function getProviderTitle(provider) {
+  return isProviderReady(provider) ? provider : getProviderUnavailableReason(provider);
+}
+
+function getProviderAriaLabel(provider) {
+  return isProviderReady(provider) ? provider : `${provider}. ${getProviderUnavailableReason(provider)}`;
 }
 </script>

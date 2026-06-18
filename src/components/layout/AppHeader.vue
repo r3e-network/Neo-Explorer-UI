@@ -209,6 +209,7 @@ import { loadWalletService } from "@/utils/lazyServices";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
 import HeaderWalletModal from "@/components/layout/HeaderWalletModal.vue";
 import { PROVIDERS } from "@/constants/walletProviders";
+import { getProviderInstallUrl, getProviderUnavailableReasonKey } from "@/utils/walletProviderMeta";
 import { useToast } from "vue-toastification";
 import { useChatSession } from "@/composables/useChatSession";
 
@@ -292,47 +293,7 @@ function isProviderAvailable(provider) {
 }
 
 function getProviderUnavailableReason(provider) {
-  if (provider === PROVIDERS.WALLETCONNECT) {
-    return t("header.providerWalletConnect");
-  }
-  if (provider === PROVIDERS.NEON) {
-    return t("header.providerNeon");
-  }
-  if (provider === PROVIDERS.TESTNET_WIF) {
-    return t("header.providerTestnetWif");
-  }
-  if (provider === PROVIDERS.ONEGATE) {
-    return t("header.providerOneGate");
-  }
-  if (provider === PROVIDERS.NEOLINE) {
-    return t("header.providerNeoLine");
-  }
-  if (provider === PROVIDERS.EVM_WALLET) {
-    return t("header.providerEvm");
-  }
-  return t("header.providerUnavailable");
-}
-
-function getProviderInstallUrl(provider) {
-  if (provider === PROVIDERS.NEOLINE) {
-    return "https://neoline.io/en/";
-  }
-  if (provider === PROVIDERS.ONEGATE) {
-    return "https://onegate.space/";
-  }
-  if (provider === PROVIDERS.WALLETCONNECT) {
-    return "https://walletconnect.network/";
-  }
-  if (provider === PROVIDERS.NEON) {
-    return "https://neon.coz.io/";
-  }
-  if (provider === PROVIDERS.TESTNET_WIF) {
-    return "";
-  }
-  if (provider === PROVIDERS.EVM_WALLET) {
-    return "https://metamask.io/download/";
-  }
-  return "";
+  return t(getProviderUnavailableReasonKey(provider));
 }
 
 async function handleConnect(provider) {
