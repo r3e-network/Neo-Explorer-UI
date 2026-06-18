@@ -81,6 +81,125 @@
         </div>
       </div>
 
+      <!-- Explorer indexer freshness -->
+      <div class="etherscan-card mb-6 overflow-hidden">
+        <div class="card-header flex-wrap gap-3">
+          <div>
+            <h2 class="text-high text-base font-semibold">{{ $t("pages.networkStatus.indexerTitle") }}</h2>
+            <p class="text-low mt-1 text-xs">{{ $t("pages.networkStatus.indexerSubtitle") }}</p>
+          </div>
+          <span
+            v-if="indexerSnapshot"
+            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+            :class="indexerStatusClass"
+          >
+            <span class="inline-block h-1.5 w-1.5 rounded-full" :class="indexerStatusDotClass"></span>
+            {{ indexerStatusLabel }}
+          </span>
+        </div>
+        <div v-if="indexerLoading && !indexerSnapshot" class="space-y-3 p-4">
+          <Skeleton v-for="i in 4" :key="i" height="32px" />
+        </div>
+        <div v-else-if="!indexerSnapshot" class="p-6">
+          <EmptyState :message="$t('pages.networkStatus.noIndexerData')" />
+        </div>
+        <div v-else class="p-4">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <div class="text-low text-xs font-semibold uppercase tracking-wider">
+                {{ $t("pages.networkStatus.indexedHeight") }}
+              </div>
+              <div class="mt-1 text-xl font-bold text-high">{{ formatNumber(indexerStatus.lastIndexedBlock) }}</div>
+              <div class="text-low mt-1 text-xs">{{ $t("pages.networkStatus.updatedAt") }} {{ formatDateTime(indexerStatus.updatedAt) }}</div>
+            </div>
+            <div>
+              <div class="text-low text-xs font-semibold uppercase tracking-wider">
+                {{ $t("pages.networkStatus.chainTipHeight") }}
+              </div>
+              <div class="mt-1 text-xl font-bold text-high">{{ formatNumber(indexerStatus.chainTipBlock) }}</div>
+              <div class="text-low mt-1 text-xs">{{ $t("pages.networkStatus.lagBlocks") }} {{ formatNumber(indexerStatus.lagBlocks) }}</div>
+            </div>
+            <div>
+              <div class="text-low text-xs font-semibold uppercase tracking-wider">
+                {{ $t("pages.networkStatus.dataFreshness") }}
+              </div>
+              <div class="mt-1 text-xl font-bold text-high">{{ formatDuration(indexerStatus.freshnessSeconds) }}</div>
+              <div class="text-low mt-1 text-xs">
+                {{ $t("pages.networkStatus.maxFreshness") }} {{ formatDuration(indexerStatus.maxFreshnessSeconds) }}
+              </div>
+            </div>
+            <div>
+              <div class="text-low text-xs font-semibold uppercase tracking-wider">
+                {{ $t("pages.networkStatus.syncProgress") }}
+              </div>
+              <div class="mt-1 text-xl font-bold text-high">{{ formatPercent(indexerStatus.syncRatio) }}</div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                <div
+                  class="h-full rounded-full bg-emerald-500 transition-all"
+                  :style="{ width: `${Math.max(1, Math.min(100, indexerStatus.syncRatio * 100))}%` }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="soft-divider mt-4 grid gap-4 border-t pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[520px]" :aria-label="$t('pages.networkStatus.indexerSummaryTitle')">
+                <tbody class="soft-divider divide-y">
+                  <tr>
+                    <th scope="row" class="table-header-cell">{{ $t("pages.networkStatus.indexedTxCount") }}</th>
+                    <td class="table-cell-right font-medium">{{ formatNumber(indexerSummary.indexedTxCount) }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="table-header-cell">{{ $t("pages.networkStatus.totalTxCount") }}</th>
+                    <td class="table-cell-right font-medium">{{ formatNumber(indexerSummary.totalTxCount) }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="table-header-cell">{{ $t("pages.networkStatus.activeAddresses7d") }}</th>
+                    <td class="table-cell-right font-medium">{{ formatNumber(indexerSummary.activeAddressCount7d) }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="table-header-cell">{{ $t("pages.networkStatus.summarySource") }}</th>
+                    <td class="table-cell-right font-medium">{{ displayValue(indexerSummary.summarySource) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-high text-sm font-semibold">{{ $t("pages.networkStatus.edgeDiagnosticsTitle") }}</h3>
+                  <p class="text-low mt-0.5 text-xs">{{ $t("pages.networkStatus.edgeDiagnosticsSubtitle") }}</p>
+                </div>
+                <span class="text-low whitespace-nowrap text-xs">{{ $t("pages.networkStatus.checkedAt") }} {{ formatDateTime(indexerSnapshot.checkedAt) }}</span>
+              </div>
+              <div v-if="recentIndexerObservations.length === 0" class="text-low text-sm">
+                {{ $t("pages.networkStatus.noEdgeData") }}
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="observation in recentIndexerObservations"
+                  :key="`${observation.timestamp}-${observation.url}-${observation.requestId || observation.status}`"
+                  class="soft-divider rounded-md border px-3 py-2"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="max-w-full truncate font-mono text-xs text-high">{{ observation.url }}</span>
+                    <span class="text-low text-xs">{{ observation.status || "200" }}</span>
+                  </div>
+                  <div class="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeCache") }}:</span> {{ displayValue(observation.neo3furaCache || observation.edgeCache) }}</span>
+                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeRequest") }}:</span> {{ displayValue(observation.requestId) }}</span>
+                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeTarget") }}:</span> {{ displayValue(observation.proxyTarget || observation.upstreamSource) }}</span>
+                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeTiming") }}:</span> {{ formatServerTiming(observation) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Seeds table -->
       <div class="etherscan-card mb-6 overflow-hidden">
         <div class="card-header">
@@ -171,6 +290,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import { formatNumber } from "@/utils/explorerFormat";
 import { getNetworkHealth, getLatestBlocks } from "@/services/networkMonitorService";
+import { getIndexerHealthSnapshot } from "@/services/indexerStatusService";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
@@ -181,8 +301,10 @@ function isTestnetEnv() {
 const { t } = useI18n();
 
 const loading = ref(true);
+const indexerLoading = ref(true);
 const health = ref({ online: 0, total: 0, tip: 0, healthy: false, seeds: [] });
 const latestBlocks = ref([]);
+const indexerSnapshot = ref(null);
 let pollTimer = null;
 
 const STALE_HEIGHT_WINDOW = 2;
@@ -203,6 +325,44 @@ const avgTxPerBlock = computed(() => {
   if (!latestBlocks.value.length) return 0;
   const total = latestBlocks.value.reduce((s, b) => s + (Number(b.tx) || 0), 0);
   return total / latestBlocks.value.length;
+});
+
+const indexerStatus = computed(() => indexerSnapshot.value?.status || {
+  ready: false,
+  reason: "status_unavailable",
+  lastIndexedBlock: -1,
+  chainTipBlock: -1,
+  lagBlocks: 0,
+  freshnessSeconds: 0,
+  maxFreshnessSeconds: 300,
+  syncRatio: 0,
+});
+
+const indexerSummary = computed(() => indexerSnapshot.value?.summary || {
+  indexedTxCount: 0,
+  totalTxCount: 0,
+  activeAddressCount7d: 0,
+  summarySource: "",
+});
+
+const recentIndexerObservations = computed(() => indexerSnapshot.value?.observations || []);
+
+const indexerStatusLabel = computed(() => {
+  if (indexerStatus.value.ready) return t("pages.networkStatus.statusHealthy");
+  if (indexerStatus.value.reason === "indexer_stale") return t("pages.networkStatus.statusLagging");
+  return t("pages.networkStatus.statusOffline");
+});
+
+const indexerStatusClass = computed(() => {
+  if (indexerStatus.value.ready) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+  if (indexerStatus.value.reason === "indexer_stale") return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+  return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+});
+
+const indexerStatusDotClass = computed(() => {
+  if (indexerStatus.value.ready) return "bg-emerald-500";
+  if (indexerStatus.value.reason === "indexer_stale") return "bg-amber-500";
+  return "bg-red-500";
 });
 
 function seedStatus(seed) {
@@ -231,15 +391,59 @@ function seedStatusDotClass(seed) {
   return "bg-red-500";
 }
 
+function displayValue(value) {
+  const text = String(value || "").trim();
+  return text || "N/A";
+}
+
+function formatDuration(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return "N/A";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${Math.round(seconds / 3600)}h`;
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "N/A";
+  return `${(Math.max(0, Math.min(1, number)) * 100).toFixed(2)}%`;
+}
+
+function formatDateTime(value) {
+  const text = String(value || "").trim();
+  if (!text) return "N/A";
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return text;
+  return date.toLocaleString();
+}
+
+function formatServerTiming(observation) {
+  const metrics = Array.isArray(observation?.serverTimingMetrics) ? observation.serverTimingMetrics : [];
+  const compact = metrics
+    .map((metric) => {
+      const name = String(metric.name || "").trim();
+      if (!name) return "";
+      if (Number.isFinite(Number(metric.durationMs))) return `${name} ${Number(metric.durationMs).toFixed(1)}ms`;
+      return metric.description ? `${name} ${metric.description}` : name;
+    })
+    .filter(Boolean)
+    .join(", ");
+  return compact || displayValue(observation?.serverTiming);
+}
+
 async function refresh() {
   const env = currentEnv();
+  indexerLoading.value = true;
   try {
-    const [healthRes, blocksRes] = await Promise.all([
+    const [healthRes, blocksRes, indexerRes] = await Promise.all([
       getNetworkHealth(env, STALE_HEIGHT_WINDOW),
       getLatestBlocks(env),
+      getIndexerHealthSnapshot(env, { forceRefresh: true }),
     ]);
     health.value = healthRes;
     latestBlocks.value = blocksRes;
+    indexerSnapshot.value = indexerRes;
   } catch (err) {
     // Service layer already swallows fetch errors and returns empty
     // defaults, so this catch is a defensive belt-and-braces guard.
@@ -248,6 +452,7 @@ async function refresh() {
     if (import.meta.env.DEV) console.warn("[networkStatus] refresh failed:", err);
   } finally {
     loading.value = false;
+    indexerLoading.value = false;
   }
 }
 
@@ -255,6 +460,7 @@ function handleNetworkChange() {
   loading.value = true;
   health.value = { online: 0, total: 0, tip: 0, healthy: false, seeds: [] };
   latestBlocks.value = [];
+  indexerSnapshot.value = null;
   void refresh();
 }
 

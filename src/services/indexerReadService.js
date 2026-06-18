@@ -35,7 +35,7 @@ function isAbsoluteUrl(path) {
   return /^https?:\/\//i.test(String(path || "").trim());
 }
 
-function getIndexerBaseUrls(network) {
+export function getIndexerBaseUrls(network) {
   const configuredBaseUrls = [
     CONFIGURED_INDEXER_READ_BASE_URL ? `${CONFIGURED_INDEXER_READ_BASE_URL}/${network}` : "",
     ...CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS.map((baseUrl) => `${baseUrl}/${network}`),
