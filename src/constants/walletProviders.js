@@ -1,6 +1,5 @@
 export const PROVIDERS = Object.freeze({
   NEOLINE: "NeoLine",
-  O3: "O3",
   ONEGATE: "OneGate",
   WALLETCONNECT: "WalletConnect",
   NEON: "Neon Wallet",
@@ -8,3 +7,10 @@ export const PROVIDERS = Object.freeze({
   WEB3AUTH: "Google / Email (Web3Auth)",
   EVM_WALLET: "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
 });
+
+export const CONTRACT_WRITE_WALLET_PROVIDERS = Object.freeze([
+  PROVIDERS.NEOLINE,
+  PROVIDERS.ONEGATE,
+  PROVIDERS.NEON,
+  PROVIDERS.WALLETCONNECT,
+]);

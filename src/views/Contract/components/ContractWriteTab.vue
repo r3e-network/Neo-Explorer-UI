@@ -19,7 +19,7 @@
           <div class="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              v-for="provider in ['NeoLine', 'O3', 'OneGate', 'Neon Wallet', 'WalletConnect']"
+              v-for="provider in CONTRACT_WRITE_WALLET_PROVIDERS"
               :key="provider"
               class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/45"
               :disabled="walletConnecting"
@@ -246,6 +246,7 @@
 import { ref, watch } from "vue";
 import { truncateHash } from "@/utils/explorerFormat";
 import ParamInput from "@/components/contract/ContractParamInput.vue";
+import { CONTRACT_WRITE_WALLET_PROVIDERS } from "@/constants/walletProviders";
 import WalletConnectModal from "./WalletConnectModal.vue";
 
 const props = defineProps({

@@ -5,10 +5,12 @@
 
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
-function tWc(key, fallback) {
+function tWc(key, paramsOrFallback, fallbackMaybe) {
+  const params = paramsOrFallback && typeof paramsOrFallback === "object" ? paramsOrFallback : {};
+  const fallback = typeof paramsOrFallback === "string" ? paramsOrFallback : fallbackMaybe;
   const i18n = typeof globalThis !== "undefined" ? globalThis.__neoExplorerI18n__ : null;
   if (i18n?.global?.t) {
-    const translated = i18n.global.t(key);
+    const translated = i18n.global.t(key, params);
     if (translated && translated !== key) return translated;
   }
   return fallback;
@@ -26,6 +28,26 @@ function getPreferredChain() {
     return "neo3:testnet";
   }
   return "neo3:mainnet";
+}
+
+function chainToNetworkMode(chain) {
+  const value = String(chain || "").toLowerCase();
+  if (value.includes("test")) return "testnet";
+  if (value.includes("main")) return "mainnet";
+  return "";
+}
+
+function assertSessionMatchesExplorerNetwork() {
+  const sessionChain = getSessionChain();
+  const expectedChain = getPreferredChain();
+  if (!sessionChain || chainToNetworkMode(sessionChain) === chainToNetworkMode(expectedChain)) return true;
+  throw new Error(
+    tWc(
+      "wallet.errors.walletConnectNetworkMismatch",
+      { sessionChain, expectedChain },
+      `WalletConnect session is on ${sessionChain}; switch the Explorer to ${sessionChain.split(":")[1]} or reconnect on ${expectedChain}.`,
+    ),
+  );
 }
 
 function getSessionChain() {
@@ -82,6 +104,12 @@ export const walletConnectService = {
       uri,
       approval: approval().then((session) => {
         _session = session;
+        try {
+          assertSessionMatchesExplorerNetwork();
+        } catch (error) {
+          _session = null;
+          throw error;
+        }
         return session;
       }),
     };
@@ -100,6 +128,12 @@ export const walletConnectService = {
     if (!restoredSession) return null;
 
     _session = restoredSession;
+    try {
+      assertSessionMatchesExplorerNetwork();
+    } catch (error) {
+      _session = null;
+      throw error;
+    }
     return this.account;
   },
 
@@ -108,6 +142,7 @@ export const walletConnectService = {
    */
   async signMessage(message) {
     if (!_session || !_client) throw new Error(tWc("wallet.errors.walletConnectNotConnected", "WalletConnect not connected"));
+    assertSessionMatchesExplorerNetwork();
     return await _client.request({
       topic: _session.topic,
       chainId: getActiveChain(),
@@ -123,6 +158,7 @@ export const walletConnectService = {
    */
   async invoke({ scriptHash, operation, args = [], signerScope = 1 }) {
     if (!_session || !_client) throw new Error(tWc("wallet.errors.walletConnectNotConnected", "WalletConnect not connected"));
+    assertSessionMatchesExplorerNetwork();
     const result = await _client.request({
       topic: _session.topic,
       chainId: getActiveChain(),
@@ -162,5 +198,9 @@ export const walletConnectService = {
     // Format: "neo3:mainnet:NAddress"
     const address = accounts[0].split(":")[2];
     return { address, label: "WalletConnect" };
+  },
+
+  ensureNetworkCompatible() {
+    return assertSessionMatchesExplorerNetwork();
   },
 };

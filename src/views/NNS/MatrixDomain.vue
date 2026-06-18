@@ -519,7 +519,7 @@ const RESERVED_DOMAINS = [
   "ndapp.matrix",
   "onegate.matrix",
   "neoline.matrix",
-  "o3.matrix",
+  "n3scan.matrix",
   "nash.matrix",
   "switcheo.matrix",
   "polynetwork.matrix",

@@ -9,6 +9,60 @@ import { eqHash, inHashes, safeTokenId } from "@/utils/postgrest";
 
 const resolveTokenNetwork = () => resolveNetworkName();
 
+function bytesToBase64(bytes) {
+  const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+  if (typeof btoa === "function") {
+    let binary = "";
+    for (const byte of normalized) binary += String.fromCharCode(byte);
+    return btoa(binary);
+  }
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(normalized).toString("base64");
+  }
+  return "";
+}
+
+function utf8ToBase64(value) {
+  const text = String(value ?? "");
+  if (typeof TextEncoder !== "undefined") {
+    return bytesToBase64(new TextEncoder().encode(text));
+  }
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(text, "utf8").toString("base64");
+  }
+  return bytesToBase64(Array.from(text, (char) => char.charCodeAt(0)));
+}
+
+function hexToBase64(value) {
+  const hex = String(value || "").replace(/^0x/i, "");
+  if (!hex || hex.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(hex)) return "";
+  const bytes = Uint8Array.from(hex.match(/../g).map((byte) => parseInt(byte, 16)));
+  return bytesToBase64(bytes);
+}
+
+function isPaddedBase64(value) {
+  const text = String(value || "").trim();
+  if (!text || !/[=+/]/.test(text) || !/^[A-Za-z0-9+/]+={0,2}$/.test(text)) return false;
+  try {
+    const normalized = text.replace(/=+$/, "");
+    const decoded = atob(text);
+    return btoa(decoded).replace(/=+$/, "") === normalized;
+  } catch {
+    return false;
+  }
+}
+
+function encodeNep11TokenIdForRpc(tokenId) {
+  const text = String(tokenId ?? "").trim();
+  if (!text) return text;
+  if (isPaddedBase64(text)) return text;
+
+  const fromHex = hexToBase64(text);
+  if (fromHex) return fromHex;
+
+  return utf8ToBase64(text);
+}
+
 // Indexer Postgres-backed REST endpoint for tx-level transfer lookups.
 // Fields returned: { txid, contract_hash, from_address, to_address,
 // amount_raw, amount_text, block_index, execution_index,
@@ -671,7 +725,7 @@ export const tokenService = createService(
               ids.map((tokenId) =>
                 safeRpc(
                   "invokefunction",
-                  [hash, "properties", [{ type: "ByteString", value: tokenId }]],
+                  [hash, "properties", [{ type: "ByteString", value: encodeNep11TokenIdForRpc(tokenId) }]],
                   null,
                   options,
                 ),

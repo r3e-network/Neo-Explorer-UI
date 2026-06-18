@@ -261,10 +261,14 @@ describe("walletService", () => {
     compatTxDeserializeMock.mockReset();
     executeMock.mockResolvedValue({ protocol: { network: 860833102 } });
     getVersionMock.mockResolvedValue({ protocol: { network: 860833102 } });
+    neoLineGetNetworksMock.mockReset().mockResolvedValue({ defaultNetwork: "MainNet" });
+    neoLineSwitchNetworkMock.mockReset().mockImplementation(async ({ network }) => {
+      neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: network });
+      return { defaultNetwork: network };
+    });
     neoLineSwitchWalletAccountMock.mockReset();
     delete window.NEOLine;
     delete window.NEOLineN3;
-    delete window.neo3Dapi;
     delete window.OneGate;
     delete window.neo;
     delete window.ethereum;
@@ -391,8 +395,22 @@ describe("walletService", () => {
     expect(walletService.getChatAuthSupport()).toEqual({
       supported: false,
       reason:
-        "This wallet connection does not reliably expose the Neo public key needed for NeoChat login yet. Use NeoLine, O3, OneGate, Web3Auth, or Testnet WIF.",
+        "This wallet connection does not reliably expose the Neo public key needed for NeoChat login yet. Use NeoLine, OneGate, Web3Auth, or Testnet WIF.",
     });
+  });
+
+  it("does not expose the removed O3 provider even if a legacy neo3Dapi object is injected", async () => {
+    window.neo3Dapi = {
+      getAccount: vi.fn(),
+      getNetworks: vi.fn(),
+      invoke: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getSupportedProviders()).not.toContain("O3");
+    expect(walletService.getAvailableProviders()).not.toContain("O3");
+    await expect(walletService.connect("O3")).rejects.toThrow(/unknown provider/i);
   });
 
   it("detects NeoLine when only the NEOLine N3 API is injected", async () => {
@@ -439,6 +457,62 @@ describe("walletService", () => {
       address: "Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y",
       label: "OneGate",
     });
+  });
+
+  it("shares connected wallet state globally and clears it on disconnect", async () => {
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      invoke: oneGateInvokeMock,
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+
+    await walletService.connect(walletService.PROVIDERS.ONEGATE);
+
+    expect(walletState.connectedAccount.value).toBe("Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y");
+    expect(walletState.connectedWalletProvider.value).toBe(walletService.PROVIDERS.ONEGATE);
+    expect(localStorage.getItem("connectedWallet")).toBe("Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y");
+    expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.ONEGATE);
+
+    walletService.disconnect();
+
+    expect(walletState.connectedAccount.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
+  it("rechecks and switches NeoLine back to the Explorer network before invoking", async () => {
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+
+    neoLineSwitchNetworkMock.mockClear();
+    neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: "N3TestNet" });
+
+    await walletService.invoke({
+      scriptHash: "0x6d56a2b3c4396fa64d90046a15a9a286309ea3dd",
+      operation: "register",
+      args: [{ type: "String", value: "networkguard.matrix" }],
+    });
+
+    expect(neoLineSwitchNetworkMock).toHaveBeenCalledWith({ network: "N3MainNet" });
+    expect(neoLineInvokeMock).toHaveBeenCalled();
   });
 
   it("routes Neon Wallet connections through WalletConnect", async () => {

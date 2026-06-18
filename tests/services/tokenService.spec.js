@@ -200,6 +200,58 @@ describe("tokenService", () => {
       });
     });
 
+    it("encodes decoded route token ids as RPC ByteString base64", async () => {
+      const tokenId = "10101.neo";
+      api.safeRpc.mockResolvedValueOnce({
+        state: "HALT",
+        stack: [
+          {
+            type: "Map",
+            value: [
+              { key: { value: btoa("name") }, value: { value: btoa("Matrix Domain") } },
+            ],
+          },
+        ],
+      });
+
+      const result = await tokenService.getNep11Properties("0xnft", [tokenId]);
+
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "invokefunction",
+        ["0xnft", "properties", [{ type: "ByteString", value: btoa(tokenId) }]],
+        null,
+        expect.any(Object),
+      );
+      expect(result.result[0]).toMatchObject({
+        tokenId,
+        name: "Matrix Domain",
+      });
+    });
+
+    it("encodes hex route token ids as RPC ByteString base64", async () => {
+      const tokenId = "31303130312e6e656f";
+      api.safeRpc.mockResolvedValueOnce({
+        state: "HALT",
+        stack: [
+          {
+            type: "Map",
+            value: [
+              { key: { value: btoa("name") }, value: { value: btoa("Matrix Domain") } },
+            ],
+          },
+        ],
+      });
+
+      await tokenService.getNep11Properties("0xnft", [tokenId]);
+
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "invokefunction",
+        ["0xnft", "properties", [{ type: "ByteString", value: btoa("10101.neo") }]],
+        null,
+        expect.any(Object),
+      );
+    });
+
     it("returns null when invokefunction faults", async () => {
       const tokenId = "dG9rZW4tMQ==";
       api.safeRpc.mockResolvedValueOnce({ state: "FAULT", stack: [] });

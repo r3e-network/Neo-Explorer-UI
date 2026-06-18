@@ -1,5 +1,7 @@
-import { mount, flushPromises } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mount, flushPromises, enableAutoUnmount } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+enableAutoUnmount(afterEach);
 
 vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal();
@@ -22,7 +24,6 @@ const toast = {
 const walletServiceMock = {
   PROVIDERS: {
     NEOLINE: "NeoLine",
-    O3: "O3",
     ONEGATE: "OneGate",
     WALLETCONNECT: "WalletConnect",
     NEON: "Neon Wallet",
@@ -34,6 +35,7 @@ const walletServiceMock = {
   getSupportedProviders: vi.fn(() => []),
   connect: vi.fn(),
   disconnect: vi.fn(),
+  ensureNetworkConsistency: vi.fn(),
 };
 
 vi.mock("vue-router", () => ({
@@ -89,7 +91,6 @@ describe("AppHeader wallet CTA", () => {
     });
     walletServiceMock.getSupportedProviders.mockReturnValue([
       "NeoLine",
-      "O3",
       "OneGate",
       "WalletConnect",
       "Neon Wallet",
@@ -164,7 +165,6 @@ describe("AppHeader wallet CTA", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("NeoLine");
-    expect(wrapper.text()).toContain("O3");
     expect(wrapper.text()).toContain("OneGate");
     expect(wrapper.text()).toContain("WalletConnect");
     expect(wrapper.text()).toContain("Neon Wallet");
@@ -273,7 +273,7 @@ describe("AppHeader wallet CTA", () => {
     expect(iconShell.attributes("class")).not.toContain("wallet-modal-icon-shell--wordmark");
   });
 
-  it("connects the local dev testnet WIF provider without persisting walletProvider", async () => {
+  it("lets walletService own local dev testnet WIF persistence", async () => {
     const directWif = "LtestDirectWif11111111111111111111111111111111111111111111";
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "Testnet WIF (Local Dev)",
@@ -321,8 +321,10 @@ describe("AppHeader wallet CTA", () => {
     await flushPromises();
 
     expect(walletServiceMock.connect).toHaveBeenCalledWith("Testnet WIF (Local Dev)", { wif: directWif });
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
     expect(localStorage.getItem("walletProvider")).toBeNull();
-    expect(sessionStorage.getItem("walletProvider")).toBe("Testnet WIF (Local Dev)");
+    expect(sessionStorage.getItem("connectedWallet")).toBeNull();
+    expect(sessionStorage.getItem("walletProvider")).toBeNull();
     expect(sessionStorage.getItem("devTestWif")).toBeNull();
   });
 
@@ -370,6 +372,35 @@ describe("AppHeader wallet CTA", () => {
     expect(window.open).toHaveBeenCalledWith("https://onegate.space/", "_blank", "noopener,noreferrer");
   });
 
+  it("validates an already connected wallet when the Explorer network changes", async () => {
+    connectedAccountRef.value = "NconnectedWalletAddress";
+    walletServiceMock.ensureNetworkConsistency.mockRejectedValueOnce(new Error("Wallet network mismatch"));
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+    window.dispatchEvent(new CustomEvent("network-change", { detail: { env: "TestT5" } }));
+    await flushPromises();
+
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith("Wallet network mismatch");
+  });
+
   it("uses wallet-specific icons instead of the generic Neo logo", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce(walletServiceMock.getSupportedProviders());
 
@@ -400,7 +431,6 @@ describe("AppHeader wallet CTA", () => {
     await flushPromises();
 
     expect(wrapper.find('img[alt="NeoLine"]').attributes("src")).toBe('/img/brand/neoline.svg');
-    expect(wrapper.find('img[alt="O3"]').attributes("src")).toBe('/img/brand/o3.png');
     expect(wrapper.find('img[alt="OneGate"]').attributes("src")).toBe('/img/brand/onegate.ico');
     expect(wrapper.find('img[alt="Neon Wallet"]').attributes("src")).toBe('/img/brand/neon.ico');
     expect(wrapper.find('img[alt="WalletConnect"]').attributes("src")).toBe('/img/brand/walletconnect.ico');

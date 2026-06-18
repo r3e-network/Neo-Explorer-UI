@@ -1,5 +1,4 @@
 import { useToast } from "vue-toastification";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { loadWalletService } from "@/utils/lazyServices";
 import { connectedAccount } from "@/utils/walletState";
@@ -121,22 +120,6 @@ export async function initWallet() {
     } catch (e) {
       clearStoredWalletState();
     }
-  } else if (provider === "O3") {
-    if (!window.neo3Dapi) {
-      clearStoredWalletState();
-      return;
-    }
-
-    try {
-      connectedAccount.value = storedAddress;
-      setStoredWalletAddress(PROVIDERS.O3, storedAddress);
-      walletService.hydrateSession(PROVIDERS.O3, {
-        address: storedAddress,
-        label: PROVIDERS.O3,
-      });
-    } catch (e) {
-      clearStoredWalletState();
-    }
   } else if (provider === PROVIDERS.ONEGATE) {
     if (!window.OneGate && !window.neo) {
       clearStoredWalletState();
@@ -154,12 +137,17 @@ export async function initWallet() {
       clearStoredWalletState();
     }
   } else if (provider === PROVIDERS.WALLETCONNECT) {
-    // WalletConnect (and EVM_WALLET below) have no restore path via
-    // walletService.restoreSession — see line 969 of walletService.js
-    // which gates restore behind NEON only. Until per-provider restore
-    // is implemented, clear state on reload so the user is prompted to
-    // reconnect rather than appearing connected with stale state.
-    clearStoredWalletState();
+    try {
+      const account = await walletService.restoreSession(PROVIDERS.WALLETCONNECT);
+      if (account && account.address) {
+        connectedAccount.value = account.address;
+        setStoredWalletAddress(PROVIDERS.WALLETCONNECT, account.address);
+      } else {
+        clearStoredWalletState();
+      }
+    } catch (e) {
+      clearStoredWalletState();
+    }
   } else if (provider === PROVIDERS.EVM_WALLET) {
     clearStoredWalletState();
   } else if (provider === PROVIDERS.TESTNET_WIF) {
@@ -244,46 +232,26 @@ function waitForNeoLineN3(timeout = 3000) {
 export async function connectWallet() {
   const toast = useToast();
   const hasNeoLine = await waitForNeoLineN3();
-  if (hasNeoLine) {
-    try {
-      const neoline = new window.NEOLineN3.Init();
-      setupNeoLineEventListeners();
+  if (!hasNeoLine) {
+    toast.warning(t('wallet.notFound'));
+    return null;
+  }
 
-      // Check network matching
-      const network = await neoline.getNetworks();
-      const walletNet = (network?.defaultNetwork || "").toLowerCase();
-      const explorerNet = getCurrentEnv().toLowerCase();
-
-      // Improved network matching logic
-      const isMainnetMatch =
-        (walletNet.includes("main") || walletNet === "mainnet") &&
-        (explorerNet.includes("main") || explorerNet === NET_ENV.Mainnet.toLowerCase());
-      const isTestnetMatch =
-        (walletNet.includes("test") || walletNet.includes("t5") || walletNet === "testnet") &&
-        (explorerNet.includes("test") || explorerNet.includes("t5") || explorerNet === NET_ENV.TestT5.toLowerCase());
-
-      if (!isMainnetMatch && !isTestnetMatch) {
-        toast.error(t('wallet.networkMismatch', getCurrentEnv()));
-        return null;
-      }
-
-      const account = await neoline.getAccount();
-      if (!account || !account.address) {
-        toast.warning(t('wallet.noAccount'));
-        return null;
-      }
-
-      connectedAccount.value = account.address;
-      localStorage.setItem("walletProvider", PROVIDERS.NEOLINE);
-      toast.success(t('wallet.connected', account.address.slice(0, 5) + "..." + account.address.slice(-4)));
-      return account.address;
-    } catch (e) {
-      if (import.meta.env.DEV) console.error("Wallet connection failed", e);
-      toast.error(t('wallet.connectFailed', e.message || "Unknown error"));
+  try {
+    setupNeoLineEventListeners();
+    const walletService = await loadWalletService();
+    const account = await walletService.connect(PROVIDERS.NEOLINE);
+    if (!account?.address) {
+      toast.warning(t('wallet.noAccount'));
       return null;
     }
-  } else {
-    toast.warning(t('wallet.notFound'));
+
+    connectedAccount.value = account.address;
+    toast.success(t('wallet.connected', account.address.slice(0, 5) + "..." + account.address.slice(-4)));
+    return account.address;
+  } catch (e) {
+    if (import.meta.env.DEV) console.error("Wallet connection failed", e);
+    toast.error(t('wallet.connectFailed', e.message || "Unknown error"));
     return null;
   }
 }

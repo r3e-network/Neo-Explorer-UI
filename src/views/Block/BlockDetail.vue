@@ -208,14 +208,20 @@ function mergeBlockData(raw, info) {
   return merged;
 }
 
-async function resolveBlockParam(param) {
-  if (!param) return null;
-  if (/^\d+$/.test(String(param).trim())) {
-    const height = Number(param);
-    const block = await blockService.getByHeight(height);
-    return block?.hash || null;
+async function resolveBlockParam(param, options = {}) {
+  const normalizedParam = String(param || "").trim();
+  if (!normalizedParam) return { hash: null, block: null };
+
+  if (/^\d+$/.test(normalizedParam)) {
+    const height = Number(normalizedParam);
+    const blockByHeight = await blockService.getByHeight(height, options);
+    return {
+      hash: blockByHeight?.hash || null,
+      block: blockByHeight || null,
+    };
   }
-  return param;
+
+  return { hash: normalizedParam, block: null };
 }
 
 async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
@@ -240,19 +246,24 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
   }
 
   try {
-    const hash = await resolveBlockParam(param);
+    const resolvedBlock = await resolveBlockParam(param, { forceRefresh });
     if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
 
+    const hash = resolvedBlock.hash;
     if (!hash) {
       if (!silent) error.value = t("errors.blockNotFound");
       return;
     }
 
-    // Fetch block info and raw block data in parallel
-    const [info, raw] = await Promise.all([
-      blockService.getInfoByHash(hash, { forceRefresh }),
-      blockService.getByHash(hash, { forceRefresh }),
-    ]);
+    let raw = resolvedBlock.block;
+    let info = null;
+    if (!raw) {
+      raw = await blockService.getByHash(hash, { forceRefresh });
+    }
+
+    if (!raw) {
+      info = await blockService.getInfoByHash(hash, { forceRefresh });
+    }
 
     if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
 
@@ -380,6 +391,10 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
     }
 
     const declaredCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
+    if (declaredCount === 0 && Array.isArray(block.value.tx)) {
+      transactions.value = [];
+      return;
+    }
 
     const fetchPagedTransactions = async (fetchFn, expectedCount) => {
       let maxToLoad = expectedCount > 0 ? expectedCount : BLOCK_TX_FETCH_BATCH_SIZE;

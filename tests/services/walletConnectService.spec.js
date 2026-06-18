@@ -100,6 +100,17 @@ describe("walletConnectService", () => {
       expect(walletConnectService.isConnected).toBe(true);
       expect(walletConnectService.account).toEqual({ address: "NAddr", label: "WalletConnect" });
     });
+
+    it("rejects approval when the approved session chain differs from the Explorer network", async () => {
+      getCurrentEnvMock.mockReturnValue("testT5");
+      await walletConnectService.init("p");
+      const session = { topic: "tp", namespaces: { neo3: { accounts: ["neo3:mainnet:NAddr"] } } };
+      mockClient.connect.mockResolvedValue({ uri: "wc:xyz", approval: () => Promise.resolve(session) });
+      const { approval } = await walletConnectService.connect();
+
+      await expect(approval).rejects.toThrow(/WalletConnect session is on neo3:mainnet/i);
+      expect(walletConnectService.isConnected).toBe(false);
+    });
   });
 
   describe("restoreSession", () => {
@@ -121,6 +132,17 @@ describe("walletConnectService", () => {
       ]);
       const account = walletConnectService.restoreSession();
       expect(account).toEqual({ address: "NRestoredAddr", label: "WalletConnect" });
+    });
+
+    it("rejects restored sessions on the wrong network", async () => {
+      getCurrentEnvMock.mockReturnValue("testT5");
+      await walletConnectService.init("p");
+      mockClient.session.getAll.mockReturnValue([
+        { topic: "wrong", namespaces: { neo3: { accounts: ["neo3:mainnet:NRestoredAddr"] } } },
+      ]);
+
+      expect(() => walletConnectService.restoreSession()).toThrow(/WalletConnect session is on neo3:mainnet/i);
+      expect(walletConnectService.isConnected).toBe(false);
     });
 
     it("returns existing account when session is already set (idempotent)", async () => {
@@ -192,10 +214,21 @@ describe("walletConnectService", () => {
     });
 
     it("uses the session chain for the request", async () => {
+      getCurrentEnvMock.mockReturnValue("testT5");
       await setupConnected("testnet");
       mockClient.request.mockResolvedValue("0xabc");
       await walletConnectService.invoke({ scriptHash: "h", operation: "transfer" });
       expect(mockClient.request.mock.calls[0][0].chainId).toBe("neo3:testnet");
+    });
+
+    it("blocks requests if the Explorer network changes after connection", async () => {
+      await setupConnected("mainnet");
+      getCurrentEnvMock.mockReturnValue("testT5");
+
+      await expect(walletConnectService.invoke({ scriptHash: "h", operation: "transfer" })).rejects.toThrow(
+        /WalletConnect session is on neo3:mainnet/i,
+      );
+      expect(mockClient.request).not.toHaveBeenCalled();
     });
 
     it("forwards args and signer scope to the request params", async () => {

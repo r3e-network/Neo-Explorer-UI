@@ -377,10 +377,9 @@ async function loadLatestData(forceRefresh = false) {
         const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
-          const summary = await summaryPromise;
           return {
             result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? summary?.total_block_count ?? rows.length),
+            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
           };
         }
       } catch {
@@ -410,10 +409,9 @@ async function loadLatestData(forceRefresh = false) {
         const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {
-          const summary = await summaryPromise;
           return {
             result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? summary?.total_tx_count ?? rows.length),
+            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
           };
         }
       } catch {

@@ -29,7 +29,6 @@
             <div class="flex items-center gap-4">
               <div class="wallet-modal-icon-shell h-11 w-11 rounded-full shadow-sm flex items-center justify-center border border-slate-200/80 bg-white p-2">
                 <img v-if="provider === 'NeoLine'" :src="'/img/brand/neoline.svg'" alt="NeoLine" class="wallet-modal-logo-wordmark h-5 w-5 object-cover object-left" onerror="this.src='/img/brand/neo.png'" />
-                <img v-else-if="provider === 'O3'" :src="'/img/brand/o3.png'" alt="O3" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                 <img v-else-if="provider === 'WalletConnect'" :src="'/img/brand/walletconnect.ico'" alt="WalletConnect" class="w-full h-full object-contain" onerror="this.src='/img/brand/neo.png'" />
                 <img v-else-if="provider === 'Neon Wallet'" :src="'/img/brand/neon.ico'" alt="Neon Wallet" class="w-full h-full object-contain" />
                 <img v-else-if="provider === 'Testnet WIF (Local Dev)'" :src="'/img/brand/neo.png'" alt="Testnet WIF (Local Dev)" class="w-full h-full object-contain" />

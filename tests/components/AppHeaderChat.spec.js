@@ -67,7 +67,6 @@ vi.mock("@/services/walletService", () => ({
   walletService: {
     PROVIDERS: {
       NEOLINE: "NeoLine",
-      O3: "O3",
       ONEGATE: "OneGate",
       WALLETCONNECT: "WalletConnect",
       NEON: "Neon Wallet",

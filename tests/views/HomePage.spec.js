@@ -242,6 +242,31 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("renders latest lists without waiting for the slower summary request", async () => {
+    getIndexerSummary.mockReturnValueOnce(new Promise(() => {}));
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    wrapper.unmount();
+  });
+
   it("renders homepage aggregate payload without per-list read-api requests", async () => {
     getIndexerHome.mockResolvedValueOnce({
       network: "mainnet",

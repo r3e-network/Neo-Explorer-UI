@@ -10,7 +10,6 @@ const toast = {
 const walletServiceMock = {
   PROVIDERS: {
     NEOLINE: "NeoLine",
-    O3: "O3",
     ONEGATE: "OneGate",
     WALLETCONNECT: "WalletConnect",
     NEON: "Neon Wallet",
@@ -44,7 +43,6 @@ describe("utils/wallet connectWallet", () => {
     vi.resetModules();
     delete window.NEOLine;
     delete window.NEOLineN3;
-    delete window.neo3Dapi;
     localStorage.clear();
     sessionStorage.clear();
     walletServiceMock.isConnected = false;
@@ -52,12 +50,12 @@ describe("utils/wallet connectWallet", () => {
     walletServiceMock.invoke.mockReset();
     walletServiceMock.hydrateSession.mockReset();
     walletServiceMock.connect.mockReset();
+    walletServiceMock.restoreSession.mockReset();
   });
 
   it("connects when NeoLineN3 is injected after the ready event", async () => {
     const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
-    const getNetworks = vi.fn().mockResolvedValue({ defaultNetwork: "MainNet" });
-    const getAccount = vi.fn().mockResolvedValue({ address });
+    walletServiceMock.connect.mockResolvedValueOnce({ address, label: walletServiceMock.PROVIDERS.NEOLINE });
 
     window.NEOLine = {};
 
@@ -67,7 +65,7 @@ describe("utils/wallet connectWallet", () => {
     setTimeout(() => {
       window.NEOLineN3 = {
         Init: function Init() {
-          return { getNetworks, getAccount };
+          return {};
         },
       };
       window.dispatchEvent(new Event("NEOLine.NEO.EVENT.READY"));
@@ -77,13 +75,12 @@ describe("utils/wallet connectWallet", () => {
 
     expect(result).toBe(address);
     expect(wallet.connectedAccount.value).toBe(address);
-    expect(getAccount).toHaveBeenCalledTimes(1);
+    expect(walletServiceMock.connect).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.NEOLINE);
   });
 
   it("connects when NeoLineN3 is injected after the N3 ready event", async () => {
     const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
-    const getNetworks = vi.fn().mockResolvedValue({ defaultNetwork: "MainNet" });
-    const getAccount = vi.fn().mockResolvedValue({ address });
+    walletServiceMock.connect.mockResolvedValueOnce({ address, label: walletServiceMock.PROVIDERS.NEOLINE });
 
     const wallet = await import("@/utils/wallet");
     const connection = wallet.connectWallet();
@@ -91,7 +88,7 @@ describe("utils/wallet connectWallet", () => {
     setTimeout(() => {
       window.NEOLineN3 = {
         Init: function Init() {
-          return { getNetworks, getAccount };
+          return {};
         },
       };
       window.dispatchEvent(new Event("NEOLine.N3.EVENT.READY"));
@@ -101,7 +98,7 @@ describe("utils/wallet connectWallet", () => {
 
     expect(result).toBe(address);
     expect(wallet.connectedAccount.value).toBe(address);
-    expect(getAccount).toHaveBeenCalledTimes(1);
+    expect(walletServiceMock.connect).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.NEOLINE);
   });
 
   it("rehydrates walletService for a restored NeoLine session", async () => {
@@ -126,26 +123,6 @@ describe("utils/wallet connectWallet", () => {
     expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
       walletServiceMock.PROVIDERS.NEOLINE,
       { address, label: walletServiceMock.PROVIDERS.NEOLINE }
-    );
-  });
-
-  it("rehydrates walletService for a restored O3 session", async () => {
-    const address = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
-    const getAccount = vi.fn();
-    window.neo3Dapi = {
-      getAccount,
-    };
-    localStorage.setItem("connectedWallet", address);
-    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.O3);
-
-    const wallet = await import("@/utils/wallet");
-    await wallet.initWallet();
-
-    expect(wallet.connectedAccount.value).toBe(address);
-    expect(getAccount).not.toHaveBeenCalled();
-    expect(walletServiceMock.hydrateSession).toHaveBeenCalledWith(
-      walletServiceMock.PROVIDERS.O3,
-      { address, label: walletServiceMock.PROVIDERS.O3 }
     );
   });
 
@@ -252,6 +229,7 @@ describe("utils/wallet connectWallet", () => {
     const web3AuthAddress = "NQJ6M4QYf9E9oKoR6fT1Y8vL2D8x4oWq8h";
     const getNetworks = vi.fn().mockResolvedValue({ defaultNetwork: "MainNet" });
     const getAccount = vi.fn().mockResolvedValue({ address: neoLineAddress });
+    walletServiceMock.connect.mockResolvedValueOnce({ address: neoLineAddress, label: walletServiceMock.PROVIDERS.NEOLINE });
 
     window.NEOLine = {};
     window.NEOLineN3 = {
