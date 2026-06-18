@@ -1925,6 +1925,9 @@ const ko = {
     typeIndexed: "인덱싱된 API",
     rpcBadge: "RPC",
     examplePayloadAria: "예시 요청 페이로드",
+    pathParamsHeading: "경로 파라미터",
+    queryParamsHeading: "쿼리 파라미터",
+    noRestEndpoints: "이 카테고리에는 REST 엔드포인트가 없습니다.",
     noMethods: "이 카테고리에서 사용할 수 있는 RPC 메서드가 아직 없습니다.",
     responseHeadersHeading: "응답 헤더",
     responseHeaders: {

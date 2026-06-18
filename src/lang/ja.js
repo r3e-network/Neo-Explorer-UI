@@ -1925,6 +1925,9 @@ const ja = {
     typeIndexed: "インデックス API",
     rpcBadge: "RPC",
     examplePayloadAria: "リクエストペイロードの例",
+    pathParamsHeading: "パスパラメーター",
+    queryParamsHeading: "クエリパラメーター",
+    noRestEndpoints: "このカテゴリーに REST エンドポイントはありません。",
     noMethods: "このカテゴリーで利用可能な RPC メソッドはまだありません。",
     responseHeadersHeading: "レスポンスヘッダー",
     responseHeaders: {

@@ -103,7 +103,7 @@
               </div>
               <p class="text-mid mb-3 text-sm">{{ ep.desc }}</p>
               <div v-if="ep.pathParams && ep.pathParams.length" class="mb-2">
-                <p class="text-low mb-1 text-xs font-semibold uppercase">Path params</p>
+                <p class="text-low mb-1 text-xs font-semibold uppercase">{{ $t('apiDocsPage.pathParamsHeading') }}</p>
                 <ul class="space-y-1">
                   <li v-for="p in ep.pathParams" :key="p.name" class="text-mid text-xs">
                     <span class="text-high font-mono">{{ p.name }}</span> — {{ p.desc }}
@@ -111,7 +111,7 @@
                 </ul>
               </div>
               <div v-if="ep.queryParams && ep.queryParams.length" class="mb-2">
-                <p class="text-low mb-1 text-xs font-semibold uppercase">Query params</p>
+                <p class="text-low mb-1 text-xs font-semibold uppercase">{{ $t('apiDocsPage.queryParamsHeading') }}</p>
                 <ul class="space-y-1">
                   <li v-for="p in ep.queryParams" :key="p.name" class="text-mid text-xs">
                     <span class="text-high font-mono">{{ p.name }}</span>
@@ -124,7 +124,7 @@
               ><code>{{ ep.example }}</code></pre>
             </article>
             <div v-if="!filteredEndpoints.length" class="text-low panel-muted border-dashed px-4 py-8 text-center text-sm">
-              No endpoints in this category.
+              {{ $t('apiDocsPage.noRestEndpoints') }}
             </div>
           </template>
 

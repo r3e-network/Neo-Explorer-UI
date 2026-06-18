@@ -1922,6 +1922,9 @@ const fr = {
     typeIndexed: "API indexée",
     rpcBadge: "RPC",
     examplePayloadAria: "Exemple de payload de requête",
+    pathParamsHeading: "Paramètres de chemin",
+    queryParamsHeading: "Paramètres de requête",
+    noRestEndpoints: "Aucun point de terminaison REST disponible pour cette catégorie.",
     noMethods: "Aucune méthode RPC disponible pour cette catégorie pour le moment.",
     responseHeadersHeading: "En-têtes de réponse",
     responseHeaders: {

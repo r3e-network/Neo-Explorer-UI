@@ -1925,6 +1925,9 @@ const zh = {
     typeIndexed: "索引 API",
     rpcBadge: "RPC",
     examplePayloadAria: "示例请求 Payload",
+    pathParamsHeading: "路径参数",
+    queryParamsHeading: "查询参数",
+    noRestEndpoints: "此分类下暂无 REST 端点。",
     noMethods: "此分类下暂无可用的 RPC 方法。",
     responseHeadersHeading: "响应头",
     responseHeaders: {

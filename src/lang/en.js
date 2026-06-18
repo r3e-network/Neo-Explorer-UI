@@ -1925,6 +1925,9 @@ const en = {
     typeIndexed: "Indexed API",
     rpcBadge: "RPC",
     examplePayloadAria: "Example request payload",
+    pathParamsHeading: "Path params",
+    queryParamsHeading: "Query params",
+    noRestEndpoints: "No endpoints in this category.",
     noMethods: "No RPC methods available for this category yet.",
     responseHeadersHeading: "Response headers",
     responseHeaders: {
