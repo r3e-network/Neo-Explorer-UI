@@ -7,6 +7,19 @@ const repoRoot = path.resolve(process.cwd());
 const readFile = (relativePath) =>
   fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 
+const walkFiles = (dir, extensions, files = []) => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name === "dist" || entry.name === ".git") continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkFiles(fullPath, extensions, files);
+    } else if (extensions.has(path.extname(entry.name))) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+};
+
 describe("endpoint defaults", () => {
   it("keeps vite proxy defaults on a single external endpoint", () => {
     const viteConfig = readFile("vite.config.js");
@@ -27,7 +40,20 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain("verbose: false");
   });
 
+  it("keeps production source free of retired legacy RPC endpoints", () => {
+    const files = [
+      ...walkFiles(path.join(repoRoot, "src"), new Set([".js", ".mjs", ".vue", ".json"])),
+      path.join(repoRoot, "vite.config.js"),
+      path.join(repoRoot, "vercel.json"),
+    ];
 
+    for (const file of files) {
+      const source = fs.readFileSync(file, "utf8");
+      expect(source, path.relative(repoRoot, file)).not.toMatch(/198\.244\.215\.132/);
+      expect(source, path.relative(repoRoot, file)).not.toMatch(/testneofura\.ngd\.network/i);
+      expect(source, path.relative(repoRoot, file)).not.toMatch(/https?:\/\/[^"'`\s)]+:1926\b/i);
+    }
+  });
 
   it("keeps a fallback vendor chunk for residual third-party modules", () => {
     const viteConfig = readFile("vite.config.js");
