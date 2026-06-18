@@ -4,6 +4,7 @@
  */
 
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { isHash160Hex, normalizeHash160 } from "@/utils/walletNormalization";
 
 function tWc(key, paramsOrFallback, fallbackMaybe) {
   const params = paramsOrFallback && typeof paramsOrFallback === "object" ? paramsOrFallback : {};
@@ -109,6 +110,40 @@ function getSessionChain() {
 
 function getActiveChain() {
   return getSessionChain() || getPreferredChain();
+}
+
+function getActiveSignerAccount() {
+  const account = getPreferredSessionAccount();
+  return normalizeHash160(account?.address || "");
+}
+
+function getWalletConnectInvalidSignerError() {
+  return new Error(
+    tWc(
+      "wallet.errors.walletConnectInvalidSigner",
+      "WalletConnect could not resolve a valid signer account. Reconnect the wallet and try again.",
+    ),
+  );
+}
+
+function buildInvokeSigners(signers, signerScope) {
+  const sourceSigners = Array.isArray(signers) && signers.length
+    ? signers
+    : [{ account: getActiveSignerAccount(), scopes: signerScope }];
+
+  const normalizedSigners = sourceSigners.map((signer) => {
+    if (!signer || typeof signer !== "object") return signer;
+    return {
+      ...signer,
+      account: normalizeHash160(signer.account),
+    };
+  });
+
+  if (normalizedSigners.some((signer) => !isHash160Hex(signer?.account))) {
+    throw getWalletConnectInvalidSignerError();
+  }
+
+  return normalizedSigners;
 }
 
 function handleSessionDelete(event = {}) {
@@ -295,15 +330,16 @@ export const walletConnectService = {
   /**
    * Invoke a contract method via the connected wallet.
    */
-  async invoke({ scriptHash, operation, args = [], signerScope = 1 }) {
+  async invoke({ scriptHash, operation, args = [], signerScope = 1, signers = null }) {
     if (!_session || !_client) throw new Error(tWc("wallet.errors.walletConnectNotConnected", "WalletConnect not connected"));
     assertSessionMatchesExplorerNetwork();
+    const requestSigners = buildInvokeSigners(signers, signerScope);
     const result = await _client.request({
       topic: _session.topic,
       chainId: getActiveChain(),
       request: {
         method: "invokeFunction",
-        params: { scriptHash, operation, args, signers: [{ scopes: signerScope }] },
+        params: { scriptHash, operation, args, signers: requestSigners },
       },
     });
     // Different WalletConnect-bridged wallets return either a bare txid

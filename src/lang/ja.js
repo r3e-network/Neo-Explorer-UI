@@ -2061,6 +2061,7 @@ const ja = {
       walletConnectNotConnected: "WalletConnect が接続されていません",
       walletConnectNoTxid: "WalletConnect は invoke の txid を返しませんでした。",
       walletConnectNoAccount: "WalletConnect セッションから Neo N3 アカウントが返されませんでした。ウォレットを再接続してから再試行してください。",
+      walletConnectInvalidSigner: "WalletConnect は有効な署名アカウントを解決できませんでした。ウォレットを再接続してから再試行してください。",
       walletConnectNetworkMismatch: "WalletConnect セッションは {sessionChain} 上にあります。{expectedChain} で再接続するか、Explorer のネットワークを切り替えてください。",
     },
     chatSupport: {

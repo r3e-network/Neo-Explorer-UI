@@ -2061,6 +2061,7 @@ const zh = {
       walletConnectNotConnected: "WalletConnect 未连接",
       walletConnectNoTxid: "WalletConnect 未为调用返回 txid。",
       walletConnectNoAccount: "WalletConnect 会话未返回 Neo N3 账户。请重新连接钱包后重试。",
+      walletConnectInvalidSigner: "WalletConnect 无法解析有效的签名账户。请重新连接钱包后重试。",
       walletConnectNetworkMismatch: "WalletConnect 会话位于 {sessionChain}；请重新连接到 {expectedChain} 或切换 Explorer 网络。",
     },
     chatSupport: {

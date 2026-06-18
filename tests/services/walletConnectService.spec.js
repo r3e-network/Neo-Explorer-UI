@@ -14,6 +14,8 @@ vi.mock("@/utils/env", () => ({
 
 let walletConnectService;
 let mockClient;
+const VALID_NEO_ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const VALID_NEO_SCRIPT_HASH = "a5de523ae9d99be784a536e9412b7a3cbe049e1a";
 
 function makeMockClient() {
   return {
@@ -318,9 +320,9 @@ describe("walletConnectService", () => {
   });
 
   describe("invoke", () => {
-    async function setupConnected(chain = "mainnet") {
+    async function setupConnected(chain = "mainnet", address = VALID_NEO_ADDRESS) {
       await walletConnectService.init("p");
-      const session = { topic: "tp", namespaces: { neo3: { accounts: [`neo3:${chain}:NAddr`] } } };
+      const session = { topic: "tp", namespaces: { neo3: { accounts: [`neo3:${chain}:${address}`] } } };
       mockClient.connect.mockResolvedValue({ uri: "u", approval: () => Promise.resolve(session) });
       await (await walletConnectService.connect()).approval;
     }
@@ -381,7 +383,30 @@ describe("walletConnectService", () => {
       expect(params.scriptHash).toBe("0xfeed");
       expect(params.operation).toBe("method");
       expect(params.args).toEqual([{ type: "Hash160", value: "x" }]);
-      expect(params.signers).toEqual([{ scopes: 16 }]);
+      expect(params.signers).toEqual([{ account: VALID_NEO_SCRIPT_HASH, scopes: 16 }]);
+    });
+
+    it("forwards explicit signer accounts after normalizing them", async () => {
+      await setupConnected();
+      mockClient.request.mockResolvedValue("0xabc");
+      await walletConnectService.invoke({
+        scriptHash: "0xfeed",
+        operation: "method",
+        signers: [{ account: `0x${VALID_NEO_SCRIPT_HASH}`, scopes: 128 }],
+      });
+
+      const params = mockClient.request.mock.calls[0][0].request.params;
+      expect(params.signers).toEqual([{ account: VALID_NEO_SCRIPT_HASH, scopes: 128 }]);
+    });
+
+    it("rejects invokes when the session account cannot be resolved into a signer", async () => {
+      await setupConnected("mainnet", "NInvalidWalletConnectAddress");
+      mockClient.request.mockResolvedValue("0xabc");
+
+      await expect(walletConnectService.invoke({ scriptHash: "h", operation: "transfer" })).rejects.toThrow(
+        /valid signer account/i,
+      );
+      expect(mockClient.request).not.toHaveBeenCalled();
     });
   });
 

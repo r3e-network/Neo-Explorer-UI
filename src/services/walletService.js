@@ -555,6 +555,29 @@ async function ensureConnectedDapiAccountStillActive(dapi, providerName) {
   throw error;
 }
 
+function syncConnectedWalletConnectAccount(walletConnectService, providerName) {
+  if (!_account?.address) return true;
+  const account = walletConnectService?.account;
+  if (!account?.address) {
+    const error = getWalletAccountUnavailableError(providerName);
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
+  }
+
+  const expectedAddress = String(_account.address || "").trim();
+  const actualAddress = String(account.address || "").trim();
+  if (expectedAddress && actualAddress === expectedAddress) return true;
+
+  _account = {
+    ...account,
+    label: providerName,
+  };
+  _networkError = "";
+  broadcastWalletStateChange();
+  return true;
+}
+
 export function getAbstractAccountHash() {
   const env = isExplorerTestnet() ? "TESTNET" : "MAINNET";
   const candidate =
@@ -1414,6 +1437,7 @@ export const walletService = {
       if (typeof walletConnectService.ensureNetworkCompatible === "function") {
         try {
           await walletConnectService.ensureNetworkCompatible();
+          syncConnectedWalletConnectAccount(walletConnectService, _connectedProvider);
           _networkError = "";
           broadcastWalletStateChange();
           return true;
@@ -1721,7 +1745,7 @@ export const walletService = {
 
     if (_connectedProvider === PROVIDERS.WALLETCONNECT || _connectedProvider === PROVIDERS.NEON) {
       const walletConnectService = await loadWalletConnectServiceWithSessionSync();
-      return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope });
+      return walletConnectService.invoke({ scriptHash, operation, args: dapiArgs, signerScope: scope, signers: dapiSigners });
     }
 
     if (_connectedProvider === PROVIDERS.TESTNET_WIF) {

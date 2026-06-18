@@ -2061,6 +2061,7 @@ const ko = {
       walletConnectNotConnected: "WalletConnect가 연결되지 않았습니다",
       walletConnectNoTxid: "WalletConnect가 invoke에 대한 txid를 반환하지 않았습니다.",
       walletConnectNoAccount: "WalletConnect 세션이 Neo N3 계정을 반환하지 않았습니다. 지갑을 다시 연결한 뒤 다시 시도하세요.",
+      walletConnectInvalidSigner: "WalletConnect가 유효한 서명 계정을 확인하지 못했습니다. 지갑을 다시 연결한 뒤 다시 시도하세요.",
       walletConnectNetworkMismatch: "WalletConnect 세션이 {sessionChain}에 있습니다. {expectedChain}에서 다시 연결하거나 Explorer 네트워크를 전환하세요.",
     },
     chatSupport: {

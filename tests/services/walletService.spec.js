@@ -55,7 +55,8 @@ const walletConnectOnSessionChangeMock = vi.fn((handler) => {
   return vi.fn();
 });
 let walletConnectSessionChangeHandler = null;
-const walletConnectAccount = { address: "NfK1tWc7bF9Rk2wQw9mKgU4Pj3Qe8Yz7kM", label: "WalletConnect" };
+const walletConnectAccount = { address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs", label: "WalletConnect" };
+const walletConnectScriptHash = "a5de523ae9d99be784a536e9412b7a3cbe049e1a";
 const directWifHexSignMock = vi.fn(() => "f".repeat(128));
 const DIRECT_WIF = "LtestDirectWif11111111111111111111111111111111111111111111";
 
@@ -860,6 +861,30 @@ describe("walletService", () => {
     expect(walletState.connectedAccount.value).toBe("NChangedWalletConnectAccount");
     expect(localStorage.getItem("connectedWallet")).toBe("NChangedWalletConnectAccount");
     expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.WALLETCONNECT);
+  });
+
+  it("passes the active WalletConnect-style account as an explicit signer", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const result = await walletService.connect(walletService.PROVIDERS.WALLETCONNECT);
+    await result.approval;
+
+    walletConnectInvokeMock.mockClear();
+    await walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "transfer",
+      args: [{ type: "Hash160", value: walletConnectAccount.address }],
+      scope: 128,
+    });
+
+    expect(walletConnectInvokeMock).toHaveBeenCalledWith({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "transfer",
+      args: [{ type: "Hash160", value: walletConnectScriptHash }],
+      signerScope: 128,
+      signers: [{ account: walletConnectScriptHash, scopes: 128 }],
+    });
   });
 
   it("connects to the direct testnet WIF provider without persisting session state", async () => {
