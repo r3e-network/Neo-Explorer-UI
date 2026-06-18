@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const getTransfersByTxHashesBatchMock = vi.fn();
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/tokenService", () => ({
   tokenService: {
     getTransfersByTxHashesBatch: getTransfersByTxHashesBatchMock,
   },

@@ -45,23 +45,38 @@ vi.mock("vue-router", () => ({
   }),
 }));
 
-vi.mock("@/services", () => ({
+vi.mock("@/services/blockService", () => ({
   blockService: {
     getList: getBlockList,
     getCount: getBlockCount,
     getByHeight: getBlockByHeight,
   },
+}));
+
+vi.mock("@/services/transactionService", () => ({
   transactionService: {
     getList: getTxList,
   },
+}));
+
+vi.mock("@/services/indexerReadService", () => ({
   indexerReadService: {
     getExplorerHome: getIndexerHome,
     getSummary: getIndexerSummary,
     getBlocks: getIndexerBlocks,
     getTransactions: getIndexerTransactions,
   },
+}));
+
+vi.mock("@/services/searchService", () => ({
   searchService: {
     search,
+  },
+}));
+
+vi.mock("@/services/statsService", () => ({
+  statsService: {
+    getDailyAnalytics: vi.fn().mockResolvedValue([]),
   },
 }));
 

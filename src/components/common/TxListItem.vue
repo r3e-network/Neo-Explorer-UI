@@ -200,7 +200,8 @@ const getSummaryRecipient = (summary, sender = "") => {
   const recipient = String(candidate || "").trim();
   if (!recipient) return null;
 
-  const normalizedRecipient = normalizeComparableSummaryAddress(recipient).toLowerCase();
+  const recipientAddress = normalizeComparableSummaryAddress(recipient);
+  const normalizedRecipient = recipientAddress.toLowerCase();
   const normalizedSender = normalizeComparableSummaryAddress(sender).toLowerCase();
   if (normalizedRecipient && normalizedSender && normalizedRecipient === normalizedSender) {
     return null;
@@ -213,9 +214,10 @@ const getSummaryRecipient = (summary, sender = "") => {
   if (!isSingleTarget && !isKnownAddressRecipient) return null;
 
   const normalizedType = String(summary.recipientType || "address").toLowerCase();
+  const recipientType = isKnownAddressRecipient || normalizedType !== "contract" ? "address" : "contract";
   return {
-    hash: recipient,
-    type: isKnownAddressRecipient || normalizedType !== "contract" ? "address" : "contract",
+    hash: recipientType === "address" ? recipientAddress || recipient : recipient,
+    type: recipientType,
   };
 };
 
@@ -224,11 +226,20 @@ watch(
   () => props.transferSummary,
   async (newSummary) => {
     const contract = getSummaryContractHash(newSummary);
-    if (contract) {
+    if (!contract) {
+      supabaseMeta.value = {};
+      return;
+    }
+
+    try {
       const meta = await supabaseService.getContractMetadata(contract);
       if (meta) {
         supabaseMeta.value = meta;
+      } else {
+        supabaseMeta.value = {};
       }
+    } catch {
+      supabaseMeta.value = {};
     }
   },
   { immediate: true },

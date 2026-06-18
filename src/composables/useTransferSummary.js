@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { tokenService } from "@/services";
+import { tokenService } from "@/services/tokenService";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { NATIVE_CONTRACTS } from "@/constants";

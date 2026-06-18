@@ -160,7 +160,7 @@ const getActiveDomainFromAddressMetadata = (metadata) => {
 
 const normalizedAddressHash = computed(() => {
   if (props.type !== "address" || !props.hash) return props.hash;
-  return scriptHashToAddress(props.hash);
+  return scriptHashToAddress(props.hash) || props.hash;
 });
 
 const normalizeHash160 = (value) => {
