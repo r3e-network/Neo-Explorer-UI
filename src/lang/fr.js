@@ -2037,6 +2037,7 @@ const fr = {
       oneGateNotDetected: "Portefeuille OneGate non détecté",
       connectionCanceled: "Connexion annulée par l'utilisateur.",
       networkMismatchSwitch: "Réseau incorrect. Basculez votre portefeuille sur {env} et réessayez.",
+      networkUnknown: "{provider} n'a pas indiqué son réseau actif. Reconnectez-vous ou changez le réseau du portefeuille puis réessayez.",
       directWifLocalOnly: "Le test WIF direct n'est disponible qu'en développement local.",
       directWifTestnetOnly: "Le test WIF direct n'est autorisé que lorsque l'explorateur est sur testnet.",
       invalidWif: "WIF invalide.",

@@ -285,6 +285,7 @@ const showWalletModal = ref(false);
 const availableProviders = ref([]);
 const supportedProviders = ref([]);
 const wcUri = ref("");
+let walletNetworkValidationPromise = null;
 
 function isProviderAvailable(provider) {
   return availableProviders.value.includes(provider);
@@ -449,14 +450,22 @@ function handleNetworkChange(event) {
 
 async function validateConnectedWalletNetwork() {
   if (!connectedAccount.value) return;
-  try {
-    const walletService = await loadWalletService();
-    if (typeof walletService.ensureNetworkConsistency === "function") {
-      await walletService.ensureNetworkConsistency();
+  if (walletNetworkValidationPromise) return walletNetworkValidationPromise;
+
+  walletNetworkValidationPromise = (async () => {
+    try {
+      const walletService = await loadWalletService();
+      if (typeof walletService.ensureNetworkConsistency === "function") {
+        await walletService.ensureNetworkConsistency();
+      }
+    } catch (err) {
+      toast.error(err?.message || t("wallet.errors.networkMismatchSwitch", { env: getCurrentEnv() }));
+    } finally {
+      walletNetworkValidationPromise = null;
     }
-  } catch (err) {
-    toast.error(err?.message || t("wallet.errors.networkMismatchSwitch", { env: getCurrentEnv() }));
-  }
+  })();
+
+  return walletNetworkValidationPromise;
 }
 
 function handleClickOutside(e) {

@@ -301,6 +301,10 @@ function isWalletNetworkCompatible(network) {
   return !walletMode || walletMode === getExplorerNetworkMode();
 }
 
+function isKnownWalletNetwork(network) {
+  return Boolean(normalizeWalletNetworkMode(network));
+}
+
 function getDapiNetworkName() {
   return isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
 }
@@ -321,6 +325,16 @@ function getWalletNetworkMismatchError(walletNetwork) {
   );
 }
 
+function getWalletNetworkUnknownError(providerName) {
+  return new Error(
+    tWallet(
+      "wallet.errors.networkUnknown",
+      { provider: providerName || "Wallet" },
+      `${providerName || "Wallet"} did not report its active network. Reconnect or switch the wallet network and try again.`,
+    ),
+  );
+}
+
 async function readDapiNetwork(dapi) {
   if (!dapi || typeof dapi.getNetworks !== "function") return "";
   try {
@@ -331,9 +345,9 @@ async function readDapiNetwork(dapi) {
   }
 }
 
-async function ensureDapiNetworkCompatible(dapi, { switchTarget, allowSwitch = true } = {}) {
+async function ensureDapiNetworkCompatible(dapi, { switchTarget, allowSwitch = true, requireKnownNetwork = false, providerName = "" } = {}) {
   let walletNetwork = await readDapiNetwork(dapi);
-  if (isWalletNetworkCompatible(walletNetwork)) {
+  if (isKnownWalletNetwork(walletNetwork) && isWalletNetworkCompatible(walletNetwork)) {
     _networkError = "";
     return true;
   }
@@ -348,6 +362,13 @@ async function ensureDapiNetworkCompatible(dapi, { switchTarget, allowSwitch = t
         if (import.meta.env.DEV) console.warn("Auto-switch wallet network failed:", e);
       }
     }
+  }
+
+  if (requireKnownNetwork && !isKnownWalletNetwork(walletNetwork)) {
+    const error = getWalletNetworkUnknownError(providerName);
+    _networkError = error.message;
+    broadcastWalletStateChange();
+    throw error;
   }
 
   if (!isWalletNetworkCompatible(walletNetwork)) {
@@ -849,7 +870,12 @@ async function connectDapiWallet({ providerName, getDapiFn, getAccountFn, switch
         `Network mismatch during connect. Wallet is on ${walletNetwork}, but Explorer is on ${getCurrentEnv()}`,
       );
   }
-  await ensureDapiNetworkCompatible(dapi, { switchTarget, allowSwitch: true });
+  await ensureDapiNetworkCompatible(dapi, {
+    switchTarget,
+    allowSwitch: true,
+    requireKnownNetwork: true,
+    providerName,
+  });
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
   _networkError = "";
@@ -1181,6 +1207,8 @@ export const walletService = {
       return ensureDapiNetworkCompatible(n3, {
         switchTarget: { testnet: "N3TestNet", mainnet: "N3MainNet" },
         allowSwitch,
+        requireKnownNetwork: true,
+        providerName: PROVIDERS.NEOLINE,
       });
     }
 
@@ -1195,6 +1223,8 @@ export const walletService = {
       return ensureDapiNetworkCompatible(dapi, {
         switchTarget: { testnet: "TestNet", mainnet: "MainNet" },
         allowSwitch,
+        requireKnownNetwork: true,
+        providerName: PROVIDERS.ONEGATE,
       });
     }
 

@@ -2040,6 +2040,7 @@ const zh = {
       oneGateNotDetected: "未检测到 OneGate 钱包",
       connectionCanceled: "用户取消了连接。",
       networkMismatchSwitch: "网络不匹配。请将您的钱包切换到 {env} 后重试。",
+      networkUnknown: "{provider} 未返回当前网络。请重新连接或切换钱包网络后重试。",
       directWifLocalOnly: "直接 WIF 测试仅在本地开发中可用。",
       directWifTestnetOnly: "仅当浏览器在测试网时才允许直接 WIF 测试。",
       invalidWif: "无效的 WIF。",

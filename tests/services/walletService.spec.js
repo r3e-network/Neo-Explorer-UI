@@ -515,6 +515,30 @@ describe("walletService", () => {
     expect(neoLineInvokeMock).toHaveBeenCalled();
   });
 
+  it("rejects NeoLine connections when the wallet does not report an active network", async () => {
+    window.NEOLine = {};
+    neoLineGetNetworksMock.mockResolvedValue({ defaultNetwork: "" });
+    neoLineSwitchNetworkMock.mockResolvedValue({ defaultNetwork: "" });
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    await expect(walletService.connect(walletService.PROVIDERS.NEOLINE)).rejects.toThrow(
+      /NeoLine did not report its active network/i,
+    );
+    expect(walletService.isConnected).toBe(false);
+  });
+
   it("routes Neon Wallet connections through WalletConnect", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     walletService.disconnect();

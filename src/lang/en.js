@@ -2040,6 +2040,7 @@ const en = {
       oneGateNotDetected: "OneGate wallet not detected",
       connectionCanceled: "Connection canceled by user.",
       networkMismatchSwitch: "Network mismatch. Switch your wallet to {env} and try again.",
+      networkUnknown: "{provider} did not report its active network. Reconnect or switch the wallet network and try again.",
       directWifLocalOnly: "Direct WIF testing is only available in local development.",
       directWifTestnetOnly: "Direct WIF testing is only allowed while the explorer is on testnet.",
       invalidWif: "Invalid WIF.",

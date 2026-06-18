@@ -24,6 +24,15 @@ function clearStoredWalletState() {
   sessionStorage.removeItem("devTestWif");
 }
 
+function clearRestoredWalletState(walletService) {
+  clearStoredWalletState();
+  try {
+    walletService?.disconnect?.();
+  } catch {
+    // Best-effort cleanup for partially restored sessions.
+  }
+}
+
 function setStoredWalletAddress(provider, address) {
   if (typeof window === "undefined") return;
   if (sessionStorage.getItem("walletProvider") === provider) {
@@ -59,15 +68,16 @@ function setupNeoLineEventListeners() {
       // — otherwise after a NeoLine account switch the next invoke would
       // ask the wallet to sign for the previous account, which the wallet
       // ignores and the explorer can't tell why the request failed.
+      let walletService = null;
       try {
-        const walletService = await loadWalletService();
+        walletService = await loadWalletService();
         walletService.hydrateSession(PROVIDERS.NEOLINE, {
           address: newAddress,
           label: PROVIDERS.NEOLINE,
         });
+        await walletService.ensureNetworkConsistency?.({ allowSwitch: true });
       } catch {
-        // Best-effort: if walletService hasn't loaded yet, the next
-        // explicit connect() will set the right account anyway.
+        clearRestoredWalletState(walletService);
       }
     } else {
       connectedAccount.value = "";
@@ -117,8 +127,9 @@ export async function initWallet() {
         address: storedAddress,
         label: PROVIDERS.NEOLINE,
       });
+      await walletService.ensureNetworkConsistency?.({ allowSwitch: true });
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else if (provider === PROVIDERS.ONEGATE) {
     if (!window.OneGate && !window.neo) {
@@ -133,8 +144,9 @@ export async function initWallet() {
         address: storedAddress,
         label: PROVIDERS.ONEGATE,
       });
+      await walletService.ensureNetworkConsistency?.({ allowSwitch: true });
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else if (provider === PROVIDERS.WALLETCONNECT) {
     try {
@@ -143,18 +155,18 @@ export async function initWallet() {
         connectedAccount.value = account.address;
         setStoredWalletAddress(PROVIDERS.WALLETCONNECT, account.address);
       } else {
-        clearStoredWalletState();
+        clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else if (provider === PROVIDERS.EVM_WALLET) {
-    clearStoredWalletState();
+    clearRestoredWalletState(walletService);
   } else if (provider === PROVIDERS.TESTNET_WIF) {
     try {
       const wif = sessionStorage.getItem("devTestWif") || "";
       if (!wif) {
-        clearStoredWalletState();
+        clearRestoredWalletState(walletService);
         return;
       }
       const account = await walletService.restoreSession(PROVIDERS.TESTNET_WIF, { wif });
@@ -162,10 +174,10 @@ export async function initWallet() {
         connectedAccount.value = account.address;
         sessionStorage.setItem("connectedWallet", account.address);
       } else {
-        clearStoredWalletState();
+        clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else if (provider === PROVIDERS.NEON) {
     try {
@@ -174,10 +186,10 @@ export async function initWallet() {
         connectedAccount.value = account.address;
         localStorage.setItem("connectedWallet", account.address);
       } else {
-        clearStoredWalletState();
+        clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else if (provider === PROVIDERS.WEB3AUTH) {
     try {
@@ -186,13 +198,13 @@ export async function initWallet() {
         connectedAccount.value = account.address;
         setStoredWalletAddress(PROVIDERS.WEB3AUTH, account.address);
       } else {
-        clearStoredWalletState();
+        clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearStoredWalletState();
+      clearRestoredWalletState(walletService);
     }
   } else {
-    clearStoredWalletState();
+    clearRestoredWalletState(walletService);
   }
 }
 

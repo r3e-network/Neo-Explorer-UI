@@ -401,6 +401,46 @@ describe("AppHeader wallet CTA", () => {
     expect(toast.error).toHaveBeenCalledWith("Wallet network mismatch");
   });
 
+  it("dedupes overlapping wallet network validations from rapid network events", async () => {
+    connectedAccountRef.value = "NconnectedWalletAddress";
+    let rejectValidation;
+    walletServiceMock.ensureNetworkConsistency.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectValidation = reject;
+      }),
+    );
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+    window.dispatchEvent(new CustomEvent("network-change", { detail: { env: "TestT5" } }));
+    window.dispatchEvent(new CustomEvent("network-change", { detail: { env: "TestT5" } }));
+    await flushPromises();
+
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledTimes(1);
+
+    rejectValidation(new Error("Wallet network mismatch"));
+    await flushPromises();
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith("Wallet network mismatch");
+  });
+
   it("uses wallet-specific icons instead of the generic Neo logo", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce(walletServiceMock.getSupportedProviders());
 

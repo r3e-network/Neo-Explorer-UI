@@ -20,8 +20,10 @@ const walletServiceMock = {
   account: null,
   invoke: vi.fn(),
   hydrateSession: vi.fn(),
+  ensureNetworkConsistency: vi.fn(),
   connect: vi.fn(),
   restoreSession: vi.fn(),
+  disconnect: vi.fn(),
 };
 
 vi.mock("vue-toastification", () => ({
@@ -49,8 +51,10 @@ describe("utils/wallet connectWallet", () => {
     walletServiceMock.account = null;
     walletServiceMock.invoke.mockReset();
     walletServiceMock.hydrateSession.mockReset();
+    walletServiceMock.ensureNetworkConsistency.mockReset().mockResolvedValue(true);
     walletServiceMock.connect.mockReset();
     walletServiceMock.restoreSession.mockReset();
+    walletServiceMock.disconnect.mockReset();
   });
 
   it("connects when NeoLineN3 is injected after the ready event", async () => {
@@ -124,6 +128,7 @@ describe("utils/wallet connectWallet", () => {
       walletServiceMock.PROVIDERS.NEOLINE,
       { address, label: walletServiceMock.PROVIDERS.NEOLINE }
     );
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({ allowSwitch: true });
   });
 
   it("passively restores a stored Web3Auth session without calling interactive connect", async () => {
@@ -145,7 +150,11 @@ describe("utils/wallet connectWallet", () => {
 
   it("passively hydrates a stored OneGate session without calling interactive account APIs", async () => {
     const address = "NfM3NJFuDtBwZchLh6DYpk1yPigRNmjcTQ";
-    window.OneGate = {};
+    const getAccount = vi.fn();
+    window.OneGate = {
+      getAccount,
+      getNetworks: vi.fn().mockResolvedValue({ defaultNetwork: "MainNet" }),
+    };
     localStorage.setItem("connectedWallet", address);
     localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.ONEGATE);
 
@@ -157,6 +166,31 @@ describe("utils/wallet connectWallet", () => {
       walletServiceMock.PROVIDERS.ONEGATE,
       { address, label: walletServiceMock.PROVIDERS.ONEGATE }
     );
+    expect(getAccount).not.toHaveBeenCalled();
+    expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledWith({ allowSwitch: true });
+  });
+
+  it("clears a restored NeoLine session when wallet network validation fails", async () => {
+    const address = "NdGjgQf6fVfrhL7f4Wq6ZMJ3QY6gW7G6hE";
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: vi.fn().mockResolvedValue({ defaultNetwork: "TestNet" }),
+        };
+      },
+    };
+    walletServiceMock.ensureNetworkConsistency.mockRejectedValueOnce(new Error("Network mismatch"));
+    localStorage.setItem("connectedWallet", address);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(wallet.connectedAccount.value).toBe("");
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+    expect(walletServiceMock.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it("clears a stale stored session when NeoLine is unavailable on reload", async () => {
