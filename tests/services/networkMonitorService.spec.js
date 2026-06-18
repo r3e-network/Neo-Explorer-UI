@@ -2,9 +2,20 @@ const { getCurrentEnvMock } = vi.hoisted(() => ({
   getCurrentEnvMock: vi.fn(),
 }));
 
+const { getIndexerBlocksMock } = vi.hoisted(() => ({
+  getIndexerBlocksMock: vi.fn(),
+}));
+
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
   NET_ENV: { Mainnet: "mainnet", TestT5: "testT5" },
+  resolveNetworkName: () => "mainnet",
+}));
+
+vi.mock("@/services/indexerReadService", () => ({
+  indexerReadService: {
+    getBlocks: getIndexerBlocksMock,
+  },
 }));
 
 let getSeeds;
@@ -15,6 +26,7 @@ describe("networkMonitorService", () => {
   beforeEach(async () => {
     vi.resetModules();
     getCurrentEnvMock.mockReset().mockReturnValue("mainnet");
+    getIndexerBlocksMock.mockReset().mockResolvedValue(null);
     global.fetch = vi.fn();
     const mod = await import("@/services/networkMonitorService");
     getSeeds = mod.getSeeds;
@@ -102,6 +114,60 @@ describe("networkMonitorService", () => {
       const data = [{ height: 100, time: 1700000000, interval: 15, tx: 5 }];
       global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(data) });
       const result = await getLatestBlocks("mainnet-latest1");
+      expect(result).toEqual(data);
+    });
+
+    it("enriches monitor block intervals with primary node data from the indexer", async () => {
+      const data = [
+        { height: 101, time: 1700000003, interval: 10, tx: 0 },
+        { height: 100, time: 1700000000, interval: 3, tx: 2 },
+      ];
+      global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(data) });
+      getIndexerBlocksMock.mockResolvedValue({
+        data: [
+          {
+            block_index: 101,
+            hash: "0xabc",
+            primary_node: 4,
+            next_consensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+          },
+          {
+            block_index: 100,
+            primary_node: 3,
+            next_consensus: "Nfallback",
+          },
+        ],
+      });
+
+      const result = await getLatestBlocks("mainnet-latest-enrich");
+
+      expect(getIndexerBlocksMock).toHaveBeenCalledWith(
+        expect.any(Number),
+        0,
+        expect.objectContaining({ forceRefresh: true }),
+      );
+      expect(result[0]).toMatchObject({
+        height: 101,
+        interval: 10,
+        primaryNode: 4,
+        primary_node: 4,
+        nextConsensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+        blockHash: "0xabc",
+      });
+      expect(result[1]).toMatchObject({
+        height: 100,
+        primaryNode: 3,
+        nextConsensus: "Nfallback",
+      });
+    });
+
+    it("keeps monitor rows when indexer enrichment fails", async () => {
+      const data = [{ height: 102, time: 1700000006, interval: 6, tx: 1 }];
+      global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(data) });
+      getIndexerBlocksMock.mockRejectedValue(new Error("indexer unavailable"));
+
+      const result = await getLatestBlocks("mainnet-latest-indexer-error");
+
       expect(result).toEqual(data);
     });
 

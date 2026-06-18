@@ -1,4 +1,5 @@
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { indexerReadService } from "@/services/indexerReadService";
 
 function isTestnetEnv() {
   return getCurrentEnv() === NET_ENV.TestT5;
@@ -10,6 +11,7 @@ function isTestnetEnv() {
 // CORS headers.
 const NGD_BASE = "https://monitor.ngd.network/api";
 const FETCH_TIMEOUT_MS = 8000;
+const INDEXER_BLOCK_LOOKBACK = 140;
 
 const CACHE_TTL_MS = {
   seeds: 30 * 1000,
@@ -33,6 +35,49 @@ function networkSlug(env) {
   // Monitor uses N3main / N3test; mirror the same labels for consistency.
   if (env === "testnet" || (env == null && isTestnetEnv())) return "N3test";
   return "N3main";
+}
+
+function normalizePrimaryNode(value) {
+  const primary = Number(value);
+  return Number.isFinite(primary) && primary >= 0 ? primary : null;
+}
+
+async function enrichBlocksWithIndexerConsensus(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return rows;
+
+  try {
+    const limit = Math.max(INDEXER_BLOCK_LOOKBACK, rows.length + 40);
+    const payload = await indexerReadService.getBlocks(limit, 0, {
+      forceRefresh: true,
+      timeoutMs: 2500,
+    });
+    const indexerRows = Array.isArray(payload?.data) ? payload.data : [];
+    if (indexerRows.length === 0) return rows;
+
+    const byHeight = new Map(
+      indexerRows
+        .map((block) => [Number(block?.block_index ?? block?.index ?? block?.height), block])
+        .filter(([height]) => Number.isFinite(height)),
+    );
+
+    return rows.map((row) => {
+      const height = Number(row?.height);
+      const block = byHeight.get(height);
+      if (!block) return row;
+      const primaryNode = normalizePrimaryNode(block.primary_node ?? block.primary ?? block.primaryNode);
+      return {
+        ...row,
+        blockHash: block.hash ?? row.blockHash,
+        primaryNode,
+        primary_node: primaryNode,
+        nextConsensus: block.next_consensus ?? block.nextconsensus ?? block.nextConsensus ?? row.nextConsensus,
+        next_consensus: block.next_consensus ?? block.nextconsensus ?? block.nextConsensus ?? row.next_consensus,
+      };
+    });
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[networkMonitor] consensus enrichment failed:", err);
+    return rows;
+  }
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -76,7 +121,7 @@ export async function getSeeds(env) {
  * Latest ~70 blocks with height/time/interval/tx for charting block-time
  * and block-transaction trends.
  * @param {"mainnet"|"testnet"} [env]
- * @returns {Promise<Array<{height:number,time:number,interval:number,tx:number}>>}
+ * @returns {Promise<Array<{height:number,time:number,interval:number,tx:number,primaryNode?:number,nextConsensus?:string}>>}
  */
 export async function getLatestBlocks(env) {
   const slug = networkSlug(env);
@@ -87,8 +132,9 @@ export async function getLatestBlocks(env) {
   try {
     const data = await fetchJsonWithTimeout(`${NGD_BASE}/${slug}/latest`);
     const rows = Array.isArray(data) ? data : [];
-    setCached(cacheKey, rows);
-    return rows;
+    const enrichedRows = await enrichBlocksWithIndexerConsensus(rows);
+    setCached(cacheKey, enrichedRows);
+    return enrichedRows;
   } catch (err) {
     if (import.meta.env.DEV) console.warn("[networkMonitor] latest fetch failed:", err);
     return [];
