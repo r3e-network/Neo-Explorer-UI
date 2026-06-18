@@ -89,7 +89,7 @@ describe("walletConnectService", () => {
           neo3: {
             chains: ["neo3:mainnet"],
             methods: ["invokeFunction", "testInvoke", "signMessage"],
-            events: ["accountChanged"],
+            events: ["accountChanged", "accountsChanged"],
           },
         },
       });
@@ -264,6 +264,31 @@ describe("walletConnectService", () => {
         expect.objectContaining({
           connected: true,
           account: { address: "NEventAccount", label: "WalletConnect" },
+          reason: "accountChanged",
+        }),
+      );
+    });
+
+    it("selects the event account matching the Explorer network when accountsChanged reports multiple chains", async () => {
+      await setupConnectedSession();
+      const listener = vi.fn();
+      walletConnectService.onSessionChange(listener);
+
+      emitClientEvent("session_event", {
+        topic: "tp",
+        chainId: "neo3:testnet",
+        event: {
+          name: "accountsChanged",
+          data: ["neo3:testnet:NWrongNetwork", "neo3:mainnet:NMainEventAccount"],
+        },
+      });
+
+      expect(walletConnectService.isConnected).toBe(true);
+      expect(walletConnectService.account).toEqual({ address: "NMainEventAccount", label: "WalletConnect" });
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connected: true,
+          account: { address: "NMainEventAccount", label: "WalletConnect" },
           reason: "accountChanged",
         }),
       );

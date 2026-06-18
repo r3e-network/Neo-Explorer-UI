@@ -18,7 +18,7 @@ function tWc(key, paramsOrFallback, fallbackMaybe) {
 }
 
 const NEO_N3_METHODS = ["invokeFunction", "testInvoke", "signMessage"];
-const NEO_N3_EVENTS = ["accountChanged"];
+const NEO_N3_EVENTS = ["accountChanged", "accountsChanged"];
 
 let _client = null;
 let _session = null;
@@ -171,24 +171,35 @@ function handleSessionUpdate(event = {}) {
   }
 }
 
-function accountFromSessionEventData(data, chainId) {
+function sessionEventAccountsFromData(data, chainId) {
   if (Array.isArray(data)) {
-    if (data.length === 0) return "";
-    return accountFromSessionEventData(data[0], chainId);
+    return data.flatMap((item) => sessionEventAccountsFromData(item, chainId));
   }
 
   if (data && typeof data === "object") {
     const candidate = data.account || data.address || data.accounts;
-    return accountFromSessionEventData(candidate, chainId);
+    return sessionEventAccountsFromData(candidate, chainId);
   }
 
   const value = String(data || "").trim();
-  if (!value) return "";
+  if (!value) return [];
 
   const parsed = parseNeo3Account(value);
-  if (parsed) return parsed.raw;
+  if (parsed) return [parsed.raw];
 
-  return `${chainId}:${value}`;
+  return [`${chainId}:${value}`];
+}
+
+function accountFromSessionEventData(data, chainId) {
+  const accounts = sessionEventAccountsFromData(data, chainId);
+  if (!accounts.length) return "";
+
+  const expectedMode = chainToNetworkMode(getPreferredChain());
+  const matchingAccount = accounts.find((account) => {
+    const parsed = parseNeo3Account(account);
+    return parsed && chainToNetworkMode(parsed.chainId) === expectedMode;
+  });
+  return matchingAccount || accounts[0];
 }
 
 function handleSessionEvent(eventPayload = {}) {
