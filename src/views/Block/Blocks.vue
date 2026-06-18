@@ -263,7 +263,7 @@ const totalBlocks = ref(0);
 const latestHeight = ref(0);
 
 // --- Pagination via composable (route-synced, cache-aware) ---
-const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, { ...opts, enrichMissingFields: true });
+const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, opts);
 
 const {
   items: blocks,

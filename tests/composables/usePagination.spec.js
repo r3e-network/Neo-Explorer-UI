@@ -113,6 +113,7 @@ describe("usePagination", () => {
       const promise = p.loadPage(1);
       expect(p.loading.value).toBe(true);
 
+      await Promise.resolve();
       resolveFn({ result: [], totalCount: 0 });
       await promise;
       expect(p.loading.value).toBe(false);
@@ -157,6 +158,29 @@ describe("usePagination", () => {
       expect(p.error.value).toBe("errors.generic");
       expect(p.items.value).toEqual([]);
       expect(p.loading.value).toBe(false);
+    });
+
+    it("clears loading and surfaces the configured error when a page request times out", async () => {
+      vi.useFakeTimers();
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        const fetchFn = vi.fn(() => new Promise(() => {}));
+        const p = usePagination(fetchFn, { errorMessage: "Failed to load", timeoutMs: 25 });
+
+        const promise = p.loadPage(1);
+        expect(p.loading.value).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(25);
+        await promise;
+
+        expect(p.error.value).toBe("Failed to load");
+        expect(p.items.value).toEqual([]);
+        expect(p.loading.value).toBe(false);
+      } finally {
+        errorSpy.mockRestore();
+        vi.useRealTimers();
+      }
     });
   });
 

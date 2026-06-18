@@ -696,9 +696,11 @@ async function initializeData(addr) {
     activeTab.value = "transactions";
   }
 
-  // Load assets first so loadSummary can use them to extract NEO/GAS balances
+  const txPagePromise = loadTxPage(1);
+  // Load assets before the summary so NEO/GAS balances can be derived from
+  // getnep17balances, but start the default transactions tab in parallel.
   await loadAssets(addr);
-  const results = await Promise.allSettled([loadSummary(addr), loadTxPage(1)]);
+  const results = await Promise.allSettled([loadSummary(addr), txPagePromise]);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);

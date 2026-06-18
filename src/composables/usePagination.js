@@ -5,6 +5,33 @@ import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getCache } from "@/services/cache";
 import { isAbortError } from "@/utils/abortError";
 
+const DEFAULT_PAGE_TIMEOUT_MS = 8000;
+
+function createTimeoutError(timeoutMs) {
+  const error = new Error(`Pagination request timed out after ${timeoutMs}ms`);
+  error.name = "TimeoutError";
+  return error;
+}
+
+async function withPaginationTimeout(promise, timeoutMs) {
+  const effectiveTimeout = Number(timeoutMs);
+  if (!Number.isFinite(effectiveTimeout) || effectiveTimeout <= 0) {
+    return promise;
+  }
+
+  let timer = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(createTimeoutError(effectiveTimeout)), effectiveTimeout);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Composition API composable for paginated data fetching.
  *
@@ -17,11 +44,18 @@ import { isAbortError } from "@/utils/abortError";
  * @param {string}  [options.routeSync.pageParam] - Route param name (default: "page").
  * @param {(pageSize: number, skip: number) => string} [options.cacheKeyFn]
  *   Returns a cache key; when the key hits, loading skeleton is suppressed.
+ * @param {number} [options.timeoutMs] - Max time before a page request releases loading.
  * @returns Reactive pagination state and control functions.
  */
 export function usePagination(
   fetchFn,
-  { defaultPageSize = DEFAULT_PAGE_SIZE, routeSync = null, cacheKeyFn = null, errorMessage = null } = {}
+  {
+    defaultPageSize = DEFAULT_PAGE_SIZE,
+    routeSync = null,
+    cacheKeyFn = null,
+    errorMessage = null,
+    timeoutMs = DEFAULT_PAGE_TIMEOUT_MS,
+  } = {}
 ) {
   const { t } = useI18n();
   const router = useRouter();
@@ -70,7 +104,10 @@ export function usePagination(
     if (!silent) error.value = null;
 
     try {
-      const res = await fetchFn(pageSize.value, skip, { forceRefresh });
+      const res = await withPaginationTimeout(
+        Promise.resolve().then(() => fetchFn(pageSize.value, skip, { forceRefresh })),
+        timeoutMs,
+      );
       if (myId !== requestId) return; // stale response
       totalCount.value = res?.totalCount || 0;
       items.value = res?.result || [];
