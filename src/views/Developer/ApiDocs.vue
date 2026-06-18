@@ -80,6 +80,17 @@
         <main class="space-y-3 lg:col-span-3">
           <!-- REST (Read API) mode -->
           <template v-if="apiMode === 'rest'">
+            <section class="panel-muted px-4 py-3">
+              <h2 class="text-high mb-2 text-sm font-semibold uppercase tracking-wide">Response headers</h2>
+              <dl class="grid gap-3 md:grid-cols-2">
+                <div v-for="header in responseHeaders" :key="header.name">
+                  <dt class="text-high font-mono text-xs font-semibold">{{ header.name }}</dt>
+                  <dd class="text-low mt-1 font-mono text-xs">{{ header.values }}</dd>
+                  <dd class="text-mid mt-1 text-xs">{{ header.desc }}</dd>
+                </div>
+              </dl>
+            </section>
+
             <article v-for="ep in filteredEndpoints" :key="ep.path" class="etherscan-card p-5">
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span
@@ -161,7 +172,7 @@
 import { ref, computed } from "vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
-import { READ_API_CATEGORIES, READ_API_ENDPOINTS } from "@/constants/readApiDocs.mjs";
+import { READ_API_CATEGORIES, READ_API_ENDPOINTS, READ_API_RESPONSE_HEADERS } from "@/constants/readApiDocs.mjs";
 import { getCurrentEnv, getNetworkLabel, getRpcApiBasePath } from "@/utils/env";
 
 // Top-level mode: legacy JSON-RPC (Get*) vs the current Postgres Read API (REST).
@@ -169,6 +180,7 @@ const apiMode = ref("rest"); // default to the current, recommended API
 const categories = computed(() => (apiMode.value === "rest" ? READ_API_CATEGORIES : API_DOCS_RPC_CATEGORIES));
 const methods = API_DOCS_RPC_METHODS;
 const restEndpoints = READ_API_ENDPOINTS;
+const responseHeaders = READ_API_RESPONSE_HEADERS;
 const activeCategory = ref(READ_API_CATEGORIES[0]?.key || "");
 const networkLabel = computed(() => getNetworkLabel(getCurrentEnv()));
 const rpcBasePath = computed(() => getRpcApiBasePath());

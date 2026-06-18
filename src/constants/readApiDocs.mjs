@@ -21,6 +21,19 @@ export const READ_API_CATEGORIES = [
   { key: "realtime", label: "Realtime (SSE)" },
 ];
 
+export const READ_API_RESPONSE_HEADERS = [
+  {
+    name: "X-Neo3fura-Cache",
+    values: "hit | miss | bypass",
+    desc: "Block-version response-cache outcome for the request.",
+  },
+  {
+    name: "Server-Timing",
+    values: 'neo3fura-cache;desc="hit|miss|bypass"',
+    desc: "Browser/devtools timing hint mirroring the read-api cache outcome.",
+  },
+];
+
 // Common query params reused across list endpoints.
 const PAGINATION = [
   { name: "limit", type: "integer", desc: "Max rows per page (default 20, max 200)." },
