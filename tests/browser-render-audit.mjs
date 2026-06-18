@@ -29,6 +29,7 @@ const SETTLE_MS = Number(process.env.BROWSER_AUDIT_SETTLE_MS || 9000);
 const MIN_TEXT_LENGTH = Number(process.env.BROWSER_AUDIT_MIN_TEXT_LENGTH || 80);
 const ROUTE_FILTER = process.env.BROWSER_AUDIT_ROUTE || "";
 const VIEWPORT_FILTER = process.env.BROWSER_AUDIT_VIEWPORT || "";
+const STABLE_TRACE_TXID = process.env.BROWSER_AUDIT_TRACE_TXID || "0x5f873503cfbd113dadde69029128008f67818f71cac90140acea7ae816212b90";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const FALLBACK_ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -89,7 +90,7 @@ const ROUTES = [
   ["advancedSearch", () => "/advanced-search"],
   ["governance", () => "/governance"],
   ["chat", () => "/chat", true],
-  ["txExecutionTrace", (d) => `/tx/${encodeURIComponent(d.txid)}/trace`],
+  ["txExecutionTrace", (d) => `/tx/${encodeURIComponent(d.traceTxid || d.txid)}/trace`],
   ["search", (d) => `/search?keyword=${encodeURIComponent(d.txid)}`],
   ["notFound", () => "/__browser_audit_missing_route__"],
 ].map(([name, makePath, allowAuthFailures = false]) => ({ name, makePath, allowAuthFailures }));
@@ -212,6 +213,7 @@ async function discoverData() {
     blockIndex: block?.block_index ?? block?.index ?? 1,
     blockHash: block?.hash || "",
     txid: tx?.txid || tx?.hash || "0x5f873503cfbd113dadde69029128008f67818f71cac90140acea7ae816212b90",
+    traceTxid: STABLE_TRACE_TXID,
     address: tx?.sender || tx?.from || FALLBACK_ADDRESS,
     nep11ContractHash: nft?.contract_hash || NEO_HASH,
     nftOwnerAddress: nft?.to_address || nft?.from_address || FALLBACK_ADDRESS,
