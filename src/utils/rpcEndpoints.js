@@ -7,18 +7,6 @@ const PRIMARY_RPC_ENDPOINTS = Object.freeze({
   testnet: "/rpc/testnet/primary",
 });
 
-// Browser-side fallback goes through Vercel so it stays CORS-safe. The
-// fallback destination is the Cloudflare worker, whose RPC route is repointed
-// to direct neo-go during Phase 2e.
-const FALLBACK_RPC_ENDPOINTS = Object.freeze({
-  mainnet: [
-    "/rpc/mainnet/fallback",
-  ],
-  testnet: [
-    "/rpc/testnet/fallback",
-  ],
-});
-
 const NETWORK_BASE_PATTERN = /\/(api|rpc)\/(mainnet|testnet)(?:\/(primary|fallback(?:2|3)?))?$/i;
 const EXPECTED_NETWORK_MAGIC = Object.freeze({
   mainnet: 860833102,
@@ -98,10 +86,9 @@ export const getRpcEndpointCandidates = (value = getCurrentEnv()) => {
 
   const network = toNetworkMode(value);
   const primary = PRIMARY_RPC_ENDPOINTS[network] || PRIMARY_RPC_ENDPOINTS.mainnet;
-  const fallback = FALLBACK_RPC_ENDPOINTS[network] || FALLBACK_RPC_ENDPOINTS.mainnet;
   // neon-js's RpcDispatcher rejects relative URLs at constructor time, so
-  // fold every candidate (the primary path is relative) through toAbsoluteUrl.
-  return reorderCandidates([primary, ...fallback], derivePreferredCandidate(value)).map(toAbsoluteUrl);
+  // fold the primary path through toAbsoluteUrl.
+  return reorderCandidates([primary], derivePreferredCandidate(value)).map(toAbsoluteUrl);
 };
 
 export const getPrimaryRpcEndpoint = (value = getCurrentEnv()) =>
@@ -166,7 +153,6 @@ export const callWithRpcEndpointFallback = async (value, handler) => {
   for (const endpoint of candidates) {
     try {
       await validateEndpointNetwork(endpoint, network);
-      // Execute against direct-node primary first, then the worker RPC route.
       return await handler(endpoint);
     } catch (error) {
       lastError = error;

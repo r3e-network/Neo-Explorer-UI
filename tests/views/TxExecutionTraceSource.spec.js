@@ -10,4 +10,9 @@ describe("TxExecutionTrace source", () => {
     expect(source).toContain("tx-trace-title-block");
     expect(source).toContain("tx-trace-hash-row");
   });
+
+  it("keeps the summary panels from skeleton-loading indefinitely", () => {
+    expect(source).toContain("TRACE_SUMMARY_SOFT_TIMEOUT_MS");
+    expect(source).toContain("timedOut");
+  });
 });

@@ -202,8 +202,12 @@ async function discoverData() {
   const tx = Array.isArray(txs?.data) ? txs.data[0] : Array.isArray(txs) ? txs[0] : {};
   const nep11 = await fetchJSON(`${API_BASE}/rest/v1/nep11_transfers?network=eq.mainnet&limit=1`, []);
   const nft = Array.isArray(nep11) ? nep11[0] || {} : {};
-  const proposals = await fetchJSON(`${WEB_BASE}/api/governance/proposals?limit=1`, {});
-  const proposal = Array.isArray(proposals?.data) ? proposals.data[0] : Array.isArray(proposals) ? proposals[0] : {};
+  const governanceRequests = await fetchJSON(`${WEB_BASE}/api/multisig/requests?network=mainnet&limit=1`, []);
+  const governanceRequest = Array.isArray(governanceRequests?.data)
+    ? governanceRequests.data[0]
+    : Array.isArray(governanceRequests)
+      ? governanceRequests[0]
+      : {};
   return {
     blockIndex: block?.block_index ?? block?.index ?? 1,
     blockHash: block?.hash || "",
@@ -212,7 +216,7 @@ async function discoverData() {
     nep11ContractHash: nft?.contract_hash || NEO_HASH,
     nftOwnerAddress: nft?.to_address || nft?.from_address || FALLBACK_ADDRESS,
     nftTokenId: nft?.token_id_decoded || nft?.token_id_raw || "0",
-    governanceProposalId: proposal?.id || proposal?.proposal_id || "missing",
+    governanceProposalId: governanceRequest?.id || governanceRequest?.proposal_id || "missing",
   };
 }
 

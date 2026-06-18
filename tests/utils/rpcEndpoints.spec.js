@@ -21,7 +21,7 @@ describe("rpcEndpoints configured base URL", () => {
     ]);
   });
 
-  it("defaults to direct-node primary plus worker fallback proxy routes", async () => {
+  it("defaults to the direct-node primary only", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
 
@@ -31,7 +31,6 @@ describe("rpcEndpoints configured base URL", () => {
     // resolved against window.location.origin.
     expect(getRpcEndpointCandidates()).toEqual([
       `${window.location.origin}/rpc/mainnet/primary`,
-      `${window.location.origin}/rpc/mainnet/fallback`,
     ]);
   });
 
@@ -66,13 +65,13 @@ describe("rpcEndpoints configured base URL", () => {
     ).rejects.toThrow("primary down");
   });
 
-  it("skips a candidate when getversion reports the wrong network", async () => {
+  it("rejects the single candidate when getversion reports the wrong network", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.TestT5);
 
     vi.stubGlobal("fetch", vi.fn(async (input) => {
       const endpoint = String(input instanceof Request ? input.url : input);
-      const network = endpoint.includes("/fallback") ? 894710606 : 860833102;
+      const network = endpoint.includes("/testnet/primary") ? 860833102 : 894710606;
       return new Response(JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
@@ -86,27 +85,24 @@ describe("rpcEndpoints configured base URL", () => {
     const { callWithRpcEndpointFallback } = await import("../../src/utils/rpcEndpoints.js");
     const visited = [];
 
-    const result = await callWithRpcEndpointFallback(env.NET_ENV.TestT5, async (endpoint) => {
-      visited.push(endpoint);
-      return "testnet-ok";
-    });
-
-    expect(result).toBe("testnet-ok");
-    expect(visited).toEqual([
-      `${window.location.origin}/rpc/testnet/fallback`,
-    ]);
+    await expect(
+      callWithRpcEndpointFallback(env.NET_ENV.TestT5, async (endpoint) => {
+        visited.push(endpoint);
+        return "testnet-ok";
+      })
+    ).rejects.toMatchObject({ code: "RPC_NETWORK_MISMATCH" });
+    expect(visited).toEqual([]);
   });
 
-  it("returns only primary even when active base path is set", async () => {
+  it("returns only primary even when a stale fallback base path is active", async () => {
     const env = await import("../../src/utils/env.js");
     env.setCurrentEnv(env.NET_ENV.Mainnet);
-    env.setActiveBasePath(env.NET_ENV.Mainnet, "/rpc/mainnet/primary");
+    env.setActiveBasePath(env.NET_ENV.Mainnet, "/rpc/mainnet/fallback");
 
     const { getRpcEndpointCandidates } = await import("../../src/utils/rpcEndpoints.js");
 
     expect(getRpcEndpointCandidates()).toEqual([
       `${window.location.origin}/rpc/mainnet/primary`,
-      `${window.location.origin}/rpc/mainnet/fallback`,
     ]);
   });
 });

@@ -111,6 +111,11 @@ const error = ref(null);
 const enrichedData = ref(null);
 let fetchGeneration = 0;
 
+const TRACE_SUMMARY_SOFT_TIMEOUT_MS = Math.max(
+  1500,
+  Number(import.meta.env.VITE_TRACE_SUMMARY_SOFT_TIMEOUT_MS || 6000),
+);
+
 const txHash = computed(() => route.params.txhash || "");
 
 const callTree = computed(() => {
@@ -130,6 +135,19 @@ const totalGas = computed(() => {
   return enrichedData.value.executions.reduce((sum, e) => sum + Number(e.gasConsumed || 0), 0).toString();
 });
 
+function createSoftTimeout(ms) {
+  let timer = null;
+  const promise = new Promise((resolve) => {
+    timer = setTimeout(() => resolve({ timedOut: true }), ms);
+  });
+  return {
+    promise,
+    cancel: () => {
+      if (timer) clearTimeout(timer);
+    },
+  };
+}
+
 async function loadTrace(hash) {
   const h = hash || txHash.value;
   if (!h) return;
@@ -138,9 +156,31 @@ async function loadTrace(hash) {
   error.value = null;
   enrichedData.value = null;
   try {
-    const result = await executionService.getEnrichedTrace(h);
+    const request = executionService.getEnrichedTrace(h);
+    request
+      .then((lateResult) => {
+        if (myGeneration === fetchGeneration && lateResult && !enrichedData.value) {
+          enrichedData.value = lateResult;
+        }
+      })
+      .catch((lateErr) => {
+        if (import.meta.env.DEV) console.warn("Late enriched trace load failed:", lateErr);
+      });
+
+    const timeout = createSoftTimeout(TRACE_SUMMARY_SOFT_TIMEOUT_MS);
+    const outcome = await Promise.race([
+      request.then(
+        (result) => ({ result }),
+        (err) => ({ err }),
+      ),
+      timeout.promise,
+    ]);
+    timeout.cancel();
+
     if (myGeneration !== fetchGeneration) return;
-    enrichedData.value = result;
+    if (outcome.timedOut) return;
+    if (outcome.err) throw outcome.err;
+    enrichedData.value = outcome.result;
   } catch (err) {
     if (myGeneration !== fetchGeneration) return;
     if (isAbortError(err)) return;
