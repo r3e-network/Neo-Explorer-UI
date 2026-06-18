@@ -258,6 +258,14 @@ function isWalletConnectConfigured() {
   return !!getWalletConnectProjectId();
 }
 
+function getWeb3AuthClientId() {
+  return String(import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "").trim();
+}
+
+function isWeb3AuthConfigured() {
+  return !!getWeb3AuthClientId();
+}
+
 /**
  * Check if an EVM Wallet is available.
  */
@@ -948,7 +956,7 @@ export const walletService = {
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.WALLETCONNECT);
     if (isWalletConnectConfigured()) providers.push(PROVIDERS.NEON);
     if (isDirectWifProviderEnabled() && isExplorerTestnet()) providers.push(PROVIDERS.TESTNET_WIF);
-    providers.push(PROVIDERS.WEB3AUTH);
+    if (isWeb3AuthConfigured()) providers.push(PROVIDERS.WEB3AUTH);
     return [...new Set(providers)];
   },
 
@@ -1076,6 +1084,9 @@ export const walletService = {
     }
 
     if (providerName === PROVIDERS.WEB3AUTH) {
+      if (!isWeb3AuthConfigured()) {
+        throw new Error(tWallet("wallet.errors.web3AuthNotConfigured", null, "Web3Auth is not configured. Set VITE_WEB3AUTH_CLIENT_ID to enable Google / Email login."));
+      }
       const web3authService = await loadWeb3authService();
       const account = await web3authService.connect();
       _connectedProvider = PROVIDERS.WEB3AUTH;

@@ -80,7 +80,16 @@ describe("web3authService", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    vi.stubEnv("VITE_WEB3AUTH_CLIENT_ID", "test-web3auth-client-id");
     envState.value = "Mainnet";
+  });
+
+  it("fails fast with a clear configuration error when client id is missing", async () => {
+    vi.stubEnv("VITE_WEB3AUTH_CLIENT_ID", "");
+    const { web3authService } = await import("../../src/services/web3authService.js");
+
+    await expect(web3authService.init()).rejects.toThrow(/Web3Auth is not configured/i);
+    expect(web3AuthCtorMock).not.toHaveBeenCalled();
   });
 
   it("initializes the popup in explicit dark mode so the auth window matches the wallet flow", async () => {

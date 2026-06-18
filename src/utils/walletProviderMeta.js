@@ -6,6 +6,7 @@ export function getProviderUnavailableReasonKey(provider) {
   if (provider === PROVIDERS.TESTNET_WIF) return "header.providerTestnetWif";
   if (provider === PROVIDERS.ONEGATE) return "header.providerOneGate";
   if (provider === PROVIDERS.NEOLINE) return "header.providerNeoLine";
+  if (provider === PROVIDERS.WEB3AUTH) return "header.providerWeb3Auth";
   if (provider === PROVIDERS.EVM_WALLET) return "header.providerEvm";
   return "header.providerUnavailable";
 }

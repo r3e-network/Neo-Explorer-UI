@@ -5,7 +5,7 @@ let _chainConfigKey = null;
 
 // Web3Auth client ID must be provided via VITE_WEB3AUTH_CLIENT_ID environment variable.
 // Obtain one at https://dashboard.web3auth.io — never commit real client IDs to source.
-const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "";
+const clientId = String(import.meta.env.VITE_WEB3AUTH_CLIENT_ID || "").trim();
 
 import { getCurrentEnv } from "@/utils/env";
 import { getPrimaryRpcEndpoint } from "@/utils/rpcEndpoints";
@@ -28,6 +28,10 @@ export const web3authService = {
    * Initializes the Web3Auth auth SDK.
    */
   async init() {
+    if (!clientId) {
+      throw new Error("Web3Auth is not configured. Set VITE_WEB3AUTH_CLIENT_ID to enable Google / Email login.");
+    }
+
     const chainConfigKey = getChainConfigKey();
 
     if (_web3auth && _chainConfigKey === chainConfigKey) return;

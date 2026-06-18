@@ -239,6 +239,7 @@ vi.mock("../../src/services/walletConnectService.js", () => ({
 
 vi.mock("../../src/services/web3authService.js", () => ({
   web3authService: {
+    init: vi.fn(),
     connect: connectMock,
     getAccount: getAccountMock,
     disconnect: vi.fn(),
@@ -263,6 +264,7 @@ describe("walletService", () => {
     vi.unstubAllEnvs();
     vi.resetModules();
     vi.stubEnv("VITE_WC_PROJECT_ID", "test-project-id");
+    vi.stubEnv("VITE_WEB3AUTH_CLIENT_ID", "test-web3auth-client-id");
     envState.value = "Mainnet";
     compatTxDeserializeMock.mockReset();
     executeMock.mockResolvedValue({ protocol: { network: 860833102 } });
@@ -335,6 +337,24 @@ describe("walletService", () => {
 
     expect(walletService.getAvailableProviders()).not.toContain(walletService.PROVIDERS.WALLETCONNECT);
     expect(walletService.getAvailableProviders()).not.toContain(walletService.PROVIDERS.NEON);
+  });
+
+  it("hides Web3Auth when its client id is missing", async () => {
+    vi.stubEnv("VITE_WEB3AUTH_CLIENT_ID", "");
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    expect(walletService.getSupportedProviders()).toContain(walletService.PROVIDERS.WEB3AUTH);
+    expect(walletService.getAvailableProviders()).not.toContain(walletService.PROVIDERS.WEB3AUTH);
+  });
+
+  it("rejects direct Web3Auth connect attempts when the client id is missing", async () => {
+    vi.stubEnv("VITE_WEB3AUTH_CLIENT_ID", "");
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    await expect(walletService.connect(walletService.PROVIDERS.WEB3AUTH)).rejects.toThrow(
+      /Web3Auth is not configured/i,
+    );
+    expect(connectMock).not.toHaveBeenCalled();
   });
 
   it("lists Neon Wallet as a supported provider alongside WalletConnect when configured", async () => {
