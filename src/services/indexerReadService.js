@@ -1,4 +1,5 @@
 import { resolveNetworkName } from "@/utils/env";
+import { recordApiObservationFromResponse } from "@/telemetry/apiObservability";
 
 const INDEXER_TIMEOUT_MS = 3000;
 const HOT_INDEXER_SELECTION_TTL_MS = Math.max(
@@ -68,6 +69,10 @@ async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRef
         headers,
         ...(forceRefresh ? { cache: "no-store" } : {}),
         signal: controller?.signal,
+      });
+      recordApiObservationFromResponse(res, requestPath, {
+        method: "GET",
+        source: "indexer",
       });
       if (!res.ok) continue;
       return await res.json();

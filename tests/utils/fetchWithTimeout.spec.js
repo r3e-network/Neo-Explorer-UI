@@ -1,10 +1,15 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { fetchWithTimeout } from "../../src/utils/fetchWithTimeout.js";
+import {
+  __resetApiObservabilityForTests,
+  getRecentApiObservations,
+} from "../../src/telemetry/apiObservability.js";
 
 describe("fetchWithTimeout", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    __resetApiObservabilityForTests();
   });
 
   it("passes an AbortSignal to fetch", async () => {
@@ -34,5 +39,24 @@ describe("fetchWithTimeout", () => {
     await vi.advanceTimersByTimeAsync(25);
 
     await assertion;
+  });
+
+  it("records API observability headers from completed responses", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", {
+      status: 200,
+      headers: { "X-Request-Id": "req_fetch_wrapper" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchWithTimeout("/data/mainnet/summary", {}, 1000);
+
+    expect(getRecentApiObservations()).toEqual([
+      expect.objectContaining({
+        requestId: "req_fetch_wrapper",
+        source: "fetch",
+        method: "GET",
+        url: "/data/mainnet/summary",
+      }),
+    ]);
   });
 });

@@ -204,6 +204,7 @@ Optional build-time environment variable:
 
 - Browser telemetry: optional Sentry tracing/replay and PostHog analytics are initialized from `src/main.js` when the corresponding env vars are present.
 - Server-side telemetry: node-runtime Vercel handlers can report uncaught and selected 5xx failures through `api/lib/telemetry.js`.
+- API observability: `src/telemetry/apiObservability.js` records the latest exposed Worker/read-api/RPC headers (`X-Request-Id`, `traceparent`, cache headers, and `Server-Timing`) for fetch, indexer, and RPC calls. Recent observations are available at `window.__NEO3FURA_API_OBSERVATIONS__` and are attached to Sentry error contexts when present.
 - If no keys are configured, telemetry stays disabled and the app behavior is unchanged.
 - Full env rollout matrix: [managed-observability-env-matrix.md](/home/neo/git/neo3fura/deploy/managed-observability-env-matrix.md)
 

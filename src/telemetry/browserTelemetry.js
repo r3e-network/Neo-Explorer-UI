@@ -87,11 +87,62 @@ function buildPosthogPageviewPayload(to) {
   };
 }
 
+function compactObject(value) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => item !== undefined && item !== null && item !== "")
+  );
+}
+
+function extractTraceId(traceparent = "") {
+  const parts = String(traceparent || "").split("-");
+  return parts.length >= 4 ? parts[1] : "";
+}
+
+export function buildApiObservationTelemetryContext(observation) {
+  if (!observation) {
+    return { context: null, tags: {} };
+  }
+
+  const context = compactObject({
+    request_id: observation.requestId,
+    traceparent: observation.traceparent,
+    edge_cache: observation.edgeCache,
+    neo3fura_cache: observation.neo3furaCache,
+    explorer_cache_strategy: observation.explorerCacheStrategy,
+    proxy_target: observation.proxyTarget,
+    upstream_source: observation.upstreamSource,
+    server_timing: observation.serverTiming,
+    source: observation.source,
+    method: observation.method,
+    status: observation.status,
+    url: observation.url,
+  });
+
+  const tags = compactObject({
+    "api.request_id": observation.requestId,
+    "api.trace_id": extractTraceId(observation.traceparent),
+    "api.edge_cache": observation.edgeCache,
+    "api.neo3fura_cache": observation.neo3furaCache,
+    "api.source": observation.source,
+  });
+
+  return { context: Object.keys(context).length ? context : null, tags };
+}
+
 export function captureBrowserTelemetryError(error, context = {}) {
   if (!sentryActive) return;
 
   Sentry.withScope((scope) => {
+    const apiObservation = context.apiObservation || error?.apiObservation;
+    const apiTelemetry = buildApiObservationTelemetryContext(apiObservation);
+    if (apiTelemetry.context) {
+      scope.setContext("api", apiTelemetry.context);
+    }
+    for (const [key, value] of Object.entries(apiTelemetry.tags)) {
+      scope.setTag(key, String(value));
+    }
     for (const [key, value] of Object.entries(context)) {
+      if (key === "apiObservation") continue;
       if (value !== undefined && value !== null && value !== "") {
         scope.setContext(key, { value });
       }

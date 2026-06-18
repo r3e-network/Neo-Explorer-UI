@@ -69,6 +69,39 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("cache");
   });
 
+  it("records read-api observability headers for indexer responses", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [], paging: { total: 0 } }), {
+        status: 200,
+        headers: {
+          "X-Request-Id": "req_indexer_1",
+          "X-Edge-Cache": "HIT",
+          "Server-Timing": "neo3fura-edge;dur=4",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    await indexerReadService.getTransactions(6, 0);
+    const { getRecentApiObservations } = await import("../../src/telemetry/apiObservability.js");
+
+    expect(getRecentApiObservations()).toEqual([
+      expect.objectContaining({
+        requestId: "req_indexer_1",
+        edgeCache: "HIT",
+        source: "indexer",
+        method: "GET",
+        url: "/data/mainnet/transactions?limit=6&offset=0",
+      }),
+    ]);
+  });
+
   // Removed: "falls back through same-origin backup proxy routes" — single server, no fallback paths.
   // Removed: "promotes the freshest same-origin backup route for hot reads" — single server, only one origin.
   // Removed: "reuses the cached freshest hot-read origin" — single server, only one origin.

@@ -1,3 +1,5 @@
+import { recordApiObservationFromResponse } from "../telemetry/apiObservability";
+
 export const DEFAULT_FETCH_TIMEOUT_MS = 3000;
 
 export async function fetchWithTimeout(input, init = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
@@ -21,7 +23,13 @@ export async function fetchWithTimeout(input, init = {}, timeoutMs = DEFAULT_FET
   }
 
   try {
-    return await fetch(input, fetchInit);
+    const response = await fetch(input, fetchInit);
+    recordApiObservationFromResponse(response, input, {
+      init: fetchInit,
+      method: fetchInit.method || "GET",
+      source: "fetch",
+    });
+    return response;
   } finally {
     if (timer) clearTimeout(timer);
   }

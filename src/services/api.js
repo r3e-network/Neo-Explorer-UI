@@ -2,6 +2,7 @@ import axios from "axios";
 import { getCurrentEnv, getRpcApiBasePath, NET_ENV, setActiveBasePath } from "../utils/env";
 import { getRpcEndpointCandidates } from "../utils/rpcEndpoints";
 import { isAbortError } from "../utils/abortError";
+import { attachApiObservation, recordApiObservationFromAxios } from "../telemetry/apiObservability";
 
 const LEGACY_RPC_BASE_URL = "/rpc";
 const parseTimeout = (value, fallbackMs) => {
@@ -228,7 +229,7 @@ const executeRpcRequest = async (payload, { baseURL, timeout, signal, suppressDe
 
   const response = await api.post("", payload, requestConfig);
   if (response.data?.error) {
-    throw createRpcError(response.data.error);
+    throw attachApiObservation(createRpcError(response.data.error), response.apiObservation);
   }
 
   return response.data?.result;
@@ -374,8 +375,13 @@ api.interceptors.request.use(
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.apiObservation = recordApiObservationFromAxios(response, { source: "rpc" });
+    return response;
+  },
   (error) => {
+    const apiObservation = recordApiObservationFromAxios(error?.response, { source: "rpc" });
+    attachApiObservation(error, apiObservation);
     // Log a concise, actionable summary on every failure (status + baseURL +
     // message) so production outages are visible in browser dev-tools replay.
     // no-console allows console.error in production. __suppressDevErrorLog
@@ -383,7 +389,15 @@ api.interceptors.response.use(
     if (!error?.config?.__suppressDevErrorLog) {
       const status = error?.response?.status ?? "n/a";
       const baseURL = error?.config?.baseURL ?? error?.config?.url ?? "n/a";
-      console.error("[api] request failed", { status, baseURL, message: error?.message });
+      console.error("[api] request failed", {
+        status,
+        baseURL,
+        message: error?.message,
+        requestId: apiObservation?.requestId,
+        traceparent: apiObservation?.traceparent,
+        edgeCache: apiObservation?.edgeCache,
+        neo3furaCache: apiObservation?.neo3furaCache,
+      });
     }
     return Promise.reject(error);
   }

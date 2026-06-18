@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveBrowserObservabilityConfig } from "../../src/telemetry/browserTelemetry.js";
+import {
+  buildApiObservationTelemetryContext,
+  resolveBrowserObservabilityConfig,
+} from "../../src/telemetry/browserTelemetry.js";
 
 describe("resolveBrowserObservabilityConfig", () => {
   it("returns disabled providers when no telemetry env is configured", () => {
@@ -41,6 +44,43 @@ describe("resolveBrowserObservabilityConfig", () => {
         key: "phc_test_key",
         api_host: "https://us.i.posthog.com",
         disabled: true,
+      }),
+    );
+  });
+
+  it("maps API observations into Sentry-safe context and tags", () => {
+    const telemetry = buildApiObservationTelemetryContext({
+      requestId: "req_1",
+      traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01",
+      edgeCache: "HIT",
+      neo3furaCache: "MISS",
+      explorerCacheStrategy: "edge-short",
+      proxyTarget: "rpc.n3index.dev",
+      upstreamSource: "neo-go",
+      serverTiming: "neo3fura-edge;dur=5",
+      source: "rpc",
+      method: "POST",
+      status: 200,
+      url: "/rpc/mainnet/primary",
+    });
+
+    expect(telemetry.context).toEqual(
+      expect.objectContaining({
+        request_id: "req_1",
+        edge_cache: "HIT",
+        neo3fura_cache: "MISS",
+        proxy_target: "rpc.n3index.dev",
+        upstream_source: "neo-go",
+        server_timing: "neo3fura-edge;dur=5",
+      }),
+    );
+    expect(telemetry.tags).toEqual(
+      expect.objectContaining({
+        "api.request_id": "req_1",
+        "api.trace_id": "0123456789abcdef0123456789abcdef",
+        "api.edge_cache": "HIT",
+        "api.neo3fura_cache": "MISS",
+        "api.source": "rpc",
       }),
     );
   });
