@@ -322,6 +322,13 @@ async function testHomePage() {
     assert(res.status === 200, "GET /mainnet/status → 200", `status=${res.status}`);
   });
 
+  await test("GET /v1/status/platform → 200", async () => {
+    const res = await get("/v1/status/platform");
+    assert(res.status === 200, "GET /v1/status/platform → 200", `status=${res.status}`);
+    assert(res.json?.data?.networks?.mainnet, "platform status includes mainnet");
+    assert(res.json?.data?.networks?.testnet, "platform status includes testnet");
+  });
+
   await test("Proxy getblockcount", async () => {
     const res = await rpcPost("mainnet", "getblockcount", []);
     assertRpcOk(res, "Proxy getblockcount");

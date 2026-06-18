@@ -32,6 +32,15 @@ export const READ_API_ENDPOINTS = [
   {
     category: "network",
     method: "GET",
+    path: "/v1/status/platform",
+    desc: "Platform status for mainnet and testnet: aggregate readiness, per-network lag, freshness, and degradation reason.",
+    pathParams: [],
+    queryParams: [],
+    example: `curl -s "${READ_API_BASE}/v1/status/platform"`,
+  },
+  {
+    category: "network",
+    method: "GET",
     path: "/v1/networks/{network}/status",
     desc: "Indexer status: last indexed block, chain tip, lag, freshness.",
     pathParams: [{ name: "network", desc: "mainnet | testnet" }],
