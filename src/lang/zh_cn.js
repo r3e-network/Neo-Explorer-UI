@@ -2085,6 +2085,7 @@ const zh = {
     noUnreadMessages: "没有未读消息。",
     newMessage: "新消息",
     open: "打开",
+    unavailable: "不可用",
     nnsDomains: "NNS 域名（.neo）",
     matrixDomain: "Matrix 域名（.matrix）",
     connectTestnetWif: "连接测试网 WIF",

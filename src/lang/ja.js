@@ -2085,6 +2085,7 @@ const ja = {
     noUnreadMessages: "未読メッセージはありません。",
     newMessage: "新しいメッセージ",
     open: "開く",
+    unavailable: "利用不可",
     nnsDomains: "NNSドメイン（.neo）",
     matrixDomain: "Matrixドメイン（.matrix）",
     connectTestnetWif: "テストネットWIF接続",

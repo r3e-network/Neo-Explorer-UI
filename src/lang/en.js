@@ -2085,6 +2085,7 @@ const en = {
     noUnreadMessages: "No unread messages.",
     newMessage: "New message",
     open: "Open",
+    unavailable: "Unavailable",
     nnsDomains: "NNS Domains (.neo)",
     matrixDomain: "Matrix Domain (.matrix)",
     connectTestnetWif: "Connect Testnet WIF",

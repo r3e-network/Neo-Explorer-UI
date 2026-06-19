@@ -7,7 +7,10 @@ vi.mock("vue-i18n", () => ({
 
 const i18nPlugin = {
   install(app) {
-    app.config.globalProperties.$t = (key) => key;
+    app.config.globalProperties.$t = (key) => ({
+      "header.open": "Open",
+      "header.unavailable": "Unavailable",
+    })[key] || key;
   },
 };
 
@@ -92,7 +95,7 @@ describe("HeaderWalletModal", () => {
       .findAll(".wallet-modal-option")
       .find((button) => button.text().includes("EVM Wallets"));
     expect(evm.text()).toContain("not installed");
-    expect(evm.text()).toContain("header.open");
+    expect(evm.text()).toContain("Open");
     expect(evm.attributes("title")).toBe("not installed");
     expect(evm.attributes("aria-label")).toBe("EVM Wallets (MetaMask, OKX, Rabby, etc.). not installed");
 
@@ -115,8 +118,8 @@ describe("HeaderWalletModal", () => {
     for (const provider of ["WalletConnect", "Neon Wallet", "Google / Email (Web3Auth)"]) {
       const button = wrapper.findAll(".wallet-modal-option").find((b) => b.text().includes(provider));
       expect(button.text()).toContain("not configured");
-      expect(button.text()).toContain("header.unavailable");
-      expect(button.text()).not.toContain("header.open");
+      expect(button.text()).toContain("Unavailable");
+      expect(button.text()).not.toContain("Open");
     }
   });
 

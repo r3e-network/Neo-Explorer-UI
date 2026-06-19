@@ -2085,6 +2085,7 @@ const ko = {
     noUnreadMessages: "읽지 않은 메시지가 없습니다.",
     newMessage: "새 메시지",
     open: "열기",
+    unavailable: "사용 불가",
     nnsDomains: "NNS 도메인 (.neo)",
     matrixDomain: "Matrix 도메인 (.matrix)",
     connectTestnetWif: "테스트넷 WIF 연결",

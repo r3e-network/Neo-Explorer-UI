@@ -2082,6 +2082,7 @@ const fr = {
     noUnreadMessages: "Aucun message non lu.",
     newMessage: "Nouveau message",
     open: "Ouvrir",
+    unavailable: "Indisponible",
     nnsDomains: "Domaines NNS (.neo)",
     matrixDomain: "Domaine Matrix (.matrix)",
     connectTestnetWif: "Connecter le WIF testnet",
