@@ -51,17 +51,6 @@ export function mapAccountOverviewRowsToAccounts(rows = [], balanceRows = []) {
         nep11TransferCount: asCount(row?.nep11_sent_events) + asCount(row?.nep11_received_events),
         lastTransactionTime: asCount(row?.last_tx_ms),
       };
-    })
-    .sort((a, b) => {
-      const neoDiff = Number(b.neobalance || 0) - Number(a.neobalance || 0);
-      if (neoDiff !== 0) return neoDiff;
-      const gasDiff = Number(b.gasbalance || 0) - Number(a.gasbalance || 0);
-      if (gasDiff !== 0) return gasDiff;
-      const txDiff = asCount(b.txCount) - asCount(a.txCount);
-      if (txDiff !== 0) return txDiff;
-      const lastDiff = asCount(b.lastTransactionTime) - asCount(a.lastTransactionTime);
-      if (lastDiff !== 0) return lastDiff;
-      return String(a.address || "").localeCompare(String(b.address || ""));
     });
 }
 
@@ -85,4 +74,3 @@ export function mapRpcCandidatesToCandidateRows(rows = []) {
     .filter(Boolean)
     .sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
 }
-

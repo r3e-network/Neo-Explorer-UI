@@ -42,6 +42,30 @@ describe("legacy fallback helpers", () => {
     expect(mapped[0].scripthash).toMatch(/^0x[0-9a-f]{40}$/);
   });
 
+  it("preserves indexer account order when balance rows are unavailable", () => {
+    const rows = [
+      {
+        address: "NLdYPXACYPKa6zTvoThPuJxd3uEmeMg93t",
+        tx_sent: 1,
+        tx_signed: 1,
+        last_tx_ms: 100,
+      },
+      {
+        address: "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh",
+        tx_sent: 1000,
+        tx_signed: 1000,
+        last_tx_ms: 200,
+      },
+    ];
+
+    const mapped = mapAccountOverviewRowsToAccounts(rows, []);
+
+    expect(mapped.map((row) => row.address)).toEqual([
+      "NLdYPXACYPKa6zTvoThPuJxd3uEmeMg93t",
+      "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh",
+    ]);
+  });
+
   it("maps native getcandidates rows into explorer candidate rows", () => {
     const publickey = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d";
 

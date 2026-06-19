@@ -18,7 +18,7 @@ const resolveAccountNetwork = () => resolveNetworkName();
 
 const buildAccountRestBasePath = (network) => `/rest/${network}`;
 const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_LIST_TIMEOUT_MS || 8000));
-const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 8000));
+const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(1000, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 2500));
 export const ACCOUNT_LIST_CACHE_METHOD = "account_list_indexer_v2";
 
 export function getAccountListCacheKey(limit, skip) {
