@@ -193,6 +193,34 @@ describe("searchService address lookup", () => {
     expect(result.data.hash).toBe("0xstdblock");
   });
 
+  it("prefers exact block-height lookup over stale fuzzy sidecar hits", async () => {
+    const query = "10820940";
+    searchIndex.mockResolvedValueOnce({
+      source: "meilisearch",
+      hits: [{
+        type: "block",
+        title: "Block 10820920",
+        route: "/block-info/10820920",
+        block_index: 10820920,
+      }],
+    });
+    safeRpc.mockImplementation(async (method, params) => {
+      if (method === "getblock" && params?.[0] === 10820940) {
+        return { hash: "0xexactblock", index: 10820940, txcount: 1 };
+      }
+      return null;
+    });
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const result = await searchService.search(query);
+
+    expect(result).toEqual({
+      type: "block",
+      data: { hash: "0xexactblock", index: 10820940, txcount: 1 },
+    });
+    expect(searchIndex).not.toHaveBeenCalledWith(query, { limit: 1 });
+  });
+
   it("uses standard getrawtransaction for 64-hex hash", async () => {
     const query = "a".repeat(64);
     const fullHash = `0x${query}`;

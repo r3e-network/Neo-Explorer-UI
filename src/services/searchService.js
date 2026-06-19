@@ -96,6 +96,25 @@ function formatSuggestionHit(hit = {}) {
   };
 }
 
+function shouldUseExactLookupFirst(query) {
+  if (/^\d+$/.test(query)) return true;
+  if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) return true;
+  if (/^(0x)?[a-fA-F0-9]{40}$/.test(query)) return true;
+  if (isValidNeoAddress(query)) return true;
+  return (query.endsWith(".neo") && query.length > 4) || (query.endsWith(".matrix") && query.length > 7);
+}
+
+async function _resolveClassifiedHit(query) {
+  const hits = await _dedupe(query, () => _classifyAndDispatch(query));
+
+  // Priority: block > transaction > contract > address
+  if (hits.block) return { type: "block", data: hits.block };
+  if (hits.transaction) return { type: "transaction", data: hits.transaction };
+  if (hits.contract) return { type: "contract", data: hits.contract };
+  if (hits.address) return { type: "address", data: hits.address };
+  return null;
+}
+
 async function _searchSidecar(query, options = {}) {
   const response = await indexerReadService.search(query, options).catch(() => null);
   if (!response || !Array.isArray(response.hits) || response.hits.length === 0) {
@@ -215,18 +234,21 @@ export const searchService = {
       key,
       async () => {
         try {
+          const exactFirst = shouldUseExactLookupFirst(query);
+          if (exactFirst) {
+            const exact = await _resolveClassifiedHit(query);
+            if (exact) return exact;
+          }
+
           const sidecar = await _searchSidecar(query, { limit: 1 });
           if (sidecar?.hits?.[0]) {
             return normalizeSearchHit(sidecar.hits[0]);
           }
 
-          const hits = await _dedupe(query, () => _classifyAndDispatch(query));
-
-          // Priority: block > transaction > contract > address
-          if (hits.block) return { type: "block", data: hits.block };
-          if (hits.transaction) return { type: "transaction", data: hits.transaction };
-          if (hits.contract) return { type: "contract", data: hits.contract };
-          if (hits.address) return { type: "address", data: hits.address };
+          if (!exactFirst) {
+            const exact = await _resolveClassifiedHit(query);
+            if (exact) return exact;
+          }
         } catch (error) {
           if (import.meta.env.DEV) console.error("Search error:", error.message);
         }
