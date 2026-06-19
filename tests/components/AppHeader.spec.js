@@ -393,6 +393,49 @@ describe("AppHeader wallet CTA", () => {
     expect(toast.info).toHaveBeenCalledWith("header.providerNeon");
   });
 
+  it("shows an immediate wallet approval hint for external wallet prompts", async () => {
+    walletServiceMock.getAvailableProviders.mockReturnValue([
+      "NeoLine",
+    ]);
+    walletServiceMock.connect.mockResolvedValueOnce({
+      address: "NNeoLineConnected111111111111111111",
+      label: "NeoLine",
+    });
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const connectButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "header.connectWallet");
+    await connectButton.trigger("click");
+    await flushPromises();
+
+    const neoLineButton = wrapper.findAll("button").find((candidate) => candidate.text().includes("NeoLine"));
+    await neoLineButton.trigger("click");
+    await flushPromises();
+
+    expect(walletServiceMock.connect).toHaveBeenCalledWith("NeoLine");
+    expect(toast.info).toHaveBeenCalledWith("header.waitingForWalletApproval");
+    expect(toast.success).toHaveBeenCalledWith("header.connectedAs");
+  });
+
   it("refreshes provider availability before connecting a wallet that became available", async () => {
     walletServiceMock.getAvailableProviders
       .mockReturnValueOnce(["NeoLine"])

@@ -363,6 +363,15 @@ function getProviderUnavailableReason(provider) {
   return t(getProviderUnavailableReasonKey(provider));
 }
 
+function shouldShowWalletApprovalHint(provider) {
+  return [
+    PROVIDERS.NEOLINE,
+    PROVIDERS.ONEGATE,
+    PROVIDERS.WEB3AUTH,
+    PROVIDERS.EVM_WALLET,
+  ].includes(provider);
+}
+
 async function refreshWalletProviderAvailability(walletServiceArg = null) {
   const walletService = walletServiceArg || await loadWalletService();
   availableProviders.value = typeof walletService.getAvailableProviders === "function"
@@ -410,6 +419,9 @@ async function handleConnect(provider) {
   showWalletModal.value = false;
   const connectionAttemptId = beginWalletConnectionAttempt();
   walletLoading.value = true;
+  if (shouldShowWalletApprovalHint(provider)) {
+    toast.info(t("header.waitingForWalletApproval"));
+  }
   try {
     const result = await walletService.connect(provider);
     if (!isCurrentWalletConnectionAttempt(connectionAttemptId)) return;
