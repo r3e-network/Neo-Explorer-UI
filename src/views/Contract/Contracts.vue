@@ -87,9 +87,74 @@
           <EmptyState :message="isSearchMode ? $t('contractsPage.emptySearch') : $t('contractsPage.emptyAll')" />
         </div>
 
-        <!-- Data Table -->
-        <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[900px]" :aria-label="$t('aria.contractsTable')">
+        <!-- Data Table / Mobile cards -->
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="contracts-mobile-list">
+            <MobileListCard v-for="(contract, index) in contracts" :key="contract.hash" data-testid="contract-mobile-card">
+              <template #icon>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                </div>
+              </template>
+
+              <template #title>
+                <router-link :to="`/contract-info/${contract.hash}`" class="etherscan-link font-medium">
+                  {{ contract.name || $t("contractsPage.unknownContract") }}
+                </router-link>
+              </template>
+
+              <template #badge>
+                <span
+                  class="inline-flex items-center rounded px-2 py-1 text-xs font-semibold"
+                  :class="contract.verified ? 'bg-status-success-bg text-status-success' : 'badge-soft'"
+                >
+                  {{ contract.verified ? $t("contractsPage.colVerified") : `#${(currentPage - 1) * pageSize + index + 1}` }}
+                </span>
+              </template>
+
+              <template #subtitle>
+                <router-link :to="`/contract-info/${contract.hash}`" class="etherscan-link font-hash">
+                  {{ truncateHash(contract.hash) }}
+                </router-link>
+              </template>
+
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("contractsPage.colInvocations") }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">
+                    {{ formatNumber(contract.totalsccall || contract.invocations || 0) }}
+                  </dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("contractsPage.colCreated") }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-high" :title="formatTime(contract.createtime)">
+                    {{ formatTime(contract.createtime) }}
+                  </dd>
+                </div>
+              </template>
+
+              <div v-if="getStandards(contract).length" class="flex flex-wrap gap-1">
+                <span
+                  v-for="std in getStandards(contract)"
+                  :key="std"
+                  class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                  :class="nepBadgeClass(std)"
+                >
+                  {{ std }}
+                </span>
+              </div>
+            </MobileListCard>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[900px]" :aria-label="$t('aria.contractsTable')">
             <thead class="table-head">
               <tr>
                 <th scope="col" class="table-header-cell">#</th>
@@ -159,7 +224,8 @@
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         <!-- Pagination -->
@@ -185,6 +251,7 @@
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
+import { useMediaQuery } from "@vueuse/core";
 import { contractService } from "@/services/contractService";
 import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
@@ -195,11 +262,13 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import MobileListCard from "@/components/common/MobileListCard.vue";
 import { isAbortError } from "@/utils/abortError";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 
 // State
 const loading = ref(true);

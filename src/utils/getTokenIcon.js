@@ -5,8 +5,8 @@ import { optimizeLogoUrl } from "@/utils/logoOptimization";
 const localImages = import.meta.glob("@/assets/gui/*.png", { eager: true, import: "default" });
 
 const NATIVE_TOKEN_LOGOS = {
-  [NEO_HASH]: "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png",
-  [GAS_HASH]: "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png",
+  [NEO_HASH]: "/img/brand/neo.png",
+  [GAS_HASH]: "/img/brand/gas.png",
 };
 
 function normalizeHash(hash) {

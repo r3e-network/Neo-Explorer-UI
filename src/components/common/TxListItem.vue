@@ -40,6 +40,7 @@
                 :src="transferLogo"
                 alt=""
                 class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+                @error="$event.target.src = '/img/brand/neo.png'"
               />
               <span class="text-sm text-high font-medium truncate" :title="transferText">
                 {{ transferText }}
@@ -90,6 +91,7 @@
                 :src="transferLogo"
                 alt=""
                 class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+                @error="$event.target.src = '/img/brand/neo.png'"
               />
               <span class="text-sm text-high font-medium truncate flex items-center gap-1" :title="transferText">
                 {{ transferText }}
@@ -113,6 +115,7 @@
                 :src="methodBadge.src"
                 :alt="methodBadge.alt"
                 class="w-4 h-4 rounded-full flex-shrink-0 object-cover bg-white ring-1 ring-line-soft"
+                @error="$event.target.src = '/img/brand/neo.png'"
               />
               <span class="text-sm text-high font-medium truncate">{{ methodName }}</span>
             </div>
@@ -143,6 +146,72 @@
           </span>
         </div>
         <p class="mt-1 text-xs text-mid">{{ txFee }} GAS</p>
+      </div>
+    </div>
+
+    <div class="mt-3 grid gap-2 md:hidden">
+      <div class="grid grid-cols-2 gap-2">
+        <div class="min-w-0 rounded bg-surface-muted px-3 py-2">
+          <p class="text-[10px] uppercase text-low">{{ $t("listItems.from") }}</p>
+          <div class="mt-1 min-w-0 text-sm font-medium text-high">
+            <HashLink
+              v-if="tx.sender"
+              :hash="tx.sender"
+              type="address"
+              :copyable="false"
+              :address-alias-as-primary="true"
+            />
+            <span v-else class="text-low">-</span>
+          </div>
+        </div>
+        <div class="min-w-0 rounded bg-surface-muted px-3 py-2">
+          <p class="text-[10px] uppercase text-low">{{ $t("listItems.to") }}</p>
+          <div class="mt-1 min-w-0 text-sm font-medium text-high">
+            <HashLink
+              v-if="recipient"
+              :hash="recipient.hash"
+              :type="recipient.type"
+              :copyable="false"
+              :address-alias-as-primary="recipient.type === 'address'"
+            />
+            <span v-else class="text-low">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded bg-surface-muted px-3 py-2">
+        <p class="text-[10px] uppercase text-low">{{ $t("transactionsPage.colValueGas") }}</p>
+        <div class="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-medium text-high">
+          <img
+            v-if="transferText && transferText !== '—' && transferLogo"
+            :src="transferLogo"
+            alt=""
+            class="h-4 w-4 flex-shrink-0 rounded-full bg-white object-cover ring-1 ring-line-soft"
+            @error="$event.target.src = '/img/brand/neo.png'"
+          />
+          <img
+            v-else-if="methodBadge"
+            :src="methodBadge.src"
+            :alt="methodBadge.alt"
+            class="h-4 w-4 flex-shrink-0 rounded-full bg-white object-cover ring-1 ring-line-soft"
+            @error="$event.target.src = '/img/brand/neo.png'"
+          />
+          <span class="min-w-0 truncate" :title="transferText || methodName || $t('listItems.contractCall')">
+            {{ transferText && transferText !== "—" ? transferText : methodName || $t("listItems.contractCall") }}
+          </span>
+          <svg
+            v-if="transferText && transferText !== '—' && supabaseMeta?.is_verified"
+            class="h-3.5 w-3.5 flex-shrink-0 text-success"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
       </div>
     </div>
   </div>

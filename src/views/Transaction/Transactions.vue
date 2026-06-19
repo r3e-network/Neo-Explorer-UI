@@ -105,14 +105,26 @@
           :message="$t('transactionsPage.emptyMessage')"
         />
 
-        <!-- Transaction Table -->
-        <TransactionTable
-          v-else
-          :transactions="transactions"
-          :show-absolute-time="showAbsoluteTime"
-          :transfer-summary-by-hash="transferSummaryByHash"
-          @toggle-time="showAbsoluteTime = !showAbsoluteTime"
-        />
+        <!-- Transaction Table / Mobile cards -->
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="transactions-mobile-list">
+            <TxListItem
+              v-for="tx in transactions"
+              :key="tx.hash"
+              :tx="tx"
+              :transfer-summary="transferSummaryByHash[tx.hash]"
+              data-testid="transaction-mobile-card"
+            />
+          </div>
+          <div v-else>
+            <TransactionTable
+              :transactions="transactions"
+              :show-absolute-time="showAbsoluteTime"
+              :transfer-summary-by-hash="transferSummaryByHash"
+              @toggle-time="showAbsoluteTime = !showAbsoluteTime"
+            />
+          </div>
+        </div>
 
         <!-- Pagination -->
         <div v-if="!loading && transactions.length > 0" class="soft-divider border-t px-4 py-3">
@@ -125,6 +137,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from "vue";
+import { useMediaQuery } from "@vueuse/core";
 import { transactionService } from "@/services/transactionService";
 import { executionService } from "@/services/executionService";
 import { getCacheKey } from "@/services/cache";
@@ -144,9 +157,11 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
 import TransactionTable from "./components/TransactionTable.vue";
+import TxListItem from "@/components/common/TxListItem.vue";
 
 const showAbsoluteTime = ref(false);
 const { t } = useI18n();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 const VMSTATE_ENRICH_LIMIT = 8;
 const vmStatePendingHashes = new Set();
 

@@ -7,13 +7,13 @@ const STATIC_KNOWN_CONTRACTS = {
     name: "NeoToken",
     symbol: "NEO",
     decimals: 0,
-    logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png",
+    logo: "/img/brand/neo.png",
   },
   [GAS_HASH]: {
     name: "GasToken",
     symbol: "GAS",
     decimals: 8,
-    logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png",
+    logo: "/img/brand/gas.png",
   },
 
   // Name Service Contracts (.neo / .matrix)

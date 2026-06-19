@@ -67,26 +67,44 @@
             {{ $t("blocks.range.label", { start: formatNumber(rangeStart), end: formatNumber(rangeEnd) }) }}
             <span class="hidden sm:inline">{{ $t("blocks.range.total", { count: formatNumber(totalCount) }) }}</span>
           </p>
-          <button
-            v-if="blocks.length > 0"
-            @click="exportData"
-            :disabled="exporting"
-            class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
-            :title="$t('blocks.export.title')"
-          >
-            <svg v-if="!exporting" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8" />
-            </svg>
-            {{ exporting ? `${$t("blocks.export.label")} (${exportProgress})` : $t("blocks.export.label") }}
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              v-if="blocks.length > 0"
+              @click="showAbsoluteTime = !showAbsoluteTime"
+              class="btn-outline gap-1.5 px-3 py-1.5 text-xs md:hidden"
+              type="button"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {{ showAbsoluteTime ? $t("blocks.table.dateTimeUtc") : $t("blocks.table.age") }}
+            </button>
+            <button
+              v-if="blocks.length > 0"
+              @click="exportData"
+              :disabled="exporting"
+              class="btn-outline gap-1.5 px-3 py-1.5 text-xs"
+              :title="$t('blocks.export.title')"
+            >
+              <svg v-if="!exporting" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              <svg v-else class="h-3.5 w-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8" />
+              </svg>
+              {{ exporting ? `${$t("blocks.export.label")} (${exportProgress})` : $t("blocks.export.label") }}
+            </button>
+          </div>
         </div>
 
         <!-- Loading Skeleton -->
@@ -108,9 +126,71 @@
         <!-- Empty State -->
         <EmptyState v-else-if="blocks.length === 0" :message="$t('blocks.emptyMessage')" icon="block" />
 
-        <!-- Table -->
-        <div v-else class="overflow-x-auto">
-          <table class="w-full min-w-[800px]" :aria-label="$t('blocks.ariaLabel')">
+        <!-- Table / Mobile cards -->
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="blocks-mobile-list">
+            <MobileListCard v-for="block in blocks" :key="block.hash" data-testid="block-mobile-card">
+              <template #icon>
+                <div class="bg-icon-primary flex h-10 w-10 items-center justify-center rounded-lg text-xs font-bold text-primary-500">
+                  Bk
+                </div>
+              </template>
+
+              <template #title>
+                <router-link :to="`/block-info/${block.hash}`" class="etherscan-link font-medium">
+                  #{{ formatNumber(block.index) }}
+                </router-link>
+              </template>
+
+              <template #badge>
+                <router-link
+                  v-if="block.txcount > 0"
+                  :to="`/block-info/${block.hash}`"
+                  class="badge-soft whitespace-nowrap text-xs font-semibold"
+                >
+                  {{ formatNumber(block.txcount) }} txns
+                </router-link>
+                <span v-else class="badge-soft whitespace-nowrap text-xs font-semibold">0 txns</span>
+              </template>
+
+              <template #subtitle>
+                <span :title="formatUnixTime(block.timestamp)">
+                  {{ showAbsoluteTime ? formatUnixTime(block.timestamp) : formatAge(block.timestamp) }}
+                </span>
+              </template>
+
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">Validator</dt>
+                  <dd class="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-medium text-high">
+                    <img
+                      v-if="getActiveValidatorLogo(block)"
+                      :src="getActiveValidatorLogo(block)"
+                      :alt="getValidatorDisplayName(block) + ' logo'"
+                      class="h-4 w-4 flex-shrink-0 rounded-full bg-surface-elevated object-cover ring-1 ring-line-soft"
+                      onerror="this.src = '/img/brand/neo.png'"
+                    />
+                    <router-link
+                      v-if="getActiveValidatorAddress(block)"
+                      :to="`/account-profile/${getActiveValidatorAddress(block)}`"
+                      class="etherscan-link min-w-0 truncate"
+                      :title="getActiveValidatorAddress(block)"
+                    >
+                      {{ getValidatorDisplayName(block) }}
+                    </router-link>
+                    <span v-else class="text-low">--</span>
+                  </dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">Size</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">{{ formatBytes(block.size) }}</dd>
+                </div>
+              </template>
+            </MobileListCard>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[800px]" :aria-label="$t('blocks.ariaLabel')">
             <thead class="table-head">
               <tr>
                 <th scope="col" class="table-header-cell">{{ $t("blocks.table.block") }}</th>
@@ -163,33 +243,33 @@
                       <img
                         v-if="getActiveValidatorLogo(block)"
                         :src="getActiveValidatorLogo(block)"
-                        :alt="(getPrimaryNodeName(resolvePrimaryIndex(block)) || $t('blocks.validator.fallback')) + ' logo'"
+                        :alt="getValidatorDisplayName(block) + ' logo'"
                         class="h-4 w-4 rounded-full object-cover bg-surface-elevated ring-1 ring-line-soft"
                         onerror="this.src = '/img/brand/neo.png'"
                       />
                       <router-link
-                        v-if="resolvePrimaryIndex(block) !== undefined && getActiveValidatorAddress(block)"
+                        v-if="getActiveValidatorAddress(block)"
                         :to="`/account-profile/${getActiveValidatorAddress(block)}`"
                         class="etherscan-link text-sm font-semibold"
                       >
-                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || $t("blocks.validator.consensusNode") }}
+                        {{ getValidatorDisplayName(block) }}
                       </router-link>
                       <span
                         v-else-if="resolvePrimaryIndex(block) !== undefined"
                         class="text-sm font-semibold text-high"
                       >
-                        {{ getPrimaryNodeName(resolvePrimaryIndex(block)) || $t("blocks.validator.consensusNode") }}
+                        {{ getValidatorDisplayName(block) }}
                       </span>
                     </div>
                     <router-link
-                      v-if="getActiveValidatorAddress(block) && !hasNamedValidatorIdentity(block)"
+                      v-if="getActiveValidatorAddress(block) && hasNamedValidatorIdentity(block)"
                       :to="`/account-profile/${getActiveValidatorAddress(block)}`"
                       :title="getActiveValidatorAddress(block)"
                       class="etherscan-link font-hash text-xs"
                     >
                       {{ truncateHash(getActiveValidatorAddress(block), 8, 6) }}
                     </router-link>
-                    <span v-else-if="!hasNamedValidatorIdentity(block)" class="text-xs text-low">--</span>
+                    <span v-else-if="!getActiveValidatorAddress(block)" class="text-xs text-low">--</span>
                   </div>
                 </td>
                 <!-- Size -->
@@ -198,7 +278,8 @@
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         <!-- Pagination -->
@@ -213,6 +294,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { useMediaQuery } from "@vueuse/core";
 import { blockService } from "@/services/blockService";
 import { statsService } from "@/services/statsService";
 import { getCacheKey } from "@/services/cache";
@@ -228,11 +310,13 @@ import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import InfiniteScroll from "@/components/common/InfiniteScroll.vue";
+import MobileListCard from "@/components/common/MobileListCard.vue";
 import { exportBlocksToCSV } from "@/utils/dataExport";
 import { exportAllPagesToCsv } from "@/utils/pagedExport";
 
 const { t } = useI18n();
 const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo, loadCommittee } = useCommittee();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 
 const VALIDATOR_IDENTITY_WAIT_MS = 1500;
 
@@ -274,6 +358,19 @@ function hasNamedValidatorIdentity(block) {
   if (!name) return false;
   if (name === t("validator.validator")) return false;
   return !isFallbackValidatorName(name);
+}
+
+function getValidatorDisplayName(block) {
+  const resolvedPrimary = resolvePrimaryIndex(block);
+  if (resolvedPrimary !== undefined) {
+    const name = String(getPrimaryNodeName(resolvedPrimary) || "").trim();
+    if (name && name !== t("validator.validator") && !isFallbackValidatorName(name)) {
+      return name;
+    }
+  }
+
+  const address = getActiveValidatorAddress(block);
+  return address ? truncateHash(address, 8, 6) : "--";
 }
 const showAbsoluteTime = ref(false);
 

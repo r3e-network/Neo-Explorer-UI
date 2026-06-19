@@ -174,7 +174,7 @@ describe("TransactionTable address rendering", () => {
 
     const logo = wrapper.find('img[alt="NEO"]');
     expect(logo.exists()).toBe(true);
-    expect(logo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
+    expect(logo.attributes("src")).toBe("/img/brand/neo.png");
   });
 
   it("does not show native-token badges for non-token Neo-prefixed contract names", () => {

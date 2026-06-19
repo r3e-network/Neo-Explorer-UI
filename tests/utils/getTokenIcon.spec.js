@@ -13,8 +13,8 @@ const NEOX_CONTRACT_HASH = "0x5a0a0f188f2582ad60c1970267df30ec5428100d";
 const NEOX_LOGO = "https://x.neo.org/favicon.ico";
 const FLAMINGO_STAKING_HASH = "0xd1a9f78e1940f6322fef4df2340a963a9ec46f63";
 const FLAMINGO_LOGO = "https://flamingo.finance/favicon.ico";
-const NEO_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png";
-const GAS_TOKEN_LOGO = "https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png";
+const NEO_TOKEN_LOGO = "/img/brand/neo.png";
+const GAS_TOKEN_LOGO = "/img/brand/gas.png";
 
 describe("getTokenIcon Flamingo fallback", () => {
   it("exposes Flamingo token metadata in known contracts", () => {

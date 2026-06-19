@@ -490,7 +490,7 @@ describe("TxListItem", () => {
 
     const logo = wrapper.find('img[alt="GAS"]');
     expect(logo.exists()).toBe(true);
-    expect(logo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png");
+    expect(logo.attributes("src")).toBe("/img/brand/gas.png");
   });
 
   it("shows Unknown when vmstate is missing", () => {

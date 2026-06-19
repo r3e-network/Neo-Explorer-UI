@@ -358,7 +358,7 @@ describe("HashLink", () => {
     expect(wrapper.text()).toContain("NeoToken");
     const logo = wrapper.find('img[alt="NeoToken"]');
     expect(logo.exists()).toBe(true);
-    expect(logo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
+    expect(logo.attributes("src")).toBe("/img/brand/neo.png");
   });
 
   it("uses token logos for NeoToken and GasToken contract hashes", async () => {
@@ -377,8 +377,8 @@ describe("HashLink", () => {
     const gasLogo = gasWrapper.find("img");
     expect(neoLogo.exists()).toBe(true);
     expect(gasLogo.exists()).toBe(true);
-    expect(neoLogo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1376.png");
-    expect(gasLogo.attributes("src")).toBe("https://s2.coinmarketcap.com/static/img/coins/64x64/1785.png");
+    expect(neoLogo.attributes("src")).toBe("/img/brand/neo.png");
+    expect(gasLogo.attributes("src")).toBe("/img/brand/gas.png");
   });
 
   it("prefers active domain alias from address metadata and shows address logo", async () => {
