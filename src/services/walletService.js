@@ -115,6 +115,11 @@ function attachEvmListeners() {
   window.ethereum.on("chainChanged", _evmChainChangedHandler);
 }
 
+function detachListenersForInactiveProviders(nextProvider) {
+  if (nextProvider !== PROVIDERS.EVM_WALLET) detachEvmListeners();
+  if (nextProvider !== PROVIDERS.NEOLINE) detachNeoLineListeners();
+}
+
 export { WALLET_STATE_EVENT };
 
 function persistWalletState(detail) {
@@ -1231,13 +1236,12 @@ async function connectDapiWallet({
     account = await readDapiAccount(dapi, providerName);
   }
   assertCurrentConnectionAttempt(connectionAttemptId);
+  detachListenersForInactiveProviders(providerName);
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
   _networkError = "";
   if (providerName === PROVIDERS.NEOLINE) {
     attachNeoLineListeners();
-  } else {
-    detachNeoLineListeners();
   }
   broadcastWalletStateChange();
   return _account;
@@ -1383,6 +1387,7 @@ export const walletService = {
       }
 
       assertCurrentConnectionAttempt(connectionAttemptId);
+      detachListenersForInactiveProviders(PROVIDERS.TESTNET_WIF);
       _connectedProvider = PROVIDERS.TESTNET_WIF;
       _directWifAccount = account;
       _account = {
@@ -1415,6 +1420,7 @@ export const walletService = {
             }
             assertCurrentConnectionAttempt(connectionAttemptId);
           }
+          detachListenersForInactiveProviders(providerName);
           _connectedProvider = providerName;
           _account = {
             ...(walletConnectService.account || {}),
@@ -1434,6 +1440,7 @@ export const walletService = {
       const web3authService = await loadWeb3authService();
       const account = await web3authService.connect();
       assertCurrentConnectionAttempt(connectionAttemptId);
+      detachListenersForInactiveProviders(PROVIDERS.WEB3AUTH);
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
       _networkError = "";
@@ -1504,6 +1511,7 @@ export const walletService = {
       const neoAddress = await deriveEvmNeoAddressFromPublicKey(uncompressedPubKey);
 
       assertCurrentConnectionAttempt(connectionAttemptId);
+      detachListenersForInactiveProviders(PROVIDERS.EVM_WALLET);
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
       _networkError = "";
@@ -1522,6 +1530,7 @@ export const walletService = {
     if (Number.isFinite(options?.connectionAttemptId)) {
       assertCurrentConnectionAttempt(options.connectionAttemptId);
     }
+    detachListenersForInactiveProviders(providerName);
     _connectedProvider = providerName;
     _account = account;
     _networkError = "";
@@ -1546,6 +1555,7 @@ export const walletService = {
       if (!account?.address) return null;
 
       assertCurrentConnectionAttempt(connectionAttemptId);
+      detachListenersForInactiveProviders(PROVIDERS.WEB3AUTH);
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
       _networkError = "";
@@ -1571,6 +1581,7 @@ export const walletService = {
     const activeAccount = walletConnectService.account || account;
     if (!activeAccount?.address) return null;
 
+    detachListenersForInactiveProviders(providerName);
     _connectedProvider = providerName;
     _account = {
       ...activeAccount,

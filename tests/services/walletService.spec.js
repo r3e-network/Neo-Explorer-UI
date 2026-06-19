@@ -504,6 +504,71 @@ describe("walletService", () => {
     expect(window.ethereum.on).toHaveBeenCalledWith("chainChanged", expect.any(Function));
   });
 
+  it("keeps a new NeoLine session alive when stale EVM wallet events fire after switching providers", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmAddress = "0xabc0000000000000000000000000000000000000";
+    const recoveredPublicKey = `04${"11".repeat(64)}`;
+    const evmListeners = new Map();
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async send(method) {
+            return method === "eth_requestAccounts" ? [evmAddress] : [];
+          }
+
+          async getSigner() {
+            return {
+              signMessage: vi.fn(async () => "0xidentity-signature"),
+            };
+          }
+        },
+        computeAddress: vi.fn(() => evmAddress),
+        hashMessage: vi.fn(() => "0xidentity-digest"),
+        SigningKey: {
+          recoverPublicKey: vi.fn(() => `0x${recoveredPublicKey}`),
+        },
+      },
+    }));
+    window.ethereum = {
+      on: vi.fn((event, handler) => {
+        evmListeners.set(event, handler);
+      }),
+      removeListener: vi.fn((event, handler) => {
+        if (evmListeners.get(event) === handler) evmListeners.delete(event);
+      }),
+    };
+    window.NEOLine = {};
+    window.NEOLineN3 = {
+      Init: function Init() {
+        return {
+          getNetworks: neoLineGetNetworksMock,
+          getAccount: neoLineGetAccountMock,
+          invoke: neoLineInvokeMock,
+          switchNetwork: neoLineSwitchNetworkMock,
+        };
+      },
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+
+    await walletService.connect(walletService.PROVIDERS.EVM_WALLET);
+    expect(evmListeners.has("accountsChanged")).toBe(true);
+    await walletService.connect(walletService.PROVIDERS.NEOLINE);
+    expect(walletService.provider).toBe(walletService.PROVIDERS.NEOLINE);
+
+    evmListeners.get("accountsChanged")?.(["0xdef0000000000000000000000000000000000000"]);
+
+    expect(walletService.provider).toBe(walletService.PROVIDERS.NEOLINE);
+    expect(walletService.account).toEqual({
+      address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+      label: "NeoLine",
+    });
+    expect(walletState.connectedWalletProvider.value).toBe(walletService.PROVIDERS.NEOLINE);
+    expect(walletState.connectedAccount.value).toBe("NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu");
+    expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.NEOLINE);
+  });
+
   it("rejects EVM wallet connection before prompting for a signature when the AA hash is missing", async () => {
     vi.stubEnv("VITE_AA_HASH_MAINNET", "");
     vi.stubEnv("VITE_AA_HASH", "");
