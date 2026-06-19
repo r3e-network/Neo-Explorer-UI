@@ -25,16 +25,16 @@
       <div class="panel-muted mb-4 px-4 py-3 text-sm">
         <p v-if="apiMode === 'rpc'" class="text-mid">
           {{ $t('apiDocsPage.endpointPrefix') }}
-          <span class="text-high font-mono">POST {{ rpcBasePath }}</span>
+          <span class="text-high break-all font-mono">POST {{ rpcBasePath }}</span>
         </p>
         <p v-else class="text-mid">
           {{ $t('apiDocsPage.endpointPrefix') }}
-          <span class="text-high font-mono">GET https://api.n3index.dev/v1/networks/&#123;network&#125;/...</span>
+          <span class="text-high break-all font-mono">GET https://api.n3index.dev/v1/networks/&#123;network&#125;/...</span>
         </p>
       </div>
 
       <!-- API mode switcher: REST (current) vs JSON-RPC (legacy) -->
-      <div class="mb-4 flex gap-2">
+      <div class="mb-4 flex flex-wrap gap-2">
         <button
           type="button"
           class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
@@ -53,8 +53,39 @@
         </button>
       </div>
 
+      <div class="panel-muted mb-4 p-3 lg:hidden" data-testid="api-docs-mobile-category-nav">
+        <div class="mb-2 flex items-center justify-between gap-3">
+          <h2 class="text-high text-xs font-semibold uppercase tracking-wide">
+            {{ $t('apiDocsPage.categoriesHeading') }}
+          </h2>
+          <span class="text-low rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium">
+            {{ categoryCountLabel }}
+          </span>
+        </div>
+        <nav
+          class="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1"
+          :aria-label="$t('apiDocsPage.categoriesAriaLabel')"
+        >
+          <button
+            v-for="category in categories"
+            :key="category.key"
+            type="button"
+            class="min-h-10 flex-shrink-0 snap-start rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+            :aria-pressed="activeCategory === category.key"
+            :class="
+              activeCategory === category.key
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                : 'bg-card text-mid hover:bg-card-hover hover:text-high'
+            "
+            @click="activeCategory = category.key"
+          >
+            {{ getCategoryLabel(category) }}
+          </button>
+        </nav>
+      </div>
+
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <aside class="etherscan-card p-4">
+        <aside class="etherscan-card hidden p-4 lg:block">
           <h2 class="text-high mb-3 text-sm font-semibold uppercase tracking-wide">
             {{ $t('apiDocsPage.categoriesHeading') }}
           </h2>
@@ -72,7 +103,7 @@
               "
               @click="activeCategory = category.key"
             >
-              {{ apiMode === 'rest' ? category.label : $t(`apiDocsPage.categories.${category.key}`) }}
+              {{ getCategoryLabel(category) }}
             </button>
           </nav>
         </aside>
@@ -172,10 +203,13 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
 import { READ_API_CATEGORIES, READ_API_ENDPOINTS, READ_API_RESPONSE_HEADERS } from "@/constants/readApiDocs.mjs";
 import { getCurrentEnv, getNetworkLabel, getRpcApiBasePath } from "@/utils/env";
+
+const { t } = useI18n();
 
 // Top-level mode: legacy JSON-RPC (Get*) vs the current Postgres Read API (REST).
 const apiMode = ref("rest"); // default to the current, recommended API
@@ -195,6 +229,16 @@ function setApiMode(mode) {
 
 const filteredMethods = computed(() => methods.filter((method) => method.category === activeCategory.value));
 const filteredEndpoints = computed(() => restEndpoints.filter((ep) => ep.category === activeCategory.value));
+const filteredItemCount = computed(() => (apiMode.value === "rest" ? filteredEndpoints.value.length : filteredMethods.value.length));
+const categoryCountLabel = computed(() =>
+  apiMode.value === "rest"
+    ? t("apiDocsPage.endpointCount", { count: filteredItemCount.value })
+    : t("apiDocsPage.methodCount", { count: filteredItemCount.value })
+);
+
+function getCategoryLabel(category) {
+  return apiMode.value === "rest" ? category.label : t(`apiDocsPage.categories.${category.key}`);
+}
 
 function buildRequestBody(method) {
   return JSON.stringify(

@@ -1951,6 +1951,8 @@ const ko = {
     modeRpc: "JSON-RPC (레거시)",
     categoriesHeading: "카테고리",
     categoriesAriaLabel: "RPC 카테고리",
+    endpointCount: "{count}개 엔드포인트",
+    methodCount: "{count}개 메서드",
     typeNative: "네이티브 패스스루",
     typeIndexed: "인덱싱된 API",
     rpcBadge: "RPC",

@@ -1951,6 +1951,8 @@ const en = {
     modeRpc: "JSON-RPC (legacy)",
     categoriesHeading: "Categories",
     categoriesAriaLabel: "RPC Categories",
+    endpointCount: "{count} endpoints",
+    methodCount: "{count} methods",
     typeNative: "Native Pass-through",
     typeIndexed: "Indexed API",
     rpcBadge: "RPC",

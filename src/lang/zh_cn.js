@@ -1951,6 +1951,8 @@ const zh = {
     modeRpc: "JSON-RPC（旧版）",
     categoriesHeading: "分类",
     categoriesAriaLabel: "RPC 分类",
+    endpointCount: "{count} 个端点",
+    methodCount: "{count} 个方法",
     typeNative: "原生直通",
     typeIndexed: "索引 API",
     rpcBadge: "RPC",

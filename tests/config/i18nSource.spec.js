@@ -26,6 +26,8 @@ describe("i18n source", () => {
       "apiDocsPage.responseHeadersHeading",
       "apiDocsPage.responseHeaders.cache.desc",
       "apiDocsPage.responseHeaders.serverTiming.desc",
+      "apiDocsPage.endpointCount",
+      "apiDocsPage.methodCount",
     ];
 
     for (const [locale, localeMessages] of Object.entries(messages)) {

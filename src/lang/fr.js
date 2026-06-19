@@ -1948,6 +1948,8 @@ const fr = {
     modeRpc: "JSON-RPC (ancien)",
     categoriesHeading: "Catégories",
     categoriesAriaLabel: "Catégories RPC",
+    endpointCount: "{count} endpoints",
+    methodCount: "{count} méthodes",
     typeNative: "Pass-through natif",
     typeIndexed: "API indexée",
     rpcBadge: "RPC",

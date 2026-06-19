@@ -1951,6 +1951,8 @@ const ja = {
     modeRpc: "JSON-RPC（レガシー）",
     categoriesHeading: "カテゴリー",
     categoriesAriaLabel: "RPC カテゴリー",
+    endpointCount: "{count} エンドポイント",
+    methodCount: "{count} メソッド",
     typeNative: "ネイティブパススルー",
     typeIndexed: "インデックス API",
     rpcBadge: "RPC",
