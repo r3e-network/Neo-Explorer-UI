@@ -45,7 +45,49 @@
         </div>
 
         <!-- Data table -->
-        <div v-else class="overflow-x-auto">
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="accounts-mobile-list">
+            <MobileListCard v-for="(account, index) in accounts" :key="account.address || index" data-testid="account-mobile-card">
+              <template #icon>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  Ad
+                </div>
+              </template>
+              <template #title>
+                <HashLink :hash="account.address" type="address" :copyable="false" />
+              </template>
+              <template #badge>
+                <span class="badge-soft whitespace-nowrap text-xs font-semibold">
+                  #{{ (currentPage - 1) * pageSize + index + 1 }}
+                </span>
+              </template>
+              <template #subtitle>
+                <span>{{ $t("accounts.colLastActive") }}: {{ formatLastActive(account) }}</span>
+              </template>
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("accounts.colNeoBalance") }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-high">{{ formatAccountNeoBalance(account) }}</dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("accounts.colGasBalance") }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-high">{{ formatAccountGasBalance(account) }}</dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("accounts.colValueUsd") }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    {{ formatUsdValue(account) }}
+                  </dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t("accounts.colTxnCount") }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-high">{{ formatNumber(getTxnCount(account)) }}</dd>
+                </div>
+              </template>
+            </MobileListCard>
+          </div>
+
+          <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[900px]" :aria-label="$t('accounts.tableAriaLabel')">
             <thead class="table-head">
               <tr>
@@ -88,6 +130,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         <div
@@ -112,6 +155,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
+import { useMediaQuery } from "@vueuse/core";
 import { accountService, getAccountListCacheKey } from "@/services/accountService";
 import { getCache } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
@@ -121,10 +165,12 @@ import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import MobileListCard from "@/components/common/MobileListCard.vue";
 import { isAbortError } from "@/utils/abortError";
 import { usePriceCache } from "@/composables/usePriceCache";
 
 const { prices, fetchPrices } = usePriceCache();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 
 // Compute the USD value of an account's NEO + GAS holdings using cached prices.
 function formatUsdValue(account) {

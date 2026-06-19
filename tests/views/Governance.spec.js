@@ -24,6 +24,13 @@ vi.mock("@/composables/usePriceCache", () => ({
   usePriceCache: () => ({ fetchPrices: fetchPricesMock }),
 }));
 
+vi.mock("@vueuse/core", async () => {
+  const { ref } = await import("vue");
+  return {
+    useMediaQuery: () => ref(true),
+  };
+});
+
 vi.mock("vue-toastification", () => ({
   useToast: () => ({ info: toastInfoMock, error: vi.fn(), success: vi.fn() }),
 }));

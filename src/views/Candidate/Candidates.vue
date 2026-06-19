@@ -42,7 +42,80 @@
         </div>
 
         <!-- Data table -->
-        <div v-else class="overflow-x-auto">
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="candidates-mobile-list">
+            <MobileListCard
+              v-for="(candidate, index) in candidatesWithMeta"
+              :key="candidate.candidate"
+              data-testid="candidate-mobile-card"
+            >
+              <template #icon>
+                <img
+                  v-if="getLogo(candidate)"
+                  :src="getLogo(candidate)"
+                  class="h-10 w-10 rounded-full bg-surface-elevated object-cover ring-1 ring-line-soft"
+                  :alt="$t('candidatesPage.logoAlt')"
+                  @error="$event.target.src = '/img/brand/neo.png'"
+                />
+                <div
+                  v-else
+                  class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-elevated text-xs font-bold text-mid ring-1 ring-line-soft"
+                >
+                  N3
+                </div>
+              </template>
+              <template #title>
+                <router-link
+                  v-if="(candidate.metaName || getKnownName(candidate.candidate)) && getCandidateAddress(candidate)"
+                  :to="`/account-profile/${getCandidateAddress(candidate)}`"
+                  class="etherscan-link font-semibold"
+                >
+                  {{ candidate.metaName || getKnownName(candidate.candidate) }}
+                </router-link>
+                <span
+                  v-else-if="candidate.metaName || getKnownName(candidate.candidate)"
+                  class="font-semibold text-high"
+                >
+                  {{ candidate.metaName || getKnownName(candidate.candidate) }}
+                </span>
+                <HashLink
+                  v-else
+                  :hash="candidate.candidate"
+                  type="address"
+                  :truncated="true"
+                />
+              </template>
+              <template #badge>
+                <StatusBadge
+                  :status="candidate.isCommittee ? 'success' : 'pending'"
+                  :text="candidate.isCommittee ? $t('candidatesPage.statusConsensus') : $t('candidatesPage.statusStandby')"
+                />
+              </template>
+              <template #subtitle>
+                <span class="font-mono break-all">{{ candidate.publickey || candidate.metaPubkey }}</span>
+              </template>
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">#</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">#{{ (currentPage - 1) * pageSize + index + 1 }}</dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('candidatesPage.colVotes') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">{{ formatVotes(candidate.votes) }}</dd>
+                </div>
+              </template>
+              <router-link
+                v-if="getCandidateAddress(candidate)"
+                :to="`/account-profile/${getCandidateAddress(candidate)}`"
+                class="etherscan-link font-hash text-xs"
+                :title="getCandidateAddress(candidate)"
+              >
+                {{ getCandidateAddress(candidate) }}
+              </router-link>
+            </MobileListCard>
+          </div>
+
+          <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[760px]" :aria-label="$t('candidatesPage.tableAria')">
             <thead class="table-head">
               <tr>
@@ -112,6 +185,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         <div v-if="!loading && candidates.length > 0" class="soft-divider border-t px-4 py-3">
@@ -132,6 +206,7 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useMediaQuery } from "@vueuse/core";
 import { candidateService } from "@/services/candidateService";
 import { getCacheKey } from "@/services/cache";
 import { usePagination } from "@/composables/usePagination";
@@ -142,6 +217,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
+import MobileListCard from "@/components/common/MobileListCard.vue";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
@@ -151,6 +227,7 @@ import { supabaseService } from "@/services/supabaseService";
 import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
 
 const { t } = useI18n();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 
 const {
   items: candidates,

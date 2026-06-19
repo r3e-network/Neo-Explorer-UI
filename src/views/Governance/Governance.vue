@@ -98,7 +98,144 @@
           <ErrorState :title="$t('common.failedToLoadCandidates')" :message="error" @retry="loadCandidates" />
         </div>
 
-        <div v-else class="overflow-x-auto">
+        <div v-else>
+          <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="governance-mobile-list">
+            <MobileListCard data-testid="governance-neoburger-mobile-card">
+              <template #icon>
+                <img
+                  src="https://app.neoburger.io/favicon.ico"
+                  class="h-10 w-10 rounded-full bg-white object-cover ring-1 ring-line-soft"
+                  :alt="$t('governancePage.neoBurgerLogoAlt')"
+                />
+              </template>
+              <template #title>
+                <span class="inline-flex min-w-0 items-center gap-1.5 font-bold text-high">
+                  NeoBurger
+                  <span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    {{ $t('governancePage.badgeRecommended') }}
+                  </span>
+                </span>
+              </template>
+              <template #badge>
+                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  {{ $t('governancePage.badgeOptimized') }}
+                </span>
+              </template>
+              <template #subtitle>
+                <span>{{ $t('governancePage.neoBurgerStrategy') }}</span>
+              </template>
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colMonthlyGas') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-status-success">~ {{ neoBurgerMonthlyGas.toFixed(4) }} GAS</dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colApr') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-amber-600 dark:text-amber-400">~ {{ neoBurgerApr.toFixed(2) }}%</dd>
+                </div>
+              </template>
+              <a
+                href="https://app.neoburger.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-primary inline-flex w-full items-center justify-center gap-1 px-3 py-2 text-xs"
+              >
+                {{ $t('governancePage.goToNeoBurger') }}
+                <svg aria-hidden="true" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+              </a>
+            </MobileListCard>
+
+            <MobileListCard
+              v-for="candidate in sortedCandidates"
+              :key="candidate.publickey"
+              data-testid="governance-candidate-mobile-card"
+            >
+              <template #icon>
+                <img
+                  v-if="getLogo(candidate)"
+                  :src="getLogo(candidate)"
+                  class="h-10 w-10 rounded-full bg-surface-elevated object-cover ring-1 ring-line-soft"
+                  :alt="`${getDisplayLabel(candidate)} Logo`"
+                  @error="$event.target.src = '/img/brand/neo.png'"
+                />
+                <div
+                  v-else
+                  class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-elevated text-xs font-bold text-mid ring-1 ring-line-soft"
+                >
+                  N3
+                </div>
+              </template>
+              <template #title>
+                <router-link
+                  :to="`/account-profile/${publicKeyToAddress(candidate.publickey)}`"
+                  class="etherscan-link font-semibold"
+                  :title="candidate.publickey"
+                >
+                  {{ getDisplayLabel(candidate) }}
+                </router-link>
+              </template>
+              <template #badge>
+                <span
+                  :class="[
+                    'inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide',
+                    candidate.active
+                      ? 'bg-status-success-bg text-status-success'
+                      : 'border border-line-soft bg-surface-elevated text-mid',
+                  ]"
+                >
+                  {{ candidate.active ? $t('governancePage.badgeActive') : $t('governancePage.badgeStandby') }}
+                </span>
+              </template>
+              <template #subtitle>
+                <span class="font-mono break-all">{{ candidate.publickey }}</span>
+              </template>
+              <template #metrics>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colVotes') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">{{ formatVotes(candidate.votes) }}</dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colLiveness') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-high">
+                    <template v-if="getCandidateLiveness(candidate) !== null">
+                      <span :class="getCandidateLiveness(candidate) >= 99 ? 'text-status-success' : 'text-status-warning'">
+                        {{ getCandidateLiveness(candidate) }}%
+                      </span>
+                    </template>
+                    <span v-else class="text-mid">--</span>
+                  </dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colMonthlyGas') }}</dt>
+                  <dd class="mt-1 truncate text-sm font-medium text-status-success">
+                    {{ calculateMonthlyGas(candidate.votes, getCandidateRank(candidate)).toFixed(4) }} GAS
+                  </dd>
+                </div>
+                <div class="rounded bg-surface-muted px-3 py-2">
+                  <dt class="text-[10px] uppercase text-low">{{ $t('governancePage.colApr') }}</dt>
+                  <dd class="mt-1 text-sm font-medium text-primary-500">
+                    {{ calculateAPR(candidate.votes, getCandidateRank(candidate)).toFixed(2) }}%
+                  </dd>
+                </div>
+              </template>
+              <button
+                @click="handleVoteAction(candidate)"
+                :disabled="!account || voting"
+                class="btn-mini w-full justify-center px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {{ isCurrentVote(candidate) ? $t('governancePage.actionUnvote') : $t('governancePage.actionVote') }}
+              </button>
+            </MobileListCard>
+          </div>
+
+          <div v-else class="overflow-x-auto">
           <table class="w-full min-w-[960px]" :aria-label="$t('governancePage.tableAria')">
             <thead class="table-head">
               <tr>
@@ -253,6 +390,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </section>
@@ -261,6 +399,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useMediaQuery } from "@vueuse/core";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
@@ -268,6 +407,7 @@ import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wal
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
+import MobileListCard from "@/components/common/MobileListCard.vue";
 import { useToast } from "vue-toastification";
 import { useI18n } from "vue-i18n";
 import { usePriceCache } from "@/composables/usePriceCache";
@@ -282,6 +422,7 @@ import { safeRpc } from "@/services/api";
 const toast = useToast();
 const { t } = useI18n();
 const { fetchPrices } = usePriceCache();
+const isDesktop = useMediaQuery("(min-width: 768px)");
 
 const candidates = ref([]);
 const candidateIndexMap = computed(() => {
@@ -367,6 +508,16 @@ function getKnownName(candidate) {
 
 function getDisplayLabel(candidate) {
   return getKnownName(candidate) || publicKeyToAddress(candidate.publickey);
+}
+
+function getCandidateRank(candidate) {
+  return candidateIndexMap.value.get(candidate.publickey) ?? 0;
+}
+
+function getCandidateLiveness(candidate) {
+  const rank = getCandidateRank(candidate);
+  if (rank >= 7) return null;
+  return livenessData.value[rank]?.ratio ?? null;
 }
 
 function getLogo(candidate) {

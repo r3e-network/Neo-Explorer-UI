@@ -11,6 +11,13 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (value) => value }),
 }));
 
+vi.mock("@vueuse/core", async () => {
+  const { ref } = await import("vue");
+  return {
+    useMediaQuery: () => ref(true),
+  };
+});
+
 vi.mock("@/services/candidateService", () => ({
   candidateService: {
     getList: vi.fn(),
