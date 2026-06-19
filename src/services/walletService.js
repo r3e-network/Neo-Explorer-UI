@@ -48,6 +48,37 @@ let _connectionAttemptId = 0;
 // cleanly on disconnect (window.ethereum survives the wallet session).
 let _evmAccountsChangedHandler = null;
 let _evmChainChangedHandler = null;
+let _neoLineAccountChangedHandler = null;
+
+function detachNeoLineListeners() {
+  if (typeof window === "undefined") return;
+  if (_neoLineAccountChangedHandler) {
+    try { window.removeEventListener("NEOLine.NEO.EVENT.ACCOUNT_CHANGED", _neoLineAccountChangedHandler); } catch { /* noop */ }
+    try { window.removeEventListener("NEOLine.N3.EVENT.ACCOUNT_CHANGED", _neoLineAccountChangedHandler); } catch { /* noop */ }
+  }
+  _neoLineAccountChangedHandler = null;
+}
+
+function attachNeoLineListeners() {
+  if (typeof window === "undefined") return;
+  detachNeoLineListeners();
+  _neoLineAccountChangedHandler = (event) => {
+    if (_connectedProvider !== PROVIDERS.NEOLINE) return;
+    const address = String(event?.detail?.address || "").trim();
+    if (!address) {
+      walletService.disconnect();
+      return;
+    }
+    _account = {
+      address,
+      label: String(event?.detail?.label || PROVIDERS.NEOLINE).trim() || PROVIDERS.NEOLINE,
+    };
+    _networkError = "";
+    broadcastWalletStateChange();
+  };
+  window.addEventListener("NEOLine.NEO.EVENT.ACCOUNT_CHANGED", _neoLineAccountChangedHandler);
+  window.addEventListener("NEOLine.N3.EVENT.ACCOUNT_CHANGED", _neoLineAccountChangedHandler);
+}
 
 function detachEvmListeners() {
   if (typeof window === "undefined" || !window.ethereum) return;
@@ -1203,6 +1234,11 @@ async function connectDapiWallet({
   _connectedProvider = providerName;
   _account = { address: account.address, label: account.label || providerName };
   _networkError = "";
+  if (providerName === PROVIDERS.NEOLINE) {
+    attachNeoLineListeners();
+  } else {
+    detachNeoLineListeners();
+  }
   broadcastWalletStateChange();
   return _account;
 }
@@ -1577,6 +1613,7 @@ export const walletService = {
     if (_connectedProvider === PROVIDERS.EVM_WALLET) {
       detachEvmListeners();
     }
+    detachNeoLineListeners();
     _connectedProvider = null;
     _account = null;
     _neolineN3 = null;
