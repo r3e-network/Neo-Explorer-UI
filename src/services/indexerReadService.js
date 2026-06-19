@@ -20,11 +20,24 @@ const CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS = String(
   .split(",")
   .map(normalizeBaseUrl)
   .filter(Boolean);
+const DEFAULT_INDEXER_PUBLIC_BASE_URL = normalizeBaseUrl(
+  import.meta.env.VITE_INDEXER_PROXY_TARGET || "https://api.n3index.dev",
+);
+const USE_PUBLIC_INDEXER_BASE_BY_DEFAULT =
+  Boolean(import.meta.env.PROD) &&
+  String(import.meta.env.VITE_INDEXER_USE_SAME_ORIGIN || "").trim().toLowerCase() !== "true";
 // Single server — no fallbacks needed.
-const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze({
-  mainnet: ["/data/mainnet"],
-  testnet: ["/data/testnet"],
-});
+const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze(
+  USE_PUBLIC_INDEXER_BASE_BY_DEFAULT
+    ? {
+        mainnet: [`${DEFAULT_INDEXER_PUBLIC_BASE_URL}/mainnet`],
+        testnet: [`${DEFAULT_INDEXER_PUBLIC_BASE_URL}/testnet`],
+      }
+    : {
+        mainnet: ["/data/mainnet"],
+        testnet: ["/data/testnet"],
+      },
+);
 
 function resolveIndexerNetworkPath() {
   return resolveNetworkName();
@@ -225,8 +238,7 @@ const SUMMARY_CACHE_TTL_MS = 500;
 const _inflightGetContractOverview = new Map();
 
 // Build the Server-Sent Events URL for the realtime head lane. Uses the same
-// base resolution as the read-api polls so SSE follows the exact host they hit
-// (the dev proxy / Vercel rewrite maps `/data/<net>` to the read-api `/<net>`).
+// base resolution as the read-api polls so SSE follows the exact host they hit.
 // Returns a plain HTTP(S) URL for EventSource — never a ws:// URL.
 export function getIndexerSseUrl(network) {
   const net = String(network || resolveIndexerNetworkPath() || "mainnet").trim().toLowerCase();

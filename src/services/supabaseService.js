@@ -104,11 +104,24 @@ const INDEXER_METADATA_FALLBACK_BASE_URLS = String(
   .split(",")
   .map(normalizeBaseUrl)
   .filter(Boolean);
+const DEFAULT_INDEXER_METADATA_PUBLIC_BASE_URL = normalizeBaseUrl(
+  import.meta.env.VITE_INDEXER_PROXY_TARGET || "https://api.n3index.dev",
+);
+const USE_PUBLIC_INDEXER_METADATA_BASE_BY_DEFAULT =
+  Boolean(import.meta.env.PROD) &&
+  String(import.meta.env.VITE_INDEXER_USE_SAME_ORIGIN || "").trim().toLowerCase() !== "true";
 // Single server — no fallbacks needed.
-const DEFAULT_INDEXER_METADATA_BASE_PATHS = Object.freeze({
-  mainnet: ["/data/mainnet"],
-  testnet: ["/data/testnet"],
-});
+const DEFAULT_INDEXER_METADATA_BASE_PATHS = Object.freeze(
+  USE_PUBLIC_INDEXER_METADATA_BASE_BY_DEFAULT
+    ? {
+        mainnet: [`${DEFAULT_INDEXER_METADATA_PUBLIC_BASE_URL}/mainnet`],
+        testnet: [`${DEFAULT_INDEXER_METADATA_PUBLIC_BASE_URL}/testnet`],
+      }
+    : {
+        mainnet: ["/data/mainnet"],
+        testnet: ["/data/testnet"],
+      },
+);
 const METADATA_FETCH_TIMEOUT_MS = 7000;
 const VALIDATOR_METADATA_TTL_MS = 30 * 60 * 1000;
 const GOVERNANCE_CANDIDATE_INFO_CONTRACTS = Object.freeze({
