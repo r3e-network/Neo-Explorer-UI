@@ -19,6 +19,11 @@ const resolveAccountNetwork = () => resolveNetworkName();
 const buildAccountRestBasePath = (network) => `/rest/${network}`;
 const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_LIST_TIMEOUT_MS || 8000));
 const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 8000));
+export const ACCOUNT_LIST_CACHE_METHOD = "account_list_indexer_v2";
+
+export function getAccountListCacheKey(limit, skip) {
+  return getCacheKey(ACCOUNT_LIST_CACHE_METHOD, { limit, skip, env: resolveAccountNetwork() });
+}
 
 async function fetchJsonWithFallback(urls, { timeoutMs = ACCOUNT_LIST_TIMEOUT_MS } = {}) {
   for (const url of urls.filter(Boolean)) {
@@ -211,7 +216,7 @@ export const accountService = createService(
     },
 
     async getList(limit = 20, skip = 0, options = {}) {
-      const key = getCacheKey("account_list_fallback", { limit, skip, env: resolveAccountNetwork() });
+      const key = getAccountListCacheKey(limit, skip);
       return cachedRequest(
         key,
         async () => {

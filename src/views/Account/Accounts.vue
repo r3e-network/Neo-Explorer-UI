@@ -112,8 +112,8 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { accountService } from "@/services/accountService";
-import { getCache, getCacheKey } from "@/services/cache";
+import { accountService, getAccountListCacheKey } from "@/services/accountService";
+import { getCache } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -156,7 +156,7 @@ const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value
 async function loadPage() {
   const myRequestId = ++pageRequestId;
   const skip = paginationOffset.value;
-  const cacheKey = getCacheKey("account_list", { limit: pageSize.value, skip });
+  const cacheKey = getAccountListCacheKey(pageSize.value, skip);
   const hasCachedData = getCache(cacheKey) !== null;
 
   loading.value = !hasCachedData;
