@@ -504,6 +504,142 @@ describe("walletService", () => {
     expect(window.ethereum.on).toHaveBeenCalledWith("chainChanged", expect.any(Function));
   });
 
+  it("rejects EVM wallet connection before prompting for a signature when the AA hash is missing", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", "");
+    vi.stubEnv("VITE_AA_HASH", "");
+    const browserProviderMock = vi.fn();
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: browserProviderMock,
+      },
+    }));
+    window.ethereum = {
+      request: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+
+    await expect(walletService.connect(walletService.PROVIDERS.EVM_WALLET)).rejects.toThrow(
+      /Abstract account contract hash is not configured/i,
+    );
+    expect(browserProviderMock).not.toHaveBeenCalled();
+    expect(window.ethereum.request).not.toHaveBeenCalled();
+  });
+
+  it("blocks EVM AA invokes when the relayer prepares a payload for the wrong Neo network", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmSignTypedDataMock = vi.fn(async () => "0xsigned");
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async getSigner() {
+            return {
+              getAddress: vi.fn(async () => "0xabc"),
+              signTypedData: evmSignTypedDataMock,
+            };
+          }
+        },
+      },
+    }));
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xabc"] : null)),
+    };
+    const relayerFetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        domain: {
+          chainId: 894710606,
+          verifyingContract: `0x${"ab".repeat(20)}`,
+        },
+        types: {
+          MetaTx: [{ name: "argsHash", type: "bytes32" }],
+        },
+        message: {
+          argsHash: `0x${"11".repeat(32)}`,
+          deadline: Math.floor(Date.now() / 1000) + 60,
+          nonce: "1",
+        },
+        signerAddress: "0xabc",
+      }),
+    }));
+    vi.stubGlobal("fetch", relayerFetchMock);
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "transfer",
+      args: [],
+    })).rejects.toThrow(/Explorer is on N3MainNet/i);
+    expect(evmSignTypedDataMock).not.toHaveBeenCalled();
+    expect(relayerFetchMock).toHaveBeenCalledTimes(1);
+    expect(walletState.walletNetworkError.value).toMatch(/Explorer is on N3MainNet/i);
+  });
+
+  it("blocks EVM AA invokes when the relayer prepares a payload for a different AA contract", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmSignTypedDataMock = vi.fn(async () => "0xsigned");
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async getSigner() {
+            return {
+              getAddress: vi.fn(async () => "0xabc"),
+              signTypedData: evmSignTypedDataMock,
+            };
+          }
+        },
+      },
+    }));
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xabc"] : null)),
+    };
+    const relayerFetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        domain: {
+          chainId: 860833102,
+          verifyingContract: `0x${"cd".repeat(20)}`,
+        },
+        types: {
+          MetaTx: [{ name: "argsHash", type: "bytes32" }],
+        },
+        message: {
+          argsHash: `0x${"11".repeat(32)}`,
+          deadline: Math.floor(Date.now() / 1000) + 60,
+          nonce: "1",
+        },
+        signerAddress: "0xabc",
+      }),
+    }));
+    vi.stubGlobal("fetch", relayerFetchMock);
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      pubKey: `04${"11".repeat(64)}`,
+      evmAddress: "0xabc",
+    });
+
+    await expect(walletService.invoke({
+      scriptHash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+      operation: "transfer",
+      args: [],
+    })).rejects.toThrow(/different Abstract Account contract/i);
+    expect(evmSignTypedDataMock).not.toHaveBeenCalled();
+    expect(relayerFetchMock).toHaveBeenCalledTimes(1);
+    expect(walletState.walletNetworkError.value).toMatch(/different Abstract Account contract/i);
+  });
+
   it("blocks EVM signing when the wallet account is locked or no longer authorized", async () => {
     window.ethereum = {
       request: vi.fn(async ({ method }) => (method === "eth_accounts" ? [] : null)),
@@ -610,8 +746,8 @@ describe("walletService", () => {
         ok: true,
         json: async () => ({
           domain: {
-            chainId: 1,
-            verifyingContract: `0x${"cd".repeat(20)}`,
+            chainId: 860833102,
+            verifyingContract: `0x${"ab".repeat(20)}`,
           },
           types: {
             MetaTx: [{ name: "argsHash", type: "bytes32" }],

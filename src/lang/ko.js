@@ -2053,6 +2053,8 @@ const ko = {
       evmAccountUnavailable: "EVM 지갑 계정을 더 이상 사용할 수 없습니다. EVM 지갑을 잠금 해제하거나 다시 연결하세요.",
       evmAccountChanged: "EVM 지갑 계정이 변경되었습니다. 서명하기 전에 지갑을 다시 연결하세요.",
       aaSignatureRequired: "Abstract Account 신원을 생성하려면 서명이 필요합니다.",
+      evmRelayerNetworkMismatch: "EVM relayer가 {actual} 페이로드를 준비했지만 Explorer는 {expected}에 있습니다. 네트워크를 전환한 뒤 다시 시도하세요.",
+      evmRelayerContractMismatch: "EVM relayer가 다른 Abstract Account 컨트랙트용 페이로드를 준비했습니다. 페이지를 새로고침한 뒤 다시 시도하세요.",
       txCanceledByUser: "사용자가 트랜잭션을 취소했습니다.",
       noWalletConnected: "연결된 지갑이 없습니다",
       activeWalletNoSwitch: "활성 지갑은 계정 전환을 지원하지 않습니다.",

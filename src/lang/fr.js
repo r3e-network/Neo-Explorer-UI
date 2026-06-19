@@ -2050,6 +2050,8 @@ const fr = {
       evmAccountUnavailable: "Le compte du portefeuille EVM n'est plus disponible. Déverrouillez ou reconnectez votre portefeuille EVM.",
       evmAccountChanged: "Le compte du portefeuille EVM a changé. Reconnectez le portefeuille avant de signer.",
       aaSignatureRequired: "Une signature est requise pour générer votre identité Abstract Account.",
+      evmRelayerNetworkMismatch: "Le relayer EVM a préparé une charge utile {actual} alors que l'explorateur est sur {expected}. Changez de réseau puis réessayez.",
+      evmRelayerContractMismatch: "Le relayer EVM a préparé une charge utile pour un autre contrat Abstract Account. Actualisez la page puis réessayez.",
       txCanceledByUser: "Transaction annulée par l'utilisateur.",
       noWalletConnected: "Aucun portefeuille connecté",
       activeWalletNoSwitch: "Le portefeuille actif ne prend pas en charge le changement de compte.",

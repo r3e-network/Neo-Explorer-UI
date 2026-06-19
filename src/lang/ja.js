@@ -2053,6 +2053,8 @@ const ja = {
       evmAccountUnavailable: "EVM ウォレットのアカウントを利用できません。EVM ウォレットをロック解除するか再接続してください。",
       evmAccountChanged: "EVM ウォレットのアカウントが変更されました。署名前にウォレットを再接続してください。",
       aaSignatureRequired: "Abstract Account ID を生成するには署名が必要です。",
+      evmRelayerNetworkMismatch: "EVM relayer は {actual} のペイロードを準備しましたが、Explorer は {expected} 上にあります。ネットワークを切り替えて再試行してください。",
+      evmRelayerContractMismatch: "EVM relayer は別の Abstract Account コントラクト用のペイロードを準備しました。ページを更新して再試行してください。",
       txCanceledByUser: "ユーザーによってトランザクションがキャンセルされました。",
       noWalletConnected: "ウォレットが接続されていません",
       activeWalletNoSwitch: "アクティブなウォレットはアカウント切り替えをサポートしていません。",

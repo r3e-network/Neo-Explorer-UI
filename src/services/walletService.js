@@ -392,6 +392,12 @@ function assertEvmAddressMatchesConnectedWallet(address) {
   throw error;
 }
 
+function throwWalletNetworkError(error) {
+  _networkError = error?.message || String(error || "");
+  broadcastWalletStateChange();
+  throw error;
+}
+
 /**
  * Get the NeoLine N3 dapi instance.
  * NeoLine exposes N3 API via `new window.NEOLineN3.Init()`.
@@ -460,6 +466,32 @@ function isKnownWalletNetwork(network) {
 
 function getDapiNetworkName() {
   return isExplorerTestnet() ? "N3TestNet" : "N3MainNet";
+}
+
+const NEO_NETWORK_MAGIC = Object.freeze({
+  mainnet: 860833102,
+  testnet: 894710606,
+});
+
+function getExplorerNetworkMagic() {
+  return isExplorerTestnet() ? NEO_NETWORK_MAGIC.testnet : NEO_NETWORK_MAGIC.mainnet;
+}
+
+function getNeoNetworkLabelFromMagic(magic) {
+  if (magic === NEO_NETWORK_MAGIC.mainnet) return "N3MainNet";
+  if (magic === NEO_NETWORK_MAGIC.testnet) return "N3TestNet";
+  return magic ? `network magic ${magic}` : "unknown network";
+}
+
+function normalizeEip712ChainId(chainId) {
+  if (typeof chainId === "number") return Number.isSafeInteger(chainId) ? chainId : NaN;
+  if (typeof chainId === "bigint") return chainId <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(chainId) : NaN;
+
+  const raw = String(chainId ?? "").trim();
+  if (!raw) return NaN;
+  if (/^0x[0-9a-f]+$/i.test(raw)) return Number.parseInt(raw, 16);
+  if (/^\d+$/.test(raw)) return Number(raw);
+  return NaN;
 }
 
 function getLegacyDapiNetworkAlias() {
@@ -634,11 +666,50 @@ export function getAbstractAccountHash() {
   return isHash160Hex(normalized) ? normalized : "";
 }
 
-async function deriveEvmNeoAddressFromPublicKey(uncompressedPubKey) {
+function getAbstractAccountConfigError() {
+  return new Error("Abstract account contract hash is not configured (VITE_AA_HASH_*).");
+}
+
+function assertConfiguredAbstractAccountHash() {
   const aaHash = getAbstractAccountHash();
-  if (!aaHash) {
-    throw new Error("Abstract account contract hash is not configured (VITE_AA_HASH_*).");
+  if (!aaHash) throw getAbstractAccountConfigError();
+  return aaHash;
+}
+
+function assertPreparedEip712DomainMatchesExplorerNetwork(domain, expectedAaHash) {
+  const expectedMagic = getExplorerNetworkMagic();
+  const actualMagic = normalizeEip712ChainId(domain?.chainId);
+
+  if (actualMagic !== expectedMagic) {
+    throwWalletNetworkError(new Error(
+      tWallet(
+        "wallet.errors.evmRelayerNetworkMismatch",
+        {
+          expected: getNeoNetworkLabelFromMagic(expectedMagic),
+          actual: getNeoNetworkLabelFromMagic(Number.isFinite(actualMagic) ? actualMagic : 0),
+        },
+        `EVM relayer prepared ${getNeoNetworkLabelFromMagic(Number.isFinite(actualMagic) ? actualMagic : 0)} payload while the Explorer is on ${getNeoNetworkLabelFromMagic(expectedMagic)}. Switch networks and retry.`,
+      ),
+    ));
   }
+
+  const actualContract = normalizeHash160(domain?.verifyingContract);
+  const expectedContract = normalizeHash160(expectedAaHash);
+  if (!isHash160Hex(actualContract) || actualContract !== expectedContract) {
+    throwWalletNetworkError(new Error(
+      tWallet(
+        "wallet.errors.evmRelayerContractMismatch",
+        null,
+        "EVM relayer prepared a payload for a different Abstract Account contract. Refresh the page and retry.",
+      ),
+    ));
+  }
+
+  return true;
+}
+
+async function deriveEvmNeoAddressFromPublicKey(uncompressedPubKey) {
+  const aaHash = assertConfiguredAbstractAccountHash();
 
   const { ScriptBuilder, hash160, reverseHex } = await getSdkTools();
   const sb = new ScriptBuilder();
@@ -1337,12 +1408,12 @@ export const walletService = {
     if (providerName === PROVIDERS.EVM_WALLET) {
       const { ethers } = await import("ethers");
       if (!isEthereumAvailable()) throw new Error(tWallet("wallet.errors.evmWalletNotInstalled", null, "EVM Wallet is not installed."));
+      const aaHash = assertConfiguredAbstractAccountHash();
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send("eth_requestAccounts", []);
       if (!accounts || accounts.length === 0) throw new Error(tWallet("wallet.errors.evmNoAccounts", null, "No EVM accounts found."));
 
       const evmAddress = accounts[0].toLowerCase();
-      const aaHash = getAbstractAccountHash();
 
       // The uncompressed pubkey derives the Neo AA address, so it must
       // provably belong to the connected EVM address. An uncompressed
@@ -2015,10 +2086,7 @@ export const walletService = {
       const invalidArg = normalizedArgs.find((arg) => arg?.type === "Hash160" && !isHash160Hex(arg.value));
       if (invalidArg) throw new Error("Invalid Hash160 argument.");
 
-      const aaHash = getAbstractAccountHash();
-      if (!aaHash) {
-        throw new Error("Abstract account contract hash is not configured (VITE_AA_HASH_*).");
-      }
+      const aaHash = assertConfiguredAbstractAccountHash();
 
       const cleanTargetContract = normalizeHash160(scriptHash);
       if (!isHash160Hex(cleanTargetContract)) {
@@ -2072,6 +2140,7 @@ export const walletService = {
       if (!prepared?.domain?.chainId || !prepared?.domain?.verifyingContract) {
         throw new Error("Relayer prepare payload is missing EIP-712 domain fields.");
       }
+      assertPreparedEip712DomainMatchesExplorerNetwork(prepared.domain, aaHash);
       if (!prepared?.message?.argsHash || !prepared?.message?.deadline) {
         throw new Error("Relayer prepare payload is missing signed message fields.");
       }

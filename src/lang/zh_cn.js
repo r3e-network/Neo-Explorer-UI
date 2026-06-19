@@ -2053,6 +2053,8 @@ const zh = {
       evmAccountUnavailable: "EVM 钱包账户当前不可用。请解锁或重新连接您的 EVM 钱包。",
       evmAccountChanged: "EVM 钱包账户已切换。请先重新连接钱包再签名。",
       aaSignatureRequired: "生成 Abstract Account 身份需要签名。",
+      evmRelayerNetworkMismatch: "EVM relayer 准备的是 {actual} 负载，但 Explorer 当前位于 {expected}。请切换网络后重试。",
+      evmRelayerContractMismatch: "EVM relayer 准备的是另一个 Abstract Account 合约的负载。请刷新页面后重试。",
       txCanceledByUser: "用户取消了交易。",
       noWalletConnected: "未连接钱包",
       activeWalletNoSwitch: "当前钱包不支持账户切换。",

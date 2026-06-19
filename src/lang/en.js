@@ -2053,6 +2053,8 @@ const en = {
       evmAccountUnavailable: "EVM wallet account is no longer available. Unlock or reconnect your EVM wallet.",
       evmAccountChanged: "EVM wallet account changed. Reconnect the wallet before signing.",
       aaSignatureRequired: "Signature is required to generate your Abstract Account identity.",
+      evmRelayerNetworkMismatch: "EVM relayer prepared a {actual} payload while the Explorer is on {expected}. Switch networks and retry.",
+      evmRelayerContractMismatch: "EVM relayer prepared a payload for a different Abstract Account contract. Refresh the page and retry.",
       txCanceledByUser: "Transaction canceled by user.",
       noWalletConnected: "No wallet connected",
       activeWalletNoSwitch: "Active wallet does not support account switching.",
