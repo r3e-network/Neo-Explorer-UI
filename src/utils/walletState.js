@@ -8,10 +8,12 @@ export const walletNetworkError = ref("");
 export function setWalletState(snapshot = {}) {
   const account = snapshot.account || null;
   const address = String(account?.address || "").trim();
+  const provider = String(snapshot.provider || account?.label || "").trim();
+  const networkError = String(snapshot.networkError || "").trim();
   connectedAccount.value = snapshot.connected === false ? "" : address;
-  connectedWalletProvider.value = snapshot.connected === false ? "" : String(snapshot.provider || account?.label || "").trim();
+  connectedWalletProvider.value = snapshot.connected === false && !networkError ? "" : provider;
   connectedWalletAccount.value = snapshot.connected === false ? null : account;
-  walletNetworkError.value = String(snapshot.networkError || "").trim();
+  walletNetworkError.value = networkError;
 }
 
 export function clearWalletState() {

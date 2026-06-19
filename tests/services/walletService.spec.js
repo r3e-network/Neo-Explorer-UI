@@ -1324,7 +1324,7 @@ describe("walletService", () => {
     expect(localStorage.getItem("walletProvider")).toBeNull();
   });
 
-  it("keeps the WalletConnect-style network error visible when a remote session becomes incompatible", async () => {
+  it("keeps the WalletConnect-style network error and provider visible when a remote session becomes incompatible", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     const walletState = await import("../../src/utils/walletState.js");
     walletService.disconnect();
@@ -1340,9 +1340,10 @@ describe("walletService", () => {
     });
 
     expect(walletService.isConnected).toBe(false);
+    expect(walletService.provider).toBeNull();
     expect(walletService.account).toBeNull();
     expect(walletState.connectedAccount.value).toBe("");
-    expect(walletState.connectedWalletProvider.value).toBe("");
+    expect(walletState.connectedWalletProvider.value).toBe(walletService.PROVIDERS.NEON);
     expect(walletState.walletNetworkError.value).toMatch(/WalletConnect session is on neo3:testnet/i);
     expect(localStorage.getItem("connectedWallet")).toBeNull();
     expect(localStorage.getItem("walletProvider")).toBeNull();

@@ -162,10 +162,11 @@ function persistWalletState(detail) {
   localStorage.setItem("walletProvider", detail.provider);
 }
 
-function broadcastWalletStateChange() {
+function broadcastWalletStateChange({ providerOverride } = {}) {
+  const provider = providerOverride !== undefined ? providerOverride : _connectedProvider;
   const detail = {
     connected: !!_account,
-    provider: _connectedProvider,
+    provider,
     account: _account ? { ...(_account || {}) } : null,
     networkError: _networkError,
   };
@@ -267,10 +268,13 @@ async function loadWalletConnectServiceWithSessionSync() {
       if (_connectedProvider !== PROVIDERS.WALLETCONNECT && _connectedProvider !== PROVIDERS.NEON) return;
 
       if (!event.connected || event.error || !event.account?.address) {
+        const disconnectedProvider = _connectedProvider;
         _networkError = event.error?.message || "";
         _connectedProvider = null;
         _account = null;
-        broadcastWalletStateChange();
+        broadcastWalletStateChange({
+          providerOverride: _networkError ? disconnectedProvider : null,
+        });
         return;
       }
 

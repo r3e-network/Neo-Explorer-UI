@@ -7,7 +7,13 @@ vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    useI18n: () => ({ t: (key) => key }),
+    useI18n: () => ({
+      t: (key, params = {}) => {
+        if (key === "header.walletIssue") return `${key}:${params.provider || ""}`;
+        if (key === "header.walletIssueAria") return `${key}:${params.provider || ""}:${params.error || ""}`;
+        return key;
+      },
+    }),
   };
 });
 
@@ -584,7 +590,9 @@ describe("AppHeader wallet CTA", () => {
       .findAll("button")
       .find((candidate) => candidate.text().trim() === "Nconne...ress");
     expect(walletButton.attributes("title")).toBe("Network mismatch. Switch your wallet to Mainnet and try again.");
-    expect(walletButton.attributes("aria-label")).toBe("header.walletIssueAria");
+    expect(walletButton.attributes("aria-label")).toBe(
+      "header.walletIssueAria:NeoLine:Network mismatch. Switch your wallet to Mainnet and try again.",
+    );
 
     await wrapper.get('[data-testid="wallet-attention-disconnect"]').trigger("click");
     await flushPromises();
@@ -596,7 +604,7 @@ describe("AppHeader wallet CTA", () => {
   it("keeps remote wallet network errors accessible after the wallet session is disconnected", async () => {
     connectedAccountRef.value = "";
     const walletState = await import("@/utils/walletState");
-    walletState.connectedWalletProvider.value = "";
+    walletState.connectedWalletProvider.value = "Neon Wallet";
     walletState.walletNetworkError.value = "WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.";
 
     const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
@@ -611,7 +619,10 @@ describe("AppHeader wallet CTA", () => {
           RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
         },
         mocks: {
-          $t: (value) => value,
+          $t: (value, params = {}) => {
+            if (value === "header.walletIssue") return `${value}:${params.provider || ""}`;
+            return value;
+          },
         },
       },
     });
@@ -619,6 +630,7 @@ describe("AppHeader wallet CTA", () => {
     await flushPromises();
 
     const alert = wrapper.get('[data-testid="wallet-attention"]');
+    expect(alert.text()).toContain("header.walletIssue:Neon Wallet");
     expect(alert.text()).toContain("WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.");
 
     const walletButtons = wrapper
@@ -627,7 +639,9 @@ describe("AppHeader wallet CTA", () => {
     expect(walletButtons.length).toBeGreaterThan(0);
     for (const button of walletButtons) {
       expect(button.attributes("title")).toBe("WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.");
-      expect(button.attributes("aria-label")).toBe("header.walletIssueAria");
+      expect(button.attributes("aria-label")).toBe(
+        "header.walletIssueAria:Neon Wallet:WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.",
+      );
     }
   });
 
