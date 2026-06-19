@@ -59,8 +59,21 @@ describe("HeaderWalletModal", () => {
     const wrapper = await mountModal();
     await flushPromises();
     const dialog = wrapper.find('[role="dialog"]');
-    await dialog.trigger("keydown.escape");
+    await dialog.trigger("keydown", { key: "Escape" });
     expect(wrapper.emitted("close")).toHaveLength(1);
+  });
+
+  it("emits close when Escape is pressed at global level", async () => {
+    const addListener = vi.spyOn(window, "addEventListener");
+    const wrapper = await mountModal();
+    await flushPromises();
+
+    const keydownHandler = addListener.mock.calls.find(([eventName]) => eventName === "keydown")?.[1];
+    expect(keydownHandler).toEqual(expect.any(Function));
+    keydownHandler(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+    expect(wrapper.emitted("close")).toHaveLength(1);
+    addListener.mockRestore();
   });
 
   it("emits connect with the provider name for non-WIF providers", async () => {

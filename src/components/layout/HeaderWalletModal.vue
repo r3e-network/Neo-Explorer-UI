@@ -7,7 +7,7 @@
       aria-modal="true"
       :aria-label="$t('header.connectWallet')"
       tabindex="0"
-      @keydown.escape="emit('close')"
+      @keydown.escape="handleEscapeKeydown"
       @click.self="emit('close')"
     >
       <div class="wallet-modal-panel w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 text-slate-100 ring-1 ring-white/10 shadow-2xl overflow-hidden relative" @click.stop>
@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { PROVIDERS } from "@/constants/walletProviders";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 
@@ -117,6 +117,27 @@ useFocusTrap(modalRef);
 
 const showDevWifForm = ref(false);
 const devWifInput = ref("");
+
+function handleEscapeKeydown(event) {
+  if (event?.key !== "Escape") return;
+  if (event.__neoExplorerWalletModalEscapeHandled) return;
+  Object.defineProperty(event, "__neoExplorerWalletModalEscapeHandled", {
+    value: true,
+    configurable: true,
+  });
+  event.preventDefault?.();
+  emit("close");
+}
+
+onMounted(() => {
+  document.addEventListener("keydown", handleEscapeKeydown);
+  window.addEventListener("keydown", handleEscapeKeydown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", handleEscapeKeydown);
+  window.removeEventListener("keydown", handleEscapeKeydown);
+});
 
 function resetDevWifForm() {
   showDevWifForm.value = false;
