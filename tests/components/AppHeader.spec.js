@@ -667,5 +667,8 @@ describe("AppHeader wallet CTA", () => {
     expect(wrapper.find('img[alt="Neon Wallet"]').attributes("src")).toBe('/img/brand/neon.ico');
     expect(wrapper.find('img[alt="WalletConnect"]').attributes("src")).toBe('/img/brand/walletconnect.ico');
     expect(wrapper.find('img[alt="Web3Auth"]').attributes("src")).toBe('/img/brand/web3auth.png');
+    const evmWalletIconSrc = wrapper.find('img[alt="EVM Wallet"]').attributes("src");
+    expect(evmWalletIconSrc).not.toMatch(/^https?:\/\//);
+    expect(evmWalletIconSrc).toMatch(/^(\/img\/brand\/evm-wallet\.svg|data:image\/svg\+xml)/);
   });
 });

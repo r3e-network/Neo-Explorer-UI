@@ -10,8 +10,9 @@ describe("wallet provider constants", () => {
         PROVIDERS.NEON,
         PROVIDERS.WALLETCONNECT,
         PROVIDERS.WEB3AUTH,
+        PROVIDERS.EVM_WALLET,
       ]),
     );
-    expect(CONTRACT_WRITE_WALLET_PROVIDERS).not.toContain(PROVIDERS.EVM_WALLET);
+    expect(CONTRACT_WRITE_WALLET_PROVIDERS).not.toContain(PROVIDERS.TESTNET_WIF);
   });
 });

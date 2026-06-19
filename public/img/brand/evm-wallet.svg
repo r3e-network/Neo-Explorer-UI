@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">EVM wallet</title>
+  <desc id="desc">A generic EVM-compatible wallet icon</desc>
+  <rect width="64" height="64" rx="16" fill="#111827"/>
+  <path d="M18 24.5c0-3 2.4-5.5 5.5-5.5h24c2.5 0 4.5 2 4.5 4.5v2.2H23.5A3.5 3.5 0 0 0 20 29.2v11.3A5.5 5.5 0 0 1 18 36V24.5Z" fill="#64748b"/>
+  <path d="M14 28.5c0-3 2.4-5.5 5.5-5.5h25c3 0 5.5 2.4 5.5 5.5v15c0 3-2.4 5.5-5.5 5.5h-25c-3 0-5.5-2.4-5.5-5.5v-15Z" fill="#f8fafc"/>
+  <path d="M42 33h10v10H42c-2.8 0-5-2.2-5-5s2.2-5 5-5Z" fill="#10b981"/>
+  <circle cx="43" cy="38" r="2.2" fill="#052e16"/>
+  <path d="M23.5 33.1h7.8l-3.9 6.8h6.7l-8.7 10.5 2.8-8h-6.6l1.9-9.3Z" fill="#2563eb"/>
+  <path d="M18 28.5c0-.8.7-1.5 1.5-1.5h25c.8 0 1.5.7 1.5 1.5v.8H18v-.8Z" fill="#e2e8f0"/>
+</svg>

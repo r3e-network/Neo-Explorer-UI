@@ -54,4 +54,22 @@ describe("ContractWriteTab wallet provider availability", () => {
     await neoLineButton.trigger("click");
     expect(wrapper.emitted("connectWallet")).toEqual([["NeoLine"]]);
   });
+
+  it("offers EVM wallets in the contract write wallet choices when available", async () => {
+    const evmProvider = "EVM Wallets (MetaMask, OKX, Rabby, etc.)";
+    const wrapper = mountWriteTab({
+      availableWalletProviders: ["WalletConnect", "Google / Email (Web3Auth)", evmProvider],
+    });
+
+    const evmButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes(evmProvider));
+
+    expect(evmButton).toBeTruthy();
+    expect(evmButton.text()).not.toContain("header.providerEvm");
+    expect(evmButton.attributes("aria-describedby")).toBeUndefined();
+
+    await evmButton.trigger("click");
+    expect(wrapper.emitted("connectWallet")).toEqual([[evmProvider]]);
+  });
 });
