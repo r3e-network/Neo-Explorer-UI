@@ -46,7 +46,7 @@ describe("networkMonitorService", () => {
       const result = await getSeeds("mainnet");
       expect(result).toEqual(data);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/N3main/seeds"),
+        expect.stringContaining("/api/network-monitor?network=N3main&resource=seeds"),
         expect.any(Object),
       );
     });
@@ -55,7 +55,7 @@ describe("networkMonitorService", () => {
       global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
       await getSeeds("testnet");
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/N3test/seeds"),
+        expect.stringContaining("/api/network-monitor?network=N3test&resource=seeds"),
         expect.any(Object),
       );
     });
@@ -65,7 +65,28 @@ describe("networkMonitorService", () => {
       global.fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve([]) });
       await getSeeds();
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/N3test/seeds"),
+        expect.stringContaining("/api/network-monitor?network=N3test&resource=seeds"),
+        expect.any(Object),
+      );
+    });
+
+    it("falls back to direct NGD monitor URL when the same-origin proxy fails", async () => {
+      const data = [{ endpoint: "seed2.neo.org", height: 100, version: "Neo:3.9.1", latency: 2 }];
+      global.fetch
+        .mockResolvedValueOnce({ ok: false, status: 502, json: () => Promise.resolve({}) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(data) });
+
+      const result = await getSeeds("mainnet-proxy-fallback");
+
+      expect(result).toEqual(data);
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("/api/network-monitor?network=N3main&resource=seeds"),
+        expect.any(Object),
+      );
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("https://monitor.ngd.network/api/N3main/seeds"),
         expect.any(Object),
       );
     });

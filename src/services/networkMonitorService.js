@@ -95,6 +95,29 @@ async function fetchJsonWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
   }
 }
 
+function monitorUrls(slug, resource) {
+  const query = new URLSearchParams({ network: slug, resource });
+  return [
+    `/api/network-monitor?${query.toString()}`,
+    `${NGD_BASE}/${slug}/${resource}`,
+  ];
+}
+
+async function fetchMonitorJson(slug, resource) {
+  const urls = monitorUrls(slug, resource);
+  let lastError = null;
+
+  for (const url of urls) {
+    try {
+      return await fetchJsonWithTimeout(url);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("monitor fetch failed");
+}
+
 /**
  * Seed-node health: endpoint, current height, version, latency (ms).
  * @param {"mainnet"|"testnet"} [env]
@@ -107,7 +130,7 @@ export async function getSeeds(env) {
   if (cached) return cached;
 
   try {
-    const data = await fetchJsonWithTimeout(`${NGD_BASE}/${slug}/seeds`);
+    const data = await fetchMonitorJson(slug, "seeds");
     const rows = Array.isArray(data) ? data : [];
     setCached(cacheKey, rows);
     return rows;
@@ -130,7 +153,7 @@ export async function getLatestBlocks(env) {
   if (cached) return cached;
 
   try {
-    const data = await fetchJsonWithTimeout(`${NGD_BASE}/${slug}/latest`);
+    const data = await fetchMonitorJson(slug, "latest");
     const rows = Array.isArray(data) ? data : [];
     const enrichedRows = await enrichBlocksWithIndexerConsensus(rows);
     setCached(cacheKey, enrichedRows);
