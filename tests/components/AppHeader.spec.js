@@ -79,9 +79,13 @@ vi.mock("vue-toastification", () => ({
 }));
 
 describe("AppHeader wallet CTA", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     connectedAccountRef.value = null;
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedWalletProvider.value = "";
+    walletState.connectedWalletAccount.value = null;
+    walletState.walletNetworkError.value = "";
     localStorage.clear();
     sessionStorage.clear();
     fetchPricesMock.mockResolvedValue({
@@ -545,6 +549,48 @@ describe("AppHeader wallet CTA", () => {
 
     expect(walletServiceMock.ensureNetworkConsistency).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith("Wallet network mismatch");
+  });
+
+  it("keeps wallet network errors visible until the user disconnects", async () => {
+    connectedAccountRef.value = "NconnectedWalletAddress";
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedWalletProvider.value = "NeoLine";
+    walletState.walletNetworkError.value = "Network mismatch. Switch your wallet to Mainnet and try again.";
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const alert = wrapper.get('[data-testid="wallet-attention"]');
+    expect(alert.text()).toContain("header.walletIssue");
+    expect(alert.text()).toContain("Network mismatch. Switch your wallet to Mainnet and try again.");
+
+    const walletButton = wrapper
+      .findAll("button")
+      .find((candidate) => candidate.text().trim() === "Nconne...ress");
+    expect(walletButton.attributes("title")).toBe("Network mismatch. Switch your wallet to Mainnet and try again.");
+    expect(walletButton.attributes("aria-label")).toBe("header.walletIssueAria");
+
+    await wrapper.get('[data-testid="wallet-attention-disconnect"]').trigger("click");
+    await flushPromises();
+
+    expect(disconnectWalletMock).toHaveBeenCalledTimes(1);
+    expect(walletServiceMock.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it("dedupes overlapping wallet network validations from rapid network events", async () => {

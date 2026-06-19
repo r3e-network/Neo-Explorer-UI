@@ -103,6 +103,8 @@
           class="ml-3 hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all min-w-[10rem] lg:inline-flex shadow-sm active:scale-95"
           :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 border border-transparent text-white hover:bg-emerald-600 shadow-emerald-500/20'"
           :disabled="walletLoading"
+          :aria-label="walletControlAriaLabel"
+          :title="walletControlTitle"
           @click="toggleWallet"
         >
           <svg v-if="!connectedAccount && !walletLoading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
@@ -119,6 +121,8 @@
           class="ml-auto mr-2 rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition active:scale-95 lg:hidden"
           :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600'"
           :disabled="walletLoading"
+          :aria-label="walletControlAriaLabel"
+          :title="walletControlTitle"
           @click="toggleWallet"
         >
           {{ walletLoading ? "..." : mobileWalletLabel }}
@@ -139,6 +143,8 @@
             class="mb-4 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold transition active:scale-95 flex items-center gap-2"
             :class="connectedAccount ? 'bg-surface border border-line-soft text-high hover:border-emerald-500' : 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 border border-transparent'"
             :disabled="walletLoading"
+            :aria-label="walletControlAriaLabel"
+            :title="walletControlTitle"
             @click="toggleWallet"
           >
             <span v-if="connectedAccount" class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
@@ -167,6 +173,30 @@
         </div>
       </transition>
     </nav>
+
+    <div
+      v-if="walletAttentionMessage"
+      data-testid="wallet-attention"
+      role="status"
+      aria-live="polite"
+      class="border-b border-amber-300/30 bg-amber-50/95 text-amber-950 shadow-sm backdrop-blur dark:border-amber-300/20 dark:bg-amber-950/90 dark:text-amber-50"
+    >
+      <div class="mx-auto flex max-w-[1400px] items-start gap-3 px-4 py-2.5 text-sm">
+        <span class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">!</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold">{{ $t('header.walletIssue', { provider: walletAttentionProvider }) }}</p>
+          <p class="break-words text-xs leading-relaxed text-amber-900/90 dark:text-amber-100/90">{{ walletAttentionMessage }}</p>
+        </div>
+        <button
+          data-testid="wallet-attention-disconnect"
+          class="shrink-0 rounded-md border border-amber-400/50 px-2.5 py-1 text-xs font-semibold text-amber-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-amber-50 dark:hover:bg-amber-900"
+          :disabled="walletLoading"
+          @click="disconnectCurrentWallet"
+        >
+          {{ $t('header.disconnect') }}
+        </button>
+      </div>
+    </div>
   
     <HeaderWalletModal
       v-if="showWalletModal"
@@ -204,6 +234,7 @@ import {
   setCurrentEnv,
 } from "@/utils/env";
 import { connectedAccount, disconnectWallet, initWallet } from "@/utils/wallet";
+import { connectedWalletProvider, walletNetworkError } from "@/utils/walletState";
 import { truncateHash } from "@/utils/addressFormat";
 import { loadWalletService } from "@/utils/lazyServices";
 import WalletConnectModal from "@/views/Contract/components/WalletConnectModal.vue";
@@ -252,6 +283,20 @@ const currentNetworkLabel = computed(() => getNetworkLabel(currentNetwork.value)
 const walletButtonLabel = computed(() => {
   if (!connectedAccount.value) return t("header.connectWallet");
   return truncateHash(connectedAccount.value, 6, 4);
+});
+const walletAttentionMessage = computed(() => String(walletNetworkError.value || "").trim());
+const walletAttentionProvider = computed(() => String(connectedWalletProvider.value || "").trim() || t("header.wallet"));
+const walletControlTitle = computed(() => walletAttentionMessage.value || walletButtonLabel.value);
+const walletControlAriaLabel = computed(() => {
+  if (walletLoading.value) return t("header.connectingWallet");
+  if (!connectedAccount.value) return t("header.connectWallet");
+  if (walletAttentionMessage.value) {
+    return t("header.walletIssueAria", {
+      provider: walletAttentionProvider.value,
+      error: walletAttentionMessage.value,
+    });
+  }
+  return t("header.connectedWalletAria", { address: connectedAccount.value });
 });
 const mobileWalletLabel = computed(() => (connectedAccount.value ? t("header.disconnect") : t("header.connectWallet")));
 const mobilePanelWalletLabel = computed(() =>
@@ -433,19 +478,31 @@ async function handleDevWifConnect(wif) {
 async function toggleWallet() {
   if (walletLoading.value) return;
   cancelPendingWalletConnectApproval();
+  if (connectedAccount.value) {
+    await disconnectCurrentWallet();
+    return;
+  }
+
   walletLoading.value = true;
   try {
-    if (connectedAccount.value) {
-      await disconnectWallet();
-      const walletService = await loadWalletService();
-      walletService.disconnect();
-      localStorage.removeItem("walletProvider");
-      clearChatSession();
-      return;
-    }
     const walletService = await loadWalletService();
     await refreshWalletProviderAvailability(walletService);
     showWalletModal.value = true;
+  } finally {
+    walletLoading.value = false;
+  }
+}
+
+async function disconnectCurrentWallet() {
+  if (walletLoading.value) return;
+  cancelPendingWalletConnectApproval();
+  walletLoading.value = true;
+  try {
+    await disconnectWallet();
+    const walletService = await loadWalletService();
+    walletService.disconnect();
+    localStorage.removeItem("walletProvider");
+    clearChatSession();
   } finally {
     walletLoading.value = false;
   }
