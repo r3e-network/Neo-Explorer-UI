@@ -17,14 +17,16 @@ import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 const resolveAccountNetwork = () => resolveNetworkName();
 
 const buildAccountRestBasePath = (network) => `/rest/${network}`;
+const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_LIST_TIMEOUT_MS || 8000));
+const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 8000));
 
-async function fetchJsonWithFallback(urls) {
+async function fetchJsonWithFallback(urls, { timeoutMs = ACCOUNT_LIST_TIMEOUT_MS } = {}) {
   for (const url of urls.filter(Boolean)) {
     try {
       const res = await fetchWithTimeout(url, {
         method: "GET",
         headers: { Accept: "application/json" },
-      });
+      }, timeoutMs);
       if (!res.ok) continue;
       return await res.json();
     } catch (err) {
@@ -55,7 +57,7 @@ async function fetchAccountOverviewRows(network, limit, skip) {
     order: "nep17_net_raw.desc,last_tx_ms.desc",
   });
   const basePath = buildAccountRestBasePath(network);
-  return fetchJsonWithFallback([`${basePath}/v_account_overview?${query}`]);
+  return fetchJsonWithFallback([`${basePath}/v_account_overview?${query}`], { timeoutMs: ACCOUNT_LIST_TIMEOUT_MS });
 }
 
 // Per-address transfer fallback for when the native getnep17/11transfers RPC
@@ -181,7 +183,9 @@ async function fetchAccountBalances(network, rows = []) {
     contract_hash: `in.(${contractList})`,
   });
   const basePath = buildAccountRestBasePath(network);
-  return (await fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`])) || [];
+  return (await fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`], {
+    timeoutMs: ACCOUNT_BALANCE_TIMEOUT_MS,
+  })) || [];
 }
 
 export const accountService = createService(
@@ -217,15 +221,24 @@ export const accountService = createService(
             fetchAccountOverviewRows(network, limit, skip).catch(() => null),
             indexerReadService.getSummary(options).catch(() => null),
           ]);
-          if (Array.isArray(rows) && rows.length > 0) {
+          if (!Array.isArray(rows)) {
+            throw new Error("Account overview indexer request failed");
+          }
+
+          const totalCount = Number(summary?.total_address_count ?? 0);
+          if (rows.length === 0 && totalCount > 0 && Number(skip) < totalCount) {
+            throw new Error("Account overview indexer returned an empty active page");
+          }
+
+          if (rows.length > 0) {
             const balanceRows = await fetchAccountBalances(network, rows);
             return {
               result: mapAccountOverviewRowsToAccounts(rows, balanceRows),
-              totalCount: Number(summary?.total_address_count ?? rows.length),
+              totalCount: totalCount || rows.length,
             };
           }
 
-          return { result: [], totalCount: Number(summary?.total_address_count ?? 0) };
+          return { result: [], totalCount };
         },
         CACHE_TTL.chart,
         options,

@@ -36,6 +36,11 @@ describe("accountService", () => {
 
   describe("getList", () => {
     it("returns empty without calling legacy RPC when indexer has no rows", async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
       const result = await accountService.getList(10, 5);
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/rest/"),
@@ -45,10 +50,57 @@ describe("accountService", () => {
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
-    it("returns empty on error", async () => {
-      api.safeRpcList.mockResolvedValueOnce({ result: [], totalCount: 0 });
+    it("does not cache a false empty account page when the overview request fails", async () => {
+      summaryMock.mockResolvedValue({ total_address_count: 157_909 });
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        json: async () => null,
+      });
+
+      await expect(accountService.getList()).rejects.toThrow("Account overview indexer request failed");
+
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+            tx_sent: 2,
+            tx_signed: 3,
+            nep11_sent_events: 1,
+            nep11_received_events: 4,
+            last_tx_ms: 1781840359359,
+          },
+        ],
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
       const result = await accountService.getList();
-      expect(result).toEqual({ result: [], totalCount: 0 });
+      expect(result).toEqual({
+        result: [
+          expect.objectContaining({
+            address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+            txCount: 5,
+            nep11TransferCount: 5,
+          }),
+        ],
+        totalCount: 157_909,
+      });
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+    });
+
+    it("rejects an empty active page when the summary still has addresses", async () => {
+      summaryMock.mockResolvedValue({ total_address_count: 157_909 });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+      await expect(accountService.getList(20, 0)).rejects.toThrow(
+        "Account overview indexer returned an empty active page",
+      );
+      expect(api.safeRpcList).not.toHaveBeenCalled();
     });
   });
 
