@@ -2050,6 +2050,8 @@ const ja = {
       web3AuthNotConfigured: "Web3Auth が設定されていません。Google / Email ログインを有効にするには VITE_WEB3AUTH_CLIENT_ID を設定してください。",
       evmWalletNotInstalled: "EVM ウォレットがインストールされていません。",
       evmNoAccounts: "EVM アカウントが見つかりません。",
+      evmConnectionTimeout: "EVM ウォレット接続がタイムアウトしました。ウォレットを開くかロック解除してから再試行してください。",
+      evmSignatureTimeout: "EVM ウォレット署名がタイムアウトしました。ウォレットを開くかロック解除してから再試行してください。",
       evmAccountUnavailable: "EVM ウォレットのアカウントを利用できません。EVM ウォレットをロック解除するか再接続してください。",
       evmAccountChanged: "EVM ウォレットのアカウントが変更されました。署名前にウォレットを再接続してください。",
       aaSignatureRequired: "Abstract Account ID を生成するには署名が必要です。",

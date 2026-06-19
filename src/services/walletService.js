@@ -200,7 +200,10 @@ const AA_ALLOWED_META_METHODS = new Set(
   Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : [],
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
+const EVM_APPROVAL_TIMEOUT_MS = 60_000;
+const EVM_PASSIVE_REQUEST_TIMEOUT_MS = 10_000;
 const CONNECTION_SUPERSEDED_CODE = "WALLET_CONNECTION_SUPERSEDED";
+const WALLET_APPROVAL_TIMEOUT_CODE = "WALLET_APPROVAL_TIMEOUT";
 
 function createConnectionSupersededError() {
   const error = new Error(
@@ -212,6 +215,30 @@ function createConnectionSupersededError() {
   );
   error.code = CONNECTION_SUPERSEDED_CODE;
   return error;
+}
+
+function createWalletApprovalTimeoutError(messageKey, fallbackMessage) {
+  const error = new Error(tWallet(messageKey, null, fallbackMessage));
+  error.code = WALLET_APPROVAL_TIMEOUT_CODE;
+  return error;
+}
+
+function isWalletApprovalTimeoutError(error) {
+  return error?.code === WALLET_APPROVAL_TIMEOUT_CODE;
+}
+
+function withWalletApprovalTimeout(operation, timeoutMs, createTimeoutError) {
+  let timer = null;
+  return Promise.race([
+    Promise.resolve().then(operation),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(createTimeoutError());
+      }, timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 async function assertWalletConnectAttemptCurrent(connectionAttemptId, walletConnectService) {
@@ -361,7 +388,11 @@ async function readEvmAccounts() {
   if (!isEthereumAvailable() || typeof window.ethereum.request !== "function") return [];
   let accounts = [];
   try {
-    accounts = await window.ethereum.request({ method: "eth_accounts" });
+    accounts = await withWalletApprovalTimeout(
+      () => window.ethereum.request({ method: "eth_accounts" }),
+      EVM_PASSIVE_REQUEST_TIMEOUT_MS,
+      () => new Error("EVM wallet account lookup timed out."),
+    );
   } catch {
     return [];
   }
@@ -1456,7 +1487,14 @@ export const walletService = {
       if (!isEthereumAvailable()) throw new Error(tWallet("wallet.errors.evmWalletNotInstalled", null, "EVM Wallet is not installed."));
       const aaHash = assertConfiguredAbstractAccountHash();
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
+      const accounts = await withWalletApprovalTimeout(
+        () => provider.send("eth_requestAccounts", []),
+        EVM_APPROVAL_TIMEOUT_MS,
+        () => createWalletApprovalTimeoutError(
+          "wallet.errors.evmConnectionTimeout",
+          "EVM wallet connection timed out. Open or unlock your wallet and try again.",
+        ),
+      );
       if (!accounts || accounts.length === 0) throw new Error(tWallet("wallet.errors.evmNoAccounts", null, "No EVM accounts found."));
 
       const evmAddress = accounts[0].toLowerCase();
@@ -1496,7 +1534,14 @@ export const walletService = {
             `Origin: ${typeof window !== "undefined" ? window.location.origin : ""}\n` +
             `Network: ${getDapiNetworkName()}\n` +
             `Abstract Account: ${aaHash}`;
-          const signature = await signer.signMessage(message);
+          const signature = await withWalletApprovalTimeout(
+            () => signer.signMessage(message),
+            EVM_APPROVAL_TIMEOUT_MS,
+            () => createWalletApprovalTimeoutError(
+              "wallet.errors.evmSignatureTimeout",
+              "EVM wallet signature timed out. Open or unlock your wallet and try again.",
+            ),
+          );
           const digest = ethers.hashMessage(message);
           uncompressedPubKey = ethers.SigningKey.recoverPublicKey(digest, signature).slice(2);
           // Confirm the recovered key actually belongs to the connected EVM
@@ -1505,6 +1550,7 @@ export const walletService = {
             throw new Error("Recovered public key does not match the connected EVM address.");
           }
         } catch (e) {
+          if (isWalletApprovalTimeoutError(e)) throw e;
           throw new Error(tWallet("wallet.errors.aaSignatureRequired", null, "Signature is required to generate your Abstract Account identity."));
         }
         assertCurrentConnectionAttempt(connectionAttemptId);
@@ -1918,7 +1964,14 @@ export const walletService = {
       const signer = await provider.getSigner();
       const signerAddress = typeof signer.getAddress === "function" ? await signer.getAddress() : "";
       assertEvmAddressMatchesConnectedWallet(signerAddress);
-      const signature = await signer.signMessage(message);
+      const signature = await withWalletApprovalTimeout(
+        () => signer.signMessage(message),
+        EVM_APPROVAL_TIMEOUT_MS,
+        () => createWalletApprovalTimeoutError(
+          "wallet.errors.evmSignatureTimeout",
+          "EVM wallet signature timed out. Open or unlock your wallet and try again.",
+        ),
+      );
       return normalizeSignMessageResult({
         publicKey: "",
         data: signature,

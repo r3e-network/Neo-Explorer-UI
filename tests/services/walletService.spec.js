@@ -265,6 +265,7 @@ vi.mock("../../src/utils/env.js", () => ({
 
 describe("walletService", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.doUnmock("ethers");
     vi.unstubAllGlobals();
   });
@@ -504,6 +505,80 @@ describe("walletService", () => {
     expect(window.ethereum.on).toHaveBeenCalledWith("chainChanged", expect.any(Function));
   });
 
+  it("times out EVM wallet account approval instead of waiting forever", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async send(method) {
+            if (method === "eth_requestAccounts") return new Promise(() => {});
+            return [];
+          }
+        },
+      },
+    }));
+    window.ethereum = {
+      on: vi.fn(),
+      removeListener: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const connectPromise = walletService.connect(walletService.PROVIDERS.EVM_WALLET);
+    const rejection = expect(connectPromise).rejects.toThrow(/EVM wallet connection timed out/i);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await rejection;
+  });
+
+  it("times out EVM abstract-account identity signatures distinctly", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmAddress = "0xabc0000000000000000000000000000000000000";
+    let signRequested = false;
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async send(method) {
+            return method === "eth_requestAccounts" ? [evmAddress] : [];
+          }
+
+          async getSigner() {
+            return {
+              signMessage: vi.fn(() => {
+                signRequested = true;
+                return new Promise(() => {});
+              }),
+            };
+          }
+        },
+        computeAddress: vi.fn(() => evmAddress),
+        hashMessage: vi.fn(() => "0xidentity-digest"),
+        SigningKey: {
+          recoverPublicKey: vi.fn(),
+        },
+      },
+    }));
+    window.ethereum = {
+      on: vi.fn(),
+      removeListener: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const connectPromise = walletService.connect(walletService.PROVIDERS.EVM_WALLET);
+    const rejection = expect(connectPromise).rejects.toThrow(/EVM wallet signature timed out/i);
+    for (let i = 0; i < 5 && !signRequested; i += 1) {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+    }
+    expect(signRequested).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await rejection;
+  });
+
   it("keeps a new NeoLine session alive when stale EVM wallet events fire after switching providers", async () => {
     vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
     const evmAddress = "0xabc0000000000000000000000000000000000000";
@@ -725,6 +800,29 @@ describe("walletService", () => {
     expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account is no longer available/i);
   });
 
+  it("times out passive EVM account checks before signing", async () => {
+    vi.useFakeTimers();
+    window.ethereum = {
+      request: vi.fn(({ method }) => (method === "eth_accounts" ? new Promise(() => {}) : null)),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      evmAddress: "0xabc",
+    });
+
+    const signPromise = walletService.signMessage("hello");
+    const rejection = expect(signPromise).rejects.toThrow(/EVM wallet account is no longer available/i);
+
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    await rejection;
+    expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account is no longer available/i);
+  });
+
   it("blocks EVM signing when the active wallet account changes without a wallet event", async () => {
     window.ethereum = {
       request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xdef"] : null)),
@@ -775,6 +873,48 @@ describe("walletService", () => {
     );
     expect(evmSignMessageMock).not.toHaveBeenCalled();
     expect(walletState.walletNetworkError.value).toMatch(/EVM wallet account changed/i);
+  });
+
+  it("times out EVM signMessage prompts instead of leaving tools pending forever", async () => {
+    vi.useFakeTimers();
+    let signRequested = false;
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async getSigner() {
+            return {
+              getAddress: vi.fn(async () => "0xabc"),
+              signMessage: vi.fn(() => {
+                signRequested = true;
+                return new Promise(() => {});
+              }),
+            };
+          }
+        },
+      },
+    }));
+    window.ethereum = {
+      request: vi.fn(async ({ method }) => (method === "eth_accounts" ? ["0xabc"] : null)),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.hydrateSession(walletService.PROVIDERS.EVM_WALLET, {
+      address: "Nabc",
+      label: "EVM Wallet",
+      evmAddress: "0xabc",
+    });
+
+    const signPromise = walletService.signMessage("hello");
+    const rejection = expect(signPromise).rejects.toThrow(/EVM wallet signature timed out/i);
+    for (let i = 0; i < 5 && !signRequested; i += 1) {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+    }
+    expect(signRequested).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await rejection;
   });
 
   it("blocks EVM AA invokes when the active account changes after typed-data signing", async () => {
