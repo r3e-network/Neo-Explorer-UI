@@ -129,6 +129,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
 import { useTransactionTracker } from "@/composables/useTransactionTracker";
 import { invokeContractFunction } from "@/utils/contractInvocation";
+import { createSimulationFaultError, isSimulationFault } from "@/utils/transactionSimulation";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { connectedAccount } from "@/utils/walletState";
 import { loadWalletService } from "@/utils/lazyServices";
@@ -311,12 +312,12 @@ const writeMethods = computed(() => abiMethods.value.filter((m) => m.safe !== tr
 // When a wallet is connected we pass the connected account so contract
 // methods that gate on Runtime.CheckWitness still simulate accurately —
 // matches what the explorer would send for a real transaction.
-function readSimulationSigners() {
+function readSimulationSigners(scope = 1) {
   const address = walletAccount.value?.address;
   if (!walletConnected.value || !address) return null;
   const account = normalizeHash160(address);
   if (!account || account === address) return null;
-  return [{ account, scopes: 1 }];
+  return [{ account, scopes: scope || 1 }];
 }
 
 // Read contract interaction via composable
@@ -342,13 +343,23 @@ const {
 } = useMethodInteraction(
   writeMethods,
   async (name, params, { scope } = {}) => {
+    const selectedScope = scope || 1;
+    const simulation = await invokeContractFunction(
+      contract.value.hash,
+      name,
+      params,
+      readSimulationSigners(selectedScope),
+    );
+    if (isSimulationFault(simulation)) {
+      throw createSimulationFaultError(simulation, { operation: name });
+    }
     const walletService = await getWalletService();
     const args = params.map((p) => ({ type: p.type, value: p.value }));
     const result = await walletService.invoke({
       scriptHash: contract.value.hash,
       operation: name,
       args,
-      scope: scope || 1,
+      scope: selectedScope,
     });
     if (result?.txid) trackTx(result.txid);
     return result;

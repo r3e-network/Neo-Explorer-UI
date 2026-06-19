@@ -205,6 +205,50 @@
             </span>
           </p>
 
+          <!-- Simulation failure explanation -->
+          <div
+            v-if="writeMethodState[wIdx]?.simulation && !writeMethodState[wIdx].simulation.ok"
+            data-test="write-simulation-panel"
+            class="mt-3 rounded-lg border p-3"
+            :class="simulationPanelClass(writeMethodState[wIdx].simulation)"
+            role="alert"
+          >
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div class="min-w-0">
+                <h5 class="text-xs font-semibold">
+                  {{ writeMethodState[wIdx].simulation.title || $t("contractDetail.writeSimulationTitle") }}
+                </h5>
+                <p class="mt-1 text-xs leading-relaxed">
+                  {{ writeMethodState[wIdx].simulation.summary || $t("contractDetail.writeSimulationUnknown") }}
+                </p>
+              </div>
+              <span
+                v-if="writeMethodState[wIdx].simulation.category"
+                class="inline-flex shrink-0 items-center self-start rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-normal"
+                :class="simulationBadgeClass(writeMethodState[wIdx].simulation)"
+              >
+                {{ writeMethodState[wIdx].simulation.category }}
+              </span>
+            </div>
+            <dl class="mt-2 grid gap-2 text-[11px] sm:grid-cols-2">
+              <div v-if="writeMethodState[wIdx].simulation.state" class="min-w-0">
+                <dt class="font-medium opacity-75">{{ $t("contractDetail.writeSimulationVmState") }}</dt>
+                <dd class="mt-0.5 break-words font-mono">{{ writeMethodState[wIdx].simulation.state }}</dd>
+              </div>
+              <div v-if="writeMethodState[wIdx].simulation.gasConsumed" class="min-w-0">
+                <dt class="font-medium opacity-75">{{ $t("contractDetail.writeSimulationGas") }}</dt>
+                <dd class="mt-0.5 break-words font-mono">{{ writeMethodState[wIdx].simulation.gasConsumed }}</dd>
+              </div>
+            </dl>
+            <p v-if="writeMethodState[wIdx].simulation.action" class="mt-2 text-xs leading-relaxed">
+              <span class="font-semibold">{{ $t("contractDetail.writeSimulationAction") }}</span>
+              {{ writeMethodState[wIdx].simulation.action }}
+            </p>
+            <p v-if="writeMethodState[wIdx].simulation.details" class="mt-2 break-words font-mono text-[11px] opacity-85">
+              {{ writeMethodState[wIdx].simulation.details }}
+            </p>
+          </div>
+
           <!-- Result with tx tracking -->
           <div
             v-if="writeMethodState[wIdx]?.result !== undefined"
@@ -243,7 +287,7 @@
           </div>
           <!-- Error -->
           <div
-            v-if="writeMethodState[wIdx]?.error"
+            v-if="writeMethodState[wIdx]?.error && !(writeMethodState[wIdx]?.simulation && !writeMethodState[wIdx].simulation.ok)"
             class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20"
             role="alert"
           >
@@ -326,5 +370,19 @@ function getProviderTitle(provider) {
 
 function getProviderAriaLabel(provider) {
   return isProviderReady(provider) ? provider : `${provider}. ${getProviderUnavailableReason(provider)}`;
+}
+
+function simulationPanelClass(simulation) {
+  if (simulation?.severity === "warning") {
+    return "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200";
+  }
+  return "border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200";
+}
+
+function simulationBadgeClass(simulation) {
+  if (simulation?.severity === "warning") {
+    return "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200";
+  }
+  return "border-red-300 bg-red-100 text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200";
 }
 </script>

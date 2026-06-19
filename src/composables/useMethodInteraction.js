@@ -1,4 +1,9 @@
 import { ref, watch } from "vue";
+import {
+  explainTransactionError,
+  explainTransactionSimulation,
+  isSimulationFault,
+} from "@/utils/transactionSimulation";
 
 /**
  * Composable that encapsulates the shared interaction pattern for
@@ -27,6 +32,7 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
         loading: false,
         result: undefined,
         gasEstimate: null,
+        simulation: null,
         estimating: false,
         error: "",
       }));
@@ -52,6 +58,7 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
     state.loading = true;
     state.error = "";
     state.result = undefined;
+    state.simulation = null;
     try {
       const params = (method.parameters || []).map((p, i) => ({
         type: p.type,
@@ -63,6 +70,7 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
     } catch (err) {
       if (capturedGen !== generation) return;
       state.error = err?.message || errorFallback;
+      state.simulation = err?.simulationExplanation || explainTransactionError(err, { operation: method?.name });
     } finally {
       if (capturedGen === generation) {
         state.loading = false;
@@ -74,15 +82,25 @@ export function useMethodInteraction(methods, invokeFn, options = {}) {
     const state = methodState.value[idx];
     if (!state || !testInvokeFn) return;
     state.estimating = true;
+    state.error = "";
+    state.gasEstimate = null;
+    state.simulation = null;
     try {
       const params = (method.parameters || []).map((p, i) => ({
         type: p.type,
         value: state.params[i] || "",
       }));
       const result = await testInvokeFn(method.name, params);
-      state.gasEstimate = result?.gasconsumed || result?.gas_consumed || null;
-    } catch {
+      state.simulation = explainTransactionSimulation(result, { operation: method?.name });
+      if (isSimulationFault(result)) {
+        state.gasEstimate = null;
+        state.error = state.simulation.summary;
+        return;
+      }
+      state.gasEstimate = result?.gasconsumed || result?.gas_consumed || result?.gasConsumed || null;
+    } catch (err) {
       state.gasEstimate = null;
+      state.simulation = explainTransactionError(err, { operation: method?.name });
     } finally {
       state.estimating = false;
     }

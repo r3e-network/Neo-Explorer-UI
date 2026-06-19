@@ -72,4 +72,43 @@ describe("ContractWriteTab wallet provider availability", () => {
     await evmButton.trigger("click");
     expect(wrapper.emitted("connectWallet")).toEqual([[evmProvider]]);
   });
+
+  it("renders a structured transaction simulation failure panel for write methods", () => {
+    const wrapper = mountWriteTab({
+      walletConnected: true,
+      walletAccount: { address: "Nabc" },
+      walletProvider: "NeoLine",
+      writeMethods: [{ name: "transfer", parameters: [] }],
+      writeMethodState: [
+        {
+          open: true,
+          params: [],
+          loading: false,
+          result: undefined,
+          gasEstimate: null,
+          estimating: false,
+          error: "Simulation failed: insufficient GAS",
+          simulation: {
+            ok: false,
+            severity: "error",
+            title: "Simulation failed before wallet signing",
+            summary: "Simulation failed: insufficient GAS",
+            action: "Check the sender balance and transfer amount, then try again.",
+            state: "FAULT",
+            gasConsumed: "42",
+            category: "balance",
+            details: "insufficient GAS",
+          },
+        },
+      ],
+    });
+
+    const panel = wrapper.get('[data-test="write-simulation-panel"]');
+    expect(panel.text()).toContain("Simulation failed before wallet signing");
+    expect(panel.text()).toContain("Simulation failed: insufficient GAS");
+    expect(panel.text()).toContain("Check the sender balance and transfer amount");
+    expect(panel.text()).toContain("FAULT");
+    expect(panel.text()).toContain("42");
+    expect(wrapper.text()).not.toContain("contractDetail.writeSimulationNoDetails");
+  });
 });

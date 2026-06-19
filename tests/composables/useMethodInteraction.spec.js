@@ -88,6 +88,29 @@ describe("useMethodInteraction", () => {
     expect(methodState.value[0].result).toBeUndefined();
   });
 
+  it("invokeMethod stores structured simulation explanation from enriched errors", async () => {
+    const enrichedError = new Error("Simulation failed: CheckWitness failed");
+    enrichedError.simulationExplanation = {
+      ok: false,
+      category: "signer",
+      title: "Simulation failed before wallet signing",
+      summary: "CheckWitness failed",
+      action: "Confirm the connected wallet account and signer scope match what this contract expects.",
+    };
+    const invokeFn = vi.fn().mockRejectedValue(enrichedError);
+    const { computedList } = makeMethods([{ name: "transfer", parameters: [] }]);
+    const { methodState, invokeMethod } = useMethodInteraction(computedList, invokeFn);
+    await nextTick();
+
+    await invokeMethod(0, { name: "transfer", parameters: [] }, {});
+
+    expect(methodState.value[0].error).toBe("Simulation failed: CheckWitness failed");
+    expect(methodState.value[0].simulation).toMatchObject({
+      category: "signer",
+      title: "Simulation failed before wallet signing",
+    });
+  });
+
   it("invokeMethod uses errorFallback when error has no message", async () => {
     const invokeFn = vi.fn().mockRejectedValue({});
     const { computedList } = makeMethods([{ name: "x", parameters: [] }]);
@@ -124,6 +147,29 @@ describe("useMethodInteraction", () => {
     await estimateGas(0, { name: "x", parameters: [] }, testInvokeFn);
     expect(methodState.value[0].gasEstimate).toBe("12345");
     expect(methodState.value[0].estimating).toBe(false);
+    expect(methodState.value[0].simulation.ok).toBe(true);
+  });
+
+  it("estimateGas records FAULT simulation explanation instead of a gas estimate", async () => {
+    const testInvokeFn = vi.fn().mockResolvedValue({
+      state: "FAULT",
+      gasconsumed: "42",
+      exception: "insufficient GAS",
+    });
+    const { computedList } = makeMethods([{ name: "transfer", parameters: [] }]);
+    const { methodState, estimateGas } = useMethodInteraction(computedList, vi.fn());
+    await nextTick();
+
+    await estimateGas(0, { name: "transfer", parameters: [] }, testInvokeFn);
+
+    expect(methodState.value[0].gasEstimate).toBeNull();
+    expect(methodState.value[0].error).toBe("Simulation failed: insufficient GAS");
+    expect(methodState.value[0].simulation).toMatchObject({
+      ok: false,
+      category: "balance",
+      gasConsumed: "42",
+      operation: "transfer",
+    });
   });
 
   it("estimateGas falls back to gas_consumed key when gasconsumed is absent", async () => {
