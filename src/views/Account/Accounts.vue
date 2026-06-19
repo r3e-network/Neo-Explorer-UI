@@ -159,6 +159,7 @@ import { useMediaQuery } from "@vueuse/core";
 import { accountService, getAccountListCacheKey } from "@/services/accountService";
 import { getCache } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
+import { GAS_DECIMALS } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -172,12 +173,20 @@ import { usePriceCache } from "@/composables/usePriceCache";
 const { prices, fetchPrices } = usePriceCache();
 const isDesktop = useMediaQuery("(min-width: 768px)");
 
+function toTokenAmountNumber(rawAmount, decimals = 0) {
+  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return 0;
+  const raw = Number(rawAmount);
+  if (!Number.isFinite(raw)) return 0;
+  const divisor = decimals > 0 ? 10 ** decimals : 1;
+  return raw / divisor;
+}
+
 // Compute the USD value of an account's NEO + GAS holdings using cached prices.
 function formatUsdValue(account) {
   if (account?.balancesPending) return "...";
   if (account?.balancesUnavailable) return "—";
-  const neo = Number(account?.neobalance || 0);
-  const gas = Number(account?.gasbalance || 0);
+  const neo = toTokenAmountNumber(account?.neobalance, 0);
+  const gas = toTokenAmountNumber(account?.gasbalance, GAS_DECIMALS);
   const neoPrice = Number(prices.value?.neo || 0);
   const gasPrice = Number(prices.value?.gas || 0);
   const total = neo * neoPrice + gas * gasPrice;
