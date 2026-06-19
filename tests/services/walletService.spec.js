@@ -298,6 +298,30 @@ describe("walletService", () => {
     walletConnectOnSessionChangeMock.mockClear();
   });
 
+  async function seedOneGateNetworkError(walletService, walletState) {
+    envState.value = "Mainnet";
+    window.OneGate = {
+      getAccount: oneGateGetAccountMock,
+      getNetworks: oneGateGetNetworksMock,
+      invoke: oneGateInvokeMock,
+      switchNetwork: vi.fn(),
+    };
+
+    walletService.disconnect();
+    await walletService.connect(walletService.PROVIDERS.ONEGATE);
+
+    oneGateGetAccountMock.mockResolvedValueOnce({
+      address: "NChangedOneGateAccount11111111111111111",
+      label: "OneGate",
+    });
+
+    await expect(walletService.ensureNetworkConsistency()).rejects.toThrow(/OneGate account changed/i);
+    expect(walletState.walletNetworkError.value).toMatch(/OneGate account changed/i);
+
+    walletService.disconnect();
+    expect(walletState.walletNetworkError.value).toBe("");
+  }
+
   it("converts script to HexString/base64 before invokescript RPC and sends Transaction object for broadcast", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
 
@@ -424,6 +448,60 @@ describe("walletService", () => {
       supported: false,
       reason: "NeoChat is not yet supported for EVM wallet connections. Use a Neo-native wallet or Testnet WIF.",
     });
+  });
+
+  it("connects an EVM wallet, derives its Neo address, and clears stale wallet network errors", async () => {
+    vi.stubEnv("VITE_AA_HASH_MAINNET", `0x${"ab".repeat(20)}`);
+    const evmAddress = "0xabc0000000000000000000000000000000000000";
+    const recoveredPublicKey = `04${"11".repeat(64)}`;
+    const evmSignMessageMock = vi.fn(async () => "0xidentity-signature");
+    const computeAddressMock = vi.fn(() => evmAddress);
+    const hashMessageMock = vi.fn(() => "0xidentity-digest");
+    const recoverPublicKeyMock = vi.fn(() => `0x${recoveredPublicKey}`);
+    vi.doMock("ethers", () => ({
+      ethers: {
+        BrowserProvider: class MockBrowserProvider {
+          async send(method) {
+            return method === "eth_requestAccounts" ? [evmAddress] : [];
+          }
+
+          async getSigner() {
+            return {
+              signMessage: evmSignMessageMock,
+            };
+          }
+        },
+        computeAddress: computeAddressMock,
+        hashMessage: hashMessageMock,
+        SigningKey: {
+          recoverPublicKey: recoverPublicKeyMock,
+        },
+      },
+    }));
+    window.ethereum = {
+      on: vi.fn(),
+      removeListener: vi.fn(),
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+
+    await seedOneGateNetworkError(walletService, walletState);
+    const account = await walletService.connect(walletService.PROVIDERS.EVM_WALLET);
+
+    expect(account.label).toBe("EVM Wallet");
+    expect(account.evmAddress).toBe(evmAddress);
+    expect(account.pubKey).toBe(recoveredPublicKey);
+    expect(account.address).toMatch(/^N/);
+    expect(walletService.provider).toBe(walletService.PROVIDERS.EVM_WALLET);
+    expect(walletState.connectedAccount.value).toBe(account.address);
+    expect(walletState.walletNetworkError.value).toBe("");
+    expect(evmSignMessageMock).toHaveBeenCalledTimes(1);
+    expect(hashMessageMock).toHaveBeenCalledWith(expect.stringContaining("Network: N3MainNet"));
+    expect(recoverPublicKeyMock).toHaveBeenCalledWith("0xidentity-digest", "0xidentity-signature");
+    expect(computeAddressMock).toHaveBeenCalledWith(`0x${recoveredPublicKey}`);
+    expect(window.ethereum.on).toHaveBeenCalledWith("accountsChanged", expect.any(Function));
+    expect(window.ethereum.on).toHaveBeenCalledWith("chainChanged", expect.any(Function));
   });
 
   it("blocks EVM signing when the wallet account is locked or no longer authorized", async () => {
@@ -661,6 +739,44 @@ describe("walletService", () => {
       address: "Nbb4ZVd4VZ8fcwZQ7k3NQ5Nus4C7Ew6S4Y",
       label: "OneGate",
     });
+  });
+
+  it("clears stale wallet network errors before connecting Web3Auth", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+
+    await seedOneGateNetworkError(walletService, walletState);
+    await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
+
+    expect(walletService.provider).toBe(walletService.PROVIDERS.WEB3AUTH);
+    expect(walletState.connectedAccount.value).toBe(web3AuthAccount.address);
+    expect(walletState.walletNetworkError.value).toBe("");
+  });
+
+  it("clears stale wallet network errors before committing WalletConnect approval", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+
+    await seedOneGateNetworkError(walletService, walletState);
+    const result = await walletService.connect(walletService.PROVIDERS.WALLETCONNECT);
+    await result.approval;
+
+    expect(walletService.provider).toBe(walletService.PROVIDERS.WALLETCONNECT);
+    expect(walletState.connectedAccount.value).toBe(walletConnectAccount.address);
+    expect(walletState.walletNetworkError.value).toBe("");
+  });
+
+  it("clears stale wallet network errors before connecting the direct testnet WIF wallet", async () => {
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+
+    await seedOneGateNetworkError(walletService, walletState);
+    envState.value = "TestT5";
+    await walletService.connect(walletService.PROVIDERS.TESTNET_WIF, { wif: DIRECT_WIF });
+
+    expect(walletService.provider).toBe(walletService.PROVIDERS.TESTNET_WIF);
+    expect(walletState.connectedAccount.value).toBe("NTestWifAccount111111111111111111111");
+    expect(walletState.walletNetworkError.value).toBe("");
   });
 
   it("shares connected wallet state globally and clears it on disconnect", async () => {

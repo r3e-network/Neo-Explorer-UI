@@ -1283,6 +1283,7 @@ export const walletService = {
         label: PROVIDERS.TESTNET_WIF,
         persistSession: "session",
       };
+      _networkError = "";
       broadcastWalletStateChange();
       return _account;
     }
@@ -1312,6 +1313,7 @@ export const walletService = {
             ...(walletConnectService.account || {}),
             label: providerName,
           };
+          _networkError = "";
           broadcastWalletStateChange();
           return _account;
         }),
@@ -1327,6 +1329,7 @@ export const walletService = {
       assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
+      _networkError = "";
       broadcastWalletStateChange();
       return _account;
     }
@@ -1396,6 +1399,7 @@ export const walletService = {
       assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.EVM_WALLET;
       _account = { address: neoAddress, label: "EVM Wallet", pubKey: uncompressedPubKey, evmAddress };
+      _networkError = "";
       attachEvmListeners();
       broadcastWalletStateChange();
       return _account;
@@ -1506,6 +1510,7 @@ export const walletService = {
     _account = null;
     _neolineN3 = null;
     _directWifAccount = null;
+    _networkError = "";
     broadcastWalletStateChange();
   },
 
