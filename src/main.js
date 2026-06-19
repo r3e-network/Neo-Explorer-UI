@@ -1,10 +1,12 @@
 import { createApp } from "vue";
+import { VueQueryPlugin } from "@tanstack/vue-query";
 import App from "./App.vue";
 import router from "./router";
 import i18n, { initializeI18n } from "./lang/i18n.js";
 import directives from "./directives";
 import { useTheme } from "@/composables/useTheme";
 import { initWebVitalsTelemetry } from "@/telemetry/webVitals";
+import { explorerQueryClient } from "@/query/client";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
@@ -60,6 +62,7 @@ async function bootstrap() {
 
   appInstance.use(router);
   appInstance.use(i18n);
+  appInstance.use(VueQueryPlugin, { queryClient: explorerQueryClient });
   appInstance.use(directives);
   appInstance.use(Toast, {
     position: "top-right",

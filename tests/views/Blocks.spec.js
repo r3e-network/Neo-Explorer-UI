@@ -9,4 +9,15 @@ describe("Blocks page data loading", () => {
     expect(src).toMatch(/const blockFetchFn = \(limit, skip, opts\) => blockService\.getList\(limit, skip, opts\);/);
     expect(src).toMatch(/blockService\.getList\(limit, offset, \{ __suppressDevErrorLog: true, enrichMissingFields: true \}\)/);
   });
+
+  it("uses the shared freshness query key for visible block pages", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const src = fs.readFileSync(path.resolve(process.cwd(), "src/views/Block/Blocks.vue"), "utf8");
+
+    expect(src).toContain('import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness"');
+    expect(src).toContain('queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip })');
+    expect(src).toContain('querySource: "blocks.list"');
+    expect(src).toContain('createExplorerQueryKey("blocks.stats"');
+  });
 });

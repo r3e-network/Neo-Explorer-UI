@@ -63,6 +63,7 @@ import { transactionService } from "@/services/transactionService";
 import { searchService } from "@/services/searchService";
 import { indexerReadService } from "@/services/indexerReadService";
 import { statsService } from "@/services/statsService";
+import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness";
 import { usePriceCache } from "@/composables/usePriceCache";
 import { resolveSearchLocation } from "@/utils/searchRouting";
 import { resolveSearchResultWithTimeout } from "@/utils/searchLookup";
@@ -348,11 +349,27 @@ async function loadLatestData(forceRefresh = false) {
     // Fastest path: one read-api payload for all home-page critical data.
     // If the deployed read-api does not have this endpoint yet, every caller
     // below falls back to the older per-resource APIs.
-    const homePayloadPromise = indexerReadService.getExplorerHome(6, aggregateRequestOptions).catch(() => null);
+    const homePayloadPromise = fetchFreshQuery({
+      forceRefresh: aggregateRequestOptions.forceRefresh,
+      queryKey: createExplorerQueryKey("home.aggregate", { limit: 6 }),
+      queryFn: ({ forceRefresh: queryForceRefresh }) =>
+        indexerReadService.getExplorerHome(6, { forceRefresh: queryForceRefresh }),
+      source: "home.aggregate",
+      staleTime: HOMEPAGE_REFRESH_INTERVAL_MS,
+    }).catch(() => null);
     const fastHomePayloadPromise = softTimeout(homePayloadPromise, HOMEPAGE_AGGREGATE_WAIT_MS, null);
+    const fetchSummary = () =>
+      fetchFreshQuery({
+        forceRefresh: requestOptions.forceRefresh,
+        queryKey: createExplorerQueryKey("network.summary", {}),
+        queryFn: ({ forceRefresh: queryForceRefresh }) =>
+          indexerReadService.getSummary({ forceRefresh: queryForceRefresh }),
+        source: "network.summary",
+        staleTime: HOMEPAGE_REFRESH_INTERVAL_MS,
+      });
     const summaryPromise = fastHomePayloadPromise
-      .then((homePayload) => homePayload?.summary || indexerReadService.getSummary(requestOptions).catch(() => null))
-      .catch(() => indexerReadService.getSummary(requestOptions).catch(() => null));
+      .then((homePayload) => homePayload?.summary || fetchSummary().catch(() => null))
+      .catch(() => fetchSummary().catch(() => null));
 
     // Single server — fetch directly from indexer, one fallback to RPC.
     const fetchLatestBlocks = async () => {

@@ -216,6 +216,7 @@ import { useI18n } from "vue-i18n";
 import { blockService } from "@/services/blockService";
 import { statsService } from "@/services/statsService";
 import { getCacheKey } from "@/services/cache";
+import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness";
 import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
@@ -278,6 +279,8 @@ const {
 } = usePagination(blockFetchFn, {
   routeSync: { basePath: "/blocks" },
   cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
+  queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip }),
+  querySource: "blocks.list",
   errorMessage: t("errors.loadBlocks"),
 });
 
@@ -287,6 +290,9 @@ const { loadingMore, loadMore } = useLoadMore(blockFetchFn, {
   pageSize,
   totalPages,
   totalCount,
+}, {
+  queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip }),
+  querySource: "blocks.list",
 });
 
 // Range display
@@ -303,7 +309,12 @@ const rangeEnd = computed(() => {
 async function loadStats(forceRefresh = false) {
   statsLoading.value = true;
   try {
-    const stats = await statsService.getDashboardStats(forceRefresh);
+    const stats = await fetchFreshQuery({
+      forceRefresh,
+      queryKey: createExplorerQueryKey("blocks.stats", {}),
+      queryFn: ({ forceRefresh: queryForceRefresh }) => statsService.getDashboardStats(queryForceRefresh),
+      source: "blocks.stats",
+    });
     totalBlocks.value = stats?.blocks || 0;
     latestHeight.value = totalBlocks.value > 0 ? totalBlocks.value - 1 : 0;
   } catch (err) {

@@ -278,6 +278,8 @@ const selectedIndex = ref(-1);
 const isSearching = ref(false);
 const isFocused = ref(false);
 let debounceTimer = null;
+let suggestionGeneration = 0;
+let searchServiceModulePromise = null;
 const FULL_HASH_PATTERN = /^(0x)?[a-fA-F0-9]{64}$/;
 const CONTRACT_HASH_PATTERN = /^(0x)?[a-fA-F0-9]{40}$/;
 
@@ -402,33 +404,71 @@ function detectType(q) {
   return "unknown";
 }
 
-function fetchSuggestions() {
+function currentSuggestionType() {
+  return activeFilter.value === "all" ? "" : activeFilter.value;
+}
+
+function localSuggestionsForQuery(q) {
+  const result = [];
+  if (/^\d+$/.test(q)) {
+    result.push({ type: "block", label: `Block #${parseInt(q).toLocaleString()}`, value: q });
+  }
+  if (isValidTxHash(q) || FULL_HASH_PATTERN.test(q)) {
+    const hash = normalizeHash(q);
+    result.push(
+      { type: "transaction", label: "Transaction", value: hash },
+      { type: "contract", label: "Contract", value: hash }
+    );
+  }
+  if (CONTRACT_HASH_PATTERN.test(q) && !FULL_HASH_PATTERN.test(q)) {
+    const hash = normalizeHash(q);
+    result.push({ type: "contract", label: "Contract", value: hash });
+  }
+  if (isValidNeoAddress(q) || isNnsDomain(q)) {
+    result.push({ type: "address", label: "Address/NNS", value: q });
+  }
+  return result;
+}
+
+function dedupeSuggestions(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.type}:${item.value || item.route || item.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function loadSearchService() {
+  if (!searchServiceModulePromise) {
+    searchServiceModulePromise = import("@/services/searchService");
+  }
+  const module = await searchServiceModulePromise;
+  return module.searchService;
+}
+
+async function fetchSuggestions() {
+  const generation = ++suggestionGeneration;
   try {
     const q = query.value.trim();
-    const result = [];
-    if (/^\d+$/.test(q)) {
-      result.push({ type: "block", label: `Block #${parseInt(q).toLocaleString()}`, value: q });
-    }
-    if (isValidTxHash(q) || FULL_HASH_PATTERN.test(q)) {
-      const hash = normalizeHash(q);
-      result.push(
-        { type: "transaction", label: "Transaction", value: hash },
-        { type: "contract", label: "Contract", value: hash }
-      );
-    }
-    if (CONTRACT_HASH_PATTERN.test(q) && !FULL_HASH_PATTERN.test(q)) {
-      const hash = normalizeHash(q);
-      result.push({ type: "contract", label: "Contract", value: hash });
-    }
-    if (isValidNeoAddress(q) || isNnsDomain(q)) {
-      result.push({ type: "address", label: "Address/NNS", value: q });
-    }
-    suggestions.value = result;
+    const local = localSuggestionsForQuery(q);
+    suggestions.value = local;
+
+    if (props.mode !== "full") return;
+
+    const searchService = await loadSearchService();
+    const remote = await searchService.suggest(q, {
+      type: currentSuggestionType(),
+      limit: 6,
+    });
+    if (generation !== suggestionGeneration || q !== query.value.trim()) return;
+    suggestions.value = dedupeSuggestions([...remote, ...local]).slice(0, 8);
   } catch (err) {
     if (import.meta.env.DEV) console.error("Failed to fetch suggestions:", err);
-    suggestions.value = [];
+    suggestions.value = localSuggestionsForQuery(query.value.trim());
   } finally {
-    isSearching.value = false;
+    if (generation === suggestionGeneration) isSearching.value = false;
   }
 }
 

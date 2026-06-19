@@ -130,6 +130,7 @@ import { transactionService } from "@/services/transactionService";
 import { contractService } from "@/services/contractService";
 import { candidateService } from "@/services/candidateService";
 import { tokenService } from "@/services/tokenService";
+import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness";
 import { isAbortError } from "@/utils/abortError";
 import { NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
@@ -206,10 +207,10 @@ const {
   goToPage: goToTxPage,
   changePageSize: changeTxPageSize,
 } = usePagination(
-  async (pageSize, skip) => {
+  async (pageSize, skip, options = {}) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
-    const response = await transactionService.getByAddress(addr, pageSize, skip);
+    const response = await transactionService.getByAddress(addr, pageSize, skip, options);
     const result = normalizeAddressTransactions(response?.result || []);
     enrichTransactions(result);
     return {
@@ -217,7 +218,15 @@ const {
       totalCount: Number(response?.totalCount || 0),
     };
   },
-  { defaultPageSize: 10, errorMessage: t("errors.loadTransactions") },
+  {
+    defaultPageSize: 10,
+    errorMessage: t("errors.loadTransactions"),
+    queryKeyFn: (pageSize, skip) => {
+      const addr = address.value;
+      return createExplorerQueryKey("address.transactions", { address: addr, pageSize, skip });
+    },
+    querySource: "address.transactions",
+  },
 );
 const isContract = ref(false);
 const showQr = ref(false);
@@ -401,7 +410,7 @@ async function switchToMainnet() {
   if (!addr) return;
   networkHintDismissed.value = true;
   setCurrentEnv(NET_ENV.Mainnet);
-  await initializeData(addr);
+  await initializeData(addr, { forceRefresh: true });
 }
 
 async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
@@ -473,12 +482,18 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 }
 
 // --- Data loading methods ---
-async function loadSummary(addr) {
+async function loadSummary(addr, { forceRefresh = false } = {}) {
   const currentRequestId = addressRequestId;
   summaryLoading.value = true;
   try {
     const account = (await withTimeout(
-      accountService.getByAddress(addr, { signal: abortController.value?.signal }),
+      fetchFreshQuery({
+        forceRefresh,
+        queryKey: createExplorerQueryKey("address.summary", { address: addr }),
+        queryFn: ({ forceRefresh }) =>
+          accountService.getByAddress(addr, { forceRefresh, signal: abortController.value?.signal }),
+        source: "address.summary",
+      }),
       SUMMARY_LOAD_TIMEOUT_MS,
       "Address summary timed out",
     )) || {};
@@ -595,13 +610,18 @@ async function loadSummary(addr) {
   }
 }
 
-async function loadAssets(addr) {
+async function loadAssets(addr, { forceRefresh = false } = {}) {
   const currentRequestId = addressRequestId;
   assetsLoading.value = true;
   assetsError.value = "";
 
   try {
-    const response = await accountService.getAssets(addr);
+    const response = await fetchFreshQuery({
+      forceRefresh,
+      queryKey: createExplorerQueryKey("address.assets", { address: addr }),
+      queryFn: ({ forceRefresh }) => accountService.getAssets(addr, { forceRefresh }),
+      source: "address.assets",
+    });
     if (currentRequestId !== addressRequestId) return;
 
     let rawAssets = [];
@@ -698,7 +718,7 @@ function exportCsv() {
 }
 
 // --- Initialization ---
-async function initializeData(addr) {
+async function initializeData(addr, { forceRefresh = false } = {}) {
   ++addressRequestId;
   abortController.value?.abort();
   abortController.value = new AbortController();
@@ -718,8 +738,12 @@ async function initializeData(addr) {
     activeTab.value = "transactions";
   }
 
-  const txPagePromise = loadTxPage(1);
-  const results = await Promise.allSettled([loadAssets(addr), loadSummary(addr), txPagePromise]);
+  const txPagePromise = loadTxPage(1, { forceRefresh });
+  const results = await Promise.allSettled([
+    loadAssets(addr, { forceRefresh }),
+    loadSummary(addr, { forceRefresh }),
+    txPagePromise,
+  ]);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);
@@ -729,7 +753,7 @@ async function initializeData(addr) {
 
 function handleNetworkChange() {
   if (address.value) {
-    void initializeData(address.value);
+    void initializeData(address.value, { forceRefresh: true });
   }
 }
 

@@ -1,6 +1,10 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const searchServiceMock = vi.hoisted(() => ({
+  suggest: vi.fn(),
+}));
+
 vi.mock("vue-router", () => ({
   useRoute: () => ({ params: {} }),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -22,6 +26,11 @@ vi.mock("@/utils/searchPresentation", () => ({
   getTypeBadgeClass: () => "bg-green-100",
 }));
 vi.mock("@/constants", () => ({ SEARCH_DEBOUNCE_MS: 350 }));
+vi.mock("@/services/searchService", () => ({
+  searchService: {
+    suggest: searchServiceMock.suggest,
+  },
+}));
 
 import SearchBox from "@/components/common/SearchBox.vue";
 
@@ -36,6 +45,10 @@ const factory = (props = {}) =>
 
 describe("SearchBox", () => {
   beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    searchServiceMock.suggest.mockReset();
+    searchServiceMock.suggest.mockResolvedValue([]);
+  });
   afterEach(() => vi.useRealTimers());
 
   it("renders input with placeholder", () => {
@@ -136,5 +149,28 @@ describe("SearchBox", () => {
     await vi.dynamicImportSettled();
 
     expect(wrapper.html()).toContain("Address/NNS");
+  });
+
+  it("merges read-api search sidecar suggestions in full mode", async () => {
+    searchServiceMock.suggest.mockResolvedValueOnce([
+      {
+        type: "token",
+        label: "GasToken",
+        value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        route: "/nep17-token-info/0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      },
+    ]);
+    const wrapper = factory({ mode: "full" });
+    const input = wrapper.find("input");
+
+    await input.trigger("focus");
+    await input.setValue("gas");
+    vi.advanceTimersByTime(400);
+    await vi.dynamicImportSettled();
+    await wrapper.vm.$nextTick();
+
+    expect(searchServiceMock.suggest).toHaveBeenCalledWith("gas", { type: "", limit: 6 });
+    expect(wrapper.html()).toContain("GasToken");
+    expect(wrapper.html()).toContain("0xd2a4cff31913016155e38e474a2c06d08be276cf");
   });
 });

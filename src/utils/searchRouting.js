@@ -6,6 +6,21 @@
  */
 import { isValidNeoAddress, isValidTxHash } from "@/utils/explorerFormat";
 
+function routeStringToLocation(route) {
+  const raw = String(route || "").trim();
+  if (!raw || !raw.startsWith("/")) return null;
+
+  const [path, search = ""] = raw.split("?");
+  if (!search) return { path };
+
+  const query = {};
+  const params = new URLSearchParams(search);
+  for (const [key, value] of params.entries()) {
+    query[key] = value;
+  }
+  return { path, query };
+}
+
 function detectSearchType(query) {
   const q = (query || "").trim();
   if (!q) return "unknown";
@@ -43,6 +58,8 @@ export function resolveSearchLocation(query, result) {
   const inferredType = detectSearchType(q);
   const resolvedType = type && type !== "unknown" ? type : inferredType;
   const ensure0x = (value) => (value && !value.startsWith("0x") ? `0x${value}` : value);
+  const routedHit = routeStringToLocation(data.route);
+  if (routedHit) return routedHit;
 
   if (resolvedType === "block") {
     return { path: `/block-info/${data.hash || q}` };
@@ -62,6 +79,10 @@ export function resolveSearchLocation(query, result) {
 
   if (resolvedType === "token") {
     return { path: `/nep17-token-info/${data.hash || q}` };
+  }
+
+  if (resolvedType === "nns") {
+    return { path: "/nns", query: { search: data.title || q } };
   }
 
   return { path: "/search", query: { q } };

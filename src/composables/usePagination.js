@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getCache } from "@/services/cache";
+import { fetchFreshQuery } from "@/query/freshness";
 import { isAbortError } from "@/utils/abortError";
 
 const DEFAULT_PAGE_TIMEOUT_MS = 8000;
@@ -44,6 +45,10 @@ async function withPaginationTimeout(promise, timeoutMs) {
  * @param {string}  [options.routeSync.pageParam] - Route param name (default: "page").
  * @param {(pageSize: number, skip: number) => string} [options.cacheKeyFn]
  *   Returns a cache key; when the key hits, loading skeleton is suppressed.
+ * @param {(pageSize: number, skip: number, context?: object) => Array|string} [options.queryKeyFn]
+ *   Returns a TanStack Query key; when present, page loads route through the shared query layer.
+ * @param {string} [options.querySource] - Source label stored in freshness snapshots.
+ * @param {number} [options.queryStaleTime] - TanStack Query staleTime for warm page reads.
  * @param {number} [options.timeoutMs] - Max time before a page request releases loading.
  * @returns Reactive pagination state and control functions.
  */
@@ -54,6 +59,9 @@ export function usePagination(
     routeSync = null,
     cacheKeyFn = null,
     errorMessage = null,
+    queryKeyFn = null,
+    querySource = "pagination",
+    queryStaleTime = 3_000,
     timeoutMs = DEFAULT_PAGE_TIMEOUT_MS,
   } = {}
 ) {
@@ -105,7 +113,20 @@ export function usePagination(
 
     try {
       const res = await withPaginationTimeout(
-        Promise.resolve().then(() => fetchFn(pageSize.value, skip, { forceRefresh })),
+        Promise.resolve().then(() => {
+          if (!queryKeyFn) {
+            return fetchFn(pageSize.value, skip, { forceRefresh });
+          }
+          const queryKey = queryKeyFn(pageSize.value, skip, { forceRefresh, page });
+          return fetchFreshQuery({
+            forceRefresh,
+            queryKey,
+            queryFn: ({ forceRefresh: queryForceRefresh }) =>
+              fetchFn(pageSize.value, skip, { forceRefresh: queryForceRefresh }),
+            source: querySource,
+            staleTime: queryStaleTime,
+          });
+        }),
         timeoutMs,
       );
       if (myId !== requestId) return; // stale response

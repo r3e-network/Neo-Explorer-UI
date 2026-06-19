@@ -3,6 +3,7 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import nnsService from "./nnsService";
 import { contractService } from "./contractService";
 import { accountService } from "./accountService";
+import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
 
@@ -38,6 +39,69 @@ function _dedupe(key, fn) {
   const p = fn().finally(() => _pending.delete(key));
   _pending.set(key, p);
   return p;
+}
+
+function normalizeSearchHit(hit = {}) {
+  const type = String(hit.type || "").trim().toLowerCase();
+  const blockIndex = Number(hit.block_index ?? hit.blockIndex ?? hit.index);
+  const data = {
+    ...hit,
+    hash: hit.hash || "",
+    address: hit.address || "",
+    index: Number.isFinite(blockIndex) ? blockIndex : hit.index,
+    route: hit.route || "",
+  };
+
+  if (!data.hash && (type === "transaction" || type === "contract" || type === "token" || type === "block")) {
+    data.hash = hit.id || "";
+  }
+  if (!data.address && type === "address") {
+    data.address = hit.id || "";
+  }
+
+  return { type: type || null, data };
+}
+
+function searchTypeFromFilter(type) {
+  const normalized = String(type || "").trim().toLowerCase();
+  const map = {
+    addresses: "address",
+    blocks: "block",
+    contracts: "contract",
+    tokens: "token",
+    transactions: "transaction",
+  };
+  return map[normalized] || normalized;
+}
+
+function formatSuggestionHit(hit = {}) {
+  const normalized = normalizeSearchHit(hit);
+  const data = normalized.data || {};
+  const type = normalized.type || "unknown";
+  const value =
+    data.address ||
+    data.hash ||
+    (Number.isFinite(Number(data.index)) ? String(data.index) : "") ||
+    data.title ||
+    data.id ||
+    "";
+
+  return {
+    type,
+    label: data.title || data.subtitle || type,
+    value,
+    route: data.route || "",
+    subtitle: data.subtitle || "",
+    score: data.score,
+  };
+}
+
+async function _searchSidecar(query, options = {}) {
+  const response = await indexerReadService.search(query, options).catch(() => null);
+  if (!response || !Array.isArray(response.hits) || response.hits.length === 0) {
+    return null;
+  }
+  return response;
 }
 
 /**
@@ -151,6 +215,11 @@ export const searchService = {
       key,
       async () => {
         try {
+          const sidecar = await _searchSidecar(query, { limit: 1 });
+          if (sidecar?.hits?.[0]) {
+            return normalizeSearchHit(sidecar.hits[0]);
+          }
+
           const hits = await _dedupe(query, () => _classifyAndDispatch(query));
 
           // Priority: block > transaction > contract > address
@@ -166,6 +235,17 @@ export const searchService = {
       },
       CACHE_TTL.block
     );
+  },
+
+  async suggest(query, { type = "", limit = 6 } = {}) {
+    query = (query || "").trim();
+    if (!query || query.length > 256) return [];
+
+    const response = await _searchSidecar(query, {
+      type: searchTypeFromFilter(type),
+      limit,
+    });
+    return (response?.hits || []).map(formatSuggestionHit).filter((hit) => hit.value || hit.route);
   },
 };
 

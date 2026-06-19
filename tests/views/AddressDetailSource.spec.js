@@ -28,4 +28,13 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain('import("./components/AddressNftsTab.vue")');
     expect(source).toContain('import("./components/AddressVotersTab.vue")');
   });
+
+  it("routes address summary, holdings, and default transactions through shared freshness keys", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    expect(source).toContain('import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness"');
+    expect(source).toContain('createExplorerQueryKey("address.transactions", { address: addr, pageSize, skip })');
+    expect(source).toContain('createExplorerQueryKey("address.summary", { address: addr })');
+    expect(source).toContain('createExplorerQueryKey("address.assets", { address: addr })');
+  });
 });

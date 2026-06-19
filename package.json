@@ -33,6 +33,7 @@
     "@sentry/node": "^10.45.0",
     "@sentry/vue": "^10.45.0",
     "@supabase/supabase-js": "^2.97.0",
+    "@tanstack/vue-query": "^5.101.0",
     "@vercel/edge-config": "^1.4.3",
     "@vueuse/core": "^14.2.1",
     "@walletconnect/sign-client": "^2.23.6",

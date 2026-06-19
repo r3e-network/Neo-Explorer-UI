@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { fetchFreshQuery } from "@/query/freshness";
 
 /**
  * Composable for infinite-scroll "load more" logic.
@@ -16,8 +17,16 @@ import { ref } from "vue";
  * @param {import('vue').Ref<number>} pagination.totalCount
  * @param {object} [options]
  * @param {(newItems: Array) => void} [options.onAppend] - Called with newly fetched items after append.
+ * @param {(limit: number, skip: number, context?: object) => Array|string} [options.queryKeyFn]
+ *   Returns a TanStack Query key; when present, appended pages route through the shared query layer.
+ * @param {string} [options.querySource] - Source label stored in freshness snapshots.
+ * @param {number} [options.queryStaleTime] - TanStack Query staleTime for appended page reads.
  */
-export function useLoadMore(fetchFn, pagination, { onAppend } = {}) {
+export function useLoadMore(
+  fetchFn,
+  pagination,
+  { onAppend, queryKeyFn = null, querySource = "load-more", queryStaleTime = 3_000 } = {},
+) {
   const loadingMore = ref(false);
   let requestId = 0;
 
@@ -32,7 +41,15 @@ export function useLoadMore(fetchFn, pagination, { onAppend } = {}) {
     const skip = (nextPage - 1) * pageSize.value;
 
     try {
-      const res = await fetchFn(pageSize.value, skip, { forceRefresh: true });
+      const res = queryKeyFn
+        ? await fetchFreshQuery({
+            forceRefresh: true,
+            queryKey: queryKeyFn(pageSize.value, skip, { page: nextPage, forceRefresh: true }),
+            queryFn: ({ forceRefresh }) => fetchFn(pageSize.value, skip, { forceRefresh }),
+            source: querySource,
+            staleTime: queryStaleTime,
+          })
+        : await fetchFn(pageSize.value, skip, { forceRefresh: true });
       if (myId !== requestId) return; // stale response
 
       if (res?.result?.length > 0) {

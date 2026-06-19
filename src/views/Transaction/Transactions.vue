@@ -128,6 +128,7 @@ import { ref, watch, onMounted } from "vue";
 import { transactionService } from "@/services/transactionService";
 import { executionService } from "@/services/executionService";
 import { getCacheKey } from "@/services/cache";
+import { createExplorerQueryKey } from "@/query/freshness";
 import { useI18n } from "vue-i18n";
 import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";
@@ -157,6 +158,8 @@ const breadcrumbs = [{ label: t("breadcrumb.home"), to: "/homepage" }, { label: 
 const paginationState = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {
   routeSync: { basePath: "/transactions" },
   cacheKeyFn: (limit, skip) => getCacheKey("tx_list", { limit, skip }),
+  queryKeyFn: (limit, skip) => createExplorerQueryKey("transactions.list", { limit, skip }),
+  querySource: "transactions.list",
   errorMessage: t("errors.loadTransactions"),
 });
 
@@ -190,6 +193,8 @@ const { loadingMore, loadMore } = useLoadMore(
   (limit, skip, opts) => transactionService.getList(limit, skip, opts),
   paginationState,
   {
+    queryKeyFn: (limit, skip) => createExplorerQueryKey("transactions.list", { limit, skip }),
+    querySource: "transactions.list",
     onAppend: (newItems) => {
       enrichTransactions(newItems, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
         if (import.meta.env.DEV) console.warn("Transfer summary enrichment failed:", err);

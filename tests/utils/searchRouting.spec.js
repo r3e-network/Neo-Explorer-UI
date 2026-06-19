@@ -48,6 +48,27 @@ describe("resolveSearchLocation", () => {
     ).toEqual({ path: "/nep17-token-info/0xtokenhash" });
   });
 
+  it("uses explicit sidecar route when present", () => {
+    expect(
+      resolveSearchLocation("gas", {
+        type: "token",
+        data: {
+          hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          route: "/nep17-token-info/0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        },
+      })
+    ).toEqual({ path: "/nep17-token-info/0xd2a4cff31913016155e38e474a2c06d08be276cf" });
+  });
+
+  it("parses explicit sidecar routes with query strings", () => {
+    expect(
+      resolveSearchLocation("neo3.neo", {
+        type: "nns",
+        data: { title: "neo3.neo", route: "/nns?search=neo3.neo" },
+      })
+    ).toEqual({ path: "/nns", query: { search: "neo3.neo" } });
+  });
+
   it("falls back to search results page", () => {
     expect(resolveSearchLocation("something", { type: "unknown" })).toEqual({
       path: "/search",

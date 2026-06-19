@@ -465,6 +465,26 @@ export const indexerReadService = {
     );
   },
 
+  async search(query, { type = "", limit = 10, ...options } = {}) {
+    const network = resolveIndexerNetworkPath();
+    const trimmed = String(query || "").trim();
+    if (!trimmed) return null;
+
+    const params = new URLSearchParams({
+      q: trimmed,
+      limit: String(limit),
+    });
+    if (String(type || "").trim()) {
+      params.set("type", String(type).trim());
+    }
+
+    const payload = await fetchIndexerJsonWithFallback(
+      buildIndexerFallbackPaths(network, `search?${params.toString()}`),
+      options,
+    );
+    return payload?.data || null;
+  },
+
   async getToken(contractHash, options = {}) {
     const network = resolveIndexerNetworkPath();
     if (!contractHash) return null;

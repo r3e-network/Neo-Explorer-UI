@@ -134,6 +134,33 @@ describe("indexerReadService freshness controls", () => {
     );
   });
 
+  it("fetches search payloads from the short read-api route", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          source: "meilisearch",
+          hits: [{ type: "token", title: "GasToken", hash: "0xgas" }],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const payload = await indexerReadService.search("gas", { type: "token", limit: 6 });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/mainnet/search?q=gas&limit=6&type=token");
+    expect(payload).toEqual({
+      source: "meilisearch",
+      hits: [{ type: "token", title: "GasToken", hash: "0xgas" }],
+    });
+  });
+
   it("temporarily skips the aggregated explorer home endpoint after it is unavailable", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
