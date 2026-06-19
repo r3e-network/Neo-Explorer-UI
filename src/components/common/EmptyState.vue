@@ -2,7 +2,7 @@
   <div class="py-12 px-4 text-center">
     <div
       v-once
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-card text-mid bg-surface-glass border border-line-soft"
+      class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg text-mid bg-surface-glass border border-line-soft"
     >
       <!-- Block icon -->
       <svg v-if="icon === 'block'" aria-hidden="true" class="h-8 w-8 text-low" fill="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,8 @@
       </svg>
     </div>
 
-    <p class="font-semibold text-mid">{{ message || $t('common.noDataAvailable') }}</p>
+    <p class="font-semibold text-high">{{ message || $t('common.noDataAvailable') }}</p>
+    <p v-if="description" class="mx-auto mt-1 max-w-md text-sm text-mid">{{ description }}</p>
 
     <router-link v-if="actionLabel && actionTo" :to="actionTo" class="btn-primary mt-4 gap-1.5">
       {{ actionLabel }}
@@ -80,6 +81,7 @@
 <script setup>
 defineProps({
   message: { type: String, default: "" },
+  description: { type: String, default: "" },
   icon: {
     type: String,
     default: "default",

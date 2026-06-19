@@ -153,6 +153,20 @@ describe("transactionService", () => {
       expect(result.result[0].vmstate).toBe("HALT");
     });
 
+    it("treats an empty indexer account transaction page as authoritative", async () => {
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [],
+        paging: { total: 0 },
+      });
+
+      const result = await transactionService.getByAddress("NdzY4...", 10, 0);
+
+      expect(result).toEqual({ result: [], totalCount: 0 });
+      expect(accountService.getNep17Transfers).not.toHaveBeenCalled();
+      expect(accountService.getNep11Transfers).not.toHaveBeenCalled();
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+    });
+
     it("falls back to transfer txids when address transaction list is empty", async () => {
       indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce(null);
       accountService.getNep17Transfers.mockResolvedValueOnce({

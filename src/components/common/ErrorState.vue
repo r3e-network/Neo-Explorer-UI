@@ -1,7 +1,7 @@
 <template>
   <div class="error-state py-12 px-4 text-center">
     <div
-      class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-status-error-bg border border-status-error"
+      class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-status-error-bg border border-status-error"
     >
       <svg class="w-8 h-8 text-status-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path

@@ -24,8 +24,8 @@ const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOU
 const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(500, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 900));
 export const ACCOUNT_LIST_CACHE_METHOD = "account_list_indexer_v2";
 
-export function getAccountListCacheKey(limit, skip) {
-  return getCacheKey(ACCOUNT_LIST_CACHE_METHOD, { limit, skip, env: resolveAccountNetwork() });
+export function getAccountListCacheKey(limit, skip, { includeBalances = true } = {}) {
+  return getCacheKey(ACCOUNT_LIST_CACHE_METHOD, { includeBalances, limit, skip, env: resolveAccountNetwork() });
 }
 
 async function fetchJsonWithFallback(urls, { timeoutMs = ACCOUNT_LIST_TIMEOUT_MS } = {}) {
@@ -177,7 +177,50 @@ function mapIndexerNep11TransferRow(row, direction) {
   };
 }
 
-async function fetchAccountBalances(network, rows = []) {
+function normalizeAccountBalanceHash(value = "") {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  return raw.startsWith("0x") ? raw : `0x${raw}`;
+}
+
+function applyNativeBalances(accounts = [], balanceRows = []) {
+  const balancesByAddress = new Map();
+
+  for (const row of Array.isArray(balanceRows) ? balanceRows : []) {
+    const address = String(row?.address || "").trim();
+    const contractHash = normalizeAccountBalanceHash(row?.contract_hash || row?.contractHash || "");
+    if (!address || !contractHash) continue;
+    if (!balancesByAddress.has(address)) balancesByAddress.set(address, {});
+    balancesByAddress.get(address)[contractHash] = String(row?.balance_raw ?? row?.balanceRaw ?? "0");
+  }
+
+  const neoHash = normalizeAccountBalanceHash(NEO_HASH);
+  const gasHash = normalizeAccountBalanceHash(GAS_HASH);
+
+  return (Array.isArray(accounts) ? accounts : []).map((account) => {
+    const address = String(account?.address || "").trim();
+    const balances = balancesByAddress.get(address) || {};
+    return {
+      ...account,
+      balancesPending: false,
+      balancesUnavailable: false,
+      neobalance: balances[neoHash] || "0",
+      gasbalance: balances[gasHash] || "0",
+    };
+  });
+}
+
+function markAccountBalancesUnavailable(accounts = [], { pending = false } = {}) {
+  return (Array.isArray(accounts) ? accounts : []).map((account) => ({
+    ...account,
+    balancesPending: pending,
+    balancesUnavailable: !pending,
+    neobalance: null,
+    gasbalance: null,
+  }));
+}
+
+async function fetchAccountBalances(network, rows = [], { timeoutMs = ACCOUNT_BALANCE_TIMEOUT_MS } = {}) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const addresses = [...new Set(safeRows.map((row) => row?.address).filter(Boolean))];
   if (!addresses.length) return [];
@@ -192,7 +235,7 @@ async function fetchAccountBalances(network, rows = []) {
   });
   const basePath = buildAccountRestBasePath(network);
   return fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`], {
-    timeoutMs: ACCOUNT_BALANCE_TIMEOUT_MS,
+    timeoutMs,
   });
 }
 
@@ -219,7 +262,8 @@ export const accountService = createService(
     },
 
     async getList(limit = 20, skip = 0, options = {}) {
-      const key = getAccountListCacheKey(limit, skip);
+      const { includeBalances = true, ...cacheOptions } = options;
+      const key = getAccountListCacheKey(limit, skip, { includeBalances });
       return cachedRequest(
         key,
         async () => {
@@ -227,7 +271,7 @@ export const accountService = createService(
           const network = resolveAccountNetwork();
           const [rows, summary] = await Promise.all([
             fetchAccountOverviewRows(network, limit, skip).catch(() => null),
-            indexerReadService.getSummary(options).catch(() => null),
+            indexerReadService.getSummary(cacheOptions).catch(() => null),
           ]);
           if (!Array.isArray(rows)) {
             throw new Error("Account overview indexer request failed");
@@ -239,14 +283,20 @@ export const accountService = createService(
           }
 
           if (rows.length > 0) {
+            if (!includeBalances) {
+              return {
+                result: markAccountBalancesUnavailable(mapAccountOverviewRowsToAccounts(rows, []), { pending: true }),
+                totalCount: totalCount || rows.length,
+              };
+            }
+
             const balanceRows = await fetchAccountBalances(network, rows);
             const mappedAccounts = mapAccountOverviewRowsToAccounts(rows, balanceRows || []);
             if (balanceRows === null) {
-              mappedAccounts.forEach((account) => {
-                account.balancesUnavailable = true;
-                account.neobalance = null;
-                account.gasbalance = null;
-              });
+              return {
+                result: markAccountBalancesUnavailable(mappedAccounts),
+                totalCount: totalCount || rows.length,
+              };
             }
             return {
               result: mappedAccounts,
@@ -257,8 +307,18 @@ export const accountService = createService(
           return { result: [], totalCount };
         },
         CACHE_TTL.chart,
-        options,
+        cacheOptions,
       );
+    },
+
+    async hydrateListBalances(accounts = [], options = {}) {
+      const network = resolveAccountNetwork();
+      const timeoutMs = Math.max(500, Number(options.timeoutMs || 5000));
+      const balanceRows = await fetchAccountBalances(network, accounts, { timeoutMs });
+      if (balanceRows === null) {
+        return markAccountBalancesUnavailable(accounts);
+      }
+      return applyNativeBalances(accounts, balanceRows || []);
     },
 
     _normalizeAddress(address) {

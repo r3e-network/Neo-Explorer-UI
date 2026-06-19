@@ -23,8 +23,8 @@ describe("tools dark theme tokens", () => {
   });
 
   it("uses more solid dark surfaces and softer lines for cards", () => {
-    expect(source).toContain("--surface-elevated: rgba(14, 20, 31, 0.88);");
-    expect(source).toContain("--surface-glass: rgba(12, 18, 29, 0.72);");
+    expect(source).toContain("--surface-elevated: rgba(14, 20, 31, 0.9);");
+    expect(source).toContain("--surface-glass: rgba(12, 18, 29, 0.76);");
     expect(source).toContain("--line-soft: rgba(120, 146, 177, 0.16);");
   });
 

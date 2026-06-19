@@ -722,7 +722,7 @@ onBeforeUnmount(() => {
 
 .wallet-modal-title {
   color: #f8fafc;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .wallet-modal-close {

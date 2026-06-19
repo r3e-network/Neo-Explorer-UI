@@ -115,7 +115,6 @@ import { useRoute, useRouter } from "vue-router";
 import { accountService, getAccountListCacheKey } from "@/services/accountService";
 import { getCache } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
-import { DEFAULT_PAGE_SIZE } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -129,6 +128,7 @@ const { prices, fetchPrices } = usePriceCache();
 
 // Compute the USD value of an account's NEO + GAS holdings using cached prices.
 function formatUsdValue(account) {
+  if (account?.balancesPending) return "...";
   if (account?.balancesUnavailable) return "—";
   const neo = Number(account?.neobalance || 0);
   const gas = Number(account?.gasbalance || 0);
@@ -140,11 +140,13 @@ function formatUsdValue(account) {
 }
 
 function formatAccountNeoBalance(account) {
+  if (account?.balancesPending) return "...";
   if (account?.balancesUnavailable) return "—";
   return formatBalance(account?.neobalance);
 }
 
 function formatAccountGasBalance(account) {
+  if (account?.balancesPending) return "...";
   if (account?.balancesUnavailable) return "—";
   return formatGasBalance(account?.gasbalance);
 }
@@ -157,7 +159,8 @@ const loading = ref(true);
 const error = ref(null);
 const accounts = ref([]);
 const currentPage = ref(1);
-const pageSize = ref(DEFAULT_PAGE_SIZE);
+const ACCOUNT_DEFAULT_PAGE_SIZE = 10;
+const pageSize = ref(ACCOUNT_DEFAULT_PAGE_SIZE);
 const total = ref(0);
 let pageRequestId = 0;
 
@@ -167,17 +170,18 @@ const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value
 async function loadPage() {
   const myRequestId = ++pageRequestId;
   const skip = paginationOffset.value;
-  const cacheKey = getAccountListCacheKey(pageSize.value, skip);
+  const cacheKey = getAccountListCacheKey(pageSize.value, skip, { includeBalances: false });
   const hasCachedData = getCache(cacheKey) !== null;
 
   loading.value = !hasCachedData;
   error.value = null;
 
   try {
-    const response = await accountService.getList(pageSize.value, skip);
+    const response = await accountService.getList(pageSize.value, skip, { includeBalances: false });
     if (myRequestId !== pageRequestId) return;
     total.value = response?.totalCount || 0;
     accounts.value = response?.result || [];
+    hydrateCurrentBalances(myRequestId, accounts.value);
   } catch (err) {
     if (myRequestId !== pageRequestId) return;
     if (isAbortError(err)) return;
@@ -188,6 +192,27 @@ async function loadPage() {
     if (myRequestId === pageRequestId) {
       loading.value = false;
     }
+  }
+}
+
+async function hydrateCurrentBalances(requestId, rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+
+  try {
+    const hydratedRows = await accountService.hydrateListBalances(rows);
+    if (requestId !== pageRequestId) return;
+    const byAddress = new Map(hydratedRows.map((row) => [row.address, row]));
+    accounts.value = accounts.value.map((account) => byAddress.get(account.address) || account);
+  } catch (err) {
+    if (requestId !== pageRequestId) return;
+    if (import.meta.env.DEV) console.warn("Failed to hydrate account balances:", err);
+    accounts.value = accounts.value.map((account) => ({
+      ...account,
+      balancesPending: false,
+      balancesUnavailable: true,
+      neobalance: null,
+      gasbalance: null,
+    }));
   }
 }
 

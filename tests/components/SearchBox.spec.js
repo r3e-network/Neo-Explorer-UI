@@ -88,8 +88,15 @@ describe("SearchBox", () => {
     expect(wrapper.find(".search-box").classes()).toContain("z-[140]");
   });
 
-  it("uses theme text tokens for input readability", () => {
+  it("uses high-contrast full-mode text for hero readability", () => {
     const wrapper = factory();
+    const classAttr = wrapper.find("input").attributes("class");
+    expect(classAttr).toContain("text-white");
+    expect(classAttr).toContain("placeholder:text-white/55");
+  });
+
+  it("uses theme text tokens for compact input readability", () => {
+    const wrapper = factory({ mode: "compact" });
     const classAttr = wrapper.find("input").attributes("class");
     expect(classAttr).toContain("text-high");
     expect(classAttr).toContain("placeholder:text-mid");

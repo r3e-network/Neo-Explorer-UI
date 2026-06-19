@@ -132,6 +132,67 @@ describe("accountService", () => {
       );
       expect(result.totalCount).toBe(1);
     });
+
+    it("can return account rows before native balance hydration finishes", async () => {
+      summaryMock.mockResolvedValue({ total_address_count: 1 });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+            tx_sent: 2,
+            tx_signed: 3,
+            last_tx_ms: 1781840359359,
+          },
+        ],
+      });
+
+      const result = await accountService.getList(10, 0, { includeBalances: false });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        result: [
+          expect.objectContaining({
+            address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+            balancesPending: true,
+            balancesUnavailable: false,
+            neobalance: null,
+            gasbalance: null,
+          }),
+        ],
+        totalCount: 1,
+      });
+    });
+
+    it("hydrates native balances for already-rendered account rows", async () => {
+      const address = "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp";
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          { address, contract_hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", balance_raw: "42" },
+          { address, contract_hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf", balance_raw: "123000000" },
+        ],
+      });
+
+      const result = await accountService.hydrateListBalances([
+        {
+          address,
+          balancesPending: true,
+          neobalance: null,
+          gasbalance: null,
+        },
+      ]);
+
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          address,
+          balancesPending: false,
+          balancesUnavailable: false,
+          neobalance: "42",
+          gasbalance: "123000000",
+        }),
+      );
+    });
   });
 
   describe("getByAddress", () => {

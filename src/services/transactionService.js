@@ -312,7 +312,7 @@ export const transactionService = createService(
       let response = null;
       try {
         const indexerRes = await indexerReadService.getAccountTransactions(address, limit, skip, requestOptions);
-        if (Array.isArray(indexerRes?.data) && indexerRes.data.length > 0) {
+        if (Array.isArray(indexerRes?.data)) {
           // Pagination total: prefer the indexer's explicit `paging.total`
           // when present; else (offset + count + 1) so Next stays enabled
           // until we hit a short page.
