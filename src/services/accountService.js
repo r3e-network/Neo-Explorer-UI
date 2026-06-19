@@ -188,9 +188,9 @@ async function fetchAccountBalances(network, rows = []) {
     contract_hash: `in.(${contractList})`,
   });
   const basePath = buildAccountRestBasePath(network);
-  return (await fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`], {
+  return fetchJsonWithFallback([`${basePath}/v_nep17_balances?${query}`], {
     timeoutMs: ACCOUNT_BALANCE_TIMEOUT_MS,
-  })) || [];
+  });
 }
 
 export const accountService = createService(
@@ -237,8 +237,16 @@ export const accountService = createService(
 
           if (rows.length > 0) {
             const balanceRows = await fetchAccountBalances(network, rows);
+            const mappedAccounts = mapAccountOverviewRowsToAccounts(rows, balanceRows || []);
+            if (balanceRows === null) {
+              mappedAccounts.forEach((account) => {
+                account.balancesUnavailable = true;
+                account.neobalance = null;
+                account.gasbalance = null;
+              });
+            }
             return {
-              result: mapAccountOverviewRowsToAccounts(rows, balanceRows),
+              result: mappedAccounts,
               totalCount: totalCount || rows.length,
             };
           }

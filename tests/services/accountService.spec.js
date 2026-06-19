@@ -102,6 +102,36 @@ describe("accountService", () => {
       );
       expect(api.safeRpcList).not.toHaveBeenCalled();
     });
+
+    it("returns account rows with unknown balances when balance hydration fails", async () => {
+      summaryMock.mockResolvedValue({ total_address_count: 1 });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+            tx_sent: 2,
+            tx_signed: 3,
+            last_tx_ms: 1781840359359,
+          },
+        ],
+      }).mockResolvedValueOnce({
+        ok: false,
+        json: async () => null,
+      });
+
+      const result = await accountService.getList(20, 0);
+
+      expect(result.result[0]).toEqual(
+        expect.objectContaining({
+          address: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+          balancesUnavailable: true,
+          neobalance: null,
+          gasbalance: null,
+        }),
+      );
+      expect(result.totalCount).toBe(1);
+    });
   });
 
   describe("getByAddress", () => {

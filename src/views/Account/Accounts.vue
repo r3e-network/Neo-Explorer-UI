@@ -71,10 +71,10 @@
                   <HashLink :hash="account.address" type="address" :copyable="false" />
                 </td>
                 <td class="table-cell-right font-medium">
-                  {{ formatBalance(account.neobalance) }}
+                  {{ formatAccountNeoBalance(account) }}
                 </td>
                 <td class="table-cell-right font-medium">
-                  {{ formatGasBalance(account.gasbalance) }}
+                  {{ formatAccountGasBalance(account) }}
                 </td>
                 <td class="table-cell-secondary-right text-emerald-600 dark:text-emerald-400">
                   {{ formatUsdValue(account) }}
@@ -129,6 +129,7 @@ const { prices, fetchPrices } = usePriceCache();
 
 // Compute the USD value of an account's NEO + GAS holdings using cached prices.
 function formatUsdValue(account) {
+  if (account?.balancesUnavailable) return "—";
   const neo = Number(account?.neobalance || 0);
   const gas = Number(account?.gasbalance || 0);
   const neoPrice = Number(prices.value?.neo || 0);
@@ -136,6 +137,16 @@ function formatUsdValue(account) {
   const total = neo * neoPrice + gas * gasPrice;
   if (!total) return "—";
   return total.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: total < 1 ? 4 : 2 });
+}
+
+function formatAccountNeoBalance(account) {
+  if (account?.balancesUnavailable) return "—";
+  return formatBalance(account?.neobalance);
+}
+
+function formatAccountGasBalance(account) {
+  if (account?.balancesUnavailable) return "—";
+  return formatGasBalance(account?.gasbalance);
 }
 
 const route = useRoute();
