@@ -26,6 +26,7 @@ export const getRealtimeListCacheOptions = (options = {}) => ({
  * @param {boolean} [config.realtime=false] - Use SWR realtime cache options
  * @param {(args: any[]) => Object} config.buildParams - Maps call arguments to RPC params
  * @param {(args: any[]) => Object} [config.buildCacheParams] - Maps call arguments to cache key params (defaults to buildParams)
+ * @param {(result: any) => any} [config.transformResult] - Optional response normalizer
  * @returns {Function} Async service method
  */
 export function createRpcMethod({
@@ -36,6 +37,7 @@ export function createRpcMethod({
   realtime = false,
   buildParams,
   buildCacheParams,
+  transformResult,
 }) {
   return async function (...args) {
     // Last argument is always the options object if it's a plain object
@@ -50,7 +52,15 @@ export function createRpcMethod({
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
-    return cachedRequest(key, () => safeRpc(rpcMethod, rpcParams, fallback, cacheOpts), ttl, cacheOpts);
+    return cachedRequest(
+      key,
+      async () => {
+        const result = await safeRpc(rpcMethod, rpcParams, fallback, cacheOpts);
+        return typeof transformResult === "function" ? transformResult(result) : result;
+      },
+      ttl,
+      cacheOpts,
+    );
   };
 }
 

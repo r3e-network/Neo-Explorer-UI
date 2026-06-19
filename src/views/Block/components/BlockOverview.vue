@@ -33,6 +33,10 @@ function formatTimestamp(ts) {
   return new Date(ms).toUTCString();
 }
 
+const blockTimestamp = computed(
+  () => props.block?.timestamp ?? props.block?.time ?? props.block?.time_ms ?? props.block?.blocktime ?? 0,
+);
+
 const blockTransactionCount = computed(() => {
   const declared = Number(props.block?.txcount ?? props.block?.transactioncount ?? 0);
   if (Number.isFinite(declared) && declared > 0) {
@@ -42,8 +46,8 @@ const blockTransactionCount = computed(() => {
 });
 
 const timeAgo = computed(() => {
-  if (!props.block?.timestamp) return "";
-  return formatAge(props.block.timestamp);
+  if (!blockTimestamp.value) return "";
+  return formatAge(blockTimestamp.value);
 });
 
 const feeSourceTransactions = computed(() => {
@@ -103,7 +107,7 @@ const feeTotals = computed(() => {
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span>{{ formatTimestamp(block.timestamp) }}</span>
+        <span>{{ formatTimestamp(blockTimestamp) }}</span>
         <span class="ml-1.5 text-mid">({{ timeAgo }})</span>
       </InfoRow>
 

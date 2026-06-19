@@ -158,9 +158,13 @@ const emptyTransactionsMessage = computed(() =>
     : t("blocks.detail.noTransactions")
 );
 
+const blockTimestamp = computed(
+  () => block.value?.timestamp ?? block.value?.time ?? block.value?.time_ms ?? block.value?.blocktime ?? 0,
+);
+
 const timeAgo = computed(() => {
-  if (!block.value?.timestamp) return "";
-  return formatAge(block.value.timestamp);
+  if (!blockTimestamp.value) return "";
+  return formatAge(blockTimestamp.value);
 });
 
 const tabs = computed(() => [

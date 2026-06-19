@@ -57,6 +57,37 @@ describe("BlockOverview", () => {
     expect(wrapper.find('[data-testid="previous-hash-link"]').exists()).toBe(true);
   });
 
+  it("renders standard RPC time when timestamp is absent", async () => {
+    const BlockOverview = (await import("@/views/Block/components/BlockOverview.vue")).default;
+    const blockTimeMs = 1710000000000;
+    const wrapper = mount(BlockOverview, {
+      props: {
+        block: {
+          index: 2,
+          hash: "0xblock",
+          prevhash: "0xprev",
+          merkleroot: "0xmerkle",
+          nextconsensus: "0xc17cb2fc377c619ee0c8e93409fe03eec34943f8",
+          time: blockTimeMs,
+          txcount: 0,
+          size: 123,
+          version: 0,
+        },
+        reward: 0,
+        showWitnesses: false,
+      },
+      global: {
+        stubs: {
+          InfoRow: { template: "<div><slot /></div>" },
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain(new Date(blockTimeMs).toUTCString());
+    expect(wrapper.text()).toContain("(just now)");
+  });
+
   it("does not duplicate validator names when the shared address link already resolves identity", async () => {
     const BlockOverview = (await import("@/views/Block/components/BlockOverview.vue")).default;
     const wrapper = mount(BlockOverview, {

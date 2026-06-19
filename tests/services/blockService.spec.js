@@ -163,20 +163,51 @@ describe("blockService", () => {
   });
 
   describe("getByHash", () => {
-    it("calls safeRpc with hash", async () => {
+    it("normalizes standard getblock fields when fetching by hash", async () => {
       const hash = "0xabc";
-      api.safeRpc.mockResolvedValueOnce({ height: 100 });
-      await blockService.getByHash(hash);
+      api.safeRpc.mockResolvedValueOnce({
+        hash,
+        index: 100,
+        time: 1700000000000,
+        previousblockhash: "0xprev",
+        nextblockhash: "0xnext",
+        tx: [{ hash: "0xtx" }],
+      });
+
+      const result = await blockService.getByHash(hash);
+
       expect(api.safeRpc).toHaveBeenCalledWith("getblock", [hash, 1], null, expect.any(Object));
+      expect(result).toMatchObject({
+        hash,
+        index: 100,
+        timestamp: 1700000000000,
+        txcount: 1,
+        transactioncount: 1,
+        prevhash: "0xprev",
+        nextblockhash: "0xnext",
+      });
     });
   });
 
   describe("getByHeight", () => {
     it("uses standard getblock RPC first (#183)", async () => {
-      api.safeRpc.mockResolvedValueOnce({ hash: "0x123", index: 100 });
+      api.safeRpc.mockResolvedValueOnce({
+        hash: "0x123",
+        index: 100,
+        time: 1700000000000,
+        previousblockhash: "0xprev",
+        tx: [],
+      });
       const result = await blockService.getByHeight(100);
       expect(api.safeRpc).toHaveBeenCalledWith("getblock", [100, 1], null, expect.any(Object));
-      expect(result).toEqual({ hash: "0x123", index: 100 });
+      expect(result).toMatchObject({
+        hash: "0x123",
+        index: 100,
+        timestamp: 1700000000000,
+        txcount: 0,
+        transactioncount: 0,
+        prevhash: "0xprev",
+      });
     });
 
     it("returns null without legacy fallback when standard getblock returns null", async () => {

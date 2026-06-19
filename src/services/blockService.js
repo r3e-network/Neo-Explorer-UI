@@ -20,6 +20,40 @@ function isMethodMissingError(err) {
   return msg.includes("method not found") || msg.includes("invalid request");
 }
 
+function normalizeBlockTimestamp(block = {}) {
+  const raw = block.timestamp ?? block.time_ms ?? block.time ?? block.blocktime ?? block.block_time_ms ?? 0;
+  const timestamp = Number(raw);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizeBlockTxCount(block = {}) {
+  const raw =
+    block.txcount ??
+    block.transactioncount ??
+    block.txCount ??
+    block.transactionCount ??
+    block.tx_count ??
+    block.transaction_count;
+  const txCount = Number(raw);
+  if (Number.isFinite(txCount)) return txCount;
+  return Array.isArray(block.tx) ? block.tx.length : 0;
+}
+
+function normalizeRpcBlock(block) {
+  if (!block || typeof block !== "object") return block;
+  const timestamp = normalizeBlockTimestamp(block);
+  const txCount = normalizeBlockTxCount(block);
+  return {
+    ...block,
+    timestamp,
+    txcount: txCount,
+    transactioncount: txCount,
+    prevhash: block.prevhash ?? block.previousblockhash ?? block.previous_block_hash,
+    nextblockhash: block.nextblockhash ?? block.next_block_hash,
+    nextconsensus: block.nextconsensus ?? block.next_consensus ?? block.nextConsensus,
+  };
+}
+
 /**
  * Block Service - Neo3 区块相关 API 调用
  * @module services/blockService
@@ -43,6 +77,7 @@ export const blockService = createService(
       ttl: CACHE_TTL.block,
       buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
+      transformResult: normalizeRpcBlock,
     },
     getInfoByHash: {
       cacheKey: "block_info_hash",
@@ -51,6 +86,7 @@ export const blockService = createService(
       ttl: CACHE_TTL.block,
       buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
+      transformResult: normalizeRpcBlock,
     },
     getHeaderByHash: {
       cacheKey: "block_header_hash",
@@ -59,6 +95,7 @@ export const blockService = createService(
       ttl: CACHE_TTL.block,
       buildParams: ([hash]) => [hash, 1],
       buildCacheParams: ([hash]) => ({ hash }),
+      transformResult: normalizeRpcBlock,
     },
     getHeaderByHeight: {
       cacheKey: "block_header_height",
@@ -67,6 +104,7 @@ export const blockService = createService(
       ttl: CACHE_TTL.block,
       buildParams: ([height]) => [Number(height), 1],
       buildCacheParams: ([height]) => ({ height }),
+      transformResult: normalizeRpcBlock,
     },
     getStateRootRaw: {
       cacheKey: "block_stateroot",
@@ -131,18 +169,18 @@ export const blockService = createService(
     // normalizeBlockSummary.
     _mapIndexerBlock(b = {}) {
       const index = Number(b.index ?? b.block_index ?? b.blockindex ?? 0);
-      const txCount = Number(b.txcount ?? b.tx_count ?? (Array.isArray(b.tx) ? b.tx.length : 0));
+      const txCount = normalizeBlockTxCount(b);
       return {
         ...b,
         hash: b.hash || "",
         index: Number.isFinite(index) ? index : 0,
-        timestamp: Number(b.timestamp ?? b.time_ms ?? b.blocktime ?? 0),
+        timestamp: normalizeBlockTimestamp(b),
         txcount: Number.isFinite(txCount) ? txCount : 0,
         transactioncount: Number.isFinite(txCount) ? txCount : 0,
         primary: b.primary ?? b.primary_node,
         nextconsensus: b.nextconsensus ?? b.next_consensus,
         speaker: b.speaker ?? b.nextconsensus ?? b.next_consensus,
-        prevhash: b.prevhash ?? b.previous_block_hash,
+        prevhash: b.prevhash ?? b.previousblockhash ?? b.previous_block_hash,
       };
     },
 
@@ -159,7 +197,7 @@ export const blockService = createService(
           // one round-trip.
           try {
             const block = await safeRpc("getblock", [numericHeight, 1], null, cacheOpts);
-            if (block && (block.hash || block.index !== undefined)) return block;
+            if (block && (block.hash || block.index !== undefined)) return normalizeRpcBlock(block);
           } catch (err) {
             if (import.meta.env.DEV) console.warn("[blockService] getblock primary failed:", err);
           }
