@@ -289,13 +289,13 @@ const walletAttentionProvider = computed(() => String(connectedWalletProvider.va
 const walletControlTitle = computed(() => walletAttentionMessage.value || walletButtonLabel.value);
 const walletControlAriaLabel = computed(() => {
   if (walletLoading.value) return t("header.connectingWallet");
-  if (!connectedAccount.value) return t("header.connectWallet");
   if (walletAttentionMessage.value) {
     return t("header.walletIssueAria", {
       provider: walletAttentionProvider.value,
       error: walletAttentionMessage.value,
     });
   }
+  if (!connectedAccount.value) return t("header.connectWallet");
   return t("header.connectedWalletAria", { address: connectedAccount.value });
 });
 const mobileWalletLabel = computed(() => (connectedAccount.value ? t("header.disconnect") : t("header.connectWallet")));

@@ -593,6 +593,44 @@ describe("AppHeader wallet CTA", () => {
     expect(walletServiceMock.disconnect).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps remote wallet network errors accessible after the wallet session is disconnected", async () => {
+    connectedAccountRef.value = "";
+    const walletState = await import("@/utils/walletState");
+    walletState.connectedWalletProvider.value = "";
+    walletState.walletNetworkError.value = "WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.";
+
+    const AppHeader = (await import("@/components/layout/AppHeader.vue")).default;
+    const wrapper = mount(AppHeader, {
+      global: {
+        stubs: {
+          SearchBox: true,
+          UtilityBar: true,
+          DesktopNav: true,
+          MobileMenu: true,
+          WalletConnectModal: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+        mocks: {
+          $t: (value) => value,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const alert = wrapper.get('[data-testid="wallet-attention"]');
+    expect(alert.text()).toContain("WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.");
+
+    const walletButtons = wrapper
+      .findAll("button")
+      .filter((candidate) => candidate.text().includes("header.connectWallet"));
+    expect(walletButtons.length).toBeGreaterThan(0);
+    for (const button of walletButtons) {
+      expect(button.attributes("title")).toBe("WalletConnect session is on neo3:testnet; reconnect on neo3:mainnet.");
+      expect(button.attributes("aria-label")).toBe("header.walletIssueAria");
+    }
+  });
+
   it("dedupes overlapping wallet network validations from rapid network events", async () => {
     connectedAccountRef.value = "NconnectedWalletAddress";
     let rejectValidation;

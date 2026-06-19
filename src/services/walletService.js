@@ -6,7 +6,7 @@
 
 import { loadNeonJs } from "@/utils/neonLoader";
 import { WALLET_STATE_EVENT } from "@/constants/walletEvents";
-import { clearWalletState, setWalletState } from "@/utils/walletState";
+import { setWalletState } from "@/utils/walletState";
 function hexToBytes(hex) {
   const h = String(hex || "").replace(/^0x/i, "");
   return Uint8Array.from(h.match(/../g) || [], (b) => parseInt(b, 16));
@@ -169,8 +169,7 @@ function broadcastWalletStateChange() {
     account: _account ? { ...(_account || {}) } : null,
     networkError: _networkError,
   };
-  if (detail.connected) setWalletState(detail);
-  else clearWalletState();
+  setWalletState(detail);
   persistWalletState(detail);
 
   if (typeof window === "undefined") return;
