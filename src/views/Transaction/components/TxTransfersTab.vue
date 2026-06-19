@@ -85,11 +85,11 @@
                 <img
                   v-else
                   :src="getTokenLogo(t)"
-                  alt="logo"
+                  alt=""
                   class="w-4 h-4 rounded-full object-cover bg-white/5"
                   loading="lazy"
                 />
-                {{ t.tokenname || t.symbol || $t("txDetail.transfersUnknownToken") }}
+                {{ getTokenLabel(t) || $t("txDetail.transfersUnknownToken") }}
               </span>
             </td>
             <td class="table-cell">
@@ -136,7 +136,7 @@ const props = defineProps({
 
 const supabaseMeta = ref({});
 watch(
-  () => (Array.isArray(props.transfers) ? props.transfers : []),
+  () => (Array.isArray(props.allTransfers) ? props.allTransfers : []),
   async (newTransfers) => {
     if (newTransfers && newTransfers.length) {
       const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
@@ -203,6 +203,12 @@ function getTokenLogo(t) {
   const hash = (t.contract || t.contractHash || "").toLowerCase();
   const isNep11 = t._standard && t._standard.toUpperCase().includes("NEP-11");
   return getTokenIcon(hash, isNep11 ? "NEP11" : "NEP17");
+}
+
+function getTokenLabel(t) {
+  const hash = (t.contract || t.contractHash || "").toLowerCase();
+  const native = hash ? NATIVE_CONTRACTS[hash] : null;
+  return t.tokenname || t.symbol || native?.name || native?.symbol || "";
 }
 
 function formatTransferAmount(t) {

@@ -92,9 +92,9 @@
               {{ $t("blockDetail.logsNotifications", { count: exec.notifications.length }) }}
             </h4>
             <!-- Enriched display when available -->
-            <div v-if="enrichedTrace && enrichedTrace.executions[eIdx]" class="space-y-3">
+            <div v-if="hasEnrichedOperations(eIdx)" class="space-y-3">
               <EnrichedNotification
-                v-for="(op, opIdx) in enrichedTrace.executions[eIdx].operations || []"
+                v-for="(op, opIdx) in enrichedOperationsFor(eIdx)"
                 :key="'enriched-' + opIdx"
                 :notification="op"
                 :event-def="op.eventDef"
@@ -154,7 +154,7 @@ import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import { formatGas } from "@/utils/explorerFormat";
 
-defineProps({
+const props = defineProps({
   appLog: { type: Object, default: null },
   appLogLoading: { type: Boolean, default: false },
   appLogError: { type: String, default: "" },
@@ -171,5 +171,14 @@ function formatState(state) {
   } catch {
     return String(state);
   }
+}
+
+function enrichedOperationsFor(executionIndex) {
+  const operations = props.enrichedTrace?.executions?.[executionIndex]?.operations;
+  return Array.isArray(operations) ? operations : [];
+}
+
+function hasEnrichedOperations(executionIndex) {
+  return enrichedOperationsFor(executionIndex).length > 0;
 }
 </script>

@@ -361,6 +361,31 @@ function formatTransferAmount(transfer) {
   return formatTokenAmount(raw, decimals, Math.min(decimals, 8));
 }
 
+function getTransferContractHash(transfer) {
+  return String(transfer?.contract || transfer?.contractHash || "").toLowerCase();
+}
+
+function withTransferMetadata(transfer, metadata) {
+  if (!metadata) return transfer;
+  const next = { ...transfer };
+  if (next.decimals === undefined || next.decimals === null) {
+    if (metadata.decimals !== undefined && metadata.decimals !== null) {
+      next.decimals = Number(metadata.decimals);
+    }
+  }
+  if (!next.tokenname) {
+    next.tokenname = metadata.tokenname || metadata.name || metadata.display_name || metadata.displayName || "";
+  }
+  if (!next.symbol && metadata.symbol) {
+    next.symbol = metadata.symbol;
+  }
+  return next;
+}
+
+function withNativeTransferMetadata(transfer) {
+  return withTransferMetadata(transfer, NATIVE_CONTRACTS[getTransferContractHash(transfer)]);
+}
+
 function hasOracleResponseAttribute(tx) {
   return Boolean(
     tx?.attributes &&
@@ -504,17 +529,17 @@ async function loadTransfers(hash, gen) {
       if (!ch || NATIVE_CONTRACTS[ch]) continue;
       contractsNeedingDecimals.add(ch);
     }
-    const decimalsByContract = new Map();
+    const metadataByContract = new Map();
     if (contractsNeedingDecimals.size) {
       await Promise.all(
         [...contractsNeedingDecimals].map(async (ch) => {
           try {
             const meta = await tokenService.getByHashWithFallback(ch);
-            if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
-              decimalsByContract.set(ch, Number(meta.decimals));
+            if (meta) {
+              metadataByContract.set(ch, meta);
             }
           } catch (_e) {
-            /* leave decimals null; formatTransferAmount has a fallback */
+            /* leave metadata null; display/format helpers have fallbacks */
           }
         }),
       );
@@ -522,18 +547,20 @@ async function loadTransfers(hash, gen) {
     }
 
     nep17Transfers.value = rawNep17.map((t) => {
-      if (t.decimals !== undefined && t.decimals !== null) return t;
-      const ch = String(t.contract || t.contractHash || "").toLowerCase();
-      if (NATIVE_CONTRACTS[ch]) {
-        return { ...t, decimals: NATIVE_CONTRACTS[ch].decimals };
+      const native = withNativeTransferMetadata(t);
+      if (native !== t) return native;
+      const ch = getTransferContractHash(t);
+      if (metadataByContract.has(ch)) {
+        return withTransferMetadata(t, metadataByContract.get(ch));
       }
-      if (decimalsByContract.has(ch)) {
-        return { ...t, decimals: decimalsByContract.get(ch) };
+      if (t.decimals !== undefined && t.decimals !== null) return t;
+      if (NATIVE_CONTRACTS[ch]) {
+        return withTransferMetadata(t, NATIVE_CONTRACTS[ch]);
       }
       return t;
     });
     nep11Transfers.value = (nep11Res?.result || []).map((t) => ({
-      ...t,
+      ...withNativeTransferMetadata(t),
       _standard: "NEP-11",
     }));
   } catch (err) {
