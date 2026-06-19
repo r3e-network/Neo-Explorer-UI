@@ -340,12 +340,10 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
-    // The aggregate endpoint is already a hot 15s Worker cache target and is
-    // warmed on every new block. Do not append the `_ts` cache-buster here:
-    // a cold aggregate response can trip the soft-timeout and fan out
-    // into the older summary/blocks/transactions paths. Fallback paths still
-    // receive the caller's forceRefresh option below.
-    const aggregateRequestOptions = { ...requestOptions, forceRefresh: false };
+    // First paint can use the hot Worker cache, but realtime/SSE refreshes
+    // must bypass it. Otherwise the home cards can sit on a 15-30s old
+    // aggregate payload while the chain is producing a block every ~3s.
+    const aggregateRequestOptions = requestOptions;
     const mySummaryGen = ++summaryGeneration;
     // Fastest path: one read-api payload for all home-page critical data.
     // If the deployed read-api does not have this endpoint yet, every caller

@@ -542,6 +542,55 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("bypasses the cached homepage aggregate on realtime refreshes", async () => {
+    getIndexerHome
+      .mockResolvedValueOnce({
+        network: "mainnet",
+        summary: makeFreshSummary(13),
+        latest_blocks: makeIndexerBlocks(6, 12).data,
+        latest_transactions: makeIndexerTransactions(6).data,
+        paging: {
+          blocks_total: 13,
+          transactions_total: 999,
+        },
+      })
+      .mockResolvedValueOnce({
+        network: "mainnet",
+        summary: makeFreshSummary(14),
+        latest_blocks: makeIndexerBlocks(6, 13).data,
+        latest_transactions: makeIndexerTransactions(6).data,
+        paging: {
+          blocks_total: 14,
+          transactions_total: 1000,
+        },
+      });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: false });
+
+    const realtimeCallback = useRealtimeHeadMock.mock.calls[0][0];
+    realtimeCallback({ index: 13, network: "mainnet" });
+    await flushPromises();
+
+    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: true });
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("14");
+    wrapper.unmount();
+  });
+
   it("passes transfer summaries to LatestTransactions and enriches latest tx rows", async () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
