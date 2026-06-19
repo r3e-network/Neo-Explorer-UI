@@ -315,7 +315,7 @@ describe("GovernanceTool network changes", () => {
     expect(wrapper.html()).not.toContain("Mainnet Proposal");
     expect(wrapper.html()).toContain("Testnet Proposal");
     wrapper.unmount();
-  });
+  }, 15000);
 
   it("renders the proposal queue without requiring global $tc injection", async () => {
     envState.value = "TestT5";

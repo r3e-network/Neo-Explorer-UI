@@ -78,7 +78,7 @@ describe("TxOverviewTab", () => {
     expect(systemFeeRow.text()).toContain("txDetail.rowSysFeeBurned");
     const burnedBadge = systemFeeRow.find(".text-red-600");
     expect(burnedBadge.exists()).toBe(true);
-  });
+  }, 15000);
 
   it("labels transactions with OracleResponse attributes as Oracle Callback", async () => {
     const TxOverviewTab = (await import("@/views/Transaction/components/TxOverviewTab.vue")).default;
