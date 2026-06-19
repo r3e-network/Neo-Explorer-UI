@@ -1534,6 +1534,9 @@ export const walletService = {
     _connectedProvider = providerName;
     _account = account;
     _networkError = "";
+    if (providerName === PROVIDERS.NEOLINE) {
+      attachNeoLineListeners();
+    }
     broadcastWalletStateChange();
   },
 

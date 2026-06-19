@@ -1080,6 +1080,33 @@ describe("walletService", () => {
     expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.NEOLINE);
   });
 
+  it("keeps a hydrated NeoLine session in sync when the wallet emits an account change event", async () => {
+    const hydratedNeoLineAccount = {
+      address: "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+      label: "NeoLine",
+    };
+    const changedNeoLineAccount = {
+      address: "Nb3y1uCzYxk4q8m3P4Lqf6q2mNn7k8R5Qv",
+      label: "NeoLine",
+    };
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    const walletState = await import("../../src/utils/walletState.js");
+    walletService.disconnect();
+    walletService.hydrateSession(walletService.PROVIDERS.NEOLINE, hydratedNeoLineAccount);
+    expect(walletService.account).toEqual(hydratedNeoLineAccount);
+
+    window.dispatchEvent(new CustomEvent("NEOLine.N3.EVENT.ACCOUNT_CHANGED", {
+      detail: changedNeoLineAccount,
+    }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(walletService.account).toEqual(changedNeoLineAccount);
+    expect(walletState.connectedAccount.value).toBe(changedNeoLineAccount.address);
+    expect(localStorage.getItem("connectedWallet")).toBe(changedNeoLineAccount.address);
+    expect(localStorage.getItem("walletProvider")).toBe(walletService.PROVIDERS.NEOLINE);
+  });
+
   it("blocks OneGate signing when the active wallet account changes outside the Explorer", async () => {
     const oneGateSignMessageMock = vi.fn(async () => ({ publicKey: "03dead", data: "sig" }));
     window.OneGate = {
