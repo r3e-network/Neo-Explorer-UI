@@ -232,6 +232,25 @@ import { exportBlocksToCSV } from "@/utils/dataExport";
 import { exportAllPagesToCsv } from "@/utils/pagedExport";
 
 const { t } = useI18n();
+const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo, loadCommittee } = useCommittee();
+
+const VALIDATOR_IDENTITY_WAIT_MS = 1500;
+
+function waitForValidatorIdentity(timeoutMs = VALIDATOR_IDENTITY_WAIT_MS) {
+  let timer = null;
+  const committeePromise = Promise.resolve()
+    .then(() => loadCommittee())
+    .catch(() => null);
+
+  return Promise.race([
+    committeePromise.finally(() => {
+      if (timer) clearTimeout(timer);
+    }),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), timeoutMs);
+    }),
+  ]);
+}
 
 function getActiveValidatorAddress(block) {
   const resolvedPrimary = resolvePrimaryIndex(block);
@@ -256,7 +275,6 @@ function hasNamedValidatorIdentity(block) {
   if (name === t("validator.validator")) return false;
   return !isFallbackValidatorName(name);
 }
-const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrimaryNodeLogo } = useCommittee();
 const showAbsoluteTime = ref(false);
 
 // Stats bar
@@ -265,7 +283,12 @@ const totalBlocks = ref(0);
 const latestHeight = ref(0);
 
 // --- Pagination via composable (route-synced, cache-aware) ---
-const blockFetchFn = (limit, skip, opts) => blockService.getList(limit, skip, opts);
+const blockFetchFn = async (limit, skip, opts) => {
+  const validatorIdentityPromise = waitForValidatorIdentity();
+  const page = await blockService.getList(limit, skip, opts);
+  await validatorIdentityPromise;
+  return page;
+};
 
 const {
   items: blocks,

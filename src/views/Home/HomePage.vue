@@ -107,6 +107,7 @@ let lastFetchLatestTime = 0;
 let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
 const HOMEPAGE_AGGREGATE_WAIT_MS = 2_200;
+const HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS = 1500;
 const blockDetailsByHash = new Map();
 
 function isFreshHomepageSummary(summary) {
@@ -149,6 +150,16 @@ function softTimeout(promise, timeoutMs, fallbackValue = null) {
       timer = setTimeout(() => resolve(fallbackValue), timeoutMs);
     }),
   ]);
+}
+
+function waitForHomepageValidatorIdentity() {
+  return softTimeout(
+    Promise.resolve()
+      .then(() => loadCommittee())
+      .catch(() => null),
+    HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS,
+    null,
+  );
 }
 
 function extractHeightFromBlocks(blocks = []) {
@@ -346,6 +357,7 @@ async function loadLatestData(forceRefresh = false) {
     // aggregate payload while the chain is producing a block every ~3s.
     const aggregateRequestOptions = requestOptions;
     const mySummaryGen = ++summaryGeneration;
+    const validatorIdentityPromise = waitForHomepageValidatorIdentity();
     // Fastest path: one read-api payload for all home-page critical data.
     // If the deployed read-api does not have this endpoint yet, every caller
     // below falls back to the older per-resource APIs.
@@ -445,13 +457,14 @@ async function loadLatestData(forceRefresh = false) {
     };
 
     const blocksPromise = fetchLatestBlocks()
-      .then((blocksRes) => {
+      .then(async (blocksRes) => {
         if (!blocksRes) return;
         const nextBlocks = (blocksRes?.result || []).map((rawBlock) => {
           const block = normalizeBlockSummary(rawBlock);
           const cachedDetails = blockDetailsByHash.get(block.hash);
           return cachedDetails ? { ...block, ...cachedDetails } : block;
         });
+        await validatorIdentityPromise;
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
           latestBlocks.value = nextBlocks;
         }

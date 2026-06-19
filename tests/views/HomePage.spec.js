@@ -501,7 +501,7 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("does not preload committee metadata on the homepage critical path", async () => {
+  it("preloads committee metadata before publishing latest block rows", async () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
       global: {
@@ -517,7 +517,7 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(loadCommitteeMock).not.toHaveBeenCalled();
+    expect(loadCommitteeMock).toHaveBeenCalled();
     wrapper.unmount();
   });
 

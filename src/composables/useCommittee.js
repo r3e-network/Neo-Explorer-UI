@@ -15,6 +15,7 @@ const initialized = ref(false);
 let committeeNetworkListener = null;
 let committeeNetworkListenerConsumers = 0;
 let latestLoadCommittee = null;
+let committeeLoadPromise = null;
 
 const normalizeMetaKey = (value) =>
   String(value || "")
@@ -360,36 +361,20 @@ const loadCommitteeMetadata = async () => {
 };
 
 export function useCommittee() {
-  async function loadCommittee(force = false) {
+  function loadCommittee(force = false) {
     clearDeferredCommitteeLoad();
-    if (initialized.value && !force) return;
-    initialized.value = true;
-    let validatorsLoaded = false;
-    // Start metadata fetch immediately so validator labels/logos are not blocked by slow RPC timeouts.
-    const doraPromise = loadCommitteeMetadata();
+    if (committeeLoadPromise && !force) return committeeLoadPromise;
+    if (initialized.value && !force) return Promise.resolve();
 
-    try {
-      // primary index on blocks maps to the active consensus validators set.
-      const response = await rpc("getnextblockvalidators", []);
-      if (response && Array.isArray(response)) {
-        validators.value = normalizeCommitteeList(response);
-      } else if (response && response.result && Array.isArray(response.result)) {
-        validators.value = normalizeCommitteeList(response.result);
-      }
+    committeeLoadPromise = (async () => {
+      initialized.value = true;
+      let validatorsLoaded = false;
+      // Start metadata fetch immediately so validator labels/logos are not blocked by slow RPC timeouts.
+      const doraPromise = loadCommitteeMetadata();
 
-      validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn("Failed to load next block validators", e);
-    }
-
-    if (!validatorsLoaded) {
       try {
-        // Standard `getcommittee` returns the consensus committee
-        // public-key list. Was previously calling PascalCase
-        // GetCommittee which proxies through neo3fura_http and won't
-        // exist post-Mongo cleanup. Standard works against any Neo
-        // node.
-        const response = await rpc("getcommittee", []);
+        // primary index on blocks maps to the active consensus validators set.
+        const response = await rpc("getnextblockvalidators", []);
         if (response && Array.isArray(response)) {
           validators.value = normalizeCommitteeList(response);
         } else if (response && response.result && Array.isArray(response.result)) {
@@ -398,24 +383,47 @@ export function useCommittee() {
 
         validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
       } catch (e) {
-        if (import.meta.env.DEV) console.warn("Failed to load committee fallback", e);
+        if (import.meta.env.DEV) console.warn("Failed to load next block validators", e);
       }
-    }
 
-    const doraResult = await doraPromise;
-    if (!validatorsLoaded && doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
-      // Only use metadata-derived ordering as fallback when RPC validator set is unavailable.
-      // block.primary index must map to the RPC validator ordering for correct validator/logo display.
-      validators.value = doraResult.topConsensusValidators;
-    }
+      if (!validatorsLoaded) {
+        try {
+          // Standard `getcommittee` returns the consensus committee
+          // public-key list. Was previously calling PascalCase
+          // GetCommittee which proxies through neo3fura_http and won't
+          // exist post-Mongo cleanup. Standard works against any Neo
+          // node.
+          const response = await rpc("getcommittee", []);
+          if (response && Array.isArray(response)) {
+            validators.value = normalizeCommitteeList(response);
+          } else if (response && response.result && Array.isArray(response.result)) {
+            validators.value = normalizeCommitteeList(response.result);
+          }
 
-    validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
+          validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
+        } catch (e) {
+          if (import.meta.env.DEV) console.warn("Failed to load committee fallback", e);
+        }
+      }
 
-    if (!validatorsLoaded) {
-      // Allow later calls to retry when RPC and metadata are temporarily unavailable.
-      initialized.value = false;
-      return;
-    }
+      const doraResult = await doraPromise;
+      if (!validatorsLoaded && doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
+        // Only use metadata-derived ordering as fallback when RPC validator set is unavailable.
+        // block.primary index must map to the RPC validator ordering for correct validator/logo display.
+        validators.value = doraResult.topConsensusValidators;
+      }
+
+      validatorsLoaded = Array.isArray(validators.value) && validators.value.length > 0;
+
+      if (!validatorsLoaded) {
+        // Allow later calls to retry when RPC and metadata are temporarily unavailable.
+        initialized.value = false;
+      }
+    })().finally(() => {
+      committeeLoadPromise = null;
+    });
+
+    return committeeLoadPromise;
   }
 
   latestLoadCommittee = loadCommittee;

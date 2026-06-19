@@ -123,6 +123,30 @@ describe("useCommittee", () => {
     expect(rpcMock).not.toHaveBeenCalledWith("getcommittee", []);
   });
 
+  it("coalesces concurrent committee loads so callers wait for the active validator set", async () => {
+    let resolveRpc;
+    rpcMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRpc = resolve;
+      }),
+    );
+
+    const { useCommittee } = await import("@/composables/useCommittee");
+    const committee = useCommittee();
+    const firstLoad = committee.loadCommittee();
+    const secondLoad = committee.loadCommittee();
+
+    expect(secondLoad).toBe(firstLoad);
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+
+    resolveRpc([{ publickey: "PUBKEY1" }]);
+    await Promise.all([firstLoad, secondLoad]);
+    await flush();
+
+    expect(committee.getPrimaryNodeName(0)).toBe("Consensus Node 1");
+    expect(committee.getPrimaryNodeAddress(0)).toBe("0xcommittee1");
+  });
+
   it("maps primary index against next block validators instead of committee order", async () => {
     publicKeyToAddressMock.mockImplementation((publickey) => (
       publickey === "PUBKEY_VALIDATOR_0"
