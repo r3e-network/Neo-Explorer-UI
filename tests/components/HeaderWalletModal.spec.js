@@ -104,6 +104,22 @@ describe("HeaderWalletModal", () => {
     expect(wrapper.emitted("connect")).toEqual([["EVM Wallets (MetaMask, OKX, Rabby, etc.)"]]);
   });
 
+  it("marks configuration-gated providers as unavailable instead of openable", async () => {
+    const wrapper = await mountModal({
+      supportedProviders: ["WalletConnect", "Neon Wallet", "Google / Email (Web3Auth)"],
+      isProviderAvailable: () => false,
+      getProviderUnavailableReason: () => "not configured",
+    });
+    await flushPromises();
+
+    for (const provider of ["WalletConnect", "Neon Wallet", "Google / Email (Web3Auth)"]) {
+      const button = wrapper.findAll(".wallet-modal-option").find((b) => b.text().includes(provider));
+      expect(button.text()).toContain("not configured");
+      expect(button.text()).toContain("header.unavailable");
+      expect(button.text()).not.toContain("header.open");
+    }
+  });
+
   it("emits connect for WIF when not available (e.g. prod)", async () => {
     const wrapper = await mountModal({
       isProviderAvailable: () => false,

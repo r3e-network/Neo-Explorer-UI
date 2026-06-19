@@ -57,7 +57,7 @@
               v-if="!isAvailable(provider)"
               class="wallet-modal-option-action shrink-0 rounded-full border border-amber-300/30 px-2 py-1 text-[11px] font-semibold text-amber-100/90"
             >
-              {{ $t('header.open') }}
+              {{ $t(getProviderUnavailableActionLabelKey(provider)) }}
             </span>
             <svg v-else class="wallet-modal-chevron h-5 w-5 shrink-0 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
           </button>
@@ -155,6 +155,17 @@ function getProviderHelpId(index) {
 function getProviderAriaLabel(provider) {
   if (isAvailable(provider)) return provider;
   return `${provider}. ${props.getProviderUnavailableReason(provider)}`;
+}
+
+function getProviderUnavailableActionLabelKey(provider) {
+  if (
+    provider === PROVIDERS.WALLETCONNECT ||
+    provider === PROVIDERS.NEON ||
+    provider === PROVIDERS.WEB3AUTH
+  ) {
+    return "header.unavailable";
+  }
+  return "header.open";
 }
 
 function onProviderClick(provider) {

@@ -339,7 +339,7 @@ describe("AppHeader wallet CTA", () => {
     expect(sessionStorage.getItem("devTestWif")).toBeNull();
   });
 
-  it("redirects unavailable wallets to their install pages", async () => {
+  it("redirects unavailable installable wallets while keeping config-gated wallets in-app", async () => {
     walletServiceMock.getAvailableProviders.mockReturnValueOnce([
       "NeoLine",
       "EVM Wallets (MetaMask, OKX, Rabby, etc.)",
@@ -373,8 +373,11 @@ describe("AppHeader wallet CTA", () => {
     await flushPromises();
 
     let buttons = wrapper.findAll("button");
+    const walletConnectButton = buttons.find((candidate) => candidate.text().includes("WalletConnect"));
     const neonButton = buttons.find((candidate) => candidate.text().includes("Neon Wallet"));
 
+    await walletConnectButton.trigger("click");
+    await flushPromises();
     await neonButton.trigger("click");
     await flushPromises();
 
@@ -383,8 +386,11 @@ describe("AppHeader wallet CTA", () => {
     await oneGateButton.trigger("click");
     await flushPromises();
 
-    expect(window.open).toHaveBeenCalledWith("https://neon.coz.io/", "_blank", "noopener,noreferrer");
+    expect(window.open).not.toHaveBeenCalledWith("https://walletconnect.network/", "_blank", "noopener,noreferrer");
+    expect(window.open).not.toHaveBeenCalledWith("https://neon.coz.io/", "_blank", "noopener,noreferrer");
     expect(window.open).toHaveBeenCalledWith("https://onegate.space/", "_blank", "noopener,noreferrer");
+    expect(toast.info).toHaveBeenCalledWith("header.providerWalletConnect");
+    expect(toast.info).toHaveBeenCalledWith("header.providerNeon");
   });
 
   it("refreshes provider availability before connecting a wallet that became available", async () => {
