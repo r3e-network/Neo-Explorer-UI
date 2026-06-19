@@ -112,12 +112,49 @@ export async function initWallet() {
   // Passive restore only. Do not call interactive wallet APIs during app boot.
   connectedAccount.value = "";
   const walletService = await loadWalletService();
+  const restoreAttemptId = typeof walletService.beginPassiveRestore === "function"
+    ? walletService.beginPassiveRestore()
+    : null;
+  const restoreAttemptOptions = (options) => ({
+    ...(options || {}),
+    connectionAttemptId: restoreAttemptId,
+  });
+  const hydrateRestoredSession = (providerName, account) => {
+    if (Number.isFinite(restoreAttemptId)) {
+      walletService.hydrateSession(providerName, account, restoreAttemptOptions());
+      return;
+    }
+    walletService.hydrateSession(providerName, account);
+  };
+  const restoreWalletSession = (providerName, options) => (
+    Number.isFinite(restoreAttemptId)
+      ? walletService.restoreSession(providerName, restoreAttemptOptions(options))
+      : options === undefined
+        ? walletService.restoreSession(providerName)
+        : walletService.restoreSession(providerName, options)
+  );
+  const isRestoreAttemptCurrent = () => (
+    !Number.isFinite(restoreAttemptId) ||
+    typeof walletService.isConnectionAttemptCurrent !== "function" ||
+    walletService.isConnectionAttemptCurrent(restoreAttemptId)
+  );
+  const handleRestoreError = (error) => {
+    if (
+      typeof walletService.isConnectionSupersededError === "function" &&
+      walletService.isConnectionSupersededError(error)
+    ) {
+      return;
+    }
+    if (!isRestoreAttemptCurrent()) return;
+    clearRestoredWalletState(walletService);
+  };
 
   if (provider === "NeoLine") {
     // 3s matches the timeout used by the interactive connect path in
     // walletService — NeoLine sometimes takes >1s to inject on a cold
     // reload, and the prior 1s window dropped sessions we could keep.
     const hasNeoLine = await waitForNeoLineN3(3000);
+    if (!isRestoreAttemptCurrent()) return;
     if (!hasNeoLine) {
       clearStoredWalletState();
       return;
@@ -125,15 +162,16 @@ export async function initWallet() {
 
     try {
       setupNeoLineEventListeners();
-      connectedAccount.value = storedAddress;
-      setStoredWalletAddress(PROVIDERS.NEOLINE, storedAddress);
-      walletService.hydrateSession(PROVIDERS.NEOLINE, {
+      hydrateRestoredSession(PROVIDERS.NEOLINE, {
         address: storedAddress,
         label: PROVIDERS.NEOLINE,
       });
       await walletService.ensureNetworkConsistency?.(PASSIVE_DAPI_RESTORE_VALIDATION);
+      if (!isRestoreAttemptCurrent()) return;
+      connectedAccount.value = storedAddress;
+      setStoredWalletAddress(PROVIDERS.NEOLINE, storedAddress);
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else if (provider === PROVIDERS.ONEGATE) {
     if (!window.OneGate && !window.neo) {
@@ -142,19 +180,21 @@ export async function initWallet() {
     }
 
     try {
-      connectedAccount.value = storedAddress;
-      setStoredWalletAddress(PROVIDERS.ONEGATE, storedAddress);
-      walletService.hydrateSession(PROVIDERS.ONEGATE, {
+      hydrateRestoredSession(PROVIDERS.ONEGATE, {
         address: storedAddress,
         label: PROVIDERS.ONEGATE,
       });
       await walletService.ensureNetworkConsistency?.(PASSIVE_DAPI_RESTORE_VALIDATION);
+      if (!isRestoreAttemptCurrent()) return;
+      connectedAccount.value = storedAddress;
+      setStoredWalletAddress(PROVIDERS.ONEGATE, storedAddress);
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else if (provider === PROVIDERS.WALLETCONNECT) {
     try {
-      const account = await walletService.restoreSession(PROVIDERS.WALLETCONNECT);
+      const account = await restoreWalletSession(PROVIDERS.WALLETCONNECT);
+      if (!isRestoreAttemptCurrent()) return;
       if (account && account.address) {
         connectedAccount.value = account.address;
         setStoredWalletAddress(PROVIDERS.WALLETCONNECT, account.address);
@@ -162,7 +202,7 @@ export async function initWallet() {
         clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else if (provider === PROVIDERS.EVM_WALLET) {
     clearRestoredWalletState(walletService);
@@ -173,7 +213,8 @@ export async function initWallet() {
         clearRestoredWalletState(walletService);
         return;
       }
-      const account = await walletService.restoreSession(PROVIDERS.TESTNET_WIF, { wif });
+      const account = await restoreWalletSession(PROVIDERS.TESTNET_WIF, { wif });
+      if (!isRestoreAttemptCurrent()) return;
       if (account && account.address) {
         connectedAccount.value = account.address;
         sessionStorage.setItem("connectedWallet", account.address);
@@ -181,11 +222,12 @@ export async function initWallet() {
         clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else if (provider === PROVIDERS.NEON) {
     try {
-      const account = await walletService.restoreSession(PROVIDERS.NEON);
+      const account = await restoreWalletSession(PROVIDERS.NEON);
+      if (!isRestoreAttemptCurrent()) return;
       if (account && account.address) {
         connectedAccount.value = account.address;
         localStorage.setItem("connectedWallet", account.address);
@@ -193,11 +235,12 @@ export async function initWallet() {
         clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else if (provider === PROVIDERS.WEB3AUTH) {
     try {
-      const account = await walletService.restoreSession(PROVIDERS.WEB3AUTH);
+      const account = await restoreWalletSession(PROVIDERS.WEB3AUTH);
+      if (!isRestoreAttemptCurrent()) return;
       if (account && account.address) {
         connectedAccount.value = account.address;
         setStoredWalletAddress(PROVIDERS.WEB3AUTH, account.address);
@@ -205,7 +248,7 @@ export async function initWallet() {
         clearRestoredWalletState(walletService);
       }
     } catch (e) {
-      clearRestoredWalletState(walletService);
+      handleRestoreError(e);
     }
   } else {
     clearRestoredWalletState(walletService);

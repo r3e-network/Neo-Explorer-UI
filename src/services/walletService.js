@@ -156,13 +156,7 @@ function isCurrentConnectionAttempt(attemptId) {
 
 function assertCurrentConnectionAttempt(attemptId) {
   if (!isCurrentConnectionAttempt(attemptId)) {
-    throw new Error(
-      tWallet(
-        "wallet.errors.connectionSuperseded",
-        null,
-        "Wallet connection was canceled or superseded by a newer request.",
-      ),
-    );
+    throw createConnectionSupersededError();
   }
 }
 
@@ -170,6 +164,34 @@ const AA_ALLOWED_META_METHODS = new Set(
   Array.isArray(aaMethodPolicy?.allowedMethods) ? aaMethodPolicy.allowedMethods : [],
 );
 const NEOLINE_APPROVAL_TIMEOUT_MS = 60_000;
+const CONNECTION_SUPERSEDED_CODE = "WALLET_CONNECTION_SUPERSEDED";
+
+function createConnectionSupersededError() {
+  const error = new Error(
+    tWallet(
+      "wallet.errors.connectionSuperseded",
+      null,
+      "Wallet connection was canceled or superseded by a newer request.",
+    ),
+  );
+  error.code = CONNECTION_SUPERSEDED_CODE;
+  return error;
+}
+
+async function assertWalletConnectAttemptCurrent(connectionAttemptId, walletConnectService) {
+  try {
+    assertCurrentConnectionAttempt(connectionAttemptId);
+  } catch (error) {
+    if (error?.code === CONNECTION_SUPERSEDED_CODE) {
+      try {
+        await walletConnectService?.disconnect?.();
+      } catch {
+        // Best-effort cleanup; stale restores must not keep a background session.
+      }
+    }
+    throw error;
+  }
+}
 
 async function loadSdk() {
   const sdk = await loadNeonJs();
@@ -1209,7 +1231,9 @@ export const walletService = {
    * @returns {Promise<{address: string, label: string}>}
    */
   async connect(providerName, options = {}) {
-    const connectionAttemptId = beginConnectionAttempt();
+    const connectionAttemptId = Number.isFinite(options?.connectionAttemptId)
+      ? options.connectionAttemptId
+      : beginConnectionAttempt();
 
     if (providerName === PROVIDERS.NEOLINE) {
       await waitForNeoLine();
@@ -1380,20 +1404,28 @@ export const walletService = {
     throw new Error(`Unknown provider: ${providerName}`);
   },
 
-  hydrateSession(providerName, account) {
+  hydrateSession(providerName, account, options = {}) {
     if (!providerName || !account?.address) {
       throw new Error("Invalid wallet session payload.");
     }
+    if (Number.isFinite(options?.connectionAttemptId)) {
+      assertCurrentConnectionAttempt(options.connectionAttemptId);
+    }
     _connectedProvider = providerName;
     _account = account;
+    _networkError = "";
     broadcastWalletStateChange();
   },
 
   async restoreSession(providerName, options = {}) {
+    const connectionAttemptId = Number.isFinite(options?.connectionAttemptId)
+      ? options.connectionAttemptId
+      : beginConnectionAttempt();
+
     if (providerName === PROVIDERS.TESTNET_WIF) {
       const wif = String(options?.wif || "").trim();
       if (!wif) return null;
-      return this.connect(providerName, { wif });
+      return this.connect(providerName, { wif, connectionAttemptId });
     }
 
     if (providerName === PROVIDERS.WEB3AUTH) {
@@ -1402,8 +1434,10 @@ export const walletService = {
       const account = await web3authService.getAccount();
       if (!account?.address) return null;
 
+      assertCurrentConnectionAttempt(connectionAttemptId);
       _connectedProvider = PROVIDERS.WEB3AUTH;
       _account = { address: account.address, label: "Web3Auth Account" };
+      _networkError = "";
       broadcastWalletStateChange();
       return _account;
     }
@@ -1418,14 +1452,34 @@ export const walletService = {
     const account = await walletConnectService.restoreSession();
     if (!account?.address) return null;
 
+    await assertWalletConnectAttemptCurrent(connectionAttemptId, walletConnectService);
+    if (typeof walletConnectService.ensureNetworkCompatible === "function") {
+      await walletConnectService.ensureNetworkCompatible();
+      await assertWalletConnectAttemptCurrent(connectionAttemptId, walletConnectService);
+    }
+    const activeAccount = walletConnectService.account || account;
+    if (!activeAccount?.address) return null;
+
     _connectedProvider = providerName;
     _account = {
-      ...account,
+      ...activeAccount,
       label: providerName,
     };
-    await this.ensureNetworkConsistency();
+    _networkError = "";
     broadcastWalletStateChange();
     return _account;
+  },
+
+  beginPassiveRestore() {
+    return beginConnectionAttempt();
+  },
+
+  isConnectionAttemptCurrent(attemptId) {
+    return isCurrentConnectionAttempt(attemptId);
+  },
+
+  isConnectionSupersededError(error) {
+    return error?.code === CONNECTION_SUPERSEDED_CODE;
   },
 
   cancelPendingConnection() {

@@ -55,6 +55,9 @@ describe("utils/wallet connectWallet", () => {
     walletServiceMock.connect.mockReset();
     walletServiceMock.restoreSession.mockReset();
     walletServiceMock.disconnect.mockReset();
+    delete walletServiceMock.beginPassiveRestore;
+    delete walletServiceMock.isConnectionAttemptCurrent;
+    delete walletServiceMock.isConnectionSupersededError;
   });
 
   it("connects when NeoLineN3 is injected after the ready event", async () => {
@@ -149,6 +152,40 @@ describe("utils/wallet connectWallet", () => {
     expect(walletServiceMock.restoreSession).toHaveBeenCalledWith(walletServiceMock.PROVIDERS.WEB3AUTH);
     expect(walletServiceMock.connect).not.toHaveBeenCalled();
     expect(wallet.connectedAccount.value).toBe(address);
+  });
+
+  it("does not clear a newer wallet record when passive restore is superseded", async () => {
+    const staleAddress = "NStaleWeb3Auth1111111111111111111111";
+    const manualAddress = "NManualNeoLine11111111111111111111111";
+    const superseded = Object.assign(new Error("superseded"), {
+      code: "WALLET_CONNECTION_SUPERSEDED",
+    });
+    walletServiceMock.beginPassiveRestore = vi.fn(() => 42);
+    walletServiceMock.isConnectionAttemptCurrent = vi.fn(() => false);
+    walletServiceMock.isConnectionSupersededError = vi.fn(
+      (error) => error?.code === "WALLET_CONNECTION_SUPERSEDED",
+    );
+    walletServiceMock.restoreSession.mockImplementationOnce(async () => {
+      localStorage.setItem("connectedWallet", manualAddress);
+      localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.NEOLINE);
+      throw superseded;
+    });
+    localStorage.setItem("connectedWallet", staleAddress);
+    localStorage.setItem("walletProvider", walletServiceMock.PROVIDERS.WEB3AUTH);
+
+    const wallet = await import("@/utils/wallet");
+    await wallet.initWallet();
+
+    expect(walletServiceMock.beginPassiveRestore).toHaveBeenCalledTimes(1);
+    expect(walletServiceMock.restoreSession).toHaveBeenCalledWith(
+      walletServiceMock.PROVIDERS.WEB3AUTH,
+      { connectionAttemptId: 42 },
+    );
+    expect(walletServiceMock.isConnectionSupersededError).toHaveBeenCalledWith(superseded);
+    expect(walletServiceMock.disconnect).not.toHaveBeenCalled();
+    expect(localStorage.getItem("connectedWallet")).toBe(manualAddress);
+    expect(localStorage.getItem("walletProvider")).toBe(walletServiceMock.PROVIDERS.NEOLINE);
+    expect(wallet.connectedAccount.value).toBe("");
   });
 
   it("passively hydrates a stored OneGate session without calling interactive account APIs", async () => {

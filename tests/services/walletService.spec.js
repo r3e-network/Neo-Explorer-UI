@@ -893,6 +893,31 @@ describe("walletService", () => {
     expect(localStorage.getItem("walletProvider")).toBeNull();
   });
 
+  it("does not let a stale WalletConnect restore commit after a newer wallet action", async () => {
+    let resolveRestore;
+    walletConnectRestoreSessionMock.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveRestore = resolve;
+    }));
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+    walletConnectDisconnectMock.mockClear();
+
+    const restorePromise = walletService.restoreSession(walletService.PROVIDERS.WALLETCONNECT);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(walletConnectRestoreSessionMock).toHaveBeenCalledTimes(1);
+
+    walletService.cancelPendingConnection();
+    resolveRestore(walletConnectAccount);
+
+    await expect(restorePromise).rejects.toMatchObject({ code: "WALLET_CONNECTION_SUPERSEDED" });
+    expect(walletConnectDisconnectMock).toHaveBeenCalledTimes(1);
+    expect(walletService.isConnected).toBe(false);
+    expect(walletService.account).toBeNull();
+    expect(localStorage.getItem("connectedWallet")).toBeNull();
+    expect(localStorage.getItem("walletProvider")).toBeNull();
+  });
+
   it("clears WalletConnect-style global wallet state when the wallet deletes the session remotely", async () => {
     const { walletService } = await import("../../src/services/walletService.js");
     const walletState = await import("../../src/utils/walletState.js");
@@ -1042,6 +1067,38 @@ describe("walletService", () => {
       address: walletConnectAccount.address,
       label: walletService.PROVIDERS.NEON,
     });
+  });
+
+  it("does not let a stale Web3Auth restore overwrite a newer manual connection", async () => {
+    const restoredAccount = {
+      address: "NRestoreWeb3Auth111111111111111111111",
+      label: "Web3Auth Account",
+    };
+    const manualAccount = {
+      address: "NManualWeb3Auth111111111111111111111",
+      label: "Web3Auth Account",
+    };
+    let resolveRestore;
+    getAccountMock.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveRestore = resolve;
+    }));
+    connectMock.mockResolvedValueOnce(manualAccount);
+
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const restorePromise = walletService.restoreSession(walletService.PROVIDERS.WEB3AUTH);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getAccountMock).toHaveBeenCalledTimes(1);
+
+    const connected = await walletService.connect(walletService.PROVIDERS.WEB3AUTH);
+    resolveRestore(restoredAccount);
+
+    await expect(restorePromise).rejects.toMatchObject({ code: "WALLET_CONNECTION_SUPERSEDED" });
+    expect(connected.address).toBe(manualAccount.address);
+    expect(walletService.provider).toBe(walletService.PROVIDERS.WEB3AUTH);
+    expect(walletService.account).toEqual(manualAccount);
+    expect(localStorage.getItem("connectedWallet")).toBe(manualAccount.address);
   });
 
   it("restores a direct testnet WIF session when the WIF is provided again", async () => {
