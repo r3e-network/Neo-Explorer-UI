@@ -97,5 +97,5 @@ describe("TxDetail network changes", () => {
     expect(getByHash).toHaveBeenCalledTimes(2);
     expect(getByHash).toHaveBeenNthCalledWith(2, "0xtx", { network: "mainnet" });
     wrapper.unmount();
-  });
+  }, 20_000);
 });

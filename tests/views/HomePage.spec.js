@@ -321,7 +321,7 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe(String(HOMEPAGE_BLOCK_LIMIT));
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe(String(HOMEPAGE_TRANSACTION_LIMIT));
-    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("12");
     expect(getIndexerHome).toHaveBeenCalledWith(HOMEPAGE_TRANSACTION_LIMIT, {
       forceRefresh: false,
       network: "mainnet",
@@ -455,7 +455,7 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("displays block count from the indexer summary", async () => {
+  it("displays latest block height from the indexer summary count", async () => {
     getIndexerSummary.mockResolvedValueOnce(makeFreshSummary(13));
     getIndexerBlocks.mockResolvedValueOnce(makeIndexerBlocks(6, 12));
     getIndexerTransactions.mockResolvedValueOnce(makeIndexerTransactions());
@@ -475,7 +475,7 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("12");
     wrapper.unmount();
   });
 
@@ -663,7 +663,7 @@ describe("HomePage initial loading", () => {
       forceRefresh: true,
       network: "mainnet",
     });
-    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("14");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
     wrapper.unmount();
   });
 
@@ -720,7 +720,7 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
-  it("updates block count when refresh returns a newer height", async () => {
+  it("updates block height when refresh returns a newer height", async () => {
     getIndexerSummary
       .mockResolvedValueOnce(makeFreshSummary(13))
       .mockResolvedValueOnce(makeFreshSummary(14));
@@ -743,12 +743,12 @@ describe("HomePage initial loading", () => {
     });
 
     await flushPromises();
-    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("12");
 
     await wrapper.get('[data-testid="home-stats-fetch"]').trigger("click");
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("14");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
     wrapper.unmount();
   });
 

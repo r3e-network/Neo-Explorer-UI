@@ -173,6 +173,15 @@
                 <span aria-hidden="true" class="mr-1">✅</span>
                 {{ $t("homePage.validatedBadge") }}
               </span>
+              <span
+                v-if="stateRootLagLabel"
+                data-testid="state-root-lag"
+                class="text-[11px] text-low whitespace-nowrap"
+                :title="stateRootLagTitle"
+                :aria-label="stateRootLagTitle"
+              >
+                {{ stateRootLagLabel }}
+              </span>
             </div>
           </div>
           <div class="mini-stat">
@@ -297,14 +306,35 @@ const validatedStateRootLabel = computed(() => (
 
 const validatedStateRootTitle = computed(() => (
   validatedStateRootHeight.value !== null
-    ? `${t("homePage.miniValidatedStateRoot")} ${formatNumber(validatedStateRootHeight.value)}`
+    ? t("homePage.stateRootValidatedThrough", { n: formatNumber(validatedStateRootHeight.value) })
     : t("homePage.miniValidatedStateRoot")
 ));
 
 const blockHeightValidationTitle = computed(() => (
   displayedBlockHeight.value !== null
-    ? `${t("homePage.miniValidatedStateRoot")} ${formatNumber(displayedBlockHeight.value)}`
+    ? t("homePage.stateRootValidatedThrough", { n: formatNumber(displayedBlockHeight.value) })
     : t("homePage.miniValidatedStateRoot")
+));
+
+const stateRootChainLag = computed(() => {
+  if (!hasValidatedStateRoot.value) return null;
+  if (displayedBlockHeight.value === null || validatedStateRootHeight.value === null) return null;
+  const lag = displayedBlockHeight.value - validatedStateRootHeight.value;
+  return lag > 0 ? lag : null;
+});
+
+const stateRootLagLabel = computed(() => (
+  stateRootChainLag.value !== null ? t("homePage.stateRootLagBlocks", { n: stateRootChainLag.value }) : ""
+));
+
+const stateRootLagTitle = computed(() => (
+  stateRootChainLag.value !== null
+    ? t("homePage.stateRootLagTitle", {
+      tip: formatNumber(displayedBlockHeight.value),
+      root: formatNumber(validatedStateRootHeight.value),
+      n: stateRootChainLag.value,
+    })
+    : ""
 ));
 
 const validatedStateRootLink = computed(() => (

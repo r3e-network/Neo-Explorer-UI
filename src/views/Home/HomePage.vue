@@ -174,7 +174,7 @@ function isFreshHomepageSummary(summary) {
 
 function getLatestKnownHeight() {
   const latestIndex = Number(latestBlocks.value?.[0]?.index);
-  const latestBlockHeight = Number.isFinite(latestIndex) && latestIndex >= 0 ? latestIndex + 1 : 0;
+  const latestBlockHeight = Number.isFinite(latestIndex) && latestIndex >= 0 ? latestIndex : 0;
   const validatedRootHeight = Number(
     validatedStateRoot.value?.validatedrootindex ?? validatedStateRoot.value?.index ?? 0,
   );
@@ -188,6 +188,18 @@ function getLatestKnownHeight() {
 function resolveLiveBlockHeight(candidateHeight) {
   const candidate = Number(candidateHeight || 0);
   return Math.max(candidate, getLatestKnownHeight());
+}
+
+function latestHeightFromBlockCount(totalBlocks) {
+  const count = Number(totalBlocks);
+  if (!Number.isFinite(count) || count <= 0) return 0;
+  return Math.max(0, Math.floor(count) - 1);
+}
+
+function latestHeightFromSummary(summary) {
+  const indexedHeight = Number(summary?.last_indexed_block ?? summary?.lastIndexedBlock);
+  if (Number.isFinite(indexedHeight) && indexedHeight >= 0) return indexedHeight;
+  return latestHeightFromBlockCount(summary?.total_block_count ?? summary?.totalBlockCount);
 }
 
 function applyValidatedStateRoot(root) {
@@ -232,7 +244,7 @@ function waitForHomepageValidatorIdentity() {
 function extractHeightFromBlocks(blocks = []) {
   const latestIndex = Number(blocks?.[0]?.index);
   if (!Number.isFinite(latestIndex) || latestIndex < 0) return 0;
-  return latestIndex + 1;
+  return latestIndex;
 }
 
 function handleFetchLatest() {
@@ -565,7 +577,7 @@ async function loadLatestData(forceRefresh = false) {
       if (!isCurrentLoadContext(context)) return;
       if (mySummaryGen !== summaryGeneration) return;
       if (!summary || !isFreshHomepageSummary(summary)) return;
-      blockCount.value = resolveLiveBlockHeight(Number(summary.total_block_count || 0));
+      blockCount.value = resolveLiveBlockHeight(latestHeightFromSummary(summary));
       txCount.value = Number(summary.total_tx_count || 0);
     }).catch(() => {});
 

@@ -8,9 +8,10 @@ vi.mock("@/components/common/BlockListItem.vue", () => ({
     props: {
       block: { type: Object, default: () => ({}) },
       stateRootValidated: { type: Boolean, default: false },
+      stateRootValidatedHeight: { type: [Number, String], default: null },
     },
     template:
-      '<div data-testid="block-row" :data-index="String(block.index)" :data-validated="String(stateRootValidated)"></div>',
+      '<div data-testid="block-row" :data-index="String(block.index)" :data-validated="String(stateRootValidated)" :data-validated-height="String(stateRootValidatedHeight ?? \'\')"></div>',
   }),
 }));
 
@@ -48,6 +49,7 @@ describe("LatestBlocks validated state root markers", () => {
 
     const rows = wrapper.findAll('[data-testid="block-row"]');
     expect(rows.map((row) => row.attributes("data-validated"))).toEqual(["false", "true", "true"]);
+    expect(rows.map((row) => row.attributes("data-validated-height"))).toEqual(["12", "12", "12"]);
   });
 
   it("does not mark blocks when the state root is not validated", async () => {

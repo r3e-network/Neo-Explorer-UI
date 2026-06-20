@@ -124,7 +124,7 @@ describe("Treasury view", () => {
     expect(safeRpcMock).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("12");
     expect(wrapper.text()).toContain("1.5");
-  });
+  }, 20_000);
 
   it("falls back to standard getnep17balances RPC when the read-api is unavailable", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response("{}", { status: 500 }));

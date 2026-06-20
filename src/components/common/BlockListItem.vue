@@ -100,6 +100,7 @@ const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrima
 const props = defineProps({
   block: { type: Object, default: () => ({}) },
   stateRootValidated: { type: Boolean, default: false },
+  stateRootValidatedHeight: { type: [Number, String], default: null },
 });
 
 const now = useNow({ interval: 1000 });
@@ -139,7 +140,17 @@ const validatorAddress = computed(() => {
   return validatorHintAddress.value;
 });
 
-const stateRootValidationTitle = computed(() => t("homePage.miniValidatedStateRoot"));
+const stateRootValidatedHeightNumber = computed(() => {
+  const value = Number(props.stateRootValidatedHeight);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+});
+
+const stateRootValidationTitle = computed(() => {
+  if (!props.stateRootValidated || stateRootValidatedHeightNumber.value === null) {
+    return t("homePage.miniValidatedStateRoot");
+  }
+  return t("homePage.stateRootValidatedThrough", { n: formatNumber(stateRootValidatedHeightNumber.value) });
+});
 
 const blockHeightTitle = computed(() => {
   const hash = String(props.block?.hash || "").trim();

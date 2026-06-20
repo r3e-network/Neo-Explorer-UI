@@ -24,6 +24,7 @@
         :key="block.hash"
         :block="block"
         :state-root-validated="isBlockStateRootValidated(block)"
+        :state-root-validated-height="validatedStateRootHeight"
         class="w-full bg-surface-elevated"
       />
     </TransitionGroup>

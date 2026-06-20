@@ -21,7 +21,13 @@ vi.mock("vue-i18n", async () => {
   const actual = await vi.importActual("vue-i18n");
   return {
     ...actual,
-    useI18n: () => ({ t: (k) => k, locale: { value: "en" } }),
+    useI18n: () => ({
+      t: (k, params) => {
+        if (params?.n !== undefined) return `${k} ${params.n}`;
+        return k;
+      },
+      locale: { value: "en" },
+    }),
   };
 });
 
@@ -169,6 +175,7 @@ describe("BlockListItem", () => {
     const wrapper = mount(BlockListItem, {
       props: {
         stateRootValidated: true,
+        stateRootValidatedHeight: 105,
         block: {
           hash: blockHash,
           index: 103,
@@ -194,10 +201,12 @@ describe("BlockListItem", () => {
 
     const heightLink = wrapper.find("a");
     expect(heightLink.attributes("title")).toContain(blockHash);
-    expect(heightLink.attributes("title")).toContain("homePage.miniValidatedStateRoot");
+    expect(heightLink.attributes("title")).toContain("homePage.stateRootValidatedThrough");
+    expect(heightLink.attributes("title")).toContain("105");
 
     const marker = wrapper.get('[role="img"]');
-    expect(marker.attributes("title")).toBe("homePage.miniValidatedStateRoot");
-    expect(marker.attributes("aria-label")).toBe("homePage.miniValidatedStateRoot");
+    expect(marker.attributes("title")).toContain("homePage.stateRootValidatedThrough");
+    expect(marker.attributes("title")).toContain("105");
+    expect(marker.attributes("aria-label")).toContain("homePage.stateRootValidatedThrough");
   });
 });

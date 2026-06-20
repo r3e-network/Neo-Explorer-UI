@@ -157,6 +157,7 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
     expect(wrapper.find('[data-testid="block-height-validated-badge"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="state-root-validated-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="state-root-lag"]').exists()).toBe(false);
     expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(1);
     wrapper.unmount();
   });
@@ -184,6 +185,8 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
     expect(wrapper.find('[data-testid="block-height-validated-badge"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="state-root-validated-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="state-root-lag"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="state-root-lag"]').text()).toContain("homePage.stateRootLagBlocks");
     expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(1);
     wrapper.unmount();
   });
