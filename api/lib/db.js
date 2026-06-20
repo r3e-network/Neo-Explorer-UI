@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const { buildPgSslConfig, buildPgPoolTimeouts } = require("./pgSsl");
 
 let pool = null;
 
@@ -29,7 +30,8 @@ function getPool() {
   pool = new Pool({
     connectionString,
     max: Number(process.env.DB_MAX_CONNS || 5),
-    ssl: { rejectUnauthorized: false },
+    ssl: buildPgSslConfig({ rawConnectionString: raw }),
+    ...buildPgPoolTimeouts(),
   });
 
   return pool;

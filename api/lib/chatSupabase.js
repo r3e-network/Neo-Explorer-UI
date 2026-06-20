@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const { canonicalizeParticipantPair, normalizeAddress } = require("./chatAuth");
+const { buildPgSslConfig, buildPgPoolTimeouts } = require("./pgSsl");
 
 let pool = null;
 
@@ -27,14 +28,11 @@ function getPool() {
     throw new Error("CHAT_DATABASE_URL or SUPABASE_DSN is required for NeoChat.");
   }
 
-  const ssl = /sslmode=require/i.test(rawConnectionString) || /\.supabase\.co[:/]/i.test(rawConnectionString)
-    ? { rejectUnauthorized: false }
-    : false;
-
   pool = new Pool({
     connectionString,
     max: Number(process.env.CHAT_DB_MAX_CONNS || 4),
-    ssl,
+    ssl: buildPgSslConfig({ rawConnectionString }),
+    ...buildPgPoolTimeouts(),
   });
 
   return pool;
