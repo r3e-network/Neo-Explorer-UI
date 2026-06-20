@@ -24,6 +24,7 @@ describe("blockService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("edge unavailable")));
     clearAllCache();
     // Default: indexer is unavailable so existing tests continue to
     // exercise the legacy fallback path. Indexer-first tests below
@@ -239,19 +240,36 @@ describe("blockService", () => {
   });
 
   describe("validated state roots", () => {
-    it("uses the backend getvalidatedstateroot helper when available", async () => {
-      api.safeRpc.mockResolvedValueOnce({
-        index: 100,
-        roothash: "0xstate",
-        validated: true,
-        localrootindex: 101,
-        validatedrootindex: 100,
-        lag: 1,
+    it("uses the Worker getvalidatedstateroot helper when available", async () => {
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          result: {
+            index: 100,
+            roothash: "0xstate",
+            validated: true,
+            localrootindex: 101,
+            validatedrootindex: 100,
+            lag: 1,
+          },
+        }),
       });
 
       const result = await blockService.getValidatedStateRoot();
 
-      expect(api.safeRpc).toHaveBeenCalledWith("getvalidatedstateroot", { WithWitnesses: false }, null, expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/mainnet",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "getvalidatedstateroot",
+            params: { WithWitnesses: false },
+          }),
+        }),
+      );
+      expect(api.safeRpc).not.toHaveBeenCalled();
       expect(result).toMatchObject({
         roothash: "0xstate",
         stateroot: "0xstate",
@@ -262,19 +280,16 @@ describe("blockService", () => {
       });
     });
 
-    it("falls back to getstateheight plus getstateroot when the helper is unavailable", async () => {
-      const methodMissing = new Error("Method not found");
-      methodMissing.rpc = { code: -32601, message: "Method not found" };
+    it("falls back to getstateheight plus getstateroot when the Worker helper is unavailable", async () => {
       api.safeRpc
-        .mockRejectedValueOnce(methodMissing)
         .mockResolvedValueOnce({ localrootindex: 51, validatedrootindex: 50 })
         .mockResolvedValueOnce({ index: 50, roothash: "0xvalidated" });
 
       const result = await blockService.getValidatedStateRoot();
 
-      expect(api.safeRpc).toHaveBeenNthCalledWith(1, "getvalidatedstateroot", { WithWitnesses: false }, null, expect.any(Object));
-      expect(api.safeRpc).toHaveBeenNthCalledWith(2, "getstateheight", [], null, expect.any(Object));
-      expect(api.safeRpc).toHaveBeenNthCalledWith(3, "getstateroot", [50], null, expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith("/api/mainnet", expect.any(Object));
+      expect(api.safeRpc).toHaveBeenNthCalledWith(1, "getstateheight", [], null, expect.any(Object));
+      expect(api.safeRpc).toHaveBeenNthCalledWith(2, "getstateroot", [50], null, expect.any(Object));
       expect(result).toMatchObject({
         roothash: "0xvalidated",
         validated: true,
@@ -284,12 +299,17 @@ describe("blockService", () => {
     });
 
     it("marks a block root as pending when the requested height is above validatedrootindex", async () => {
-      api.safeRpc.mockResolvedValueOnce({
-        index: 100,
-        roothash: "0xstate",
-        validated: true,
-        localrootindex: 101,
-        validatedrootindex: 100,
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          result: {
+            index: 100,
+            roothash: "0xstate",
+            validated: true,
+            localrootindex: 101,
+            validatedrootindex: 100,
+          },
+        }),
       });
 
       const result = await blockService.getValidatedStateRootForBlock(101);

@@ -2,6 +2,7 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
+import { getCurrentEnv, NET_ENV } from "../utils/env";
 
 /**
  * Detect "method not exposed" errors so we know when to fall back to a
@@ -97,6 +98,44 @@ function normalizeValidatedStateRootPayload(payload, requestedHeight = null) {
     validatedrootindex: effectiveValidatedIndex,
     lag,
   };
+}
+
+function currentNetworkSlug() {
+  return getCurrentEnv() === NET_ENV.TestT5 ? "testnet" : "mainnet";
+}
+
+async function fetchValidatedStateRootFromEdge(options = {}) {
+  if (typeof fetch !== "function") {
+    throw new Error("fetch is not available");
+  }
+
+  const endpoint = `/api/${currentNetworkSlug()}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getvalidatedstateroot",
+      params: { WithWitnesses: false },
+    }),
+    signal: options.signal,
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Validated state root request failed with HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  const payload = await response.json();
+  if (payload?.error) {
+    const error = new Error(`RPC Error ${payload.error.code || ""}: ${payload.error.message || "Unknown RPC error"}`.trim());
+    error.rpc = payload.error;
+    throw error;
+  }
+
+  return payload?.result ?? null;
 }
 
 /**
@@ -339,7 +378,13 @@ export const blockService = createService(
       const cacheOpts = getRealtimeListCacheOptions(options);
 
       try {
-        const fromBackend = await this.getValidatedStateRootRaw(cacheOpts);
+        const key = getCacheKey("block_validated_stateroot_edge", { latest: true });
+        const fromBackend = await cachedRequest(
+          key,
+          () => fetchValidatedStateRootFromEdge(cacheOpts),
+          CACHE_TTL.stats,
+          cacheOpts,
+        );
         const normalized = normalizeValidatedStateRootPayload(fromBackend);
         if (normalized?.validated && normalized.roothash) return normalized;
       } catch (e) {
