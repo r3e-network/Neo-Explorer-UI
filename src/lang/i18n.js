@@ -68,9 +68,30 @@ export async function setLanguage(locale) {
 }
 
 export async function initializeI18n() {
+  // The fallback locale is the minimum needed to render the app. If even this
+  // fails (e.g. a purged chunk immediately after a deploy) we let it throw so
+  // the bootstrap can attempt a one-time reload recovery.
   await ensureLocaleMessages(FALLBACK_LOCALE);
+
+  // The user's preferred locale is best-effort: a failed dynamic import here
+  // must NOT white-screen the whole app. Fall back to the already-loaded
+  // fallback locale so the UI still mounts (in English).
   const locale = getStoredLocale();
-  await setLanguage(locale);
+  try {
+    await setLanguage(locale);
+  } catch (err) {
+    if (typeof console !== "undefined") {
+      console.error(`[i18n] failed to load locale "${locale}", falling back to "${FALLBACK_LOCALE}":`, err);
+    }
+    try {
+      i18n.global.locale.value = FALLBACK_LOCALE;
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = FALLBACK_LOCALE;
+      }
+    } catch {
+      // best-effort; fallback messages are already loaded above
+    }
+  }
   return i18n;
 }
 

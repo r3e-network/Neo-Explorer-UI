@@ -494,8 +494,18 @@ const router = createRouter({
 
 // Catch lazy-load and navigation failures
 router.onError((error) => {
+  // Report to telemetry via the global capture hook (set in main.js) so
+  // navigation/chunk failures are no longer silently dropped in production.
+  if (typeof globalThis !== "undefined" && typeof globalThis.__neoExplorerCaptureError__ === "function") {
+    globalThis.__neoExplorerCaptureError__(error, { source: "router" });
+  }
   if (import.meta.env.DEV) {
     console.error("Router error:", error);
+  }
+  // A lazy route chunk that 404s after a deploy should trigger the same
+  // one-time reload recovery the per-route import wrapper uses.
+  if (isChunkLoadError(error)) {
+    triggerChunkReload(pendingRoutePath);
   }
 });
 
