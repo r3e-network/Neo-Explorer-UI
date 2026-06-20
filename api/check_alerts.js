@@ -222,6 +222,8 @@ async function checkNetworkAlerts(network) {
           const actualPrimaryIndex = latestBlock.primary;
           
           let currentMissCount = alert.miss_count || 0;
+          const previousMissCount = currentMissCount;
+          const missThreshold = Math.max(1, Number(alert.threshold) || 3);
           let lastSeenBlock = parseInt(alert.last_seen_state) || 0;
 
           // Only process if we haven't checked this block height yet
@@ -238,8 +240,10 @@ async function checkNetworkAlerts(network) {
             updateData.last_seen_state = (blockCount - 1).toString();
             updateData.miss_count = currentMissCount;
 
-            // Trigger if miss count reaches threshold (e.g. 3)
-            if (currentMissCount >= 3) {
+            // Trigger only when crossing the threshold for this incident.
+            // If email delivery fails or the alert remains active, do not
+            // resend on every later block in the same missed-primary streak.
+            if (currentMissCount >= missThreshold && previousMissCount < missThreshold) {
               triggered = true;
               subject = `Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
               message = `

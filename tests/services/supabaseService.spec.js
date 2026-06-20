@@ -10,6 +10,10 @@ import {
 
 const createClientMock = vi.hoisted(() => vi.fn(() => null));
 const rpcMock = vi.hoisted(() => vi.fn());
+const walletServiceMock = vi.hoisted(() => ({
+  signMessage: vi.fn(),
+  getPublicKey: vi.fn(),
+}));
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: createClientMock,
@@ -17,6 +21,10 @@ vi.mock("@supabase/supabase-js", () => ({
 
 vi.mock("@/services/api", () => ({
   rpc: rpcMock,
+}));
+
+vi.mock("@/services/walletService", () => ({
+  walletService: walletServiceMock,
 }));
 
 describe("supabaseService metadata", () => {
@@ -64,6 +72,13 @@ describe("supabaseService metadata", () => {
     createClientMock.mockReturnValue(null);
     rpcMock.mockReset();
     rpcMock.mockResolvedValue({ stack: [{ type: "Array", value: [] }] });
+    walletServiceMock.signMessage.mockReset();
+    walletServiceMock.signMessage.mockResolvedValue({
+      signature: "ab".repeat(64),
+      publicKey: `02${"11".repeat(32)}`,
+    });
+    walletServiceMock.getPublicKey.mockReset();
+    walletServiceMock.getPublicKey.mockResolvedValue(`02${"11".repeat(32)}`);
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -174,6 +189,53 @@ describe("supabaseService metadata", () => {
     expect(fetch).toHaveBeenCalledWith("/api/mempool?network=testnet&limit=1000");
     expect(createClientMock).not.toHaveBeenCalled();
     expect(result).toEqual([{ hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", network: "testnet" }]);
+  });
+
+  it("signs multisig status mutations and stores broadcast witness in metadata", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 42, status: "EXECUTED" }),
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.updateMultisigRequestStatus(42, "EXECUTED", {
+      signer_address: "Nsigner",
+      tx_hash: `0x${"12".repeat(32)}`,
+      executed_at: "2026-06-20T10:00:00.000Z",
+      network: "testnet",
+      metadata: { reviewer: "ops" },
+      params: {
+        broadcast_witness: {
+          invocationScript: "aa",
+          verificationScript: "bb",
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(walletServiceMock.signMessage).toHaveBeenCalledWith(expect.stringContaining("Neo Explorer Multisig Mutation v1"));
+    expect(walletServiceMock.signMessage.mock.calls[0][0]).toContain("Network: testnet");
+    expect(walletServiceMock.signMessage.mock.calls[0][0]).toContain(
+      'Metadata: {"broadcast_witness":{"invocationScript":"aa","verificationScript":"bb"},"reviewer":"ops"}',
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/multisig/requests/42",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.params).toBeUndefined();
+    expect(body.metadata).toEqual({
+      reviewer: "ops",
+      broadcast_witness: {
+        invocationScript: "aa",
+        verificationScript: "bb",
+      },
+    });
+    expect(body.mutation_signature).toBe("ab".repeat(64));
+    expect(body.mutation_public_key).toBe(`02${"11".repeat(32)}`);
   });
 
   it("maps script-hash metadata rows back to the requested base58 address", async () => {

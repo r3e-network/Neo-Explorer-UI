@@ -408,7 +408,7 @@
       </div>
 
       <div
-        v-if="proposal.params?.broadcast_witness"
+        v-if="broadcastWitness"
         class="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 shadow-sm dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-slate-950"
       >
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
@@ -439,7 +439,7 @@
             <div
               class="max-h-40 overflow-y-auto rounded-xl border border-line-soft bg-white/80 p-3 font-mono text-[10px] break-all text-emerald-950 shadow-inner dark:bg-[#020617] dark:text-slate-300"
             >
-              {{ proposal.params.broadcast_witness.invocationScript || "Unavailable" }}
+              {{ broadcastWitness.invocationScript || "Unavailable" }}
             </div>
           </div>
           <div
@@ -453,7 +453,7 @@
             <div
               class="max-h-40 overflow-y-auto rounded-xl border border-line-soft bg-white/80 p-3 font-mono text-[10px] break-all text-emerald-950 shadow-inner dark:bg-[#020617] dark:text-slate-300"
             >
-              {{ proposal.params.broadcast_witness.verificationScript || "Unavailable" }}
+              {{ broadcastWitness.verificationScript || "Unavailable" }}
             </div>
           </div>
         </div>
@@ -492,4 +492,10 @@ const multisigImportCommand = computed(() => {
   const sorted = [...pubkeys].sort((a, b) => a.localeCompare(b));
   return "import multisigaddress " + threshold + " " + sorted.join(" ");
 });
+
+const broadcastWitness = computed(() =>
+  props.proposal?.metadata?.broadcast_witness ||
+  props.proposal?.params?.broadcast_witness ||
+  null
+);
 </script>

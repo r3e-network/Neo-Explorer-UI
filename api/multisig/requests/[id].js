@@ -3,10 +3,9 @@ const { enforceMultisigMutationPolicy } = require("../../lib/multisigMutations")
 const { enforceMutationSameOrigin } = require("../../lib/sameOriginGuard");
 const { resolveCommitteePubkeys } = require("../../lib/governanceSignature");
 const {
-  deriveCommitteeAddresses,
-  isCreatorForProposal,
-  requireCommitteeSigner,
-} = require("../../lib/multisigAuthorization");
+  buildMultisigMutationMessage,
+  verifyMultisigMutationAuthorization,
+} = require("../../lib/multisigMutationAuth");
 
 function cors(res) {
   // Tightened from `*`: only the explorer's own origins may call this endpoint
@@ -89,12 +88,9 @@ module.exports = async function handler(req, res) {
       }
 
       // Authorization: only a member of the proposal's committee (or its
-      // creator) may mutate its state. The CSRF/same-origin gate blocks
-      // third-party sites; this gate blocks any logged-in visitor from
-      // overwriting status/broadcast_tx_hash/params/metadata on proposals
-      // they did not create and have no committee standing on. The broadcast
-      // flow in the governance views already has the connected committee
-      // member's address and sends it as signer_address.
+      // creator) may mutate its state. Same-origin blocks CSRF, but it does
+      // not prove the caller controls `signer_address`; require a Neo message
+      // signature over the exact mutation payload before writing state.
       const signerAddress = String(body.signer_address || "").trim();
       if (!signerAddress) {
         return res.status(401).json({
@@ -109,25 +105,12 @@ module.exports = async function handler(req, res) {
       if (!proposal) {
         return res.status(404).json({ error: "Request not found." });
       }
-      let authorized = isCreatorForProposal(signerAddress, proposal.creator_address);
-      if (!authorized) {
-        const committeePubkeys = resolveCommitteePubkeys(proposal);
-        const committeeAddresses = await deriveCommitteeAddresses(committeePubkeys);
-        authorized = requireCommitteeSigner(signerAddress, committeeAddresses).ok;
-      }
-      if (!authorized) {
-        return res.status(403).json({
-          error: "Signer is not authorized to mutate this proposal (must be the creator or a committee member).",
-        });
-      }
 
       // `params` (which holds committee_pubkeys + unsigned_tx) and `unsigned_tx`
       // define the proposal's identity and are the inputs governanceSignature.js
       // trusts to derive the canonical committee. They are immutable after
-      // creation: allowing them through this same-origin, self-asserted-address
-      // path would let any logged-in visitor rewrite the committee set or the
-      // transaction being signed. Reject rather than silently ignore so a
-      // mistaken/malicious caller gets a clear error.
+      // creation. Reject rather than silently ignore so a mistaken/malicious
+      // caller gets a clear error.
       if (body.params !== undefined || body.unsigned_tx !== undefined || body.creator_address !== undefined) {
         return res.status(400).json({
           error: "params, unsigned_tx and creator_address are immutable after creation.",
@@ -136,13 +119,18 @@ module.exports = async function handler(req, res) {
 
       const sets = [];
       const values = [id];
+      let statusValue = null;
+      let txHashValue = null;
+      let broadcastAtValue = null;
+      let metadataValue = undefined;
 
       if (body.status !== undefined) {
         const status = String(body.status).trim();
         if (!/^[a-z0-9_-]{1,32}$/i.test(status)) {
           return res.status(400).json({ error: "Invalid status value." });
         }
-        values.push(status);
+        statusValue = status;
+        values.push(statusValue);
         sets.push(`status = $${values.length}`);
       }
       if (body.broadcast_tx_hash !== undefined && body.broadcast_tx_hash !== null) {
@@ -150,7 +138,8 @@ module.exports = async function handler(req, res) {
         if (!/^0x[0-9a-f]{64}$/i.test(txHash)) {
           return res.status(400).json({ error: "broadcast_tx_hash must be a 0x-prefixed 32-byte hex hash." });
         }
-        values.push(txHash);
+        txHashValue = txHash;
+        values.push(txHashValue);
         sets.push(`broadcast_tx_hash = $${values.length}`);
       }
       if (body.broadcast_at !== undefined && body.broadcast_at !== null) {
@@ -158,11 +147,13 @@ module.exports = async function handler(req, res) {
         if (Number.isNaN(ts.getTime())) {
           return res.status(400).json({ error: "broadcast_at must be a valid timestamp." });
         }
-        values.push(ts.toISOString());
+        broadcastAtValue = ts.toISOString();
+        values.push(broadcastAtValue);
         sets.push(`broadcast_at = $${values.length}`);
       }
       if (body.metadata !== undefined) {
-        const metadataJson = JSON.stringify(body.metadata ?? {});
+        metadataValue = body.metadata ?? {};
+        const metadataJson = JSON.stringify(metadataValue);
         // Bound the size so metadata cannot be used as unbounded storage.
         if (metadataJson.length > 8192) {
           return res.status(400).json({ error: "metadata is too large (max 8KB)." });
@@ -173,6 +164,30 @@ module.exports = async function handler(req, res) {
 
       if (!sets.length) {
         return res.status(400).json({ error: "No valid fields to update." });
+      }
+
+      const mutationMessage = buildMultisigMutationMessage({
+        requestId: id,
+        network: proposal.network || proposal.network_mode || "",
+        status: statusValue || "",
+        broadcastTxHash: txHashValue || "",
+        broadcastAt: broadcastAtValue || "",
+        metadata: metadataValue,
+      });
+
+      try {
+        await verifyMultisigMutationAuthorization({
+          signerAddress,
+          publicKey: body.mutation_public_key || body.public_key,
+          signature: body.mutation_signature || body.signature,
+          message: mutationMessage,
+          committeePubkeys: resolveCommitteePubkeys(proposal),
+          creatorAddress: proposal.creator_address,
+        });
+      } catch (authErr) {
+        const message = authErr?.message || "Signer is not authorized to mutate this proposal.";
+        const statusCode = /required|missing/i.test(message) ? 401 : 403;
+        return res.status(statusCode).json({ error: message });
       }
 
       sets.push("updated_at = now()");

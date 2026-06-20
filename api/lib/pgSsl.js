@@ -5,15 +5,14 @@ const fs = require("node:fs");
 // The prior hardcoded `ssl: { rejectUnauthorized: false }` accepted ANY
 // certificate, so anyone able to MITM the Vercel -> Supabase egress path could
 // intercept or modify all DB traffic (chat, governance, multisig). This helper
-// makes certificate verification the configurable, preferred path while staying
-// backward-compatible for deployments that have not yet provisioned a CA.
+// makes certificate verification the default path while retaining an explicit
+// emergency escape hatch for legacy deployments.
 //
 // Preference order:
 //   1. A pinned CA (DB_SSL_CA = PEM string, or DB_SSL_CA_FILE = path) -> the
 //      equivalent of sslmode=verify-full: verify against the pinned root.
-//   2. DB_SSL_REJECT_UNAUTHORIZED=1 -> verify against the system trust store.
-//   3. Otherwise fall back to rejectUnauthorized:false, but warn once so the
-//      insecurity is visible in logs instead of silent.
+//   2. System trust store verification -> rejectUnauthorized:true.
+//   3. DB_SSL_ALLOW_INSECURE=1 -> rejectUnauthorized:false, with a warning.
 
 let warned = false;
 
@@ -51,18 +50,26 @@ function buildPgSslConfig({ rawConnectionString = "", env = process.env } = {}) 
     return { ca, rejectUnauthorized: true };
   }
 
-  if (String(env.DB_SSL_REJECT_UNAUTHORIZED || "").trim() === "1") {
-    return { rejectUnauthorized: true };
+  const allowInsecure = /^(1|true|yes)$/i.test(String(env.DB_SSL_ALLOW_INSECURE || "").trim());
+
+  if (allowInsecure) {
+    if (!warned) {
+      warned = true;
+      console.warn(
+        "[pgSsl] TLS certificate verification is DISABLED by DB_SSL_ALLOW_INSECURE. " +
+          "Remove this override for production database traffic.",
+      );
+    }
+    return { rejectUnauthorized: false };
   }
 
-  if (!warned) {
+  if (String(env.DB_SSL_REJECT_UNAUTHORIZED || "").trim() === "0" && !warned) {
     warned = true;
     console.warn(
-      "[pgSsl] TLS certificate verification is DISABLED (rejectUnauthorized:false). " +
-        "Set DB_SSL_CA (pinned Supabase root CA) or DB_SSL_REJECT_UNAUTHORIZED=1 to enforce verify-full.",
+      "[pgSsl] Ignoring DB_SSL_REJECT_UNAUTHORIZED=0. Use DB_SSL_ALLOW_INSECURE=1 only for an explicit temporary override.",
     );
   }
-  return { rejectUnauthorized: false };
+  return { rejectUnauthorized: true };
 }
 
 // Pool-level operation/connection timeouts so a slow or hung DB cannot pin a

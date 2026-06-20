@@ -755,6 +755,7 @@ function resolveSignerConfig(neonJs) {
         scriptHash: preservedScriptHash || derivedMultiSig?.scriptHash || "",
         contract: {
           script:
+            props.prefillProposal?.metadata?.broadcast_witness?.verificationScript ||
             props.prefillProposal?.params?.broadcast_witness?.verificationScript ||
             derivedMultiSig?.contract?.script ||
             "",

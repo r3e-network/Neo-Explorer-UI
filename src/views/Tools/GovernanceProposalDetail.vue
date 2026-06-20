@@ -745,8 +745,9 @@ async function handleBroadcast(currentProposal) {
       signer_address: connectedAccount.value,
       tx_hash: txid,
       executed_at: new Date().toISOString(),
-      params: {
-        ...currentProposal.params,
+      network: getCurrentEnv(),
+      metadata: {
+        ...(currentProposal.metadata || {}),
         broadcast_witness: {
           invocationScript,
           verificationScript,

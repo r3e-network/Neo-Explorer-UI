@@ -4,6 +4,7 @@ import { addressToScriptHash, publicKeyToAddress } from "@/utils/neoHelpers";
 import { decodeStackItem } from "@/utils/resultDecoder";
 import { rpc } from "@/services/api";
 import { sanitizeHttpUrl } from "@/utils/urlSafety";
+import { buildMultisigMutationMessage } from "@/utils/multisigMutationAuth";
 
 const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
 
@@ -470,6 +471,74 @@ const hydrateRequestSignatures = (request) => {
   };
 };
 
+const buildMultisigMutationMetadata = (extras = {}) => {
+  const hasExplicitMetadata = extras.metadata !== undefined;
+  const witness = extras.broadcast_witness ?? extras.params?.broadcast_witness;
+
+  if (witness === undefined) {
+    return hasExplicitMetadata ? extras.metadata : undefined;
+  }
+
+  const base = isPlainObject(extras.metadata) ? { ...extras.metadata } : {};
+  return {
+    ...base,
+    broadcast_witness: witness,
+  };
+};
+
+const buildMultisigMutationAuth = async ({
+  requestId,
+  status,
+  signerAddress,
+  network,
+  broadcastTxHash,
+  broadcastAt,
+  metadata,
+  extras = {},
+}) => {
+  if (extras.mutation_signature || extras.signature) {
+    return {
+      mutation_signature: extras.mutation_signature || extras.signature,
+      ...(extras.mutation_public_key || extras.public_key
+        ? { mutation_public_key: extras.mutation_public_key || extras.public_key }
+        : {}),
+    };
+  }
+
+  const normalizedSigner = String(signerAddress || "").trim();
+  if (!normalizedSigner) return {};
+
+  const mutationMessage = buildMultisigMutationMessage({
+    requestId,
+    network: getNetworkMode(network || extras.network || "mainnet"),
+    status: status || "",
+    broadcastTxHash: broadcastTxHash || "",
+    broadcastAt: broadcastAt || "",
+    metadata,
+  });
+
+  const { walletService } = await import("@/services/walletService");
+  if (typeof walletService?.signMessage !== "function") {
+    throw new Error("Connected wallet cannot sign multisig mutation messages.");
+  }
+
+  const signed = await walletService.signMessage(mutationMessage);
+  const signature = signed?.signature || signed?.data || "";
+  if (!signature) {
+    throw new Error("Wallet did not return a mutation signature.");
+  }
+
+  let publicKey = signed?.publicKey || signed?.public_key || "";
+  if (!publicKey && typeof walletService.getPublicKey === "function") {
+    publicKey = await walletService.getPublicKey().catch(() => "");
+  }
+
+  return {
+    mutation_signature: signature,
+    ...(publicKey ? { mutation_public_key: publicKey } : {}),
+  };
+};
+
 export const supabaseService = {
   async getContractMetadata(hash, networkMode) {
     if (!hash) return null;
@@ -778,13 +847,26 @@ export const supabaseService = {
 
   async updateMultisigRequestStatus(requestId, status, extras = {}) {
     try {
+      const txHash = extras.tx_hash || "";
+      const broadcastAt = extras.executed_at || "";
+      const metadata = buildMultisigMutationMetadata(extras);
       const body = {
         status,
         signer_address: extras.signer_address || "",
-        ...(extras.tx_hash ? { broadcast_tx_hash: extras.tx_hash } : {}),
-        ...(extras.executed_at ? { broadcast_at: extras.executed_at } : {}),
-        ...(extras.params ? { params: extras.params } : {}),
+        ...(txHash ? { broadcast_tx_hash: txHash } : {}),
+        ...(broadcastAt ? { broadcast_at: broadcastAt } : {}),
+        ...(metadata !== undefined ? { metadata } : {}),
       };
+      Object.assign(body, await buildMultisigMutationAuth({
+        requestId,
+        status,
+        signerAddress: body.signer_address,
+        network: extras.network,
+        broadcastTxHash: txHash,
+        broadcastAt,
+        metadata,
+        extras,
+      }));
       const res = await fetch(`/api/multisig/requests/${requestId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

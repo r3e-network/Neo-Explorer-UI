@@ -5,12 +5,9 @@ import { describe, expect, it } from "vitest";
 // Source-invariant guard for the multisig PATCH field lockdown.
 //
 // `params` holds committee_pubkeys + unsigned_tx, which governanceSignature.js
-// trusts to derive the canonical committee. The PATCH endpoint authorizes by a
-// self-asserted `signer_address` (no cryptographic proof), so allowing `params`
-// / `unsigned_tx` mutation through it would let any logged-in visitor rewrite
-// the committee set or the transaction being signed (privilege escalation).
-// These fields must be rejected, and the remaining mutable fields must be
-// shape-validated.
+// trusts to derive the canonical committee. These fields must be rejected, the
+// remaining mutable fields must be shape-validated, and the caller must prove
+// signer control with a Neo message signature over the exact mutation payload.
 const handlerPath = path.resolve(process.cwd(), "api/multisig/requests/[id].js");
 const handlerSource = fs.readFileSync(handlerPath, "utf8");
 
@@ -32,9 +29,12 @@ describe("multisig PATCH field lockdown", () => {
     expect(handlerSource).toMatch(/Invalid status value/);
   });
 
-  it("still gates on creator or server-resolved committee membership", () => {
-    expect(handlerSource).toMatch(/isCreatorForProposal/);
-    expect(handlerSource).toMatch(/requireCommitteeSigner/);
+  it("requires a signed mutation message and server-resolved committee membership", () => {
+    expect(handlerSource).toMatch(/verifyMultisigMutationAuthorization/);
+    expect(handlerSource).toMatch(/buildMultisigMutationMessage/);
+    expect(handlerSource).toMatch(/mutation_signature/);
+    expect(handlerSource).not.toMatch(/deriveCommitteeAddresses/);
+    expect(handlerSource).not.toMatch(/requireCommitteeSigner/);
     expect(handlerSource).toMatch(/resolveCommitteePubkeys/);
   });
 });

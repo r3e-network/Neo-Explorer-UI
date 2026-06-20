@@ -305,8 +305,9 @@ async function handleBroadcast(req) {
       signer_address: connectedAccount.value,
       tx_hash: txid,
       executed_at: new Date().toISOString(),
-      params: {
-        ...req.params,
+      network: getCurrentEnv(),
+      metadata: {
+        ...(req.metadata || {}),
         broadcast_witness: {
           invocationScript,
           verificationScript,
