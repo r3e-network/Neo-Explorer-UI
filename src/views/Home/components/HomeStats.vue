@@ -152,21 +152,21 @@
 
       <!-- Secondary stats row -->
       <div class="mt-4 border-t pt-4 soft-divider">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="home-mini-stats-grid">
           <div class="mini-stat">
             <span class="mini-label">{{ $t("homePage.miniMarketCap") }}</span>
             <span class="mini-value">{{ formatLargeUsdLabel(marketCap) }}</span>
           </div>
-          <div class="mini-stat">
+          <div class="mini-stat state-root-mini-stat">
             <span class="mini-label">{{ $t("homePage.miniValidatedStateRoot") }}</span>
-            <div class="flex items-center gap-2">
+            <div class="state-root-value-group">
               <router-link :to="validatedStateRootLink" class="mini-value-link etherscan-link">
                 {{ validatedStateRootLabel }}
               </router-link>
               <span
                 v-if="hasValidatedStateRoot"
                 data-testid="state-root-validated-badge"
-                class="inline-flex items-center rounded bg-status-success-bg px-1.5 py-0.5 text-[11px] font-semibold text-status-success"
+                class="state-root-badge inline-flex items-center rounded bg-status-success-bg px-1.5 py-0.5 text-[11px] font-semibold text-status-success"
                 :title="validatedStateRootTitle"
                 :aria-label="validatedStateRootTitle"
               >
@@ -363,30 +363,64 @@ function describePriceChange(value) {
 </script>
 
 <style scoped>
+.home-mini-stats-grid {
+  @apply grid gap-4 sm:grid-cols-2;
+}
+
+@media (min-width: 1024px) {
+  .home-mini-stats-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 1.45fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-mini-stats-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(25rem, 1.55fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
+  }
+}
+
 .stat-block {
   @apply rounded-lg border p-3;
   border-color: var(--line-soft);
 }
 
 .mini-stat {
-  @apply flex items-center justify-between;
+  @apply flex min-w-0 items-center justify-between gap-3;
+}
+
+.state-root-value-group {
+  @apply flex min-w-0 items-center justify-end gap-2;
+}
+
+@media (max-width: 479px) {
+  .state-root-mini-stat {
+    @apply flex-col items-start;
+  }
+
+  .state-root-value-group {
+    @apply flex-wrap justify-start;
+  }
 }
 
 .mini-label {
-  @apply text-sm;
+  @apply whitespace-nowrap text-sm;
   color: var(--text-mid);
 }
 
 .mini-value {
-  @apply text-sm font-semibold;
+  @apply whitespace-nowrap text-sm font-semibold;
   color: var(--text-high);
 }
 
 .mini-value-link {
-  @apply text-sm font-semibold;
+  @apply whitespace-nowrap text-sm font-semibold;
   color: var(--text-high);
 }
 .mini-value-link:hover {
   color: var(--link-hover);
+}
+
+.state-root-badge {
+  @apply whitespace-nowrap;
 }
 </style>
