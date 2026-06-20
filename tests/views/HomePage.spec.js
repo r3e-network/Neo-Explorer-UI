@@ -326,6 +326,47 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("does not let a stale summary hold block count behind a validated state root", async () => {
+    getIndexerHome.mockResolvedValueOnce({
+      network: "mainnet",
+      summary: makeFreshSummary(11),
+      latest_blocks: makeIndexerBlocks(6, 10).data,
+      latest_transactions: makeIndexerTransactions(6).data,
+      paging: {
+        blocks_total: 11,
+        transactions_total: 999,
+      },
+    });
+    getValidatedStateRoot.mockResolvedValueOnce({
+      index: 12,
+      roothash: "0xstate",
+      validated: true,
+      localrootindex: 13,
+      validatedrootindex: 12,
+      lag: 1,
+    });
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("12");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-validated-root")).toBe("12");
+    wrapper.unmount();
+  });
+
   it("does not hydrate aggregate blocks when zero fee fields are explicit", async () => {
     const blocks = makeIndexerBlocks(6, 12).data.map((block) => ({
       ...block,

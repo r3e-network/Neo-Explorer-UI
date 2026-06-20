@@ -128,6 +128,32 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.text()).toContain("✅");
     expect(wrapper.text()).toContain("homePage.validatedBadge");
     expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(2);
+    wrapper.unmount();
+  });
+
+  it("does not mark block height validated when the validated root is ahead of displayed height", async () => {
+    const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
+    const wrapper = mount(HomeStats, {
+      props: {
+        blockCount: 11,
+        validatedStateRoot: {
+          validated: true,
+          validatedrootindex: 12,
+          roothash: "0xstate",
+        },
+      },
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("✅");
+    expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(1);
     wrapper.unmount();
   });
 });

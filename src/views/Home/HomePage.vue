@@ -172,8 +172,15 @@ function isFreshHomepageSummary(summary) {
 
 function getLatestKnownHeight() {
   const latestIndex = Number(latestBlocks.value?.[0]?.index);
-  if (!Number.isFinite(latestIndex) || latestIndex < 0) return 0;
-  return latestIndex + 1;
+  const latestBlockHeight = Number.isFinite(latestIndex) && latestIndex >= 0 ? latestIndex + 1 : 0;
+  const validatedRootHeight = Number(
+    validatedStateRoot.value?.validatedrootindex ?? validatedStateRoot.value?.index ?? 0,
+  );
+  const latestValidatedRootHeight =
+    validatedStateRoot.value?.validated && Number.isFinite(validatedRootHeight) && validatedRootHeight >= 0
+      ? validatedRootHeight
+      : 0;
+  return Math.max(latestBlockHeight, latestValidatedRootHeight);
 }
 
 function resolveLiveBlockHeight(candidateHeight) {
@@ -184,6 +191,7 @@ function resolveLiveBlockHeight(candidateHeight) {
 function applyValidatedStateRoot(root) {
   if (!root?.validated || !Number.isFinite(Number(root.validatedrootindex))) return;
   validatedStateRoot.value = root;
+  blockCount.value = resolveLiveBlockHeight(blockCount.value);
 }
 
 async function loadValidatedStateRoot(forceRefresh = false, context = null) {
@@ -532,7 +540,7 @@ async function loadLatestData(forceRefresh = false) {
 
         const latestHeight = extractHeightFromBlocks(nextBlocks);
         if (latestHeight > 0) {
-          blockCount.value = latestHeight;
+          blockCount.value = resolveLiveBlockHeight(latestHeight);
         }
 
         updateTps();

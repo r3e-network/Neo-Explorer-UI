@@ -124,7 +124,7 @@
                 <Skeleton v-if="loading && !blockCount" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>{{ formatNumber(blockCount) }}</span>
                 <span
-                  v-if="hasValidatedStateRoot"
+                  v-if="hasValidatedBlockHeight"
                   class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
                 >
                   <span aria-hidden="true" class="mr-1">✅</span>
@@ -273,6 +273,17 @@ const validatedStateRootHeight = computed(() => {
 });
 
 const hasValidatedStateRoot = computed(() => Boolean(props.validatedStateRoot?.validated) && validatedStateRootHeight.value !== null);
+
+const displayedBlockHeight = computed(() => {
+  const value = Number(props.blockCount);
+  return Number.isInteger(value) && value >= 0 ? value : null;
+});
+
+const hasValidatedBlockHeight = computed(() => (
+  hasValidatedStateRoot.value &&
+  displayedBlockHeight.value !== null &&
+  displayedBlockHeight.value >= validatedStateRootHeight.value
+));
 
 const validatedStateRootLabel = computed(() => (
   validatedStateRootHeight.value !== null ? formatNumber(validatedStateRootHeight.value) : "--"
