@@ -120,7 +120,8 @@ const SEVERE_LATENCY_SECONDS = 8;
 
 function normalizeBlock(block = {}) {
   const height = Number(block.height ?? block.index ?? block.block_index ?? block.blockindex);
-  const interval = Number(block.interval ?? block.blockInterval ?? block.block_interval ?? 0);
+  const rawInterval = block.interval ?? block.blockInterval ?? block.block_interval;
+  const interval = Number(rawInterval);
   const txSource = Array.isArray(block.tx)
     ? block.tx.length
     : block.tx ?? block.txcount ?? block.transactioncount ?? block.tx_count ?? block.transaction_count ?? 0;
@@ -128,7 +129,7 @@ function normalizeBlock(block = {}) {
   return {
     ...block,
     height: Number.isFinite(height) ? height : 0,
-    interval: Number.isFinite(interval) ? interval : 0,
+    interval: Number.isFinite(interval) && interval > 0 ? interval : null,
     tx: Number.isFinite(tx) ? tx : 0,
   };
 }
@@ -136,7 +137,7 @@ function normalizeBlock(block = {}) {
 const normalizedBlocks = computed(() =>
   (Array.isArray(props.blocks) ? props.blocks : [])
     .map(normalizeBlock)
-    .filter((block) => block.height > 0)
+    .filter((block) => block.height > 0 && Number(block.interval) > 0)
 );
 
 const maxInterval = computed(() => normalizedBlocks.value.reduce((m, b) => Math.max(m, b.interval || 0), 0));

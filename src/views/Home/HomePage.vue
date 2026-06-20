@@ -267,12 +267,35 @@ function normalizeBlockTimePrimary(block = {}, fallback = {}) {
   return Number.isFinite(primary) && primary >= 0 ? primary : null;
 }
 
+function normalizeBlockTimeInterval(block = {}, fallback = {}) {
+  const candidates = [
+    block.interval,
+    block.blockInterval,
+    block.block_interval,
+    fallback.interval,
+    fallback.blockInterval,
+    fallback.block_interval,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") continue;
+    const interval = Number(candidate);
+    if (Number.isFinite(interval) && interval > 0) return interval;
+  }
+
+  return null;
+}
+
+function hasUsableBlockTimeInterval(row = {}) {
+  return Number(row.interval) > 0;
+}
+
 function normalizeBlockTimeRow(block = {}, fallback = {}) {
   const height = normalizeBlockTimeHeight(block) || normalizeBlockTimeHeight(fallback);
   if (!height) return null;
 
   const timestampMs = normalizeBlockTimeTimestamp(block) || normalizeBlockTimeTimestamp(fallback);
-  const interval = Number(block.interval ?? fallback.interval ?? 0);
+  const interval = normalizeBlockTimeInterval(block, fallback);
   const primaryNode = normalizeBlockTimePrimary(block, fallback);
   const nextConsensus =
     block.nextConsensus ??
@@ -289,7 +312,7 @@ function normalizeBlockTimeRow(block = {}, fallback = {}) {
     height,
     timestampMs,
     time: timestampMs || block.time || fallback.time,
-    interval: Number.isFinite(interval) ? interval : 0,
+    interval,
     tx: normalizeBlockTimeTxCount(block, fallback),
     primaryNode,
     primary_node: primaryNode,
@@ -311,8 +334,20 @@ function mergeBlockTimeRows(...rowSets) {
     }
   }
 
-  return [...byHeight.values()]
-    .sort((a, b) => a.height - b.height)
+  const sortedRows = [...byHeight.values()].sort((a, b) => a.height - b.height);
+  const sortedByHeight = new Map(sortedRows.map((row) => [row.height, row]));
+
+  return sortedRows
+    .map((row) => {
+      if (hasUsableBlockTimeInterval(row)) return row;
+      const previous = sortedByHeight.get(row.height - 1);
+      if (previous?.timestampMs && row.timestampMs) {
+        const interval = (row.timestampMs - previous.timestampMs) / 1000;
+        if (Number.isFinite(interval) && interval > 0) return { ...row, interval };
+      }
+      return row;
+    })
+    .filter(hasUsableBlockTimeInterval)
     .slice(-BLOCK_TIME_CHART_LIMIT);
 }
 
@@ -331,8 +366,8 @@ function normalizeHomeBlockTimeRows(blocks = [], fallbackRows = []) {
   return rows.map((row) => {
     const previous = byHeight.get(row.height - 1);
     if (previous?.timestampMs && row.timestampMs) {
-      const interval = Math.max(0, (row.timestampMs - previous.timestampMs) / 1000);
-      return { ...row, interval };
+      const interval = (row.timestampMs - previous.timestampMs) / 1000;
+      if (Number.isFinite(interval) && interval > 0) return { ...row, interval };
     }
     return row;
   });

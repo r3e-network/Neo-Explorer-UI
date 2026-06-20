@@ -332,9 +332,10 @@ describe("HomePage initial loading", () => {
     const labels = wrapper
       .findAll('[data-testid="home-block-time-chart"] button[aria-label]')
       .map((button) => button.attributes("aria-label"));
-    expect(labels.length).toBe(HOMEPAGE_BLOCK_LIMIT);
+    expect(labels.length).toBe(HOMEPAGE_BLOCK_LIMIT - 1);
     expect(labels.some((label) => label.startsWith("#12,"))).toBe(true);
-    expect(labels.some((label) => label.includes("Interval 15s"))).toBe(true);
+    expect(labels.some((label) => label.includes("15s"))).toBe(true);
+    expect(labels.every((label) => !label.includes("0s"))).toBe(true);
     wrapper.unmount();
   });
 

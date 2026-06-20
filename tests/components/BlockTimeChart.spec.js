@@ -41,4 +41,26 @@ describe("BlockTimeChart", () => {
     expect(wrapper.text()).toContain("8.40s");
     expect(wrapper.text()).toContain("NF1");
   });
+
+  it("does not render missing or non-positive intervals as zero-second bars", () => {
+    const wrapper = mount(BlockTimeChart, {
+      props: {
+        blocks: [
+          { height: 110, interval: 0, tx: 0, primaryNode: 1 },
+          { height: 109, tx: 0, primaryNode: 1 },
+          { height: 108, interval: 3, tx: 1, primaryNode: 0 },
+        ],
+      },
+      global: {
+        stubs: {
+          Skeleton: true,
+          EmptyState: true,
+        },
+      },
+    });
+
+    expect(wrapper.findAll("button")).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("#110");
+    expect(wrapper.text()).not.toContain("0s");
+  });
 });
