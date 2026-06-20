@@ -123,7 +123,7 @@ describe("ContractDetail network changes", () => {
     await flushPromises();
 
     expect(getByHashWithFallback).toHaveBeenCalledTimes(2);
-    expect(getByHashWithFallback).toHaveBeenNthCalledWith(2, "0xabc");
+    expect(getByHashWithFallback).toHaveBeenNthCalledWith(2, "0xabc", { network: "mainnet" });
     wrapper.unmount();
   });
 

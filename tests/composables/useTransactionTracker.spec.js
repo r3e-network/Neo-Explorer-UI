@@ -54,7 +54,7 @@ describe("useTransactionTracker", () => {
     track("0xtx-indexed");
     await waitForStatus(txStatuses, "0xtx-indexed", "confirmed");
 
-    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"]);
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-indexed"], { network: "mainnet" });
     expect(txStatuses.value["0xtx-indexed"]).toBe("confirmed");
 
     unmount();
@@ -67,7 +67,7 @@ describe("useTransactionTracker", () => {
     track("0xtx-flat");
     await waitForStatus(txStatuses, "0xtx-flat", "failed");
 
-    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-flat"]);
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-flat"], { network: "mainnet" });
     expect(txStatuses.value["0xtx-flat"]).toBe("failed");
 
     unmount();
@@ -80,7 +80,7 @@ describe("useTransactionTracker", () => {
     track("0xtx-legacy");
     await flushPromises();
 
-    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"]);
+    expect(rpc).toHaveBeenCalledWith("getapplicationlog", ["0xtx-legacy"], { network: "mainnet" });
     expect(rpc).not.toHaveBeenCalledWith("GetApplicationLogByTransactionHash", expect.anything());
     expect(txStatuses.value["0xtx-legacy"]).toBe("pending");
 

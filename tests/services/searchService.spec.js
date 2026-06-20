@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addressToScriptHash } from "../../src/utils/neoHelpers";
 
+const resolveNetworkNameMock = vi.hoisted(() => vi.fn(() => "mainnet"));
 const safeRpc = vi.fn();
 const resolveDomain = vi.fn();
 const getByHashWithFallback = vi.fn();
 const searchIndex = vi.fn();
+
+vi.mock("../../src/utils/env.js", () => ({
+  resolveNetworkName: resolveNetworkNameMock,
+}));
 
 vi.mock("../../src/services/api.js", () => ({
   safeRpc,
@@ -37,6 +42,7 @@ vi.mock("../../src/services/cache.js", () => ({
 describe("searchService address lookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveNetworkNameMock.mockReturnValue("mainnet");
     getByHashWithFallback.mockReset();
     searchIndex.mockResolvedValue({ source: "disabled", hits: [] });
   });
@@ -58,7 +64,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search("gas");
 
-    expect(searchIndex).toHaveBeenCalledWith("gas", { limit: 1 });
+    expect(searchIndex).toHaveBeenCalledWith("gas", { limit: 1, network: "mainnet" });
     expect(safeRpc).not.toHaveBeenCalled();
     expect(getByHashWithFallback).not.toHaveBeenCalled();
     expect(result).toEqual({
@@ -86,7 +92,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.suggest("flm", { type: "contracts", limit: 3 });
 
-    expect(searchIndex).toHaveBeenCalledWith("flm", { type: "contract", limit: 3 });
+    expect(searchIndex).toHaveBeenCalledWith("flm", { type: "contract", limit: 3, network: "mainnet" });
     expect(result).toEqual([{
       type: "contract",
       label: "Flamingo Finance",
@@ -124,7 +130,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(nns);
 
-    expect(resolveDomain).toHaveBeenCalledWith(nns);
+    expect(resolveDomain).toHaveBeenCalledWith(nns, { network: "mainnet" });
     expect(safeRpc).not.toHaveBeenCalledWith("GetAddressByAddress", expect.anything(), expect.anything());
     expect(result).toEqual({
       type: "address",
@@ -140,7 +146,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(getByHashWithFallback).toHaveBeenCalledWith(query);
+    expect(getByHashWithFallback).toHaveBeenCalledWith(query, { network: "mainnet" });
     expect(result).toEqual({
       type: "contract",
       data: { hash: query, name: "GasToken" },
@@ -183,7 +189,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(safeRpc).toHaveBeenCalledWith("getblock", [12345, 1], null);
+    expect(safeRpc).toHaveBeenCalledWith("getblock", [12345, 1], null, { network: "mainnet" });
     expect(safeRpc).not.toHaveBeenCalledWith(
       "GetBlockByBlockHeight",
       expect.any(Object),
@@ -191,6 +197,32 @@ describe("searchService address lookup", () => {
     );
     expect(result.type).toBe("block");
     expect(result.data.hash).toBe("0xstdblock");
+  });
+
+  it("does not share in-flight exact lookups across network switches", async () => {
+    let resolveMainnet;
+    let resolveTestnet;
+    safeRpc
+      .mockReturnValueOnce(new Promise((resolve) => { resolveMainnet = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { resolveTestnet = resolve; }));
+
+    const { searchService } = await import("../../src/services/searchService.js");
+    const mainnetSearch = searchService.search("12345");
+    resolveNetworkNameMock.mockReturnValue("testnet");
+    const testnetSearch = searchService.search("12345");
+
+    resolveTestnet({ hash: "0xtestnet", index: 12345 });
+    resolveMainnet({ hash: "0xmainnet", index: 12345 });
+
+    await expect(mainnetSearch).resolves.toEqual({
+      type: "block",
+      data: { hash: "0xmainnet", index: 12345 },
+    });
+    await expect(testnetSearch).resolves.toEqual({
+      type: "block",
+      data: { hash: "0xtestnet", index: 12345 },
+    });
+    expect(safeRpc).toHaveBeenCalledTimes(2);
   });
 
   it("prefers exact block-height lookup over stale fuzzy sidecar hits", async () => {
@@ -218,7 +250,7 @@ describe("searchService address lookup", () => {
       type: "block",
       data: { hash: "0xexactblock", index: 10820940, txcount: 1 },
     });
-    expect(searchIndex).not.toHaveBeenCalledWith(query, { limit: 1 });
+    expect(searchIndex).not.toHaveBeenCalledWith(query, { limit: 1, network: "mainnet" });
   });
 
   it("uses standard getrawtransaction for 64-hex hash", async () => {
@@ -234,7 +266,7 @@ describe("searchService address lookup", () => {
     const { searchService } = await import("../../src/services/searchService.js");
     const result = await searchService.search(query);
 
-    expect(safeRpc).toHaveBeenCalledWith("getrawtransaction", [fullHash, 1], null);
+    expect(safeRpc).toHaveBeenCalledWith("getrawtransaction", [fullHash, 1], null, { network: "mainnet" });
     expect(safeRpc).not.toHaveBeenCalledWith(
       "GetRawTransactionByTransactionHash",
       expect.any(Object),

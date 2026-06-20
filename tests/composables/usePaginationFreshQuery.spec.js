@@ -59,7 +59,10 @@ describe("usePagination fresh query integration", () => {
         staleTime: 12_000,
       }),
     );
-    expect(fetchPage).toHaveBeenCalledWith(10, 0, { forceRefresh: true });
+    expect(fetchPage).toHaveBeenCalledWith(10, 0, {
+      forceRefresh: true,
+      network: "mainnet",
+    });
     expect(wrapper.vm.state.items.value).toEqual([{ hash: "fresh" }]);
   });
 });

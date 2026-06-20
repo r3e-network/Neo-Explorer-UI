@@ -17,7 +17,7 @@ vi.mock("@/services/cache", () => ({
 
 vi.mock("@/services/serviceFactory", () => ({
   createService: (_definitions, methods) => methods,
-  getRealtimeListCacheOptions: vi.fn(() => ({})),
+  getRealtimeListCacheOptions: vi.fn((options = {}) => ({ ...(options || {}) })),
 }));
 
 vi.mock("@/services/indexerReadService", () => ({
@@ -30,6 +30,10 @@ vi.mock("@/services/transactionService", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: () => "Mainnet",
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || "mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
 }));
 
 describe("statsService.getGasTracker", () => {
@@ -66,6 +70,21 @@ describe("statsService.getGasTracker", () => {
 
     expect(result.latestNetworkFee).toBe("200");
     expect(result.latestSystemFee).toBe("300");
+  });
+
+  it("routes gas tracker through the requested network", async () => {
+    transactionServiceGetListMock.mockResolvedValue({
+      result: [{ net_fee: "200", sys_fee: "300" }],
+      totalCount: 1,
+    });
+
+    const { statsService } = await import("@/services/statsService");
+    await statsService.getGasTracker({ forceRefresh: true, network: "testnet" });
+
+    expect(transactionServiceGetListMock).toHaveBeenCalledWith(1, 0, {
+      forceRefresh: true,
+      network: "testnet",
+    });
   });
 
   it("returns zeros when getList yields no rows", async () => {
@@ -119,10 +138,27 @@ describe("statsService.getDashboardStats (#185)", () => {
     const { statsService } = await import("@/services/statsService");
     const result = await statsService.getDashboardStats(false);
 
-    expect(rpcMock).toHaveBeenCalledWith("getblockcount", []);
+    expect(rpcMock).toHaveBeenCalledWith("getblockcount", [], { network: "mainnet" });
     expect(result.blocks).toBe(9_628_000);
     // Other stats still come from summary.
     expect(result.txs).toBe(100);
+  });
+
+  it("routes dashboard summary and block-count fallback through the requested network", async () => {
+    indexerReadServiceGetSummaryMock.mockResolvedValue({
+      total_tx_count: 100,
+      total_block_count: 0,
+    });
+    rpcMock.mockResolvedValueOnce(9_628_000);
+
+    const { statsService } = await import("@/services/statsService");
+    const result = await statsService.getDashboardStats({ forceRefresh: true, network: "testnet" });
+
+    expect(indexerReadServiceGetSummaryMock).toHaveBeenCalledWith(
+      expect.objectContaining({ forceRefresh: true, network: "testnet" }),
+    );
+    expect(rpcMock).toHaveBeenCalledWith("getblockcount", [], { network: "testnet" });
+    expect(result.blocks).toBe(9_628_000);
   });
 
   it("returns zeros for missing summary fields without firing legacy POSTs", async () => {

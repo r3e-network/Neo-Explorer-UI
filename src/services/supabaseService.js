@@ -271,11 +271,12 @@ const mergeValidatorMetadataWithGovernanceCandidates = (rows = [], governanceRow
 };
 
 const fetchGovernanceCandidateMetadata = async (networkMode) => {
-  const contractHash = getGovernanceCandidateContractHash(networkMode);
+  const network = getNetworkMode(networkMode);
+  const contractHash = getGovernanceCandidateContractHash(network);
   if (!contractHash) return [];
 
   try {
-    const result = await rpc("invokefunction", [contractHash, "getAllInfo", []]);
+    const result = await rpc("invokefunction", [contractHash, "getAllInfo", []], { network });
     const rows = Array.isArray(result?.stack?.[0]?.value) ? result.stack[0].value : [];
     return rows.map((item) => decodeGovernanceCandidateInfoRow(item)).filter(Boolean);
   } catch (err) {

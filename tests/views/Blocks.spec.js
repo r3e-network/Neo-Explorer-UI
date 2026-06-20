@@ -9,7 +9,9 @@ describe("Blocks page data loading", () => {
     expect(src).toMatch(/const blockFetchFn = async \(limit, skip, opts\) =>/);
     expect(src).toContain("const validatorIdentityPromise = waitForValidatorIdentity();");
     expect(src).toContain("const page = await blockService.getList(limit, skip, opts);");
-    expect(src).toMatch(/blockService\.getList\(limit, offset, \{ __suppressDevErrorLog: true, enrichMissingFields: true \}\)/);
+    expect(src).toContain("__suppressDevErrorLog: true");
+    expect(src).toContain("enrichMissingFields: true");
+    expect(src).toContain("network,");
   });
 
   it("preloads validator identity before publishing block rows", async () => {
@@ -29,7 +31,7 @@ describe("Blocks page data loading", () => {
     const src = fs.readFileSync(path.resolve(process.cwd(), "src/views/Block/Blocks.vue"), "utf8");
 
     expect(src).toContain('import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness"');
-    expect(src).toContain('queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip })');
+    expect(src).toContain('createExplorerQueryKey("blocks.list", { limit, skip, network: context.network })');
     expect(src).toContain('querySource: "blocks.list"');
     expect(src).toContain('createExplorerQueryKey("blocks.stats"');
   });

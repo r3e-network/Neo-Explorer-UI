@@ -11,6 +11,10 @@ vi.mock("@/services/api", () => ({ rpc: rpcMock }));
 vi.mock("@/services/cache", () => ({ cachedRequest: cachedRequestMock }));
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || getCurrentEnvMock() || "mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NET_ENV: { TestT5: "TestT5" },
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));

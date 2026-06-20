@@ -102,6 +102,18 @@ describe("createRollingTxBuffer", () => {
     expect(fetchPage).toHaveBeenCalledTimes(2);
   });
 
+  it("forwards additional request options to every fetchPage call", async () => {
+    const fetchPage = vi.fn().mockResolvedValue([mkTx("t-0")]);
+    const buffer = createRollingTxBuffer({ fetchPage, initialPages: 1, pageSize: 1 });
+
+    await buffer.refresh(true, { network: "testnet" });
+
+    expect(fetchPage).toHaveBeenCalledWith(1, 0, {
+      forceRefresh: true,
+      network: "testnet",
+    });
+  });
+
   it("reset() clears entries so the next refresh re-runs initial fill", async () => {
     const fetchPage = vi.fn().mockResolvedValue([mkTx("a")]);
     const buffer = createRollingTxBuffer({ fetchPage, initialPages: 1, pageSize: 1 });

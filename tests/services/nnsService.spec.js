@@ -45,6 +45,10 @@ vi.mock("../../src/utils/env.js", () => ({
     TestT5: "TestT5",
   },
   getCurrentEnv: () => currentEnv,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || currentEnv || "Mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
 }));
 
 describe("nnsService.resolveDomain", () => {
@@ -86,7 +90,7 @@ describe("nnsService.resolveDomain", () => {
         ],
       ],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "mainnet" },
     );
     expect(resolved).toBe(expectedAddress);
   });
@@ -160,7 +164,7 @@ describe("nnsService.resolveDomain", () => {
         [{ type: "String", value: "alice.matrix" }],
       ],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "testnet" },
     );
     expect(safeRpc).toHaveBeenNthCalledWith(
       2,
@@ -171,7 +175,7 @@ describe("nnsService.resolveDomain", () => {
         [{ type: "ByteArray", value: btoa("alice.matrix") }],
       ],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "testnet" },
     );
     expect(safeRpc).toHaveBeenNthCalledWith(
       3,
@@ -182,7 +186,7 @@ describe("nnsService.resolveDomain", () => {
         [{ type: "ByteArray", value: btoa("alice.matrix") }],
       ],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "testnet" },
     );
     expect(safeRpc).toHaveBeenNthCalledWith(
       4,
@@ -196,7 +200,7 @@ describe("nnsService.resolveDomain", () => {
         ],
       ],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "testnet" },
     );
     expect(profile).toMatchObject({
       domain: "alice.matrix",

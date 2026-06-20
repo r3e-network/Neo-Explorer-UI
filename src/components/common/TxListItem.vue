@@ -234,6 +234,7 @@ import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { supabaseService } from "@/services/supabaseService";
 import { ref, watch } from "vue";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   tx: { type: Object, default: () => ({}) },
@@ -300,14 +301,17 @@ watch(
       return;
     }
 
+    const requestNetwork = resolveNetworkName();
     try {
-      const meta = await supabaseService.getContractMetadata(contract);
+      const meta = await supabaseService.getContractMetadata(contract, requestNetwork);
+      if (resolveNetworkName() !== requestNetwork) return;
       if (meta) {
         supabaseMeta.value = meta;
       } else {
         supabaseMeta.value = {};
       }
     } catch {
+      if (resolveNetworkName() !== requestNetwork) return;
       supabaseMeta.value = {};
     }
   },

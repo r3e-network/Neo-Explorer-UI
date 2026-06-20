@@ -144,6 +144,7 @@ describe("ContractDetail write preflight simulation", () => {
       "transfer",
       [{ type: "Integer", value: "" }],
       [{ account: "408b58900a52b5c2eb599c6cc5c538752e561120", scopes: 1 }],
+      { network: "mainnet" },
     );
     expect(walletInvoke).not.toHaveBeenCalled();
     expect(wrapper.get('[data-test="write-error"]').text()).toContain("CheckWitness failed");

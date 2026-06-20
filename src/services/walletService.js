@@ -1207,11 +1207,11 @@ async function resolveUnsignedTransactionHash(unsignedTxHex) {
   throw new Error("Failed to compute the unsigned transaction hash.");
 }
 
-async function buildRawTransactionSigningPayload(unsignedTxHex) {
+async function buildRawTransactionSigningPayload(unsignedTxHex, network = getCurrentEnv()) {
   const sdk = await loadSdk();
   const { RPCClient: RpcClient } = sdk.rpc;
   const { num2hexstring, reverseHex } = await getSdkTools();
-  const versionRes = await callWithRpcEndpointFallback(getCurrentEnv(), async (endpoint) => {
+  const versionRes = await callWithRpcEndpointFallback(network, async (endpoint) => {
     const rpcClient = new RpcClient(endpoint);
     return rpcClient.getVersion();
   });
@@ -1767,8 +1767,8 @@ export const walletService = {
    * @returns {Promise<{txid: string}>}
    */
 
-  async getRawTransactionSigningPayload(unsignedTxHex) {
-    return buildRawTransactionSigningPayload(unsignedTxHex);
+  async getRawTransactionSigningPayload(unsignedTxHex, options = {}) {
+    return buildRawTransactionSigningPayload(unsignedTxHex, options?.network);
   },
 
   async getPublicKey() {

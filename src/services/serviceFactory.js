@@ -48,7 +48,7 @@ export function createRpcMethod({
     const callArgs = hasOptions ? args.slice(0, -1) : args;
 
     const cacheParams = (buildCacheParams || buildParams)(callArgs);
-    const key = getCacheKey(cacheKey, cacheParams);
+    const key = getCacheKey(cacheKey, cacheParams, options.network);
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 
@@ -95,7 +95,7 @@ export function createRpcListMethod({
     const callArgs = hasOptions ? args.slice(0, -1) : args;
 
     const cacheParams = (buildCacheParams || buildParams)(callArgs);
-    const key = getCacheKey(cacheKey, cacheParams);
+    const key = getCacheKey(cacheKey, cacheParams, options.network);
     const rpcParams = buildParams(callArgs);
     const cacheOpts = realtime ? getRealtimeListCacheOptions(options) : options;
 

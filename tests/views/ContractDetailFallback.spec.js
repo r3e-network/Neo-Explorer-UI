@@ -169,7 +169,7 @@ describe("ContractDetail indexed miss fallback", () => {
 
     await flushPromises();
 
-    expect(getByHashWithFallback).toHaveBeenCalledWith(route.params.hash);
+    expect(getByHashWithFallback).toHaveBeenCalledWith(route.params.hash, { network: "mainnet" });
     expect(wrapper.find('[data-test="error"]').exists()).toBe(false);
     expect(wrapper.get('[data-test="header"]').text()).toBe("NameService");
     expect(wrapper.get('[data-test="overview"]').text()).toContain(route.params.hash);
@@ -213,7 +213,7 @@ describe("ContractDetail indexed miss fallback", () => {
 
     await flushPromises();
 
-    expect(getContractMetadata).toHaveBeenCalledWith(route.params.hash);
+    expect(getContractMetadata).toHaveBeenCalledWith(route.params.hash, "mainnet");
     expect(wrapper.get('[data-test="header"]').text()).toBe("NeoToken|true");
   });
 });

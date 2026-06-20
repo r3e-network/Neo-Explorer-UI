@@ -103,6 +103,7 @@ import { NATIVE_CONTRACTS } from "@/constants";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   assets: { type: Array, default: () => [] },
@@ -117,7 +118,9 @@ watch(
   async (newAssets) => {
     if (newAssets && newAssets.length) {
       const hashes = newAssets.map((a) => assetHash(a)).filter(Boolean);
-      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      const requestNetwork = resolveNetworkName();
+      const meta = await supabaseService.getContractMetadataBatch(hashes, requestNetwork);
+      if (resolveNetworkName() !== requestNetwork) return;
       supabaseMeta.value = meta;
     } else {
       supabaseMeta.value = {};

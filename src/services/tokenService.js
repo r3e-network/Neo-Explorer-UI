@@ -7,7 +7,10 @@ import { resolveNetworkName } from "@/utils/env";
 import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
 import { eqHash, inHashes, safeTokenId } from "@/utils/postgrest";
 
-const resolveTokenNetwork = () => resolveNetworkName();
+const resolveTokenNetwork = (options = {}) => {
+  const explicitNetwork = typeof options === "string" ? options : options?.network;
+  return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
+};
 
 function bytesToBase64(bytes) {
   const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
@@ -90,8 +93,8 @@ function _mapTransferRow(r, standard) {
 
 // Map to the legacy {from, to, amount, contract, txid, blockindex} shape
 // the shared TxTransfersTab component expects.
-async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, skip = 0) {
-  const network = resolveTokenNetwork();
+async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, skip = 0, options = {}) {
+  const network = resolveTokenNetwork(options);
   const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
   const txidFilter = eqHash(txHash);
   const params = new URLSearchParams({
@@ -124,13 +127,13 @@ async function fetchTransfersByTxHashFromIndexer(txHash, standard, limit = 20, s
 // for many txids in one PostgREST query (txid=in.(...)) and buckets the
 // rows by txid. Used by useTransferSummary on list pages where the
 // per-row N+1 loop would otherwise fire 8+ separate fetches.
-async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
+async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard, options = {}) {
   const list = (Array.isArray(txHashes) ? txHashes : [])
     .map((h) => String(h || "").trim())
     .filter(Boolean);
   if (list.length === 0) return new Map();
 
-  const network = resolveTokenNetwork();
+  const network = resolveTokenNetwork(options);
   const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
   const txidInFilter = inHashes(list);
   if (!txidInFilter) return new Map();
@@ -174,8 +177,8 @@ async function fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard) {
 // query filters to transfers up front: `offset` and the `count=exact` total
 // share one filtered population. Returns null on transport failure so the
 // caller can fall through to the notifications/legacy path.
-async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
-  const network = resolveTokenNetwork();
+async function fetchContractTransfersFromIndexer(hash, standard, limit, skip, options = {}) {
+  const network = resolveTokenNetwork(options);
   const table = standard === "nep11" ? "nep11_transfers" : "nep17_transfers";
   const safeHash = encodeURIComponent(String(hash || "").trim());
   if (!safeHash) return null;
@@ -214,8 +217,8 @@ async function fetchContractTransfersFromIndexer(hash, standard, limit, skip) {
   }
 }
 
-async function fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit = 20, skip = 0) {
-  const network = resolveTokenNetwork();
+async function fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit = 20, skip = 0, options = {}) {
+  const network = resolveTokenNetwork(options);
   const contractHashFilter = eqHash(hash);
   const cleanTokenId = safeTokenId(tokenId);
   if (!contractHashFilter || !cleanTokenId) return null;
@@ -371,17 +374,17 @@ export const tokenService = createService(
     // The Postgres indexer is the authoritative transfer source. When it
     // cannot answer, return an empty list rather than touching retired
     // transaction-hash handlers.
-    async getTransfersByTxHash(txHash, limit = 20, skip = 0, _options = {}) {
+    async getTransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
       try {
-        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip);
+        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep17", limit, skip, options);
         if (indexed && Array.isArray(indexed.result)) return indexed;
       } catch { /* fall through to empty state */ }
       return { result: [], totalCount: 0 };
     },
 
-    async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, _options = {}) {
+    async getNep11TransfersByTxHash(txHash, limit = 20, skip = 0, options = {}) {
       try {
-        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip);
+        const indexed = await fetchTransfersByTxHashFromIndexer(txHash, "nep11", limit, skip, options);
         if (indexed && Array.isArray(indexed.result)) return indexed;
       } catch { /* fall through to empty state */ }
       return { result: [], totalCount: 0 };
@@ -393,12 +396,12 @@ export const tokenService = createService(
     // use this to replace per-row N+1 lookups. No legacy fallback — the
     // legacy RPC has no batch variant; on empty/error we just return an
     // empty Map and let callers degrade gracefully.
-    async getTransfersByTxHashesBatch(txHashes, standard = "nep17") {
-      return fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard);
+    async getTransfersByTxHashesBatch(txHashes, standard = "nep17", options = {}) {
+      return fetchTransfersByTxHashesBatchFromIndexer(txHashes, standard, options);
     },
 
-    async getNep11TransfersByTokenId(hash, tokenId, limit = 20, skip = 0) {
-      const indexed = await fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit, skip);
+    async getNep11TransfersByTokenId(hash, tokenId, limit = 20, skip = 0, options = {}) {
+      const indexed = await fetchNep11TransfersByTokenIdFromIndexer(hash, tokenId, limit, skip, options);
       return indexed || { result: [], totalCount: 0 };
     },
 
@@ -424,7 +427,7 @@ export const tokenService = createService(
     // percentage share against total_supply_raw from the token endpoint.
     async getHolders(hash, limit = 20, skip = 0, options = {}) {
       try {
-        const network = resolveTokenNetwork();
+        const network = resolveTokenNetwork(options);
         const params = new URLSearchParams({
           select: "address,balance_raw",
           contract_hash: `eq.${hash}`,
@@ -470,7 +473,7 @@ export const tokenService = createService(
       // so busy contracts don't skip/duplicate rows across pages. The
       // notifications path below interleaves event names and is kept only as
       // a fallback for when the dedicated transfer table is unavailable.
-      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep17", limit, skip);
+      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep17", limit, skip, options);
       if (transferPage && transferPage.result.length > 0) return transferPage;
       try {
         // Fetch the page of transfers and the token's authoritative total
@@ -521,7 +524,7 @@ export const tokenService = createService(
       // Transfer-only REST population first — same offset/total coherence
       // rationale as getNep17Transfers. Falls through to the notifications
       // path when the dedicated table yields nothing.
-      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep11", limit, skip);
+      const transferPage = await fetchContractTransfersFromIndexer(hash, "nep11", limit, skip, options);
       if (transferPage && transferPage.result.length > 0) return transferPage;
       try {
         // Same slow-endpoint accommodation as getNep17Transfers.
@@ -660,7 +663,7 @@ export const tokenService = createService(
      */
     async searchTokenByName(type, name, limit = 20, skip = 0, options = {}) {
       const cacheOpts = getRealtimeListCacheOptions(options);
-      const key = getCacheKey("token_search", { type, name, limit, skip });
+      const key = getCacheKey("token_search", { type, name, limit, skip }, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -712,7 +715,7 @@ export const tokenService = createService(
      * @returns {Promise<{result: Array<{tokenId: string, name?: string, image?: string, description?: string}>}|null>}
      */
     async getNep11Properties(hash, tokenIds, options = {}) {
-      const key = getCacheKey("token_nep11_properties", { hash, tokenIds });
+      const key = getCacheKey("token_nep11_properties", { hash, tokenIds }, options.network);
       return cachedRequest(
         key,
         async () => {

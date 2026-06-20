@@ -111,7 +111,9 @@ const {
   totalPages,
   loadPage,
   goToPage,
-} = usePagination((limit, skip) => contractService.getNotifications(props.contractHash, limit, skip));
+} = usePagination((limit, skip, opts) =>
+  contractService.getNotifications(props.contractHash, limit, skip, opts),
+);
 
 function isNullTx(txid) {
   return txid === NULL_TX_HASH;

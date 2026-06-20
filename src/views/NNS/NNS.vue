@@ -285,6 +285,8 @@ import { rpc } from "@/services/api";
 import { isValidNeoAddress, truncateHash } from "@/utils/addressFormat";
 import { scriptHashHexToAddress } from "@/utils/neoHelpers";
 import { NNS_HASH } from "@/constants";
+import { resolveNetworkName } from "@/utils/env";
+import { useNetworkChange } from "@/composables/useNetworkChange";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -301,6 +303,7 @@ const transferModalRef = ref(null);
 const { activate: activateTransferTrap, deactivate: deactivateTransferTrap } = useFocusTrap(transferModalRef, { immediate: false });
 watch(showTransferModal, (v) => v ? nextTick(activateTransferTrap) : deactivateTransferTrap());
 const transferRecipient = ref("");
+let nnsSearchGeneration = 0;
 
 const NNS_CONTRACT_HASH = NNS_HASH;
 
@@ -334,8 +337,11 @@ function decodeBase64HashAddress(value) {
   }
 }
 
-async function invokeNnsRead(operation, args = []) {
-  return rpc("invokefunction", [NNS_CONTRACT_HASH, operation, args], { suppressLog: true });
+async function invokeNnsRead(operation, args = [], options = {}) {
+  return rpc("invokefunction", [NNS_CONTRACT_HASH, operation, args], {
+    suppressLog: true,
+    network: resolveNetworkName(options.network),
+  });
 }
 
 function decodePropertiesResult(result, domain) {
@@ -362,13 +368,13 @@ function decodePropertiesResult(result, domain) {
   return props.name === domain ? props : { ...props, name: props.name || domain };
 }
 
-async function getDomainProperties(domain) {
-  const result = await invokeNnsRead("properties", [{ type: "String", value: domain }]).catch(() => null);
+async function getDomainProperties(domain, options = {}) {
+  const result = await invokeNnsRead("properties", [{ type: "String", value: domain }], options).catch(() => null);
   return decodePropertiesResult(result, domain);
 }
 
-async function getDomainOwner(domain) {
-  const result = await invokeNnsRead("ownerOf", [{ type: "ByteArray", value: btoa(domain) }]).catch(() => null);
+async function getDomainOwner(domain, options = {}) {
+  const result = await invokeNnsRead("ownerOf", [{ type: "ByteArray", value: btoa(domain) }], options).catch(() => null);
   if (result?.state !== "HALT") return null;
   return decodeBase64HashAddress(result?.stack?.[0]?.value);
 }
@@ -391,10 +397,14 @@ async function handleSearch() {
   searching.value = true;
   searchResult.value = null;
   searchError.value = false;
+  const requestId = ++nnsSearchGeneration;
+  const requestNetwork = resolveNetworkName();
+  const isStaleSearch = () => requestId !== nnsSearchGeneration || requestNetwork !== resolveNetworkName();
 
   try {
-    const resolvedAddress = await nnsService.resolveDomain(query);
-    const propData = await getDomainProperties(query);
+    const resolvedAddress = await nnsService.resolveDomain(query, { network: requestNetwork });
+    const propData = await getDomainProperties(query, { network: requestNetwork });
+    if (isStaleSearch()) return;
 
     if (!propData) {
       searchResult.value = {
@@ -405,7 +415,8 @@ async function handleSearch() {
       let expired = false;
       let expirationMs = null;
       let admin = null;
-      const ownerAddressFromNNS = await getDomainOwner(query);
+      const ownerAddressFromNNS = await getDomainOwner(query, { network: requestNetwork });
+      if (isStaleSearch()) return;
 
       let ownerAddr = resolvedAddress || ownerAddressFromNNS;
 
@@ -452,14 +463,22 @@ async function handleSearch() {
       }
     }
   } catch (e) {
+    if (isStaleSearch()) return;
     if (import.meta.env.DEV) console.error("Search NNS failed", e);
     toast.error(t('nns.toasts.queryFailed'));
     searchError.value = true;
     searchResult.value = { domain: query };
   } finally {
-    searching.value = false;
+    if (!isStaleSearch()) searching.value = false;
   }
 }
+
+useNetworkChange(() => {
+  nnsSearchGeneration += 1;
+  searching.value = false;
+  searchResult.value = null;
+  searchError.value = false;
+});
 
 import { addressToScriptHash } from "@/utils/neoHelpers";
 import { invokeContract } from "@/utils/wallet";

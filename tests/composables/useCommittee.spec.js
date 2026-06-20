@@ -16,6 +16,10 @@ vi.mock("@/services/cache", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || getCurrentEnvMock() || "mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NET_ENV: { TestT5: "TestT5" },
   NETWORK_CHANGE_EVENT: "neo:network-change",
 }));
@@ -90,7 +94,7 @@ describe("useCommittee", () => {
     await vi.advanceTimersByTimeAsync(1);
     await Promise.resolve();
 
-    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
+    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", [], { network: "mainnet" });
   });
 
   it("falls back to standard getcommittee when getnextblockvalidators fails (#186)", async () => {
@@ -104,8 +108,8 @@ describe("useCommittee", () => {
     await flush();
 
     expect(rpcMock).toHaveBeenCalledTimes(2);
-    expect(rpcMock).toHaveBeenNthCalledWith(1, "getnextblockvalidators", []);
-    expect(rpcMock).toHaveBeenNthCalledWith(2, "getcommittee", []);
+    expect(rpcMock).toHaveBeenNthCalledWith(1, "getnextblockvalidators", [], { network: "mainnet" });
+    expect(rpcMock).toHaveBeenNthCalledWith(2, "getcommittee", [], { network: "mainnet" });
     expect(getPrimaryNodeName(0)).toBe("Consensus Node 1");
     expect(getPrimaryNodeAddress(0)).toBe("0xcommittee1");
   });
@@ -119,7 +123,7 @@ describe("useCommittee", () => {
 
     await flush();
 
-    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", []);
+    expect(rpcMock).toHaveBeenCalledWith("getnextblockvalidators", [], { network: "mainnet" });
     expect(rpcMock).not.toHaveBeenCalledWith("getcommittee", []);
   });
 

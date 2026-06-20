@@ -74,26 +74,33 @@ import { indexerReadService } from "@/services/indexerReadService";
 import { BURN_RATE } from "@/constants";
 import { createRollingTxBuffer, feePercentileEstimates, txTotalFee } from "@/utils/rollingTxBuffer";
 import { isAbortError } from "@/utils/abortError";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 
 // --- State ---
 const { t } = useI18n();
 const BLOCKS_LOAD_TIMEOUT_MS = 4500;
+
+const initialGasData = () => ({
+  latestNetworkFee: "0",
+  latestSystemFee: "0",
+  networkFee: null,
+});
+
+const initialFeeEstimates = () => ({ low: 0, average: 0, high: 0 });
 
 const loading = ref(true);
 const blocksLoading = ref(true);
 const blocksError = ref(null);
 const gasError = ref(false);
 
-const gasData = ref({
-  latestNetworkFee: "0",
-  latestSystemFee: "0",
-  networkFee: null,
-});
+const gasData = ref(initialGasData());
 
-const feeEstimates = ref({ low: 0, average: 0, high: 0 });
+const feeEstimates = ref(initialFeeEstimates());
 const blocks = ref([]);
 
 let isRefreshing = false;
+let loadGeneration = 0;
 
 // Module-level rolling buffer of recent transactions (survives across
 // auto-refresh ticks in the same session). First refresh fetches 1000
@@ -112,49 +119,91 @@ function withTimeout(promise, timeoutMs, message) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
 }
 
-async function refreshFeeBuffer(forceRefresh = false) {
-  await feeTxBuffer.refresh(forceRefresh);
+function createLoadContext() {
+  const network = resolveNetworkName();
+  const generation = ++loadGeneration;
+  return { generation, network };
+}
+
+function isCurrentLoadContext(context) {
+  return (
+    context &&
+    context.generation === loadGeneration &&
+    resolveNetworkName() === context.network
+  );
+}
+
+function clearNetworkScopedState() {
+  loadGeneration += 1;
+  feeTxBuffer.reset();
+  gasData.value = initialGasData();
+  feeEstimates.value = initialFeeEstimates();
+  blocks.value = [];
+  blocksError.value = null;
+  gasError.value = false;
+  loading.value = true;
+  blocksLoading.value = true;
+}
+
+async function refreshFeeBuffer(forceRefresh = false, context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
+  await feeTxBuffer.refresh(forceRefresh, { network: requestContext.network });
+  if (!isCurrentLoadContext(requestContext)) return;
   const fees = feeTxBuffer.entries.map(txTotalFee);
   feeEstimates.value = feePercentileEstimates(fees);
 }
 
 // --- Data loading ---
-async function loadGasTracker(forceRefresh = false) {
+async function loadGasTracker(forceRefresh = false, context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
   loading.value = true;
   gasError.value = false;
   try {
-    const data = await statsService.getGasTracker(forceRefresh);
+    const data = await statsService.getGasTracker({ forceRefresh, network: requestContext.network });
+    if (!isCurrentLoadContext(requestContext)) return;
     gasData.value = data;
   } catch (e) {
     if (isAbortError(e)) return;
+    if (!isCurrentLoadContext(requestContext)) return;
     if (import.meta.env.DEV) console.error("Gas tracker load failed:", e);
     gasError.value = true;
   } finally {
-    loading.value = false;
+    if (isCurrentLoadContext(requestContext)) {
+      loading.value = false;
+    }
   }
 }
 
-async function loadBlocks(forceRefresh = false) {
+async function loadBlocks(forceRefresh = false, context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
   blocksLoading.value = true;
   blocksError.value = null;
   try {
     const blockRes = await withTimeout(
-      blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true }),
+      blockService.getList(20, 0, {
+        forceRefresh,
+        enrichMissingFields: true,
+        network: requestContext.network,
+      }),
       BLOCKS_LOAD_TIMEOUT_MS,
       t("gasTracker.failedLoadBlocks"),
     );
+    if (!isCurrentLoadContext(requestContext)) return;
     blocks.value = blockRes?.result || [];
   } catch (e) {
     if (isAbortError(e)) return;
+    if (!isCurrentLoadContext(requestContext)) return;
     blocksError.value = e.message || t("gasTracker.failedLoadBlocks");
   } finally {
-    blocksLoading.value = false;
+    if (isCurrentLoadContext(requestContext)) {
+      blocksLoading.value = false;
+    }
   }
 
   // Fee buffer updates incrementally and may touch a much larger transaction
   // window than the visible block table. Keep it off the table/chart loading
   // path so a slow estimator refresh never leaves the page in skeleton state.
-  refreshFeeBuffer(forceRefresh).catch((e) => {
+  refreshFeeBuffer(forceRefresh, requestContext).catch((e) => {
     if (import.meta.env.DEV && !isAbortError(e)) console.warn("Gas fee estimate refresh failed:", e);
   });
 }
@@ -162,11 +211,20 @@ async function loadBlocks(forceRefresh = false) {
 async function loadData(forceRefresh = false) {
   if (isRefreshing) return;
   isRefreshing = true;
+  const context = createLoadContext();
   try {
-    await Promise.all([loadGasTracker(forceRefresh), loadBlocks(forceRefresh)]);
+    await Promise.all([loadGasTracker(forceRefresh, context), loadBlocks(forceRefresh, context)]);
   } finally {
-    isRefreshing = false;
+    if (isCurrentLoadContext(context) || resolveNetworkName() === context.network) {
+      isRefreshing = false;
+    }
   }
+}
+
+function handleNetworkChange() {
+  clearNetworkScopedState();
+  isRefreshing = false;
+  void loadData(true);
 }
 
 // --- Lifecycle ---
@@ -177,4 +235,6 @@ async function loadData(forceRefresh = false) {
 onMounted(() => {
   loadData();
 });
+
+useNetworkChange(handleNetworkChange);
 </script>

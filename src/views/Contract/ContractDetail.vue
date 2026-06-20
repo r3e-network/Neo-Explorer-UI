@@ -133,6 +133,7 @@ import { createSimulationFaultError, isSimulationFault } from "@/utils/transacti
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { connectedAccount } from "@/utils/walletState";
 import { loadWalletService } from "@/utils/lazyServices";
+import { resolveNetworkName } from "@/utils/env";
 import { getProviderInstallUrl, getProviderUnavailableReasonKey } from "@/utils/walletProviderMeta";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
@@ -160,6 +161,7 @@ const tabs = computed(() =>
 );
 const isVerified = ref(false);
 const hasContract = computed(() => Boolean(contract.value?.hash));
+const contractNetwork = ref(resolveNetworkName());
 
 // Wallet state
 const walletConnected = ref(false);
@@ -329,7 +331,7 @@ const {
 } = useMethodInteraction(
   readMethods,
   (name, params) =>
-    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners()),
+    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners(), { network: contractNetwork.value }),
   { errorFallback: t("contract.invocationFailed") },
 );
 
@@ -349,6 +351,7 @@ const {
       name,
       params,
       readSimulationSigners(selectedScope),
+      { network: contractNetwork.value },
     );
     if (isSimulationFault(simulation)) {
       throw createSimulationFaultError(simulation, { operation: name });
@@ -361,7 +364,7 @@ const {
       args,
       scope: selectedScope,
     });
-    if (result?.txid) trackTx(result.txid);
+    if (result?.txid) trackTx(result.txid, { network: contractNetwork.value });
     return result;
   },
   { errorFallback: t("contract.txFailed") }
@@ -373,13 +376,15 @@ function invokeWriteMethod(idx, method, scope) {
 
 function estimateGas(idx, method) {
   estimateWriteGas(idx, method, (name, params) =>
-    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners()),
+    invokeContractFunction(contract.value.hash, name, params, readSimulationSigners(), { network: contractNetwork.value }),
   );
 }
 
 // Data loading
-async function loadContract(hash) {
+async function loadContract(hash, network = null) {
   const myGeneration = ++fetchGeneration;
+  const requestNetwork = resolveNetworkName(network);
+  contractNetwork.value = requestNetwork;
   loading.value = true;
   error.value = null;
   manifest.value = null;
@@ -390,39 +395,42 @@ async function loadContract(hash) {
   contract.value = {};
   isVerified.value = false;
   try {
-    const fetched = await contractService.getByHashWithFallback(hash);
-    if (myGeneration !== fetchGeneration) return;
+    const fetched = await contractService.getByHashWithFallback(hash, { network: requestNetwork });
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     contract.value = fetched || {};
     if (!contract.value?.hash) {
       error.value = t("errors.loadContractDetails");
       return;
     }
     const [, manifestData] = await Promise.all([
-      checkVerification(hash),
-      contractService.getManifest(hash).catch(() => null),
+      checkVerification(hash, requestNetwork),
+      contractService.getManifest(hash, { network: requestNetwork }).catch(() => null),
     ]);
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     manifest.value = manifestData || contract.value?.manifest || null;
   } catch (err) {
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load contract:", err);
     error.value = t("errors.loadContractDetails");
   } finally {
-    if (myGeneration === fetchGeneration) loading.value = false;
+    if (myGeneration === fetchGeneration && resolveNetworkName() === requestNetwork) loading.value = false;
   }
 }
 
-async function checkVerification(hash) {
+async function checkVerification(hash, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   // Read is_verified from the indexer-cached contract metadata. The
   // legacy GetVerifiedContractByContractHash JSON-RPC queries an
   // unpopulated Mongo collection and always returns "find document(s)
   // error" post-cleanup (verified live on /contract-info).
   try {
-    const metadata = await supabaseService.getContractMetadata(hash);
+    const metadata = await supabaseService.getContractMetadata(hash, requestNetwork);
+    if (resolveNetworkName() !== requestNetwork) return;
     contractMetadata.value = metadata || null;
     isVerified.value = Boolean(metadata?.is_verified);
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Contract verification check failed:", err);
     isVerified.value = false;
   }

@@ -26,6 +26,7 @@ const getIndexerHome = vi.fn();
 const getIndexerSummary = vi.fn();
 const getIndexerBlocks = vi.fn();
 const getIndexerTransactions = vi.fn();
+const getDailyAnalytics = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
@@ -80,7 +81,7 @@ vi.mock("@/services/searchService", () => ({
 
 vi.mock("@/services/statsService", () => ({
   statsService: {
-    getDailyAnalytics: vi.fn().mockResolvedValue([]),
+    getDailyAnalytics,
   },
 }));
 
@@ -199,6 +200,7 @@ describe("HomePage initial loading", () => {
     getIndexerSummary.mockResolvedValue(makeFreshSummary());
     getIndexerBlocks.mockResolvedValue(makeIndexerBlocks());
     getIndexerTransactions.mockResolvedValue(makeIndexerTransactions());
+    getDailyAnalytics.mockResolvedValue([]);
 
     // Fallback services default to empty (should not be called when indexer works)
     getBlockList.mockResolvedValue({
@@ -250,6 +252,7 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
     expect(getIndexerBlocks).toHaveBeenCalled();
     expect(getIndexerTransactions).toHaveBeenCalled();
+    expect(getIndexerSummary).toHaveBeenCalledWith(expect.objectContaining({ network: "mainnet" }));
     // Should not fall back to RPC when indexer succeeds
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
@@ -311,7 +314,11 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
-    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: false });
+    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+      forceRefresh: false,
+      network: "mainnet",
+    });
+    expect(getDailyAnalytics).toHaveBeenCalledWith(2, { network: "mainnet" });
     expect(getIndexerBlocks).not.toHaveBeenCalled();
     expect(getIndexerTransactions).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -594,13 +601,19 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: false });
+    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+      forceRefresh: false,
+      network: "mainnet",
+    });
 
     const realtimeCallback = useRealtimeHeadMock.mock.calls[0][0];
     realtimeCallback({ index: 13, network: "mainnet" });
     await flushPromises();
 
-    expect(getIndexerHome).toHaveBeenCalledWith(6, { forceRefresh: true });
+    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+      forceRefresh: true,
+      network: "mainnet",
+    });
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("14");
     wrapper.unmount();
   });

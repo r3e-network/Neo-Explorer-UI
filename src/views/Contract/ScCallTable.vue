@@ -116,7 +116,9 @@ const {
   totalPages,
   loadPage,
   goToPage,
-} = usePagination((limit, skip) => contractService.getScCalls(props.contractHash, limit, skip));
+} = usePagination((limit, skip, opts) =>
+  contractService.getScCalls(props.contractHash, limit, skip, opts),
+);
 
 function isNullTx(txid) {
   return txid === NULL_TX_HASH;

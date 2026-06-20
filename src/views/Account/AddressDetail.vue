@@ -152,7 +152,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import AddressHeader from "./components/AddressHeader.vue";
 import AddressTransactionsTab from "./components/AddressTransactionsTab.vue";
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
-import { getCurrentEnv, NET_ENV, setCurrentEnv } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName, setCurrentEnv } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { supabaseService } from "@/services/supabaseService";
@@ -210,9 +210,12 @@ const {
   async (pageSize, skip, options = {}) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
+    const requestNetwork = resolveNetworkName(options.network);
     const response = await transactionService.getByAddress(addr, pageSize, skip, options);
     const result = normalizeAddressTransactions(response?.result || []);
-    enrichTransactions(result);
+    if (resolveNetworkName() === requestNetwork) {
+      enrichTransactions(result);
+    }
     return {
       result,
       totalCount: Number(response?.totalCount || 0),
@@ -221,9 +224,14 @@ const {
   {
     defaultPageSize: 10,
     errorMessage: t("errors.loadTransactions"),
-    queryKeyFn: (pageSize, skip) => {
+    queryKeyFn: (pageSize, skip, context = {}) => {
       const addr = address.value;
-      return createExplorerQueryKey("address.transactions", { address: addr, pageSize, skip });
+      return createExplorerQueryKey("address.transactions", {
+        address: addr,
+        pageSize,
+        skip,
+        network: context.network,
+      });
     },
     querySource: "address.transactions",
   },
@@ -258,10 +266,11 @@ const {
   goToPage: goToNep17Page,
   changePageSize: changeNep17PageSize,
 } = usePagination(
-  async (pageSize, skip) => {
+  async (pageSize, skip, options = {}) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
-    const response = await accountService.getNep17Transfers(addr, pageSize, skip);
+    const requestNetwork = resolveNetworkName(options.network);
+    const response = await accountService.getNep17Transfers(addr, pageSize, skip, options);
     const rows = normalizeNep17Transfers(response?.result || []);
 
     // Enrich rows whose decimals weren't supplied by the indexer
@@ -285,7 +294,7 @@ const {
       await Promise.all(
         [...needsDecimals].map(async (ch) => {
           try {
-            const meta = await tokenService.getByHashWithFallback(ch);
+            const meta = await tokenService.getByHashWithFallback(ch, { network: requestNetwork });
             if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
               decimalsByContract.set(ch, Number(meta.decimals));
             }
@@ -323,10 +332,10 @@ const {
   goToPage: goToNep11Page,
   changePageSize: changeNep11PageSize,
 } = usePagination(
-  async (pageSize, skip) => {
+  async (pageSize, skip, options = {}) => {
     const addr = address.value;
     if (!addr) return { result: [], totalCount: 0 };
-    const response = await accountService.getNep11Transfers(addr, pageSize, skip);
+    const response = await accountService.getNep11Transfers(addr, pageSize, skip, options);
     return {
       result: normalizeNep11Transfers(response?.result || []),
       totalCount: Number(response?.totalCount || 0),
@@ -348,13 +357,13 @@ const {
   goToPage: goToVotersPage,
   changePageSize: changeVotersPageSize,
 } = usePagination(
-  async (pageSize, skip) => {
+  async (pageSize, skip, options = {}) => {
     // Voters are looked up by the candidate's public key (the on-chain Vote
     // notifications key voters by candidate pubkey, not address).
     const pubKey = candidateData.value?.candidatePubKey || candidateData.value?.publickey || "";
     if (!pubKey) return { result: [], totalCount: 0 };
 
-    const response = await candidateService.getVotersByAddress(pubKey, pageSize, skip);
+    const response = await candidateService.getVotersByAddress(pubKey, pageSize, skip, options);
 
     // Map script hashes back to base58 addresses
     const mappedResult = (response?.result || []).map((v) => {
@@ -413,12 +422,13 @@ async function switchToMainnet() {
   await initializeData(addr, { forceRefresh: true });
 }
 
-async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
+async function resolveCandidateVotes(scriptHash, candidate, currentRequestId, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   let resolvedVotes = pickBestCandidateVotes(candidate);
 
   try {
-    const votesResponse = await candidateService.getVotesByAddress(scriptHash);
-    if (currentRequestId !== addressRequestId) return resolvedVotes;
+    const votesResponse = await candidateService.getVotesByAddress(scriptHash, { network: requestNetwork });
+    if (currentRequestId !== addressRequestId || resolveNetworkName() !== requestNetwork) return resolvedVotes;
     resolvedVotes = pickBestCandidateVotes(resolvedVotes, votesResponse);
   } catch {
     // Ignore and fallback to other sources.
@@ -427,13 +437,13 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
   if (resolvedVotes !== "0") return resolvedVotes;
 
   try {
-    const countRaw = await candidateService.getCount();
-    if (currentRequestId !== addressRequestId) return resolvedVotes;
+    const countRaw = await candidateService.getCount({ network: requestNetwork });
+    if (currentRequestId !== addressRequestId || resolveNetworkName() !== requestNetwork) return resolvedVotes;
 
     const count = Number(countRaw || 0);
     const limit = Number.isFinite(count) && count > 0 ? Math.min(count, MAX_CANDIDATE_LIST_LOOKUP) : 500;
-    const listResponse = await candidateService.getList(limit, 0);
-    if (currentRequestId !== addressRequestId) return resolvedVotes;
+    const listResponse = await candidateService.getList(limit, 0, { network: requestNetwork });
+    if (currentRequestId !== addressRequestId || resolveNetworkName() !== requestNetwork) return resolvedVotes;
 
     const list = Array.isArray(listResponse?.result) ? listResponse.result : [];
     const matched = list.find(
@@ -454,8 +464,10 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 
     const candidatePubKey = candidate?.candidatePubKey || candidate?.publickey || "";
     for (let page = 0; page < MAX_VOTER_FALLBACK_PAGES; page += 1) {
-      const votersResponse = await candidateService.getVotersByAddress(candidatePubKey, pageSize, skip);
-      if (currentRequestId !== addressRequestId) return resolvedVotes;
+      const votersResponse = await candidateService.getVotersByAddress(candidatePubKey, pageSize, skip, {
+        network: requestNetwork,
+      });
+      if (currentRequestId !== addressRequestId || resolveNetworkName() !== requestNetwork) return resolvedVotes;
 
       const votersList = Array.isArray(votersResponse?.result) ? votersResponse.result : [];
       if (!votersList.length) break;
@@ -482,16 +494,21 @@ async function resolveCandidateVotes(scriptHash, candidate, currentRequestId) {
 }
 
 // --- Data loading methods ---
-async function loadSummary(addr, { forceRefresh = false } = {}) {
+async function loadSummary(addr, { forceRefresh = false, network = null } = {}) {
   const currentRequestId = addressRequestId;
+  const requestNetwork = resolveNetworkName(network);
   summaryLoading.value = true;
   try {
     const account = (await withTimeout(
       fetchFreshQuery({
         forceRefresh,
-        queryKey: createExplorerQueryKey("address.summary", { address: addr }),
+        queryKey: createExplorerQueryKey("address.summary", { address: addr, network: requestNetwork }),
         queryFn: ({ forceRefresh }) =>
-          accountService.getByAddress(addr, { forceRefresh, signal: abortController.value?.signal }),
+          accountService.getByAddress(addr, {
+            forceRefresh,
+            network: requestNetwork,
+            signal: abortController.value?.signal,
+          }),
         source: "address.summary",
       }),
       SUMMARY_LOAD_TIMEOUT_MS,
@@ -506,7 +523,7 @@ async function loadSummary(addr, { forceRefresh = false } = {}) {
 
     if (isHash160Hex(addr)) {
       try {
-        const contract = await contractService.getByHashWithFallback(addr);
+        const contract = await contractService.getByHashWithFallback(addr, { network: requestNetwork });
         if (currentRequestId !== addressRequestId) return;
         isContract.value = !!(contract && contract.hash);
       } catch {
@@ -517,14 +534,19 @@ async function loadSummary(addr, { forceRefresh = false } = {}) {
     try {
       const scriptHash = addressToScriptHash(addr);
       if (scriptHash) {
-        const candidate = await candidateService.getByAddress(scriptHash);
+        const candidate = await candidateService.getByAddress(scriptHash, { network: requestNetwork });
         if (currentRequestId !== addressRequestId) return;
 
         if (candidate && candidate.candidate) {
           isCandidate.value = true;
           candidateData.value = { ...candidate, publickey: candidate.candidatePubKey || "" };
 
-          const votes = await resolveCandidateVotes(scriptHash, candidateData.value, currentRequestId);
+          const votes = await resolveCandidateVotes(
+            scriptHash,
+            candidateData.value,
+            currentRequestId,
+            requestNetwork,
+          );
           if (currentRequestId === addressRequestId && candidateData.value) {
             candidateData.value.votes = votes;
             candidateData.value.votesOfCandidate = votes;
@@ -539,7 +561,7 @@ async function loadSummary(addr, { forceRefresh = false } = {}) {
           if (!isTestnet) {
             let metadataRows = [];
             try {
-              metadataRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+              metadataRows = await supabaseService.getValidatorMetadata(requestNetwork);
             } catch {
               metadataRows = [];
             }
@@ -610,16 +632,18 @@ async function loadSummary(addr, { forceRefresh = false } = {}) {
   }
 }
 
-async function loadAssets(addr, { forceRefresh = false } = {}) {
+async function loadAssets(addr, { forceRefresh = false, network = null } = {}) {
   const currentRequestId = addressRequestId;
+  const requestNetwork = resolveNetworkName(network);
   assetsLoading.value = true;
   assetsError.value = "";
 
   try {
     const response = await fetchFreshQuery({
       forceRefresh,
-      queryKey: createExplorerQueryKey("address.assets", { address: addr }),
-      queryFn: ({ forceRefresh }) => accountService.getAssets(addr, { forceRefresh }),
+      queryKey: createExplorerQueryKey("address.assets", { address: addr, network: requestNetwork }),
+      queryFn: ({ forceRefresh }) =>
+        accountService.getAssets(addr, { forceRefresh, network: requestNetwork }),
       source: "address.assets",
     });
     if (currentRequestId !== addressRequestId) return;
@@ -662,7 +686,7 @@ async function loadAssets(addr, { forceRefresh = false } = {}) {
       // If still missing essential info, fetch from API
       if (!tokenname || standard === undefined || decimals === undefined) {
         try {
-          const info = await tokenService.getByHash(hash);
+          const info = await tokenService.getByHash(hash, { network: requestNetwork });
           if (info) {
             tokenname = tokenname || info.tokenname || info.name || info.symbol;
             symbol = symbol || info.symbol || info.name;
@@ -720,6 +744,7 @@ function exportCsv() {
 // --- Initialization ---
 async function initializeData(addr, { forceRefresh = false } = {}) {
   ++addressRequestId;
+  const requestNetwork = resolveNetworkName();
   abortController.value?.abort();
   abortController.value = new AbortController();
   networkHintDismissed.value = false;
@@ -738,10 +763,10 @@ async function initializeData(addr, { forceRefresh = false } = {}) {
     activeTab.value = "transactions";
   }
 
-  const txPagePromise = loadTxPage(1, { forceRefresh });
+  const txPagePromise = loadTxPage(1, { forceRefresh, network: requestNetwork });
   const results = await Promise.allSettled([
-    loadAssets(addr, { forceRefresh }),
-    loadSummary(addr, { forceRefresh }),
+    loadAssets(addr, { forceRefresh, network: requestNetwork }),
+    loadSummary(addr, { forceRefresh, network: requestNetwork }),
     txPagePromise,
   ]);
   if (import.meta.env.DEV) {
@@ -774,8 +799,10 @@ watch(
     // user can still navigate by typing the domain into search.
     const trimmed = String(addr).trim();
     if (/\.(neo|matrix)$/i.test(trimmed)) {
+      const requestNetwork = resolveNetworkName();
       try {
-        const resolved = await nnsService.resolveDomain(trimmed.toLowerCase());
+        const resolved = await nnsService.resolveDomain(trimmed.toLowerCase(), { network: requestNetwork });
+        if (requestNetwork !== resolveNetworkName()) return;
         if (resolved && resolved !== trimmed) {
           unresolvedDomain.value = "";
           await router.replace({ path: `/account-profile/${resolved}` });
@@ -784,6 +811,7 @@ watch(
         // resolveDomain returns null on FAULT (e.g. expired) or no record.
         unresolvedDomain.value = trimmed;
       } catch {
+        if (requestNetwork !== resolveNetworkName()) return;
         // Network/SDK error — same end-user effect as no record.
         unresolvedDomain.value = trimmed;
       }

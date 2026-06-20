@@ -19,6 +19,7 @@ vi.mock("vue-i18n", async () => {
 
 const getGasTrackerMock = vi.fn();
 const getBlockListMock = vi.fn();
+const envState = vi.hoisted(() => ({ network: "mainnet" }));
 
 vi.mock("@/services/statsService", () => ({
   statsService: {
@@ -37,12 +38,14 @@ vi.mock("@/utils/env", async () => {
   return {
     ...actual,
     getNetworkRefreshIntervalMs: () => 3000,
+    resolveNetworkName: () => envState.network,
   };
 });
 
 describe("GasTracker view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    envState.network = "mainnet";
     getGasTrackerMock.mockResolvedValue({
       latestNetworkFee: "1000",
       latestSystemFee: "2000",
@@ -70,7 +73,51 @@ describe("GasTracker view", () => {
 
     await flushPromises();
 
-    expect(getBlockListMock).toHaveBeenCalledWith(20, 0, { forceRefresh: false, enrichMissingFields: true });
+    expect(getBlockListMock).toHaveBeenCalledWith(20, 0, {
+      forceRefresh: false,
+      enrichMissingFields: true,
+      network: "mainnet",
+    });
+    expect(getGasTrackerMock).toHaveBeenCalledWith({
+      forceRefresh: false,
+      network: "mainnet",
+    });
+    wrapper.unmount();
+  });
+
+  it("clears and reloads network-scoped data on network change", async () => {
+    const GasTracker = (await import("@/views/GasTracker/GasTracker.vue")).default;
+    const wrapper = mount(GasTracker, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          FeeEstimateCards: true,
+          FeeSummary: true,
+          FeeTrendChart: true,
+          BlockFeeTable: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    envState.network = "testnet";
+    window.dispatchEvent(
+      new CustomEvent("neo-explorer-network-change", {
+        detail: { env: "TestT5" },
+      }),
+    );
+    await flushPromises();
+
+    expect(getGasTrackerMock).toHaveBeenCalledWith({
+      forceRefresh: true,
+      network: "testnet",
+    });
+    expect(getBlockListMock).toHaveBeenCalledWith(20, 0, {
+      forceRefresh: true,
+      enrichMissingFields: true,
+      network: "testnet",
+    });
     wrapper.unmount();
   });
 
@@ -79,6 +126,6 @@ describe("GasTracker view", () => {
 
     expect(source).toContain("BLOCKS_LOAD_TIMEOUT_MS");
     expect(source).toContain("withTimeout(");
-    expect(source).toContain("blockService.getList(20, 0, { forceRefresh, enrichMissingFields: true })");
+    expect(source).toContain("network: requestContext.network");
   });
 });

@@ -203,6 +203,7 @@ import { addressToScriptHash } from "@/utils/neoHelpers";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
 import { optimizeLogoUrl } from "@/utils/logoOptimization";
 import { usePriceCache } from "@/composables/usePriceCache";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   address: { type: String, default: "" },
@@ -256,13 +257,15 @@ const normalizeContractHash = (value) => {
 };
 
 const fetchPublicTag = async (addr, isContract) => {
+  const requestNetwork = resolveNetworkName();
   publicTag.value = null;
   publicTagLogo.value = "";
 
   const lookupTarget = isContract ? normalizeContractHash(addressToScriptHash(addr)) || addr : addr;
 
   try {
-    const tagData = await supabaseService.getAddressTag(lookupTarget);
+    const tagData = await supabaseService.getAddressTag(lookupTarget, requestNetwork);
+    if (resolveNetworkName() !== requestNetwork) return;
     if (tagData) {
       publicTag.value = tagData.label;
       publicTagLogo.value = tagData.logo_url || "";
@@ -274,6 +277,7 @@ const fetchPublicTag = async (addr, isContract) => {
 };
 
 const fetchContractMeta = async (addr, isContract) => {
+  const requestNetwork = resolveNetworkName();
   contractMeta.value = null;
 
   if (!isContract) return;
@@ -282,7 +286,8 @@ const fetchContractMeta = async (addr, isContract) => {
   if (!contractHash) return;
 
   try {
-    const metadata = await supabaseService.getContractMetadata(contractHash);
+    const metadata = await supabaseService.getContractMetadata(contractHash, requestNetwork);
+    if (resolveNetworkName() !== requestNetwork) return;
     if (metadata) {
       contractMeta.value = metadata;
     }

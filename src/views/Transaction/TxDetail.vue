@@ -206,6 +206,7 @@ import { executionService } from "@/services/executionService";
 import { blockService } from "@/services/blockService";
 import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
 import { formatGas, truncateHash, formatTokenAmount } from "@/utils/explorerFormat";
 import { extractVmStateFromAppLog, extractVmStateFromObject } from "@/utils/txVmState";
@@ -433,14 +434,15 @@ function resetState() {
   error.value = null;
 }
 
-async function loadTx(hash) {
+async function loadTx(hash, network = null) {
   if (!hash) return;
   const myGeneration = ++fetchGeneration;
+  const requestNetwork = resolveNetworkName(network);
   loading.value = true;
   resetState();
   try {
-    const fetched = await transactionService.getByHash(hash);
-    if (myGeneration !== fetchGeneration) return;
+    const fetched = await transactionService.getByHash(hash, { network: requestNetwork });
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     // Reject obviously-empty payloads. The legacy RPC returns null for an
     // unknown hash and the indexer returns {} — both leave the page
     // rendering the "Pending" skeleton with no error indication. Surface
@@ -451,65 +453,67 @@ async function loadTx(hash) {
     }
     tx.value = fetched;
     // Fire secondary loads in parallel
-    loadTransfers(hash, myGeneration).catch((err) => {
+    loadTransfers(hash, myGeneration, requestNetwork).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadTransfers failed:", err);
     });
-    loadBlockHeight().catch((err) => {
+    loadBlockHeight(myGeneration, requestNetwork).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadBlockHeight failed:", err);
     });
-    loadEnrichedTrace(hash, myGeneration).catch((err) => {
+    loadEnrichedTrace(hash, myGeneration, requestNetwork).catch((err) => {
       if (import.meta.env.DEV) console.warn("[TxDetail] loadEnrichedTrace failed:", err);
     });
   } catch (err) {
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.error("Failed to load transaction:", err);
     error.value = t("errors.loadTxDetails");
   } finally {
-    if (myGeneration === fetchGeneration) loading.value = false;
+    if (myGeneration === fetchGeneration && resolveNetworkName() === requestNetwork) loading.value = false;
   }
 }
 
-async function loadEnrichedTrace(hash, gen) {
+async function loadEnrichedTrace(hash, gen, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   enrichedLoading.value = true;
   appLogLoading.value = true;
   appLogError.value = "";
   try {
-    enrichedTrace.value = await executionService.getEnrichedTrace(hash);
-    if (gen !== fetchGeneration) return;
+    enrichedTrace.value = await executionService.getEnrichedTrace(hash, { network: requestNetwork });
+    if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     appLog.value = enrichedTrace.value?.raw ?? null;
   } catch (err) {
-    if (gen !== fetchGeneration) return;
+    if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     // Aborted fetches (route change / re-init) aren't user failures
     if (isAbortError(err)) return;
     enrichedTrace.value = null;
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
     try {
-      const fallback = await executionService.getExecutionTrace(hash);
-      if (gen !== fetchGeneration) return;
+      const fallback = await executionService.getExecutionTrace(hash, { network: requestNetwork });
+      if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
       appLog.value = fallback;
     } catch (fallbackErr) {
       // Drop the error if a newer load has superseded this one — otherwise
       // the user sees the stale "failed to load" banner on the new tx.
-      if (gen !== fetchGeneration) return;
+      if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
       if (isAbortError(fallbackErr)) return;
       appLogError.value = t("errors.loadAppLog");
     }
   } finally {
-    if (gen === fetchGeneration) {
+    if (gen === fetchGeneration && resolveNetworkName() === requestNetwork) {
       enrichedLoading.value = false;
       appLogLoading.value = false;
     }
   }
 }
 
-async function loadTransfers(hash, gen) {
+async function loadTransfers(hash, gen, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   transfersLoading.value = true;
   try {
     const [nep17Res, nep11Res] = await Promise.all([
-      tokenService.getTransfersByTxHash(hash, 500).catch(() => ({ result: [] })),
-      tokenService.getNep11TransfersByTxHash(hash, 500).catch(() => ({ result: [] })),
+      tokenService.getTransfersByTxHash(hash, 500, 0, { network: requestNetwork }).catch(() => ({ result: [] })),
+      tokenService.getNep11TransfersByTxHash(hash, 500, 0, { network: requestNetwork }).catch(() => ({ result: [] })),
     ]);
-    if (gen !== fetchGeneration) return;
+    if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
 
     const rawNep17 = (nep17Res?.result || []).map((t) => ({ ...t, _standard: "NEP-17" }));
 
@@ -534,7 +538,7 @@ async function loadTransfers(hash, gen) {
       await Promise.all(
         [...contractsNeedingDecimals].map(async (ch) => {
           try {
-            const meta = await tokenService.getByHashWithFallback(ch);
+            const meta = await tokenService.getByHashWithFallback(ch, { network: requestNetwork });
             if (meta) {
               metadataByContract.set(ch, meta);
             }
@@ -543,9 +547,10 @@ async function loadTransfers(hash, gen) {
           }
         }),
       );
-      if (gen !== fetchGeneration) return;
+      if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     }
 
+    if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     nep17Transfers.value = rawNep17.map((t) => {
       const native = withNativeTransferMetadata(t);
       if (native !== t) return native;
@@ -564,17 +569,21 @@ async function loadTransfers(hash, gen) {
       _standard: "NEP-11",
     }));
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load token transfers:", err);
   } finally {
-    if (gen === fetchGeneration) transfersLoading.value = false;
+    if (gen === fetchGeneration && resolveNetworkName() === requestNetwork) transfersLoading.value = false;
   }
 }
 
-async function loadBlockHeight() {
+async function loadBlockHeight(gen, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   try {
-    const count = await blockService.getCount();
+    const count = await blockService.getCount({ network: requestNetwork });
+    if (gen !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     currentBlockHeight.value = count || 0;
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load block height:", err);
   }
 }

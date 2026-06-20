@@ -63,6 +63,7 @@ import { connectedAccount } from "@/utils/wallet";
 import { chatService } from "@/services/chatService";
 import nnsService from "@/services/nnsService";
 import { useChatSession } from "@/composables/useChatSession";
+import { resolveNetworkName } from "@/utils/env";
 
 const route = useRoute();
 const router = useRouter();
@@ -165,7 +166,7 @@ async function resolvePeerAddress(rawTarget) {
   if (wallet.isAddress(value)) {
     return { address: value, label: value };
   }
-  const resolved = await nnsService.resolveDomain(value);
+  const resolved = await nnsService.resolveDomain(value, { network: resolveNetworkName() });
   if (!resolved || !wallet.isAddress(resolved)) {
     throw new Error(t("chat.unableToResolveRecipient"));
   }

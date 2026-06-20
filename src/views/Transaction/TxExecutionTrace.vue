@@ -103,6 +103,7 @@ import ExecutionTraceView from "@/components/trace/ExecutionTraceView.vue";
 import StateChangeSummary from "@/components/trace/StateChangeSummary.vue";
 import GasBreakdown from "@/components/trace/GasBreakdown.vue";
 import { isAbortError } from "@/utils/abortError";
+import { resolveNetworkName } from "@/utils/env";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -152,14 +153,20 @@ async function loadTrace(hash) {
   const h = hash || txHash.value;
   if (!h) return;
   const myGeneration = ++fetchGeneration;
+  const requestNetwork = resolveNetworkName();
   loading.value = true;
   error.value = null;
   enrichedData.value = null;
   try {
-    const request = executionService.getEnrichedTrace(h);
+    const request = executionService.getEnrichedTrace(h, { network: requestNetwork });
     request
       .then((lateResult) => {
-        if (myGeneration === fetchGeneration && lateResult && !enrichedData.value) {
+        if (
+          myGeneration === fetchGeneration &&
+          resolveNetworkName() === requestNetwork &&
+          lateResult &&
+          !enrichedData.value
+        ) {
           enrichedData.value = lateResult;
         }
       })
@@ -177,17 +184,17 @@ async function loadTrace(hash) {
     ]);
     timeout.cancel();
 
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (outcome.timedOut) return;
     if (outcome.err) throw outcome.err;
     enrichedData.value = outcome.result;
   } catch (err) {
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load trace:", err);
     error.value = t("errors.loadExecutionTrace");
   } finally {
-    if (myGeneration === fetchGeneration) loading.value = false;
+    if (myGeneration === fetchGeneration && resolveNetworkName() === requestNetwork) loading.value = false;
   }
 }
 

@@ -59,8 +59,13 @@ const walletConnectAccount = { address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs", la
 const walletConnectScriptHash = "a5de523ae9d99be784a536e9412b7a3cbe049e1a";
 const directWifHexSignMock = vi.fn(() => "f".repeat(128));
 const DIRECT_WIF = "LtestDirectWif11111111111111111111111111111111111111111111";
+const rpcClientEndpoints = [];
 
 class MockRpcClient {
+  constructor(endpoint) {
+    rpcClientEndpoints.push(endpoint);
+  }
+
   async getBlockCount() {
     return getBlockCountMock();
   }
@@ -296,6 +301,7 @@ describe("walletService", () => {
     delete window.ethereum;
     localStorage.clear();
     walletConnectSessionChangeHandler = null;
+    rpcClientEndpoints.length = 0;
     walletConnectOnSessionChangeMock.mockClear();
   });
 
@@ -1563,6 +1569,22 @@ describe("walletService", () => {
     expect(payload).toEqual({
       payload: "334f454eabcd",
       networkMagic: 860833102,
+      transactionHash: "abcd",
+    });
+  });
+
+  it("builds a raw transaction signing payload against an explicit network", async () => {
+    envState.value = "Mainnet";
+    getVersionMock.mockResolvedValueOnce({ protocol: { network: 894710606 } });
+    const { walletService } = await import("../../src/services/walletService.js");
+    walletService.disconnect();
+
+    const payload = await walletService.getRawTransactionSigningPayload("001122", { network: "testnet" });
+
+    expect(rpcClientEndpoints[0]).toBe("/rpc/testnet/primary");
+    expect(payload).toEqual({
+      payload: "3554334eabcd",
+      networkMagic: 894710606,
       transactionHash: "abcd",
     });
   });

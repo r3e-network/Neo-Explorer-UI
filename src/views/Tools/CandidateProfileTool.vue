@@ -316,7 +316,7 @@ import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import candidateService from "@/services/candidateService";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { addressToScriptHash, isPublicKeyHex } from "@/utils/neoHelpers";
 import { useToast } from "vue-toastification";
@@ -376,13 +376,14 @@ function applyExistingProfile(profile) {
   form.value.discord = profile?.discord || "";
 }
 
-async function fetchCandidateRecord(address) {
-  const direct = await candidateService.getByAddress(address);
+async function fetchCandidateRecord(address, network = null) {
+  const requestNetwork = resolveNetworkName(network);
+  const direct = await candidateService.getByAddress(address, { network: requestNetwork });
   if (direct) return direct;
 
   const scriptHash = addressToScriptHash(address);
   if (!scriptHash) return null;
-  return candidateService.getByAddress(scriptHash);
+  return candidateService.getByAddress(scriptHash, { network: requestNetwork });
 }
 
 async function loadExistingProfile(address) {
@@ -394,12 +395,13 @@ async function loadExistingProfile(address) {
   }
 
   const requestId = ++activeProfileRequest;
+  const requestNetwork = resolveNetworkName();
   loadingProfile.value = true;
   profileStatus.value = "";
 
   try {
-    const candidate = await fetchCandidateRecord(address);
-    if (requestId !== activeProfileRequest) return;
+    const candidate = await fetchCandidateRecord(address, requestNetwork);
+    if (requestId !== activeProfileRequest || resolveNetworkName() !== requestNetwork) return;
 
     const publicKey = normalizePublicKey(candidate);
     const validCandidate = Boolean(candidate && (candidate.candidate || candidate.isCandidate || publicKey));
@@ -421,7 +423,7 @@ async function loadExistingProfile(address) {
     if (isTestnet) return;
     const profileList = await fetchDoraCommittee(NET_ENV.Mainnet);
 
-    if (requestId !== activeProfileRequest) return;
+    if (requestId !== activeProfileRequest || resolveNetworkName() !== requestNetwork) return;
 
     const list = Array.isArray(profileList) ? profileList : [];
     const existingProfile = list.find(
@@ -437,12 +439,13 @@ async function loadExistingProfile(address) {
     // Candidate exists but profile does not: keep fields blank to avoid accidental overwrite.
     profileStatus.value = "";
   } catch (error) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load candidate profile metadata", error);
     isCandidate.value = false;
     profileStatus.value = t("tools.candidateProfile.statusFailed");
     resetProfileFields({ keepPublicKey: false });
   } finally {
-    if (requestId === activeProfileRequest) {
+    if (requestId === activeProfileRequest && resolveNetworkName() === requestNetwork) {
       loadingProfile.value = false;
     }
   }

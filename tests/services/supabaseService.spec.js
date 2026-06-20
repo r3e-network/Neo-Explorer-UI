@@ -259,7 +259,7 @@ describe("supabaseService metadata", () => {
       "0xb776afb6ad0c11565e70f8ee1dd898da43e51be1",
       "getAllInfo",
       [],
-    ]);
+    ], { network: "mainnet" });
     expect(result).toHaveLength(1);
     expect(result[0].display_name).toBe("COZ Council");
     expect(result[0].logo_url).toBe("https://cdn.example.com/council/coz.png");
@@ -293,5 +293,34 @@ describe("supabaseService metadata", () => {
           "https://rest.fs.neo.org/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc/CeeroywT8ppGE4HGjhpzocJkdb2yu3wD5qCGFTjkw1Cc",
       }),
     ]);
+  });
+
+  it("routes governance candidate metadata RPC through the requested network", async () => {
+    const address = "NiYfNbJXhHs9WvuP2PWR5RFR9VCjdGn69w";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      })
+    );
+    rpcMock.mockResolvedValueOnce(
+      buildCandidateInfoResult({
+        address,
+        name: "Test Council",
+        icon: "https://cdn.example.com/test.png",
+      })
+    );
+
+    const { supabaseService } = await import("../../src/services/supabaseService.js");
+    const result = await supabaseService.getValidatorMetadata("testnet");
+
+    expect(fetch.mock.calls[0][0]).toContain("/data/testnet/metadata/validators");
+    expect(rpcMock).toHaveBeenCalledWith("invokefunction", [
+      "0x6177bfcef0f51b5dd21b183ff89e301b9c66d71c",
+      "getAllInfo",
+      [],
+    ], { network: "testnet" });
+    expect(result[0]).toEqual(expect.objectContaining({ display_name: "Test Council" }));
   });
 });

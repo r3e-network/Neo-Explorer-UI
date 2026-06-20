@@ -158,7 +158,7 @@ export const toAbsoluteUrl = (value) => {
 };
 
 // RPC clients from neon-js require absolute http(s) endpoints.
-export const getRpcClientUrl = () => toAbsoluteUrl(getRpcApiBasePath());
+export const getRpcClientUrl = (env = getCurrentEnv()) => toAbsoluteUrl(getRpcApiBasePath(env));
 
 // Canonical "mainnet" | "testnet" string used by Postgres REST queries
 // (network=eq.<value>) and the indexer URL prefix (/data/<value>/...).

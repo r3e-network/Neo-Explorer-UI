@@ -1,8 +1,9 @@
-import { ref } from "vue";
+import { getCurrentInstance, onBeforeUnmount, ref } from "vue";
 import { tokenService } from "@/services/tokenService";
 import { formatTokenAmount } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { NATIVE_CONTRACTS } from "@/constants";
+import { NETWORK_CHANGE_EVENT, resolveNetworkName } from "@/utils/env";
 
 const CONTRACT_HASH_ALIASES = [
   "contract",
@@ -15,33 +16,39 @@ const CONTRACT_HASH_ALIASES = [
 ];
 
 // Module-level decimals cache for the tx-list "Value" column. Keyed by
-// lowercased contract hash. Populated lazily via tokenService — entries
-// are reused across all useTransferSummary instances on the page.
+// network + lowercased contract hash. Populated lazily via tokenService —
+// entries are reused across all useTransferSummary instances on the page.
 // Without this, the indexer's amount_raw (which carries no decimals
 // column on nep17_transfers) renders as a raw integer for every
 // non-NEO/non-GAS NEP-17 — e.g. an 8-decimal token of 1.0 shows "100000000".
 const tokenDecimalsCache = new Map();
 
-async function ensureDecimalsCached(contractHashes) {
+function getDecimalsCacheKey(network, hash) {
+  return `${resolveNetworkName(network)}:${String(hash || "").toLowerCase()}`;
+}
+
+async function ensureDecimalsCached(contractHashes, network) {
+  const resolvedNetwork = resolveNetworkName(network);
   const missing = [];
   for (const ch of contractHashes) {
     const k = String(ch || "").toLowerCase();
-    if (!k || NATIVE_CONTRACTS[k] || tokenDecimalsCache.has(k)) continue;
+    if (!k || NATIVE_CONTRACTS[k] || tokenDecimalsCache.has(getDecimalsCacheKey(resolvedNetwork, k))) continue;
     missing.push(k);
   }
   if (missing.length === 0) return;
   await Promise.all(
     missing.map(async (k) => {
+      const cacheKey = getDecimalsCacheKey(resolvedNetwork, k);
       try {
-        const meta = await tokenService.getByHashWithFallback(k);
+        const meta = await tokenService.getByHashWithFallback(k, { network: resolvedNetwork });
         if (meta && typeof meta.decimals !== "undefined" && meta.decimals !== null) {
-          tokenDecimalsCache.set(k, Number(meta.decimals));
+          tokenDecimalsCache.set(cacheKey, Number(meta.decimals));
         } else {
           // Remember we tried (don't refetch on the next page render).
-          tokenDecimalsCache.set(k, null);
+          tokenDecimalsCache.set(cacheKey, null);
         }
       } catch (_e) {
-        tokenDecimalsCache.set(k, null);
+        tokenDecimalsCache.set(cacheKey, null);
       }
     }),
   );
@@ -51,7 +58,7 @@ async function ensureDecimalsCached(contractHashes) {
 // well-known and resolved synchronously. For non-natives, prefer (in order):
 // row.decimals (rare; indexer doesn't carry it), the populated
 // tokenDecimalsCache, and finally 0 as a safe-but-imperfect last resort.
-function resolveTokenMeta(contractHash, row) {
+function resolveTokenMeta(contractHash, row, network) {
   const hash = String(contractHash || "").toLowerCase();
   const native = NATIVE_CONTRACTS[hash];
   if (native?.symbol) {
@@ -64,7 +71,7 @@ function resolveTokenMeta(contractHash, row) {
       decimals: Number(rowDecimals),
     };
   }
-  const cached = tokenDecimalsCache.get(hash);
+  const cached = tokenDecimalsCache.get(getDecimalsCacheKey(network, hash));
   return {
     symbol: row?.symbol || row?.tokenname || "",
     decimals: cached === null || cached === undefined ? 0 : Number(cached),
@@ -78,6 +85,26 @@ function resolveTokenMeta(contractHash, row) {
 export function useTransferSummary() {
   const transferSummaryByHash = ref({});
   const pendingHashes = new Set();
+  let summaryNetwork = resolveNetworkName();
+
+  function clearTransferSummaries() {
+    transferSummaryByHash.value = {};
+    pendingHashes.clear();
+    summaryNetwork = resolveNetworkName();
+  }
+
+  function syncNetwork() {
+    const currentNetwork = resolveNetworkName();
+    if (currentNetwork !== summaryNetwork) {
+      clearTransferSummaries();
+      summaryNetwork = currentNetwork;
+    }
+    return currentNetwork;
+  }
+
+  function isStillOnNetwork(network) {
+    return resolveNetworkName() === resolveNetworkName(network);
+  }
 
   function extractContractHash(item) {
     if (!item || typeof item !== "object") return null;
@@ -87,7 +114,8 @@ export function useTransferSummary() {
     return null;
   }
 
-  function setSummary(hash, summary) {
+  function setSummary(hash, summary, network) {
+    if (network && !isStillOnNetwork(network)) return;
     transferSummaryByHash.value = {
       ...transferSummaryByHash.value,
       [hash]: summary,
@@ -179,7 +207,8 @@ export function useTransferSummary() {
     };
   }
 
-  function applyTransferBucket(hash, transfers, standard) {
+  function applyTransferBucket(hash, transfers, standard, network) {
+    if (!isStillOnNetwork(network)) return false;
     if (!transfers || transfers.length === 0) return false;
 
     const selection = selectPreferredTransfer(transfers, transfers.length);
@@ -188,7 +217,7 @@ export function useTransferSummary() {
 
     if (standard === "nep17") {
       const contractHash = extractContractHash(preferred);
-      const meta = resolveTokenMeta(contractHash, preferred);
+      const meta = resolveTokenMeta(contractHash, preferred, network);
       // The indexer's nep17_transfers row gives unscaled `amount_raw`
       // (and `amount_text` is unfortunately just a copy of it for many
       // contracts including GAS). Always scale by the contract's
@@ -212,10 +241,11 @@ export function useTransferSummary() {
           selection.targetCount,
           selection.recipient,
         ),
+        network,
       );
     } else {
       const contractHash = extractContractHash(preferred);
-      const meta = resolveTokenMeta(contractHash, preferred);
+      const meta = resolveTokenMeta(contractHash, preferred, network);
       const tokenId = preferred.tokenid || preferred.tokenId;
       const suffix = extraTransferSuffix(selection.transferCount);
       const readableId = truncateTokenId(tokenId);
@@ -238,16 +268,19 @@ export function useTransferSummary() {
           selection.targetCount,
           selection.recipient,
         ),
+        network,
       );
     }
     return true;
   }
 
   async function enrichTransactions(txList, { maxItems = 8 } = {}) {
+    const network = syncNetwork();
     const hashes = (txList || [])
       .filter((tx) => {
         const hash = tx?.hash;
-        if (!hash || transferSummaryByHash.value[hash] || pendingHashes.has(hash)) {
+        const pendingKey = `${network}:${hash}`;
+        if (!hash || transferSummaryByHash.value[hash] || pendingHashes.has(pendingKey)) {
           return false;
         }
         return Number(tx?.value ?? 0) <= 0;
@@ -257,12 +290,13 @@ export function useTransferSummary() {
 
     if (hashes.length === 0) return;
 
-    hashes.forEach((h) => pendingHashes.add(h));
+    hashes.forEach((h) => pendingHashes.add(`${network}:${h}`));
 
     try {
       // 2 batched PostgREST queries (NEP-17, then NEP-11 for whichever
       // txids didn't have NEP-17 transfers) instead of one fetch per row.
-      const nep17Buckets = await tokenService.getTransfersByTxHashesBatch(hashes, "nep17");
+      const nep17Buckets = await tokenService.getTransfersByTxHashesBatch(hashes, "nep17", { network });
+      if (!isStillOnNetwork(network)) return;
 
       // Pre-warm the per-contract decimals cache for every non-native
       // contract in this batch. Without this, applyTransferBucket below
@@ -278,20 +312,22 @@ export function useTransferSummary() {
         }
       }
       if (contractHashes.size) {
-        await ensureDecimalsCached(contractHashes);
+        await ensureDecimalsCached(contractHashes, network);
+        if (!isStillOnNetwork(network)) return;
       }
 
       const remaining = [];
       for (const hash of hashes) {
-        if (applyTransferBucket(hash, nep17Buckets.get(hash), "nep17")) continue;
+        if (applyTransferBucket(hash, nep17Buckets.get(hash), "nep17", network)) continue;
         remaining.push(hash);
       }
 
       if (remaining.length > 0) {
-        const nep11Buckets = await tokenService.getTransfersByTxHashesBatch(remaining, "nep11");
+        const nep11Buckets = await tokenService.getTransfersByTxHashesBatch(remaining, "nep11", { network });
+        if (!isStillOnNetwork(network)) return;
         for (const hash of remaining) {
-          if (applyTransferBucket(hash, nep11Buckets.get(hash), "nep11")) continue;
-          setSummary(hash, { text: "—", contract: null, type: null });
+          if (applyTransferBucket(hash, nep11Buckets.get(hash), "nep11", network)) continue;
+          setSummary(hash, { text: "—", contract: null, type: null }, network);
         }
       }
     } catch (err) {
@@ -300,16 +336,23 @@ export function useTransferSummary() {
       }
       for (const hash of hashes) {
         if (!transferSummaryByHash.value[hash]) {
-          setSummary(hash, { text: "—", contract: null, type: null });
+          setSummary(hash, { text: "—", contract: null, type: null }, network);
         }
       }
     } finally {
-      hashes.forEach((h) => pendingHashes.delete(h));
+      hashes.forEach((h) => pendingHashes.delete(`${network}:${h}`));
     }
+  }
+
+  const hasComponentInstance = Boolean(getCurrentInstance());
+  if (typeof window !== "undefined" && hasComponentInstance) {
+    window.addEventListener(NETWORK_CHANGE_EVENT, clearTransferSummaries);
+    onBeforeUnmount(() => window.removeEventListener(NETWORK_CHANGE_EVENT, clearTransferSummaries));
   }
 
   return {
     transferSummaryByHash,
     enrichTransactions,
+    clearTransferSummaries,
   };
 }

@@ -168,10 +168,11 @@ const normalizeSoftTtl = (softTtl, ttl) => {
  * 生成缓存键
  * @param {string} method - API方法名
  * @param {object} params - 参数
+ * @param {string} [env] - Optional explicit network/env override
  * @returns {string} 缓存键
  */
-export const getCacheKey = (method, params = {}) => {
-  const network = getCurrentEnv();
+export const getCacheKey = (method, params = {}, env = getCurrentEnv()) => {
+  const network = env || getCurrentEnv();
   const sortedParams = JSON.stringify(params, Object.keys(params).sort());
   return `${network}:${method}:${sortedParams}`;
 };

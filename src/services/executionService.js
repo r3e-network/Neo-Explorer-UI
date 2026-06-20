@@ -54,8 +54,8 @@ export const executionService = createService(
     /**
      * Get enriched block-level execution trace with decoded notifications.
      */
-    async getEnrichedBlockTrace(blockHash) {
-      const appLog = await this.getBlockApplicationLog(blockHash);
+    async getEnrichedBlockTrace(blockHash, options = {}) {
+      const appLog = await this.getBlockApplicationLog(blockHash, options);
       if (!appLog) return null;
 
       const executions = appLog.executions ?? [];
@@ -66,7 +66,7 @@ export const executionService = createService(
         }
       }
 
-      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes]);
+      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes], options);
 
       const enrichedExecutions = executions.map((exec) =>
         this._enrichExecution(exec, manifestMap, null),
@@ -267,10 +267,10 @@ export const executionService = createService(
      * @param {string} txHash
      * @returns {Promise<Object|null>} Enriched trace data
      */
-    async getEnrichedTrace(txHash) {
+    async getEnrichedTrace(txHash, options = {}) {
       const [appLog, detailedTrace] = await Promise.all([
-        this.getExecutionTrace(txHash),
-        this.getDetailedTrace(txHash).catch((err) => {
+        this.getExecutionTrace(txHash, options),
+        this.getDetailedTrace(txHash, options).catch((err) => {
           if (import.meta.env.DEV) console.warn("Failed to load detailed trace:", err);
           return null;
         }),
@@ -285,7 +285,7 @@ export const executionService = createService(
         }
       }
 
-      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes]);
+      const { manifests: manifestMap } = await this._fetchManifests([...contractHashes], options);
 
       const detailedExecs = detailedTrace?.executions ?? (detailedTrace?.steps ? [detailedTrace] : []);
       const enrichedExecutions = executions.map((exec, i) =>
@@ -359,12 +359,12 @@ export const executionService = createService(
      * @param {string[]} hashes
      * @returns {Promise<{manifests: Map, failures: Array<{hash: string, error: string}>}>}
      */
-    async _fetchManifests(hashes) {
+    async _fetchManifests(hashes, options = {}) {
       const manifests = new Map();
       const failures = [];
       const results = await Promise.all(
         hashes.map((h) =>
-          contractService.getManifest(h).catch((err) => {
+          contractService.getManifest(h, options).catch((err) => {
             failures.push({ hash: h, error: err?.message ?? String(err) });
             return null;
           }),

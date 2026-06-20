@@ -169,6 +169,8 @@ import HashLink from "@/components/common/HashLink.vue";
 import MobileListCard from "@/components/common/MobileListCard.vue";
 import { isAbortError } from "@/utils/abortError";
 import { usePriceCache } from "@/composables/usePriceCache";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 
 const { prices, fetchPrices } = usePriceCache();
 const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -224,42 +226,50 @@ const paginationOffset = computed(() => (currentPage.value - 1) * pageSize.value
 
 async function loadPage() {
   const myRequestId = ++pageRequestId;
+  const requestNetwork = resolveNetworkName();
   const skip = paginationOffset.value;
-  const cacheKey = getAccountListCacheKey(pageSize.value, skip, { includeBalances: false });
+  const cacheKey = getAccountListCacheKey(pageSize.value, skip, {
+    includeBalances: false,
+    network: requestNetwork,
+  });
   const hasCachedData = getCache(cacheKey) !== null;
 
   loading.value = !hasCachedData;
   error.value = null;
 
   try {
-    const response = await accountService.getList(pageSize.value, skip, { includeBalances: false });
-    if (myRequestId !== pageRequestId) return;
+    const response = await accountService.getList(pageSize.value, skip, {
+      includeBalances: false,
+      network: requestNetwork,
+    });
+    if (myRequestId !== pageRequestId || resolveNetworkName() !== requestNetwork) return;
     total.value = response?.totalCount || 0;
     accounts.value = response?.result || [];
-    hydrateCurrentBalances(myRequestId, accounts.value);
+    hydrateCurrentBalances(myRequestId, accounts.value, requestNetwork);
   } catch (err) {
-    if (myRequestId !== pageRequestId) return;
+    if (myRequestId !== pageRequestId || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load accounts:", err);
     error.value = t("errors.loadAccounts");
     accounts.value = [];
   } finally {
-    if (myRequestId === pageRequestId) {
+    if (myRequestId === pageRequestId && resolveNetworkName() === requestNetwork) {
       loading.value = false;
     }
   }
 }
 
-async function hydrateCurrentBalances(requestId, rows) {
+async function hydrateCurrentBalances(requestId, rows, network = null) {
   if (!Array.isArray(rows) || rows.length === 0) return;
+  const requestNetwork = resolveNetworkName(network);
 
   try {
-    const hydratedRows = await accountService.hydrateListBalances(rows);
-    if (requestId !== pageRequestId) return;
+    const hydratedRows = await accountService.hydrateListBalances(rows, { network: requestNetwork });
+    if (requestId !== pageRequestId || resolveNetworkName() !== requestNetwork) return;
     const byAddress = new Map(hydratedRows.map((row) => [row.address, row]));
     accounts.value = accounts.value.map((account) => byAddress.get(account.address) || account);
   } catch (err) {
-    if (requestId !== pageRequestId) return;
+    if (requestId !== pageRequestId || resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to hydrate account balances:", err);
     accounts.value = accounts.value.map((account) => ({
       ...account,
@@ -294,6 +304,18 @@ function changePageSize(size) {
   pageSize.value = size;
   router.push("/account/1").catch(() => {});
 }
+
+function handleNetworkChange() {
+  pageRequestId += 1;
+  accounts.value = [];
+  total.value = 0;
+  error.value = null;
+  loading.value = true;
+  loadPage();
+  fetchPrices();
+}
+
+useNetworkChange(handleNetworkChange);
 
 watch(
   () => route.params.page,

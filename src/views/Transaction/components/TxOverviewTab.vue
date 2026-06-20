@@ -241,6 +241,7 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { extractContractInvocation } from "@/utils/scriptDisassembler";
 import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
 import { supabaseService } from "@/services/supabaseService";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   tx: { type: Object, required: true },
@@ -264,7 +265,9 @@ watch(
   async (newTransfers) => {
     if (newTransfers && newTransfers.length) {
       const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
-      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      const requestNetwork = resolveNetworkName();
+      const meta = await supabaseService.getContractMetadataBatch(hashes, requestNetwork);
+      if (resolveNetworkName() !== requestNetwork) return;
       supabaseMeta.value = meta;
     } else {
       supabaseMeta.value = {};

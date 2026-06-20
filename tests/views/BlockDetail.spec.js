@@ -99,7 +99,7 @@ describe("BlockDetail data loading", () => {
     await flushPromises();
     await flushPromises();
 
-    expect(getByHeight).toHaveBeenCalledWith(100, { forceRefresh: false });
+    expect(getByHeight).toHaveBeenCalledWith(100, { forceRefresh: false, network: "mainnet" });
     expect(getByHash).not.toHaveBeenCalled();
     expect(getInfoByHash).not.toHaveBeenCalled();
   });

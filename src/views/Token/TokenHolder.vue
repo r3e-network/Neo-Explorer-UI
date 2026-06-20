@@ -123,7 +123,7 @@ const {
   loadPage,
   goToPage: handlePageChange,
 } = usePagination(
-  (limit, skip) => tokenService.getHolders(props.contractHash, limit, skip),
+  (limit, skip, opts) => tokenService.getHolders(props.contractHash, limit, skip, opts),
   { timeoutMs: TOKEN_HOLDERS_TABLE_TIMEOUT_MS },
 );
 

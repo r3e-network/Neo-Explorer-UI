@@ -15,12 +15,25 @@ import { resolveNetworkName } from "@/utils/env";
 const NETWORK_FEE_RATIO = 0.08;
 const INDEXER_STATS_TIMEOUT_MS = 2500;
 
-const resolveIndexerNetworkPath = () => resolveNetworkName();
+const normalizeStatsOptions = (value = {}) => {
+  if (typeof value === "boolean") return { forceRefresh: value };
+  return { ...(value || {}) };
+};
 
-const fetchIndexerTransactionTotal = async () => {
+const withNetworkOption = (options = {}) => {
+  const network = options?.network ? resolveNetworkName(options.network) : null;
+  return network ? { network } : undefined;
+};
+
+const resolveIndexerNetworkPath = (options = {}) => {
+  const explicitNetwork = typeof options === "string" ? options : options?.network;
+  return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
+};
+
+const fetchIndexerTransactionTotal = async (options = {}) => {
   if (typeof fetch !== "function") return 0;
 
-  const network = resolveIndexerNetworkPath();
+  const network = resolveIndexerNetworkPath(options);
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   let timeoutId = null;
 
@@ -90,7 +103,8 @@ export const statsService = createService(
      * so the UI can show an error state instead of silent zeros.
      */
     async getDailyAnalytics(days = 30, options = {}) {
-      const key = getCacheKey("daily_analytics_padded", { days });
+      const cacheOpts = getRealtimeListCacheOptions(options);
+      const key = getCacheKey("daily_analytics_padded", { days }, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -101,7 +115,7 @@ export const statsService = createService(
           return padDailyRows(rows, days);
         },
         CACHE_TTL.chart,
-        getRealtimeListCacheOptions(options),
+        cacheOpts,
       );
     },
 
@@ -111,8 +125,10 @@ export const statsService = createService(
       return rows.map((r) => ({ date: r.day, transactions: Number(r.tx_count) || 0 }));
     },
 
-    async getDashboardStats(forceRefresh = false) {
-      const key = getCacheKey("dashboard_stats", {});
+    async getDashboardStats(optionsOrForceRefresh = false) {
+      const options = normalizeStatsOptions(optionsOrForceRefresh);
+      const cacheOpts = getRealtimeListCacheOptions(options);
+      const key = getCacheKey("dashboard_stats", {}, cacheOpts.network);
 
       const fetchFn = async () => {
         try {
@@ -121,16 +137,17 @@ export const statsService = createService(
           // "fallback" — all empty or redundant per #184. Standard
           // getblockcount is the only chain-side fallback we keep
           // (works against any Neo node, outlives Mongo cleanup).
-          const summary = await indexerReadService.getSummary().catch(() => null);
+          const summary = await indexerReadService.getSummary(cacheOpts).catch(() => null);
 
           let blocks = Number(summary?.total_block_count) || 0;
           if (blocks === 0) {
-            const blockCountRes = await rpc("getblockcount", []).catch(() => null);
+            const rpcOptions = withNetworkOption(cacheOpts) || { network: resolveNetworkName() };
+            const blockCountRes = await rpc("getblockcount", [], rpcOptions).catch(() => null);
             blocks = Number(blockCountRes) || 0;
           }
 
           const txsFromSummary = Number(summary?.total_tx_count) || 0;
-          const txsFromIndexerStats = Number(await fetchIndexerTransactionTotal().catch(() => 0)) || 0;
+          const txsFromIndexerStats = Number(await fetchIndexerTransactionTotal(cacheOpts).catch(() => 0)) || 0;
           const txs = Math.max(txsFromSummary, txsFromIndexerStats);
 
           const result = {
@@ -149,17 +166,19 @@ export const statsService = createService(
         }
       };
 
-      return cachedRequest(key, fetchFn, CACHE_TTL.chart, getRealtimeListCacheOptions({ forceRefresh }));
+      return cachedRequest(key, fetchFn, CACHE_TTL.chart, cacheOpts);
     },
 
     /**
      * 获取 Gas 追踪数据（最新手续费 + 网络费用）
      * Aggregates 2 parallel RPC calls — cannot be expressed as a single factory config.
-     * @param {boolean} [forceRefresh=false] - 强制刷新
+     * @param {boolean|Object} [optionsOrForceRefresh=false] - 强制刷新或请求选项
      * @returns {Promise<Object>} Gas 追踪数据
      */
-    async getGasTracker(forceRefresh = false) {
-      const key = getCacheKey("gas_tracker", {});
+    async getGasTracker(optionsOrForceRefresh = false) {
+      const options = normalizeStatsOptions(optionsOrForceRefresh);
+      const cacheOpts = getRealtimeListCacheOptions(options);
+      const key = getCacheKey("gas_tracker", {}, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -167,7 +186,9 @@ export const statsService = createService(
             // Route through transactionService.getList (#171 — indexer-first
             // with legacy GetTransactionList as fallback). The legacy raw
             // RPC path returns empty post-Mongo-deletion.
-            const txListRes = await transactionService.getList(1, 0, { forceRefresh }).catch(() => null);
+            const requestOptions = { forceRefresh: Boolean(options.forceRefresh) };
+            if (cacheOpts.network) requestOptions.network = cacheOpts.network;
+            const txListRes = await transactionService.getList(1, 0, requestOptions).catch(() => null);
             const latestTx = Array.isArray(txListRes?.result) ? txListRes.result[0] : null;
 
             return {
@@ -181,7 +202,7 @@ export const statsService = createService(
           }
         },
         CACHE_TTL.chart,
-        getRealtimeListCacheOptions({ forceRefresh })
+        cacheOpts,
       );
     },
   }

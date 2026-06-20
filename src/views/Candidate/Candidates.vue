@@ -218,7 +218,7 @@ import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import MobileListCard from "@/components/common/MobileListCard.vue";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
@@ -240,13 +240,15 @@ const {
   loadPage,
   goToPage,
   changePageSize,
-} = usePagination((limit, skip) => candidateService.getList(limit, skip), {
+} = usePagination((limit, skip, opts) => candidateService.getList(limit, skip, opts), {
   routeSync: { basePath: "/candidates" },
-  cacheKeyFn: (limit, skip) => getCacheKey("candidate_list", { limit, skip }),
+  cacheKeyFn: (limit, skip, context = {}) =>
+    getCacheKey("candidate_list", { limit, skip }, context.network),
   errorMessage: t("errors.loadCandidates"),
 });
 
 const doraMetadata = ref({});
+let metadataLoadGeneration = 0;
 
 function applyMetadataRows(data) {
   const metaMap = {};
@@ -286,9 +288,10 @@ function applyMetadataRows(data) {
 }
 
 async function loadDoraMetadata() {
+  const requestId = ++metadataLoadGeneration;
+  const requestNetwork = resolveNetworkName();
   let doraRows = [];
-  const env = getCurrentEnv().toLowerCase();
-  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+  const isTestnet = requestNetwork === "testnet";
 
   if (!isTestnet) {
     try {
@@ -300,10 +303,11 @@ async function loadDoraMetadata() {
 
   let indexerMetadata = [];
   try {
-    indexerMetadata = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    indexerMetadata = await supabaseService.getValidatorMetadata(requestNetwork);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load indexer candidate metadata", err);
   }
+  if (requestId !== metadataLoadGeneration || requestNetwork !== resolveNetworkName()) return;
 
   const metaMap = applyMetadataRows(doraRows);
   const indexerMap = applyMetadataRows(indexerMetadata);
@@ -335,6 +339,7 @@ watch(
 );
 
 function handleNetworkChange() {
+  metadataLoadGeneration += 1;
   doraMetadata.value = {};
   loadPage(currentPage.value, { forceRefresh: true });
 }

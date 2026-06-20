@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { fetchFreshQuery } from "@/query/freshness";
+import { resolveNetworkName } from "@/utils/env";
 
 /**
  * Composable for infinite-scroll "load more" logic.
@@ -36,6 +37,8 @@ export function useLoadMore(
     if (loadingMore.value || currentPage.value >= totalPages.value) return;
 
     const myId = ++requestId;
+    const requestNetwork = resolveNetworkName();
+    const requestOptions = { forceRefresh: true, network: requestNetwork };
     loadingMore.value = true;
     const nextPage = currentPage.value + 1;
     const skip = (nextPage - 1) * pageSize.value;
@@ -44,13 +47,14 @@ export function useLoadMore(
       const res = queryKeyFn
         ? await fetchFreshQuery({
             forceRefresh: true,
-            queryKey: queryKeyFn(pageSize.value, skip, { page: nextPage, forceRefresh: true }),
-            queryFn: ({ forceRefresh }) => fetchFn(pageSize.value, skip, { forceRefresh }),
+            queryKey: queryKeyFn(pageSize.value, skip, { ...requestOptions, page: nextPage }),
+            queryFn: ({ forceRefresh }) => fetchFn(pageSize.value, skip, { ...requestOptions, forceRefresh }),
             source: querySource,
             staleTime: queryStaleTime,
           })
-        : await fetchFn(pageSize.value, skip, { forceRefresh: true });
+        : await fetchFn(pageSize.value, skip, requestOptions);
       if (myId !== requestId) return; // stale response
+      if (resolveNetworkName() !== requestNetwork) return;
 
       if (res?.result?.length > 0) {
         // Dedup against existing items by a stable identifier — the server
@@ -75,6 +79,7 @@ export function useLoadMore(
         onAppend?.(fresh);
       }
     } catch (err) {
+      if (resolveNetworkName() !== requestNetwork) return;
       if (import.meta.env.DEV) console.error("Failed to load more:", err);
     } finally {
       if (myId === requestId) loadingMore.value = false;

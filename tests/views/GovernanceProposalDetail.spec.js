@@ -103,6 +103,10 @@ vi.mock("@/utils/env", () => ({
   },
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => envState.value,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || envState.value || "Mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
 }));
 

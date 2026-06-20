@@ -7,7 +7,7 @@ describe("Transactions page source guards", () => {
     const src = fs.readFileSync(path.resolve(process.cwd(), "src/views/Transaction/Transactions.vue"), "utf8");
 
     expect(src).toContain('import { createExplorerQueryKey } from "@/query/freshness"');
-    expect(src).toContain('queryKeyFn: (limit, skip) => createExplorerQueryKey("transactions.list", { limit, skip })');
+    expect(src).toContain('createExplorerQueryKey("transactions.list", { limit, skip, network: context.network })');
     expect(src).toContain('querySource: "transactions.list"');
   });
 });

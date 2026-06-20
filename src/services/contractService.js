@@ -51,7 +51,7 @@ export const contractService = createService(
     //   3. The contract_notifications + transaction_signers derivation
     //      (works against any current read-api; what we shipped first).
     async getScCalls(hash, limit = 20, skip = 0, options = {}) {
-      const network = resolveNetworkName();
+      const network = resolveNetworkName(options.network);
       // Pull the per-contract overview in parallel with the calls request
       // for an authoritative total tx_count regardless of which source wins.
       // Goes through indexerReadService so concurrent ContractDetail mount
@@ -243,10 +243,10 @@ export const contractService = createService(
       return { result: [], totalCount: 0 };
     },
 
-    async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false } = {}) {
+    async getListWithFallback(limit = 20, skip = 0, { search = "", forceRefresh = false, network } = {}) {
       // Indexer first — same Mongo-to-Postgres pattern as #171/#172.
       try {
-        const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh });
+        const payload = await indexerReadService.getContracts(limit, skip, { search, forceRefresh, network });
         const rows = Array.isArray(payload?.data) ? payload.data : [];
         if (rows.length > 0) {
           return {
@@ -267,7 +267,7 @@ export const contractService = createService(
     },
 
     async getChainStateByHash(hash, options = {}) {
-      const key = getCacheKey("contract_chain_state", { hash });
+      const key = getCacheKey("contract_chain_state", { hash }, options.network);
       return cachedRequest(
         key,
         () => safeRpc("getcontractstate", [hash], null, options),
@@ -321,7 +321,7 @@ export const contractService = createService(
      * @returns {Promise<Object|null>} manifest 数据
      */
     async getManifest(hash, options = {}) {
-      const key = getCacheKey("contract_manifest", { hash });
+      const key = getCacheKey("contract_manifest", { hash }, options.network);
       return cachedRequest(
         key,
         async () => {

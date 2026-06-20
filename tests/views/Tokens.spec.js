@@ -123,7 +123,10 @@ describe("Tokens view", () => {
 
     await flushPromises();
 
-    expect(getTokenListWithFallbackMock).toHaveBeenCalledWith("NEP17", expect.any(Number), 0, { search: "" });
+    expect(getTokenListWithFallbackMock).toHaveBeenCalledWith("NEP17", expect.any(Number), 0, {
+      search: "",
+      network: "mainnet",
+    });
     expect(wrapper.text()).toContain("NeoToken");
     expect(wrapper.text()).toContain("NEO");
     expect(wrapper.text()).toContain("123");

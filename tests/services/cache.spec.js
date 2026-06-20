@@ -67,6 +67,12 @@ describe('cache service', () => {
       expect(key).toContain('TestT5')
     })
 
+    it('supports an explicit network override', () => {
+      getCurrentEnv.mockReturnValue('Mainnet')
+      const key = getCacheKey('getBlock', { height: 1 }, 'testnet')
+      expect(key).toBe('testnet:getBlock:{"height":1}')
+    })
+
     it('defaults params to empty object', () => {
       const key = getCacheKey('stats')
       expect(key).toBe('Mainnet:stats:{}')

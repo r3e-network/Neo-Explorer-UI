@@ -95,7 +95,7 @@ describe("TxDetail network changes", () => {
     await flushPromises();
 
     expect(getByHash).toHaveBeenCalledTimes(2);
-    expect(getByHash).toHaveBeenNthCalledWith(2, "0xtx");
+    expect(getByHash).toHaveBeenNthCalledWith(2, "0xtx", { network: "mainnet" });
     wrapper.unmount();
   });
 });

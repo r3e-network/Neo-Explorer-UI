@@ -128,6 +128,7 @@ import { formatTokenAmount } from "@/utils/explorerFormat";
 import { getTokenIcon } from "@/utils/getTokenIcon";
 import { ref, computed, watch } from "vue";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   allTransfers: { type: Array, default: () => [] },
@@ -140,7 +141,9 @@ watch(
   async (newTransfers) => {
     if (newTransfers && newTransfers.length) {
       const hashes = newTransfers.map((t) => t.contract || t.contractHash).filter(Boolean);
-      const meta = await supabaseService.getContractMetadataBatch(hashes);
+      const requestNetwork = resolveNetworkName();
+      const meta = await supabaseService.getContractMetadataBatch(hashes, requestNetwork);
+      if (resolveNetworkName() !== requestNetwork) return;
       supabaseMeta.value = meta;
     } else {
       supabaseMeta.value = {};

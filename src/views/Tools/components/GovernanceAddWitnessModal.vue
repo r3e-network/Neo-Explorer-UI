@@ -81,6 +81,8 @@ import { supabaseService } from "@/services/supabaseService";
 import { walletService } from "@/services/walletService";
 import { buildExternalWitnessPayload } from "@/utils/multisigWitness";
 import { isPublicKeyHex, publicKeyToAddress, hexToBase64 } from "@/utils/neoHelpers";
+import { getRpcClientUrl } from "@/utils/env";
+import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { useToast } from "vue-toastification";
 
 const props = defineProps({
@@ -99,6 +101,27 @@ const submitError = ref("");
 
 const neonJsRef = ref(null);
 let neonJs = null;
+let signingPayloadRequestId = 0;
+
+const EXPECTED_NETWORK_MAGIC_BY_MODE = Object.freeze({
+  mainnet: 860833102,
+  testnet: 894710606,
+});
+
+function resolveRequestNetworkMode(request = props.request) {
+  return toNetworkMode(request?.network || request?.params?.network || request?.params?.network_mode || "mainnet");
+}
+
+function resolveRequestNetworkMagic(request = props.request) {
+  const preparedMagic = Number(signingPayload.value?.networkMagic);
+  if (Number.isFinite(preparedMagic)) return preparedMagic;
+
+  const requestMagic = Number(request?.params?.network_magic);
+  if (Number.isFinite(requestMagic)) return requestMagic;
+
+  const networkMode = resolveRequestNetworkMode(request);
+  return EXPECTED_NETWORK_MAGIC_BY_MODE[networkMode] || EXPECTED_NETWORK_MAGIC_BY_MODE.mainnet;
+}
 
 async function ensureNeonJs() {
   if (!neonJs) {
@@ -132,7 +155,7 @@ const contextJson = computed(() => {
 
     const normalizedHash = String(scriptHash).replace(/^0x/i, "").toLowerCase();
     const parameters = Array.from({ length: threshold }, () => ({ type: "Signature" }));
-    const networkMagic = signingPayload.value?.networkMagic ?? props.request.params?.network_magic ?? 860833102;
+    const networkMagic = resolveRequestNetworkMagic();
 
     const context = {
       type: "Neo.Network.P2P.Payloads.Transaction",
@@ -161,6 +184,7 @@ const emailLink = computed(() => {
 });
 
 watch(() => props.request, async (req) => {
+  const requestId = ++signingPayloadRequestId;
   if (!req) return;
   signerPublicKey.value = "";
   signatureHex.value = "";
@@ -176,7 +200,12 @@ watch(() => props.request, async (req) => {
 
   if (req.params?.unsigned_tx) {
     try {
-      signingPayload.value = await walletService.getRawTransactionSigningPayload(req.params.unsigned_tx);
+      const payload = await walletService.getRawTransactionSigningPayload(req.params.unsigned_tx, {
+        network: resolveRequestNetworkMode(req),
+      });
+      if (requestId === signingPayloadRequestId) {
+        signingPayload.value = payload;
+      }
     } catch (e) {
       if (import.meta.env.DEV) console.error("Failed to prepare signing payload:", e);
     }
@@ -225,16 +254,19 @@ async function submitWitness() {
     if (!unsignedTx) throw new Error(t("tools.governance.errors.proposalNoUnsignedTx"));
     const txObj = neonJs.tx.Transaction.deserialize(unsignedTx);
     const txHash = typeof txObj.hash === "function" ? txObj.hash() : txObj.hash;
-    const { getRpcClientUrl } = await import("@/utils/env.js");
-    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl());
-    let networkMagic = props.request?.params?.network_magic;
+    const requestForNetwork = freshRequest || props.request;
+    const requestNetwork = resolveRequestNetworkMode(requestForNetwork);
+    const rpcClient = new neonJs.rpc.RPCClient(getRpcClientUrl(requestNetwork));
+    let networkMagic = Number(freshRequest?.params?.network_magic ?? props.request?.params?.network_magic);
     if (!networkMagic) {
       try {
         const ver = await rpcClient.getVersion();
-        networkMagic = ver?.protocol?.network;
+        networkMagic = Number(ver?.protocol?.network);
       } catch { /* fallback below */ }
     }
-    if (!networkMagic) networkMagic = 860833102;
+    if (!Number.isFinite(networkMagic)) {
+      networkMagic = EXPECTED_NETWORK_MAGIC_BY_MODE[requestNetwork] || EXPECTED_NETWORK_MAGIC_BY_MODE.mainnet;
+    }
     const sigPayload = neonJs.u.num2hexstring(networkMagic, 4, true) + neonJs.u.reverseHex(String(txHash).replace(/^0x/i, ""));
     if (!neonJs.wallet.verify(sigPayload, sig, pk)) {
       throw new Error(t("tools.governance.errors.signatureDoesNotVerify"));

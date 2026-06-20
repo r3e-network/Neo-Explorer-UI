@@ -151,6 +151,7 @@ import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
 import { exportAllPagesToCsv } from "@/utils/pagedExport";
 import { extractVmStateFromAppLog } from "@/utils/txVmState";
+import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -172,8 +173,10 @@ const breadcrumbs = [{ label: t("breadcrumb.home"), to: "/homepage" }, { label: 
 // --- Pagination via composable (route-synced, cache-aware) ---
 const paginationState = usePagination((limit, skip, opts) => transactionService.getList(limit, skip, opts), {
   routeSync: { basePath: "/transactions" },
-  cacheKeyFn: (limit, skip) => getCacheKey("tx_list", { limit, skip }),
-  queryKeyFn: (limit, skip) => createExplorerQueryKey("transactions.list", { limit, skip }),
+  cacheKeyFn: (limit, skip, context = {}) =>
+    getCacheKey("tx_list", { limit, skip }, context.network),
+  queryKeyFn: (limit, skip, context = {}) =>
+    createExplorerQueryKey("transactions.list", { limit, skip, network: context.network }),
   querySource: "transactions.list",
   errorMessage: t("errors.loadTransactions"),
 });
@@ -208,7 +211,8 @@ const { loadingMore, loadMore } = useLoadMore(
   (limit, skip, opts) => transactionService.getList(limit, skip, opts),
   paginationState,
   {
-    queryKeyFn: (limit, skip) => createExplorerQueryKey("transactions.list", { limit, skip }),
+    queryKeyFn: (limit, skip, context = {}) =>
+      createExplorerQueryKey("transactions.list", { limit, skip, network: context.network }),
     querySource: "transactions.list",
     onAppend: (newItems) => {
       enrichTransactions(newItems, { maxItems: VMSTATE_ENRICH_LIMIT }).catch((err) => {
@@ -222,8 +226,12 @@ const { loadingMore, loadMore } = useLoadMore(
 );
 
 async function hydrateVmState(txList = []) {
+  const network = resolveNetworkName();
   const targets = txList
-    .filter((tx) => tx?.hash && !tx?.vmstate && !vmStatePendingHashes.has(tx.hash))
+    .filter((tx) => {
+      const pendingKey = `${network}:${tx?.hash || ""}`;
+      return tx?.hash && !tx?.vmstate && !vmStatePendingHashes.has(pendingKey);
+    })
     .slice(0, VMSTATE_ENRICH_LIMIT);
 
   if (!targets.length) return;
@@ -234,9 +242,11 @@ async function hydrateVmState(txList = []) {
     await Promise.all(
       batch.map(async (tx) => {
         const hash = tx.hash;
-        vmStatePendingHashes.add(hash);
+        const pendingKey = `${network}:${hash}`;
+        vmStatePendingHashes.add(pendingKey);
         try {
-          const appLog = await executionService.getExecutionTrace(hash);
+          const appLog = await executionService.getExecutionTrace(hash, { network });
+          if (resolveNetworkName() !== network) return;
           const vmState = extractVmStateFromAppLog(appLog);
           if (vmState) {
             tx.vmstate = vmState;
@@ -244,7 +254,7 @@ async function hydrateVmState(txList = []) {
         } catch {
           // Keep vmstate unknown when log lookup fails.
         } finally {
-          vmStatePendingHashes.delete(hash);
+          vmStatePendingHashes.delete(pendingKey);
         }
       }),
     );
@@ -261,12 +271,14 @@ const exportProgress = ref(0);
 
 async function exportData() {
   if (!transactions.value || transactions.value.length === 0) return;
+  const network = resolveNetworkName();
   // Full paginated export (up to 5000 rows) rather than just the visible page.
   exporting.value = true;
   exportProgress.value = 0;
   try {
     await exportAllPagesToCsv({
-      fetchPage: (limit, offset) => transactionService.getList(limit, offset, { __suppressDevErrorLog: true }),
+      fetchPage: (limit, offset) =>
+        transactionService.getList(limit, offset, { __suppressDevErrorLog: true, network }),
       exporter: (rows, filename) => exportTransactionsToCSV(rows, filename),
       filename: `transactions_${Date.now()}`,
       pageSize: 100,

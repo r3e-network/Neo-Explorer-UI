@@ -379,6 +379,7 @@ import {
 import { getTokenIcon, hasTokenIcon } from "@/utils/getTokenIcon";
 import { useDebounceFn } from "@/composables/useVueUtils";
 import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -407,6 +408,7 @@ let currentRequestId = 0;
 
 async function loadPage(page = currentPage.value) {
   const myRequestId = ++currentRequestId;
+  const requestNetwork = resolveNetworkName();
   const offset = (page - 1) * pageSize.value;
   const query = searchQuery.value.trim();
   loading.value = true;
@@ -417,15 +419,15 @@ async function loadPage(page = currentPage.value) {
       activeTab.value === "nep11" ? "NEP11" : "NEP17",
       pageSize.value,
       offset,
-      { search: query },
+      { search: query, network: requestNetwork },
     );
 
-    if (myRequestId !== currentRequestId) return;
+    if (myRequestId !== currentRequestId || resolveNetworkName() !== requestNetwork) return;
     tokens.value = response?.result || [];
     totalCount.value = response?.totalCount || 0;
     currentPage.value = page;
   } catch (err) {
-    if (myRequestId !== currentRequestId) return;
+    if (myRequestId !== currentRequestId || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     const message = String(err?.message || "").toLowerCase();
     error.value =
@@ -435,7 +437,7 @@ async function loadPage(page = currentPage.value) {
     tokens.value = [];
     totalCount.value = 0;
   } finally {
-    if (myRequestId === currentRequestId) {
+    if (myRequestId === currentRequestId && resolveNetworkName() === requestNetwork) {
       loading.value = false;
     }
   }
@@ -451,12 +453,15 @@ const supabaseMeta = ref({});
 watch(
   () => tokens.value,
   async (newTokens) => {
+    const requestNetwork = resolveNetworkName();
     if (newTokens && newTokens.length) {
       try {
         const hashes = newTokens.map((t) => t.hash).filter(Boolean);
-        const meta = await supabaseService.getContractMetadataBatch(hashes);
+        const meta = await supabaseService.getContractMetadataBatch(hashes, requestNetwork);
+        if (resolveNetworkName() !== requestNetwork) return;
         supabaseMeta.value = meta;
       } catch (err) {
+        if (resolveNetworkName() !== requestNetwork) return;
         if (import.meta.env.DEV) console.warn("[tokens] metadata batch failed:", err);
         supabaseMeta.value = {};
       }
@@ -555,5 +560,12 @@ watch(
 // Refetch on network switch — without this, switching Mainnet ↔ Testnet
 // while sitting on /tokens leaves the previous network's rows visible
 // until the user paginates or searches.
-useNetworkChange(() => loadPage(currentPage.value));
+useNetworkChange(() => {
+  currentRequestId += 1;
+  tokens.value = [];
+  supabaseMeta.value = {};
+  totalCount.value = 0;
+  loading.value = true;
+  loadPage(currentPage.value);
+});
 </script>

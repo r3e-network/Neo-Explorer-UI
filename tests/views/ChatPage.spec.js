@@ -72,6 +72,10 @@ vi.mock("@/services/nnsService", () => ({
   },
 }));
 
+vi.mock("@/utils/env", () => ({
+  resolveNetworkName: vi.fn(() => "mainnet"),
+}));
+
 vi.mock("@cityofzion/neon-js", () => ({
   Wallet: {
     isAddress: vi.fn((addr) => {
@@ -113,7 +117,7 @@ describe("ChatPage", () => {
     await flushPromises();
 
     expect(restoreChatSessionMock).toHaveBeenCalled();
-    expect(resolveDomainMock).toHaveBeenCalledWith("alice.neo");
+    expect(resolveDomainMock).toHaveBeenCalledWith("alice.neo", { network: "mainnet" });
     expect(ensureRoomMock).toHaveBeenCalledWith({
       peerAddress: "NZgtM6nRnMNe86ce8f2UVHAeUismyG157h",
       peerLabel: "alice.neo",

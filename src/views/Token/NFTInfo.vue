@@ -97,6 +97,7 @@ import { tokenService } from "@/services/tokenService";
 import { isAbortError } from "@/utils/abortError";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveImageUrl } from "@/utils/neoHelpers";
+import { resolveNetworkName } from "@/utils/env";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
@@ -133,6 +134,7 @@ async function loadNFT() {
   if (!contractHash.value || !tokenId.value) return;
 
   const myGeneration = ++fetchGeneration;
+  const requestNetwork = resolveNetworkName();
 
   loading.value = true;
   error.value = null;
@@ -142,8 +144,10 @@ async function loadNFT() {
   image.value = "";
   description.value = "";
   try {
-    const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value]);
-    if (myGeneration !== fetchGeneration) return;
+    const result = await tokenService.getNep11Properties(contractHash.value, [tokenId.value], {
+      network: requestNetwork,
+    });
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     const data = result?.result?.[0];
     if (data) {
       nftName.value = data.name || t("tokenDetail.nftDetailUnknown");
@@ -151,12 +155,12 @@ async function loadNFT() {
       description.value = data.description || "";
     }
   } catch (err) {
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT info:", err);
     error.value = t("errors.loadNftDetails");
   } finally {
-    if (myGeneration === fetchGeneration) loading.value = false;
+    if (myGeneration === fetchGeneration && resolveNetworkName() === requestNetwork) loading.value = false;
   }
 }
 

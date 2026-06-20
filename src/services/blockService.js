@@ -2,7 +2,7 @@ import { safeRpc } from "./api";
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
-import { getCurrentEnv, NET_ENV } from "../utils/env";
+import { getCurrentEnv, resolveNetworkName } from "../utils/env";
 
 /**
  * Detect "method not exposed" errors so we know when to fall back to a
@@ -100,8 +100,8 @@ function normalizeValidatedStateRootPayload(payload, requestedHeight = null) {
   };
 }
 
-function currentNetworkSlug() {
-  return getCurrentEnv() === NET_ENV.TestT5 ? "testnet" : "mainnet";
+function currentNetworkSlug(network = getCurrentEnv()) {
+  return resolveNetworkName(network);
 }
 
 async function fetchValidatedStateRootFromEdge(options = {}) {
@@ -109,7 +109,7 @@ async function fetchValidatedStateRootFromEdge(options = {}) {
     throw new Error("fetch is not available");
   }
 
-  const endpoint = `/api/${currentNetworkSlug()}`;
+  const endpoint = `/api/${currentNetworkSlug(options.network)}`;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -290,7 +290,7 @@ export const blockService = createService(
       const cacheOpts = options;
       const numericHeight = Number(height);
       if (!Number.isFinite(numericHeight) || numericHeight < 0) return null;
-      const key = getCacheKey("block_height", { height: numericHeight });
+      const key = getCacheKey("block_height", { height: numericHeight }, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -378,7 +378,7 @@ export const blockService = createService(
       const cacheOpts = getRealtimeListCacheOptions(options);
 
       try {
-        const key = getCacheKey("block_validated_stateroot_edge", { latest: true });
+        const key = getCacheKey("block_validated_stateroot_edge", { latest: true }, cacheOpts.network);
         const fromBackend = await cachedRequest(
           key,
           () => fetchValidatedStateRootFromEdge(cacheOpts),
@@ -469,7 +469,7 @@ export const blockService = createService(
      */
     async getCount(options = {}) {
       const cacheOpts = getRealtimeListCacheOptions(options);
-      const key = getCacheKey("block_count", {});
+      const key = getCacheKey("block_count", {}, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -501,7 +501,7 @@ export const blockService = createService(
       const { enrichMissingFields = false, ...requestOptions } = options;
       const cacheOpts = getRealtimeListCacheOptions(requestOptions);
 
-      const key = getCacheKey("block_list", { limit, skip });
+      const key = getCacheKey("block_list", { limit, skip }, cacheOpts.network);
       const res = await cachedRequest(
         key,
         async () => {

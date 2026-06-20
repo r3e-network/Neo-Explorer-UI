@@ -69,6 +69,58 @@ describe("indexerReadService freshness controls", () => {
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("cache");
   });
 
+  it("honors an explicit network override without relying on global env state", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn((env) => {
+        const value = String(env || "mainnet").toLowerCase();
+        return value.includes("test") || value.includes("t5") ? "testnet" : "mainnet";
+      }),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [], paging: { total: 0 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    await indexerReadService.getTransactions(6, 0, { network: "testnet" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/data/testnet/transactions?limit=6&offset=0");
+  });
+
+  it("keeps summary in-flight requests isolated by explicit network", async () => {
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn((env) => {
+        const value = String(env || "mainnet").toLowerCase();
+        return value.includes("test") || value.includes("t5") ? "testnet" : "mainnet";
+      }),
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { total_block_count: 1 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    await Promise.all([
+      indexerReadService.getSummary({ network: "mainnet" }),
+      indexerReadService.getSummary({ network: "testnet" }),
+    ]);
+
+    const paths = fetchMock.mock.calls.map((call) => call[0]);
+    expect(paths).toEqual(expect.arrayContaining([
+      "/data/mainnet/summary",
+      "/data/testnet/summary",
+    ]));
+    expect(paths.filter((path) => path === "/data/mainnet/summary")).toHaveLength(2);
+    expect(paths.filter((path) => path === "/data/testnet/summary")).toHaveLength(2);
+  });
+
   it("records read-api observability headers for indexer responses", async () => {
     vi.doMock("../../src/utils/env.js", () => ({
       getCurrentEnv: vi.fn(() => "Mainnet"),
@@ -175,6 +227,42 @@ describe("indexerReadService freshness controls", () => {
     expect(await indexerReadService.getExplorerHome(6)).toBeNull();
     expect(await indexerReadService.getExplorerHome(6)).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps explorer home unavailability isolated per network", async () => {
+    const envState = { network: "mainnet" };
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => (envState.network === "testnet" ? "TestT5" : "Mainnet")),
+      resolveNetworkName: vi.fn(() => envState.network),
+    }));
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("not found", { status: 404 }))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            network: "testnet",
+            summary: { total_block_count: 456 },
+            latest_blocks: [],
+            latest_transactions: [],
+          },
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    expect(await indexerReadService.getExplorerHome(6)).toBeNull();
+    envState.network = "testnet";
+    await expect(indexerReadService.getExplorerHome(6)).resolves.toEqual(
+      expect.objectContaining({ network: "testnet" }),
+    );
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([
+      "/data/mainnet/explorer/home?limit=6",
+      "/data/testnet/explorer/home?limit=6",
+    ]);
   });
 
   // Removed: "falls back through same-origin backup proxy routes" — single server, no fallback paths.

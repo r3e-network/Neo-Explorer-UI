@@ -47,7 +47,7 @@ export const candidateService = createService(
     // Shared, cached fetch of the node candidate set mapped to rows. Keyed by
     // network so getByAddress / getVotesByAddress reuse a single round-trip.
     async _getCandidateRows(options = {}) {
-      const key = getCacheKey("candidate_rows_node", {});
+      const key = getCacheKey("candidate_rows_node", {}, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -60,7 +60,7 @@ export const candidateService = createService(
     },
 
     async getCount(options = {}) {
-      const key = getCacheKey("candidate_count_fallback", {});
+      const key = getCacheKey("candidate_count_fallback", {}, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -78,7 +78,7 @@ export const candidateService = createService(
     },
 
     async getList(limit = 20, skip = 0, options = {}) {
-      const key = getCacheKey("candidate_list_fallback", { limit, skip });
+      const key = getCacheKey("candidate_list_fallback", { limit, skip }, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -101,7 +101,7 @@ export const candidateService = createService(
     },
 
     async getByAddress(address, options = {}) {
-      const key = getCacheKey("candidate_by_address_node", { address: String(address || "") });
+      const key = getCacheKey("candidate_by_address_node", { address: String(address || "") }, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -128,7 +128,7 @@ export const candidateService = createService(
     },
 
     async getVotesByAddress(address, options = {}) {
-      const key = getCacheKey("candidate_votes_node", { address: String(address || "") });
+      const key = getCacheKey("candidate_votes_node", { address: String(address || "") }, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -149,7 +149,7 @@ export const candidateService = createService(
     // key (hex). Returns voters with a 0x script hash + their voted amount.
     async getVotersByAddress(publicKey, limit = 20, skip = 0, options = {}) {
       const pk = String(publicKey || "").trim();
-      const key = getCacheKey("candidate_voters_node", { pk, limit, skip });
+      const key = getCacheKey("candidate_voters_node", { pk, limit, skip }, options.network);
       return cachedRequest(
         key,
         async () => {

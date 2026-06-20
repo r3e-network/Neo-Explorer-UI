@@ -97,7 +97,11 @@ describe("usePagination", () => {
       const p = usePagination(fetchFn, { defaultPageSize: 10 });
 
       await p.loadPage(3);
-      expect(fetchFn).toHaveBeenCalledWith(10, 20, expect.objectContaining({ forceRefresh: false }));
+      expect(fetchFn).toHaveBeenCalledWith(
+        10,
+        20,
+        expect.objectContaining({ forceRefresh: false, network: "mainnet" }),
+      );
     });
 
     it("sets loading during fetch", async () => {

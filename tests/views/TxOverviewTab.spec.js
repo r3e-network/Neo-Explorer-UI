@@ -203,6 +203,6 @@ describe("TxOverviewTab", () => {
 
     await flushPromises();
 
-    expect(supabaseService.getContractMetadataBatch).toHaveBeenCalledWith([contractHash]);
+    expect(supabaseService.getContractMetadataBatch).toHaveBeenCalledWith([contractHash], "mainnet");
   });
 });

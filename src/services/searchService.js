@@ -6,6 +6,7 @@ import { accountService } from "./accountService";
 import { indexerReadService } from "./indexerReadService";
 import { addressToScriptHash } from "../utils/neoHelpers";
 import { isValidNeoAddress } from "../utils/addressFormat";
+import { resolveNetworkName } from "../utils/env";
 
 // ---------------------------------------------------------------------------
 // Private helpers
@@ -104,8 +105,17 @@ function shouldUseExactLookupFirst(query) {
   return (query.endsWith(".neo") && query.length > 4) || (query.endsWith(".matrix") && query.length > 7);
 }
 
-async function _resolveClassifiedHit(query) {
-  const hits = await _dedupe(query, () => _classifyAndDispatch(query));
+function normalizeSearchOptions(options = {}) {
+  const network = resolveNetworkName(options.network);
+  return { network };
+}
+
+async function _resolveClassifiedHit(query, options = {}) {
+  const requestOptions = normalizeSearchOptions(options);
+  const hits = await _dedupe(
+    `${requestOptions.network}:${query}`,
+    () => _classifyAndDispatch(query, requestOptions),
+  );
 
   // Priority: block > transaction > contract > address
   if (hits.block) return { type: "block", data: hits.block };
@@ -128,9 +138,10 @@ async function _searchSidecar(query, options = {}) {
  * @returns {Promise<Object|null>}
  * @private
  */
-async function _lookupAddress(address) {
+async function _lookupAddress(address, options = {}) {
+  const requestOptions = normalizeSearchOptions(options);
   const scriptHash = addressToScriptHash(address);
-  const account = await accountService.getByAddress(address).catch(() => null);
+  const account = await accountService.getByAddress(address, requestOptions).catch(() => null);
   if (account) return account;
   return { address: scriptHash || address };
 }
@@ -145,7 +156,8 @@ async function _lookupAddress(address) {
  * @returns {Promise<{block?: Object, transaction?: Object, contract?: Object, address?: Object}>}
  * @private
  */
-async function _classifyAndDispatch(query) {
+async function _classifyAndDispatch(query, options = {}) {
+  const requestOptions = normalizeSearchOptions(options);
   const hits = {};
 
   // Block height (pure digits) — standard getblock works directly against
@@ -153,7 +165,7 @@ async function _classifyAndDispatch(query) {
   if (/^\d+$/.test(query)) {
     const blockHeight = parseInt(query);
     if (blockHeight >= 0 && blockHeight < 100_000_000) {
-      const block = await safeRpc("getblock", [blockHeight, 1], null).catch(() => null);
+      const block = await safeRpc("getblock", [blockHeight, 1], null, requestOptions).catch(() => null);
       if (block) hits.block = block;
     }
   }
@@ -164,11 +176,11 @@ async function _classifyAndDispatch(query) {
   if (/^(0x)?[a-fA-F0-9]{64}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
     const lookupTx = async () =>
-      safeRpc("getrawtransaction", [hash, 1], null);
+      safeRpc("getrawtransaction", [hash, 1], null, requestOptions);
     const lookupBlock = async () =>
-      safeRpc("getblock", [hash, 1], null);
+      safeRpc("getblock", [hash, 1], null, requestOptions);
     const lookupContract = async () =>
-      safeRpc("getcontractstate", [hash], null);
+      safeRpc("getcontractstate", [hash], null, requestOptions);
 
     const [txResult, blockResult, contractResult] = await Promise.allSettled([
       lookupTx(),
@@ -185,21 +197,21 @@ async function _classifyAndDispatch(query) {
   // indexer-first per #173, so the redundant Mongo probe is gone.
   if (/^(0x)?[a-fA-F0-9]{40}$/.test(query)) {
     const hash = query.startsWith("0x") ? query : `0x${query}`;
-    const contract = await contractService.getByHashWithFallback(hash);
+    const contract = await contractService.getByHashWithFallback(hash, requestOptions);
     if (contract) hits.contract = contract;
   }
 
   // Neo address
   if (isValidNeoAddress(query)) {
-    const account = await _lookupAddress(query);
+    const account = await _lookupAddress(query, requestOptions);
     if (account) hits.address = account;
   }
 
   // NNS Domain (.neo or .matrix)
   if ((query.endsWith(".neo") && query.length > 4) || (query.endsWith(".matrix") && query.length > 7)) {
-    const resolvedAddress = await nnsService.resolveDomain(query);
+    const resolvedAddress = await nnsService.resolveDomain(query, requestOptions);
     if (resolvedAddress && isValidNeoAddress(resolvedAddress)) {
-      const account = await _lookupAddress(resolvedAddress);
+      const account = await _lookupAddress(resolvedAddress, requestOptions);
       if (account) {
         account.resolvedNns = query; // Add custom property
         hits.address = account;
@@ -225,28 +237,29 @@ export const searchService = {
    * @param {string} query
    * @returns {Promise<{type: string|null, data: Object|null}>}
    */
-  async search(query) {
+  async search(query, options = {}) {
     query = (query || "").trim();
     if (!query || query.length > 256) return { type: null, data: null };
 
-    const key = getCacheKey("search_main", { query });
+    const requestOptions = normalizeSearchOptions(options);
+    const key = getCacheKey("search_main", { query }, requestOptions.network);
     return cachedRequest(
       key,
       async () => {
         try {
           const exactFirst = shouldUseExactLookupFirst(query);
           if (exactFirst) {
-            const exact = await _resolveClassifiedHit(query);
+            const exact = await _resolveClassifiedHit(query, requestOptions);
             if (exact) return exact;
           }
 
-          const sidecar = await _searchSidecar(query, { limit: 1 });
+          const sidecar = await _searchSidecar(query, { limit: 1, network: requestOptions.network });
           if (sidecar?.hits?.[0]) {
             return normalizeSearchHit(sidecar.hits[0]);
           }
 
           if (!exactFirst) {
-            const exact = await _resolveClassifiedHit(query);
+            const exact = await _resolveClassifiedHit(query, requestOptions);
             if (exact) return exact;
           }
         } catch (error) {
@@ -255,17 +268,20 @@ export const searchService = {
 
         return { type: null, data: null };
       },
-      CACHE_TTL.block
+      CACHE_TTL.block,
+      requestOptions,
     );
   },
 
-  async suggest(query, { type = "", limit = 6 } = {}) {
+  async suggest(query, { type = "", limit = 6, network = null } = {}) {
     query = (query || "").trim();
     if (!query || query.length > 256) return [];
+    const requestOptions = normalizeSearchOptions({ network });
 
     const response = await _searchSidecar(query, {
       type: searchTypeFromFilter(type),
       limit,
+      network: requestOptions.network,
     });
     return (response?.hits || []).map(formatSuggestionHit).filter((hit) => hit.value || hit.route);
   },

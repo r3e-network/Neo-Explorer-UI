@@ -304,6 +304,7 @@ const neoPrice = ref(0);
 const gasPrice = ref(0);
 const balances = ref([]);
 const activeEnv = ref(getCurrentEnv());
+let treasuryLoadGeneration = 0;
 const activeNetworkMode = computed(() =>
   String(activeEnv.value || "")
     .toLowerCase()
@@ -357,7 +358,7 @@ async function loadPrices() {
   }
 }
 
-async function fetchTreasuryDataFromRpc() {
+async function fetchTreasuryDataFromRpc(network = resolveNetworkName(activeEnv.value)) {
   const treasuryAddresses = getTreasuryKnownAddresses();
   const BATCH_SIZE = 12;
   const results = [];
@@ -365,7 +366,7 @@ async function fetchTreasuryDataFromRpc() {
   for (let i = 0; i < treasuryAddresses.length; i += BATCH_SIZE) {
     const batch = treasuryAddresses.slice(i, i + BATCH_SIZE);
     const responses = await Promise.allSettled(
-      batch.map((item) => safeRpc("getnep17balances", [item.address], null, { throwOnError: true })),
+      batch.map((item) => safeRpc("getnep17balances", [item.address], null, { throwOnError: true, network })),
     );
 
     batch.forEach((item, index) => {
@@ -435,9 +436,8 @@ function treasuryRowsToBalances(treasuryAddresses, rows) {
   return Array.from(byAddress.values());
 }
 
-async function fetchTreasuryDataFromReadApi() {
+async function fetchTreasuryDataFromReadApi(network = resolveNetworkName(activeEnv.value)) {
   const treasuryAddresses = getTreasuryKnownAddresses();
-  const network = resolveNetworkName(activeEnv.value);
   const requests = chunkAddresses(treasuryAddresses, READ_API_BATCH_SIZE).map(async (batch) => {
     const params = new URLSearchParams({
       select: "address,contract_hash,balance_raw",
@@ -461,18 +461,20 @@ async function fetchTreasuryDataFromReadApi() {
   return treasuryRowsToBalances(treasuryAddresses, rowGroups.flat());
 }
 
-async function fetchTreasuryData() {
+async function fetchTreasuryData(network = resolveNetworkName(activeEnv.value)) {
   try {
-    const readApiBalances = await fetchTreasuryDataFromReadApi();
+    const readApiBalances = await fetchTreasuryDataFromReadApi(network);
     if (readApiBalances) return readApiBalances;
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Treasury read-api fetch failed; falling back to RPC", err);
   }
 
-  return fetchTreasuryDataFromRpc();
+  return fetchTreasuryDataFromRpc(network);
 }
 
 async function loadTreasuryData(forceRefresh = false) {
+  const requestId = ++treasuryLoadGeneration;
+  const requestNetwork = resolveNetworkName(activeEnv.value);
   loading.value = true;
   error.value = null;
   try {
@@ -481,10 +483,15 @@ async function loadTreasuryData(forceRefresh = false) {
       return;
     }
 
-    const network = activeEnv.value;
-    const cacheKey = `${network}:treasury_data`;
+    const cacheKey = `${requestNetwork}:treasury_data`;
 
-    const results = await cachedRequest(cacheKey, fetchTreasuryData, CACHE_TTL.chart, { forceRefresh });
+    const results = await cachedRequest(
+      cacheKey,
+      () => fetchTreasuryData(requestNetwork),
+      CACHE_TTL.chart,
+      { forceRefresh, network: requestNetwork },
+    );
+    if (requestId !== treasuryLoadGeneration || requestNetwork !== resolveNetworkName(activeEnv.value)) return;
 
     const withUsd = results.map((item) => ({
       ...item,
@@ -493,11 +500,14 @@ async function loadTreasuryData(forceRefresh = false) {
 
     balances.value = withUsd.sort((a, b) => b.usdValue - a.usdValue);
   } catch (err) {
+    if (requestId !== treasuryLoadGeneration || requestNetwork !== resolveNetworkName(activeEnv.value)) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load treasury data", err);
     error.value = t("treasuryPage.failedToLoadRetry");
   } finally {
-    loading.value = false;
+    if (requestId === treasuryLoadGeneration && requestNetwork === resolveNetworkName(activeEnv.value)) {
+      loading.value = false;
+    }
   }
 }
 

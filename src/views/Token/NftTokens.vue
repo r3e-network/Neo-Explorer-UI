@@ -166,6 +166,8 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { base64ToHex, resolveImageUrl } from "@/utils/neoHelpers";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   contractHash: { type: String, required: true },
@@ -214,21 +216,24 @@ async function withTimeout(promise, timeoutMs) {
  * Fetch NFT properties in batches of CONCURRENCY_LIMIT to avoid
  * saturating the browser connection pool.
  */
-async function fetchNftProperties(generation) {
+async function fetchNftProperties(generation, network = null) {
+  const requestNetwork = resolveNetworkName(network);
   const items = tableData.value;
   if (items.length === 0) {
     return;
   }
 
   for (let i = 0; i < items.length; i += CONCURRENCY_LIMIT) {
-    if (generation !== fetchGeneration) return; // stale
+    if (generation !== fetchGeneration || resolveNetworkName() !== requestNetwork) return; // stale
 
     const chunk = items.slice(i, i + CONCURRENCY_LIMIT);
     const results = await Promise.allSettled(
-      chunk.map((item) => tokenService.getNep11Properties(item.asset, [item.tokenid]))
+      chunk.map((item) =>
+        tokenService.getNep11Properties(item.asset, [item.tokenid], { network: requestNetwork }),
+      ),
     );
 
-    if (generation !== fetchGeneration) return; // stale
+    if (generation !== fetchGeneration || resolveNetworkName() !== requestNetwork) return; // stale
 
     results.forEach((res, j) => {
       if (res.status !== "fulfilled") return;
@@ -247,29 +252,41 @@ async function fetchNftProperties(generation) {
 
 async function loadNftItems(skip = 0) {
   const myGeneration = ++fetchGeneration;
+  const requestNetwork = resolveNetworkName();
 
   loading.value = true;
   error.value = null;
   try {
     const res = await withTimeout(
-      tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip),
+      tokenService.getNftHoldersList(props.contractHash, resultsPerPage, skip, {
+        network: requestNetwork,
+      }),
       NFT_ITEMS_LOAD_TIMEOUT_MS,
     );
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     tableData.value = res?.result || [];
     totalCount.value = res?.totalCount || 0;
     loading.value = false;
-    fetchNftProperties(myGeneration).catch(() => {
+    fetchNftProperties(myGeneration, requestNetwork).catch(() => {
       if (import.meta.env.DEV) console.warn("Failed to load NFT metadata");
     });
   } catch (err) {
-    if (myGeneration !== fetchGeneration) return;
+    if (myGeneration !== fetchGeneration || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load NFT items:", err);
     error.value = t("errors.loadNftItems");
     tableData.value = [];
     loading.value = false;
   }
+}
+
+function handleNetworkChange() {
+  fetchGeneration += 1;
+  tableData.value = [];
+  totalCount.value = 0;
+  loading.value = true;
+  error.value = null;
+  loadNftItems((currentPage.value - 1) * resultsPerPage);
 }
 
 function handlePageChange(page) {
@@ -285,6 +302,8 @@ watch(
     loadNftItems(0);
   }
 );
+
+useNetworkChange(handleNetworkChange);
 
 // Initial load
 loadNftItems(0);

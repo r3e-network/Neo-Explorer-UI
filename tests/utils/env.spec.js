@@ -3,6 +3,7 @@ import {
   NET_ENV,
   getActiveBasePath,
   getRpcApiBasePath,
+  getCurrentEnv,
   getNetworkRefreshIntervalMs,
   getRpcClientUrl,
   setCurrentEnv,
@@ -38,5 +39,11 @@ describe("rpc client url", () => {
     expect(getActiveBasePath()).toBe("/rpc/testnet");
     expect(getRpcApiBasePath()).toBe("/rpc/testnet");
     expect(getRpcClientUrl()).toBe(new URL("/rpc/testnet", window.location.origin).toString());
+  });
+
+  it("can resolve a client URL for an explicit network without switching global state", () => {
+    window.localStorage.removeItem("neo_explorer_network");
+    expect(getRpcClientUrl(NET_ENV.TestT5)).toBe(new URL("/rpc/testnet", window.location.origin).toString());
+    expect(getCurrentEnv()).toBe(NET_ENV.Mainnet);
   });
 });

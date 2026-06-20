@@ -167,6 +167,8 @@ import { getChartColors, baseTooltipConfig, baseScalesConfig } from "@/utils/cha
 import { useTheme } from "@/composables/useTheme";
 import { toBcp47 } from "@/utils/timeFormat";
 import { isAbortError } from "@/utils/abortError";
+import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 
 // --- State ---
 const { t, locale } = useI18n();
@@ -194,6 +196,7 @@ let tokenVolumeChartInstance = null;
 let gasPriceChartInstance = null;
 let addressChartInstance = null;
 let volumeChartInstance = null;
+let loadGeneration = 0;
 let renderGeneration = 0;
 
 // --- Computed stats ---
@@ -386,11 +389,18 @@ async function renderCharts() {
 }
 
 // --- Data loading ---
-async function loadData() {
+async function loadData({ forceRefresh = false, network = null } = {}) {
+  const requestNetwork = resolveNetworkName(network);
+  const myGeneration = ++loadGeneration;
   loading.value = true;
   error.value = null;
   try {
-    dailyRows.value = await statsService.getDailyAnalytics(selectedDays.value);
+    const rows = await statsService.getDailyAnalytics(selectedDays.value, {
+      forceRefresh,
+      network: requestNetwork,
+    });
+    if (myGeneration !== loadGeneration || resolveNetworkName() !== requestNetwork) return;
+    dailyRows.value = rows;
     // Clear loading first so the v-else branch (which holds the <canvas>
     // refs) mounts; renderCharts() bails on its null-ref guard otherwise and
     // the charts never draw on the initial load.
@@ -399,11 +409,14 @@ async function loadData() {
     await renderCharts();
   } catch (err) {
     if (isAbortError(err)) return;
+    if (myGeneration !== loadGeneration || resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.error("Failed to load chart data:", err);
     dailyRows.value = [];
     error.value = t("errors.loadChartData");
   } finally {
-    loading.value = false;
+    if (myGeneration === loadGeneration && resolveNetworkName() === requestNetwork) {
+      loading.value = false;
+    }
   }
 }
 
@@ -411,6 +424,16 @@ function changeDays(days) {
   if (selectedDays.value === days) return;
   selectedDays.value = days;
   loadData();
+}
+
+function handleNetworkChange() {
+  loadGeneration += 1;
+  renderGeneration += 1;
+  destroyCharts();
+  dailyRows.value = [];
+  loading.value = true;
+  error.value = null;
+  void loadData({ forceRefresh: true });
 }
 
 // --- Theme + locale reactivity ---
@@ -428,6 +451,8 @@ watch([isDark, locale], () => {
 onMounted(() => {
   loadData();
 });
+
+useNetworkChange(handleNetworkChange);
 
 onBeforeUnmount(() => {
   destroyCharts();

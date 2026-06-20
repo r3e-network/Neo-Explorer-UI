@@ -54,7 +54,7 @@ describe("contractInvocation", () => {
         { type: "Hash160", value: "Nabc" },
         { type: "Integer", value: "1" },
       ],
-    ]);
+    ], { network: "mainnet" });
   });
 
   it("normalizes a base58 N-address Hash160 param to hex", () => {
@@ -83,7 +83,7 @@ describe("contractInvocation", () => {
       "balanceOf",
       [{ type: "Integer", value: "1" }],
       signers,
-    ]);
+    ], { network: "mainnet" });
   });
 
   it("omits signers array when none are provided", async () => {
@@ -91,6 +91,6 @@ describe("contractInvocation", () => {
 
     await invokeContractFunction("0xabc", "decimals", []);
 
-    expect(api.rpc).toHaveBeenCalledWith("invokefunction", ["0xabc", "decimals", []]);
+    expect(api.rpc).toHaveBeenCalledWith("invokefunction", ["0xabc", "decimals", []], { network: "mainnet" });
   });
 });

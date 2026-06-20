@@ -238,6 +238,7 @@ import StateChangeSummary from "./StateChangeSummary.vue";
 import GasBreakdown from "./GasBreakdown.vue";
 import { isAbortError } from "@/utils/abortError";
 import { vmStateClass, vmStateDot, formatGas, opcodeColorClass } from "@/utils/explorerFormat";
+import { resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   txHash: {
@@ -362,20 +363,21 @@ const execExceptions = computed(() => {
 async function loadTrace() {
   const requestId = (activeTraceRequestId += 1);
   const txHash = props.txHash;
+  const requestNetwork = resolveNetworkName();
 
   loading.value = true;
   error.value = null;
   backgroundPending.value = false;
 
   try {
-    const request = executionService.getExecutionTrace(txHash);
+    const request = executionService.getExecutionTrace(txHash, { network: requestNetwork });
     request
       .then((lateData) => {
-        if (requestId !== activeTraceRequestId || appLog.value) return;
+        if (requestId !== activeTraceRequestId || appLog.value || resolveNetworkName() !== requestNetwork) return;
         applyExecutionLog(lateData, { requestId, txHash });
       })
       .catch((lateErr) => {
-        if (requestId !== activeTraceRequestId || appLog.value) return;
+        if (requestId !== activeTraceRequestId || appLog.value || resolveNetworkName() !== requestNetwork) return;
         if (isAbortError(lateErr)) return;
         backgroundPending.value = false;
         error.value = lateErr?.message ?? t("errorTitles.failedFetchExecutionTrace");
@@ -391,7 +393,7 @@ async function loadTrace() {
     ]);
     timeout.cancel();
 
-    if (requestId !== activeTraceRequestId) return;
+    if (requestId !== activeTraceRequestId || resolveNetworkName() !== requestNetwork) return;
     if (outcome.timedOut) {
       backgroundPending.value = true;
       return;
@@ -400,21 +402,22 @@ async function loadTrace() {
 
     applyExecutionLog(outcome.data, { requestId, txHash });
   } catch (err) {
-    if (requestId !== activeTraceRequestId) return;
+    if (requestId !== activeTraceRequestId || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
     error.value = err?.message ?? t("errorTitles.failedFetchExecutionTrace");
   } finally {
-    if (requestId === activeTraceRequestId) {
+    if (requestId === activeTraceRequestId && resolveNetworkName() === requestNetwork) {
       loading.value = false;
     }
   }
 }
 
 async function loadEnrichedTrace({ requestId = activeTraceRequestId, txHash = props.txHash } = {}) {
+  const requestNetwork = resolveNetworkName();
   enrichedLoading.value = true;
   try {
-    const data = await executionService.getEnrichedTrace(txHash);
-    if (requestId !== activeTraceRequestId) return;
+    const data = await executionService.getEnrichedTrace(txHash, { network: requestNetwork });
+    if (requestId !== activeTraceRequestId || resolveNetworkName() !== requestNetwork) return;
     enrichedTrace.value = data;
     // Rebuild callTree from enriched data to include steps/contractCalls
     if (data?.executions && isComplex.value) {
@@ -429,9 +432,10 @@ async function loadEnrichedTrace({ requestId = activeTraceRequestId, txHash = pr
       }));
     }
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load enriched trace:", err);
   } finally {
-    if (requestId === activeTraceRequestId) {
+    if (requestId === activeTraceRequestId && resolveNetworkName() === requestNetwork) {
       enrichedLoading.value = false;
     }
   }

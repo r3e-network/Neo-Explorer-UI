@@ -38,6 +38,10 @@ vi.mock("vue-toastification", () => ({
 vi.mock("@/utils/env", () => ({
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => "TestT5",
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || "TestT5").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { TestT5: "TestT5", Mainnet: "MainNet" },
 }));

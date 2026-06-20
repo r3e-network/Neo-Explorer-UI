@@ -400,7 +400,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useMediaQuery } from "@vueuse/core";
-import { getCurrentEnv, NET_ENV } from "@/utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
 import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wallet";
@@ -458,6 +458,8 @@ const gasPerBlock = ref(DEFAULT_GAS_PER_BLOCK);
 const CANDIDATES_LOAD_TIMEOUT_MS = 4500;
 
 let candidatesLoadGeneration = 0;
+let gasPerBlockLoadGeneration = 0;
+let voteStateLoadGeneration = 0;
 
 const totalNetworkVotes = computed(() => {
   return candidates.value.reduce((sum, c) => sum + Number(c.votes || 0), 0);
@@ -605,14 +607,17 @@ async function loadPrices() {
 // value rather than a stale hardcoded constant. Returns raw integer; we
 // divide by 1e8 to convert to whole GAS. Failure leaves the default in
 // place — no toast, since the rest of the page is still informative.
-async function loadGasPerBlock() {
+async function loadGasPerBlock(network = resolveNetworkName()) {
+  const requestNetwork = resolveNetworkName(network);
+  const requestId = ++gasPerBlockLoadGeneration;
   try {
     const result = await safeRpc(
       "invokefunction",
       [NEO_HASH, "getGasPerBlock", []],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: requestNetwork },
     );
+    if (requestId !== gasPerBlockLoadGeneration || requestNetwork !== resolveNetworkName()) return;
     if (result?.state !== "HALT") return;
     const raw = result?.stack?.[0]?.value;
     if (raw === undefined || raw === null) return;
@@ -660,9 +665,10 @@ function buildCandidateRows(rawCandidates, metadataMap = {}) {
 }
 
 async function enrichCandidateMetadata({ rawCandidates, isTestnet, requestId }) {
+  const requestNetwork = resolveNetworkName();
   let indexerRows = [];
   try {
-    indexerRows = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    indexerRows = await supabaseService.getValidatorMetadata(requestNetwork);
   } catch (metadataErr) {
     if (import.meta.env.DEV) console.warn("Failed to load cached validator metadata", metadataErr);
   }
@@ -676,7 +682,7 @@ async function enrichCandidateMetadata({ rawCandidates, isTestnet, requestId }) 
     }
   }
 
-  if (requestId !== candidatesLoadGeneration) return;
+  if (requestId !== candidatesLoadGeneration || requestNetwork !== resolveNetworkName()) return;
 
   const metadataMap = {};
 
@@ -712,20 +718,18 @@ async function enrichCandidateMetadata({ rawCandidates, isTestnet, requestId }) 
 
 async function loadCandidates() {
   const requestId = ++candidatesLoadGeneration;
+  const requestNetwork = resolveNetworkName();
   loading.value = true;
   error.value = "";
   try {
-    // Determine the environment string for Dora API
-    const env = getCurrentEnv().toLowerCase();
-    const doraEnv = env.includes(NET_ENV.TestT5.toLowerCase()) ? "testnet" : "mainnet";
-
-    const isTestnet = doraEnv !== "mainnet";
+    const doraEnv = requestNetwork;
+    const isTestnet = requestNetwork !== "mainnet";
 
     const rpcRes = await withTimeout(
-      safeRpc("getcandidates", [], [], { throwOnError: true }),
+      safeRpc("getcandidates", [], [], { throwOnError: true, network: requestNetwork }),
       CANDIDATES_LOAD_TIMEOUT_MS,
     );
-    if (requestId !== candidatesLoadGeneration) return;
+    if (requestId !== candidatesLoadGeneration || requestNetwork !== resolveNetworkName()) return;
 
     let rawCandidates = [];
     if (rpcRes && rpcRes.length > 0) {
@@ -739,18 +743,20 @@ async function loadCandidates() {
 
     // Fetch liveness data passively in the background
     fetchDoraLiveness(doraEnv).then((map) => {
-      if (requestId === candidatesLoadGeneration) livenessData.value = map;
+      if (requestId === candidatesLoadGeneration && requestNetwork === resolveNetworkName()) livenessData.value = map;
     }).catch(() => {});
   } catch (err) {
-    if (requestId !== candidatesLoadGeneration) return;
+    if (requestId !== candidatesLoadGeneration || requestNetwork !== resolveNetworkName()) return;
     if (import.meta.env.DEV) console.error("Failed to load candidates", err);
     error.value = err.message || t("governancePage.fetchCandidatesFailed");
   } finally {
-    if (requestId === candidatesLoadGeneration) loading.value = false;
+    if (requestId === candidatesLoadGeneration && requestNetwork === resolveNetworkName()) loading.value = false;
   }
 }
 
-async function loadCurrentVoteState() {
+async function loadCurrentVoteState(network = resolveNetworkName()) {
+  const requestNetwork = resolveNetworkName(network);
+  const requestId = ++voteStateLoadGeneration;
   if (!account.value) {
     currentVotePublicKey.value = "";
     return;
@@ -766,8 +772,9 @@ async function loadCurrentVoteState() {
       "invokefunction",
       [NEO_HASH, "getAccountState", [{ type: "Hash160", value: scriptHash }]],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: requestNetwork },
     );
+    if (requestId !== voteStateLoadGeneration || requestNetwork !== resolveNetworkName()) return;
 
     const item = Array.isArray(result?.stack) ? result.stack[0] : null;
     const structValues = Array.isArray(item?.value) ? item.value : [];
@@ -821,18 +828,22 @@ async function handleVoteAction(candidate) {
 }
 
 function handleNetworkChange() {
+  const requestNetwork = resolveNetworkName();
   // gasPerBlock is set by governance per-network, refresh on switch.
   gasPerBlock.value = DEFAULT_GAS_PER_BLOCK;
-  loadGasPerBlock();
+  currentVotePublicKey.value = "";
+  livenessData.value = {};
+  loadGasPerBlock(requestNetwork);
   loadCandidates();
-  loadCurrentVoteState();
+  loadCurrentVoteState(requestNetwork);
 }
 
 onMounted(() => {
   loadPrices();
-  loadGasPerBlock();
+  const requestNetwork = resolveNetworkName();
+  loadGasPerBlock(requestNetwork);
   loadCandidates();
-  loadCurrentVoteState();
+  loadCurrentVoteState(requestNetwork);
 });
 
 useNetworkChange(handleNetworkChange);

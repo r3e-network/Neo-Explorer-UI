@@ -1,6 +1,6 @@
 import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { safeRpc } from "./api";
-import { getCurrentEnv, NET_ENV } from "../utils/env";
+import { getCurrentEnv, NET_ENV, resolveNetworkName } from "../utils/env";
 import { supabaseService } from "@/services/supabaseService";
 import { normalizeHash160 } from "@/utils/walletNormalization";
 import { NNS_HASH } from "@/constants";
@@ -91,8 +91,14 @@ const decodePropertiesMap = (stackItem) => {
   return out;
 };
 
-const invokeContract = (contractHash, operation, args = []) =>
-  safeRpc("invokefunction", [contractHash, operation, args], null, { throwOnError: true });
+const resolveServiceNetwork = (options = {}) => resolveNetworkName(options.network);
+
+const networkToEnv = (network) => (resolveNetworkName(network) === "testnet" ? NET_ENV.TestT5 : NET_ENV.Mainnet);
+
+const invokeContract = (contractHash, operation, args = [], options = {}) => {
+  const network = resolveServiceNetwork(options);
+  return safeRpc("invokefunction", [contractHash, operation, args], null, { throwOnError: true, network });
+};
 
 const getDomainSuffix = (name) => {
   if (name.endsWith(MATRIX_SUFFIX)) return MATRIX_SUFFIX;
@@ -159,16 +165,17 @@ const getActiveDomainFromMetadata = (metadata) => {
 };
 
 export const nnsService = {
-  async getMatrixDomainProfile(domain) {
+  async getMatrixDomainProfile(domain, options = {}) {
     const normalizedDomain = normalizeDomainName(domain);
     if (!normalizedDomain.endsWith(MATRIX_SUFFIX)) return null;
 
-    const env = getCurrentEnv();
+    const network = resolveServiceNetwork(options);
+    const env = networkToEnv(network);
     const contractHash = getMatrixContractHash(env);
 
     const availability = await invokeContract(contractHash, "isAvailable", [
       { type: "String", value: normalizedDomain },
-    ]);
+    ], { network });
     const available = decodeBooleanStackItem(availability?.stack?.[0]);
     if (available) {
       return {
@@ -182,9 +189,9 @@ export const nnsService = {
 
     const tokenId = btoa(normalizedDomain);
     const [ownerRes, propertiesRes, resolvedAddress] = await Promise.all([
-      invokeContract(contractHash, "ownerOf", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
-      invokeContract(contractHash, "properties", [{ type: "ByteArray", value: tokenId }]).catch(() => null),
-      this.resolveMatrixDomain(normalizedDomain),
+      invokeContract(contractHash, "ownerOf", [{ type: "ByteArray", value: tokenId }], { network }).catch(() => null),
+      invokeContract(contractHash, "properties", [{ type: "ByteArray", value: tokenId }], { network }).catch(() => null),
+      this.resolveMatrixDomain(normalizedDomain, { network }),
     ]);
 
     const owner = decodeHash160Address(ownerRes?.stack?.[0]?.value);
@@ -204,15 +211,15 @@ export const nnsService = {
    * @param {string} address The base58 NEO address
    * @returns {Promise<{ nns: string } | null>}
    */
-  async resolveAddressToNNS(address) {
+  async resolveAddressToNNS(address, options = {}) {
     if (!address) return null;
     const target = String(address || "").trim();
     if (!target) return null;
-    const env = getCurrentEnv();
+    const network = resolveServiceNetwork(options);
     const normalizedHash = normalizeHash160WithPrefix(target);
     const lookupTargets = [...new Set([target, normalizedHash].filter(Boolean))];
 
-    const key = getCacheKey("nns_address_to_name", { address: target });
+    const key = getCacheKey("nns_address_to_name", { address: target }, network);
     return cachedRequest(
       key,
       async () => {
@@ -220,7 +227,7 @@ export const nnsService = {
 
         for (const lookupTarget of lookupTargets) {
           try {
-            const metadata = await supabaseService.getAddressTag(lookupTarget, env);
+            const metadata = await supabaseService.getAddressTag(lookupTarget, network);
             const cachedDomain = getActiveDomainFromMetadata(metadata);
             if (cachedDomain) {
               const metadataCandidate = toDomainCandidate(cachedDomain);
@@ -243,15 +250,16 @@ export const nnsService = {
    * @param {string} domain
    * @returns {Promise<string|null>} Address if resolved, null otherwise
    */
-  async resolveDomain(domain) {
+  async resolveDomain(domain, options = {}) {
     if (!domain) return null;
-    if (domain.endsWith(MATRIX_SUFFIX)) return this.resolveMatrixDomain(domain);
+    const network = resolveServiceNetwork(options);
+    if (domain.endsWith(MATRIX_SUFFIX)) return this.resolveMatrixDomain(domain, { network });
     if (!domain.endsWith(NNS_SUFFIX)) return null;
     // NNS (NameService) is deployed on both mainnet and testnet at the same
     // contract hash; resolve against the active network's RPC so testnet
     // domains resolve instead of silently returning null.
 
-    const key = getCacheKey("nns_domain_to_address", { domain });
+    const key = getCacheKey("nns_domain_to_address", { domain }, network);
     return cachedRequest(
       key,
       async () => {
@@ -259,7 +267,7 @@ export const nnsService = {
           const res = await invokeContract(NNS_CONTRACT_HASH, "resolve", [
             { type: "String", value: domain },
             { type: "Integer", value: 16 },
-          ]);
+          ], { network });
 
           if (res.state === "HALT" && res.stack && res.stack.length > 0) {
             const item = res.stack[0];
@@ -285,13 +293,14 @@ export const nnsService = {
    * @param {string} domain
    * @returns {Promise<string|null>} Address if resolved, null otherwise
    */
-  async resolveMatrixDomain(domain) {
+  async resolveMatrixDomain(domain, options = {}) {
     if (!domain || !domain.endsWith(MATRIX_SUFFIX)) return null;
-    const env = getCurrentEnv();
+    const network = resolveServiceNetwork(options);
+    const env = networkToEnv(network);
 
     const MATRIX_CONTRACT_HASH = getMatrixContractHash(env);
 
-    const key = getCacheKey("matrix_domain_to_address", { domain });
+    const key = getCacheKey("matrix_domain_to_address", { domain }, network);
     return cachedRequest(
       key,
       async () => {
@@ -299,7 +308,7 @@ export const nnsService = {
           const res = await invokeContract(MATRIX_CONTRACT_HASH, "resolve", [
             { type: "String", value: domain },
             { type: "Integer", value: 16 },
-          ]);
+          ], { network });
 
           if (res.state === "HALT" && res.stack && res.stack.length > 0) {
             const item = res.stack[0];

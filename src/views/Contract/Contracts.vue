@@ -264,6 +264,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import EtherscanPagination from "@/components/common/EtherscanPagination.vue";
 import MobileListCard from "@/components/common/MobileListCard.vue";
 import { isAbortError } from "@/utils/abortError";
+import { resolveNetworkName } from "@/utils/env";
 
 const route = useRoute();
 const router = useRouter();
@@ -319,11 +320,12 @@ function formatTime(timestamp) {
 // Data fetching
 async function loadPage() {
   const myRequestId = ++currentRequestId;
+  const requestNetwork = resolveNetworkName();
   const offset = (currentPage.value - 1) * pageSize.value;
   const query = searchQuery.value.trim();
   const cacheKey = isSearchMode.value
-    ? getCacheKey("contract_search", { name: query, limit: pageSize.value, skip: offset })
-    : getCacheKey("contract_list", { limit: pageSize.value, skip: offset });
+    ? getCacheKey("contract_search", { name: query, limit: pageSize.value, skip: offset }, requestNetwork)
+    : getCacheKey("contract_list", { limit: pageSize.value, skip: offset }, requestNetwork);
   const hasCachedData = getCache(cacheKey) !== null;
 
   loading.value = !hasCachedData;
@@ -334,19 +336,20 @@ async function loadPage() {
 
     response = await contractService.getListWithFallback(pageSize.value, offset, {
       search: isSearchMode.value ? query : "",
+      network: requestNetwork,
     });
 
-    if (myRequestId !== currentRequestId) return;
+    if (myRequestId !== currentRequestId || requestNetwork !== resolveNetworkName()) return;
     contracts.value = response?.result || [];
     total.value = response?.totalCount || 0;
   } catch (err) {
-    if (myRequestId !== currentRequestId) return;
+    if (myRequestId !== currentRequestId || requestNetwork !== resolveNetworkName()) return;
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.error("Failed to load contracts:", err);
     error.value = t("errors.loadContracts");
     contracts.value = [];
   } finally {
-    if (myRequestId === currentRequestId) {
+    if (myRequestId === currentRequestId && requestNetwork === resolveNetworkName()) {
       loading.value = false;
     }
   }
@@ -394,7 +397,11 @@ watch(
 
 // Refetch on network switch — Mainnet ↔ Testnet otherwise leaves
 // the previous network's contract list visible until next paginate.
-useNetworkChange(() => loadPage());
+useNetworkChange(() => {
+  contracts.value = [];
+  total.value = 0;
+  loadPage();
+});
 
 onBeforeUnmount(() => {
   if (searchDebounce) clearTimeout(searchDebounce);

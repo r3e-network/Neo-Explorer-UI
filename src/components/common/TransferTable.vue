@@ -190,18 +190,24 @@ function getDirectionStyle(item) {
   return { background: "var(--status-warning-bg)", color: "var(--status-warning)" };
 }
 
-function fetchTransfers(limit, skip) {
+function fetchTransfers(limit, skip, options = {}) {
   if (props.type === "nep11") {
     // Per-token transfers when a tokenId is supplied (used on the
     // /nft-info/:contract/:owner/:tokenId page); contract-wide transfers
     // when no tokenId is set (used on the NFT collection landing page,
     // where the legacy GetNep11TransferByContractHash RPC doesn't exist).
     if (props.tokenId) {
-      return tokenService.getNep11TransfersByTokenId(props.contractHash, hexToBase64(props.tokenId), limit, skip);
+      return tokenService.getNep11TransfersByTokenId(
+        props.contractHash,
+        hexToBase64(props.tokenId),
+        limit,
+        skip,
+        options,
+      );
     }
-    return tokenService.getNep11Transfers(props.contractHash, limit, skip);
+    return tokenService.getNep11Transfers(props.contractHash, limit, skip, options);
   }
-  return tokenService.getNep17Transfers(props.contractHash, limit, skip);
+  return tokenService.getNep17Transfers(props.contractHash, limit, skip, options);
 }
 
 const {

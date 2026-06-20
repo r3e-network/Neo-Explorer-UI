@@ -9,7 +9,7 @@ describe("AddressDetail source guards", () => {
 
     expect(source).toContain('import { isHash160Hex } from "@/utils/walletNormalization"');
     expect(source).toContain("if (isHash160Hex(addr))");
-    expect(source).toContain("contractService.getByHashWithFallback(addr)");
+    expect(source).toContain("contractService.getByHashWithFallback(addr, { network: requestNetwork })");
   });
 
   it("keeps the default address transactions tab lean", () => {
@@ -33,8 +33,9 @@ describe("AddressDetail source guards", () => {
     const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
 
     expect(source).toContain('import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness"');
-    expect(source).toContain('createExplorerQueryKey("address.transactions", { address: addr, pageSize, skip })');
-    expect(source).toContain('createExplorerQueryKey("address.summary", { address: addr })');
-    expect(source).toContain('createExplorerQueryKey("address.assets", { address: addr })');
+    expect(source).toContain('createExplorerQueryKey("address.transactions"');
+    expect(source).toContain("network: context.network");
+    expect(source).toContain('createExplorerQueryKey("address.summary", { address: addr, network: requestNetwork })');
+    expect(source).toContain('createExplorerQueryKey("address.assets", { address: addr, network: requestNetwork })');
   });
 });

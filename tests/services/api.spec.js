@@ -35,7 +35,7 @@ vi.mock("../../src/utils/env.js", () => ({
     Mainnet: "Mainnet",
     TestT5: "TestT5",
   },
-  getRpcApiBasePath: vi.fn(() => envState.currentBasePath),
+  getRpcApiBasePath: vi.fn((env = "Mainnet") => (env === "TestT5" ? "/rpc/testnet" : envState.currentBasePath)),
   getActiveBasePath: vi.fn(() => envState.currentBasePath),
   getCurrentEnv: vi.fn(() => "Mainnet"),
   getConfiguredRpcBaseUrl: vi.fn(() => ""),
@@ -281,6 +281,35 @@ describe("rpc", () => {
 
     await expect(Promise.all([countPromise, hashPromise])).resolves.toEqual([123, "0xabc"]);
     expect(axios.post.mock.calls.filter((call) => call[1]?.method === "getversion")).toHaveLength(1);
+  });
+
+  it("routes an explicit testnet RPC without relying on the global current environment", async () => {
+    envState.currentBasePath = "/rpc/mainnet";
+
+    axios.post.mockImplementation((_url, payload, config) => {
+      if (payload?.method === "getversion") {
+        return Promise.resolve({ data: { result: { protocol: { network: 894710606 } } } });
+      }
+      if (payload?.method === "getblockcount") {
+        return Promise.resolve({ data: { result: 42 } });
+      }
+      throw new Error(`Unexpected RPC call: ${payload?.method} @ ${config?.baseURL}`);
+    });
+
+    await expect(rpc("getblockcount", [], { network: "testnet" })).resolves.toBe(42);
+
+    expect(axios.post).toHaveBeenNthCalledWith(
+      1,
+      "",
+      expect.objectContaining({ method: "getversion" }),
+      expect.objectContaining({ baseURL: "/rpc/testnet/primary" })
+    );
+    expect(axios.post).toHaveBeenNthCalledWith(
+      2,
+      "",
+      expect.objectContaining({ method: "getblockcount" }),
+      expect.objectContaining({ baseURL: "/rpc/testnet/primary" })
+    );
   });
 });
 

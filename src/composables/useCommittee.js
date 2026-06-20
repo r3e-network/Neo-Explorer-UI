@@ -1,6 +1,6 @@
 import { ref, getCurrentInstance, onBeforeUnmount, onMounted } from "vue";
 import { rpc } from "@/services/api";
-import { getCurrentEnv, NET_ENV, NETWORK_CHANGE_EVENT } from "@/utils/env";
+import { NET_ENV, NETWORK_CHANGE_EVENT, resolveNetworkName } from "@/utils/env";
 import { getCommittee as fetchDoraCommittee } from "@/services/doraService";
 import { getKnownAddressName } from "@/constants/knownAddresses";
 import { addressToScriptHash, publicKeyToAddress, scriptHashToAddress, isPublicKeyHex, isScriptHashHex } from "@/utils/neoHelpers";
@@ -16,6 +16,8 @@ let committeeNetworkListener = null;
 let committeeNetworkListenerConsumers = 0;
 let latestLoadCommittee = null;
 let committeeLoadPromise = null;
+let committeeLoadGeneration = 0;
+let activeCommitteeNetwork = null;
 
 const normalizeMetaKey = (value) =>
   String(value || "")
@@ -307,16 +309,19 @@ const processCommitteeMetadata = (data) => {
   return { metaMap, topConsensusValidators, loaded: Array.isArray(data) && data.length > 0 };
 };
 
-const loadCommitteeMetadata = async () => {
-  const env = getCurrentEnv().toLowerCase();
-  const isTestnet = env.includes(NET_ENV.TestT5.toLowerCase()) || env.includes("test");
+const networkToEnv = (network) => (resolveNetworkName(network) === "testnet" ? NET_ENV.TestT5 : NET_ENV.Mainnet);
+
+const loadCommitteeMetadata = async (requestNetwork, requestGeneration) => {
+  const network = resolveNetworkName(requestNetwork);
+  const isTestnet = network === "testnet";
 
   let indexerData = [];
   try {
-    indexerData = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    indexerData = await supabaseService.getValidatorMetadata(network);
   } catch (e) {
     if (import.meta.env.DEV) console.warn("Failed to load indexer committee metadata", e);
   }
+  if (requestGeneration !== committeeLoadGeneration || network !== activeCommitteeNetwork) return null;
 
   const indexerResult = processCommitteeMetadata(indexerData);
   if (indexerResult.loaded && indexerResult.topConsensusValidators.length > 0) {
@@ -330,11 +335,12 @@ const loadCommitteeMetadata = async () => {
   let doraData = [];
   if (!isTestnet) {
     try {
-      doraData = await fetchDoraCommittee(NET_ENV.Mainnet);
+      doraData = await fetchDoraCommittee(networkToEnv(network));
     } catch (e) {
       if (import.meta.env.DEV) console.warn("Failed to load Dora committee meta", e);
     }
   }
+  if (requestGeneration !== committeeLoadGeneration || network !== activeCommitteeNetwork) return null;
 
   const doraResult = processCommitteeMetadata(doraData);
 
@@ -363,18 +369,22 @@ const loadCommitteeMetadata = async () => {
 export function useCommittee() {
   function loadCommittee(force = false) {
     clearDeferredCommitteeLoad();
-    if (committeeLoadPromise && !force) return committeeLoadPromise;
-    if (initialized.value && !force) return Promise.resolve();
+    const requestNetwork = resolveNetworkName();
+    if (committeeLoadPromise && !force && activeCommitteeNetwork === requestNetwork) return committeeLoadPromise;
+    if (initialized.value && !force && activeCommitteeNetwork === requestNetwork) return Promise.resolve();
+    activeCommitteeNetwork = requestNetwork;
+    const requestGeneration = ++committeeLoadGeneration;
 
-    committeeLoadPromise = (async () => {
+    const run = (async () => {
       initialized.value = true;
       let validatorsLoaded = false;
       // Start metadata fetch immediately so validator labels/logos are not blocked by slow RPC timeouts.
-      const doraPromise = loadCommitteeMetadata();
+      const doraPromise = loadCommitteeMetadata(requestNetwork, requestGeneration);
 
       try {
         // primary index on blocks maps to the active consensus validators set.
-        const response = await rpc("getnextblockvalidators", []);
+        const response = await rpc("getnextblockvalidators", [], { network: requestNetwork });
+        if (requestGeneration !== committeeLoadGeneration || requestNetwork !== activeCommitteeNetwork) return;
         if (response && Array.isArray(response)) {
           validators.value = normalizeCommitteeList(response);
         } else if (response && response.result && Array.isArray(response.result)) {
@@ -393,7 +403,8 @@ export function useCommittee() {
           // GetCommittee which proxies through neo3fura_http and won't
           // exist post-Mongo cleanup. Standard works against any Neo
           // node.
-          const response = await rpc("getcommittee", []);
+          const response = await rpc("getcommittee", [], { network: requestNetwork });
+          if (requestGeneration !== committeeLoadGeneration || requestNetwork !== activeCommitteeNetwork) return;
           if (response && Array.isArray(response)) {
             validators.value = normalizeCommitteeList(response);
           } else if (response && response.result && Array.isArray(response.result)) {
@@ -407,6 +418,7 @@ export function useCommittee() {
       }
 
       const doraResult = await doraPromise;
+      if (requestGeneration !== committeeLoadGeneration || requestNetwork !== activeCommitteeNetwork) return;
       if (!validatorsLoaded && doraResult?.topConsensusValidators?.length === CONSENSUS_VALIDATOR_COUNT) {
         // Only use metadata-derived ordering as fallback when RPC validator set is unavailable.
         // block.primary index must map to the RPC validator ordering for correct validator/logo display.
@@ -419,9 +431,15 @@ export function useCommittee() {
         // Allow later calls to retry when RPC and metadata are temporarily unavailable.
         initialized.value = false;
       }
-    })().finally(() => {
-      committeeLoadPromise = null;
+    })();
+
+    let trackedPromise;
+    trackedPromise = run.finally(() => {
+      if (committeeLoadPromise === trackedPromise) {
+        committeeLoadPromise = null;
+      }
     });
+    committeeLoadPromise = trackedPromise;
 
     return committeeLoadPromise;
   }

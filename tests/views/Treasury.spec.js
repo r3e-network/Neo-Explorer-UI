@@ -48,6 +48,10 @@ vi.mock("@/utils/env", async (importOriginal) => {
     ...actual,
     getRpcClientUrl: () => "https://api.n3index.dev/mainnet",
     getCurrentEnv: () => "Mainnet",
+    resolveNetworkName: (env) => {
+      const value = String(env || "Mainnet").toLowerCase();
+      return value.includes("test") ? "testnet" : "mainnet";
+    },
   };
 });
 
@@ -143,7 +147,7 @@ describe("Treasury view", () => {
       "getnep17balances",
       ["NtestTreasuryAddress"],
       null,
-      { throwOnError: true },
+      { throwOnError: true, network: "mainnet" },
     );
     expect(wrapper.text()).toContain("12");
     expect(wrapper.text()).toContain("1.5");

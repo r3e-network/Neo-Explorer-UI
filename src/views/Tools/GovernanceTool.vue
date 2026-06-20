@@ -83,7 +83,7 @@ import GovernanceCreateModal from "@/views/Tools/components/GovernanceCreateModa
 import GovernanceAddWitnessModal from "@/views/Tools/components/GovernanceAddWitnessModal.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
-import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
+import { getRpcClientUrl, getCurrentEnv, resolveNetworkName } from "@/utils/env";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import {
@@ -195,7 +195,7 @@ async function loadRequests() {
 async function loadValidatorMetadata() {
   validatorError.value = null;
   try {
-    validatorMetadata.value = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    validatorMetadata.value = await supabaseService.getValidatorMetadata(resolveNetworkName());
   } catch (e) {
     if (import.meta.env.DEV) console.error("Failed to load validator metadata:", e);
     validatorError.value = "Failed to load validator metadata. Council member names may not be shown.";

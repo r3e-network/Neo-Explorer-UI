@@ -5,6 +5,7 @@ import { DEFAULT_PAGE_SIZE } from "@/constants";
 import { getCache } from "@/services/cache";
 import { fetchFreshQuery } from "@/query/freshness";
 import { isAbortError } from "@/utils/abortError";
+import { NETWORK_CHANGE_EVENT, resolveNetworkName } from "@/utils/env";
 
 const DEFAULT_PAGE_TIMEOUT_MS = 8000;
 
@@ -91,17 +92,19 @@ export function usePagination(
   /**
    * Load a specific page.
    * @param {number} page
-   * @param {{ silent?: boolean, forceRefresh?: boolean }} [fetchOptions]
+   * @param {{ silent?: boolean, forceRefresh?: boolean, network?: string }} [fetchOptions]
    */
-  async function loadPage(page, { silent = false, forceRefresh = false } = {}) {
+  async function loadPage(page, { silent = false, forceRefresh = false, network = null } = {}) {
     if (typeof page !== "number" || page < 1) page = 1;
     const myId = ++requestId;
+    const requestNetwork = resolveNetworkName(network);
+    const requestOptions = { forceRefresh, network: requestNetwork };
     const skip = (page - 1) * pageSize.value;
 
     // Cache-aware loading: suppress skeleton when cached data exists
     let shouldShowLoading = !silent;
     if (shouldShowLoading && cacheKeyFn) {
-      const key = cacheKeyFn(pageSize.value, skip);
+      const key = cacheKeyFn(pageSize.value, skip, { ...requestOptions, page });
       if (getCache(key) !== null) shouldShowLoading = false;
     }
 
@@ -115,14 +118,14 @@ export function usePagination(
       const res = await withPaginationTimeout(
         Promise.resolve().then(() => {
           if (!queryKeyFn) {
-            return fetchFn(pageSize.value, skip, { forceRefresh });
+            return fetchFn(pageSize.value, skip, requestOptions);
           }
-          const queryKey = queryKeyFn(pageSize.value, skip, { forceRefresh, page });
+          const queryKey = queryKeyFn(pageSize.value, skip, { ...requestOptions, page });
           return fetchFreshQuery({
             forceRefresh,
             queryKey,
             queryFn: ({ forceRefresh: queryForceRefresh }) =>
-              fetchFn(pageSize.value, skip, { forceRefresh: queryForceRefresh }),
+              fetchFn(pageSize.value, skip, { ...requestOptions, forceRefresh: queryForceRefresh }),
             source: querySource,
             staleTime: queryStaleTime,
           });
@@ -130,6 +133,7 @@ export function usePagination(
         timeoutMs,
       );
       if (myId !== requestId) return; // stale response
+      if (resolveNetworkName() !== requestNetwork) return; // response from a pre-switch network
       totalCount.value = res?.totalCount || 0;
       items.value = res?.result || [];
       // Clamp to the new last page if totalCount drifted down between
@@ -140,6 +144,7 @@ export function usePagination(
       currentPage.value = Math.min(page, lastPage);
     } catch (err) {
       if (myId !== requestId) return;
+      if (resolveNetworkName() !== requestNetwork) return;
       // Aborted requests (component unmount, route change, dependency
       // re-fetch via AbortController) aren't user-visible failures — they're
       // intentional cancellations. Surfacing them as "Failed to load" caused
@@ -176,6 +181,16 @@ export function usePagination(
     }
   }
 
+  function reloadForNetworkChange() {
+    requestId += 1;
+    pendingLoadingFetches = 0;
+    items.value = [];
+    totalCount.value = 0;
+    error.value = null;
+    loading.value = true;
+    void loadPage(currentPage.value, { forceRefresh: true });
+  }
+
   // Route sync: watch route param and trigger loadPage
   let stopRouteWatch = null;
   if (routeSync) {
@@ -193,7 +208,13 @@ export function usePagination(
   }
 
   if (getCurrentInstance()) {
+    if (typeof window !== "undefined") {
+      window.addEventListener(NETWORK_CHANGE_EVENT, reloadForNetworkChange);
+    }
     onBeforeUnmount(() => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(NETWORK_CHANGE_EVENT, reloadForNetworkChange);
+      }
       if (stopRouteWatch) stopRouteWatch();
     });
   }

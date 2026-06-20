@@ -11,7 +11,6 @@ const EXPLORER_HOME_UNAVAILABLE_RETRY_MS = Math.max(
   Number(import.meta.env.VITE_EXPLORER_HOME_UNAVAILABLE_RETRY_MS || 30_000),
 );
 const hotIndexerSelectionCache = new Map();
-let explorerHomeUnavailableUntil = 0;
 const normalizeBaseUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
 const CONFIGURED_INDEXER_READ_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_INDEXER_READ_BASE_URL || "");
 const CONFIGURED_INDEXER_READ_FALLBACK_BASE_URLS = String(
@@ -38,9 +37,11 @@ const DEFAULT_INDEXER_PROXY_BASE_PATHS = Object.freeze(
         testnet: ["/data/testnet"],
       },
 );
+const explorerHomeUnavailableUntilByNetwork = new Map();
 
-function resolveIndexerNetworkPath() {
-  return resolveNetworkName();
+function resolveIndexerNetworkPath(options = {}) {
+  const explicitNetwork = typeof options === "string" ? options : options?.network;
+  return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
 }
 
 function withCacheBusting(path, forceRefresh = false) {
@@ -257,9 +258,8 @@ export function getIndexerSseTransactionsUrl(network) {
 
 export const indexerReadService = {
   async getExplorerHome(limit = 6, options = {}) {
-    if (Date.now() < explorerHomeUnavailableUntil) return null;
-
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
+    if (Date.now() < (explorerHomeUnavailableUntilByNetwork.get(network) || 0)) return null;
     const params = new URLSearchParams({
       limit: String(limit),
     });
@@ -269,15 +269,15 @@ export const indexerReadService = {
     );
     const data = payload?.data || null;
     if (!data) {
-      explorerHomeUnavailableUntil = Date.now() + EXPLORER_HOME_UNAVAILABLE_RETRY_MS;
+      explorerHomeUnavailableUntilByNetwork.set(network, Date.now() + EXPLORER_HOME_UNAVAILABLE_RETRY_MS);
       return null;
     }
-    explorerHomeUnavailableUntil = 0;
+    explorerHomeUnavailableUntilByNetwork.delete(network);
     return data;
   },
 
   async getSummary(options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
 
     // Result cache (skipped when caller explicitly asked for fresh data).
     if (!options?.forceRefresh) {
@@ -310,7 +310,7 @@ export const indexerReadService = {
   },
 
   async getBlocks(limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
@@ -325,7 +325,7 @@ export const indexerReadService = {
   },
 
   async getTransactions(limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
@@ -343,7 +343,7 @@ export const indexerReadService = {
   // GetNotificationByContractHash RPC returns empty for many contracts;
   // the indexer's REST endpoint is authoritative.
   async getContractNotifications(contractHash, limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const safe = encodeURIComponent(String(contractHash || "").trim());
     if (!safe) return null;
     const params = new URLSearchParams({
@@ -357,7 +357,7 @@ export const indexerReadService = {
   },
 
   async getContractCalls(contractHash, limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const safe = encodeURIComponent(String(contractHash || "").trim());
     if (!safe) return null;
     const params = new URLSearchParams({
@@ -371,7 +371,7 @@ export const indexerReadService = {
   },
 
   async getTokenHolders(contractHash, limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const safe = encodeURIComponent(String(contractHash || "").trim());
     if (!safe) return null;
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
@@ -382,7 +382,7 @@ export const indexerReadService = {
   },
 
   async getCandidateVoters(publicKey, limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const pk = String(publicKey || "").trim();
     if (!pk) return null;
     const params = new URLSearchParams({ candidate: pk, limit: String(limit), offset: String(offset) });
@@ -397,7 +397,7 @@ export const indexerReadService = {
   // reliable source. Returns the raw `{ data, paging }` payload so the
   // caller can derive totalCount from `paging.total`.
   async getAccountTransactions(address, limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const safe = encodeURIComponent(String(address || "").trim());
     if (!safe) return null;
     const params = new URLSearchParams({
@@ -415,7 +415,7 @@ export const indexerReadService = {
   // page header + ScCallTable's overviewPromise), so concurrent calls
   // get coalesced into one fetch.
   async getContractOverview(hash, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const safe = encodeURIComponent(String(hash || "").trim());
     if (!safe) return null;
 
@@ -445,7 +445,7 @@ export const indexerReadService = {
   },
 
   async getContracts(limit = 20, offset = 0, { search = "", ...options } = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
@@ -460,7 +460,7 @@ export const indexerReadService = {
   },
 
   async getTokens(standard, limit = 20, offset = 0, { search = "", ...options } = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
@@ -478,7 +478,7 @@ export const indexerReadService = {
   },
 
   async search(query, { type = "", limit = 10, ...options } = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const trimmed = String(query || "").trim();
     if (!trimmed) return null;
 
@@ -498,10 +498,13 @@ export const indexerReadService = {
   },
 
   async getToken(contractHash, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     if (!contractHash) return null;
 
-    const { standard = "", ...fetchOptions } = options || {};
+    const { standard = "" } = options || {};
+    const fetchOptions = { ...(options || {}) };
+    delete fetchOptions.standard;
+    delete fetchOptions.network;
     const isNep11 = String(standard || "")
       .trim()
       .toUpperCase() === "NEP11";
@@ -533,7 +536,7 @@ export const indexerReadService = {
   },
 
   async getDailyAnalytics(days = 30, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       days: String(days),
     });
@@ -548,7 +551,7 @@ export const indexerReadService = {
   // sparse (Neo N3 produces empty blocks every ~15s during low traffic) and
   // you need a populated fee distribution.
   async getRecentTransactions(limit = 20, offset = 0, options = {}) {
-    const network = resolveIndexerNetworkPath();
+    const network = resolveIndexerNetworkPath(options);
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),

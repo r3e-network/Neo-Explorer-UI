@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { truncateHash as truncateHashValue } from "@/utils/explorerFormat";
 import CopyButton from "./CopyButton.vue";
 import nnsService from "@/services/nnsService";
@@ -92,6 +92,7 @@ import { GAS_HASH, NATIVE_CONTRACTS, NEO_HASH } from "@/constants/index";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 import { optimizeLogoUrl, resolveCandidateLogoUrl } from "@/utils/logoOptimization";
+import { NETWORK_CHANGE_EVENT, resolveNetworkName } from "@/utils/env";
 
 const props = defineProps({
   hash: { type: String, default: "" },
@@ -117,6 +118,7 @@ const candidateMetadata = ref(null);
 const addressContractMetadata = ref(null);
 const fetchedContractName = ref("");
 const fetchedContractLogo = ref("");
+const activeNetwork = ref(resolveNetworkName());
 const DOMAIN_LOGO_URL = "https://neo.link/_next/static/media/nnslogo.1314e9b5.svg";
 
 const normalizeExpirationMs = (raw) => {
@@ -189,14 +191,14 @@ const addressScriptHash = computed(() => {
   );
 });
 
-const findCandidateMetadata = async (lookupHash) => {
+const findCandidateMetadata = async (lookupHash, network = null) => {
   const normalizedAddress = String(lookupHash || "").trim();
   if (!normalizedAddress) return null;
 
   const targetScriptHash = normalizeHash160(addressToScriptHash(normalizedAddress) || normalizedAddress);
 
   try {
-    const validators = await supabaseService.getValidatorMetadata();
+    const validators = await supabaseService.getValidatorMetadata(network);
     if (!Array.isArray(validators) || validators.length === 0) return null;
 
     return (
@@ -401,11 +403,28 @@ const copyText = computed(() => {
 
 let activeLookupId = 0;
 
+function handleNetworkChange() {
+  activeNetwork.value = resolveNetworkName();
+}
+
+onMounted(() => {
+  if (typeof window !== "undefined") {
+    window.addEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener(NETWORK_CHANGE_EVENT, handleNetworkChange);
+  }
+});
+
 watch(
-  () => [props.hash, props.type, props.resolveNns],
-  async ([newHash, type, resolveNns]) => {
+  () => [props.hash, props.type, props.resolveNns, activeNetwork.value],
+  async ([newHash, type, resolveNns, network]) => {
+    const lookupNetwork = resolveNetworkName(network);
     const lookupId = (activeLookupId += 1);
-    const isStale = () => lookupId !== activeLookupId;
+    const isStale = () => lookupId !== activeLookupId || resolveNetworkName() !== lookupNetwork;
 
     nnsName.value = "";
     addressMetadata.value = null;
@@ -418,7 +437,7 @@ watch(
 
     if (type === "address" && lookupHash) {
       try {
-        const metadata = await supabaseService.getAddressTag(lookupHash);
+        const metadata = await supabaseService.getAddressTag(lookupHash, lookupNetwork);
         if (isStale()) return;
         if (metadata) {
           addressMetadata.value = metadata;
@@ -429,12 +448,12 @@ watch(
 
       if (addressScriptHash.value) {
         try {
-          let contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value);
+          let contractMetadata = await supabaseService.getContractMetadata(addressScriptHash.value, lookupNetwork);
           if (isStale()) return;
           if (!contractMetadata) {
             const reversedHash = reverseHash160(addressScriptHash.value);
             if (reversedHash && reversedHash !== addressScriptHash.value) {
-              contractMetadata = await supabaseService.getContractMetadata(reversedHash);
+              contractMetadata = await supabaseService.getContractMetadata(reversedHash, lookupNetwork);
               if (isStale()) return;
             }
           }
@@ -453,7 +472,7 @@ watch(
 
       if (!hasKnownAddressLogo && !hasAddressMetadataLogo) {
         try {
-          const candidate = await findCandidateMetadata(lookupHash);
+          const candidate = await findCandidateMetadata(lookupHash, lookupNetwork);
           if (isStale()) return;
           candidateMetadata.value = candidate;
         } catch (_err) {
@@ -481,7 +500,7 @@ watch(
     if ((type === "contract" || type === "token") && newHash && !knownName.value) {
       const hash = newHash.startsWith("0x") ? newHash.toLowerCase() : `0x${newHash.toLowerCase()}`;
       try {
-        const metadata = await supabaseService.getAddressTag(hash);
+        const metadata = await supabaseService.getAddressTag(hash, lookupNetwork);
         if (isStale()) return;
         if (metadata) {
           const activeDomain = getActiveDomainFromAddressMetadata(metadata);
@@ -502,7 +521,7 @@ watch(
       }
 
       try {
-        const cachedMeta = await supabaseService.getContractMetadata(hash);
+        const cachedMeta = await supabaseService.getContractMetadata(hash, lookupNetwork);
         if (isStale()) return;
         if (cachedMeta?.name || cachedMeta?.display_name) {
           fetchedContractName.value = cachedMeta.display_name || cachedMeta.name;
@@ -517,7 +536,7 @@ watch(
         const cleanHash = hash.replace(/^0x/i, "");
         const reversed = "0x" + (cleanHash.match(/.{2}/g) || []).reverse().join("");
         if (reversed !== hash) {
-          const reversedMeta = await supabaseService.getContractMetadata(reversed);
+          const reversedMeta = await supabaseService.getContractMetadata(reversed, lookupNetwork);
           if (isStale()) return;
           if (reversedMeta?.name || reversedMeta?.display_name) {
             fetchedContractName.value = reversedMeta.display_name || reversedMeta.name;
@@ -530,10 +549,10 @@ watch(
           }
         }
 
-        let contract = await contractService.getByHashWithFallback(hash);
+        let contract = await contractService.getByHashWithFallback(hash, { network: lookupNetwork });
         if (isStale()) return;
         if (!contract || !contract.name) {
-          contract = await contractService.getByHashWithFallback(reversed);
+          contract = await contractService.getByHashWithFallback(reversed, { network: lookupNetwork });
           if (isStale()) return;
         }
         if (contract && contract.name) {

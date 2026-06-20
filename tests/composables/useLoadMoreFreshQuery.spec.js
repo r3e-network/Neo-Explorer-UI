@@ -44,7 +44,10 @@ describe("useLoadMore fresh query integration", () => {
         staleTime: 9_000,
       }),
     );
-    expect(fetchPage).toHaveBeenCalledWith(10, 10, { forceRefresh: true });
+    expect(fetchPage).toHaveBeenCalledWith(10, 10, {
+      forceRefresh: true,
+      network: "mainnet",
+    });
     expect(pagination.items.value).toEqual([{ hash: "existing" }, { hash: "fresh-next" }]);
   });
 });

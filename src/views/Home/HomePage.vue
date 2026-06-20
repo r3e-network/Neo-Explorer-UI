@@ -74,10 +74,11 @@ import { useRealtimeTransactions } from "@/composables/useRealtimeTransactions";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { useCommittee } from "@/composables/useCommittee";
 import { isAbortError } from "@/utils/abortError";
+import { resolveNetworkName } from "@/utils/env";
 
 const router = useRouter();
 const { fetchPrices } = usePriceCache();
-const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
+const { transferSummaryByHash, enrichTransactions, clearTransferSummaries } = useTransferSummary();
 const { loadCommittee } = useCommittee();
 
 // State
@@ -100,6 +101,7 @@ const priceUnavailable = ref(false);
 const tps = ref(0);
 let isRefreshing = false;
 let lastFetchLatestTime = 0;
+let loadGeneration = 0;
 // Generation counter for fire-and-forget summary updates. The summary
 // promise is intentionally NOT awaited inside loadLatestData (so blocks +
 // transactions can render before the summary count lands), but that
@@ -111,6 +113,37 @@ const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
 const HOMEPAGE_AGGREGATE_WAIT_MS = 2_200;
 const HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS = 1500;
 const blockDetailsByHash = new Map();
+
+function createLoadContext() {
+  const network = resolveNetworkName();
+  const generation = ++loadGeneration;
+  return { generation, network };
+}
+
+function isCurrentLoadContext(context) {
+  return (
+    context &&
+    context.generation === loadGeneration &&
+    resolveNetworkName() === context.network
+  );
+}
+
+function clearNetworkScopedHomeState() {
+  loadGeneration += 1;
+  summaryGeneration += 1;
+  blockDetailsByHash.clear();
+  clearTransferSummaries?.();
+  latestBlocks.value = [];
+  latestTxs.value = [];
+  validatedStateRoot.value = null;
+  blockCount.value = 0;
+  txCount.value = 0;
+  tps.value = 0;
+  blocksError.value = false;
+  txsError.value = false;
+  blocksLoading.value = true;
+  txsLoading.value = true;
+}
 
 function isFreshHomepageSummary(summary) {
   if (!summary || typeof summary !== "object") return false;
@@ -147,9 +180,11 @@ function applyValidatedStateRoot(root) {
   validatedStateRoot.value = root;
 }
 
-async function loadValidatedStateRoot(forceRefresh = false) {
+async function loadValidatedStateRoot(forceRefresh = false, context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
   try {
-    const root = await blockService.getValidatedStateRoot({ forceRefresh });
+    const root = await blockService.getValidatedStateRoot({ forceRefresh, network: requestContext.network });
+    if (!isCurrentLoadContext(requestContext)) return;
     applyValidatedStateRoot(root);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load validated state root:", err);
@@ -361,14 +396,15 @@ async function loadData() {
 async function loadLatestData(forceRefresh = false) {
   if (isRefreshing) return;
   isRefreshing = true;
+  const context = createLoadContext();
   try {
     blocksError.value = false;
     txsError.value = false;
     blocksLoading.value = true;
     txsLoading.value = true;
 
-    const requestOptions = { forceRefresh };
-    void loadValidatedStateRoot(forceRefresh);
+    const requestOptions = { forceRefresh, network: context.network };
+    void loadValidatedStateRoot(forceRefresh, context);
     // First paint can use the hot Worker cache, but realtime/SSE refreshes
     // must bypass it. Otherwise the home cards can sit on a 15-30s old
     // aggregate payload while the chain is producing a block every ~3s.
@@ -380,9 +416,9 @@ async function loadLatestData(forceRefresh = false) {
     // below falls back to the older per-resource APIs.
     const homePayloadPromise = fetchFreshQuery({
       forceRefresh: aggregateRequestOptions.forceRefresh,
-      queryKey: createExplorerQueryKey("home.aggregate", { limit: 6 }),
+      queryKey: createExplorerQueryKey("home.aggregate", { limit: 6, network: context.network }),
       queryFn: ({ forceRefresh: queryForceRefresh }) =>
-        indexerReadService.getExplorerHome(6, { forceRefresh: queryForceRefresh }),
+        indexerReadService.getExplorerHome(6, { forceRefresh: queryForceRefresh, network: context.network }),
       source: "home.aggregate",
       staleTime: HOMEPAGE_REFRESH_INTERVAL_MS,
     }).catch(() => null);
@@ -390,9 +426,9 @@ async function loadLatestData(forceRefresh = false) {
     const fetchSummary = () =>
       fetchFreshQuery({
         forceRefresh: requestOptions.forceRefresh,
-        queryKey: createExplorerQueryKey("network.summary", {}),
+        queryKey: createExplorerQueryKey("network.summary", { network: context.network }),
         queryFn: ({ forceRefresh: queryForceRefresh }) =>
-          indexerReadService.getSummary({ forceRefresh: queryForceRefresh }),
+          indexerReadService.getSummary({ forceRefresh: queryForceRefresh, network: context.network }),
         source: "network.summary",
         staleTime: HOMEPAGE_REFRESH_INTERVAL_MS,
       });
@@ -475,6 +511,7 @@ async function loadLatestData(forceRefresh = false) {
 
     const blocksPromise = fetchLatestBlocks()
       .then(async (blocksRes) => {
+        if (!isCurrentLoadContext(context)) return;
         if (!blocksRes) return;
         const nextBlocks = (blocksRes?.result || []).map((rawBlock) => {
           const block = normalizeBlockSummary(rawBlock);
@@ -482,6 +519,7 @@ async function loadLatestData(forceRefresh = false) {
           return cachedDetails ? { ...block, ...cachedDetails } : block;
         });
         await validatorIdentityPromise;
+        if (!isCurrentLoadContext(context)) return;
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
           latestBlocks.value = nextBlocks;
         }
@@ -492,17 +530,20 @@ async function loadLatestData(forceRefresh = false) {
         }
 
         updateTps();
-        void hydrateLatestBlocks(nextBlocks, requestOptions);
+        void hydrateLatestBlocks(nextBlocks, requestOptions, context);
       })
       .catch((err) => {
         if (isAbortError(err)) return;
+        if (!isCurrentLoadContext(context)) return;
         blocksError.value = true;
       })
       .finally(() => {
+        if (!isCurrentLoadContext(context)) return;
         blocksLoading.value = false;
       });
 
     void summaryPromise.then((summary) => {
+      if (!isCurrentLoadContext(context)) return;
       if (mySummaryGen !== summaryGeneration) return;
       if (!summary || !isFreshHomepageSummary(summary)) return;
       blockCount.value = resolveLiveBlockHeight(Number(summary.total_block_count || 0));
@@ -515,8 +556,10 @@ async function loadLatestData(forceRefresh = false) {
       let confirmedRows = [];
       try {
         const txsRes = await fetchLatestTransactions();
+        if (!isCurrentLoadContext(context)) return;
         confirmedRows = Array.isArray(txsRes?.result) ? txsRes.result : [];
       } catch (err) {
+        if (!isCurrentLoadContext(context)) return;
         if (previousRows.length) {
           if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
             latestTxs.value = previousRows;
@@ -527,6 +570,7 @@ async function loadLatestData(forceRefresh = false) {
       }
 
       // Keep list continuity during transient sparse RPC responses.
+      if (!isCurrentLoadContext(context)) return;
       const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, 6);
       if (!initialRows.length && previousRows.length) {
         if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
@@ -549,10 +593,12 @@ async function loadLatestData(forceRefresh = false) {
     })()
       .catch((err) => {
         if (isAbortError(err)) return;
+        if (!isCurrentLoadContext(context)) return;
         if (import.meta.env.DEV) console.warn("txs load err:", err);
         txsError.value = true;
       })
       .finally(() => {
+        if (!isCurrentLoadContext(context)) return;
         txsLoading.value = false;
       });
 
@@ -560,7 +606,11 @@ async function loadLatestData(forceRefresh = false) {
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load latest blocks/transactions:", err);
   } finally {
-    isRefreshing = false;
+    if (isCurrentLoadContext(context)) {
+      isRefreshing = false;
+    } else if (resolveNetworkName() === context.network) {
+      isRefreshing = false;
+    }
   }
 }
 
@@ -590,9 +640,11 @@ function updateTps() {
   if (live > 0) tps.value = live;
 }
 
-async function loadAvgTps() {
+async function loadAvgTps(context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
   try {
-    const rows = await statsService.getDailyAnalytics(2);
+    const rows = await statsService.getDailyAnalytics(2, { network: requestContext.network });
+    if (!isCurrentLoadContext(requestContext)) return;
     // Prefer the most recent fully-elapsed UTC day; fall back to today if
     // it's the only row that exists (very early in the day) or has data.
     const recent = rows.length ? rows[rows.length - 2] || rows[rows.length - 1] : null;
@@ -603,7 +655,8 @@ async function loadAvgTps() {
   }
 }
 
-async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
+async function hydrateLatestBlocks(blocks = [], requestOptions = {}, context = null) {
+  if (context && !isCurrentLoadContext(context)) return;
   const missing = blocks.filter((block) => {
     if (!block?.hash || blockDetailsByHash.has(block.hash)) return false;
     const missingConsensus = !block.nextconsensus && !block.nextConsensus && !block.speaker && !block.validator;
@@ -674,6 +727,8 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}) {
     }),
   );
 
+  if (context && !isCurrentLoadContext(context)) return;
+
   const validEntries = hydratedEntries.filter((entry) => entry && entry.hash);
   if (!validEntries.length) return;
 
@@ -729,7 +784,9 @@ const { start: startAutoRefresh } = useRealtimeHead(() => {
   // (3s indexer budget vs occasional cold-cache latency) self-recovers without
   // a page reload, and the value tracks the day's running tx_count.
   avgTpsTickCounter += 1;
-  if (avgTpsTickCounter % 20 === 0 || tps.value === 0) void loadAvgTps();
+  if (avgTpsTickCounter % 20 === 0 || tps.value === 0) {
+    void loadAvgTps({ generation: loadGeneration, network: resolveNetworkName() });
+  }
 }, { intervalMs: HOMEPAGE_REFRESH_INTERVAL_MS });
 
 // Realtime transaction stream: prepend each confirmed block's transactions to
@@ -737,6 +794,7 @@ const { start: startAutoRefresh } = useRealtimeHead(() => {
 // full list is still reconciled by loadLatestData on each head, so this is a
 // responsiveness enhancement, not the source of truth.
 const { start: startRealtimeTransactions } = useRealtimeTransactions((payload) => {
+  if (payload?.network && String(payload.network).toLowerCase() !== resolveNetworkName()) return;
   if (!payload || !Array.isArray(payload.transactions)) return;
   const newRows = payload.transactions.map(normalizeHomepageTransaction).filter(Boolean);
   if (!newRows.length) return;
@@ -755,6 +813,8 @@ const { start: startRealtimeTransactions } = useRealtimeTransactions((payload) =
 }, { immediate: true });
 
 function handleNetworkChange() {
+  clearNetworkScopedHomeState();
+  isRefreshing = false;
   void loadCommittee(true);
   void loadLatestData(true);
   startAutoRefresh();

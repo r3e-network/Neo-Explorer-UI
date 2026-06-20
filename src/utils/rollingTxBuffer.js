@@ -55,14 +55,15 @@ export function createRollingTxBuffer({
      *   - Subsequent calls: a single incrementalSize page; entries newer
      *     than lastSeenTxid are prepended; the buffer is trimmed back
      *     to `target`.
-     *   - `forceRefresh` is forwarded to fetchPage as a cache-bypass
-     *     hint; it does NOT trigger a buffer rebuild.
+     *   - `forceRefresh` and any extra options are forwarded to fetchPage
+     *     as cache/routing hints; they do NOT trigger a buffer rebuild.
      */
-    async refresh(forceRefresh = false) {
+    async refresh(forceRefresh = false, options = {}) {
+      const requestOptions = { forceRefresh, ...(options || {}) };
       if (entries.length === 0) {
         const pages = await Promise.all(
           Array.from({ length: initialPages }, (_, i) =>
-            fetchPage(pageSize, i * pageSize, { forceRefresh }).catch(() => []),
+            fetchPage(pageSize, i * pageSize, requestOptions).catch(() => []),
           ),
         );
         entries = pages.flat().filter((tx) => tx?.txid).slice(0, target);
@@ -70,7 +71,7 @@ export function createRollingTxBuffer({
         return entries;
       }
 
-      const latest = await fetchPage(incrementalSize, 0, { forceRefresh }).catch(() => []);
+      const latest = await fetchPage(incrementalSize, 0, requestOptions).catch(() => []);
       const newRows = [];
       for (const tx of latest) {
         if (!tx?.txid) continue;

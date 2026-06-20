@@ -150,6 +150,7 @@ import { getTokenIcon } from "@/utils/getTokenIcon";
 import { getNativeTokenBadge } from "@/utils/nativeTokenBadge";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { resolveNetworkName } from "@/utils/env";
 
 const { t } = useI18n();
 
@@ -184,7 +185,9 @@ watch(
       supabaseMeta.value = {};
       return;
     }
-    const meta = await supabaseService.getContractMetadataBatch(hashes);
+    const requestNetwork = resolveNetworkName();
+    const meta = await supabaseService.getContractMetadataBatch(hashes, requestNetwork);
+    if (resolveNetworkName() !== requestNetwork) return;
     supabaseMeta.value = meta;
   },
   { immediate: true },

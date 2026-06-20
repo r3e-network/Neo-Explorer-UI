@@ -41,7 +41,7 @@ export const transactionService = createService(
       try {
         const cacheOpts = { ...options, throwOnError: true };
         const nativeTx = await cachedRequest(
-          getCacheKey("tx_hash_native", { hash }),
+          getCacheKey("tx_hash_native", { hash }, cacheOpts.network),
           () => safeRpc("getrawtransaction", [hash, 1], null, cacheOpts),
           CACHE_TTL.txDetail,
           options,
@@ -52,7 +52,7 @@ export const transactionService = createService(
           if (nativeTx.blockhash) {
             try {
               const blockHeader = await cachedRequest(
-                getCacheKey("tx_hash_block_header", { blockhash: nativeTx.blockhash }),
+                getCacheKey("tx_hash_block_header", { blockhash: nativeTx.blockhash }, cacheOpts.network),
                 () => safeRpc("getblockheader", [nativeTx.blockhash, 1], null, cacheOpts),
                 CACHE_TTL.block,
                 options,
@@ -81,7 +81,7 @@ export const transactionService = createService(
         // Final fallback: mempool — the tx may not be on chain yet.
         const { resolveNetworkName } = await import("@/utils/env");
         const { supabaseService } = await import("./supabaseService");
-        const network = resolveNetworkName();
+        const network = resolveNetworkName(options.network);
 
         const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
         const found = dbTxs.find((t) => t.hash === hash);
@@ -217,7 +217,7 @@ export const transactionService = createService(
 
     async getCount(options = {}) {
       const cacheOpts = getRealtimeListCacheOptions(options);
-      const key = getCacheKey("tx_count", {});
+      const key = getCacheKey("tx_count", {}, cacheOpts.network);
       return cachedRequest(
         key,
         async () => {
@@ -239,7 +239,7 @@ export const transactionService = createService(
       const { enrichMissingFields = false, ...requestOptions } = options;
       const cacheOpts = getRealtimeListCacheOptions(requestOptions);
 
-      const key = getCacheKey("tx_list", { limit, skip });
+      const key = getCacheKey("tx_list", { limit, skip }, cacheOpts.network);
       const res = await cachedRequest(
         key,
         async () => {

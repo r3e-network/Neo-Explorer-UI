@@ -305,6 +305,7 @@ import { useLoadMore } from "@/composables/useLoadMore";
 import { formatAge, formatBytes, formatUnixTime, formatNumber, truncateHash } from "@/utils/explorerFormat";
 import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { useCommittee, isFallbackValidatorName } from "@/composables/useCommittee";
+import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -398,8 +399,10 @@ const {
   loadPage,
 } = usePagination(blockFetchFn, {
   routeSync: { basePath: "/blocks" },
-  cacheKeyFn: (limit, skip) => getCacheKey("block_list", { limit, skip }),
-  queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip }),
+  cacheKeyFn: (limit, skip, context = {}) =>
+    getCacheKey("block_list", { limit, skip }, context.network),
+  queryKeyFn: (limit, skip, context = {}) =>
+    createExplorerQueryKey("blocks.list", { limit, skip, network: context.network }),
   querySource: "blocks.list",
   errorMessage: t("errors.loadBlocks"),
 });
@@ -411,7 +414,8 @@ const { loadingMore, loadMore } = useLoadMore(blockFetchFn, {
   totalPages,
   totalCount,
 }, {
-  queryKeyFn: (limit, skip) => createExplorerQueryKey("blocks.list", { limit, skip }),
+  queryKeyFn: (limit, skip, context = {}) =>
+    createExplorerQueryKey("blocks.list", { limit, skip, network: context.network }),
   querySource: "blocks.list",
 });
 
@@ -427,20 +431,26 @@ const rangeEnd = computed(() => {
 
 // --- Stats ---
 async function loadStats(forceRefresh = false) {
+  const requestNetwork = resolveNetworkName();
   statsLoading.value = true;
   try {
     const stats = await fetchFreshQuery({
       forceRefresh,
-      queryKey: createExplorerQueryKey("blocks.stats", {}),
-      queryFn: ({ forceRefresh: queryForceRefresh }) => statsService.getDashboardStats(queryForceRefresh),
+      queryKey: createExplorerQueryKey("blocks.stats", { network: requestNetwork }),
+      queryFn: ({ forceRefresh: queryForceRefresh }) =>
+        statsService.getDashboardStats({ forceRefresh: queryForceRefresh, network: requestNetwork }),
       source: "blocks.stats",
     });
+    if (resolveNetworkName() !== requestNetwork) return;
     totalBlocks.value = stats?.blocks || 0;
     latestHeight.value = totalBlocks.value > 0 ? totalBlocks.value - 1 : 0;
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load block stats:", err);
   } finally {
-    statsLoading.value = false;
+    if (resolveNetworkName() === requestNetwork) {
+      statsLoading.value = false;
+    }
   }
 }
 
@@ -455,13 +465,18 @@ const exportProgress = ref(0);
 
 async function exportData() {
   if (!blocks.value || blocks.value.length === 0) return;
+  const network = resolveNetworkName();
   // Full paginated export (up to 5000 rows) rather than just the visible page.
   exporting.value = true;
   exportProgress.value = 0;
   try {
     await exportAllPagesToCsv({
       fetchPage: (limit, offset) =>
-        blockService.getList(limit, offset, { __suppressDevErrorLog: true, enrichMissingFields: true }),
+        blockService.getList(limit, offset, {
+          __suppressDevErrorLog: true,
+          enrichMissingFields: true,
+          network,
+        }),
       exporter: (rows, filename) => exportBlocksToCSV(rows, filename),
       filename: `blocks_${Date.now()}`,
       pageSize: 100,

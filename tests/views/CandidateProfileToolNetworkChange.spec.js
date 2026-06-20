@@ -36,6 +36,10 @@ vi.mock("@/services/cache", () => ({
 
 vi.mock("@/utils/env", () => ({
   getCurrentEnv: getCurrentEnvMock,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || getCurrentEnvMock() || "mainnet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { Mainnet: "Mainnet", TestT5: "TestNet" },
 }));

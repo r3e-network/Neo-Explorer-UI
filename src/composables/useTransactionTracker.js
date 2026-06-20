@@ -1,14 +1,14 @@
 import { ref, onUnmounted } from "vue";
 import { rpc } from "@/services/api";
 import { extractVmStateFromAppLog } from "@/utils/txVmState";
-import { getNetworkRefreshIntervalMs } from "@/utils/env";
+import { getNetworkRefreshIntervalMs, resolveNetworkName } from "@/utils/env";
 
 const MAX_POLL_ATTEMPTS = 8;
 
-async function fetchApplicationLog(txid) {
+async function fetchApplicationLog(txid, network) {
   // Standard `getapplicationlog` is the canonical chain source — works
   // against any Neo node and outlives Mongo cleanup.
-  return rpc("getapplicationlog", [txid]);
+  return rpc("getapplicationlog", [txid], { network });
 }
 
 function getTxStatusFromApplicationLog(result) {
@@ -24,15 +24,16 @@ export function useTransactionTracker() {
   const txStatuses = ref({});
   const _timers = {};
 
-  function track(txid) {
+  function track(txid, options = {}) {
     if (!txid || txStatuses.value[txid]) return;
+    const network = resolveNetworkName(options.network);
     txStatuses.value[txid] = "pending";
     let attempts = 0;
 
     const poll = async () => {
       attempts++;
       try {
-        const result = await fetchApplicationLog(txid);
+        const result = await fetchApplicationLog(txid, network);
         const status = getTxStatusFromApplicationLog(result);
         if (status) {
           txStatuses.value = {
@@ -53,7 +54,7 @@ export function useTransactionTracker() {
       }
     };
 
-    _timers[txid] = setInterval(poll, getNetworkRefreshIntervalMs());
+    _timers[txid] = setInterval(poll, getNetworkRefreshIntervalMs(network));
     poll();
   }
 

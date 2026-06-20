@@ -130,7 +130,7 @@ import GovernanceAddWitnessModal from "./components/GovernanceAddWitnessModal.vu
 import GovernanceCreateModal from "./components/GovernanceCreateModal.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
-import { getCurrentEnv, getRpcClientUrl } from "@/utils/env";
+import { getCurrentEnv, getRpcClientUrl, resolveNetworkName } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { buildCouncilIdentityMap, resolveCouncilIdentity } from "@/utils/councilIdentity";
@@ -649,7 +649,7 @@ async function loadProposal() {
 
 async function loadValidatorMetadata() {
   try {
-    validatorMetadata.value = await supabaseService.getValidatorMetadata(getCurrentEnv());
+    validatorMetadata.value = await supabaseService.getValidatorMetadata(resolveNetworkName());
   } catch {
     validatorMetadata.value = [];
   }

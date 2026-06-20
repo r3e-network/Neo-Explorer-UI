@@ -27,7 +27,10 @@ describe("useLoadMore", () => {
       const { loadMore } = useLoadMore(fetchFn, pagination);
 
       await loadMore();
-      expect(fetchFn).toHaveBeenCalledWith(10, 20, { forceRefresh: true });
+      expect(fetchFn).toHaveBeenCalledWith(10, 20, {
+        forceRefresh: true,
+        network: "mainnet",
+      });
     });
 
     it("appends items to existing array", async () => {

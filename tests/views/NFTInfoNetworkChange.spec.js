@@ -65,7 +65,7 @@ describe("NFTInfo network changes", () => {
     await flushPromises();
 
     expect(getNep11Properties).toHaveBeenCalledTimes(2);
-    expect(getNep11Properties).toHaveBeenNthCalledWith(2, "0xcontract", ["token-1"]);
+    expect(getNep11Properties).toHaveBeenNthCalledWith(2, "0xcontract", ["token-1"], { network: "mainnet" });
     wrapper.unmount();
   });
 });

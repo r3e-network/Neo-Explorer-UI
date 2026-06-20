@@ -14,7 +14,10 @@ import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
  * @description 通过 neo3fura 后端获取账户数据
  */
 
-const resolveAccountNetwork = () => resolveNetworkName();
+const resolveAccountNetwork = (options = {}) => {
+  const explicitNetwork = typeof options === "string" ? options : options?.network;
+  return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
+};
 
 const buildAccountRestBasePath = (network) => `/rest/${network}`;
 const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOUNT_LIST_TIMEOUT_MS || 6000));
@@ -24,8 +27,13 @@ const ACCOUNT_LIST_TIMEOUT_MS = Math.max(3000, Number(import.meta.env.VITE_ACCOU
 const ACCOUNT_BALANCE_TIMEOUT_MS = Math.max(500, Number(import.meta.env.VITE_ACCOUNT_BALANCE_TIMEOUT_MS || 900));
 export const ACCOUNT_LIST_CACHE_METHOD = "account_list_indexer_v2";
 
-export function getAccountListCacheKey(limit, skip, { includeBalances = true } = {}) {
-  return getCacheKey(ACCOUNT_LIST_CACHE_METHOD, { includeBalances, limit, skip, env: resolveAccountNetwork() });
+export function getAccountListCacheKey(limit, skip, { includeBalances = true, network } = {}) {
+  const resolvedNetwork = resolveAccountNetwork(network);
+  return getCacheKey(
+    ACCOUNT_LIST_CACHE_METHOD,
+    { includeBalances, limit, skip, env: resolvedNetwork },
+    resolvedNetwork,
+  );
 }
 
 async function fetchJsonWithFallback(urls, { timeoutMs = ACCOUNT_LIST_TIMEOUT_MS } = {}) {
@@ -243,7 +251,7 @@ export const accountService = createService(
   {},
   {
     async getCount(options = {}) {
-      const key = getCacheKey("account_count_fallback", {});
+      const key = getCacheKey("account_count_fallback", {}, options.network);
       return cachedRequest(
         key,
         async () => {
@@ -263,12 +271,12 @@ export const accountService = createService(
 
     async getList(limit = 20, skip = 0, options = {}) {
       const { includeBalances = true, ...cacheOptions } = options;
-      const key = getAccountListCacheKey(limit, skip, { includeBalances });
+      const key = getAccountListCacheKey(limit, skip, { includeBalances, network: cacheOptions.network });
       return cachedRequest(
         key,
         async () => {
           // Read-api (Postgres) is the authoritative account list.
-          const network = resolveAccountNetwork();
+          const network = resolveAccountNetwork(cacheOptions);
           const [rows, summary] = await Promise.all([
             fetchAccountOverviewRows(network, limit, skip).catch(() => null),
             indexerReadService.getSummary(cacheOptions).catch(() => null),
@@ -312,7 +320,7 @@ export const accountService = createService(
     },
 
     async hydrateListBalances(accounts = [], options = {}) {
-      const network = resolveAccountNetwork();
+      const network = resolveAccountNetwork(options);
       const timeoutMs = Math.max(500, Number(options.timeoutMs || 5000));
       const balanceRows = await fetchAccountBalances(network, accounts, { timeoutMs });
       if (balanceRows === null) {

@@ -102,6 +102,7 @@ import { executionService } from "@/services/executionService";
 import { isAbortError } from "@/utils/abortError";
 import { formatNumber, formatAge } from "@/utils/explorerFormat";
 import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -260,10 +261,12 @@ async function resolveBlockParam(param, options = {}) {
   return { hash: normalizedParam, block: null };
 }
 
-async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
+async function loadBlock(param, { silent = false, forceRefresh = false, network = null } = {}) {
   if (!param) return;
 
   const requestId = ++blockRequestId;
+  const requestNetwork = resolveNetworkName(network);
+  const requestOptions = { forceRefresh, network: requestNetwork };
 
   if (!silent) {
     abortController.value?.abort();
@@ -282,8 +285,8 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
   }
 
   try {
-    const resolvedBlock = await resolveBlockParam(param, { forceRefresh });
-    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+    const resolvedBlock = await resolveBlockParam(param, requestOptions);
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
 
     const hash = resolvedBlock.hash;
     if (!hash) {
@@ -294,14 +297,14 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
     let raw = resolvedBlock.block;
     let info = null;
     if (!raw) {
-      raw = await blockService.getByHash(hash, { forceRefresh });
+      raw = await blockService.getByHash(hash, requestOptions);
     }
 
     if (!raw) {
-      info = await blockService.getInfoByHash(hash, { forceRefresh });
+      info = await blockService.getInfoByHash(hash, requestOptions);
     }
 
-    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
 
     if (!info && !raw) {
       if (!silent) {
@@ -318,9 +321,9 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
     // nodes expose StateService, so the detail view remains usable without it).
     if (Number.isFinite(Number(block.value.index))) {
       blockService
-        .getValidatedStateRootForBlock(block.value.index, { forceRefresh })
+        .getValidatedStateRootForBlock(block.value.index, requestOptions)
         .then((stateRoot) => {
-          if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+          if (requestId !== blockRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
           applyValidatedStateRoot(stateRoot);
         })
         .catch((err) => {
@@ -330,9 +333,9 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
 
     // Fetch latest block height for next-button disabled logic
     blockService
-      .getCount({ forceRefresh })
+      .getCount(requestOptions)
       .then((count) => {
-        if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+        if (requestId !== blockRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
         if (count > 0) latestBlockHeight.value = count - 1;
       })
       .catch((err) => {
@@ -340,66 +343,69 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
       });
 
     // Load transactions, reward, and block logs in parallel (non-blocking)
-    void loadTransactions({ silent, forceRefresh });
+    void loadTransactions({ silent, forceRefresh, network: requestNetwork });
     loadReward(hash);
-    void loadBlockAppLog(block.value.hash, requestId);
+    void loadBlockAppLog(block.value.hash, requestId, requestNetwork);
   } catch (err) {
-    if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
+    if (requestId !== blockRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.error("Failed to load block details:", err);
     if (!silent) {
       error.value = t("errors.loadBlockDetails");
     }
   } finally {
-    if (!silent && requestId === blockRequestId) {
+    if (!silent && requestId === blockRequestId && resolveNetworkName() === requestNetwork) {
       loading.value = false;
     }
   }
 }
 
-async function loadBlockAppLog(blockHash, requestId) {
+async function loadBlockAppLog(blockHash, requestId, network = null) {
   if (!blockHash) return;
+  const requestNetwork = resolveNetworkName(network);
+  const requestOptions = { network: requestNetwork };
 
   blockAppLogLoading.value = true;
   blockAppLogError.value = "";
 
   try {
-    const enriched = await executionService.getEnrichedBlockTrace(blockHash);
-    if (requestId !== blockRequestId) return;
+    const enriched = await executionService.getEnrichedBlockTrace(blockHash, requestOptions);
+    if (requestId !== blockRequestId || resolveNetworkName() !== requestNetwork) return;
 
     if (enriched) {
       blockAppLog.value = enriched.raw;
       blockEnrichedTrace.value = enriched;
     } else {
       // Try plain fetch without enrichment
-      const appLog = await executionService.getBlockApplicationLog(blockHash);
-      if (requestId !== blockRequestId) return;
+      const appLog = await executionService.getBlockApplicationLog(blockHash, requestOptions);
+      if (requestId !== blockRequestId || resolveNetworkName() !== requestNetwork) return;
       blockAppLog.value = appLog;
     }
   } catch (err) {
-    if (requestId !== blockRequestId) return;
+    if (requestId !== blockRequestId || resolveNetworkName() !== requestNetwork) return;
     // Aborted fetches (route change / re-init) aren't user failures
     if (isAbortError(err)) return;
     if (import.meta.env.DEV) console.warn("Failed to load block application log:", err);
 
     // Fallback: try plain fetch
     try {
-      const appLog = await executionService.getBlockApplicationLog(blockHash);
-      if (requestId !== blockRequestId) return;
+      const appLog = await executionService.getBlockApplicationLog(blockHash, requestOptions);
+      if (requestId !== blockRequestId || resolveNetworkName() !== requestNetwork) return;
       blockAppLog.value = appLog;
     } catch (fallbackErr) {
-      if (requestId !== blockRequestId) return;
+      if (requestId !== blockRequestId || resolveNetworkName() !== requestNetwork) return;
       if (isAbortError(fallbackErr)) return;
       blockAppLogError.value = t("blockDetail.appLogFailed");
     }
   } finally {
-    if (requestId === blockRequestId) {
+    if (requestId === blockRequestId && resolveNetworkName() === requestNetwork) {
       blockAppLogLoading.value = false;
     }
   }
 }
 
-async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
+async function loadTransactions({ silent = false, forceRefresh = false, network = null } = {}) {
   const requestId = ++txRequestId;
+  const requestNetwork = resolveNetworkName(network);
 
   if (!silent) {
     txLoading.value = true;
@@ -409,6 +415,8 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
     const blockHash = block.value?.hash;
     const blockIndex = Number(block.value?.index);
 
+    if (resolveNetworkName() !== requestNetwork) return;
+
     if (!blockHash) {
       if (!silent) {
         transactions.value = [];
@@ -417,7 +425,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
     }
 
     if (Array.isArray(block.value.tx) && block.value.tx.length > 0) {
-      if (requestId !== txRequestId || abortController.value?.signal.aborted) return;
+      if (requestId !== txRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
 
       transactions.value = block.value.tx;
       if (!block.value.txcount) {
@@ -429,6 +437,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
 
     const declaredCount = Number(block.value?.txcount ?? block.value?.transactioncount ?? 0);
     if (declaredCount === 0 && Array.isArray(block.value.tx)) {
+      if (resolveNetworkName() !== requestNetwork) return;
       transactions.value = [];
       return;
     }
@@ -444,7 +453,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
         const limit = Math.min(BLOCK_TX_FETCH_BATCH_SIZE, maxToLoad - loaded);
         const res = await fetchFn(limit, loaded);
 
-        if (requestId !== txRequestId || abortController.value?.signal.aborted) {
+        if (requestId !== txRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) {
           return { collected, expectedTotal: maxToLoad };
         }
 
@@ -475,6 +484,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
       (limit, skip) =>
         blockService.getTransactionsByHash(blockHash, limit, skip, {
           forceRefresh,
+          network: requestNetwork,
         }),
       declaredCount
     );
@@ -484,6 +494,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
         (limit, skip) =>
           blockService.getTransactionsByHeight(blockIndex, limit, skip, {
             forceRefresh,
+            network: requestNetwork,
           }),
         declaredCount
       );
@@ -491,7 +502,7 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
       expectedTotal = fallback.expectedTotal;
     }
 
-    if (requestId !== txRequestId || abortController.value?.signal.aborted) return;
+    if (requestId !== txRequestId || abortController.value?.signal.aborted || resolveNetworkName() !== requestNetwork) return;
 
     if (!silent || collected.length > 0 || blockTransactionCount.value === 0) {
       transactions.value = collected;
@@ -517,9 +528,10 @@ async function loadTransactions({ silent = false, forceRefresh = false } = {}) {
       block.value.transactioncount = block.value.txcount;
     }
   } catch (err) {
+    if (resolveNetworkName() !== requestNetwork) return;
     if (import.meta.env.DEV) console.warn("Failed to load block transactions:", err);
   } finally {
-    if (requestId === txRequestId) txLoading.value = false;
+    if (requestId === txRequestId && resolveNetworkName() === requestNetwork) txLoading.value = false;
   }
 }
 
@@ -543,14 +555,14 @@ async function loadReward(_hash) {
 
 function handleNetworkChange() {
   const hash = route.params.hash;
-  if (hash) loadBlock(hash, { silent: true, forceRefresh: true });
+  if (hash) loadBlock(hash, { silent: false, forceRefresh: true });
 }
 
 function navigateBlock(height) {
   if (height < 0) return;
   // We need to get the block hash by height, then navigate
   blockService
-    .getByHeight(height)
+    .getByHeight(height, { network: resolveNetworkName() })
     .then((b) => {
       if (b?.hash) {
         router.push(`/block-info/${b.hash}`).catch(() => {});

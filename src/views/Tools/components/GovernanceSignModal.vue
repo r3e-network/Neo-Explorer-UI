@@ -289,6 +289,7 @@ const emit = defineEmits(["close", "signed"]);
 const toast = useToast();
 
 let neonJs = null;
+let signingPayloadRequestId = 0;
 
 const manualSignature = ref("");
 const isSigning = ref(false);
@@ -313,6 +314,10 @@ const RAW_TRANSACTION_SIGNING_PROVIDERS = new Set([
   PROVIDERS.TESTNET_WIF,
 ]);
 
+function getRequestNetworkOptions() {
+  return props.request?.network ? { network: props.request.network } : null;
+}
+
 function testId(suffix) {
   return `${props.testIdPrefix}-${suffix}`;
 }
@@ -320,6 +325,7 @@ function testId(suffix) {
 watch(
   () => props.request,
   async (newVal) => {
+    const requestId = ++signingPayloadRequestId;
     if (newVal) {
       manualSignature.value = "";
       externalSignerAddress.value = "";
@@ -333,7 +339,7 @@ watch(
       await prefillExternalWitnessSigner();
       // Auto-prepare signing payload so it's immediately visible.
       if (newVal.params?.unsigned_tx) {
-        try { await prepareSigningPayload(); } catch { /* best-effort */ }
+        try { await prepareSigningPayload({ requestId }); } catch { /* best-effort */ }
       }
     }
   },
@@ -499,13 +505,19 @@ async function prefillExternalWitnessSigner() {
   }
 }
 
-async function prepareSigningPayload() {
+async function prepareSigningPayload({ requestId = ++signingPayloadRequestId } = {}) {
   const unsignedTxHex = String(props.request?.params?.unsigned_tx || "").trim();
   if (!unsignedTxHex) return;
   isPreparingSigningPayload.value = true;
   try {
     await prefillExternalWitnessSigner();
-    preparedSigningPayload.value = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
+    const networkOptions = getRequestNetworkOptions();
+    const payload = networkOptions
+      ? await walletService.getRawTransactionSigningPayload(unsignedTxHex, networkOptions)
+      : await walletService.getRawTransactionSigningPayload(unsignedTxHex);
+    if (requestId === signingPayloadRequestId) {
+      preparedSigningPayload.value = payload;
+    }
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
     toast.error(t("tools.governance.signModalToasts.preparePayloadFailed", { reason: e?.message || String(e) }));
@@ -582,7 +594,10 @@ async function getGovernanceSigningPayloadHex() {
   if (preparedSigningPayload.value?.payload) return String(preparedSigningPayload.value.payload).trim();
   const unsignedTxHex = String(props.request?.params?.unsigned_tx || "").trim();
   if (!unsignedTxHex) throw new Error(t("tools.governance.errors.missingUnsignedTxPayload"));
-  const payload = await walletService.getRawTransactionSigningPayload(unsignedTxHex);
+  const networkOptions = getRequestNetworkOptions();
+  const payload = networkOptions
+    ? await walletService.getRawTransactionSigningPayload(unsignedTxHex, networkOptions)
+    : await walletService.getRawTransactionSigningPayload(unsignedTxHex);
   preparedSigningPayload.value = payload;
   return String(payload?.payload || "").trim();
 }

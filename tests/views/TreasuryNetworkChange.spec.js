@@ -26,6 +26,10 @@ vi.mock("@/utils/healthCheck", () => ({
 vi.mock("@/utils/env", () => ({
   getRpcClientUrl: () => "http://rpc.test",
   getCurrentEnv: () => envState.value,
+  resolveNetworkName: vi.fn((env) => {
+    const value = String(env || envState.value || "MainNet").toLowerCase();
+    return value.includes("test") ? "testnet" : "mainnet";
+  }),
   NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
   NET_ENV: { TestT5: "TestT5", Mainnet: "MainNet" },
 }));
@@ -92,7 +96,7 @@ describe("Treasury network changes", () => {
 
     await flushPromises();
     expect(cachedRequestMock).toHaveBeenCalledTimes(1);
-    expect(cachedRequestMock.mock.calls[0][0]).toBe("MainNet:treasury_data");
+    expect(cachedRequestMock.mock.calls[0][0]).toBe("mainnet:treasury_data");
 
     envState.value = "TestT5";
     window.dispatchEvent(new CustomEvent("neo-explorer-network-change", { detail: { env: "TestT5" } }));
@@ -106,7 +110,7 @@ describe("Treasury network changes", () => {
     await flushPromises();
 
     expect(cachedRequestMock).toHaveBeenCalledTimes(2);
-    expect(cachedRequestMock.mock.calls[1][0]).toBe("MainNet:treasury_data");
+    expect(cachedRequestMock.mock.calls[1][0]).toBe("mainnet:treasury_data");
     wrapper.unmount();
   });
 });

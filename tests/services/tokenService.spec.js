@@ -120,6 +120,53 @@ describe("tokenService", () => {
     });
   });
 
+  describe("network isolation", () => {
+    it("uses the explicit network for batched transaction transfer lookups", async () => {
+      const txid = `0x${"a".repeat(64)}`;
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => [
+          {
+            txid,
+            from_address: "Nfrom",
+            to_address: "Nto",
+            amount_raw: "1",
+            contract_hash: "0xhash",
+          },
+        ],
+      })));
+
+      const result = await tokenService.getTransfersByTxHashesBatch([txid], "nep17", { network: "testnet" });
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/rest/testnet/nep17_transfers?"),
+        expect.objectContaining({ headers: { Accept: "application/json" } }),
+      );
+      expect(fetch.mock.calls[0][0]).toContain("network=eq.testnet");
+      expect(result.get(txid)).toEqual([
+        expect.objectContaining({ txid, contract: "0xhash" }),
+      ]);
+    });
+
+    it("forwards explicit network to token metadata and RPC fallback", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce(null);
+      api.safeRpc.mockResolvedValueOnce({
+        hash: "0xhash",
+        manifest: { name: "TestnetToken", supportedstandards: ["NEP-17"] },
+      });
+
+      await tokenService.getByHashWithFallback("0xhash", { network: "testnet" });
+
+      expect(indexerReadService.getToken).toHaveBeenCalledWith("0xhash", { network: "testnet" });
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "getcontractstate",
+        ["0xhash"],
+        null,
+        expect.objectContaining({ network: "testnet" }),
+      );
+    });
+  });
+
   // Indexer-first migration tests (#173).
   describe("getTokenListWithFallback indexer-first", () => {
     it("returns indexer rows mapped to legacy shape; skips legacy RPC", async () => {

@@ -96,22 +96,31 @@ const ensureNetworkEndpointBase = (baseUrl) => {
   return `${parsed.prefix}/primary`;
 };
 
+const resolveRpcEnv = (value = getCurrentEnv()) => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw.includes("test") || raw.includes("t5")) return NET_ENV.TestT5;
+  if (raw.includes("main")) return NET_ENV.Mainnet;
+  return getCurrentEnv();
+};
+
 const rewriteConfiguredBaseUrl = (baseUrl, env = getCurrentEnv()) => {
+  const requestEnv = resolveRpcEnv(env);
   const normalized = normalizeBaseUrl(baseUrl);
   const parsed = parseNetworkBase(normalized);
   if (!parsed) return normalized;
 
-  const network = env === NET_ENV.TestT5 ? "testnet" : "mainnet";
+  const network = requestEnv === NET_ENV.TestT5 ? "testnet" : "mainnet";
   const targetPrefix = `${parsed.basePrefix}/${parsed.routeBase}/${network}`;
   return parsed.endpoint ? `${targetPrefix}/${parsed.endpoint}` : targetPrefix;
 };
 
-const resolveRpcBaseUrl = () => {
+const resolveRpcBaseUrl = (env = getCurrentEnv()) => {
+  const requestEnv = resolveRpcEnv(env);
   if (useConfiguredBaseUrl) {
-    return ensureNetworkEndpointBase(rewriteConfiguredBaseUrl(configuredRpcBaseUrl));
+    return ensureNetworkEndpointBase(rewriteConfiguredBaseUrl(configuredRpcBaseUrl, requestEnv));
   }
 
-  return ensureNetworkEndpointBase(getRpcApiBasePath());
+  return ensureNetworkEndpointBase(getRpcApiBasePath(requestEnv));
 };
 
 // Single-server architecture: a parsed network-aware base resolves to just its
@@ -125,7 +134,7 @@ const buildNetworkRetryBaseUrls = (parsed) => {
   return [`${parsed.prefix}/primary`];
 };
 
-const buildRetryBaseUrls = (baseUrl) => {
+const buildRetryBaseUrls = (baseUrl, env = getCurrentEnv()) => {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   if (!normalizedBaseUrl) return [];
   if (useFixedConfiguredBaseUrl) return [normalizedBaseUrl];
@@ -135,8 +144,8 @@ const buildRetryBaseUrls = (baseUrl) => {
     return buildNetworkRetryBaseUrls(parsed);
   }
 
-  const env = getEnvForBaseUrl(normalizedBaseUrl) || getCurrentEnv();
-  const candidates = [...new Set(getRpcEndpointCandidates(env).filter(Boolean))];
+  const requestEnv = getEnvForBaseUrl(normalizedBaseUrl) || resolveRpcEnv(env);
+  const candidates = [...new Set(getRpcEndpointCandidates(requestEnv).filter(Boolean))];
   return [normalizedBaseUrl, ...candidates.filter((candidate) => normalizeBaseUrl(candidate) !== normalizedBaseUrl)];
 };
 
@@ -436,10 +445,11 @@ const nextRpcId = () => (_rpcId = (_rpcId + 1) % 2147483647);
  * @param {AbortSignal} [options.signal] - AbortController signal to cancel the request
  * @returns {Promise<any>}
  */
-export const rpc = async (method, params = [], { signal, suppressLog = false } = {}) => {
+export const rpc = async (method, params = [], { signal, suppressLog = false, network } = {}) => {
   const payload = { jsonrpc: "2.0", id: nextRpcId(), method, params };
-  const preferredBaseUrl = resolveRpcBaseUrl();
-  const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl).filter(Boolean))];
+  const requestEnv = resolveRpcEnv(network);
+  const preferredBaseUrl = resolveRpcBaseUrl(requestEnv);
+  const retryBaseUrls = [...new Set(buildRetryBaseUrls(preferredBaseUrl, requestEnv).filter(Boolean))];
   const orderedBaseUrls = shouldPreferFallbackFirst(method, retryBaseUrls)
     ? [...retryBaseUrls.slice(1), retryBaseUrls[0]]
     : retryBaseUrls;
@@ -494,9 +504,9 @@ export const rpc = async (method, params = [], { signal, suppressLog = false } =
  * @param {any} defaultValue - Default value on error
  * @returns {Promise<any>}
  */
-export const safeRpc = async (method, params = [], defaultValue = null, { signal, throwOnError } = {}) => {
+export const safeRpc = async (method, params = [], defaultValue = null, { signal, throwOnError, network } = {}) => {
   try {
-    const result = await rpc(method, params, { signal, suppressLog: true });
+    const result = await rpc(method, params, { signal, suppressLog: true, network });
     const normalized = normalizeItem(result);
     return normalized ?? defaultValue;
   } catch (error) {
@@ -573,10 +583,10 @@ export const formatListResponse = (result) => {
  * @param {string} errorMsg - Error message prefix
  * @returns {Promise<{result: Array, totalCount: number}>}
  */
-export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal, throwOnError } = {}) => {
+export const safeRpcList = async (method, params = [], errorMsg = "API call", { signal, throwOnError, network } = {}) => {
   void errorMsg;
   try {
-    const result = await rpc(method, params, { signal, suppressLog: true });
+    const result = await rpc(method, params, { signal, suppressLog: true, network });
     return formatListResponse(result);
   } catch (error) {
     if (signal?.aborted || throwOnError) throw error;

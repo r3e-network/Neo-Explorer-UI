@@ -10,6 +10,7 @@ import { responseConverter } from "@/utils/neoHelpers";
 import { invokeContractFunction } from "@/utils/contractInvocation";
 import { supabaseService } from "@/services/supabaseService";
 import { useNetworkChange } from "@/composables/useNetworkChange";
+import { resolveNetworkName } from "@/utils/env";
 
 const TOKEN_DETAIL_LOAD_TIMEOUT_MS = 4500;
 
@@ -77,10 +78,11 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
   // Async data fetching via useAsync (handles abort, loading, error, cleanup)
   // ---------------------------------------------------------------------------
   const { data: tokenInfo, loading: tokenLoading, error: tokenError, execute: executeTokenFetch } = useAsync(
-    async (id, { signal }) => {
+    async (id, requestOptions = {}, { signal } = {}) => {
+      const network = resolveNetworkName(requestOptions.network);
       try {
         return await withTimeout(
-          tokenService.getByHashWithFallback(id, { signal, standard }),
+          tokenService.getByHashWithFallback(id, { signal, standard, network }),
           TOKEN_DETAIL_LOAD_TIMEOUT_MS,
         );
       } catch (err) {
@@ -101,7 +103,13 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
     }
   );
 
-  const { execute: executeContractFetch } = useAsync((id, { signal }) => contractService.getByHashWithFallback(id, { signal }), {
+  const { execute: executeContractFetch } = useAsync(
+    (id, requestOptions = {}, { signal } = {}) =>
+      contractService.getByHashWithFallback(id, {
+        signal,
+        network: resolveNetworkName(requestOptions.network),
+      }),
+    {
     onSuccess: (res) => {
       try {
         if (typeof res?.manifest === "string") {
@@ -124,7 +132,8 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
       manifestError.value = t("errors.loadContractData");
       if (import.meta.env.DEV) console.warn("Failed to load contract data:", err);
     },
-  });
+    },
+  );
 
   // Unified loading: true while either fetch is in-flight
   const isLoading = computed(() => tokenLoading.value);
@@ -184,8 +193,10 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
 
     const method = manifest.value?.abi?.methods?.[index];
     if (!method) return;
-    invokeContractFunction(tokenId.value, method["name"], method["parameters"])
+    const requestNetwork = resolveNetworkName();
+    invokeContractFunction(tokenId.value, method["name"], method["parameters"], null, { network: requestNetwork })
       .then((res) => {
+        if (resolveNetworkName() !== requestNetwork) return;
         if (res?.["exception"] != null) {
           patchMethod(index, { error: res["exception"] });
         } else {
@@ -199,6 +210,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
         }
       })
       .catch((err) => {
+        if (resolveNetworkName() !== requestNetwork) return;
         patchMethod(index, {
           error: err?.message || err?.toString?.() || t("contractDetail.infoFailedToInvoke"),
         });
@@ -217,15 +229,17 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
     // Reset metadata so fast token-to-token navigation doesn't flash the
     // previous token's overlay while the next metadata fetch resolves.
     tokenMetadata.value = null;
-    executeTokenFetch(tokenId.value);
-    executeContractFetch(tokenId.value);
+    const requestNetwork = resolveNetworkName();
+    executeTokenFetch(tokenId.value, { network: requestNetwork });
+    executeContractFetch(tokenId.value, { network: requestNetwork });
 
     // Supabase optional metadata fetch — capture the token under
     // resolution so a slower fetch from token A can't overwrite the
     // freshly-set metadata for token B.
     const requestedToken = tokenId.value;
-    supabaseService.getContractMetadata(requestedToken).then(meta => {
-      if (meta && tokenId.value === requestedToken) {
+    const requestedNetwork = requestNetwork;
+    supabaseService.getContractMetadata(requestedToken, requestedNetwork).then(meta => {
+      if (meta && tokenId.value === requestedToken && resolveNetworkName() === requestedNetwork) {
         tokenMetadata.value = meta;
       }
     }).catch(()=>{});
@@ -234,7 +248,7 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
   function reloadToken() {
     const hash = route.params.hash;
     if (hash) {
-      executeTokenFetch(hash);
+      executeTokenFetch(hash, { network: resolveNetworkName() });
     }
   }
 
