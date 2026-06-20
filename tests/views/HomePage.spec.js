@@ -32,7 +32,7 @@ const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
 const useRealtimeHeadMock = vi.fn();
 const HOMEPAGE_BLOCK_LIMIT = 6;
-const HOMEPAGE_TRANSACTION_LIMIT = 8;
+const HOMEPAGE_TRANSACTION_LIMIT = 6;
 const loadCommitteeMock = vi.hoisted(() => vi.fn());
 const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
   enrichTransactionsMock: vi.fn(),

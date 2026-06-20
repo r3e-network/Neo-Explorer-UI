@@ -36,7 +36,7 @@ import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 
-const skeletonCount = 8;
+const skeletonCount = 6;
 
 defineProps({
   transferSummaryByHash: { type: Object, default: () => ({}) },
