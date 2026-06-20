@@ -71,6 +71,17 @@
         <p class="text-[10px] text-mid hidden md:block">{{ formatNumber(block.size || 0) }} B</p>
       </div>
     </div>
+
+    <div v-if="stateRootValidated" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+      <router-link
+        :to="blockDetailTarget"
+        class="inline-flex items-center gap-1 rounded bg-status-success-bg px-2 py-0.5 font-semibold text-status-success transition-colors hover:underline"
+        :title="$t('homePage.miniValidatedStateRoot')"
+      >
+        <span aria-hidden="true">✅</span>
+        <span>{{ $t("homePage.miniValidatedStateRoot") }}</span>
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -88,6 +99,7 @@ const { resolvePrimaryIndex, getPrimaryNodeName, getPrimaryNodeAddress, getPrima
 
 const props = defineProps({
   block: { type: Object, default: () => ({}) },
+  stateRootValidated: { type: Boolean, default: false },
 });
 
 const now = useNow({ interval: 1000 });
@@ -125,6 +137,11 @@ const validatorAddress = computed(() => {
     if (directAddr) return scriptHashToAddress(directAddr);
   }
   return validatorHintAddress.value;
+});
+
+const blockDetailTarget = computed(() => {
+  const blockIndex = props.block?.index ?? props.block?.block_index ?? props.block?.height;
+  return `/block-info/${blockIndex ?? props.block?.hash ?? ""}`;
 });
 
 const hasNamedValidatorIdentity = computed(() => {

@@ -127,6 +127,7 @@
                   v-if="hasValidatedStateRoot"
                   class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
                 >
+                  <span aria-hidden="true" class="mr-1">✅</span>
                   {{ $t("homePage.validatedBadge") }}
                 </span>
               </div>
@@ -163,6 +164,7 @@
                 v-if="hasValidatedStateRoot"
                 class="inline-flex items-center rounded bg-status-success-bg px-1.5 py-0.5 text-[11px] font-semibold text-status-success"
               >
+                <span aria-hidden="true" class="mr-1">✅</span>
                 {{ $t("homePage.validatedBadge") }}
               </span>
             </div>

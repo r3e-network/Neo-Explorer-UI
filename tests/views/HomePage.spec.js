@@ -120,9 +120,10 @@ const LatestBlocksStub = defineComponent({
   props: {
     loading: { type: Boolean, default: false },
     blocks: { type: Array, default: () => [] },
+    validatedStateRoot: { type: Object, default: null },
   },
   template:
-    '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)" :data-first-txcount="String(blocks?.[0]?.txcount ?? \'undefined\')"></div>',
+    '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)" :data-first-txcount="String(blocks?.[0]?.txcount ?? \'undefined\')" :data-validated-root="String(validatedStateRoot?.validatedrootindex ?? validatedStateRoot?.index ?? \'\')"></div>',
 });
 
 const LatestTransactionsStub = defineComponent({
@@ -249,6 +250,7 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-validated-root")).toBe("12");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
     expect(getIndexerBlocks).toHaveBeenCalled();
     expect(getIndexerTransactions).toHaveBeenCalled();

@@ -163,4 +163,31 @@ describe("BlockListItem", () => {
 
     expect(wrapper.text()).toContain("330 GAS");
   });
+
+  it("renders a validated state root badge when the block is covered by validation", () => {
+    const wrapper = mount(BlockListItem, {
+      props: {
+        stateRootValidated: true,
+        block: {
+          index: 103,
+          timestamp: Date.now(),
+          transactioncount: 1,
+          systemFee: 1,
+          networkFee: 1,
+          size: 900,
+          primary: 0,
+          nextconsensus: "0x1234567890abcdef1234567890abcdef12345678",
+        },
+      },
+      global: {
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+          HashLink: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("✅");
+    expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+  });
 });

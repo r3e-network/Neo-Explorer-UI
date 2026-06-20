@@ -105,4 +105,29 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.emitted("fetch-latest")?.length || 0).toBe(1);
     wrapper.unmount();
   });
+
+  it("marks the validated state root badge with a green check", async () => {
+    const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
+    const wrapper = mount(HomeStats, {
+      props: {
+        blockCount: 12,
+        validatedStateRoot: {
+          validated: true,
+          validatedrootindex: 12,
+          roothash: "0xstate",
+        },
+      },
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("✅");
+    expect(wrapper.text()).toContain("homePage.validatedBadge");
+    expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    wrapper.unmount();
+  });
 });

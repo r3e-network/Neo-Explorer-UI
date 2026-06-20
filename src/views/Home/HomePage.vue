@@ -36,7 +36,13 @@
     <section class="page-shell">
       <div class="page-container py-1">
         <div class="grid gap-4 lg:grid-cols-2">
-          <LatestBlocks :blocks="latestBlocks" :loading="blocksLoading" :error="blocksError" @retry="loadLatestData" />
+          <LatestBlocks
+            :blocks="latestBlocks"
+            :loading="blocksLoading"
+            :error="blocksError"
+            :validated-state-root="validatedStateRoot"
+            @retry="loadLatestData"
+          />
           <LatestTransactions
             :transactions="latestTxs"
             :transfer-summary-by-hash="transferSummaryByHash"
