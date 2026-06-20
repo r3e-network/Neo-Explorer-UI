@@ -54,6 +54,51 @@ function normalizeRpcBlock(block) {
   };
 }
 
+function parseNonNegativeInteger(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
+function normalizeValidatedStateRootPayload(payload, requestedHeight = null) {
+  if (!payload || typeof payload !== "object") return null;
+
+  const rootDoc = payload.stateRoot && typeof payload.stateRoot === "object" ? payload.stateRoot : payload;
+  const roothash = rootDoc.roothash || rootDoc.rootHash || payload.roothash || payload.rootHash || "";
+  const validatedRootIndex = parseNonNegativeInteger(
+    payload.validatedrootindex ?? payload.validatedRootIndex ?? payload.validated_root_index ?? rootDoc.validatedrootindex,
+  );
+  const localRootIndex = parseNonNegativeInteger(
+    payload.localrootindex ?? payload.localRootIndex ?? payload.local_root_index ?? rootDoc.localrootindex,
+  );
+  const rootIndex = parseNonNegativeInteger(rootDoc.index ?? payload.index);
+  const requestedIndex = parseNonNegativeInteger(requestedHeight);
+  const effectiveValidatedIndex = validatedRootIndex ?? rootIndex;
+  const coveredByValidatedHeight =
+    requestedIndex === null || effectiveValidatedIndex === null || requestedIndex <= effectiveValidatedIndex;
+  const lag = parseNonNegativeInteger(payload.lag) ?? (
+    localRootIndex !== null && effectiveValidatedIndex !== null
+      ? Math.max(0, localRootIndex - effectiveValidatedIndex)
+      : null
+  );
+
+  return {
+    ...payload,
+    ...rootDoc,
+    roothash: coveredByValidatedHeight ? roothash : "",
+    stateroot: coveredByValidatedHeight ? roothash : "",
+    rootHash: coveredByValidatedHeight ? roothash : "",
+    index: requestedIndex ?? rootIndex ?? effectiveValidatedIndex,
+    requestedIndex: requestedIndex ?? rootIndex ?? effectiveValidatedIndex,
+    validated: Boolean(roothash) && payload.validated !== false && coveredByValidatedHeight,
+    available: Boolean(roothash) && coveredByValidatedHeight,
+    source: payload.source || "StateService",
+    validator: payload.validator || "StateValidator",
+    localrootindex: localRootIndex ?? effectiveValidatedIndex,
+    validatedrootindex: effectiveValidatedIndex,
+    lag,
+  };
+}
+
 /**
  * Block Service - Neo3 区块相关 API 调用
  * @module services/blockService
@@ -113,6 +158,23 @@ export const blockService = createService(
       ttl: CACHE_TTL.block,
       buildParams: ([height]) => [Number(height)],
       buildCacheParams: ([height]) => ({ height: Number(height) }),
+    },
+    getStateHeightRaw: {
+      cacheKey: "block_state_height",
+      rpcMethod: "getstateheight",
+      fallback: null,
+      ttl: CACHE_TTL.stats,
+      realtime: true,
+      buildParams: () => [],
+    },
+    getValidatedStateRootRaw: {
+      cacheKey: "block_validated_stateroot",
+      rpcMethod: "getvalidatedstateroot",
+      fallback: null,
+      ttl: CACHE_TTL.stats,
+      realtime: true,
+      buildParams: () => ({ WithWitnesses: false }),
+      buildCacheParams: () => ({ latest: true }),
     },
   },
   {
@@ -271,6 +333,90 @@ export const blockService = createService(
         if (!isMethodMissingError(e) && import.meta.env.DEV) console.warn("[blockService] getstateroot upstream error:", e);
       }
       return null;
+    },
+
+    async getValidatedStateRoot(options = {}) {
+      const cacheOpts = getRealtimeListCacheOptions(options);
+
+      try {
+        const fromBackend = await this.getValidatedStateRootRaw(cacheOpts);
+        const normalized = normalizeValidatedStateRootPayload(fromBackend);
+        if (normalized?.validated && normalized.roothash) return normalized;
+      } catch (e) {
+        if (!isMethodMissingError(e) && import.meta.env.DEV) {
+          console.warn("[blockService] getvalidatedstateroot upstream error:", e);
+        }
+      }
+
+      try {
+        const stateHeight = await this.getStateHeightRaw(cacheOpts);
+        const validatedRootIndex = parseNonNegativeInteger(
+          stateHeight?.validatedrootindex ?? stateHeight?.validatedRootIndex ?? stateHeight?.validated_root_index,
+        );
+        if (validatedRootIndex === null) return null;
+
+        const root = await this.getStateRootRaw(validatedRootIndex, options);
+        return normalizeValidatedStateRootPayload({
+          ...(root || {}),
+          validated: true,
+          source: "StateService",
+          validator: "StateValidator",
+          localrootindex: stateHeight?.localrootindex ?? stateHeight?.localRootIndex,
+          validatedrootindex: validatedRootIndex,
+        });
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn("[blockService] validated state root fallback failed:", e);
+        return null;
+      }
+    },
+
+    async getValidatedStateRootForBlock(height, options = {}) {
+      const numericHeight = Number(height);
+      if (!Number.isInteger(numericHeight) || numericHeight < 0) return null;
+
+      const latest = await this.getValidatedStateRoot(options);
+      if (!latest) return null;
+
+      const validatedRootIndex = parseNonNegativeInteger(latest.validatedrootindex);
+      if (validatedRootIndex !== null && numericHeight > validatedRootIndex) {
+        return {
+          ...latest,
+          index: numericHeight,
+          requestedIndex: numericHeight,
+          roothash: "",
+          stateroot: "",
+          rootHash: "",
+          validated: false,
+          available: false,
+        };
+      }
+
+      try {
+        const root = await this.getStateRootRaw(numericHeight, options);
+        return normalizeValidatedStateRootPayload({
+          ...(root || {}),
+          validated: true,
+          source: latest.source,
+          validator: latest.validator,
+          localrootindex: latest.localrootindex,
+          validatedrootindex: latest.validatedrootindex,
+          lag: latest.lag,
+        }, numericHeight);
+      } catch (e) {
+        if (!isMethodMissingError(e) && import.meta.env.DEV) {
+          console.warn("[blockService] validated block state root fetch failed:", e);
+        }
+        return {
+          ...latest,
+          index: numericHeight,
+          requestedIndex: numericHeight,
+          roothash: "",
+          stateroot: "",
+          rootHash: "",
+          validated: false,
+          available: false,
+        };
+      }
     },
 
     /**

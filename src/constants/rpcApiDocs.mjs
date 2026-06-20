@@ -115,6 +115,13 @@ export const API_DOCS_RPC_METHODS = [
     type: "passthrough",
   },
   {
+    name: "getvalidatedstateroot",
+    desc: "n3index helper that returns the newest StateValidator-covered StateService root.",
+    category: "stats",
+    params: { WithWitnesses: false },
+    type: "passthrough",
+  },
+  {
     name: "GetCandidate",
     desc: "Get consensus candidates list.",
     category: "governance",

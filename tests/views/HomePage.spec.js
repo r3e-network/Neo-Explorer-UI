@@ -20,6 +20,7 @@ const i18nPlugin = {
 const getBlockList = vi.fn();
 const getBlockCount = vi.fn();
 const getBlockByHeight = vi.fn();
+const getValidatedStateRoot = vi.fn();
 const getTxList = vi.fn();
 const getIndexerHome = vi.fn();
 const getIndexerSummary = vi.fn();
@@ -52,6 +53,7 @@ vi.mock("@/services/blockService", () => ({
     getList: getBlockList,
     getCount: getBlockCount,
     getByHeight: getBlockByHeight,
+    getValidatedStateRoot,
   },
 }));
 
@@ -208,6 +210,14 @@ describe("HomePage initial loading", () => {
       totalCount: 1,
     });
     getBlockCount.mockResolvedValue(10);
+    getValidatedStateRoot.mockResolvedValue({
+      index: 12,
+      roothash: "0xstate",
+      validated: true,
+      localrootindex: 13,
+      validatedrootindex: 12,
+      lag: 1,
+    });
     search.mockResolvedValue(null);
     fetchPrices.mockImplementation(() => new Promise(() => {}));
     startAutoRefresh.mockImplementation(() => {});

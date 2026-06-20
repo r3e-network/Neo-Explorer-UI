@@ -120,9 +120,15 @@
             </div>
             <div>
               <div class="stat-label">{{ $t("homePage.statBlockHeight") }}</div>
-              <div class="stat-value">
+              <div class="stat-value flex flex-wrap items-center gap-2">
                 <Skeleton v-if="loading && !blockCount" width="80px" height="28px" class="mt-1 inline-block" />
                 <span v-else>{{ formatNumber(blockCount) }}</span>
+                <span
+                  v-if="hasValidatedStateRoot"
+                  class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
+                >
+                  {{ $t("homePage.validatedBadge") }}
+                </span>
               </div>
             </div>
           </div>
@@ -148,10 +154,18 @@
             <span class="mini-value">{{ formatLargeUsdLabel(marketCap) }}</span>
           </div>
           <div class="mini-stat">
-            <span class="mini-label">{{ $t("homePage.miniLastFinalized") }}</span>
-            <router-link to="/blocks/1" class="mini-value-link etherscan-link">{{
-              formatNumber(blockCount)
-            }}</router-link>
+            <span class="mini-label">{{ $t("homePage.miniValidatedStateRoot") }}</span>
+            <div class="flex items-center gap-2">
+              <router-link :to="validatedStateRootLink" class="mini-value-link etherscan-link">
+                {{ validatedStateRootLabel }}
+              </router-link>
+              <span
+                v-if="hasValidatedStateRoot"
+                class="inline-flex items-center rounded bg-status-success-bg px-1.5 py-0.5 text-[11px] font-semibold text-status-success"
+              >
+                {{ $t("homePage.validatedBadge") }}
+              </span>
+            </div>
           </div>
           <div class="mini-stat">
             <span class="mini-label">{{ $t("homePage.miniNetworkFee") }}</span>
@@ -190,6 +204,7 @@ const props = defineProps({
   blockCount: { type: Number, default: 0 },
   tps: { type: Number, default: 0 },
   latestBlockTimestamp: { type: Number, default: null },
+  validatedStateRoot: { type: Object, default: null },
   loading: { type: Boolean, default: false },
 });
 
@@ -249,6 +264,21 @@ const gasCostUsd = computed(() => {
 });
 
 const gasCostUsdLabel = computed(() => (props.priceUnavailable ? "N/A" : `~$${gasCostUsd.value}`));
+
+const validatedStateRootHeight = computed(() => {
+  const value = Number(props.validatedStateRoot?.validatedrootindex ?? props.validatedStateRoot?.index);
+  return Number.isInteger(value) && value >= 0 ? value : null;
+});
+
+const hasValidatedStateRoot = computed(() => Boolean(props.validatedStateRoot?.validated) && validatedStateRootHeight.value !== null);
+
+const validatedStateRootLabel = computed(() => (
+  validatedStateRootHeight.value !== null ? formatNumber(validatedStateRootHeight.value) : "--"
+));
+
+const validatedStateRootLink = computed(() => (
+  validatedStateRootHeight.value !== null ? `/block-info/${validatedStateRootHeight.value}` : "/blocks/1"
+));
 
 function formatPriceLabel(value) {
   return props.priceUnavailable ? "N/A" : `$${formatPrice(value)}`;

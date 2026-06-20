@@ -200,16 +200,48 @@ function mergeBlockData(raw, info) {
     merged.transactioncount = mergedTxCount;
   }
 
-  // Preserve the official state root across silent refreshes — it's
-  // fetched separately via getstateroot and isn't part of the raw/info
-  // payloads, so it would otherwise be wiped on every auto-refresh tick
-  // and re-flicker into "--" before the next async resolve completes.
+  // Preserve the validated state-root metadata across silent refreshes — it's
+  // fetched separately and isn't part of the raw/info payloads, so it would
+  // otherwise be wiped on every auto-refresh tick and re-flicker before the
+  // next async resolve completes.
   const sameBlock = Number(block.value?.index) === Number(merged.index);
-  if (sameBlock && block.value?.stateroot && !merged.stateroot) {
-    merged.stateroot = block.value.stateroot;
+  if (sameBlock) {
+    [
+      "stateroot",
+      "stateRootValidated",
+      "stateRootValidatedIndex",
+      "stateRootLocalIndex",
+      "stateRootLag",
+      "stateRootSource",
+      "stateRootValidator",
+    ].forEach((field) => {
+      if (block.value?.[field] !== undefined && merged[field] === undefined) {
+        merged[field] = block.value[field];
+      }
+    });
   }
 
   return merged;
+}
+
+function applyValidatedStateRoot(stateRoot) {
+  if (!stateRoot || !block.value?.hash) return;
+
+  const next = {
+    ...block.value,
+    stateRootValidated: Boolean(stateRoot.validated),
+    stateRootValidatedIndex: stateRoot.validatedrootindex,
+    stateRootLocalIndex: stateRoot.localrootindex,
+    stateRootLag: stateRoot.lag,
+    stateRootSource: stateRoot.source,
+    stateRootValidator: stateRoot.validator,
+  };
+
+  if (stateRoot.roothash) {
+    next.stateroot = stateRoot.roothash;
+  }
+
+  block.value = next;
 }
 
 async function resolveBlockParam(param, options = {}) {
@@ -282,16 +314,17 @@ async function loadBlock(param, { silent = false, forceRefresh = false } = {}) {
     block.value = mergeBlockData(raw, info);
     error.value = null;
 
-    // Fetch the official state root (non-blocking; not all nodes expose it).
+    // Fetch the StateValidator-covered state root (non-blocking; not all
+    // nodes expose StateService, so the detail view remains usable without it).
     if (Number.isFinite(Number(block.value.index))) {
       blockService
-        .getStateRoot(block.value.index, { forceRefresh })
-        .then((stateroot) => {
+        .getValidatedStateRootForBlock(block.value.index, { forceRefresh })
+        .then((stateRoot) => {
           if (requestId !== blockRequestId || abortController.value?.signal.aborted) return;
-          if (stateroot) block.value = { ...block.value, stateroot };
+          applyValidatedStateRoot(stateRoot);
         })
         .catch((err) => {
-          if (import.meta.env.DEV) console.warn("Block state root fetch failed:", err);
+          if (import.meta.env.DEV) console.warn("Block validated state root fetch failed:", err);
         });
     }
 

@@ -238,6 +238,72 @@ describe("blockService", () => {
     });
   });
 
+  describe("validated state roots", () => {
+    it("uses the backend getvalidatedstateroot helper when available", async () => {
+      api.safeRpc.mockResolvedValueOnce({
+        index: 100,
+        roothash: "0xstate",
+        validated: true,
+        localrootindex: 101,
+        validatedrootindex: 100,
+        lag: 1,
+      });
+
+      const result = await blockService.getValidatedStateRoot();
+
+      expect(api.safeRpc).toHaveBeenCalledWith("getvalidatedstateroot", { WithWitnesses: false }, null, expect.any(Object));
+      expect(result).toMatchObject({
+        roothash: "0xstate",
+        stateroot: "0xstate",
+        validated: true,
+        localrootindex: 101,
+        validatedrootindex: 100,
+        lag: 1,
+      });
+    });
+
+    it("falls back to getstateheight plus getstateroot when the helper is unavailable", async () => {
+      const methodMissing = new Error("Method not found");
+      methodMissing.rpc = { code: -32601, message: "Method not found" };
+      api.safeRpc
+        .mockRejectedValueOnce(methodMissing)
+        .mockResolvedValueOnce({ localrootindex: 51, validatedrootindex: 50 })
+        .mockResolvedValueOnce({ index: 50, roothash: "0xvalidated" });
+
+      const result = await blockService.getValidatedStateRoot();
+
+      expect(api.safeRpc).toHaveBeenNthCalledWith(1, "getvalidatedstateroot", { WithWitnesses: false }, null, expect.any(Object));
+      expect(api.safeRpc).toHaveBeenNthCalledWith(2, "getstateheight", [], null, expect.any(Object));
+      expect(api.safeRpc).toHaveBeenNthCalledWith(3, "getstateroot", [50], null, expect.any(Object));
+      expect(result).toMatchObject({
+        roothash: "0xvalidated",
+        validated: true,
+        localrootindex: 51,
+        validatedrootindex: 50,
+      });
+    });
+
+    it("marks a block root as pending when the requested height is above validatedrootindex", async () => {
+      api.safeRpc.mockResolvedValueOnce({
+        index: 100,
+        roothash: "0xstate",
+        validated: true,
+        localrootindex: 101,
+        validatedrootindex: 100,
+      });
+
+      const result = await blockService.getValidatedStateRootForBlock(101);
+
+      expect(result).toMatchObject({
+        requestedIndex: 101,
+        roothash: "",
+        validated: false,
+        available: false,
+        validatedrootindex: 100,
+      });
+    });
+  });
+
   // Indexer-first migration tests (#172). Validate that when the
   // indexer returns rows, the legacy GetBlockCount / GetBlockInfoList
   // PascalCase RPCs are NOT called.

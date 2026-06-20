@@ -27,6 +27,7 @@
       :tx-count="txCount"
       :block-count="blockCount"
       :latest-block-timestamp="latestBlocks[0]?.timestamp"
+      :validated-state-root="validatedStateRoot"
       :tps="tps"
       @fetch-latest="handleFetchLatest"
     />
@@ -89,6 +90,7 @@ const blockCount = ref(0);
 const txCount = ref(0);
 const latestBlocks = ref([]);
 const latestTxs = ref([]);
+const validatedStateRoot = ref(null);
 const neoPrice = ref(0);
 const gasPrice = ref(0);
 const neoPriceChange = ref(0);
@@ -138,6 +140,20 @@ function getLatestKnownHeight() {
 function resolveLiveBlockHeight(candidateHeight) {
   const candidate = Number(candidateHeight || 0);
   return Math.max(candidate, getLatestKnownHeight());
+}
+
+function applyValidatedStateRoot(root) {
+  if (!root?.validated || !Number.isFinite(Number(root.validatedrootindex))) return;
+  validatedStateRoot.value = root;
+}
+
+async function loadValidatedStateRoot(forceRefresh = false) {
+  try {
+    const root = await blockService.getValidatedStateRoot({ forceRefresh });
+    applyValidatedStateRoot(root);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("Failed to load validated state root:", err);
+  }
 }
 
 function softTimeout(promise, timeoutMs, fallbackValue = null) {
@@ -352,6 +368,7 @@ async function loadLatestData(forceRefresh = false) {
     txsLoading.value = true;
 
     const requestOptions = { forceRefresh };
+    void loadValidatedStateRoot(forceRefresh);
     // First paint can use the hot Worker cache, but realtime/SSE refreshes
     // must bypass it. Otherwise the home cards can sit on a 15-30s old
     // aggregate payload while the chain is producing a block every ~3s.

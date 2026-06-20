@@ -27,6 +27,15 @@ const props = defineProps({
 
 const emit = defineEmits(["update:showWitnesses"]);
 
+const stateRootValidatedIndex = computed(() => {
+  const value = Number(props.block?.stateRootValidatedIndex ?? props.block?.validatedrootindex);
+  return Number.isInteger(value) && value >= 0 ? value : null;
+});
+
+const stateRootValidatedIndexLabel = computed(() => (
+  stateRootValidatedIndex.value !== null ? formatNumber(stateRootValidatedIndex.value) : ""
+));
+
 function formatTimestamp(ts) {
   if (!ts) return "";
   const ms = ts > 1e12 ? ts : ts * 1000;
@@ -171,9 +180,28 @@ const feeTotals = computed(() => {
 
       <!-- State Root -->
       <InfoRow :label="$t('blockDetail.rowStateRoot')" :tooltip="$t('blockDetail.rowStateRootTip')">
-        <span class="text-high font-mono text-sm break-all">
-          {{ block.stateroot || "--" }}
-        </span>
+        <div class="flex min-w-0 flex-col gap-1.5">
+          <span class="text-high font-mono text-sm break-all">
+            {{ block.stateroot || "--" }}
+          </span>
+          <div
+            v-if="block.stateRootValidated || stateRootValidatedIndex !== null"
+            class="flex flex-wrap items-center gap-2 text-xs"
+          >
+            <span
+              v-if="block.stateRootValidated"
+              class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 font-semibold text-status-success"
+            >
+              {{ $t("blockDetail.stateRootValidated") }}
+            </span>
+            <span v-else class="inline-flex items-center rounded bg-status-warning-bg px-2 py-0.5 font-semibold text-status-warning">
+              {{ $t("blockDetail.stateRootPending") }}
+            </span>
+            <span v-if="stateRootValidatedIndexLabel" class="text-low">
+              {{ $t("blockDetail.stateRootValidatedHeight", { n: stateRootValidatedIndexLabel }) }}
+            </span>
+          </div>
+        </div>
       </InfoRow>
 
       <!-- Next Consensus -->

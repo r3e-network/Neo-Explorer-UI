@@ -33,7 +33,9 @@ const passthroughMethods = new Set([
   "invokefunction",
   "getapplicationlog",
   "sendrawtransaction",
+  "getstateheight",
   "getstateroot",
+  "getvalidatedstateroot",
   "getnextblockvalidators",
 ]);
 const docsNoiseMethods = new Set(["transfer", "stake"]);

@@ -6,7 +6,7 @@ const push = vi.fn(() => Promise.resolve());
 const getByHeight = vi.fn();
 const getByHash = vi.fn();
 const getInfoByHash = vi.fn();
-const getStateRoot = vi.fn();
+const getValidatedStateRootForBlock = vi.fn();
 const getCount = vi.fn();
 const getTransactionsByHash = vi.fn();
 const getTransactionsByHeight = vi.fn();
@@ -29,7 +29,7 @@ vi.mock("@/services/blockService", () => ({
     getByHeight,
     getByHash,
     getInfoByHash,
-    getStateRoot,
+    getValidatedStateRootForBlock,
     getCount,
     getTransactionsByHash,
     getTransactionsByHeight,
@@ -62,7 +62,13 @@ describe("BlockDetail data loading", () => {
     });
     getByHash.mockResolvedValue(null);
     getInfoByHash.mockResolvedValue(null);
-    getStateRoot.mockResolvedValue("0xstate");
+    getValidatedStateRootForBlock.mockResolvedValue({
+      roothash: "0xstate",
+      validated: true,
+      localrootindex: 101,
+      validatedrootindex: 100,
+      lag: 1,
+    });
     getCount.mockResolvedValue(101);
     getTransactionsByHash.mockResolvedValue({ result: [], totalCount: 0 });
     getTransactionsByHeight.mockResolvedValue({ result: [], totalCount: 0 });
