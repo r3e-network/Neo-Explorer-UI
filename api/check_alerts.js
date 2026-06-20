@@ -286,25 +286,26 @@ async function checkNetworkAlerts(network) {
         }
       }
 
-      // If we have state to update (like new block heights or new hashes), even if not triggered, update DB
-      if (Object.keys(updateData).length > 0 && !triggered) {
-         await supabase
-            .from('network_alerts')
-            .update(updateData)
-            .eq('id', alert.id);
-      }
-
-      // 4. Send email and deactivate alert
+      // Send the email first (when triggered), then persist state ONCE below.
+      // Deactivation (is_active=false) is the only mutation gated on a
+      // successful send; the detection state (last_seen_state / miss_count) is
+      // persisted regardless of delivery. Previously, when an alert triggered
+      // but the email failed, updateData was dropped entirely, so the next cron
+      // run re-detected the same event and re-alerted on every single run — a
+      // re-alert storm that also burned the email quota.
       if (triggered) {
         const emailSent = await sendEmailAlert(alert.contact, subject, message);
         if (emailSent) {
           updateData.is_active = false; // Mark inactive so it doesn't fire again immediately
-          await supabase
-            .from('network_alerts')
-            .update(updateData)
-            .eq('id', alert.id);
           triggeredCount++;
         }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await supabase
+          .from('network_alerts')
+          .update(updateData)
+          .eq('id', alert.id);
       }
     }
     
@@ -327,18 +328,31 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 401, { success: false, error: 'Unauthorized cron request' });
   }
 
-  try {
-    const mainnetCount = await checkNetworkAlerts('mainnet');
-    const testnetCount = await checkNetworkAlerts('testnet');
+  // Evaluate both networks independently: a mainnet RPC/Supabase failure must
+  // not prevent testnet alerts from being processed (previously they ran
+  // sequentially in one try block, so a mainnet throw starved testnet entirely).
+  const [mainnetResult, testnetResult] = await Promise.allSettled([
+    checkNetworkAlerts('mainnet'),
+    checkNetworkAlerts('testnet'),
+  ]);
 
-    return sendJson(res, 200, {
-      success: true,
-      alerts_triggered: {
-        mainnet: mainnetCount,
-        testnet: testnetCount
-      }
-    });
-  } catch (err) {
-    return sendJson(res, 500, { success: false, error: err.message });
-  }
+  const valueOf = (r) => (r.status === 'fulfilled' ? r.value : null);
+  const errorOf = (r) =>
+    r.status === 'rejected' ? String(r.reason?.message || r.reason) : undefined;
+
+  const errors = {
+    mainnet: errorOf(mainnetResult),
+    testnet: errorOf(testnetResult),
+  };
+  const bothFailed =
+    mainnetResult.status === 'rejected' && testnetResult.status === 'rejected';
+
+  return sendJson(res, bothFailed ? 500 : 200, {
+    success: !bothFailed,
+    alerts_triggered: {
+      mainnet: valueOf(mainnetResult),
+      testnet: valueOf(testnetResult),
+    },
+    ...(errors.mainnet || errors.testnet ? { errors } : {}),
+  });
 }

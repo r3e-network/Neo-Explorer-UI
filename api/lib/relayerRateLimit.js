@@ -33,6 +33,23 @@ function isValidIpCandidate(value) {
     return net.isIP(ip) !== 0;
 }
 
+function isRunningOnVercel() {
+    return Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+}
+
+// Default to trusting proxy headers when deployed on Vercel: there the platform
+// terminates the connection, so req.socket.remoteAddress is always the platform
+// proxy IP and every client collapses into ONE global rate-limit bucket — the
+// money endpoints' per-IP cap becomes useless (and self-DoS prone). Locally
+// (no VERCEL env) trustProxy stays false so a spoofed X-Forwarded-For cannot
+// bypass the limiter. RELAYER_TRUST_PROXY=0/1 always overrides the default.
+function resolveDefaultTrustProxy() {
+    const flag = String(process.env.RELAYER_TRUST_PROXY || '').trim();
+    if (flag === '1') return true;
+    if (flag === '0') return false;
+    return isRunningOnVercel();
+}
+
 function getClientIp(req, { trustProxy = false } = {}) {
     if (trustProxy) {
         const forwardedCandidates = [
@@ -332,7 +349,7 @@ async function enforceRelayerRateLimit({
     network,
     limiter = defaultLimiter,
     policy = null,
-    trustProxy = String(process.env.RELAYER_TRUST_PROXY || '').trim() === '1',
+    trustProxy = resolveDefaultTrustProxy(),
     nowMs = Date.now(),
 }) {
     const effectivePolicy = policy || resolveRateLimitPolicy(action);

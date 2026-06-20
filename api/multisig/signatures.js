@@ -117,7 +117,32 @@ module.exports = async function handler(req, res) {
 
     const placeholders = values.map((_, i) => `$${i + 1}`);
     const sql = `INSERT INTO multisig_signatures (${columns.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *`;
-    const { rows } = await query(sql, values);
+
+    // Race-safety net: the existence check above and this insert are not atomic,
+    // so two concurrent submissions from the same signer can both pass the check.
+    // With the UNIQUE(request_id, signer_address) constraint (migration 0001)
+    // the loser surfaces as a 23505 unique violation here; translate it into the
+    // same 409 (or honor overwrite by deleting + retrying once) instead of a 500.
+    let rows;
+    try {
+      ({ rows } = await query(sql, values));
+    } catch (insertErr) {
+      if (insertErr && insertErr.code === "23505") {
+        if (allowOverwrite) {
+          await query(
+            `DELETE FROM multisig_signatures WHERE request_id = $1 AND signer_address = $2`,
+            [requestId, verifiedWitness.signerAddress],
+          );
+          ({ rows } = await query(sql, values));
+        } else {
+          return res.status(409).json({
+            error: "Signature from this signer already exists for this request.",
+          });
+        }
+      } else {
+        throw insertErr;
+      }
+    }
 
     // Also merge signature metadata into the request params (for witness hydration)
     if (verifiedWitness.publicKey || verifiedWitness.invocationScript || normalizedWitness) {

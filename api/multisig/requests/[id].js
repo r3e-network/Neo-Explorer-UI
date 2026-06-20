@@ -121,27 +121,53 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      // `params` (which holds committee_pubkeys + unsigned_tx) and `unsigned_tx`
+      // define the proposal's identity and are the inputs governanceSignature.js
+      // trusts to derive the canonical committee. They are immutable after
+      // creation: allowing them through this same-origin, self-asserted-address
+      // path would let any logged-in visitor rewrite the committee set or the
+      // transaction being signed. Reject rather than silently ignore so a
+      // mistaken/malicious caller gets a clear error.
+      if (body.params !== undefined || body.unsigned_tx !== undefined || body.creator_address !== undefined) {
+        return res.status(400).json({
+          error: "params, unsigned_tx and creator_address are immutable after creation.",
+        });
+      }
+
       const sets = [];
       const values = [id];
 
       if (body.status !== undefined) {
-        values.push(body.status);
+        const status = String(body.status).trim();
+        if (!/^[a-z0-9_-]{1,32}$/i.test(status)) {
+          return res.status(400).json({ error: "Invalid status value." });
+        }
+        values.push(status);
         sets.push(`status = $${values.length}`);
       }
-      if (body.broadcast_tx_hash !== undefined) {
-        values.push(body.broadcast_tx_hash);
+      if (body.broadcast_tx_hash !== undefined && body.broadcast_tx_hash !== null) {
+        const txHash = String(body.broadcast_tx_hash).trim();
+        if (!/^0x[0-9a-f]{64}$/i.test(txHash)) {
+          return res.status(400).json({ error: "broadcast_tx_hash must be a 0x-prefixed 32-byte hex hash." });
+        }
+        values.push(txHash);
         sets.push(`broadcast_tx_hash = $${values.length}`);
       }
-      if (body.broadcast_at !== undefined) {
-        values.push(body.broadcast_at);
+      if (body.broadcast_at !== undefined && body.broadcast_at !== null) {
+        const ts = new Date(body.broadcast_at);
+        if (Number.isNaN(ts.getTime())) {
+          return res.status(400).json({ error: "broadcast_at must be a valid timestamp." });
+        }
+        values.push(ts.toISOString());
         sets.push(`broadcast_at = $${values.length}`);
       }
-      if (body.params !== undefined) {
-        values.push(JSON.stringify(body.params));
-        sets.push(`params = $${values.length}`);
-      }
       if (body.metadata !== undefined) {
-        values.push(JSON.stringify(body.metadata));
+        const metadataJson = JSON.stringify(body.metadata ?? {});
+        // Bound the size so metadata cannot be used as unbounded storage.
+        if (metadataJson.length > 8192) {
+          return res.status(400).json({ error: "metadata is too large (max 8KB)." });
+        }
+        values.push(metadataJson);
         sets.push(`metadata = $${values.length}`);
       }
 
