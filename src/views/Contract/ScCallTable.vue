@@ -64,7 +64,7 @@
                 </span>
               </td>
               <td class="table-cell">
-                {{ item.callFlags }}
+                <span class="text-sm text-mid">{{ item.callFlags || "—" }}</span>
               </td>
             </tr>
           </tbody>

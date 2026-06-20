@@ -24,6 +24,11 @@ function tryParseStateJson(value) {
   }
 }
 
+function normalizeCallFlags(value) {
+  const label = String(value ?? "").trim();
+  return label || "—";
+}
+
 /**
  * Contract Service - Neo3 合约相关 API 调用
  * @module services/contractService
@@ -75,7 +80,7 @@ export const contractService = createService(
               txid: r.txid,
               blockindex: r.block_index,
               method: r.first_event_name || "—",
-              callFlags: "",
+              callFlags: normalizeCallFlags(r.call_flags ?? r.callFlags),
               originSender: r.origin_sender || null,
             })),
             totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
@@ -113,7 +118,7 @@ export const contractService = createService(
                   txid: r.txid,
                   blockindex: r.block_index,
                   method: r.first_event_name || "—",
-                  callFlags: "",
+                  callFlags: normalizeCallFlags(r.call_flags ?? r.callFlags),
                   originSender: r.origin_sender || null,
                 })),
                 totalCount: Number.isFinite(authoritativeTxCount) && authoritativeTxCount > 0
@@ -157,7 +162,7 @@ export const contractService = createService(
             txid: row.txid,
             blockindex: row.block_index,
             method: row.event_name || "—",
-            callFlags: "",
+            callFlags: "—",
             originSender: null,
           });
           if (calls.length >= limit) break;

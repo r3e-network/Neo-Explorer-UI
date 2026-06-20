@@ -135,8 +135,8 @@ describe("contractService.getScCalls fallback chain", () => {
     getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
     getContractCallsMock.mockResolvedValueOnce({
       data: [
-        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
-        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", call_flags: "All", origin_sender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", callFlags: "ReadOnly", origin_sender: "Nbar" },
       ],
       paging: { total: 1234 },
     });
@@ -155,8 +155,8 @@ describe("contractService.getScCalls fallback chain", () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/contract_calls"))).toBe(false);
     expect(result).toEqual({
       result: [
-        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
-        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "All", originSender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "ReadOnly", originSender: "Nbar" },
       ],
       totalCount: 1234,
     });
@@ -167,8 +167,8 @@ describe("contractService.getScCalls fallback chain", () => {
 
   it("Source 2: returns rows from /rest/v1/contract_calls when explicitly enabled", async () => {
     const restRows = [
-      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", origin_sender: "Nfoo" },
-      { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", origin_sender: "Nbar" },
+      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", block_index: 100, first_event_name: "Transfer", call_flags: "All", origin_sender: "Nfoo" },
+      { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", block_index: 99, first_event_name: "Mint", callFlags: "ReadOnly", origin_sender: "Nbar" },
     ];
     getContractOverviewMock.mockResolvedValueOnce({ tx_count: 1234 });
     const fetchMock = vi.fn(async (url) => {
@@ -188,8 +188,8 @@ describe("contractService.getScCalls fallback chain", () => {
     );
     expect(result).toEqual({
       result: [
-        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "", originSender: "Nfoo" },
-        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "", originSender: "Nbar" },
+        { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 100, method: "Transfer", callFlags: "All", originSender: "Nfoo" },
+        { txid: "0x2222222222222222222222222222222222222222222222222222222222222222", blockindex: 99, method: "Mint", callFlags: "ReadOnly", originSender: "Nbar" },
       ],
       totalCount: 1234,
     });
@@ -223,7 +223,7 @@ describe("contractService.getScCalls fallback chain", () => {
 
     expect(getContractNotificationsMock).toHaveBeenCalled();
     expect(result.result).toEqual([
-      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 50, method: "Transfer", callFlags: "", originSender: "Nsender" },
+      { txid: "0x1111111111111111111111111111111111111111111111111111111111111111", blockindex: 50, method: "Transfer", callFlags: "—", originSender: "Nsender" },
     ]);
     expect(result.totalCount).toBe(99);
     expect(safeRpcListMock).not.toHaveBeenCalled();
