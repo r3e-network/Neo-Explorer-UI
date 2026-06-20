@@ -9,13 +9,24 @@
           Bk
         </div>
         <div class="min-w-0">
-          <router-link
-            :to="`/block-info/${block.hash}`"
-            :title="block.hash"
-            class="etherscan-link font-medium transition-colors"
-          >
-            #{{ formatNumber(block.index || 0) }}
-          </router-link>
+          <div class="flex min-w-0 items-center gap-1.5">
+            <router-link
+              :to="`/block-info/${block.hash}`"
+              :title="blockHeightTitle"
+              class="etherscan-link font-medium transition-colors"
+            >
+              #{{ formatNumber(block.index || 0) }}
+            </router-link>
+            <span
+              v-if="stateRootValidated"
+              class="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-status-success-bg text-[10px] leading-none text-status-success"
+              :title="stateRootValidationTitle"
+              :aria-label="stateRootValidationTitle"
+              role="img"
+            >
+              ✅
+            </span>
+          </div>
           <p class="mt-0.5 text-xs text-mid">
             {{ formatAge(block.timestamp) }}
           </p>
@@ -70,17 +81,6 @@
         </p>
         <p class="text-[10px] text-mid hidden md:block">{{ formatNumber(block.size || 0) }} B</p>
       </div>
-    </div>
-
-    <div v-if="stateRootValidated" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-      <router-link
-        :to="blockDetailTarget"
-        class="inline-flex items-center gap-1 rounded bg-status-success-bg px-2 py-0.5 font-semibold text-status-success transition-colors hover:underline"
-        :title="$t('homePage.miniValidatedStateRoot')"
-      >
-        <span aria-hidden="true">✅</span>
-        <span>{{ $t("homePage.miniValidatedStateRoot") }}</span>
-      </router-link>
     </div>
   </div>
 </template>
@@ -139,9 +139,12 @@ const validatorAddress = computed(() => {
   return validatorHintAddress.value;
 });
 
-const blockDetailTarget = computed(() => {
-  const blockIndex = props.block?.index ?? props.block?.block_index ?? props.block?.height;
-  return `/block-info/${blockIndex ?? props.block?.hash ?? ""}`;
+const stateRootValidationTitle = computed(() => t("homePage.miniValidatedStateRoot"));
+
+const blockHeightTitle = computed(() => {
+  const hash = String(props.block?.hash || "").trim();
+  if (!props.stateRootValidated) return hash;
+  return hash ? `${hash} · ${stateRootValidationTitle.value}` : stateRootValidationTitle.value;
 });
 
 const hasNamedValidatorIdentity = computed(() => {

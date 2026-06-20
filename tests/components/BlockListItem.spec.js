@@ -164,11 +164,13 @@ describe("BlockListItem", () => {
     expect(wrapper.text()).toContain("330 GAS");
   });
 
-  it("renders a validated state root badge when the block is covered by validation", () => {
+  it("renders a compact validated marker beside the block height", () => {
+    const blockHash = "0xvalidated-block";
     const wrapper = mount(BlockListItem, {
       props: {
         stateRootValidated: true,
         block: {
+          hash: blockHash,
           index: 103,
           timestamp: Date.now(),
           transactioncount: 1,
@@ -188,6 +190,14 @@ describe("BlockListItem", () => {
     });
 
     expect(wrapper.text()).toContain("✅");
-    expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.text()).not.toContain("homePage.miniValidatedStateRoot");
+
+    const heightLink = wrapper.find("a");
+    expect(heightLink.attributes("title")).toContain(blockHash);
+    expect(heightLink.attributes("title")).toContain("homePage.miniValidatedStateRoot");
+
+    const marker = wrapper.get('[role="img"]');
+    expect(marker.attributes("title")).toBe("homePage.miniValidatedStateRoot");
+    expect(marker.attributes("aria-label")).toBe("homePage.miniValidatedStateRoot");
   });
 });
