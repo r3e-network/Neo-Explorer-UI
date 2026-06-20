@@ -160,6 +160,20 @@ async function handler(req, res) {
        return res.status(400).json({ error: 'Network fee too high' });
     }
 
+    // Cap the DECLARED systemFee embedded in the client transaction. In Neo N3
+    // the sender (the sponsor, signer[0]) is charged the full declared SystemFee
+    // on-chain — unconsumed gas is burned, not refunded — so the simulation-based
+    // gasconsumed cap below is NOT sufficient on its own: an attacker can submit a
+    // cheap-to-execute claim/vote script (passing the script allowlist and the
+    // gasconsumed cap) while embedding an arbitrarily large systemFee that the
+    // sponsor then pays. The user already signed over this field, so it cannot be
+    // rewritten server-side without invalidating their witness; the only correct
+    // defense is to reject when it exceeds the cap. This bounds sponsor exposure
+    // to getMaxSystemFee() regardless of the simulated cost.
+    if (BigInt(String(transaction.systemFee || 0)) > getMaxSystemFee()) {
+       return res.status(400).json({ error: 'System fee too high' });
+    }
+
     // Sign the transaction with Sponsor — neon-js appends the sponsor's witness.
     transaction.sign(sponsorAccount, magic);
 
@@ -186,13 +200,13 @@ async function handler(req, res) {
 
     const fullySignedHex = transaction.serialize(true);
 
-    // Pre-broadcast simulation: learn the real on-chain gas consumption and
-    // reject before broadcast if it exceeds the sponsor cap or faults. This
-    // mirrors the relayer execute path and closes the previous gap where the
-    // sponsor paid whatever systemFee the client embedded in the tx (unlike
-    // relayer.js, sponsor had no simulation and no systemFee cap). We simulate
-    // the script under the same two signers so the AA/contract sees the
-    // realistic execution context.
+    // Pre-broadcast simulation: a secondary guard that learns the real on-chain
+    // gas consumption and rejects before broadcast if the script faults or its
+    // actual cost exceeds the cap. The declared systemFee is already bounded
+    // above (that is what the sponsor is actually charged); this additionally
+    // rejects transactions that would FAULT (wasting the networkFee) or whose
+    // genuine execution cost is anomalous. We simulate the script under the same
+    // two signers so the AA/contract sees the realistic execution context.
     let invokeRes;
     try {
       invokeRes = await callWithRpcEndpointFallback(normalizedNetwork, async (endpoint) => {
