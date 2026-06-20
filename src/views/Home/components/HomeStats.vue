@@ -125,7 +125,10 @@
                 <span v-else>{{ formatNumber(blockCount) }}</span>
                 <span
                   v-if="hasValidatedBlockHeight"
+                  data-testid="block-height-validated-badge"
                   class="inline-flex items-center rounded bg-status-success-bg px-2 py-0.5 text-xs font-semibold text-status-success"
+                  :title="blockHeightValidationTitle"
+                  :aria-label="blockHeightValidationTitle"
                 >
                   <span aria-hidden="true" class="mr-1">✅</span>
                   {{ $t("homePage.validatedBadge") }}
@@ -162,7 +165,10 @@
               </router-link>
               <span
                 v-if="hasValidatedStateRoot"
+                data-testid="state-root-validated-badge"
                 class="inline-flex items-center rounded bg-status-success-bg px-1.5 py-0.5 text-[11px] font-semibold text-status-success"
+                :title="validatedStateRootTitle"
+                :aria-label="validatedStateRootTitle"
               >
                 <span aria-hidden="true" class="mr-1">✅</span>
                 {{ $t("homePage.validatedBadge") }}
@@ -282,11 +288,23 @@ const displayedBlockHeight = computed(() => {
 const hasValidatedBlockHeight = computed(() => (
   hasValidatedStateRoot.value &&
   displayedBlockHeight.value !== null &&
-  displayedBlockHeight.value >= validatedStateRootHeight.value
+  displayedBlockHeight.value === validatedStateRootHeight.value
 ));
 
 const validatedStateRootLabel = computed(() => (
   validatedStateRootHeight.value !== null ? formatNumber(validatedStateRootHeight.value) : "--"
+));
+
+const validatedStateRootTitle = computed(() => (
+  validatedStateRootHeight.value !== null
+    ? `${t("homePage.miniValidatedStateRoot")} ${formatNumber(validatedStateRootHeight.value)}`
+    : t("homePage.miniValidatedStateRoot")
+));
+
+const blockHeightValidationTitle = computed(() => (
+  displayedBlockHeight.value !== null
+    ? `${t("homePage.miniValidatedStateRoot")} ${formatNumber(displayedBlockHeight.value)}`
+    : t("homePage.miniValidatedStateRoot")
 ));
 
 const validatedStateRootLink = computed(() => (

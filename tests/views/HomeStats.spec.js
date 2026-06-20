@@ -128,6 +128,8 @@ describe("HomeStats countdown refresh behavior", () => {
     expect(wrapper.text()).toContain("✅");
     expect(wrapper.text()).toContain("homePage.validatedBadge");
     expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.find('[data-testid="block-height-validated-badge"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="state-root-validated-badge"]').exists()).toBe(true);
     expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(2);
     wrapper.unmount();
   });
@@ -153,6 +155,35 @@ describe("HomeStats countdown refresh behavior", () => {
 
     expect(wrapper.text()).toContain("✅");
     expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.find('[data-testid="block-height-validated-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="state-root-validated-badge"]').exists()).toBe(true);
+    expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(1);
+    wrapper.unmount();
+  });
+
+  it("does not mark block height validated when the displayed height is ahead of the validated root", async () => {
+    const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
+    const wrapper = mount(HomeStats, {
+      props: {
+        blockCount: 13,
+        validatedStateRoot: {
+          validated: true,
+          validatedrootindex: 12,
+          roothash: "0xstate",
+        },
+      },
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          "router-link": { template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("✅");
+    expect(wrapper.text()).toContain("homePage.miniValidatedStateRoot");
+    expect(wrapper.find('[data-testid="block-height-validated-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="state-root-validated-badge"]').exists()).toBe(true);
     expect(wrapper.text().match(/homePage\.validatedBadge/g)?.length).toBe(1);
     wrapper.unmount();
   });
