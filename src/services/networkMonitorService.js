@@ -42,14 +42,15 @@ function normalizePrimaryNode(value) {
   return Number.isFinite(primary) && primary >= 0 ? primary : null;
 }
 
-async function enrichBlocksWithIndexerConsensus(rows) {
+async function enrichBlocksWithIndexerConsensus(rows, env) {
   if (!Array.isArray(rows) || rows.length === 0) return rows;
 
   try {
     const limit = Math.max(INDEXER_BLOCK_LOOKBACK, rows.length + 40);
     const payload = await indexerReadService.getBlocks(limit, 0, {
       forceRefresh: true,
-      timeoutMs: 2500,
+      network: env,
+      timeoutMs: 4500,
     });
     const indexerRows = Array.isArray(payload?.data) ? payload.data : [];
     if (indexerRows.length === 0) return rows;
@@ -155,7 +156,7 @@ export async function getLatestBlocks(env) {
   try {
     const data = await fetchMonitorJson(slug, "latest");
     const rows = Array.isArray(data) ? data : [];
-    const enrichedRows = await enrichBlocksWithIndexerConsensus(rows);
+    const enrichedRows = await enrichBlocksWithIndexerConsensus(rows, env);
     setCached(cacheKey, enrichedRows);
     return enrichedRows;
   } catch (err) {

@@ -51,6 +51,13 @@
             @retry="loadLatestData"
           />
         </div>
+        <div class="mt-4">
+          <BlockTimeChart
+            :blocks="blockTimeBlocks"
+            :loading="blockTimeLoading"
+            test-id="home-block-time-chart"
+          />
+        </div>
       </div>
     </section>
   </div>
@@ -65,10 +72,12 @@ import SearchBox from "@/components/common/SearchBox.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
+import BlockTimeChart from "@/components/common/BlockTimeChart.vue";
 import { blockService } from "@/services/blockService";
 import { transactionService } from "@/services/transactionService";
 import { searchService } from "@/services/searchService";
 import { indexerReadService } from "@/services/indexerReadService";
+import { getLatestBlocks as getNetworkLatestBlocks } from "@/services/networkMonitorService";
 import { statsService } from "@/services/statsService";
 import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness";
 import { usePriceCache } from "@/composables/usePriceCache";
@@ -97,6 +106,8 @@ const blockCount = ref(0);
 const txCount = ref(0);
 const latestBlocks = ref([]);
 const latestTxs = ref([]);
+const blockTimeBlocks = ref([]);
+const blockTimeLoading = ref(true);
 const validatedStateRoot = ref(null);
 const neoPrice = ref(0);
 const gasPrice = ref(0);
@@ -120,6 +131,7 @@ const HOMEPAGE_AGGREGATE_WAIT_MS = 2_200;
 const HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS = 1500;
 const HOMEPAGE_BLOCK_LIMIT = 6;
 const HOMEPAGE_TRANSACTION_LIMIT = 6;
+const BLOCK_TIME_CHART_LIMIT = 70;
 const blockDetailsByHash = new Map();
 
 function createLoadContext() {
@@ -143,6 +155,8 @@ function clearNetworkScopedHomeState() {
   clearTransferSummaries?.();
   latestBlocks.value = [];
   latestTxs.value = [];
+  blockTimeBlocks.value = [];
+  blockTimeLoading.value = true;
   validatedStateRoot.value = null;
   blockCount.value = 0;
   txCount.value = 0;
@@ -216,6 +230,139 @@ async function loadValidatedStateRoot(forceRefresh = false, context = null) {
     applyValidatedStateRoot(root);
   } catch (err) {
     if (import.meta.env.DEV) console.warn("Failed to load validated state root:", err);
+  }
+}
+
+function normalizeBlockTimeHeight(block = {}) {
+  const height = Number(block.height ?? block.index ?? block.block_index ?? block.blockindex);
+  return Number.isFinite(height) && height > 0 ? height : 0;
+}
+
+function normalizeBlockTimeTimestamp(block = {}) {
+  const raw = Number(block.timestamp ?? block.blocktime ?? block.time_ms ?? block.block_time_ms ?? block.time ?? 0);
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  return raw > 1e12 ? raw : raw * 1000;
+}
+
+function normalizeBlockTimeTxCount(block = {}, fallback = {}) {
+  const source = Array.isArray(block.tx)
+    ? block.tx.length
+    : block.tx ??
+      block.txcount ??
+      block.transactioncount ??
+      block.tx_count ??
+      block.transaction_count ??
+      fallback.tx ??
+      fallback.txcount ??
+      fallback.transactioncount ??
+      fallback.tx_count ??
+      fallback.transaction_count ??
+      0;
+  const count = Number(source);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function normalizeBlockTimePrimary(block = {}, fallback = {}) {
+  const primary = Number(block.primaryNode ?? block.primary_node ?? block.primary ?? fallback.primaryNode ?? fallback.primary_node ?? fallback.primary);
+  return Number.isFinite(primary) && primary >= 0 ? primary : null;
+}
+
+function normalizeBlockTimeRow(block = {}, fallback = {}) {
+  const height = normalizeBlockTimeHeight(block) || normalizeBlockTimeHeight(fallback);
+  if (!height) return null;
+
+  const timestampMs = normalizeBlockTimeTimestamp(block) || normalizeBlockTimeTimestamp(fallback);
+  const interval = Number(block.interval ?? fallback.interval ?? 0);
+  const primaryNode = normalizeBlockTimePrimary(block, fallback);
+  const nextConsensus =
+    block.nextConsensus ??
+    block.next_consensus ??
+    block.nextconsensus ??
+    fallback.nextConsensus ??
+    fallback.next_consensus ??
+    fallback.nextconsensus ??
+    "";
+
+  return {
+    ...fallback,
+    ...block,
+    height,
+    timestampMs,
+    time: timestampMs || block.time || fallback.time,
+    interval: Number.isFinite(interval) ? interval : 0,
+    tx: normalizeBlockTimeTxCount(block, fallback),
+    primaryNode,
+    primary_node: primaryNode,
+    primary: primaryNode ?? block.primary ?? fallback.primary,
+    nextConsensus,
+    next_consensus: nextConsensus,
+    nextconsensus: nextConsensus,
+  };
+}
+
+function mergeBlockTimeRows(...rowSets) {
+  const byHeight = new Map();
+  for (const rows of rowSets) {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const normalized = normalizeBlockTimeRow(row, byHeight.get(normalizeBlockTimeHeight(row)));
+      if (normalized?.height) {
+        byHeight.set(normalized.height, normalized);
+      }
+    }
+  }
+
+  return [...byHeight.values()]
+    .sort((a, b) => a.height - b.height)
+    .slice(-BLOCK_TIME_CHART_LIMIT);
+}
+
+function normalizeHomeBlockTimeRows(blocks = [], fallbackRows = []) {
+  const fallbackByHeight = new Map(
+    (Array.isArray(fallbackRows) ? fallbackRows : [])
+      .map((row) => [normalizeBlockTimeHeight(row), row])
+      .filter(([height]) => height > 0),
+  );
+  const rows = (Array.isArray(blocks) ? blocks : [])
+    .map((block) => normalizeBlockTimeRow(block, fallbackByHeight.get(normalizeBlockTimeHeight(block))))
+    .filter(Boolean)
+    .sort((a, b) => a.height - b.height);
+  const byHeight = new Map(rows.map((row) => [row.height, row]));
+
+  return rows.map((row) => {
+    const previous = byHeight.get(row.height - 1);
+    if (previous?.timestampMs && row.timestampMs) {
+      const interval = Math.max(0, (row.timestampMs - previous.timestampMs) / 1000);
+      return { ...row, interval };
+    }
+    return row;
+  });
+}
+
+function publishLatestBlockTimeFromHomeBlocks(blocks = []) {
+  const homeRows = normalizeHomeBlockTimeRows(blocks, blockTimeBlocks.value);
+  if (!homeRows.length) return;
+  blockTimeBlocks.value = mergeBlockTimeRows(blockTimeBlocks.value, homeRows);
+  blockTimeLoading.value = false;
+}
+
+async function loadBlockTimeChart(context = null) {
+  const requestContext = context || { generation: loadGeneration, network: resolveNetworkName() };
+  if (!blockTimeBlocks.value.length) {
+    blockTimeLoading.value = true;
+  }
+
+  try {
+    const rows = await getNetworkLatestBlocks(requestContext.network);
+    if (!isCurrentLoadContext(requestContext)) return;
+    const monitorRows = Array.isArray(rows) ? rows : [];
+    const homeRows = normalizeHomeBlockTimeRows(latestBlocks.value, monitorRows);
+    blockTimeBlocks.value = mergeBlockTimeRows(monitorRows, homeRows);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[HomePage] loadBlockTimeChart failed:", err);
+  } finally {
+    if (isCurrentLoadContext(requestContext)) {
+      blockTimeLoading.value = false;
+    }
   }
 }
 
@@ -433,6 +580,7 @@ async function loadLatestData(forceRefresh = false) {
 
     const requestOptions = { forceRefresh, network: context.network };
     void loadValidatedStateRoot(forceRefresh, context);
+    void loadBlockTimeChart(context);
     // First paint can use the hot Worker cache, but realtime/SSE refreshes
     // must bypass it. Otherwise the home cards can sit on a 15-30s old
     // aggregate payload while the chain is producing a block every ~3s.
@@ -554,6 +702,7 @@ async function loadLatestData(forceRefresh = false) {
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
           latestBlocks.value = nextBlocks;
         }
+        publishLatestBlockTimeFromHomeBlocks(nextBlocks);
 
         const latestHeight = extractHeightFromBlocks(nextBlocks);
         if (latestHeight > 0) {
@@ -771,6 +920,7 @@ async function hydrateLatestBlocks(blocks = [], requestOptions = {}, context = n
     const details = blockDetailsByHash.get(block.hash);
     return details ? { ...block, ...details } : block;
   });
+  publishLatestBlockTimeFromHomeBlocks(latestBlocks.value);
   updateTps();
 }
 

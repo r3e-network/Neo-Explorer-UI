@@ -247,97 +247,7 @@
       </div>
 
       <!-- Recent block activity -->
-      <div class="etherscan-card overflow-hidden">
-        <div class="card-header">
-          <div>
-            <h2 class="text-high text-base font-semibold">{{ $t("pages.networkStatus.blockTimeTitle") }}</h2>
-            <p class="text-low mt-1 text-xs">{{ $t("pages.networkStatus.blockTimeSubtitle") }}</p>
-          </div>
-        </div>
-        <div v-if="loading && latestBlocks.length === 0" class="space-y-2 p-4">
-          <Skeleton v-for="i in 8" :key="i" height="20px" />
-        </div>
-        <div v-else-if="!loading && latestBlocks.length === 0" class="p-6">
-          <EmptyState :message="$t('pages.networkStatus.noData')" />
-        </div>
-        <div v-else class="p-4">
-          <!-- Compact ASCII-style sparkline using flex bars, no chart lib -->
-          <div class="flex h-36 items-end gap-[2px] pt-8" :aria-label="$t('pages.networkStatus.blockTimeTitle')">
-            <button
-              v-for="(b, index) in latestBlocks"
-              :key="b.height"
-              type="button"
-              class="relative min-h-[7px] flex-1 appearance-none rounded-t-sm border-0 p-0 transition-[height,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950"
-              :class="blockBarClass(b)"
-              :style="{ height: blockBarHeight(b) }"
-              :aria-label="blockAriaLabel(b)"
-              @mouseenter="hoveredBlockHeight = b.height"
-              @mouseleave="hoveredBlockHeight = null"
-              @focus="focusedBlockHeight = b.height"
-              @blur="focusedBlockHeight = null"
-              @click="togglePinnedBlock(b)"
-            >
-              <span
-                v-if="isBlockActive(b)"
-                class="pointer-events-none absolute bottom-[calc(100%+0.5rem)] z-30 w-max max-w-[260px] rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-xs leading-relaxed text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                :class="blockTooltipPositionClass(index)"
-                role="tooltip"
-              >
-                <span class="block font-semibold text-high">#{{ formatNumber(b.height) }}</span>
-                <span class="mt-1 block">
-                  {{ $t("pages.networkStatus.blockInterval") }}:
-                  <span class="font-medium text-high">{{ formatSeconds(b.interval) }}</span>
-                </span>
-                <span class="block">
-                  {{ $t("pages.networkStatus.consensusNode") }}:
-                  <span class="font-medium text-high">{{ consensusNodeName(b) }}</span>
-                </span>
-                <span class="block">
-                  {{ $t("pages.networkStatus.primaryIndex") }}:
-                  <span class="font-medium text-high">{{ primaryNodeDisplay(b) }}</span>
-                </span>
-                <span class="block">
-                  {{ $t("pages.networkStatus.blockTxs") }}:
-                  <span class="font-medium text-high">{{ formatNumber(Number(b.tx) || 0) }}</span>
-                </span>
-              </span>
-            </button>
-          </div>
-          <div class="text-low mt-2 flex justify-between text-[10px] font-mono">
-            <span>#{{ formatNumber(latestBlocks[0]?.height) }}</span>
-            <span>#{{ formatNumber(latestBlocks[latestBlocks.length - 1]?.height) }}</span>
-          </div>
-          <div
-            v-if="inspectedBlock"
-            class="soft-divider mt-3 grid gap-3 border-t pt-3 text-xs sm:grid-cols-2 lg:grid-cols-4"
-          >
-            <div>
-              <div class="text-low font-semibold uppercase tracking-wider">
-                {{ $t("pages.networkStatus.inspectedBlock") }}
-              </div>
-              <div class="mt-1 font-mono text-sm font-semibold text-high">#{{ formatNumber(inspectedBlock.height) }}</div>
-            </div>
-            <div>
-              <div class="text-low font-semibold uppercase tracking-wider">
-                {{ $t("pages.networkStatus.blockInterval") }}
-              </div>
-              <div class="mt-1 text-sm font-semibold text-high">{{ formatSeconds(inspectedBlock.interval) }}</div>
-            </div>
-            <div>
-              <div class="text-low font-semibold uppercase tracking-wider">
-                {{ $t("pages.networkStatus.consensusNode") }}
-              </div>
-              <div class="mt-1 text-sm font-semibold text-high">{{ consensusNodeName(inspectedBlock) }}</div>
-            </div>
-            <div>
-              <div class="text-low font-semibold uppercase tracking-wider">
-                {{ $t("pages.networkStatus.primaryIndex") }}
-              </div>
-              <div class="mt-1 text-sm font-semibold text-high">{{ primaryNodeDisplay(inspectedBlock) }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BlockTimeChart :blocks="latestBlocks" :loading="loading" />
     </section>
   </div>
 </template>
@@ -348,11 +258,11 @@ import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
+import BlockTimeChart from "@/components/common/BlockTimeChart.vue";
 import { formatNumber } from "@/utils/explorerFormat";
 import { getNetworkHealth, getLatestBlocks } from "@/services/networkMonitorService";
 import { getIndexerHealthSnapshot } from "@/services/indexerStatusService";
 import { useNetworkChange } from "@/composables/useNetworkChange";
-import { useCommittee } from "@/composables/useCommittee";
 import { getCurrentEnv, NET_ENV } from "@/utils/env";
 
 function isTestnetEnv() {
@@ -366,41 +276,13 @@ const indexerLoading = ref(true);
 const health = ref({ online: 0, total: 0, tip: 0, healthy: false, seeds: [] });
 const latestBlocks = ref([]);
 const indexerSnapshot = ref(null);
-const hoveredBlockHeight = ref(null);
-const focusedBlockHeight = ref(null);
-const pinnedBlockHeight = ref(null);
 let pollTimer = null;
 
 const STALE_HEIGHT_WINDOW = 2;
-const HIGH_LATENCY_SECONDS = 5;
-const SEVERE_LATENCY_SECONDS = 8;
-
-const { getPrimaryNodeName } = useCommittee();
 
 function currentEnv() {
   return isTestnetEnv() ? "testnet" : "mainnet";
 }
-
-const maxInterval = computed(() => latestBlocks.value.reduce((m, b) => Math.max(m, b.interval || 0), 0));
-
-const activeBlockHeight = computed(() => hoveredBlockHeight.value ?? focusedBlockHeight.value ?? pinnedBlockHeight.value);
-
-const slowestBlock = computed(() => {
-  if (!latestBlocks.value.length) return null;
-  return latestBlocks.value.reduce((slowest, block) => {
-    if (!slowest) return block;
-    return Number(block.interval || 0) > Number(slowest.interval || 0) ? block : slowest;
-  }, null);
-});
-
-const inspectedBlock = computed(() => {
-  const height = activeBlockHeight.value;
-  if (height !== null && height !== undefined) {
-    const found = latestBlocks.value.find((block) => block.height === height);
-    if (found) return found;
-  }
-  return slowestBlock.value;
-});
 
 const avgBlockTime = computed(() => {
   if (!latestBlocks.value.length) return 0;
@@ -497,12 +379,6 @@ function formatPercent(value) {
   return `${(Math.max(0, Math.min(1, number)) * 100).toFixed(2)}%`;
 }
 
-function formatSeconds(value) {
-  const seconds = Number(value);
-  if (!Number.isFinite(seconds)) return "N/A";
-  return `${seconds.toFixed(seconds % 1 === 0 ? 0 : 2)}s`;
-}
-
 function formatDateTime(value) {
   const text = String(value || "").trim();
   if (!text) return "N/A";
@@ -523,64 +399,6 @@ function formatServerTiming(observation) {
     .filter(Boolean)
     .join(", ");
   return compact || displayValue(observation?.serverTiming);
-}
-
-function primaryNodeIndex(block) {
-  const candidates = [block?.primaryNode, block?.primary_node, block?.primary];
-  for (const candidate of candidates) {
-    const numeric = Number(candidate);
-    if (Number.isFinite(numeric) && numeric >= 0) return numeric;
-  }
-  return null;
-}
-
-function consensusNodeName(block) {
-  const primary = primaryNodeIndex(block);
-  if (primary === null) return t("pages.networkStatus.unknownConsensusNode");
-  return getPrimaryNodeName(primary, block?.nextConsensus || block?.next_consensus) || t("pages.networkStatus.unknownConsensusNode");
-}
-
-function primaryNodeDisplay(block) {
-  const primary = primaryNodeIndex(block);
-  return primary === null ? "N/A" : String(primary);
-}
-
-function blockBarHeight(block) {
-  const denominator = Math.max(maxInterval.value, 1);
-  const height = Math.min(100, (Number(block?.interval || 0) / denominator) * 100);
-  return `${Math.max(5, height)}%`;
-}
-
-function blockBarClass(block) {
-  const interval = Number(block?.interval) || 0;
-  if (isBlockActive(block)) return "bg-primary-500 shadow-[0_0_0_2px_rgba(14,165,233,0.28)]";
-  if (interval >= SEVERE_LATENCY_SECONDS) return "bg-red-500/80 hover:bg-red-500";
-  if (interval >= HIGH_LATENCY_SECONDS) return "bg-amber-400/80 hover:bg-amber-400";
-  return "bg-emerald-500/75 hover:bg-emerald-500";
-}
-
-function blockAriaLabel(block) {
-  return [
-    `#${formatNumber(block?.height)}`,
-    `${t("pages.networkStatus.blockInterval")} ${formatSeconds(block?.interval)}`,
-    `${t("pages.networkStatus.consensusNode")} ${consensusNodeName(block)}`,
-    `${t("pages.networkStatus.primaryIndex")} ${primaryNodeDisplay(block)}`,
-    `${t("pages.networkStatus.blockTxs")} ${formatNumber(Number(block?.tx) || 0)}`,
-  ].join(", ");
-}
-
-function isBlockActive(block) {
-  return activeBlockHeight.value !== null && activeBlockHeight.value !== undefined && block?.height === activeBlockHeight.value;
-}
-
-function togglePinnedBlock(block) {
-  pinnedBlockHeight.value = pinnedBlockHeight.value === block?.height ? null : block?.height;
-}
-
-function blockTooltipPositionClass(index) {
-  if (index < 8) return "left-0";
-  if (index > latestBlocks.value.length - 9) return "right-0";
-  return "left-1/2 -translate-x-1/2";
 }
 
 async function refresh() {

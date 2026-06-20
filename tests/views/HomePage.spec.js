@@ -26,6 +26,7 @@ const getIndexerHome = vi.fn();
 const getIndexerSummary = vi.fn();
 const getIndexerBlocks = vi.fn();
 const getIndexerTransactions = vi.fn();
+const getNetworkLatestBlocks = vi.fn();
 const getDailyAnalytics = vi.fn();
 const search = vi.fn();
 const fetchPrices = vi.fn();
@@ -75,6 +76,10 @@ vi.mock("@/services/indexerReadService", () => ({
   },
 }));
 
+vi.mock("@/services/networkMonitorService", () => ({
+  getLatestBlocks: getNetworkLatestBlocks,
+}));
+
 vi.mock("@/services/searchService", () => ({
   searchService: {
     search,
@@ -107,6 +112,7 @@ vi.mock("@/composables/useRealtimeHead", () => ({
 vi.mock("@/composables/useCommittee", () => ({
   useCommittee: () => ({
     loadCommittee: loadCommitteeMock,
+    getPrimaryNodeName: vi.fn((index) => `Validator ${index}`),
   }),
 }));
 
@@ -187,6 +193,16 @@ function makeFreshSummary(totalBlocks = 13) {
   };
 }
 
+function makeBlockTimeRows(count = 14, startHeight = 24) {
+  return Array.from({ length: count }, (_, offset) => ({
+    height: startHeight - offset,
+    interval: offset % 7 === 0 ? 8.25 : 3,
+    tx: offset % 3,
+    primaryNode: offset % 7,
+    nextConsensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+  }));
+}
+
 describe("HomePage initial loading", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -203,6 +219,7 @@ describe("HomePage initial loading", () => {
     getIndexerSummary.mockResolvedValue(makeFreshSummary());
     getIndexerBlocks.mockResolvedValue(makeIndexerBlocks());
     getIndexerTransactions.mockResolvedValue(makeIndexerTransactions());
+    getNetworkLatestBlocks.mockResolvedValue(makeBlockTimeRows());
     getDailyAnalytics.mockResolvedValue([]);
 
     // Fallback services default to empty (should not be called when indexer works)
@@ -261,9 +278,63 @@ describe("HomePage initial loading", () => {
       expect.objectContaining({ network: "mainnet" }),
     );
     expect(getIndexerSummary).toHaveBeenCalledWith(expect.objectContaining({ network: "mainnet" }));
+    expect(getNetworkLatestBlocks).toHaveBeenCalledWith("mainnet");
+    expect(wrapper.get('[data-testid="home-block-time-chart"]').text()).toContain("pages.networkStatus.blockTimeTitle");
     // Should not fall back to RPC when indexer succeeds
     expect(getBlockList).not.toHaveBeenCalled();
     expect(getTxList).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("places the block time chart below the latest blocks and transactions lists", async () => {
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const blocks = wrapper.get('[data-testid="latest-blocks"]').element;
+    const txs = wrapper.get('[data-testid="latest-txs"]').element;
+    const chart = wrapper.get('[data-testid="home-block-time-chart"]').element;
+    expect(blocks.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(txs.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(wrapper.findAll('[data-testid="home-block-time-chart"] button').length).toBeGreaterThanOrEqual(HOMEPAGE_BLOCK_LIMIT);
+    wrapper.unmount();
+  });
+
+  it("advances the block time chart from latest blocks before the full chart window resolves", async () => {
+    getNetworkLatestBlocks.mockReturnValueOnce(new Promise(() => {}));
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const labels = wrapper
+      .findAll('[data-testid="home-block-time-chart"] button[aria-label]')
+      .map((button) => button.attributes("aria-label"));
+    expect(labels.length).toBe(HOMEPAGE_BLOCK_LIMIT);
+    expect(labels.some((label) => label.startsWith("#12,"))).toBe(true);
+    expect(labels.some((label) => label.includes("Interval 15s"))).toBe(true);
     wrapper.unmount();
   });
 
