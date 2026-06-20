@@ -31,11 +31,18 @@ vi.mock("@/services/walletService", () => ({
   },
 }));
 
-vi.mock("@/utils/env", () => ({
-  getRpcClientUrl: () => "http://rpc.test",
-  getCurrentEnv: () => envState.value,
-  NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
-}));
+vi.mock("@/utils/env", async (importOriginal) => {
+  // Preserve the real exports (NET_ENV, resolveNetworkName, …) so transitively
+  // imported utils like timeFormat/explorerFormat keep working; override only
+  // the two functions this test drives.
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRpcClientUrl: () => "http://rpc.test",
+    getCurrentEnv: () => envState.value,
+    NETWORK_CHANGE_EVENT: "neo-explorer-network-change",
+  };
+});
 
 vi.mock("@/utils/rpcEndpoints", () => ({
   toNetworkMode: (value) =>

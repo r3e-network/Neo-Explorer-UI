@@ -20,6 +20,7 @@ describe("useLoadMore fresh query integration", () => {
       result: [{ hash: options.forceRefresh ? "fresh-next" : "cached-next" }],
       totalCount: 20,
     }));
+    const expectedHash = "cached-next"; // load-more now routes through the cache
     const pagination = {
       items: ref([{ hash: "existing" }]),
       currentPage: ref(1),
@@ -38,16 +39,16 @@ describe("useLoadMore fresh query integration", () => {
 
     expect(fetchFreshQueryMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        forceRefresh: true,
+        forceRefresh: false,
         queryKey: ["load-more", 10, 10],
         source: "test-load-more",
         staleTime: 9_000,
       }),
     );
     expect(fetchPage).toHaveBeenCalledWith(10, 10, {
-      forceRefresh: true,
+      forceRefresh: false,
       network: "mainnet",
     });
-    expect(pagination.items.value).toEqual([{ hash: "existing" }, { hash: "fresh-next" }]);
+    expect(pagination.items.value).toEqual([{ hash: "existing" }, { hash: expectedHash }]);
   });
 });

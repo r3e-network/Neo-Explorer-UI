@@ -38,7 +38,13 @@ export function useLoadMore(
 
     const myId = ++requestId;
     const requestNetwork = resolveNetworkName();
-    const requestOptions = { forceRefresh: true, network: requestNetwork };
+    // Load-more pages are append-only historical rows (older blocks/txs) that
+    // rarely change, and overlapping rows are already de-duplicated below. They
+    // should therefore hit the shared TanStack cache instead of forcing a
+    // refresh on every click — forcing it defeated the point of routing through
+    // the query layer (re-fetching identical pages on every re-click /
+    // back-forward). Caching is safe here.
+    const requestOptions = { forceRefresh: false, network: requestNetwork };
     loadingMore.value = true;
     const nextPage = currentPage.value + 1;
     const skip = (nextPage - 1) * pageSize.value;
@@ -46,7 +52,7 @@ export function useLoadMore(
     try {
       const res = queryKeyFn
         ? await fetchFreshQuery({
-            forceRefresh: true,
+            forceRefresh: false,
             queryKey: queryKeyFn(pageSize.value, skip, { ...requestOptions, page: nextPage }),
             queryFn: ({ forceRefresh }) => fetchFn(pageSize.value, skip, { ...requestOptions, forceRefresh }),
             source: querySource,

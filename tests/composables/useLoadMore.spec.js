@@ -21,14 +21,16 @@ describe("useLoadMore", () => {
   });
 
   describe("loadMore()", () => {
-    it("calls fetchFn with correct pageSize, skip, and forceRefresh", async () => {
+    it("calls fetchFn with correct pageSize, skip, and cache-friendly forceRefresh:false", async () => {
       const fetchFn = vi.fn().mockResolvedValue({ result: ["a"], totalCount: 50 });
       const pagination = makePagination({ currentPage: ref(2), pageSize: ref(10) });
       const { loadMore } = useLoadMore(fetchFn, pagination);
 
       await loadMore();
+      // Load-more pages are append-only history: they hit the shared cache
+      // rather than forcing a refresh on every click.
       expect(fetchFn).toHaveBeenCalledWith(10, 20, {
-        forceRefresh: true,
+        forceRefresh: false,
         network: "mainnet",
       });
     });

@@ -565,16 +565,16 @@
             </button>
           </div>
           <div class="p-6 space-y-6">
-            <div>
-              <p class="text-xs font-bold text-low uppercase tracking-wider mb-2">
-                {{ $t("tools.multisig.unsignedPayloadHex") }}
-              </p>
-              <div
-                class="p-3 bg-surface-muted rounded-xl border border-line-soft font-mono text-[10px] break-all text-mid overflow-y-auto max-h-32 shadow-inner"
-              >
-                {{ signModalReq.params?.unsigned_tx }}
-              </div>
-            </div>
+            <!-- WYSIWYS: show the DECODED transaction (script, signers, fees,
+                 intents) instead of only opaque hex. Signing raw hex blind is a
+                 phishing surface for in-app-key wallets (Web3Auth/WIF) that sign
+                 without an external wallet prompt. The viewer still exposes the
+                 raw hex for advanced verification. -->
+            <UnsignedTransactionViewer
+              v-if="signModalReq.params?.unsigned_tx"
+              :transaction-hex="signModalReq.params.unsigned_tx"
+              :label="$t('tools.multisig.unsignedPayloadHex')"
+            />
 
             <div class="space-y-3">
               <label class="block text-sm font-bold text-high">{{ $t("tools.multisig.optionWallet") }}</label>
@@ -688,6 +688,7 @@ import { useFocusTrap } from "@/composables/useFocusTrap";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
+import UnsignedTransactionViewer from "@/components/trace/UnsignedTransactionViewer.vue";
 import { supabaseService } from "@/services/supabaseService";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
