@@ -31,6 +31,8 @@ const search = vi.fn();
 const fetchPrices = vi.fn();
 const startAutoRefresh = vi.fn();
 const useRealtimeHeadMock = vi.fn();
+const HOMEPAGE_BLOCK_LIMIT = 6;
+const HOMEPAGE_TRANSACTION_LIMIT = 8;
 const loadCommitteeMock = vi.hoisted(() => vi.fn());
 const { enrichTransactionsMock, transferSummaryByHashMock } = vi.hoisted(() => ({
   enrichTransactionsMock: vi.fn(),
@@ -147,7 +149,7 @@ const HomeStatsStub = defineComponent({
     '<div data-testid="home-stats" :data-block-count="String(blockCount)"><button data-testid="home-stats-fetch" @click="$emit(\'fetch-latest\')">refresh</button></div>',
 });
 
-function makeIndexerBlocks(count = 6, startIndex = 12) {
+function makeIndexerBlocks(count = HOMEPAGE_BLOCK_LIMIT, startIndex = 12) {
   return {
     data: Array.from({ length: count }, (_, offset) => ({
       hash: `0xidx-block-${startIndex - offset}`,
@@ -163,7 +165,7 @@ function makeIndexerBlocks(count = 6, startIndex = 12) {
   };
 }
 
-function makeIndexerTransactions(count = 6) {
+function makeIndexerTransactions(count = HOMEPAGE_TRANSACTION_LIMIT) {
   return {
     data: Array.from({ length: count }, (_, offset) => ({
       txid: `0xidx-tx-${offset}`,
@@ -249,11 +251,15 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe(String(HOMEPAGE_BLOCK_LIMIT));
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-validated-root")).toBe("12");
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
-    expect(getIndexerBlocks).toHaveBeenCalled();
-    expect(getIndexerTransactions).toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe(String(HOMEPAGE_TRANSACTION_LIMIT));
+    expect(getIndexerBlocks).toHaveBeenCalledWith(HOMEPAGE_BLOCK_LIMIT, 0, expect.objectContaining({ network: "mainnet" }));
+    expect(getIndexerTransactions).toHaveBeenCalledWith(
+      HOMEPAGE_TRANSACTION_LIMIT,
+      0,
+      expect.objectContaining({ network: "mainnet" }),
+    );
     expect(getIndexerSummary).toHaveBeenCalledWith(expect.objectContaining({ network: "mainnet" }));
     // Should not fall back to RPC when indexer succeeds
     expect(getBlockList).not.toHaveBeenCalled();
@@ -281,8 +287,8 @@ describe("HomePage initial loading", () => {
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
-    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe(String(HOMEPAGE_BLOCK_LIMIT));
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe(String(HOMEPAGE_TRANSACTION_LIMIT));
     wrapper.unmount();
   });
 
@@ -290,8 +296,8 @@ describe("HomePage initial loading", () => {
     getIndexerHome.mockResolvedValueOnce({
       network: "mainnet",
       summary: makeFreshSummary(13),
-      latest_blocks: makeIndexerBlocks(6, 12).data,
-      latest_transactions: makeIndexerTransactions(6).data,
+      latest_blocks: makeIndexerBlocks(HOMEPAGE_TRANSACTION_LIMIT, 12).data,
+      latest_transactions: makeIndexerTransactions().data,
       paging: {
         blocks_total: 13,
         transactions_total: 999,
@@ -313,10 +319,10 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe(String(HOMEPAGE_BLOCK_LIMIT));
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe(String(HOMEPAGE_TRANSACTION_LIMIT));
     expect(wrapper.get('[data-testid="home-stats"]').attributes("data-block-count")).toBe("13");
-    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+    expect(getIndexerHome).toHaveBeenCalledWith(HOMEPAGE_TRANSACTION_LIMIT, {
       forceRefresh: false,
       network: "mainnet",
     });
@@ -331,7 +337,7 @@ describe("HomePage initial loading", () => {
       network: "mainnet",
       summary: makeFreshSummary(11),
       latest_blocks: makeIndexerBlocks(6, 10).data,
-      latest_transactions: makeIndexerTransactions(6).data,
+      latest_transactions: makeIndexerTransactions().data,
       paging: {
         blocks_total: 11,
         transactions_total: 999,
@@ -379,7 +385,7 @@ describe("HomePage initial loading", () => {
       network: "mainnet",
       summary: makeFreshSummary(13),
       latest_blocks: blocks,
-      latest_transactions: makeIndexerTransactions(6).data,
+      latest_transactions: makeIndexerTransactions().data,
       paging: {
         blocks_total: 13,
         transactions_total: 999,
@@ -422,7 +428,7 @@ describe("HomePage initial loading", () => {
       network: "mainnet",
       summary: makeFreshSummary(13),
       latest_blocks: blocks,
-      latest_transactions: makeIndexerTransactions(6).data,
+      latest_transactions: makeIndexerTransactions().data,
       paging: {
         blocks_total: 13,
         transactions_total: 999,
@@ -612,7 +618,7 @@ describe("HomePage initial loading", () => {
         network: "mainnet",
         summary: makeFreshSummary(13),
         latest_blocks: makeIndexerBlocks(6, 12).data,
-        latest_transactions: makeIndexerTransactions(6).data,
+        latest_transactions: makeIndexerTransactions().data,
         paging: {
           blocks_total: 13,
           transactions_total: 999,
@@ -622,7 +628,7 @@ describe("HomePage initial loading", () => {
         network: "mainnet",
         summary: makeFreshSummary(14),
         latest_blocks: makeIndexerBlocks(6, 13).data,
-        latest_transactions: makeIndexerTransactions(6).data,
+        latest_transactions: makeIndexerTransactions().data,
         paging: {
           blocks_total: 14,
           transactions_total: 1000,
@@ -644,7 +650,7 @@ describe("HomePage initial loading", () => {
 
     await flushPromises();
 
-    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+    expect(getIndexerHome).toHaveBeenCalledWith(HOMEPAGE_TRANSACTION_LIMIT, {
       forceRefresh: false,
       network: "mainnet",
     });
@@ -653,7 +659,7 @@ describe("HomePage initial loading", () => {
     realtimeCallback({ index: 13, network: "mainnet" });
     await flushPromises();
 
-    expect(getIndexerHome).toHaveBeenCalledWith(6, {
+    expect(getIndexerHome).toHaveBeenCalledWith(HOMEPAGE_TRANSACTION_LIMIT, {
       forceRefresh: true,
       network: "mainnet",
     });
@@ -684,7 +690,7 @@ describe("HomePage initial loading", () => {
 
   it("keeps previous transactions when a refresh returns empty data", async () => {
     getIndexerTransactions
-      .mockResolvedValueOnce(makeIndexerTransactions(6))
+      .mockResolvedValueOnce(makeIndexerTransactions())
       .mockResolvedValueOnce({ data: [], paging: { total: 0 } });
     getTxList.mockResolvedValueOnce({ result: [], totalCount: 0 });
 
@@ -702,7 +708,9 @@ describe("HomePage initial loading", () => {
     });
 
     await flushPromises();
-    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-count")).toBe(
+      String(HOMEPAGE_TRANSACTION_LIMIT),
+    );
 
     // Trigger a refresh
     await wrapper.get('[data-testid="home-stats-fetch"]').trigger("click");

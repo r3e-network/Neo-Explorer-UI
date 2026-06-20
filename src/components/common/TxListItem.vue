@@ -1,5 +1,5 @@
 <template>
-  <div class="list-row border-b px-4 py-3">
+  <div class="list-row min-h-[64px] border-b px-4 py-3">
     <div class="flex items-center justify-between gap-4">
       <div class="flex min-w-0 items-center gap-3">
         <!-- Tx circle icon -->

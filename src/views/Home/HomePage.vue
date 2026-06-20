@@ -35,7 +35,7 @@
     <!-- Latest Blocks + Latest Transactions -->
     <section class="page-shell">
       <div class="page-container py-1">
-        <div class="grid gap-4 lg:grid-cols-2">
+        <div class="grid items-start gap-4 lg:grid-cols-2">
           <LatestBlocks
             :blocks="latestBlocks"
             :loading="blocksLoading"
@@ -118,6 +118,8 @@ let summaryGeneration = 0;
 const HOMEPAGE_REFRESH_INTERVAL_MS = 3_000;
 const HOMEPAGE_AGGREGATE_WAIT_MS = 2_200;
 const HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS = 1500;
+const HOMEPAGE_BLOCK_LIMIT = 6;
+const HOMEPAGE_TRANSACTION_LIMIT = 8;
 const blockDetailsByHash = new Map();
 
 function createLoadContext() {
@@ -430,9 +432,12 @@ async function loadLatestData(forceRefresh = false) {
     // below falls back to the older per-resource APIs.
     const homePayloadPromise = fetchFreshQuery({
       forceRefresh: aggregateRequestOptions.forceRefresh,
-      queryKey: createExplorerQueryKey("home.aggregate", { limit: 6, network: context.network }),
+      queryKey: createExplorerQueryKey("home.aggregate", { limit: HOMEPAGE_TRANSACTION_LIMIT, network: context.network }),
       queryFn: ({ forceRefresh: queryForceRefresh }) =>
-        indexerReadService.getExplorerHome(6, { forceRefresh: queryForceRefresh, network: context.network }),
+        indexerReadService.getExplorerHome(HOMEPAGE_TRANSACTION_LIMIT, {
+          forceRefresh: queryForceRefresh,
+          network: context.network,
+        }),
       source: "home.aggregate",
       staleTime: HOMEPAGE_REFRESH_INTERVAL_MS,
     }).catch(() => null);
@@ -455,7 +460,7 @@ async function loadLatestData(forceRefresh = false) {
       try {
         const homePayload = await fastHomePayloadPromise;
         const homeRows = Array.isArray(homePayload?.latest_blocks)
-          ? homePayload.latest_blocks.map(normalizeBlockSummary)
+          ? homePayload.latest_blocks.map(normalizeBlockSummary).slice(0, HOMEPAGE_BLOCK_LIMIT)
           : [];
         if (homeRows.length > 0) {
           return {
@@ -468,7 +473,7 @@ async function loadLatestData(forceRefresh = false) {
           };
         }
 
-        const indexerRes = await indexerReadService.getBlocks(6, 0, requestOptions);
+        const indexerRes = await indexerReadService.getBlocks(HOMEPAGE_BLOCK_LIMIT, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
           return {
@@ -479,7 +484,7 @@ async function loadLatestData(forceRefresh = false) {
       } catch {
         // single fallback to RPC
       }
-      return blockService.getList(6, 0, { ...requestOptions, enrichMissingFields: true });
+      return blockService.getList(HOMEPAGE_BLOCK_LIMIT, 0, { ...requestOptions, enrichMissingFields: true });
     };
 
     // Single server — fetch directly from indexer, one fallback to RPC.
@@ -487,7 +492,7 @@ async function loadLatestData(forceRefresh = false) {
       try {
         const homePayload = await fastHomePayloadPromise;
         const homeRows = Array.isArray(homePayload?.latest_transactions)
-          ? homePayload.latest_transactions.map(normalizeHomepageTransaction)
+          ? homePayload.latest_transactions.map(normalizeHomepageTransaction).slice(0, HOMEPAGE_TRANSACTION_LIMIT)
           : [];
         if (homeRows.length > 0) {
           return {
@@ -500,7 +505,7 @@ async function loadLatestData(forceRefresh = false) {
           };
         }
 
-        const indexerRes = await indexerReadService.getTransactions(6, 0, requestOptions);
+        const indexerRes = await indexerReadService.getTransactions(HOMEPAGE_TRANSACTION_LIMIT, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {
           return {
@@ -512,7 +517,7 @@ async function loadLatestData(forceRefresh = false) {
         // single fallback to RPC
       }
       try {
-        const txListRes = await transactionService.getList(6, 0, requestOptions);
+        const txListRes = await transactionService.getList(HOMEPAGE_TRANSACTION_LIMIT, 0, requestOptions);
         const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
         return {
           result: rows,
@@ -585,7 +590,7 @@ async function loadLatestData(forceRefresh = false) {
 
       // Keep list continuity during transient sparse RPC responses.
       if (!isCurrentLoadContext(context)) return;
-      const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, 6);
+      const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, HOMEPAGE_TRANSACTION_LIMIT);
       if (!initialRows.length && previousRows.length) {
         if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
           latestTxs.value = previousRows;
@@ -599,7 +604,7 @@ async function loadLatestData(forceRefresh = false) {
       if (initialRows.length) {
         const nonPendingInitial = initialRows.filter((tx) => tx.status !== "pending");
         if (nonPendingInitial.length) {
-          void enrichTransactions(nonPendingInitial, { maxItems: 6 });
+          void enrichTransactions(nonPendingInitial, { maxItems: HOMEPAGE_TRANSACTION_LIMIT });
         }
       }
 
