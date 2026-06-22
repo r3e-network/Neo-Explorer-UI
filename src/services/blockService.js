@@ -3,6 +3,8 @@ import { cachedRequest, getCacheKey, CACHE_TTL } from "./cache";
 import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { indexerReadService } from "./indexerReadService";
 import { getCurrentEnv, resolveNetworkName } from "../utils/env";
+import { indexerToBlockPage, toLegacyBlockView } from "../adapters/blocks";
+import { fetchWithPolicy } from "../adapters/source";
 
 /**
  * Detect "method not exposed" errors so we know when to fall back to a
@@ -265,26 +267,6 @@ export const blockService = createService(
       return res?.["total counts"] ?? res?.total ?? res?.index ?? res?.count ?? 0;
     },
 
-    // Map the indexer's snake_case BlockListItem to the legacy field names
-    // the existing block table renderers expect. Mirrors HomePage's
-    // normalizeBlockSummary.
-    _mapIndexerBlock(b = {}) {
-      const index = Number(b.index ?? b.block_index ?? b.blockindex ?? 0);
-      const txCount = normalizeBlockTxCount(b);
-      return {
-        ...b,
-        hash: b.hash || "",
-        index: Number.isFinite(index) ? index : 0,
-        timestamp: normalizeBlockTimestamp(b),
-        txcount: Number.isFinite(txCount) ? txCount : 0,
-        transactioncount: Number.isFinite(txCount) ? txCount : 0,
-        primary: b.primary ?? b.primary_node,
-        nextconsensus: b.nextconsensus ?? b.next_consensus,
-        speaker: b.speaker ?? b.nextconsensus ?? b.next_consensus,
-        prevhash: b.prevhash ?? b.previousblockhash ?? b.previous_block_hash,
-      };
-    },
-
     // Use standard `getblock` so block detail works directly against neo-go.
     async getByHeight(height, options = {}) {
       const cacheOpts = options;
@@ -505,25 +487,52 @@ export const blockService = createService(
       const res = await cachedRequest(
         key,
         async () => {
-          // Indexer first — same Mongo-to-Postgres pattern as #171.
-          try {
-            const [indexerRes, summary] = await Promise.all([
-              indexerReadService.getBlocks(limit, skip, cacheOpts),
-              indexerReadService.getSummary(cacheOpts).catch(() => null),
-            ]);
-            const rows = Array.isArray(indexerRes?.data) ? indexerRes.data : [];
-            if (rows.length > 0) {
-              const totalFromSummary = Number(summary?.total_block_count ?? summary?.last_indexed_block);
-              return {
-                result: rows.map(this._mapIndexerBlock),
-                totalCount: Number(
-                  indexerRes?.paging?.total
-                    ?? (Number.isFinite(totalFromSummary) && totalFromSummary > 0 ? totalFromSummary : skip + rows.length),
-                ),
-              };
-            }
-          } catch { /* fall through to empty state */ }
-          return { result: [], totalCount: 0 };
+          // Source precedence lives in the ACL policy now. Today there is a
+          // single source (the indexer, same Mongo-to-Postgres pattern as
+          // #171); the policy keeps the door open for additional sources
+          // without re-introducing inline try/catch fall-through. The block
+          // adapter is the only place snake_case/camelCase coalescing lives;
+          // `toLegacyBlockView` maps each canonical block back to the exact
+          // legacy field shape the block table renderers consume.
+          let summary = null;
+          // The page's own `total` substitutes items.length when the envelope
+          // omits paging.total; we want the original precedence
+          // (paging.total → summary → skip+rows.length), so capture the raw
+          // paging total separately rather than relying on the substituted
+          // page.total.
+          let pagingTotal = null;
+          const page = await fetchWithPolicy({
+            sources: [
+              {
+                name: "indexer",
+                fetch: async () => {
+                  const [indexerRes, indexerSummary] = await Promise.all([
+                    indexerReadService.getBlocks(limit, skip, cacheOpts),
+                    indexerReadService.getSummary(cacheOpts).catch(() => null),
+                  ]);
+                  summary = indexerSummary;
+                  pagingTotal = indexerRes?.paging?.total ?? null;
+                  return indexerRes;
+                },
+                adapt: indexerToBlockPage,
+              },
+            ],
+            emptyResult: { items: [], total: 0 },
+          }).catch(() => ({ items: [], total: 0 }));
+
+          const rows = Array.isArray(page?.items) ? page.items : [];
+          if (rows.length === 0) return { result: [], totalCount: 0 };
+
+          const totalFromSummary = Number(summary?.total_block_count ?? summary?.last_indexed_block);
+          const totalCount = Number(
+            pagingTotal
+              ?? (Number.isFinite(totalFromSummary) && totalFromSummary > 0 ? totalFromSummary : skip + rows.length),
+          );
+
+          return {
+            result: rows.map(toLegacyBlockView),
+            totalCount,
+          };
         },
         CACHE_TTL.chart,
         cacheOpts,

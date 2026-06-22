@@ -74,6 +74,7 @@ import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";
 import BlockTimeChart from "@/components/common/BlockTimeChart.vue";
 import { blockService } from "@/services/blockService";
+import { rpcToBlock, toHomeBlockView } from "@/adapters/blocks";
 import { transactionService } from "@/services/transactionService";
 import { searchService } from "@/services/searchService";
 import { indexerReadService } from "@/services/indexerReadService";
@@ -501,36 +502,13 @@ function mergeUniqueTransactions(primary = [], secondary = [], limit = 6) {
   return rows;
 }
 
+// Route block summaries through the shared blocks anti-corruption layer so
+// the snake_case/camelCase/legacy coalescing lives in exactly one place. The
+// canonical model is mapped back to the same legacy view this page produced
+// before (hash/index/timestamp/txcount/primary/sysfee/netfee/tx/consensus
+// aliases), so the rendered fields are unchanged.
 function normalizeBlockSummary(block = {}) {
-  const index = Number(block.index ?? block.blockindex ?? block.block_index ?? block.height ?? 0);
-  const txCount = Number(
-    block.txcount ??
-      block.transactioncount ??
-      block.txCount ??
-      block.transactionCount ??
-      block.tx_count ??
-      block.transaction_count ??
-      block.txs ??
-      (Array.isArray(block.tx) ? block.tx.length : 0),
-  );
-  const timestamp = Number(block.timestamp ?? block.blocktime ?? block.time ?? block.time_ms ?? 0);
-
-  return {
-    ...block,
-    hash: block.hash || block.blockhash || "",
-    index: Number.isFinite(index) ? index : 0,
-    timestamp: Number.isFinite(timestamp) ? timestamp : 0,
-    txcount: Number.isFinite(txCount) ? txCount : 0,
-    transactioncount: Number.isFinite(txCount) ? txCount : 0,
-    primary: block.primary ?? block.primary_node,
-    netfee: block.netfee ?? block.networkFee ?? block.net_fee ?? block.totalNetFee,
-    sysfee: block.sysfee ?? block.systemFee ?? block.sys_fee ?? block.totalSysFee,
-    tx: block.tx || [],
-    nextconsensus:
-      block.nextconsensus ?? block.nextConsensus ?? block.next_consensus ?? block.speaker ?? block.validator,
-    speaker: block.speaker ?? block.nextconsensus ?? block.nextConsensus ?? block.validator,
-    validator: block.validator ?? block.speaker ?? block.nextconsensus ?? block.nextConsensus,
-  };
+  return toHomeBlockView(rpcToBlock(block || {}));
 }
 
 function normalizeHomepageTransaction(tx = {}) {
