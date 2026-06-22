@@ -10,6 +10,10 @@ import { describe, expect, it } from "vitest";
 // signer control with a Neo message signature over the exact mutation payload.
 const handlerPath = path.resolve(process.cwd(), "api/multisig/requests/[id].js");
 const handlerSource = fs.readFileSync(handlerPath, "utf8");
+const replayLedgerRlsMigration = fs.readFileSync(
+  path.resolve(process.cwd(), "supabase/migrations/0003_multisig_mutation_used_rls.sql"),
+  "utf8",
+);
 
 describe("multisig PATCH field lockdown", () => {
   it("rejects mutation of params / unsigned_tx / creator_address", () => {
@@ -46,5 +50,11 @@ describe("multisig PATCH field lockdown", () => {
     expect(handlerSource).toMatch(/multisig_mutation_used/);
     expect(handlerSource).toMatch(/ON CONFLICT \(request_id, signature\) DO NOTHING/);
     expect(handlerSource).toMatch(/replay rejected/i);
+  });
+
+  it("keeps the replay ledger private from browser Supabase roles", () => {
+    expect(replayLedgerRlsMigration).toMatch(/enable row level security/i);
+    expect(replayLedgerRlsMigration).toMatch(/revoke all on table public\.multisig_mutation_used from anon/i);
+    expect(replayLedgerRlsMigration).toMatch(/revoke all on table public\.multisig_mutation_used from authenticated/i);
   });
 });
