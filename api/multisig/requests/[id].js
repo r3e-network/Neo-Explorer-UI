@@ -12,6 +12,14 @@ const {
 // replay within the window); generous enough to tolerate normal clock skew.
 const MUTATION_FRESHNESS_MS = Number(process.env.MULTISIG_MUTATION_FRESHNESS_MS) || 120_000;
 
+// Dependency seam for tests. This route lives at a bracketed Vercel filename
+// (`[id].js`) that the vitest/Vite module graph does not instrument, so its
+// CJS require()s cannot be intercepted with vi.mock. The handler therefore
+// calls through these mutable references, which tests can override via
+// module.exports._internal.setDepsForTests(). Production uses the real impls.
+let _query = query;
+let _verifyMutation = verifyMultisigMutationAuthorization;
+
 function cors(res) {
   // Tightened from `*`: only the explorer's own origins may call this endpoint
   // cross-origin. Same-origin SPA usage is unaffected.
@@ -66,7 +74,7 @@ module.exports = async function handler(req, res) {
 
       sql += ` GROUP BY r.id`;
 
-      const { rows } = await query(sql, params);
+      const { rows } = await _query(sql, params);
       if (!rows.length) {
         return res.status(404).json({ error: "Request not found." });
       }
@@ -102,7 +110,7 @@ module.exports = async function handler(req, res) {
           error: "signer_address is required to mutate a multisig request.",
         });
       }
-      const currentRow = await query(
+      const currentRow = await _query(
         `SELECT id, creator_address, network, network_mode, params FROM multisig_requests WHERE id = $1`,
         [id],
       );
@@ -199,7 +207,7 @@ module.exports = async function handler(req, res) {
 
       let verifiedAuth;
       try {
-        verifiedAuth = await verifyMultisigMutationAuthorization({
+        verifiedAuth = await _verifyMutation({
           signerAddress,
           publicKey: body.mutation_public_key || body.public_key,
           signature: body.mutation_signature || body.signature,
@@ -219,11 +227,11 @@ module.exports = async function handler(req, res) {
       // older than the freshness window (a stale signature is rejected above
       // regardless, so they are no longer needed).
       try {
-        await query(
+        await _query(
           `DELETE FROM multisig_mutation_used WHERE used_at < now() - ($1::bigint * interval '1 millisecond')`,
           [MUTATION_FRESHNESS_MS],
         );
-        const consumed = await query(
+        const consumed = await _query(
           `INSERT INTO multisig_mutation_used (request_id, signature, signer_address, signed_at)
            VALUES ($1, $2, $3, to_timestamp($4 / 1000.0))
            ON CONFLICT (request_id, signature) DO NOTHING
@@ -240,7 +248,7 @@ module.exports = async function handler(req, res) {
 
       sets.push("updated_at = now()");
       const sql = `UPDATE multisig_requests SET ${sets.join(", ")} WHERE id = $1 RETURNING *`;
-      const { rows } = await query(sql, values);
+      const { rows } = await _query(sql, values);
       if (!rows.length) {
         return res.status(404).json({ error: "Request not found." });
       }
@@ -252,4 +260,17 @@ module.exports = async function handler(req, res) {
     console.error("[api/multisig/requests/[id]]", err);
     return res.status(500).json({ error: "Internal error processing multisig request." });
   }
+};
+
+// Test-only dependency injection (see the seam comment above). Inert in
+// production — nothing calls these unless a test does.
+module.exports._internal = {
+  setDepsForTests(overrides = {}) {
+    if (overrides.query) _query = overrides.query;
+    if (overrides.verifyMutation) _verifyMutation = overrides.verifyMutation;
+  },
+  resetDepsForTests() {
+    _query = query;
+    _verifyMutation = verifyMultisigMutationAuthorization;
+  },
 };
