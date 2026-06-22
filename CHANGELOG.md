@@ -15,6 +15,7 @@ All notable changes to Neo Explorer UI will be documented in this file.
 
 ### Fixed
 
+- **Consensus missed alert height alignment**: `check_alerts.js` now derives the expected primary index from the latest block's own height (`latestBlock.index`/`height`) instead of the next `getblockcount` value, preventing one-block-off false positives/false resets for validator missed-round alerts.
 - **Blank-screen on bootstrap failure**: `main.js` now installs global `error`/`unhandledrejection` handlers *before* any async init (they previously ran only after `await initializeI18n()`), buffers early errors until telemetry is ready, wraps `bootstrap()` with chunk-reload recovery + a static fallback shell, and `i18n` falls back to English when a preferred-locale chunk fails instead of white-screening. `router.onError` now reports to telemetry and triggers chunk-reload recovery.
 - **Render-error containment**: added a reusable `ErrorBoundary` (`onErrorCaptured`) around the routed view, so a throw in one view shows a recoverable fallback instead of unmounting the whole app.
 - **MultiSig blind-signing**: the MultiSig signing modal now renders the decoded `UnsignedTransactionViewer` (script, signers, fees) instead of only opaque hex — WYSIWYS parity with the governance flow, reducing the phishing surface for in-app-key wallets.

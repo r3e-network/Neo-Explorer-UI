@@ -67,6 +67,21 @@ const postRpc = async (url, method, params = []) => {
 const rpcCall = (network, method, params = []) =>
   callWithRpcEndpointFallback(network, (url) => postRpc(url, method, params));
 
+function resolveLatestBlockHeight(blockCount, latestBlock) {
+  const explicitHeight = Number(latestBlock?.index ?? latestBlock?.height);
+  if (Number.isInteger(explicitHeight) && explicitHeight >= 0) return explicitHeight;
+  return blockCount - 1;
+}
+
+function expectedPrimaryIndexForBlock(blockHeight, validatorCount) {
+  const height = Number(blockHeight);
+  const count = Number(validatorCount);
+  if (!Number.isInteger(height) || height < 0 || !Number.isInteger(count) || count <= 0) {
+    return null;
+  }
+  return height % count;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -172,6 +187,7 @@ async function checkNetworkAlerts(network) {
       return 0;
     }
     const latestBlock = await rpcCall(network, 'getblock', [blockCount - 1, 1]);
+    const latestBlockHeight = resolveLatestBlockHeight(blockCount, latestBlock);
     // neo-go returns block.time in milliseconds (Neo N3 protocol), but historical neo-cli
     // returned seconds. Detect by magnitude (>1e12 ⇒ already ms) so the alert path is
     // robust across RPC providers instead of always assuming one unit.
@@ -199,7 +215,7 @@ async function checkNetworkAlerts(network) {
             <h2>Neo Network Alert</h2>
             <p>The Neo ${network} network has not generated a block for over <strong>${alert.threshold} seconds</strong>.</p>
             <p>Time since last block: ${Math.floor(timeSinceLastBlock / 1000)}s.</p>
-            <p>Last Block Height: ${blockCount - 1}</p>
+            <p>Last Block Height: ${latestBlockHeight}</p>
           `;
         }
       } 
@@ -224,16 +240,16 @@ async function checkNetworkAlerts(network) {
 
         // Only evaluate if the node is currently in the active validator set.
         if (nodeIndex !== -1) {
-          const expectedPrimaryIndex = blockCount % committee.length;
           const actualPrimaryIndex = latestBlock.primary;
           
           let currentMissCount = alert.miss_count || 0;
           const previousMissCount = currentMissCount;
           const missThreshold = Math.max(1, Number(alert.threshold) || 3);
           let lastSeenBlock = parseInt(alert.last_seen_state) || 0;
+          const expectedPrimaryIndex = expectedPrimaryIndexForBlock(latestBlockHeight, committee.length);
 
           // Only process if we haven't checked this block height yet
-          if (lastSeenBlock !== blockCount - 1) {
+          if (expectedPrimaryIndex !== null && lastSeenBlock !== latestBlockHeight) {
             // Did our target node miss its turn as primary?
             if (expectedPrimaryIndex === nodeIndex && actualPrimaryIndex !== nodeIndex) {
               currentMissCount++;
@@ -243,7 +259,7 @@ async function checkNetworkAlerts(network) {
             }
 
             // Save the state
-            updateData.last_seen_state = (blockCount - 1).toString();
+            updateData.last_seen_state = latestBlockHeight.toString();
             updateData.miss_count = currentMissCount;
 
             // Trigger only when crossing the threshold for this incident.
@@ -255,7 +271,7 @@ async function checkNetworkAlerts(network) {
               message = `
                 <h2>Consensus Node Alert</h2>
                 <p>The node with public key <strong>${escapeHtml(targetPubKey)}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
-                <p>Last Block Height: ${blockCount - 1}</p>
+                <p>Last Block Height: ${latestBlockHeight}</p>
               `;
             }
           }
@@ -333,7 +349,7 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (!isCronAuthorized(req)) {
     return sendJson(res, 401, { success: false, error: 'Unauthorized cron request' });
   }
@@ -366,3 +382,14 @@ module.exports = async function handler(req, res) {
     ...(errors.mainnet || errors.testnet ? { errors } : {}),
   });
 }
+
+handler._internal = {
+  checkNetworkAlerts,
+  expectedPrimaryIndexForBlock,
+  resolveLatestBlockHeight,
+  setSupabaseClientForTests(client) {
+    supabaseClient = client;
+  },
+};
+
+module.exports = handler;
