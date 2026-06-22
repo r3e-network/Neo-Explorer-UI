@@ -43,15 +43,22 @@ function buildMultisigMutationMessage({
   broadcastTxHash = "",
   broadcastAt = "",
   metadata = null,
+  signedAt = 0,
 } = {}) {
+  // `Signed At` (a client-supplied unix-ms timestamp) is part of the signed
+  // payload so the signature is bound to a moment in time. The server rejects
+  // stale timestamps and records the signature as single-use, which together
+  // prevent a captured mutation signature from being replayed to roll proposal
+  // state backward. v2 because adding this line changes the canonical message.
   return [
-    "Neo Explorer Multisig Mutation v1",
+    "Neo Explorer Multisig Mutation v2",
     `Request ID: ${Number(requestId) || 0}`,
     `Network: ${String(network || "").trim().toLowerCase()}`,
     `Status: ${String(status || "").trim()}`,
     `Broadcast TX: ${String(broadcastTxHash || "").trim().toLowerCase()}`,
     `Broadcast At: ${String(broadcastAt || "").trim()}`,
     `Metadata: ${stableStringify(metadata ?? null)}`,
+    `Signed At: ${Number(signedAt) || 0}`,
   ].join("\n");
 }
 
@@ -134,7 +141,9 @@ async function verifyMultisigMutationAuthorization({
     throw new Error("Signer is not authorized to mutate this proposal.");
   }
 
-  return { signerAddress: normalizedSigner, publicKey: signerPublicKey };
+  // Return the normalized signature so the caller can use it as a stable
+  // single-use key (base64 and hex forms of the same signature collapse here).
+  return { signerAddress: normalizedSigner, publicKey: signerPublicKey, signature: normalizedSignature };
 }
 
 module.exports = {

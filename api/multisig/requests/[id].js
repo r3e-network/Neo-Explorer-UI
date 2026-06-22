@@ -1,11 +1,16 @@
 const { query } = require("../../lib/db");
 const { enforceMultisigMutationPolicy } = require("../../lib/multisigMutations");
 const { enforceMutationSameOrigin } = require("../../lib/sameOriginGuard");
-const { resolveCommitteePubkeys } = require("../../lib/governanceSignature");
+const { resolveCommitteePubkeys, resolveRequestNetwork } = require("../../lib/governanceSignature");
 const {
   buildMultisigMutationMessage,
   verifyMultisigMutationAuthorization,
 } = require("../../lib/multisigMutationAuth");
+
+// How far a mutation signature's `Signed At` timestamp may be from server time.
+// Bounds the replay window for a not-yet-consumed signature (single-use closes
+// replay within the window); generous enough to tolerate normal clock skew.
+const MUTATION_FRESHNESS_MS = Number(process.env.MULTISIG_MUTATION_FRESHNESS_MS) || 120_000;
 
 function cors(res) {
   // Tightened from `*`: only the explorer's own origins may call this endpoint
@@ -166,17 +171,35 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: "No valid fields to update." });
       }
 
+      // Freshness: the signed message carries a client `Signed At` timestamp.
+      // Reject signatures that are stale (or from a badly-skewed clock) so a
+      // captured signature cannot be replayed indefinitely. Single-use (below)
+      // closes replay inside the window.
+      const signedAt = Number(body.mutation_signed_at) || 0;
+      if (!signedAt || Math.abs(Date.now() - signedAt) > MUTATION_FRESHNESS_MS) {
+        return res.status(401).json({
+          error: "Mutation signature is missing a fresh timestamp; re-sign and retry.",
+        });
+      }
+
       const mutationMessage = buildMultisigMutationMessage({
         requestId: id,
-        network: proposal.network || proposal.network_mode || "",
+        // Canonicalize the network the SAME way the client does
+        // (getNetworkMode -> toNetworkMode collapses aliases like "testt5" to
+        // "mainnet"/"testnet"). The raw proposal.network can be a non-canonical
+        // alias, which would make the server-built message diverge from the
+        // client-signed one and 403 every mutation on that proposal.
+        network: resolveRequestNetwork(proposal),
         status: statusValue || "",
         broadcastTxHash: txHashValue || "",
         broadcastAt: broadcastAtValue || "",
         metadata: metadataValue,
+        signedAt,
       });
 
+      let verifiedAuth;
       try {
-        await verifyMultisigMutationAuthorization({
+        verifiedAuth = await verifyMultisigMutationAuthorization({
           signerAddress,
           publicKey: body.mutation_public_key || body.public_key,
           signature: body.mutation_signature || body.signature,
@@ -188,6 +211,31 @@ module.exports = async function handler(req, res) {
         const message = authErr?.message || "Signer is not authorized to mutate this proposal.";
         const statusCode = /required|missing/i.test(message) ? 401 : 403;
         return res.status(statusCode).json({ error: message });
+      }
+
+      // Single-use: record the (request_id, signature) so a valid signature can
+      // never be applied twice. A conflict means this exact signature was
+      // already used — a replay — so reject it. Opportunistically prune entries
+      // older than the freshness window (a stale signature is rejected above
+      // regardless, so they are no longer needed).
+      try {
+        await query(
+          `DELETE FROM multisig_mutation_used WHERE used_at < now() - ($1::bigint * interval '1 millisecond')`,
+          [MUTATION_FRESHNESS_MS],
+        );
+        const consumed = await query(
+          `INSERT INTO multisig_mutation_used (request_id, signature, signer_address, signed_at)
+           VALUES ($1, $2, $3, to_timestamp($4 / 1000.0))
+           ON CONFLICT (request_id, signature) DO NOTHING
+           RETURNING request_id`,
+          [id, verifiedAuth.signature, verifiedAuth.signerAddress, signedAt],
+        );
+        if (!consumed.rows.length) {
+          return res.status(409).json({ error: "This mutation signature has already been used (replay rejected)." });
+        }
+      } catch (consumeErr) {
+        console.error("[api/multisig/requests/[id]] replay-guard insert failed:", consumeErr.message);
+        return res.status(500).json({ error: "Internal error processing multisig request." });
       }
 
       sets.push("updated_at = now()");

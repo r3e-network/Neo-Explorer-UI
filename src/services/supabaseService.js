@@ -499,6 +499,7 @@ const buildMultisigMutationAuth = async ({
   if (extras.mutation_signature || extras.signature) {
     return {
       mutation_signature: extras.mutation_signature || extras.signature,
+      ...(extras.mutation_signed_at ? { mutation_signed_at: extras.mutation_signed_at } : {}),
       ...(extras.mutation_public_key || extras.public_key
         ? { mutation_public_key: extras.mutation_public_key || extras.public_key }
         : {}),
@@ -508,6 +509,11 @@ const buildMultisigMutationAuth = async ({
   const normalizedSigner = String(signerAddress || "").trim();
   if (!normalizedSigner) return {};
 
+  // Bind the signature to a fresh timestamp so the server can reject stale
+  // signatures and record it as single-use (replay protection). Must be the
+  // same value sent as mutation_signed_at below.
+  const signedAt = Date.now();
+
   const mutationMessage = buildMultisigMutationMessage({
     requestId,
     network: getNetworkMode(network || extras.network || "mainnet"),
@@ -515,6 +521,7 @@ const buildMultisigMutationAuth = async ({
     broadcastTxHash: broadcastTxHash || "",
     broadcastAt: broadcastAt || "",
     metadata,
+    signedAt,
   });
 
   const { walletService } = await import("@/services/walletService");
@@ -535,6 +542,7 @@ const buildMultisigMutationAuth = async ({
 
   return {
     mutation_signature: signature,
+    mutation_signed_at: signedAt,
     ...(publicKey ? { mutation_public_key: publicKey } : {}),
   };
 };

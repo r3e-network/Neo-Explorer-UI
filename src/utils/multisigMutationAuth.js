@@ -17,15 +17,20 @@ export function buildMultisigMutationMessage({
   broadcastTxHash = "",
   broadcastAt = "",
   metadata = null,
+  signedAt = 0,
 } = {}) {
+  // Must stay byte-identical to api/lib/multisigMutationAuth.js. The `Signed At`
+  // line binds the signature to a timestamp so the server can reject stale
+  // signatures and enforce single-use, defeating mutation replay.
   return [
-    "Neo Explorer Multisig Mutation v1",
+    "Neo Explorer Multisig Mutation v2",
     `Request ID: ${Number(requestId) || 0}`,
     `Network: ${String(network || "").trim().toLowerCase()}`,
     `Status: ${String(status || "").trim()}`,
     `Broadcast TX: ${String(broadcastTxHash || "").trim().toLowerCase()}`,
     `Broadcast At: ${String(broadcastAt || "").trim()}`,
     `Metadata: ${stableStringify(metadata ?? null)}`,
+    `Signed At: ${Number(signedAt) || 0}`,
   ].join("\n");
 }
 
