@@ -54,6 +54,8 @@ describe("multisig PATCH field lockdown", () => {
 
   it("keeps the replay ledger private from browser Supabase roles", () => {
     expect(replayLedgerRlsMigration).toMatch(/enable row level security/i);
+    expect(replayLedgerRlsMigration).toMatch(/rolname = 'anon'/i);
+    expect(replayLedgerRlsMigration).toMatch(/rolname = 'authenticated'/i);
     expect(replayLedgerRlsMigration).toMatch(/revoke all on table public\.multisig_mutation_used from anon/i);
     expect(replayLedgerRlsMigration).toMatch(/revoke all on table public\.multisig_mutation_used from authenticated/i);
   });
