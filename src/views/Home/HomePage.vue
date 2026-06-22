@@ -133,6 +133,8 @@ const HOMEPAGE_VALIDATOR_IDENTITY_WAIT_MS = 1500;
 const HOMEPAGE_BLOCK_LIMIT = 6;
 const HOMEPAGE_TRANSACTION_LIMIT = 6;
 const BLOCK_TIME_CHART_LIMIT = 70;
+const MIN_BLOCK_TIME_INTERVAL_SECONDS = 0.5;
+const BLOCK_TIME_INTEGER_EPSILON_SECONDS = 0.01;
 const blockDetailsByHash = new Map();
 
 function createLoadContext() {
@@ -280,11 +282,20 @@ function normalizeBlockTimeInterval(block = {}, fallback = {}) {
 
   for (const candidate of candidates) {
     if (candidate === null || candidate === undefined || candidate === "") continue;
-    const interval = Number(candidate);
-    if (Number.isFinite(interval) && interval > 0) return interval;
+    const interval = normalizeUsableBlockTimeInterval(candidate);
+    if (interval !== null) return interval;
   }
 
   return null;
+}
+
+function normalizeUsableBlockTimeInterval(value) {
+  const interval = Number(value);
+  if (!Number.isFinite(interval) || interval < MIN_BLOCK_TIME_INTERVAL_SECONDS) return null;
+
+  const rounded = Math.round(interval);
+  if (Math.abs(interval - rounded) <= BLOCK_TIME_INTEGER_EPSILON_SECONDS) return rounded;
+  return Number(interval.toFixed(2));
 }
 
 function hasUsableBlockTimeInterval(row = {}) {
@@ -343,8 +354,8 @@ function mergeBlockTimeRows(...rowSets) {
       if (hasUsableBlockTimeInterval(row)) return row;
       const previous = sortedByHeight.get(row.height - 1);
       if (previous?.timestampMs && row.timestampMs) {
-        const interval = (row.timestampMs - previous.timestampMs) / 1000;
-        if (Number.isFinite(interval) && interval > 0) return { ...row, interval };
+        const interval = normalizeUsableBlockTimeInterval((row.timestampMs - previous.timestampMs) / 1000);
+        if (interval !== null) return { ...row, interval };
       }
       return row;
     })
@@ -367,8 +378,8 @@ function normalizeHomeBlockTimeRows(blocks = [], fallbackRows = []) {
   return rows.map((row) => {
     const previous = byHeight.get(row.height - 1);
     if (previous?.timestampMs && row.timestampMs) {
-      const interval = (row.timestampMs - previous.timestampMs) / 1000;
-      if (Number.isFinite(interval) && interval > 0) return { ...row, interval };
+      const interval = normalizeUsableBlockTimeInterval((row.timestampMs - previous.timestampMs) / 1000);
+      if (interval !== null) return { ...row, interval };
     }
     return row;
   });

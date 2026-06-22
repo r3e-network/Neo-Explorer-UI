@@ -117,11 +117,21 @@ const pinnedBlockHeight = ref(null);
 
 const HIGH_LATENCY_SECONDS = 5;
 const SEVERE_LATENCY_SECONDS = 8;
+const MIN_INTERVAL_SECONDS = 0.5;
+const INTEGER_INTERVAL_EPSILON_SECONDS = 0.01;
+
+function normalizeInterval(value) {
+  const interval = Number(value);
+  if (!Number.isFinite(interval) || interval < MIN_INTERVAL_SECONDS) return null;
+
+  const rounded = Math.round(interval);
+  if (Math.abs(interval - rounded) <= INTEGER_INTERVAL_EPSILON_SECONDS) return rounded;
+  return Number(interval.toFixed(2));
+}
 
 function normalizeBlock(block = {}) {
   const height = Number(block.height ?? block.index ?? block.block_index ?? block.blockindex);
   const rawInterval = block.interval ?? block.blockInterval ?? block.block_interval;
-  const interval = Number(rawInterval);
   const txSource = Array.isArray(block.tx)
     ? block.tx.length
     : block.tx ?? block.txcount ?? block.transactioncount ?? block.tx_count ?? block.transaction_count ?? 0;
@@ -129,7 +139,7 @@ function normalizeBlock(block = {}) {
   return {
     ...block,
     height: Number.isFinite(height) ? height : 0,
-    interval: Number.isFinite(interval) && interval > 0 ? interval : null,
+    interval: normalizeInterval(rawInterval),
     tx: Number.isFinite(tx) ? tx : 0,
   };
 }
