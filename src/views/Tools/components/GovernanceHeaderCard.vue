@@ -12,13 +12,6 @@
       class="mb-6 overflow-hidden rounded-[32px] border border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-xl shadow-amber-900/5 dark:border-amber-900/40 dark:from-amber-950/20 dark:via-slate-950 dark:to-slate-950"
     >
       <div class="relative p-6 md:p-8">
-        <div
-          class="pointer-events-none absolute -right-20 -top-12 h-56 w-56 rounded-full bg-amber-300/25 blur-3xl dark:bg-amber-500/10"
-        ></div>
-        <div
-          class="pointer-events-none absolute bottom-0 left-0 h-44 w-44 rounded-full bg-orange-300/10 blur-3xl dark:bg-orange-500/10"
-        ></div>
-
         <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
           <div>
             <div class="mb-4 flex flex-wrap items-center gap-2">

@@ -134,7 +134,7 @@
       <transition name="slide">
         <div
           v-show="mobileMenuOpen"
-          class="border-t border-white/10 dark:border-neo-green/10 bg-white/90 dark:bg-[#071520]/95 px-4 py-4 backdrop-blur-xl lg:hidden absolute w-full shadow-2xl"
+          class="absolute left-0 top-full z-50 max-h-[calc(100vh-7rem)] w-full overflow-y-auto border-t border-line-soft bg-white px-4 py-4 shadow-2xl dark:bg-[#071520] lg:hidden"
         >
           <div class="mb-4">
             <SearchBox mode="compact" @search="handleMobileSearch" />
@@ -697,12 +697,16 @@ onBeforeUnmount(() => {
 
 <style>
 .mobile-link {
-  @apply rounded-lg border border-white/20 px-2 py-2 text-center text-white/80 no-underline transition;
+  @apply rounded-lg border px-2 py-2 text-center text-sm font-semibold no-underline transition;
+  background: var(--surface-elevated);
+  border-color: var(--line-soft);
+  color: var(--text-high);
 }
 
 .mobile-link:hover {
-  @apply text-white;
-  background: rgba(255, 255, 255, 0.13);
+  background: var(--surface-hover);
+  border-color: var(--line-hover);
+  color: var(--link-hover);
 }
 
 .slide-enter-active,

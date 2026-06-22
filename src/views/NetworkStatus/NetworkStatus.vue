@@ -166,13 +166,13 @@
               </table>
             </div>
 
-            <div>
-              <div class="mb-2 flex items-center justify-between gap-3">
-                <div>
+            <div class="min-w-0">
+              <div class="mb-2 flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                <div class="min-w-0">
                   <h3 class="text-high text-sm font-semibold">{{ $t("pages.networkStatus.edgeDiagnosticsTitle") }}</h3>
                   <p class="text-low mt-0.5 text-xs">{{ $t("pages.networkStatus.edgeDiagnosticsSubtitle") }}</p>
                 </div>
-                <span class="text-low whitespace-nowrap text-xs">{{ $t("pages.networkStatus.checkedAt") }} {{ formatDateTime(indexerSnapshot.checkedAt) }}</span>
+                <span class="text-low text-xs sm:shrink-0 sm:whitespace-nowrap sm:text-right">{{ $t("pages.networkStatus.checkedAt") }} {{ formatDateTime(indexerSnapshot.checkedAt) }}</span>
               </div>
               <div v-if="recentIndexerObservations.length === 0" class="text-low text-sm">
                 {{ $t("pages.networkStatus.noEdgeData") }}
@@ -183,15 +183,15 @@
                   :key="`${observation.timestamp}-${observation.url}-${observation.requestId || observation.status}`"
                   class="soft-divider rounded-md border px-3 py-2"
                 >
-                  <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="max-w-full truncate font-mono text-xs text-high">{{ observation.url }}</span>
-                    <span class="text-low text-xs">{{ observation.status || "200" }}</span>
+                  <div class="flex min-w-0 items-center justify-between gap-2">
+                    <span class="min-w-0 flex-1 truncate font-mono text-xs text-high" :title="observation.url">{{ observation.url }}</span>
+                    <span class="text-low shrink-0 text-xs">{{ observation.status || "200" }}</span>
                   </div>
-                  <div class="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
-                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeCache") }}:</span> {{ displayValue(observation.neo3furaCache || observation.edgeCache) }}</span>
-                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeRequest") }}:</span> {{ displayValue(observation.requestId) }}</span>
-                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeTarget") }}:</span> {{ displayValue(observation.proxyTarget || observation.upstreamSource) }}</span>
-                    <span><span class="text-low">{{ $t("pages.networkStatus.edgeTiming") }}:</span> {{ formatServerTiming(observation) }}</span>
+                  <div class="mt-2 grid min-w-0 gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
+                    <span class="min-w-0 break-words"><span class="text-low">{{ $t("pages.networkStatus.edgeCache") }}:</span> {{ displayValue(observation.neo3furaCache || observation.edgeCache) }}</span>
+                    <span class="min-w-0 break-words"><span class="text-low">{{ $t("pages.networkStatus.edgeRequest") }}:</span> {{ displayValue(observation.requestId) }}</span>
+                    <span class="min-w-0 break-words"><span class="text-low">{{ $t("pages.networkStatus.edgeTarget") }}:</span> {{ displayValue(observation.proxyTarget || observation.upstreamSource) }}</span>
+                    <span class="min-w-0 break-words"><span class="text-low">{{ $t("pages.networkStatus.edgeTiming") }}:</span> {{ formatServerTiming(observation) }}</span>
                   </div>
                 </div>
               </div>
