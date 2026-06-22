@@ -38,6 +38,7 @@ async function resolveCanonicalCommittee(network) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getcommittee", params: [] }),
+      signal: AbortSignal.timeout(Number(process.env.RPC_FETCH_TIMEOUT_MS) || 4000),
     });
     if (!res.ok) throw new Error(`getcommittee HTTP ${res.status}`);
     const json = await res.json();

@@ -48,11 +48,16 @@ const getIndexedRpcCandidates = (network) => {
   ];
 };
 
+// Bound each RPC fetch so a hung/slow upstream cannot stall the whole cron and
+// actually advances callWithRpcEndpointFallback to the next endpoint.
+const ALERT_RPC_TIMEOUT_MS = Number(process.env.ALERT_RPC_TIMEOUT_MS) || 4000;
+
 const postRpc = async (url, method, params = []) => {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    signal: AbortSignal.timeout(ALERT_RPC_TIMEOUT_MS),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
@@ -88,6 +93,7 @@ const fetchLatestAccountTx = async (network, address) => {
     try {
       const res = await fetch(`${baseUrl}/accounts/${safeAddr}/transactions?limit=1&offset=0`, {
         headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(ALERT_RPC_TIMEOUT_MS),
       });
       if (!res.ok) continue;
       const json = await res.json();
