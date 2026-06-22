@@ -216,11 +216,14 @@ describe("supabaseService metadata", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(walletServiceMock.signMessage).toHaveBeenCalledWith(expect.stringContaining("Neo Explorer Multisig Mutation v1"));
-    expect(walletServiceMock.signMessage.mock.calls[0][0]).toContain("Network: testnet");
-    expect(walletServiceMock.signMessage.mock.calls[0][0]).toContain(
+    const signedMessage = walletServiceMock.signMessage.mock.calls[0][0];
+    expect(signedMessage).toContain("Neo Explorer Multisig Mutation v2");
+    expect(signedMessage).toContain("Network: testnet");
+    expect(signedMessage).toContain(
       'Metadata: {"broadcast_witness":{"invocationScript":"aa","verificationScript":"bb"},"reviewer":"ops"}',
     );
+    // Replay protection: the signed message carries a fresh timestamp.
+    expect(signedMessage).toMatch(/Signed At: \d+/);
     expect(fetch).toHaveBeenCalledWith(
       "/api/multisig/requests/42",
       expect.objectContaining({ method: "PATCH" }),
@@ -236,6 +239,9 @@ describe("supabaseService metadata", () => {
     });
     expect(body.mutation_signature).toBe("ab".repeat(64));
     expect(body.mutation_public_key).toBe(`02${"11".repeat(32)}`);
+    // The timestamp sent to the server must equal the one bound into the signed message.
+    expect(typeof body.mutation_signed_at).toBe("number");
+    expect(signedMessage).toContain(`Signed At: ${body.mutation_signed_at}`);
   });
 
   it("maps script-hash metadata rows back to the requested base58 address", async () => {

@@ -37,4 +37,14 @@ describe("multisig PATCH field lockdown", () => {
     expect(handlerSource).not.toMatch(/requireCommitteeSigner/);
     expect(handlerSource).toMatch(/resolveCommitteePubkeys/);
   });
+
+  it("enforces replay protection: signature freshness + single-use", () => {
+    // A fresh client timestamp is part of the signed payload and bounded server-side.
+    expect(handlerSource).toMatch(/mutation_signed_at/);
+    expect(handlerSource).toMatch(/MUTATION_FRESHNESS_MS/);
+    // Each accepted signature is recorded single-use; a replay is a 409.
+    expect(handlerSource).toMatch(/multisig_mutation_used/);
+    expect(handlerSource).toMatch(/ON CONFLICT \(request_id, signature\) DO NOTHING/);
+    expect(handlerSource).toMatch(/replay rejected/i);
+  });
 });
