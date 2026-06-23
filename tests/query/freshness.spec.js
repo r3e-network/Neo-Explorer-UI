@@ -1,12 +1,7 @@
 import { QueryClient } from "@tanstack/vue-query";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  clearFreshnessSnapshots,
-  createExplorerQueryKey,
-  fetchFreshQuery,
-  getFreshnessSnapshot,
-} from "@/query/freshness";
+import { createExplorerQueryKey, fetchFreshQuery } from "@/query/freshness";
 
 describe("frontend freshness query layer", () => {
   it("keeps stable query keys by network, scope, and sorted params", () => {
@@ -22,8 +17,7 @@ describe("frontend freshness query layer", () => {
     );
   });
 
-  it("uses TanStack Query cache for warm reads and records forced freshness refreshes", async () => {
-    clearFreshnessSnapshots();
+  it("uses the TanStack Query cache for warm reads and refetches on forceRefresh", async () => {
     const client = new QueryClient({
       defaultOptions: {
         queries: {
@@ -41,39 +35,16 @@ describe("frontend freshness query layer", () => {
       latest_blocks: [{ index: forceRefresh ? 100 : 99, hash: "0xblock" }],
     }));
 
-    await fetchFreshQuery({
-      client,
-      queryKey,
-      queryFn,
-      source: "home",
-      staleTime: 60_000,
-    });
-    await fetchFreshQuery({
-      client,
-      queryKey,
-      queryFn,
-      source: "home",
-      staleTime: 60_000,
-    });
+    await fetchFreshQuery({ client, queryKey, queryFn, staleTime: 60_000 });
+    const warm = await fetchFreshQuery({ client, queryKey, queryFn, staleTime: 60_000 });
 
     expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(warm.summary.last_indexed_block).toBe(100);
 
-    await fetchFreshQuery({
-      client,
-      queryKey,
-      queryFn,
-      source: "home",
-      staleTime: 60_000,
-      forceRefresh: true,
-    });
+    const refreshed = await fetchFreshQuery({ client, queryKey, queryFn, staleTime: 60_000, forceRefresh: true });
 
     expect(queryFn).toHaveBeenCalledTimes(2);
     expect(queryFn.mock.calls[1][0]).toMatchObject({ forceRefresh: true });
-    expect(getFreshnessSnapshot(queryKey)).toMatchObject({
-      forceRefresh: true,
-      height: 101,
-      network: "mainnet",
-      source: "home",
-    });
+    expect(refreshed.summary.last_indexed_block).toBe(101);
   });
 });

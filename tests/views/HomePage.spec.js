@@ -2,7 +2,6 @@ import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { explorerQueryClient } from "@/query/client";
-import { clearFreshnessSnapshots } from "@/query/freshness";
 
 vi.mock("vue-i18n", () => ({
   useI18n: () => ({
@@ -212,7 +211,6 @@ describe("HomePage initial loading", () => {
     enrichTransactionsMock.mockClear();
     loadCommitteeMock.mockClear();
     explorerQueryClient.clear();
-    clearFreshnessSnapshots();
 
     // Default: indexer returns data successfully
     getIndexerHome.mockResolvedValue(null);
