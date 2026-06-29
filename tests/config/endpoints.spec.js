@@ -65,6 +65,11 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain("chunkSizeWarningLimit: 1100");
   });
 
+  it("keeps the wasm-backed decompiler out of dev dependency pre-optimization", () => {
+    const viteConfig = readFile("vite.config.js");
+    expect(viteConfig).toContain('"neo-decompiler-web"');
+  });
+
   it("splits large third-party libraries into dedicated chunks", () => {
     const viteConfig = readFile("vite.config.js");
     expect(viteConfig).toContain('if (id.includes("ethers")) {');
@@ -77,7 +82,8 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")');
     expect(viteConfig).toContain('return "web3auth";');
     expect(viteConfig).toContain('id.includes("react-qrcode-logo") || id.includes("qrcode-generator")');
-    expect(viteConfig).toContain('if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {');
+    expect(viteConfig).toContain('id.includes("neo-decompiler-web") ||');
+    expect(viteConfig).toContain('id.includes("neo-decompiler-js")');
     expect(viteConfig).toContain('return "syntax";');
   });
 

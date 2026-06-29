@@ -74,6 +74,7 @@
             :source-code-location="sourceCodeLocation"
             :manifest="manifest"
             :supported-standards="supportedStandards"
+            :contract-state="contract"
           />
 
           <!-- Read Contract Tab -->
@@ -81,10 +82,12 @@
             v-else-if="activeTab === 'readContract'"
             :read-methods="readMethods"
             :read-method-state="readMethodState"
+            :auto-read-state="autoReadState"
             :manifest="manifest"
             @toggle-method="toggleReadMethod"
             @invoke-method="invokeReadMethod"
             @update-param="updateReadParam"
+            @refresh-auto-read="refreshAutoReadMethod"
           />
 
           <!-- Write Contract Tab -->
@@ -309,6 +312,18 @@ const methodsCount = computed(() => abiMethods.value.length);
 const eventsCount = computed(() => abiEvents.value.length);
 const readMethods = computed(() => abiMethods.value.filter((m) => m.safe === true));
 const writeMethods = computed(() => abiMethods.value.filter((m) => m.safe !== true));
+const autoReadableMethods = computed(() =>
+  readMethods.value.filter((method) => Array.isArray(method.parameters) ? method.parameters.length === 0 : true)
+);
+const autoReadableMethodKey = computed(() =>
+  [
+    contractNetwork.value,
+    contract.value?.hash || "",
+    ...autoReadableMethods.value.map((method) => method.name),
+  ].join("|")
+);
+const autoReadState = ref({});
+let autoReadGeneration = 0;
 
 // Build the optional signers array used for read-only simulations.
 // When a wallet is connected we pass the connected account so contract
@@ -334,6 +349,58 @@ const {
     invokeContractFunction(contract.value.hash, name, params, readSimulationSigners(), { network: contractNetwork.value }),
   { errorFallback: t("contract.invocationFailed") },
 );
+
+function initializeAutoReadState(methods = autoReadableMethods.value) {
+  const next = {};
+  for (const method of methods) {
+    next[method.name] = autoReadState.value[method.name] || {
+      loading: false,
+      result: undefined,
+      error: "",
+      refreshedAt: null,
+    };
+  }
+  autoReadState.value = next;
+}
+
+async function refreshAutoReadMethod(methodName) {
+  const method = autoReadableMethods.value.find((item) => item.name === methodName);
+  const hash = contract.value?.hash;
+  if (!method || !hash) return;
+
+  if (!autoReadState.value[method.name]) initializeAutoReadState();
+  const state = autoReadState.value[method.name];
+  const generation = autoReadGeneration;
+  state.loading = true;
+  state.error = "";
+  try {
+    const result = await invokeContractFunction(hash, method.name, [], null, { network: contractNetwork.value });
+    if (generation !== autoReadGeneration) return;
+    state.result = result;
+    state.refreshedAt = Date.now();
+  } catch (err) {
+    if (generation !== autoReadGeneration) return;
+    state.error = err?.message || t("contract.invocationFailed");
+  } finally {
+    if (generation === autoReadGeneration) state.loading = false;
+  }
+}
+
+async function refreshAutoReadableMethods() {
+  const methods = autoReadableMethods.value;
+  autoReadGeneration++;
+  initializeAutoReadState(methods);
+  await Promise.allSettled(methods.map((method) => refreshAutoReadMethod(method.name)));
+}
+
+watch(autoReadableMethodKey, () => {
+  if (!contract.value?.hash || autoReadableMethods.value.length === 0) {
+    autoReadGeneration++;
+    autoReadState.value = {};
+    return;
+  }
+  refreshAutoReadableMethods().catch(() => {});
+});
 
 // Write contract interaction via composable
 const {

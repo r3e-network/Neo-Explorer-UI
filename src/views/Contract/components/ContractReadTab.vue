@@ -7,6 +7,61 @@
       {{ $t("contractDetail.readNoMethods") }}
     </div>
     <div v-else class="space-y-3">
+      <section v-if="autoReadableMethods.length" class="surface-panel overflow-hidden rounded-xl">
+        <header class="soft-divider border-b px-4 py-3">
+          <h4 class="text-high text-sm font-semibold">{{ $t("contractDetail.readCurrentValuesTitle") }}</h4>
+          <p class="text-mid mt-1 text-xs">{{ $t("contractDetail.readCurrentValuesDescription") }}</p>
+        </header>
+        <div class="divide-y soft-divider">
+          <div
+            v-for="method in autoReadableMethods"
+            :key="'auto-' + method.name"
+            data-test="auto-read-row"
+            class="flex flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between"
+          >
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-high font-mono text-sm font-medium">{{ method.name }}</span>
+                <span class="badge-soft rounded px-2 py-0.5 text-[10px] font-semibold">
+                  {{ method.returntype || "Any" }}
+                </span>
+              </div>
+              <div class="mt-1 min-h-[1.25rem]">
+                <span v-if="autoReadState[method.name]?.loading" class="text-mid text-xs">
+                  {{ $t("contractDetail.readCurrentValueLoading") }}
+                </span>
+                <span v-else-if="autoReadState[method.name]?.error" class="text-xs text-red-600 dark:text-red-400">
+                  {{ autoReadState[method.name].error }}
+                </span>
+                <span v-else-if="autoReadState[method.name]?.result" class="text-high break-all font-mono text-xs">
+                  {{ formatAutoReadValue(autoReadState[method.name].result) }}
+                </span>
+                <span v-else class="text-mid text-xs">{{ $t("contractDetail.readCurrentValuePending") }}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              data-test="refresh-auto-read"
+              class="btn-outline inline-flex h-8 w-8 shrink-0 items-center justify-center p-0"
+              :disabled="autoReadState[method.name]?.loading"
+              :aria-label="$t('contractDetail.readRefreshValueAria', { name: method.name })"
+              @click="emit('refreshAutoRead', method.name)"
+            >
+              <svg
+                aria-hidden="true"
+                class="h-4 w-4"
+                :class="{ 'animate-spin': autoReadState[method.name]?.loading }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 9A8 8 0 006.3 4.7L4 10m16 4l-2.3 5.3A8 8 0 014 15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div
         v-for="(method, mIdx) in readMethods"
         :key="'rm-' + method.name"
@@ -136,18 +191,23 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { decodeInvokeResult } from "@/utils/resultDecoder";
 import ParamInput from "@/components/contract/ContractParamInput.vue";
 
-defineProps({
+const props = defineProps({
   readMethods: { type: Array, required: true },
   readMethodState: { type: Array, required: true },
   manifest: { type: Object, default: null },
+  autoReadState: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(["toggleMethod", "invokeMethod", "updateParam"]);
+const emit = defineEmits(["toggleMethod", "invokeMethod", "updateParam", "refreshAutoRead"]);
 const showRaw = ref({});
+
+const autoReadableMethods = computed(() =>
+  props.readMethods.filter((method) => Array.isArray(method.parameters) ? method.parameters.length === 0 : true),
+);
 
 function getDecoded(result) {
   return decodeInvokeResult(result);
@@ -167,6 +227,13 @@ function formatDecodedValue(item) {
       2,
     );
   return String(item.value ?? "null");
+}
+
+function formatAutoReadValue(result) {
+  const decoded = getDecoded(result);
+  const first = decoded.stack[0];
+  if (!first) return decoded.state || "—";
+  return formatDecodedValue(first);
 }
 
 function formatRaw(result) {

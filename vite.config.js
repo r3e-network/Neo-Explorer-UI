@@ -227,7 +227,13 @@ export function getManualChunkName(id) {
   if (id.includes("@supabase")) {
     return "supabase";
   }
-  if (id.includes("highlight.js") || id.includes("@highlightjs") || id.includes("prismjs")) {
+  if (
+    id.includes("highlight.js") ||
+    id.includes("@highlightjs") ||
+    id.includes("prismjs") ||
+    id.includes("neo-decompiler-web") ||
+    id.includes("neo-decompiler-js")
+  ) {
     return "syntax";
   }
   if (id.includes("vue") || id.includes("@vue") || id.includes("vue-router")) {
@@ -388,7 +394,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
-      exclude: ["@r3e/neo-js-sdk/dist/wallet/nep6.js"],
+      exclude: ["@r3e/neo-js-sdk/dist/wallet/nep6.js", "neo-decompiler-web"],
     },
     build: {
       modulePreload: false,
