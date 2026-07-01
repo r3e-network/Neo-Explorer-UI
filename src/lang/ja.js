@@ -313,6 +313,7 @@ const ja = {
   },
   common: {
     noDataAvailable: "データがありません",
+    loadMore: "さらに読み込む",
     loadingMore: "さらに読み込んでいます...",
     noMoreItems: "これ以上項目はありません",
     retry: "再試行",

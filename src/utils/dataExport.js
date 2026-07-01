@@ -19,7 +19,7 @@ export function escapeCsvValue(value) {
   return str;
 }
 
-function downloadBlob(blob, filename) {
+export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   try {
     const link = document.createElement("a");
@@ -104,4 +104,3 @@ export function exportBlocksToCSV(blocks, filename) {
   }));
   exportToCSV(flatData, filename || `blocks_${Date.now()}`);
 }
-

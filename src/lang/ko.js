@@ -313,6 +313,7 @@ const ko = {
   },
   common: {
     noDataAvailable: "사용 가능한 데이터 없음",
+    loadMore: "더 불러오기",
     loadingMore: "더 불러오는 중...",
     noMoreItems: "불러올 항목이 더 이상 없습니다",
     retry: "재시도",

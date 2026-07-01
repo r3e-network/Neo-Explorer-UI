@@ -45,7 +45,7 @@
                   <span v-if="item.address === NULL_ADDRESS" class="text-low text-sm"> {{ $t("tokenDetail.nullAddress") }} </span>
                   <HashLink
                     v-else
-                    :hash="showAddress ? scriptHashToAddress(item.address) : item.address"
+                    :hash="formatHolderAddress(item.address)"
                     type="address"
                     :truncated="true"
                   />
@@ -137,6 +137,12 @@ function holderBarStyle(item) {
 
 function toPercentage(num) {
   return Number(num * 100).toFixed(2) + "%";
+}
+
+function formatHolderAddress(address) {
+  const value = String(address || "");
+  if (!showAddress.value) return value;
+  return /^0x[0-9a-f]{40}$/i.test(value) ? scriptHashToAddress(value) : value;
 }
 
 watch(

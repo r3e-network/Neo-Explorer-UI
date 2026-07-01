@@ -151,6 +151,7 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
+import { copyTextToClipboard } from "@/utils/clipboard";
 const str2hexstring = (s) => Array.from(new TextEncoder().encode(s), b => b.toString(16).padStart(2, "0")).join("");
 const hexstring2str = (h) => new TextDecoder().decode(Uint8Array.from(h.match(/../g) || [], b => parseInt(b, 16)));
 import { hex2base64, base642hex } from "@/utils/sdkCompat";
@@ -202,15 +203,13 @@ function convertData() {
   }
 }
 
-function copyToClipboard() {
+async function copyToClipboard() {
   if (!outputValue.value) return;
-  navigator.clipboard
-    .writeText(outputValue.value)
-    .then(() => {
-      toast.success(t("tools.converter.copied"));
-    })
-    .catch(() => {
-      toast.error(t("tools.converter.copyFailed"));
-    });
+  const copiedOk = await copyTextToClipboard(outputValue.value);
+  if (copiedOk) {
+    toast.success(t("tools.converter.copied"));
+  } else {
+    toast.error(t("tools.converter.copyFailed"));
+  }
 }
 </script>

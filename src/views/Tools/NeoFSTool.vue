@@ -573,6 +573,7 @@ import { useFocusTrap } from "@/composables/useFocusTrap";
 import { connectedAccount } from "@/utils/wallet";
 import { walletService } from "@/services/walletService";
 import { useToast } from "vue-toastification";
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 const NEOFS_REST_GW = "https://rest.fs.neo.org";
 
@@ -592,9 +593,13 @@ const containerObjects = ref([]);
 const networkInfo = ref(null);
 const neoFsBalance = ref(null);
 
-function copyOid(id) {
-  navigator.clipboard.writeText(id);
-  toast.success(t("tools.neofs.toasts.oidCopied"));
+async function copyOid(id) {
+  const copiedOk = await copyTextToClipboard(id);
+  if (copiedOk) {
+    toast.success(t("tools.neofs.toasts.oidCopied"));
+  } else {
+    toast.error(t("aria.copyFailedShort"));
+  }
 }
 
 function formatEpochDuration(seconds) {

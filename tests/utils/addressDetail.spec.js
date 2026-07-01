@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import {
+  downloadTransactionsCsv,
   getAddressDetailTabs,
   normalizeAccountSummary,
   pickBestCandidateVotes,
@@ -11,6 +12,29 @@ import {
 import { NEO_HASH, GAS_HASH } from "../../src/constants";
 
 describe("addressDetail utils", () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  function readBlobText(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsText(blob);
+    });
+  }
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:neo-transactions");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
   it("returns standard address detail tabs", () => {
     expect(getAddressDetailTabs()).toEqual([
       { key: "transactions", labelKey: "addressDetail.tabTransactions" },
@@ -117,6 +141,32 @@ describe("addressDetail utils", () => {
     expect(getPageCount(0, 10)).toBe(1);
     expect(getPageCount(19, 10)).toBe(2);
     expect(getPageCount(30, 10)).toBe(3);
+  });
+
+  it("downloads address transactions through an attached CSV link", async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    downloadTransactionsCsv(
+      [
+        {
+          hash: "0xabc",
+          blocktime: 1700000000,
+          sender: "=danger",
+          vmstate: "HALT",
+          size: 244,
+        },
+      ],
+      "txns-Nabc.csv",
+    );
+
+    expect(URL.createObjectURL).toHaveBeenCalledOnce();
+    const blob = URL.createObjectURL.mock.calls[0][0];
+    const csvText = await readBlobText(blob);
+    expect(csvText).toContain("Txn Hash,Block Time,Sender,Status,Size");
+    expect(csvText).toContain("\"'=danger\"");
+    expect(clickSpy).toHaveBeenCalledOnce();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:neo-transactions");
+    expect(document.querySelector('a[download="txns-Nabc.csv"]')).toBeNull();
   });
 
   it("prefers non-zero candidate votes over string zero fallback values", () => {

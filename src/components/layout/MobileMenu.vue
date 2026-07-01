@@ -1,9 +1,10 @@
 <template>
   <!-- Mobile Hamburger -->
   <button
-    class="ml-3 rounded p-2 text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 lg:hidden"
+    class="ml-2 rounded-md p-2 text-mid transition-colors hover:text-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 dark:text-white/70 dark:hover:text-white lg:hidden"
     @click="$emit('toggle')"
     :aria-label="$t('aria.toggleMenu')"
+    :aria-expanded="open ? 'true' : 'false'"
   >
     <svg v-if="!open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />

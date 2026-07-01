@@ -45,6 +45,7 @@
 <script setup>
 import { ref } from "vue";
 import { useFocusTrap } from "@/composables/useFocusTrap";
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 const dialogRef = ref(null);
 useFocusTrap(dialogRef);
@@ -58,8 +59,9 @@ defineEmits(["close"]);
 
 const copied = ref(false);
 
-function copyUri() {
-  navigator.clipboard.writeText(props.uri).catch(() => {});
+async function copyUri() {
+  const copiedOk = await copyTextToClipboard(props.uri);
+  if (!copiedOk) return;
   copied.value = true;
   setTimeout(() => {
     copied.value = false;

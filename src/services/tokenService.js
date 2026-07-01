@@ -11,6 +11,23 @@ const resolveTokenNetwork = (options = {}) => {
   const explicitNetwork = typeof options === "string" ? options : options?.network;
   return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
 };
+const TOKEN_HOLDERS_FETCH_TIMEOUT_MS = Math.max(
+  4_500,
+  Number(import.meta.env.VITE_TOKEN_HOLDERS_FETCH_TIMEOUT_MS || 7_000),
+);
+
+function mapHolderBalanceRows(rows = [], totalSupplyRaw = 0) {
+  const totalSupply = Number(totalSupplyRaw || 0);
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const balanceRaw = row?.balance_raw ?? row?.balanceRaw ?? row?.balance ?? "0";
+    const balance = Number(balanceRaw || 0);
+    return {
+      address: row?.address || "",
+      balance: String(balanceRaw ?? "0"),
+      percentage: totalSupply > 0 && Number.isFinite(balance) ? balance / totalSupply : 0,
+    };
+  });
+}
 
 function bytesToBase64(bytes) {
   const normalized = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
@@ -426,6 +443,24 @@ export const tokenService = createService(
     // Pull from v_nep17_balances, ranked by balance_raw DESC, and compute
     // percentage share against total_supply_raw from the token endpoint.
     async getHolders(hash, limit = 20, skip = 0, options = {}) {
+      const tokenInfoPromise = indexerReadService.getToken(hash, options).catch(() => null);
+      try {
+        const payload = await indexerReadService.getTokenHolders(hash, limit, skip, {
+          ...options,
+          timeoutMs: TOKEN_HOLDERS_FETCH_TIMEOUT_MS,
+        });
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        if (payload && Array.isArray(payload.data) && (rows.length > 0 || Number(payload?.meta?.total || 0) > 0)) {
+          const tokenInfo = await tokenInfoPromise;
+          return {
+            result: mapHolderBalanceRows(rows, tokenInfo?.total_supply_raw),
+            totalCount: Number(payload?.meta?.total ?? tokenInfo?.holder_count ?? rows.length),
+          };
+        }
+      } catch {
+        // fall through to the REST balance view below
+      }
+
       try {
         const network = resolveTokenNetwork(options);
         const params = new URLSearchParams({
@@ -438,23 +473,18 @@ export const tokenService = createService(
           order: "balance_raw.desc",
         });
         const [rowsRes, tokenInfo] = await Promise.all([
-          fetchWithTimeout(`/rest/${network}/v_nep17_balances?${params}`, { headers: { Accept: "application/json" } }),
-          indexerReadService.getToken(hash, options).catch(() => null),
+          fetchWithTimeout(
+            `/rest/${network}/v_nep17_balances?${params}`,
+            { headers: { Accept: "application/json" } },
+            TOKEN_HOLDERS_FETCH_TIMEOUT_MS,
+          ),
+          tokenInfoPromise,
         ]);
         if (rowsRes.ok) {
           const rows = await rowsRes.json();
           if (Array.isArray(rows) && rows.length > 0) {
-            const totalSupply = Number(tokenInfo?.total_supply_raw || 0);
-            const result = rows.map((r) => {
-              const balance = Number(r.balance_raw || 0);
-              return {
-                address: r.address,
-                balance: String(r.balance_raw ?? "0"),
-                percentage: totalSupply > 0 ? balance / totalSupply : 0,
-              };
-            });
             return {
-              result,
+              result: mapHolderBalanceRows(rows, tokenInfo?.total_supply_raw),
               totalCount: Number(tokenInfo?.holder_count || rows.length),
             };
           }

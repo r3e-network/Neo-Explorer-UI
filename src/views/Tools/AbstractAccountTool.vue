@@ -228,6 +228,7 @@ import { walletService, getAbstractAccountHash } from "@/services/walletService"
 import { useToast } from "vue-toastification";
 import { useI18n } from "vue-i18n";
 import { useNetworkChange } from '@/composables/useNetworkChange';
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 import 'highlight.js/styles/github-dark.css';
 
@@ -294,8 +295,12 @@ watch([activeFileIdx, activeTab], () => {
   }
 }, { immediate: true });
 
-function copyCode(text) {
-  navigator.clipboard.writeText(text);
+async function copyCode(text) {
+  const copiedOk = await copyTextToClipboard(text);
+  if (!copiedOk) {
+    toast.error(t("aria.copyFailedShort"));
+    return;
+  }
   copied.value = true;
   setTimeout(() => copied.value = false, 2000);
 }

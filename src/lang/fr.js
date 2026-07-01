@@ -313,6 +313,7 @@ const fr = {
   },
   common: {
     noDataAvailable: "Aucune donnée disponible",
+    loadMore: "Charger plus",
     loadingMore: "Chargement...",
     noMoreItems: "Plus d'éléments à charger",
     retry: "Réessayer",

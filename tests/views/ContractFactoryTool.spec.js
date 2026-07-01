@@ -103,7 +103,7 @@ describe("ContractFactoryTool source-level invariants", () => {
       "utf8",
     );
 
-    expect(src).toMatch(/navigator\.clipboard/);
+    expect(src).toMatch(/copyTextToClipboard/);
     expect(src).toMatch(/URL\.createObjectURL/);
     expect(src).toMatch(/deployerPath/);
   });

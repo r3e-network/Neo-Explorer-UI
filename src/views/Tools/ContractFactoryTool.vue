@@ -199,6 +199,7 @@ import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import { useToast } from "vue-toastification";
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -438,19 +439,8 @@ function generateBlueprint() {
 async function copyBlueprint() {
   if (!blueprintGenerated.value) return;
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(blueprintJson.value);
-    } else {
-      const textarea = document.createElement("textarea");
-      textarea.value = blueprintJson.value;
-      textarea.setAttribute("readonly", "true");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    }
+    const copiedOk = await copyTextToClipboard(blueprintJson.value);
+    if (!copiedOk) throw new Error("Copy failed");
     toast.success(t("tools.contractFactory.toasts.copySuccess"));
   } catch {
     toast.error(t("tools.contractFactory.toasts.copyFailed"));

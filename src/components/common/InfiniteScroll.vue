@@ -1,5 +1,5 @@
 <template>
-  <div ref="sentinelRef" class="infinite-scroll-sentinel" aria-hidden="true">
+  <div ref="sentinelRef" class="infinite-scroll-sentinel">
     <div v-if="loading" class="flex items-center justify-center py-4" role="status" aria-live="polite">
       <svg
         class="h-6 w-6 animate-spin text-primary-500"
@@ -15,6 +15,11 @@
         ></path>
       </svg>
       <span class="ml-2 text-sm text-gray-500">{{ t("common.loadingMore") }}</span>
+    </div>
+    <div v-else-if="hasMore" class="flex justify-center py-3">
+      <button type="button" class="btn-outline px-4 py-2 text-xs" @click="$emit('load-more')">
+        {{ t("common.loadMore") }}
+      </button>
     </div>
     <div v-else-if="!hasMore" class="py-4 text-center text-sm text-gray-400">{{ t("common.noMoreItems") }}</div>
   </div>

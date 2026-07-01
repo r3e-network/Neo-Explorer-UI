@@ -313,6 +313,7 @@ const en = {
   },
   common: {
     noDataAvailable: "No data available",
+    loadMore: "Load more",
     loadingMore: "Loading more...",
     noMoreItems: "No more items to load",
     retry: "Retry",

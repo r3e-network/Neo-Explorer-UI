@@ -313,6 +313,7 @@ const zh = {
   },
   common: {
     noDataAvailable: "暂无数据",
+    loadMore: "加载更多",
     loadingMore: "加载更多...",
     noMoreItems: "没有更多数据了",
     retry: "重试",

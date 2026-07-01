@@ -80,6 +80,8 @@ describe("TokenDetail view", () => {
     expect(useTokenDetail).toContain("createMinimalTokenInfo");
     expect(transferTable).toContain("TOKEN_DETAIL_TABLE_TIMEOUT_MS");
     expect(tokenHolder).toContain("TOKEN_HOLDERS_TABLE_TIMEOUT_MS");
+    expect(tokenHolder).toContain("formatHolderAddress");
+    expect(tokenHolder).toMatch(/\^0x\[0-9a-f\]\{40\}/);
     expect(nftTokens).toContain("NFT_ITEMS_LOAD_TIMEOUT_MS");
     expect(nftTokens).toContain("loading.value = false;");
   });

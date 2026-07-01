@@ -78,6 +78,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount } from "vue";
 import { COPY_FEEDBACK_TIMEOUT_MS } from "@/constants";
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 const props = defineProps({
   text: { type: String, default: "" },
@@ -103,35 +104,12 @@ const iconStyle = computed(() => ({
   color: copied.value ? "var(--status-success)" : copyFailed.value ? "var(--status-error)" : "var(--text-low)",
 }));
 
-function fallbackCopy(text) {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.setAttribute("readonly", "");
-  textarea.setAttribute("aria-hidden", "true");
-  textarea.setAttribute("tabindex", "-1");
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    document.execCommand("copy");
-    return true;
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(textarea);
-  }
-}
-
 async function copyText() {
   if (!props.text) return;
   if (feedbackTimer) clearTimeout(feedbackTimer);
   try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(props.text);
-    } else if (!fallbackCopy(props.text)) {
-      throw new Error("Fallback copy failed");
-    }
+    const copiedOk = await copyTextToClipboard(props.text);
+    if (!copiedOk) throw new Error("Copy failed");
     copied.value = true;
     feedbackTimer = setTimeout(() => {
       copied.value = false;

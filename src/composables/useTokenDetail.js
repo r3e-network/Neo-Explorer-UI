@@ -11,6 +11,7 @@ import { invokeContractFunction } from "@/utils/contractInvocation";
 import { supabaseService } from "@/services/supabaseService";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveNetworkName } from "@/utils/env";
+import { copyTextToClipboard } from "@/utils/clipboard";
 
 const TOKEN_DETAIL_LOAD_TIMEOUT_MS = 4500;
 
@@ -266,17 +267,14 @@ export function useTokenDetail({ defaultTab, tabs, onTokenLoaded, standard = "" 
     router.push(`/contract-info/${hash}`).catch(() => {});
   }
 
-  function copyHash(text) {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        copied.value = true;
-        if (copyTimer) clearTimeout(copyTimer);
-        copyTimer = setTimeout(() => {
-          copied.value = false;
-        }, COPY_FEEDBACK_TIMEOUT_MS);
-      })
-      .catch(() => {});
+  async function copyHash(text) {
+    const copiedOk = await copyTextToClipboard(text);
+    if (!copiedOk) return;
+    copied.value = true;
+    if (copyTimer) clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+      copied.value = false;
+    }, COPY_FEEDBACK_TIMEOUT_MS);
   }
 
   // ---------------------------------------------------------------------------

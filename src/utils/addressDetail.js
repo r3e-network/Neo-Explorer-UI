@@ -1,7 +1,7 @@
 import { NATIVE_CONTRACTS, NEO_HASH, GAS_HASH } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { scriptHashToAddress } from "./neoHelpers";
-import { CSV_BOM, escapeCsvValue } from "./dataExport";
+import { CSV_BOM, downloadBlob, escapeCsvValue } from "./dataExport";
 
 /**
  * Address detail page helpers: normalization, transfer direction, CSV export.
@@ -299,12 +299,7 @@ export function downloadTransactionsCsv(transactions = [], filename = "transacti
       .join("\r\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, filename);
   } catch (error) {
     if (import.meta.env.DEV) console.error("Failed to download CSV:", error);
     throw error;

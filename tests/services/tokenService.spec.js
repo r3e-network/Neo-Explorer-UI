@@ -13,6 +13,7 @@ vi.mock("../../src/services/indexerReadService.js", () => ({
   indexerReadService: {
     getTokens: vi.fn(),
     getToken: vi.fn(),
+    getTokenHolders: vi.fn(),
     getContractNotifications: vi.fn(),
   },
 }));
@@ -26,6 +27,7 @@ describe("tokenService", () => {
     clearAllCache();
     indexerReadService.getTokens.mockRejectedValue(new Error("indexer offline"));
     indexerReadService.getToken.mockRejectedValue(new Error("indexer offline"));
+    indexerReadService.getTokenHolders.mockRejectedValue(new Error("holders offline"));
     indexerReadService.getContractNotifications.mockRejectedValue(new Error("indexer offline"));
   });
 
@@ -100,7 +102,37 @@ describe("tokenService", () => {
   });
 
   describe("getHolders", () => {
-    it("reads holders from the REST balance view", async () => {
+    it("prefers the indexer holders endpoint", async () => {
+      indexerReadService.getToken.mockResolvedValueOnce({ total_supply_raw: "100", holder_count: 2 });
+      indexerReadService.getTokenHolders.mockResolvedValueOnce({
+        data: [
+          { address: "NT1jVQPy2gCHzcsZ1ZCVnfioJ8fFvpQwQ9", balance_raw: "5" },
+          { address: "NRoGvuexKZ3bhqpZsUyQvdxB5DHMa1rG5o", balance_raw: "2" },
+        ],
+        meta: { total: 2 },
+      });
+      vi.stubGlobal("fetch", vi.fn());
+
+      const result = await tokenService.getHolders("0xhash", 10, 5);
+
+      expect(indexerReadService.getTokenHolders).toHaveBeenCalledWith(
+        "0xhash",
+        10,
+        5,
+        expect.objectContaining({ timeoutMs: expect.any(Number) }),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        result: [
+          { address: "NT1jVQPy2gCHzcsZ1ZCVnfioJ8fFvpQwQ9", balance: "5", percentage: 0.05 },
+          { address: "NRoGvuexKZ3bhqpZsUyQvdxB5DHMa1rG5o", balance: "2", percentage: 0.02 },
+        ],
+        totalCount: 2,
+      });
+    });
+
+    it("falls back to the REST balance view", async () => {
+      indexerReadService.getTokenHolders.mockRejectedValueOnce(new Error("holders offline"));
       indexerReadService.getToken.mockResolvedValueOnce({ total_supply_raw: "100", holder_count: 1 });
       vi.stubGlobal("fetch", vi.fn(async () => ({
         ok: true,

@@ -123,6 +123,7 @@
 import { ref, computed, defineAsyncComponent, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { useToast } from "vue-toastification";
 import { contractService } from "@/services/contractService";
 import { isAbortError } from "@/utils/abortError";
 import { supabaseService } from "@/services/supabaseService";
@@ -138,6 +139,7 @@ import { connectedAccount } from "@/utils/walletState";
 import { loadWalletService } from "@/utils/lazyServices";
 import { resolveNetworkName } from "@/utils/env";
 import { getProviderInstallUrl, getProviderUnavailableReasonKey } from "@/utils/walletProviderMeta";
+import { copyTextToClipboard } from "@/utils/clipboard";
 import TabsNav from "@/components/common/TabsNav.vue";
 import ScCallTable from "@/views/Contract/ScCallTable.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
@@ -152,6 +154,7 @@ const ContractWriteTab = defineAsyncComponent(() => import("@/views/Contract/com
 
 const route = useRoute();
 const { t } = useI18n();
+const toast = useToast();
 let fetchGeneration = 0;
 const contract = ref({});
 const contractMetadata = ref(null);
@@ -503,8 +506,14 @@ async function checkVerification(hash, network = null) {
   }
 }
 
-function copyHash() {
-  if (contract.value?.hash) navigator.clipboard.writeText(contract.value.hash).catch(() => {});
+async function copyHash() {
+  if (!contract.value?.hash) return;
+  const copiedOk = await copyTextToClipboard(contract.value.hash);
+  if (copiedOk) {
+    toast.success(t("aria.copied"));
+  } else {
+    toast.error(t("aria.copyFailedShort"));
+  }
 }
 
 function handleNetworkChange() {
