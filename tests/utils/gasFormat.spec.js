@@ -5,6 +5,7 @@ import {
   formatNeo,
   formatGasBalance,
   formatTokenAmount,
+  toTokenAmountNumber,
 } from "@/utils/gasFormat";
 
 describe("formatGas", () => {
@@ -159,5 +160,22 @@ describe("formatTokenAmount", () => {
   it("handles negative very-large amounts on the BigInt path", () => {
     const result = formatTokenAmount("-10000000000000000000000000", 18, 8);
     expect(result.replace(/,/g, "")).toBe("-10000000");
+  });
+});
+
+describe("toTokenAmountNumber", () => {
+  it("converts raw fixed8 GAS units to token units for USD valuation", () => {
+    expect(toTokenAmountNumber("218759366193", 8)).toBeCloseTo(2187.59366193, 8);
+  });
+
+  it("keeps indivisible NEO values unchanged", () => {
+    expect(toTokenAmountNumber("545412", 0)).toBe(545412);
+  });
+
+  it("returns 0 for missing or non-numeric raw amounts", () => {
+    expect(toTokenAmountNumber(null, 8)).toBe(0);
+    expect(toTokenAmountNumber(undefined, 8)).toBe(0);
+    expect(toTokenAmountNumber("", 8)).toBe(0);
+    expect(toTokenAmountNumber("not-a-number", 8)).toBe(0);
   });
 });

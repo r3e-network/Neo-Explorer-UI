@@ -192,7 +192,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import QrcodeVue from "qrcode.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
-import { formatNumber, formatBalance, formatTokenAmount } from "@/utils/explorerFormat";
+import { formatNumber, formatBalance, formatTokenAmount, toTokenAmountNumber } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
@@ -224,17 +224,8 @@ onMounted(() => {
   fetchPrices();
 });
 
-// USD valuations for the native NEO + GAS holdings.
-function toTokenAmountNumber(rawAmount, decimals = 0) {
-  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return 0;
-  const raw = Number(rawAmount);
-  if (!Number.isFinite(raw)) return 0;
-  const divisor = decimals > 0 ? 10 ** decimals : 1;
-  return raw / divisor;
-}
-
 const neoUsdValue = computed(() => {
-  const bal = Number(props.neoBalance || 0);
+  const bal = toTokenAmountNumber(props.neoBalance, 0);
   if (!bal || !prices.value.neo) return 0;
   return bal * prices.value.neo;
 });

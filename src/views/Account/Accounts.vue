@@ -158,7 +158,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useMediaQuery } from "@vueuse/core";
 import { accountService, getAccountListCacheKey } from "@/services/accountService";
 import { getCache } from "@/services/cache";
-import { formatNumber, formatAge, formatBalance, formatGasBalance } from "@/utils/explorerFormat";
+import { formatNumber, formatAge, formatBalance, formatGasBalance, toTokenAmountNumber } from "@/utils/explorerFormat";
 import { GAS_DECIMALS } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -174,14 +174,6 @@ import { resolveNetworkName } from "@/utils/env";
 
 const { prices, fetchPrices } = usePriceCache();
 const isDesktop = useMediaQuery("(min-width: 768px)");
-
-function toTokenAmountNumber(rawAmount, decimals = 0) {
-  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return 0;
-  const raw = Number(rawAmount);
-  if (!Number.isFinite(raw)) return 0;
-  const divisor = decimals > 0 ? 10 ** decimals : 1;
-  return raw / divisor;
-}
 
 // Compute the USD value of an account's NEO + GAS holdings using cached prices.
 function formatUsdValue(account) {

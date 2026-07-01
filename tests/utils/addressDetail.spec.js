@@ -42,19 +42,19 @@ describe("addressDetail utils", () => {
   it("prefers authoritative on-chain asset balances over over-counted account fields", () => {
     // The legacy/indexer path over-counts GAS (it sums NEP17 Transfer
     // events but system-fee burns are not Transfer events). The on-chain
-    // getnep17balances result (carried in `assets`) is authoritative and
-    // must win for NEO/GAS even when account.* carries a different value.
+    // getnep17balances raw amount (carried in `assets`) is authoritative
+    // and must win for NEO/GAS even when account.* carries a different value.
     expect(
       normalizeAccountSummary(
         { neo: "9", gas: "65671.314", txcount: 11 },
         [
           { asset: NEO_HASH, balance: "0" },
-          { asset: GAS_HASH, balance: "65560.87916126" },
+          { asset: GAS_HASH, balance: "6556087916126" },
         ]
       )
     ).toEqual({
       neoBalance: "0",
-      gasBalance: "65560.87916126",
+      gasBalance: "6556087916126",
       txCount: 11,
       tokenCount: 2,
     });

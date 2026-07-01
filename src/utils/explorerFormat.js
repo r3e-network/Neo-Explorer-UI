@@ -34,6 +34,7 @@ export {
   formatNeo,
   formatGasBalance,
   formatTokenAmount,
+  toTokenAmountNumber,
 } from "./gasFormat";
 export {
   vmStateClass,

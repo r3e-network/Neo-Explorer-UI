@@ -74,6 +74,22 @@ export function formatGasBalance(balance, divisor = GAS_DIVISOR) {
 }
 
 /**
+ * Convert a raw integer token amount to token units for arithmetic such as
+ * USD valuation. Display formatting should still use formatTokenAmount.
+ * @param {number|string|null|undefined} rawAmount
+ * @param {number|string} decimals
+ * @returns {number}
+ */
+export function toTokenAmountNumber(rawAmount, decimals = 0) {
+  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return 0;
+  const raw = Number(rawAmount);
+  const decimalsNum = Number(decimals) || 0;
+  if (!Number.isFinite(raw) || decimalsNum < 0) return 0;
+  const divisor = decimalsNum > 0 ? 10 ** decimalsNum : 1;
+  return raw / divisor;
+}
+
+/**
  * Format a raw token amount with decimal adjustment.
  * @param {number|string} rawAmount - Raw integer amount
  * @param {number} decimals - Token decimals (e.g. 8 for GAS)
