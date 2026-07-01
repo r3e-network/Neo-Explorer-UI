@@ -197,7 +197,7 @@ import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
 import nnsService from "@/services/nnsService";
-import { NATIVE_CONTRACTS } from "@/constants";
+import { GAS_DECIMALS, NATIVE_CONTRACTS } from "@/constants";
 import { KNOWN_CONTRACTS } from "@/constants/knownContracts";
 import { addressToScriptHash } from "@/utils/neoHelpers";
 import { getKnownAddressLogo, getKnownAddressName } from "@/constants/knownAddresses";
@@ -225,13 +225,21 @@ onMounted(() => {
 });
 
 // USD valuations for the native NEO + GAS holdings.
+function toTokenAmountNumber(rawAmount, decimals = 0) {
+  if (rawAmount === null || rawAmount === undefined || rawAmount === "") return 0;
+  const raw = Number(rawAmount);
+  if (!Number.isFinite(raw)) return 0;
+  const divisor = decimals > 0 ? 10 ** decimals : 1;
+  return raw / divisor;
+}
+
 const neoUsdValue = computed(() => {
   const bal = Number(props.neoBalance || 0);
   if (!bal || !prices.value.neo) return 0;
   return bal * prices.value.neo;
 });
 const gasUsdValue = computed(() => {
-  const bal = Number(props.gasBalance || 0);
+  const bal = toTokenAmountNumber(props.gasBalance, GAS_DECIMALS);
   if (!bal || !prices.value.gas) return 0;
   return bal * prices.value.gas;
 });

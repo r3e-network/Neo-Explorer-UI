@@ -12,6 +12,10 @@ const { getAddressTag, getContractMetadata, resolveAddressToNNS } = vi.hoisted((
   getContractMetadata: vi.fn().mockResolvedValue(null),
   resolveAddressToNNS: vi.fn().mockResolvedValue(null),
 }));
+const priceCache = vi.hoisted(() => ({
+  fetchPrices: vi.fn(),
+  prices: { value: { neo: 0, gas: 1 } },
+}));
 
 vi.mock("@/services/supabaseService", () => ({
   supabaseService: {
@@ -24,6 +28,13 @@ vi.mock("@/services/nnsService", () => ({
   default: {
     resolveAddressToNNS,
   },
+}));
+
+vi.mock("@/composables/usePriceCache", () => ({
+  usePriceCache: () => ({
+    prices: priceCache.prices,
+    fetchPrices: priceCache.fetchPrices,
+  }),
 }));
 
 describe("AddressHeader", () => {
@@ -52,6 +63,32 @@ describe("AddressHeader", () => {
     expect(wrapper.text()).toContain("addressDetail.statGasBalance");
     expect(wrapper.text()).toContain(expected);
   });
+
+  it("calculates GAS USD value from token units instead of raw fixed8 units", () => {
+    const gasRaw = "218759366193";
+    const wrapper = mount(AddressHeader, {
+      props: {
+        address: "NQnG5fVqdmA7fP8i3h8awD7QK2TQzW7k34",
+        isContract: false,
+        showQr: false,
+        neoBalance: "0",
+        gasBalance: gasRaw,
+        txCount: 0,
+        tokenCount: 0,
+        candidateData: null,
+      },
+      global: {
+        stubs: {
+          CopyButton: true,
+          QrcodeVue: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("≈ $2,187.59");
+    expect(wrapper.text()).not.toContain("$218,759,366,193.00");
+  });
+
   it("shows known contract identity for contract address pages", async () => {
     const wrapper = mount(AddressHeader, {
       props: {
