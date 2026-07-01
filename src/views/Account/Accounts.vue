@@ -241,7 +241,6 @@ async function loadPage() {
   } catch (err) {
     if (myRequestId !== pageRequestId || resolveNetworkName() !== requestNetwork) return;
     if (isAbortError(err)) return;
-    if (import.meta.env.DEV) console.error("Failed to load accounts:", err);
     error.value = t("errors.loadAccounts");
     accounts.value = [];
   } finally {

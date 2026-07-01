@@ -313,10 +313,14 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.text()).toContain("0c40deadbeef");
     expect(wrapper.text()).toContain("2102feedfaceac");
     expect(wrapper.findAll('[data-testid="signature-witness-card"]').length).toBe(1);
-    expect(wrapper.html()).toContain("https://example.com/alpha.png");
     expect(wrapper.html()).toContain("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
     expect(wrapper.text()).not.toContain("A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
-    expect(wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]').attributes("src")).toBe("https://example.com/alpha.png");
+    expect(wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]').attributes("src")).toBe(
+      "https://example.com/default-02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
+    );
+    expect(wrapper.get('[data-testid="council-status-logo-A03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]').attributes("src")).toBe(
+      "https://example.com/default-03bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png"
+    );
     expect(wrapper.get('[data-testid="council-status-logo-A02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"]').attributes("src")).toBe("https://example.com/default-02cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.png");
     expect(wrapper.html()).not.toContain("/img/brand/neo.png");
   });
@@ -530,7 +534,7 @@ describe("GovernanceProposalDetail", () => {
     expect(wrapper.html()).toContain("/img/brand/neo.png");
   });
 
-  it("falls back from a broken explicit council logo to the committee pubkey logo before using Neo", async () => {
+  it("uses the committee pubkey logo first and keeps explicit council logos as fallback candidates", async () => {
     getValidatorMetadataMock.mockResolvedValueOnce([
       {
         address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -573,10 +577,61 @@ describe("GovernanceProposalDetail", () => {
     await flushPromises();
 
     const logo = wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]');
+    expect(logo.attributes("src")).toBe("https://example.com/default-02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png");
+
+    await logo.trigger("error");
+
     expect(logo.attributes("src")).toBe("https://example.com/broken-alpha.png");
 
     await logo.trigger("error");
 
+    expect(logo.attributes("src")).toBe("/img/brand/neo.png");
+  });
+
+  it("does not put explicit council logo URLs in the first renderable image src", async () => {
+    getValidatorMetadataMock.mockResolvedValueOnce([
+      {
+        address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        display_name: "Council Alpha",
+        logo_url: "https://rest.fs.neo.org/container/object",
+      },
+    ]);
+    getMultisigRequestByIdMock.mockResolvedValueOnce({
+      id: 1,
+      type: "governance",
+      method: "setGasPerBlock",
+      description: "Adjust GAS emissions",
+      target_contract: "0xef4073",
+      status: "PENDING",
+      signers_required: 1,
+      eligible_signers: ["A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      signatures: [
+        {
+          id: 9,
+          signer_address: "A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          signature: "ab".repeat(64),
+        },
+      ],
+      params: { unsigned_tx: unsignedTx, hash: "0xdeadbeef" },
+      created_at: "2026-03-15T00:00:00.000Z",
+    });
+
+    const GovernanceProposalDetail = (await import("@/views/Tools/GovernanceProposalDetail.vue")).default;
+    const wrapper = mount(GovernanceProposalDetail, {
+      global: {
+        stubs: {
+          Breadcrumb: true,
+          Skeleton: true,
+          CopyButton: true,
+          RouterLink: { name: "RouterLink", template: "<a><slot /></a>" },
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const logo = wrapper.get('[data-testid="signature-witness-logo-A02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]');
+    expect(wrapper.html()).not.toContain("https://rest.fs.neo.org/container/object");
     expect(logo.attributes("src")).toBe("https://example.com/default-02aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png");
   });
 

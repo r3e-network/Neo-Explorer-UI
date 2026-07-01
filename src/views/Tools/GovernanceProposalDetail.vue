@@ -593,14 +593,13 @@ function resolveCouncilLogo(address, explicitLogo = "") {
 
 function buildCouncilLogoSources(address, explicitLogo = "") {
   const candidates = [];
+  const pubkey = findCommitteePubkeyForAddress(address);
+  const defaultLogo = pubkey ? getDefaultCandidateLogoUrl(pubkey) : "";
+  candidates.push(defaultLogo || NEO_LOGO_FALLBACK);
+
   const normalizedLogo = String(explicitLogo || "").trim();
   if (normalizedLogo) {
     candidates.push(...resolveCandidateLogoUrlFallbacks(normalizedLogo));
-  }
-
-  const pubkey = findCommitteePubkeyForAddress(address);
-  if (pubkey) {
-    candidates.push(getDefaultCandidateLogoUrl(pubkey));
   }
 
   candidates.push(NEO_LOGO_FALLBACK);

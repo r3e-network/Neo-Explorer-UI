@@ -102,4 +102,37 @@ describe("Accounts USD value", () => {
     expect(wrapper.text()).not.toContain("$1,230,000,084.00");
     wrapper.unmount();
   });
+
+  it("renders a controlled error state without console errors when account loading fails", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getListMock.mockRejectedValueOnce(new Error("Account overview indexer request failed"));
+
+    const Accounts = (await import("@/views/Account/Accounts.vue")).default;
+    const wrapper = mount(Accounts, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          Breadcrumb: true,
+          EtherscanPagination: true,
+          HashLink: { props: ["hash"], template: "<span>{{ hash }}</span>" },
+          MobileListCard: true,
+          EmptyState: true,
+          ErrorState: {
+            props: ["title", "message"],
+            template: '<div data-test="accounts-error">{{ title }} {{ message }}</div>',
+          },
+          Skeleton: true,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="accounts-error"]').text()).toContain("accounts.failedToLoad");
+    expect(wrapper.find('[data-test="accounts-error"]').text()).toContain("errors.loadAccounts");
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    wrapper.unmount();
+    consoleErrorSpy.mockRestore();
+  });
 });
