@@ -2289,7 +2289,7 @@ const en = {
     eventsToggleTimeButton: "Format",
     eventsNullTransaction: "Null Transaction",
     eventsEmpty: "No events found",
-    codeIntro: "Verified source files and contract artifacts.",
+    codeIntro: "Review best-effort decompiled code and verified source artifacts when available.",
     decompiledTitle: "Decompiled Code",
     decompiledDescription: "Best-effort high-level code generated from the on-chain NEF and manifest.",
     decompiledUnavailable: "On-chain NEF bytecode is not available for this contract.",

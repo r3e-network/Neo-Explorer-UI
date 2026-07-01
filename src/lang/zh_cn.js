@@ -2289,7 +2289,7 @@ const zh = {
     eventsToggleTimeButton: "格式",
     eventsNullTransaction: "空交易",
     eventsEmpty: "未找到事件",
-    codeIntro: "已验证的源代码文件和合约工件。",
+    codeIntro: "查看最佳努力生成的反编译代码，以及可用时的已验证源码工件。",
     decompiledTitle: "反编译代码",
     decompiledDescription: "根据链上 NEF 和合约清单生成的高层代码，仅作为最佳努力结果。",
     decompiledUnavailable: "此合约没有可用的链上 NEF 字节码。",

@@ -79,4 +79,24 @@ describe("ContractCodeTab decompiler", () => {
     expect(code.html()).toContain("hljs-keyword");
     expect(wrapper.text()).toContain("contractDetail.decompileWarnings");
   });
+
+  it("places decompiled code before the verified-source panel", async () => {
+    mocks.decompileContractState.mockResolvedValueOnce({
+      code: "contract NeoToken {\n    public static string Symbol() => \"NEO\";\n}",
+      warnings: [],
+    });
+    mocks.highlight.mockReturnValueOnce({
+      value: '<span class="hljs-keyword">contract</span> NeoToken',
+    });
+
+    const wrapper = mountCodeTab();
+    await flushPromises();
+
+    const html = wrapper.html();
+    expect(html.indexOf('data-test="decompiled-code"')).toBeGreaterThan(-1);
+    expect(html.indexOf("contract-source-code-panel-stub")).toBeGreaterThan(-1);
+    expect(html.indexOf('data-test="decompiled-code"')).toBeLessThan(
+      html.indexOf("contract-source-code-panel-stub"),
+    );
+  });
 });

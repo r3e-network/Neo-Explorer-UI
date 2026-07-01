@@ -12,14 +12,6 @@
       </router-link>
     </div>
 
-    <ContractSourceCodePanel
-      :key="`source-${contractHash}-${updateCounter}`"
-      :contract-hash="contractHash"
-      :updatecounter="updateCounter"
-      :show-toolbar="true"
-      :compact="true"
-    />
-
     <section class="panel-muted overflow-hidden rounded-lg">
       <header class="soft-divider flex flex-col gap-3 border-b px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -58,6 +50,14 @@
         </div>
       </div>
     </section>
+
+    <ContractSourceCodePanel
+      :key="`source-${contractHash}-${updateCounter}`"
+      :contract-hash="contractHash"
+      :updatecounter="updateCounter"
+      :show-toolbar="true"
+      :compact="true"
+    />
 
     <div v-if="!manifest" class="panel-muted text-mid px-4 py-5 text-sm">
       {{ $t("contractDetail.codeManifestUnavailable") }}
