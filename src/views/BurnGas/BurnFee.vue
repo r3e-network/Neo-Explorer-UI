@@ -126,6 +126,7 @@ import { resolveNetworkName } from "@/utils/env";
 // --- State ---
 const { t, locale } = useI18n();
 const { isDark } = useTheme();
+const BURN_DATA_LOAD_TIMEOUT_MS = Math.max(3_500, Number(import.meta.env.VITE_BURN_DATA_LOAD_TIMEOUT_MS || 9_000));
 const loading = ref(true);
 const error = ref(null);
 const dailyData = ref([]);
@@ -163,6 +164,14 @@ function formatDateLabel(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleDateString(toBcp47(locale.value), { month: "short", day: "numeric" });
+}
+
+function withBurnTimeout(promise, timeoutMs, message) {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
 }
 
 // --- Chart creation ---
@@ -301,7 +310,15 @@ async function loadData({ forceRefresh = false, network = null } = {}) {
   loading.value = true;
   error.value = null;
   try {
-    const rows = await statsService.getDailyAnalytics(30, { forceRefresh, network: requestNetwork });
+    const rows = await withBurnTimeout(
+      statsService.getDailyAnalytics(30, {
+        forceRefresh,
+        network: requestNetwork,
+        timeoutMs: BURN_DATA_LOAD_TIMEOUT_MS,
+      }),
+      BURN_DATA_LOAD_TIMEOUT_MS,
+      t("errors.loadBurnMetrics"),
+    );
     if (myGeneration !== loadGeneration || resolveNetworkName() !== requestNetwork) return;
     // fee_burned is fractoshi (10^8 GAS); convert to GAS for display.
     dailyData.value = rows.map((r) => ({
@@ -309,6 +326,11 @@ async function loadData({ forceRefresh = false, network = null } = {}) {
       transactions: Number(r.tx_count) || 0,
       burned: Number(r.fee_burned || 0) / 1e8,
     }));
+    // Clear loading first so the v-else branch mounts the canvas refs before
+    // Chart.js is imported/rendered. A slow chart path must not leave skeletons
+    // visible after the data request has completed.
+    loading.value = false;
+    await nextTick();
     await renderCharts();
   } catch (err) {
     if (isAbortError(err)) return;
