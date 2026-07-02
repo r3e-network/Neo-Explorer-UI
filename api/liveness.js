@@ -10,27 +10,15 @@
 // a `liveness_<network>` key on Vercel — this handler will continue to
 // work (returning empty) until that's done, instead of erroring.
 
+// Shared superset sendJson (this handler's edge-path Response fallback is the
+// variant api/lib/http.js codifies; tests/api/liveness.spec.js pins it).
+const { sendJson } = require('./lib/http');
+
 module.exports.config = {
   runtime: 'nodejs',
 };
 
 const VALID_NETWORKS = new Set(['mainnet', 'testnet']);
-
-function sendJson(res, statusCode, payload, extraHeaders = {}) {
-  if (!res) {
-    return new Response(JSON.stringify(payload), {
-      status: statusCode,
-      headers: { 'Content-Type': 'application/json', ...extraHeaders },
-    });
-  }
-  res.statusCode = statusCode;
-  res.setHeader('Content-Type', 'application/json');
-  for (const [key, value] of Object.entries(extraHeaders)) {
-    res.setHeader(key, value);
-  }
-  res.end(JSON.stringify(payload));
-  return undefined;
-}
 
 module.exports = async function handler(req, res) {
   const proto = req.headers["x-forwarded-proto"] || "https";

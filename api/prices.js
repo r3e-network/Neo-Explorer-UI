@@ -1,4 +1,5 @@
 const { withApiTelemetry } = require("./lib/telemetry");
+const { sendJson, methodNotAllowed } = require("./lib/http");
 
 module.exports.config = {
   runtime: "nodejs",
@@ -13,15 +14,6 @@ const UNAVAILABLE_PRICE_PAYLOAD = {
   gas: { usd: null, usd_24h_change: null },
   pricingUnavailable: true,
 };
-
-function sendJson(res, statusCode, payload, extraHeaders = {}) {
-  res.statusCode = statusCode;
-  res.setHeader("Content-Type", "application/json");
-  for (const [key, value] of Object.entries(extraHeaders)) {
-    res.setHeader(key, value);
-  }
-  res.end(JSON.stringify(payload));
-}
 
 function buildFetchOptions() {
   const headers = {
@@ -40,7 +32,7 @@ function buildFetchOptions() {
 
 async function handler(req, res) {
   if (req.method !== "GET") {
-    return sendJson(res, 405, { error: "Method not allowed" });
+    return methodNotAllowed(res);
   }
 
   try {

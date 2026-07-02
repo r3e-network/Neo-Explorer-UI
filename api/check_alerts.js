@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 const { isCronAuthorized } = require('./lib/cronAuth');
+const { sendJson } = require('./lib/http');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -341,12 +342,6 @@ async function checkNetworkAlerts(network) {
     console.error(`Failed checking alerts for ${network}:`, err);
     throw err;
   }
-}
-
-function sendJson(res, statusCode, payload) {
-  res.statusCode = statusCode;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(payload));
 }
 
 async function handler(req, res) {

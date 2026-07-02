@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback } = require('./lib/rpcEndpoints');
 const { isCronAuthorized } = require('./lib/cronAuth');
+const { sendJson } = require('./lib/http');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -123,8 +124,11 @@ async function syncNetwork(network) {
       await supabase.from('mempool_transactions').upsert(newRecords, { onConflict: 'hash' });
     }
     
-    // Delete any hashes that are no longer in the node's mempool
-    const toDelete = storedHashes.filter(h => !hashes.includes(h));
+    // Delete any hashes that are no longer in the node's mempool.
+    // Set membership instead of Array.includes: with up to 1000 mempool
+    // hashes and an unbounded stored set this was an O(n*m) scan per run.
+    const mempoolHashSet = new Set(hashes);
+    const toDelete = storedHashes.filter(h => !mempoolHashSet.has(h));
     
     if (toDelete.length > 0) {
       await supabase
@@ -155,27 +159,47 @@ async function syncNetwork(network) {
   }
 }
 
-function sendJson(res, statusCode, payload) {
-  res.statusCode = statusCode;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(payload));
-}
-
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (!isCronAuthorized(req)) {
     return sendJson(res, 401, { success: false, error: 'Unauthorized cron request' });
   }
 
-  try {
-    const mainnetResult = await syncNetwork('mainnet');
-    const testnetResult = await syncNetwork('testnet');
+  // Sync both networks independently: a mainnet RPC/Supabase failure must not
+  // prevent the testnet mempool from being synced (previously they ran
+  // sequentially in one try block, so a mainnet throw starved testnet entirely
+  // — the same starvation bug already fixed in check_alerts). The rows each
+  // pass touches are disjoint (every read/delete is scoped by network), and
+  // running them concurrently also stops the two 25s per-network fetch
+  // deadlines from stacking sequentially against the 60s function budget.
+  const [mainnetResult, testnetResult] = await Promise.allSettled([
+    syncNetwork('mainnet'),
+    syncNetwork('testnet'),
+  ]);
 
-    return sendJson(res, 200, {
-      success: true,
-      mainnet: mainnetResult,
-      testnet: testnetResult
-    });
-  } catch (err) {
-    return sendJson(res, 500, { success: false, error: err.message });
-  }
+  const valueOf = (r) => (r.status === 'fulfilled' ? r.value : null);
+  const errorOf = (r) =>
+    r.status === 'rejected' ? String(r.reason?.message || r.reason) : undefined;
+
+  const errors = {
+    mainnet: errorOf(mainnetResult),
+    testnet: errorOf(testnetResult),
+  };
+  const bothFailed =
+    mainnetResult.status === 'rejected' && testnetResult.status === 'rejected';
+
+  return sendJson(res, bothFailed ? 500 : 200, {
+    success: !bothFailed,
+    mainnet: valueOf(mainnetResult),
+    testnet: valueOf(testnetResult),
+    ...(errors.mainnet || errors.testnet ? { errors } : {}),
+  });
 }
+
+handler._internal = {
+  syncNetwork,
+  setSupabaseClientForTests(client) {
+    supabaseClient = client;
+  },
+};
+
+module.exports = handler;
