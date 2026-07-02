@@ -2,6 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback } = require('./lib/rpcEndpoints');
 const { isCronAuthorized } = require('./lib/cronAuth');
 const { sendJson } = require('./lib/http');
+const { runWithConcurrency } = require('./lib/concurrency');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -49,24 +50,6 @@ const rpcCall = (network, method, params = []) =>
 const MAX_TX_FETCH_PER_RUN = 150;
 const TX_FETCH_CONCURRENCY = 8;
 const TX_FETCH_DEADLINE_MS = 25_000;
-
-async function runWithConcurrency(items, worker, concurrency) {
-  const results = new Array(items.length);
-  let cursor = 0;
-  const pool = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (true) {
-      const idx = cursor++;
-      if (idx >= items.length) return;
-      try {
-        results[idx] = await worker(items[idx], idx);
-      } catch (e) {
-        results[idx] = { __error: e?.message || String(e) };
-      }
-    }
-  });
-  await Promise.all(pool);
-  return results;
-}
 
 async function syncNetwork(network) {
   try {

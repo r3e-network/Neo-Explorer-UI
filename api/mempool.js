@@ -1,6 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { enforceSimpleRateLimit } = require("./lib/simpleRateLimit");
 const { callWithRpcEndpointFallback } = require("./lib/rpcEndpoints");
+const { runWithConcurrency } = require("./lib/concurrency");
 const { withApiTelemetry } = require("./lib/telemetry");
 
 const VALID_NETWORKS = new Set(["mainnet", "testnet"]);
@@ -57,24 +58,6 @@ async function postRpc(url, method, params, signal) {
   const json = await res.json();
   if (json?.error) throw new Error(json.error.message || `${method} RPC error`);
   return json?.result;
-}
-
-async function runWithConcurrency(items, worker, concurrency) {
-  const results = new Array(items.length);
-  let cursor = 0;
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (true) {
-      const idx = cursor++;
-      if (idx >= items.length) return;
-      try {
-        results[idx] = await worker(items[idx], idx);
-      } catch (e) {
-        results[idx] = { __error: e?.message || String(e) };
-      }
-    }
-  });
-  await Promise.all(workers);
-  return results;
 }
 
 function buildPendingRecord(network, hash, txData = null) {

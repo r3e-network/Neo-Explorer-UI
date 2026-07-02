@@ -2,6 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { callWithRpcEndpointFallback, normalizeNetwork } = require('./lib/rpcEndpoints');
 const { isCronAuthorized } = require('./lib/cronAuth');
 const { sendJson } = require('./lib/http');
+const { runWithConcurrency } = require('./lib/concurrency');
 
 module.exports.config = {
   runtime: 'nodejs',
@@ -52,6 +53,14 @@ const getIndexedRpcCandidates = (network) => {
 // Bound each RPC fetch so a hung/slow upstream cannot stall the whole cron and
 // actually advances callWithRpcEndpointFallback to the next endpoint.
 const ALERT_RPC_TIMEOUT_MS = Number(process.env.ALERT_RPC_TIMEOUT_MS) || 4000;
+
+// Width of the account_event evaluation pool. Each account fetch costs up to
+// ~16s worst case against a degraded indexer (4 candidates x 4s timeout), so
+// the old strictly-serial loop let a handful of account alerts silently starve
+// every later alert — including consensus alerts — inside the 60s maxDuration.
+// 4 concurrent fetches keeps upstream load modest while bounding a fully
+// degraded run to ceil(n/4) waves.
+const ACCOUNT_ALERT_CONCURRENCY = 4;
 
 const postRpc = async (url, method, params = []) => {
   const res = await fetch(url, {
@@ -200,126 +209,35 @@ async function checkNetworkAlerts(network) {
 
     let committee = null;
 
-    // 3. Evaluate alerts
-    for (const alert of alerts) {
-      let triggered = false;
-      let subject = '';
-      let message = '';
-      let updateData = {}; // Any state we need to save back to DB for this alert
-
-      if (alert.alert_type === 'consensus_stuck') {
-        const thresholdMs = alert.threshold * 1000;
-        if (timeSinceLastBlock > thresholdMs) {
-          triggered = true;
-          subject = `Neo ${network.toUpperCase()} Alert: Consensus Delayed`;
-          message = `
-            <h2>Neo Network Alert</h2>
-            <p>The Neo ${network} network has not generated a block for over <strong>${alert.threshold} seconds</strong>.</p>
-            <p>Time since last block: ${Math.floor(timeSinceLastBlock / 1000)}s.</p>
-            <p>Last Block Height: ${latestBlockHeight}</p>
-          `;
-        }
-      } 
-      else if (alert.alert_type === 'consensus_missed') {
-        // Target is the public key of the consensus node
-        const targetPubKey = alert.target;
-
-        // block.primary is an index into the *active validator* list
-        // (7 entries from getnextblockvalidators), NOT the committee
-        // (21 entries from getcommittee). Mixing them caused the alert
-        // to never fire correctly: nodeIndex would land 0..20 while
-        // block.primary lands 0..6, so they never aligned.
-        if (!committee) {
-          const validators = await rpcCall(network, 'getnextblockvalidators', []);
-          committee = Array.isArray(validators)
-            ? validators.map((v) => v?.publickey || v?.publicKey || v)
-            : [];
-        }
-
-        // Find the index of our target node in the active validator set.
-        const nodeIndex = committee.findIndex(c => c === targetPubKey);
-
-        // Only evaluate if the node is currently in the active validator set.
-        if (nodeIndex !== -1) {
-          const actualPrimaryIndex = latestBlock.primary;
-          
-          let currentMissCount = alert.miss_count || 0;
-          const previousMissCount = currentMissCount;
-          const missThreshold = Math.max(1, Number(alert.threshold) || 3);
-          let lastSeenBlock = parseInt(alert.last_seen_state) || 0;
-          const expectedPrimaryIndex = expectedPrimaryIndexForBlock(latestBlockHeight, committee.length);
-
-          // Only process if we haven't checked this block height yet
-          if (expectedPrimaryIndex !== null && lastSeenBlock !== latestBlockHeight) {
-            // Did our target node miss its turn as primary?
-            if (expectedPrimaryIndex === nodeIndex && actualPrimaryIndex !== nodeIndex) {
-              currentMissCount++;
-            } else if (actualPrimaryIndex === nodeIndex) {
-              // If it successfully authored a block, reset the miss counter
-              currentMissCount = 0;
-            }
-
-            // Save the state
-            updateData.last_seen_state = latestBlockHeight.toString();
-            updateData.miss_count = currentMissCount;
-
-            // Trigger only when crossing the threshold for this incident.
-            // If email delivery fails or the alert remains active, do not
-            // resend on every later block in the same missed-primary streak.
-            if (currentMissCount >= missThreshold && previousMissCount < missThreshold) {
-              triggered = true;
-              subject = `Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
-              message = `
-                <h2>Consensus Node Alert</h2>
-                <p>The node with public key <strong>${escapeHtml(targetPubKey)}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
-                <p>Last Block Height: ${latestBlockHeight}</p>
-              `;
-            }
-          }
-        }
+    // Per-run fetch memo: multiple account_event alerts tracking the same
+    // address share ONE indexer fetch per cron run. The in-flight promise
+    // (not the resolved value) is memoized so concurrent pool workers
+    // coalesce on the same request; a rejected fetch rejects every sharing
+    // alert identically, matching the old per-alert failure handling (each
+    // alert would have fetched and failed independently anyway). The map
+    // lives inside checkNetworkAlerts, so nothing leaks across cron runs or
+    // warm lambda invocations.
+    const accountTxFetches = new Map();
+    const fetchLatestAccountTxDeduped = (targetNetwork, address) => {
+      const key = `${targetNetwork}:${String(address || '').trim()}`;
+      let pending = accountTxFetches.get(key);
+      if (!pending) {
+        pending = fetchLatestAccountTx(targetNetwork, address);
+        accountTxFetches.set(key, pending);
       }
-      else if (alert.alert_type === 'account_event') {
-        // Target is the address
-        const targetAddress = alert.target;
+      return pending;
+    };
 
-        try {
-          const latestTx = await fetchLatestAccountTx(network, targetAddress);
-
-          if (latestTx?.txid) {
-            const txHash = latestTx.txid;
-
-            // Compare with the last known tx hash we saved in the DB
-            const lastSeenHash = alert.last_seen_state || '';
-
-            if (lastSeenHash && txHash !== lastSeenHash) {
-              // We have a new transaction!
-              triggered = true;
-              subject = `Neo ${network.toUpperCase()} Alert: New Account Activity`;
-              message = `
-                <h2>Account Activity Detected</h2>
-                <p>A new transaction has occurred involving your tracked address: <strong>${escapeHtml(targetAddress)}</strong></p>
-                <p>Transaction Hash: <strong>${escapeHtml(txHash)}</strong></p>
-                <p>View it on the explorer: <a href="https://www.neo3scan.com/transaction-info/${encodeURIComponent(txHash)}">https://www.neo3scan.com/transaction-info/${escapeHtml(txHash)}</a></p>
-              `;
-            }
-
-            // Update the state so we don't alert on this hash again
-            if (txHash !== lastSeenHash) {
-               updateData.last_seen_state = txHash;
-            }
-          }
-        } catch (indexerErr) {
-          console.warn(`Indexer fetch failed for account ${targetAddress}:`, indexerErr.message);
-        }
-      }
-
-      // Send the email first (when triggered), then persist state ONCE below.
-      // Deactivation (is_active=false) is the only mutation gated on a
-      // successful send; the detection state (last_seen_state / miss_count) is
-      // persisted regardless of delivery. Previously, when an alert triggered
-      // but the email failed, updateData was dropped entirely, so the next cron
-      // run re-detected the same event and re-alerted on every single run — a
-      // re-alert storm that also burned the email quota.
+    // Shared per-alert tail. Send the email first (when triggered), then
+    // persist state ONCE. Deactivation (is_active=false) is the only mutation
+    // gated on a successful send; the detection state (last_seen_state /
+    // miss_count) is persisted regardless of delivery. Previously, when an
+    // alert triggered but the email failed, updateData was dropped entirely,
+    // so the next cron run re-detected the same event and re-alerted on every
+    // single run — a re-alert storm that also burned the email quota.
+    // Per-row UPDATEs are intentional: batching them into a single upsert has
+    // a lost-update/NOT-NULL hazard, and the writes are not the bottleneck.
+    const finalizeAlert = async (alert, { triggered, subject, message, updateData }) => {
       if (triggered) {
         const emailSent = await sendEmailAlert(alert.contact, subject, message);
         if (emailSent) {
@@ -334,8 +252,170 @@ async function checkNetworkAlerts(network) {
           .update(updateData)
           .eq('id', alert.id);
       }
+    };
+
+    const evaluateAccountEventAlert = async (alert) => {
+      // Target is the address
+      const targetAddress = alert.target;
+      const evaluation = { triggered: false, subject: '', message: '', updateData: {} };
+
+      try {
+        const latestTx = await fetchLatestAccountTxDeduped(network, targetAddress);
+
+        if (latestTx?.txid) {
+          const txHash = latestTx.txid;
+
+          // Compare with the last known tx hash we saved in the DB
+          const lastSeenHash = alert.last_seen_state || '';
+
+          if (lastSeenHash && txHash !== lastSeenHash) {
+            // We have a new transaction!
+            evaluation.triggered = true;
+            evaluation.subject = `Neo ${network.toUpperCase()} Alert: New Account Activity`;
+            evaluation.message = `
+              <h2>Account Activity Detected</h2>
+              <p>A new transaction has occurred involving your tracked address: <strong>${escapeHtml(targetAddress)}</strong></p>
+              <p>Transaction Hash: <strong>${escapeHtml(txHash)}</strong></p>
+              <p>View it on the explorer: <a href="https://www.neo3scan.com/transaction-info/${encodeURIComponent(txHash)}">https://www.neo3scan.com/transaction-info/${escapeHtml(txHash)}</a></p>
+            `;
+          }
+
+          // Update the state so we don't alert on this hash again
+          if (txHash !== lastSeenHash) {
+            evaluation.updateData.last_seen_state = txHash;
+          }
+        }
+      } catch (indexerErr) {
+        console.warn(`Indexer fetch failed for account ${targetAddress}:`, indexerErr.message);
+      }
+
+      return evaluation;
+    };
+
+    // 3. Evaluate alerts.
+    //
+    // account_event alerts run through a bounded width-4 pool: each one costs
+    // up to ~16s against a degraded indexer, and the old strictly-serial loop
+    // starved every later alert inside the 60s budget. The pool is kicked off
+    // first and awaited after the serial loop, so consensus alerts and
+    // account alerts cannot starve each other. consensus_stuck /
+    // consensus_missed alerts KEEP the serial loop: consensus_missed performs
+    // a per-network read-modify-write against the lazily fetched shared
+    // validator set, and its per-alert cost is negligible once the block data
+    // is prefetched, so serial is both required and cheap there.
+    const accountEventAlerts = alerts.filter((a) => a.alert_type === 'account_event');
+    const serialAlerts = alerts.filter((a) => a.alert_type !== 'account_event');
+
+    const accountEventsDone = runWithConcurrency(
+      accountEventAlerts,
+      async (alert) => {
+        const evaluation = await evaluateAccountEventAlert(alert);
+        await finalizeAlert(alert, evaluation);
+      },
+      ACCOUNT_ALERT_CONCURRENCY,
+    );
+
+    try {
+      for (const alert of serialAlerts) {
+        let triggered = false;
+        let subject = '';
+        let message = '';
+        let updateData = {}; // Any state we need to save back to DB for this alert
+
+        if (alert.alert_type === 'consensus_stuck') {
+          const thresholdMs = alert.threshold * 1000;
+          if (timeSinceLastBlock > thresholdMs) {
+            triggered = true;
+            subject = `Neo ${network.toUpperCase()} Alert: Consensus Delayed`;
+            message = `
+              <h2>Neo Network Alert</h2>
+              <p>The Neo ${network} network has not generated a block for over <strong>${alert.threshold} seconds</strong>.</p>
+              <p>Time since last block: ${Math.floor(timeSinceLastBlock / 1000)}s.</p>
+              <p>Last Block Height: ${latestBlockHeight}</p>
+            `;
+          }
+        }
+        else if (alert.alert_type === 'consensus_missed') {
+          // Target is the public key of the consensus node
+          const targetPubKey = alert.target;
+
+          // block.primary is an index into the *active validator* list
+          // (7 entries from getnextblockvalidators), NOT the committee
+          // (21 entries from getcommittee). Mixing them caused the alert
+          // to never fire correctly: nodeIndex would land 0..20 while
+          // block.primary lands 0..6, so they never aligned.
+          if (!committee) {
+            const validators = await rpcCall(network, 'getnextblockvalidators', []);
+            committee = Array.isArray(validators)
+              ? validators.map((v) => v?.publickey || v?.publicKey || v)
+              : [];
+          }
+
+          // Find the index of our target node in the active validator set.
+          const nodeIndex = committee.findIndex(c => c === targetPubKey);
+
+          // Only evaluate if the node is currently in the active validator set.
+          if (nodeIndex !== -1) {
+            const actualPrimaryIndex = latestBlock.primary;
+
+            let currentMissCount = alert.miss_count || 0;
+            const previousMissCount = currentMissCount;
+            const missThreshold = Math.max(1, Number(alert.threshold) || 3);
+            let lastSeenBlock = parseInt(alert.last_seen_state) || 0;
+            const expectedPrimaryIndex = expectedPrimaryIndexForBlock(latestBlockHeight, committee.length);
+
+            // Only process if we haven't checked this block height yet
+            if (expectedPrimaryIndex !== null && lastSeenBlock !== latestBlockHeight) {
+              // Did our target node miss its turn as primary?
+              if (expectedPrimaryIndex === nodeIndex && actualPrimaryIndex !== nodeIndex) {
+                currentMissCount++;
+              } else if (actualPrimaryIndex === nodeIndex) {
+                // If it successfully authored a block, reset the miss counter
+                currentMissCount = 0;
+              }
+
+              // Save the state
+              updateData.last_seen_state = latestBlockHeight.toString();
+              updateData.miss_count = currentMissCount;
+
+              // Trigger only when crossing the threshold for this incident.
+              // If email delivery fails or the alert remains active, do not
+              // resend on every later block in the same missed-primary streak.
+              if (currentMissCount >= missThreshold && previousMissCount < missThreshold) {
+                triggered = true;
+                subject = `Neo ${network.toUpperCase()} Alert: Consensus Node Failing`;
+                message = `
+                  <h2>Consensus Node Alert</h2>
+                  <p>The node with public key <strong>${escapeHtml(targetPubKey)}</strong> has missed <strong>${currentMissCount}</strong> consecutive rounds as the primary speaker.</p>
+                  <p>Last Block Height: ${latestBlockHeight}</p>
+                `;
+              }
+            }
+          }
+        }
+
+        await finalizeAlert(alert, { triggered, subject, message, updateData });
+      }
+    } finally {
+      // Always drain the account pool — even when the serial loop throws —
+      // so no email send / row update is left detached when the lambda
+      // freezes after the response. runWithConcurrency never rejects (it
+      // traps per-alert failures in-slot), so this cannot mask a serial
+      // error; it only defers it until the pool has finished.
+      const accountResults = await accountEventsDone;
+      accountResults.forEach((result, i) => {
+        if (result && result.__error) {
+          // Surface pooled failures (e.g. a thrown Resend fetch) in the logs.
+          // Under the old serial loop these throws aborted every remaining
+          // alert; now they are contained per-alert but must stay visible.
+          console.error(
+            `[check_alerts] account_event alert ${accountEventAlerts[i]?.id} failed:`,
+            result.__error,
+          );
+        }
+      });
     }
-    
+
     return triggeredCount;
 
   } catch (err) {
