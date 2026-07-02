@@ -565,13 +565,38 @@
             </button>
           </div>
           <div class="p-6 space-y-6">
+            <!-- The board list only carries a summary projection; the full
+                 record (incl. params.unsigned_tx) is refetched by id when the
+                 modal opens. Never sign from a row that has not hydrated. -->
+            <div
+              v-if="signModalLoading"
+              class="flex items-center justify-center gap-2 py-6 text-sm text-mid"
+              data-testid="sign-modal-loading"
+            >
+              <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              {{ $t("tools.multisig.signModalLoading") }}
+            </div>
+            <div
+              v-else-if="signModalError"
+              class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400"
+              data-testid="sign-modal-error"
+            >
+              {{ signModalError }}
+            </div>
             <!-- WYSIWYS: show the DECODED transaction (script, signers, fees,
                  intents) instead of only opaque hex. Signing raw hex blind is a
                  phishing surface for in-app-key wallets (Web3Auth/WIF) that sign
                  without an external wallet prompt. The viewer still exposes the
                  raw hex for advanced verification. -->
             <UnsignedTransactionViewer
-              v-if="signModalReq.params?.unsigned_tx"
+              v-if="!signModalLoading && signModalReq.params?.unsigned_tx"
               :transaction-hex="signModalReq.params.unsigned_tx"
               :label="$t('tools.multisig.unsignedPayloadHex')"
             />
@@ -580,7 +605,7 @@
               <label class="block text-sm font-bold text-high">{{ $t("tools.multisig.optionWallet") }}</label>
               <button
                 @click="autoSignTx"
-                :disabled="isSigning"
+                :disabled="isSigning || signModalLoading || !signModalReq.params?.unsigned_tx"
                 class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
               >
                 <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -764,8 +789,18 @@ function hasSigned(req) {
 }
 
 const signModalReq = ref(null);
+const signModalLoading = ref(false);
+const signModalError = ref("");
 const manualSignature = ref("");
 const isSigning = ref(false);
+
+// The board list only returns a summary projection (no witness/unsigned_tx
+// blobs). Any flow that signs, assembles, or inspects the payload must
+// refetch the full record by id first.
+async function fetchFullRequest(req) {
+  if (!req?.id) return null;
+  return supabaseService.getMultisigRequestById(req.id, req.network || req.network_mode);
+}
 
 const detailsModalReq = ref(null);
 const signModalRef = ref(null);
@@ -774,13 +809,31 @@ const { activate: activateSignTrap, deactivate: deactivateSignTrap } = useFocusT
 const { activate: activateDetailsTrap, deactivate: deactivateDetailsTrap } = useFocusTrap(detailsModalRef, { immediate: false });
 watch(signModalReq, (v) => v ? nextTick(activateSignTrap) : deactivateSignTrap());
 watch(detailsModalReq, (v) => v ? nextTick(activateDetailsTrap) : deactivateDetailsTrap());
-function viewDetails(req) {
+async function viewDetails(req) {
+  // Show the summary row immediately, then upgrade to the full record (incl.
+  // params.unsigned_tx) once the per-id refetch lands.
   detailsModalReq.value = req;
+  const full = await fetchFullRequest(req);
+  if (full && detailsModalReq.value && detailsModalReq.value.id === req.id) {
+    detailsModalReq.value = full;
+  }
 }
 
-function openSignModal(req) {
-  signModalReq.value = req;
+async function openSignModal(req) {
   manualSignature.value = "";
+  signModalError.value = "";
+  signModalLoading.value = true;
+  signModalReq.value = req;
+  const full = await fetchFullRequest(req);
+  // The modal may have been closed (or reopened for another request) while
+  // the refetch was in flight; never clobber the newer state.
+  if (!signModalReq.value || signModalReq.value.id !== req.id) return;
+  if (full) {
+    signModalReq.value = full;
+  } else {
+    signModalError.value = t("tools.multisig.errors.loadRequestFailed");
+  }
+  signModalLoading.value = false;
 }
 
 function loadSavedConfigs() {
@@ -928,9 +981,16 @@ async function handleCreateRequest() {
 
 async function autoSignTx() {
   if (!signModalReq.value) return;
+  // Never sign from an unhydrated summary row: the projected list rows do not
+  // carry the unsigned transaction, so a missing hex means the per-id refetch
+  // has not completed (or failed).
+  const unsignedTxHex = signModalReq.value.params?.unsigned_tx;
+  if (signModalLoading.value || !unsignedTxHex) {
+    toast.error(t("tools.multisig.errors.loadRequestFailed"));
+    return;
+  }
   isSigning.value = true;
   try {
-    const unsignedTxHex = signModalReq.value.params.unsigned_tx;
     const signature = await walletService.signRawTransaction(unsignedTxHex);
     await submitSig(signature);
   } catch (e) {
@@ -975,28 +1035,35 @@ async function submitSig(signatureHex) {
 }
 
 async function handleBroadcast(req) {
-  if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < req.signers_required) {
-    toast.error(t("tools.multisig.toasts.notEnoughSignatures"));
-    return;
-  }
-
   try {
     toast.info(t("tools.multisig.toasts.assembling"));
-    const tx = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
+    // The projected list rows carry neither the unsigned tx nor the signature
+    // hexes; refetch the full record by id before assembling anything.
+    const full = await fetchFullRequest(req);
+    if (!full) {
+      toast.error(t("tools.multisig.errors.loadRequestFailed"));
+      return;
+    }
+    if (!full.params?.unsigned_tx || !full.signatures || full.signatures.length < full.signers_required) {
+      toast.error(t("tools.multisig.toasts.notEnoughSignatures"));
+      return;
+    }
 
-    const pubkeys = req.params.pubkeys;
+    const tx = neonJs.tx.Transaction.deserialize(full.params.unsigned_tx);
+
+    const pubkeys = full.params.pubkeys;
     const sortedSignatures = [];
 
     for (const pubkey of pubkeys) {
       const addr = new neonJs.wallet.Account(pubkey).address;
-      const sigObj = req.signatures.find((s) => s.signer_address === addr);
+      const sigObj = full.signatures.find((s) => s.signer_address === addr);
       if (sigObj) {
         sortedSignatures.push(sigObj.signature);
       }
-      if (sortedSignatures.length >= req.signers_required) break;
+      if (sortedSignatures.length >= full.signers_required) break;
     }
 
-    if (sortedSignatures.length < req.signers_required) {
+    if (sortedSignatures.length < full.signers_required) {
       throw new Error(t("tools.multisig.errors.notEnoughSignatures"));
     }
 
@@ -1006,7 +1073,7 @@ async function handleBroadcast(req) {
     }
 
     const invocationScript = builder.build();
-    const verificationScript = neonJs.wallet.Account.createMultiSig(req.signers_required, pubkeys).contract.script;
+    const verificationScript = neonJs.wallet.Account.createMultiSig(full.signers_required, pubkeys).contract.script;
 
     tx.witnesses = [new neonJs.tx.Witness({ invocationScript, verificationScript })];
 

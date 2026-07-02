@@ -208,12 +208,40 @@ function getRequestRequiredCount(req) {
 const addWitnessModalReq = ref(null);
 const detailsModalReq = ref(null);
 
-function viewDetails(req) {
-  detailsModalReq.value = req;
+// The proposal list only returns a summary projection (no witness/unsigned_tx
+// blobs). Any flow that signs, assembles, forks, or inspects the payload must
+// refetch the full record by id first.
+async function fetchFullRequest(req) {
+  if (!req?.id) return null;
+  return supabaseService.getMultisigRequestById(req.id, req.network || req.network_mode);
 }
 
-function openAddWitnessModal(req) {
+async function viewDetails(req) {
+  // Show the summary row immediately, then upgrade to the full record (incl.
+  // params.unsigned_tx) once the per-id refetch lands.
+  detailsModalReq.value = req;
+  const full = await fetchFullRequest(req);
+  if (full && detailsModalReq.value && detailsModalReq.value.id === req.id) {
+    detailsModalReq.value = full;
+  }
+}
+
+async function openAddWitnessModal(req) {
+  // Open the modal immediately with the summary row (the modal renders its
+  // own "preparing payload" state until params.unsigned_tx is available),
+  // then hydrate it with the full record so the signing context (unsigned tx
+  // JSON, committee set) is built from complete data — never from a projected
+  // list row.
   addWitnessModalReq.value = req;
+  const full = await fetchFullRequest(req);
+  // The modal may have been closed (or reopened for another proposal) while
+  // the refetch was in flight; never clobber the newer state.
+  if (!addWitnessModalReq.value || addWitnessModalReq.value.id !== req.id) return;
+  if (full) {
+    addWitnessModalReq.value = full;
+  } else {
+    toast.error(t("tools.governance.toasts.loadProposalFailed"));
+  }
 }
 
 function openCreateModal() {
@@ -221,8 +249,14 @@ function openCreateModal() {
   showCreateModal.value = true;
 }
 
-function openForkProposal(req) {
-  forkProposalDraft.value = req;
+async function openForkProposal(req) {
+  // Forking preserves the source packet (unsigned tx, script hash, broadcast
+  // witness), which the projected list rows no longer carry — refetch the
+  // full record first and fall back to the summary row only if the refetch
+  // fails (the create modal then regenerates the packet from the invocation
+  // metadata instead of cloning it).
+  const full = await fetchFullRequest(req);
+  forkProposalDraft.value = full || req;
   showCreateModal.value = true;
 }
 
@@ -242,33 +276,41 @@ async function handleBroadcast(req) {
     return;
   }
 
-  if (!req.params?.unsigned_tx || !req.signatures || req.signatures.length < getRequestRequiredCount(req)) {
-    toast.error(t("tools.governance.toasts.notEnoughSignatures"));
-    return;
-  }
-
   try {
     if (!neonJs) {
       toast.error(t("tools.governance.toasts.walletLibraryNotLoaded"));
       return;
     }
     toast.info(t("tools.governance.toasts.assemblingMultisig"));
-    const tx = neonJs.tx.Transaction.deserialize(req.params.unsigned_tx);
+
+    // The projected list rows carry neither the unsigned tx nor the signature
+    // hexes; refetch the full record by id before assembling anything.
+    const full = await fetchFullRequest(req);
+    if (!full) {
+      toast.error(t("tools.governance.toasts.loadProposalFailed"));
+      return;
+    }
+    if (!full.params?.unsigned_tx || !full.signatures || full.signatures.length < getRequestRequiredCount(full)) {
+      toast.error(t("tools.governance.toasts.notEnoughSignatures"));
+      return;
+    }
+
+    const tx = neonJs.tx.Transaction.deserialize(full.params.unsigned_tx);
 
     // Sort signatures based on the order of public keys in the committee
-    const committee = resolveCommitteePubkeys(req, committeePubkeys.value);
+    const committee = resolveCommitteePubkeys(full, committeePubkeys.value);
     const sortedSignatures = [];
 
     for (const pubkey of committee) {
       const addr = new neonJs.wallet.Account(pubkey).address;
-      const sigObj = req.signatures.find((s) => s.signer_address === addr);
+      const sigObj = full.signatures.find((s) => s.signer_address === addr);
       if (sigObj) {
         sortedSignatures.push(sigObj.signature);
       }
-      if (sortedSignatures.length >= getRequestRequiredCount(req)) break; // We only need M sigs
+      if (sortedSignatures.length >= getRequestRequiredCount(full)) break; // We only need M sigs
     }
 
-    if (sortedSignatures.length < getRequestRequiredCount(req)) {
+    if (sortedSignatures.length < getRequestRequiredCount(full)) {
       throw new Error(t("tools.governance.errors.notEnoughCommitteeSignatures"));
     }
 
@@ -282,7 +324,7 @@ async function handleBroadcast(req) {
 
     // The verification script is the multisig script
     const verificationScript = neonJs.wallet.Account.createMultiSig(
-      getRequestRequiredCount(req),
+      getRequestRequiredCount(full),
       committee,
     ).contract.script;
 
@@ -295,13 +337,13 @@ async function handleBroadcast(req) {
     const txid = await rpcClient.sendRawTransaction(signedTxHex);
 
     toast.success(t("tools.governance.toasts.broadcastSuccess", { txid }));
-    await supabaseService.updateMultisigRequestStatus(req.id, "EXECUTED", {
+    await supabaseService.updateMultisigRequestStatus(full.id, "EXECUTED", {
       signer_address: connectedAccount.value,
       tx_hash: txid,
       executed_at: new Date().toISOString(),
       network: getCurrentEnv(),
       metadata: {
-        ...(req.metadata || {}),
+        ...(full.metadata || {}),
         broadcast_witness: {
           invocationScript,
           verificationScript,

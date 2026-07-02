@@ -3,6 +3,13 @@ const { enforceMultisigMutationPolicy } = require("../lib/multisigMutations");
 const { callWithRpcEndpointFallback, normalizeNetwork } = require("../lib/rpcEndpoints");
 const { enforceMutationSameOrigin } = require("../lib/sameOriginGuard");
 
+// Dependency seam for tests, mirroring api/multisig/requests/[id].js: the
+// vitest/Vite module graph does not instrument these API handlers' CJS
+// require()s, so vi.mock cannot intercept the db module. The handler calls
+// through this mutable reference, which tests can override via
+// module.exports._internal.setDepsForTests(). Production uses the real impl.
+let _query = query;
+
 function cors(res) {
   // Tightened from `*`: the explorer SPA calls these endpoints via same-origin
   // relative URLs, so we only need to admit the explorer's own origins.
@@ -14,6 +21,16 @@ function cors(res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
+
+// List pagination bounds. The board views poll this unauthenticated endpoint;
+// without a cap the response grows with the table and eventually hard-fails at
+// Vercel's ~4.5MB response body limit.
+const DEFAULT_LIST_LIMIT = 50;
+const MAX_LIST_LIMIT = 100;
+const MAX_LIST_OFFSET = 10000;
+
+// Mirrors the PATCH handler's status validation (api/multisig/requests/[id].js).
+const STATUS_FILTER_PATTERN = /^[a-z0-9_-]{1,32}$/i;
 
 // Caller-controlled committee fields. These MUST NOT be trusted from the
 // request body: downstream signature verification (api/lib/governanceSignature.js
@@ -63,7 +80,12 @@ module.exports = async function handler(req, res) {
     if (req.method === "GET") {
       const network = String(req.query.network || "").trim() || null;
 
-      let sql = `
+      // Migration safety: `?full=1` preserves today's response shape verbatim
+      // (all row columns incl. unsigned_tx/params blobs, plus every signature
+      // column incl. witness data) so any straggler client keeps working while
+      // the boards migrate to the projected default + per-id refetch.
+      if (String(req.query.full || "").trim() === "1") {
+        let sql = `
         SELECT r.*,
           coalesce(
             json_agg(
@@ -85,23 +107,101 @@ module.exports = async function handler(req, res) {
         FROM multisig_requests r
         LEFT JOIN multisig_signatures s ON s.request_id = r.id
       `;
-      const params = [];
+        const params = [];
 
+        if (network) {
+          params.push(network);
+          sql += ` WHERE (r.network = $1 OR r.network_mode = $1)`;
+        }
+
+        sql += ` GROUP BY r.id ORDER BY r.created_at DESC LIMIT 500`;
+
+        const { rows } = await _query(sql, params);
+        // Parse the JSON-aggregated signatures
+        for (const row of rows) {
+          if (typeof row.signatures === "string") {
+            row.signatures = JSON.parse(row.signatures);
+          }
+        }
+        return res.status(200).json(rows);
+      }
+
+      // Default: a bounded, projected summary list. The board views render
+      // only summary fields; the sign/assemble flows refetch the full record
+      // via /api/multisig/requests/[id]. The projection strips exactly the
+      // unbounded blob classes (row unsigned_tx, params.unsigned_tx,
+      // params.signature_metadata, params.committee_verification_script,
+      // params.broadcast_witness, metadata.broadcast_witness, and all
+      // per-signature witness/script/signature payloads) while keeping every
+      // field the list rendering and client-side filters read.
+      const status = String(req.query.status || "").trim();
+      if (status && !STATUS_FILTER_PATTERN.test(status)) {
+        return res.status(400).json({ error: "Invalid status filter." });
+      }
+
+      const limitRaw = Number.parseInt(String(req.query.limit ?? ""), 10);
+      const limit = Number.isFinite(limitRaw)
+        ? Math.min(Math.max(limitRaw, 1), MAX_LIST_LIMIT)
+        : DEFAULT_LIST_LIMIT;
+      const offsetRaw = Number.parseInt(String(req.query.offset ?? ""), 10);
+      const offset = Number.isFinite(offsetRaw)
+        ? Math.min(Math.max(offsetRaw, 0), MAX_LIST_OFFSET)
+        : 0;
+
+      const where = [];
+      const params = [];
       if (network) {
         params.push(network);
-        sql += ` WHERE (r.network = $1 OR r.network_mode = $1)`;
+        where.push(`(r.network = $${params.length} OR r.network_mode = $${params.length})`);
       }
-
-      sql += ` GROUP BY r.id ORDER BY r.created_at DESC LIMIT 500`;
-
-      const { rows } = await query(sql, params);
-      // Parse the JSON-aggregated signatures
-      for (const row of rows) {
-        if (typeof row.signatures === "string") {
-          row.signatures = JSON.parse(row.signatures);
-        }
+      if (status) {
+        params.push(status);
+        where.push(`r.status = $${params.length}`);
       }
-      return res.status(200).json(rows);
+      params.push(limit);
+      const limitIdx = params.length;
+      params.push(offset);
+      const offsetIdx = params.length;
+
+      const sql = `
+        SELECT (
+          to_jsonb(r) - 'unsigned_tx'
+          || jsonb_build_object(
+            'params',
+            CASE
+              WHEN jsonb_typeof(to_jsonb(r) -> 'params') = 'object'
+                THEN (to_jsonb(r) -> 'params')
+                  - 'unsigned_tx'
+                  - 'signature_metadata'
+                  - 'committee_verification_script'
+                  - 'broadcast_witness'
+              ELSE to_jsonb(r) -> 'params'
+            END,
+            'metadata',
+            CASE
+              WHEN jsonb_typeof(to_jsonb(r) -> 'metadata') = 'object'
+                THEN (to_jsonb(r) -> 'metadata') - 'broadcast_witness'
+              ELSE to_jsonb(r) -> 'metadata'
+            END,
+            'signatures', coalesce(sigs.signatures, '[]'::jsonb)
+          )
+        ) AS request
+        FROM multisig_requests r
+        LEFT JOIN LATERAL (
+          SELECT jsonb_agg(
+            jsonb_build_object('id', s.id, 'signer_address', s.signer_address)
+            ORDER BY s.id
+          ) AS signatures
+          FROM multisig_signatures s
+          WHERE s.request_id = r.id
+        ) sigs ON true
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT $${limitIdx} OFFSET $${offsetIdx}
+      `;
+
+      const { rows } = await _query(sql, params);
+      return res.status(200).json(rows.map((row) => row.request));
     }
 
     if (req.method === "POST") {
@@ -189,7 +289,7 @@ module.exports = async function handler(req, res) {
       }
 
       const sql = `INSERT INTO multisig_requests (${columns.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *`;
-      const { rows } = await query(sql, values);
+      const { rows } = await _query(sql, values);
       return res.status(201).json(rows[0]);
     }
 
@@ -198,4 +298,15 @@ module.exports = async function handler(req, res) {
     console.error("[api/multisig/requests]", err);
     return res.status(500).json({ error: "Internal error processing multisig request." });
   }
+};
+
+// Test-only dependency injection (see the seam comment above). Inert in
+// production — nothing calls these unless a test does.
+module.exports._internal = {
+  setDepsForTests(overrides = {}) {
+    if (overrides.query) _query = overrides.query;
+  },
+  resetDepsForTests() {
+    _query = query;
+  },
 };
