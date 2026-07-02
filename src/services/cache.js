@@ -53,18 +53,33 @@ if (typeof window !== "undefined" && window.sessionStorage) {
   }
 }
 
+function writeCacheToSessionStorage() {
+  try {
+    // Avoid DOM quota exceeded errors by limiting to 100 items for persistence
+    const entries = Array.from(cache.entries()).slice(-100);
+    sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(entries));
+  } catch (e) {
+    sessionStorage.removeItem(SESSION_CACHE_KEY);
+  }
+}
+
 function persistCache() {
   if (typeof window === "undefined" || !window.sessionStorage) return;
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    try {
-      // Avoid DOM quota exceeded errors by limiting to 100 items for persistence
-      const entries = Array.from(cache.entries()).slice(-100);
-      sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(entries));
-    } catch (e) {
-      sessionStorage.removeItem(SESSION_CACHE_KEY);
+  saveTimeout = setTimeout(writeCacheToSessionStorage, 1000);
+}
+
+if (typeof window !== "undefined" && window.sessionStorage) {
+  // Flush any pending debounced persist and capture the final LRU order on
+  // page exit. Cache hits deliberately no longer persist (see touchCacheItem),
+  // so this is the only point where recency ordering reaches sessionStorage.
+  window.addEventListener("pagehide", () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
     }
-  }, 1000);
+    writeCacheToSessionStorage();
+  });
 }
 
 // 默认缓存时间（毫秒）
@@ -107,10 +122,12 @@ function evictIfNeeded() {
 }
 
 function touchCacheItem(key, item) {
-  // LRU refresh: move to end of Map iteration order
+  // LRU refresh: move to end of Map iteration order. Deliberately does NOT
+  // call persistCache(): serializing up to 100 full API payloads on every
+  // cache hit only to save Map iteration order is pure main-thread waste.
+  // The pagehide flush above captures the final recency order instead.
   cache.delete(key);
   cache.set(key, item);
-  persistCache();
 }
 
 function getValidCacheItem(key, { touch = false } = {}) {

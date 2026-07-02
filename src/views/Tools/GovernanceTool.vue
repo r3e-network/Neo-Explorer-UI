@@ -95,6 +95,7 @@ import {
   resolveCommitteePubkeys,
 } from "@/utils/governanceRequests";
 import { buildCouncilIdentityMap } from "@/utils/councilIdentity";
+import { GOVERNANCE_INVOCATION_TARGETS as NATIVE_CONTRACTS } from "@/constants/governance";
 import { useToast } from "vue-toastification";
 import { useI18n } from "vue-i18n";
 
@@ -149,13 +150,6 @@ const isCouncilNode = computed(() => {
     return false;
   }
 });
-
-const NATIVE_CONTRACTS = {
-  PolicyContract: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-  RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",
-  OracleContract: "fe924b7cfe89ddd271abaf7210a80a7e11178758",
-  NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-};
 
 async function loadCommittee() {
   if (!neonJs) return;

@@ -329,6 +329,10 @@ import { getRpcClientUrl, getCurrentEnv } from "@/utils/env";
 import { toNetworkMode } from "@/utils/rpcEndpoints";
 import { isPublicKeyHex } from "@/utils/neoHelpers";
 import { resolveGovernanceValidUntilBlock } from "@/utils/governanceTiming";
+import {
+  GOVERNANCE_INVOCATION_TARGETS as NATIVE_CONTRACTS,
+  GOVERNANCE_CONTRACT_LABELS_BY_HASH as CONTRACT_NAME_BY_HASH,
+} from "@/constants/governance";
 import { useToast } from "vue-toastification";
 import { useI18n } from "vue-i18n";
 import { useFocusTrap } from "@/composables/useFocusTrap";
@@ -351,13 +355,6 @@ const props = defineProps({
 const emit = defineEmits(["close", "created"]);
 
 const toast = useToast();
-
-const NATIVE_CONTRACTS = {
-  PolicyContract: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-  RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",
-  OracleContract: "fe924b7cfe89ddd271abaf7210a80a7e11178758",
-  NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-};
 
 const PROPOSAL_TEMPLATES = [
   { id: "blockAccount", contract: "PolicyContract", method: "blockAccount" },
@@ -471,10 +468,6 @@ function createEmptyForm() {
     invocations: [createInvocation()],
   };
 }
-
-const CONTRACT_NAME_BY_HASH = Object.fromEntries(
-  Object.entries(NATIVE_CONTRACTS).map(([name, hash]) => [String(hash || "").toLowerCase(), name]),
-);
 
 const sourceProposalId = computed(() =>
   props.prefillProposal?.id === undefined || props.prefillProposal?.id === null ? "" : String(props.prefillProposal.id),

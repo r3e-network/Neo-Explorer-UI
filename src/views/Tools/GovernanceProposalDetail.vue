@@ -139,6 +139,10 @@ import { getDefaultCandidateLogoUrl, resolveCandidateLogoUrlFallbacks } from "@/
 import { hexToBase64 } from "@/utils/neoHelpers";
 import { decodeUnsignedTransaction } from "@/utils/unsignedTransaction";
 import { buildSignatureInvocationScriptBase64 } from "@/utils/multisigWitness";
+import {
+  GOVERNANCE_INVOCATION_TARGETS as INVOCATION_TARGETS,
+  GOVERNANCE_CONTRACT_LABELS_BY_HASH as CONTRACT_LABELS_BY_HASH,
+} from "@/constants/governance";
 
 const route = useRoute();
 const router = useRouter();
@@ -268,15 +272,6 @@ const canCurrentSignerVote = computed(() =>
 );
 const progressWidth = computed(
   () => `${Math.min(100, requiredCount.value ? (signedCount.value / requiredCount.value) * 100 : 0)}%`,
-);
-const INVOCATION_TARGETS = {
-  PolicyContract: "cc5e4edd9f5f8dba8bb65734541df7a1c081c67b",
-  RoleManagement: "49cf4e5378ffcd4dec034fd98a174c5491e395e2",
-  OracleContract: "fe924b7cfe89ddd271abaf7210a80a7e11178758",
-  NEO: "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-};
-const CONTRACT_LABELS_BY_HASH = Object.fromEntries(
-  Object.entries(INVOCATION_TARGETS).map(([label, hash]) => [String(hash).trim().toLowerCase(), label]),
 );
 const normalizeInvocationParams = (invocation = {}) => {
   if (invocation?.params && typeof invocation.params === "object" && !Array.isArray(invocation.params)) {
