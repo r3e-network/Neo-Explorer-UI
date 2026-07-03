@@ -129,6 +129,13 @@
         <!-- Pagination -->
         <div v-if="!loading && transactions.length > 0" class="soft-divider border-t px-4 py-3">
           <InfiniteScroll :loading="loadingMore" :has-more="currentPage < totalPages" @load-more="loadMore" />
+          <p
+            v-if="offsetCapped && currentPage >= totalPages"
+            class="mt-2 text-center text-xs text-mid"
+            data-testid="tx-offset-cap-notice"
+          >
+            {{ $t("transactionsPage.offsetCapNotice") }}
+          </p>
         </div>
       </div>
     </section>
@@ -147,6 +154,7 @@ import { useRealtimeHead } from "@/composables/useRealtimeHead";
 import { usePagination } from "@/composables/usePagination";
 import { useLoadMore } from "@/composables/useLoadMore";
 import { formatNumber } from "@/utils/explorerFormat";
+import { MAX_TRANSACTION_LIST_OFFSET } from "@/constants";
 import { useTransferSummary } from "@/composables/useTransferSummary";
 import { exportTransactionsToCSV } from "@/utils/dataExport";
 import { exportAllPagesToCsv } from "@/utils/pagedExport";
@@ -179,6 +187,7 @@ const paginationState = usePagination((limit, skip, opts) => transactionService.
     createExplorerQueryKey("transactions.list", { limit, skip, network: context.network }),
   querySource: "transactions.list",
   errorMessage: t("errors.loadTransactions"),
+  maxOffset: MAX_TRANSACTION_LIST_OFFSET,
 });
 
 const {
@@ -189,6 +198,7 @@ const {
   currentPage,
   pageSize,
   totalPages,
+  offsetCapped,
   startRecord,
   endRecord,
   loadPage,

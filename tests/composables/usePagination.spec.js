@@ -271,6 +271,50 @@ describe("usePagination", () => {
     });
   });
 
+  describe("maxOffset cap", () => {
+    it("caps totalPages at the last reachable page within the offset window", async () => {
+      // maxOffset 2000 / pageSize 25 => last reachable skip 2000 is page 81.
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(25), totalCount: 1_000_000 });
+      const p = usePagination(fetchFn, { defaultPageSize: 25, maxOffset: 2000 });
+
+      await p.loadPage(1);
+      expect(p.totalPages.value).toBe(81);
+    });
+
+    it("flags offsetCapped only when there is more data than the window can reach", async () => {
+      const capped = usePagination(vi.fn().mockResolvedValue({ result: new Array(25), totalCount: 1_000_000 }), {
+        defaultPageSize: 25,
+        maxOffset: 2000,
+      });
+      await capped.loadPage(1);
+      expect(capped.offsetCapped.value).toBe(true);
+
+      const withinWindow = usePagination(vi.fn().mockResolvedValue({ result: new Array(25), totalCount: 100 }), {
+        defaultPageSize: 25,
+        maxOffset: 2000,
+      });
+      await withinWindow.loadPage(1);
+      expect(withinWindow.offsetCapped.value).toBe(false);
+    });
+
+    it("clamps currentPage to the cap when navigating past the offset window", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(25), totalCount: 1_000_000 });
+      const p = usePagination(fetchFn, { defaultPageSize: 25, maxOffset: 2000 });
+
+      await p.loadPage(500);
+      expect(p.currentPage.value).toBe(81);
+    });
+
+    it("does not cap or flag when maxOffset is unset", async () => {
+      const fetchFn = vi.fn().mockResolvedValue({ result: new Array(25), totalCount: 1_000_000 });
+      const p = usePagination(fetchFn, { defaultPageSize: 25 });
+
+      await p.loadPage(1);
+      expect(p.totalPages.value).toBe(40000);
+      expect(p.offsetCapped.value).toBe(false);
+    });
+  });
+
   describe("race condition guard", () => {
     it("discards stale responses from earlier requests", async () => {
       let callIndex = 0;

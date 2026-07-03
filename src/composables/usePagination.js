@@ -64,6 +64,7 @@ export function usePagination(
     querySource = "pagination",
     queryStaleTime = 3_000,
     timeoutMs = DEFAULT_PAGE_TIMEOUT_MS,
+    maxOffset = null,
   } = {}
 ) {
   const { t } = useI18n();
@@ -75,7 +76,20 @@ export function usePagination(
   const currentPage = ref(1);
   const pageSize = ref(defaultPageSize);
 
-  const totalPages = computed(() => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / pageSize.value)));
+  // Some endpoints clamp the server-side offset (e.g. the transactions list
+  // caps skip at maxTransactionListOffset). Past that offset every request
+  // returns the same clamped page, so advertising totalCount/pageSize pages
+  // would let the pager (and infinite scroll) walk into a zone of repeating
+  // rows. When maxOffset is set, the reachable page count is capped at the
+  // last page whose skip still lands within the offset window.
+  const hasOffsetCap = Number.isFinite(maxOffset) && maxOffset > 0;
+  const pageCap = (size) => (hasOffsetCap ? Math.floor(maxOffset / size) + 1 : Infinity);
+  const uncappedPageCount = () => (totalCount.value === 0 ? 1 : Math.ceil(totalCount.value / pageSize.value));
+
+  const totalPages = computed(() => Math.min(uncappedPageCount(), pageCap(pageSize.value)));
+  // True when there is genuinely more data than the offset window can reach,
+  // so the view can point users to search for older records.
+  const offsetCapped = computed(() => hasOffsetCap && uncappedPageCount() > pageCap(pageSize.value));
   const startRecord = computed(() => (totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1));
   const endRecord = computed(() => Math.max(startRecord.value - 1, Math.min(currentPage.value * pageSize.value, totalCount.value)));
 
@@ -140,7 +154,7 @@ export function usePagination(
       // refreshes (e.g. empty-block pruning, deleted records). Without
       // this the UI could read "Showing 41-30 of 30" and the Next button
       // would freeze because currentPage > totalPages.
-      const lastPage = Math.max(1, Math.ceil((res?.totalCount || 0) / pageSize.value));
+      const lastPage = Math.min(Math.max(1, Math.ceil((res?.totalCount || 0) / pageSize.value)), pageCap(pageSize.value));
       currentPage.value = Math.min(page, lastPage);
     } catch (err) {
       if (myId !== requestId) return;
@@ -227,6 +241,7 @@ export function usePagination(
     currentPage,
     pageSize,
     totalPages,
+    offsetCapped,
     startRecord,
     endRecord,
     loadPage,

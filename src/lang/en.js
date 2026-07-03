@@ -2122,6 +2122,7 @@ const en = {
   transactionsPage: {
     subtitle: "Neo N3 network transactions",
     moreThanFound: "More than {count} transactions found",
+    offsetCapNotice: "Only the most recent transactions can be browsed by page here. Use search to find older transactions.",
     showingRange: "Showing {start} to {end} of {total} transactions",
     exportCsv: "Export CSV",
     exportToCsv: "Export to CSV",

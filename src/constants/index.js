@@ -20,6 +20,12 @@ export const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const DEFAULT_PAGE_SIZE = 25;
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
+// The transactions read-api clamps the server-side offset at this value
+// (maxTransactionListOffset in supabase_indexer/internal/readapi/server.go).
+// Beyond it every page repeats the clamped rows, so the list pager caps its
+// reachable pages here and steers users to search for older transactions.
+export const MAX_TRANSACTION_LIST_OFFSET = 2000;
+
 // GAS precision (1 GAS = 10^8 fractions)
 export const GAS_DECIMALS = 8;
 export const GAS_DIVISOR = 1e8;

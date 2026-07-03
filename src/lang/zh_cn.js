@@ -2122,6 +2122,7 @@ const zh = {
   transactionsPage: {
     subtitle: "Neo N3 网络交易",
     moreThanFound: "找到超过 {count} 笔交易",
+    offsetCapNotice: "此处仅可按页浏览最近的交易。如需查看更早的交易，请使用搜索。",
     showingRange: "显示第 {start} 至 {end} 条，共 {total} 笔交易",
     exportCsv: "导出 CSV",
     exportToCsv: "导出为 CSV",

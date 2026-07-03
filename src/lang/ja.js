@@ -2122,6 +2122,7 @@ const ja = {
   transactionsPage: {
     subtitle: "Neo N3ネットワークのトランザクション",
     moreThanFound: "{count}件を超えるトランザクションが見つかりました",
+    offsetCapNotice: "ここでは最近のトランザクションのみページ表示できます。古いトランザクションは検索をご利用ください。",
     showingRange: "{total}件中 {start}〜{end} 件目を表示",
     exportCsv: "CSVをエクスポート",
     exportToCsv: "CSVにエクスポート",

@@ -2122,6 +2122,7 @@ const ko = {
   transactionsPage: {
     subtitle: "Neo N3 네트워크 트랜잭션",
     moreThanFound: "{count}개 이상의 트랜잭션이 발견되었습니다",
+    offsetCapNotice: "여기서는 최근 트랜잭션만 페이지로 탐색할 수 있습니다. 오래된 트랜잭션은 검색을 이용하세요.",
     showingRange: "전체 {total}개 중 {start}~{end}번째 트랜잭션 표시",
     exportCsv: "CSV 내보내기",
     exportToCsv: "CSV로 내보내기",
