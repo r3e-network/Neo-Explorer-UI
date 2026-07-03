@@ -131,6 +131,7 @@ import { isAbortError } from "@/utils/abortError";
 import { supabaseService } from "@/services/supabaseService";
 import { WALLET_STATE_EVENT } from "@/constants/walletEvents";
 import { buildSourceCodeLocation, getContractDetailTabs } from "@/utils/detailRouting";
+import { getManifestSourceUrl } from "@/utils/contractSource";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { useMethodInteraction } from "@/composables/useMethodInteraction";
 import { useTransactionTracker } from "@/composables/useTransactionTracker";
@@ -292,8 +293,9 @@ watch(activeTab, (tab) => {
 });
 
 // Computed - source code link
+const manifestSourceUrl = computed(() => getManifestSourceUrl(manifest.value));
 const sourceCodeLocation = computed(() =>
-  buildSourceCodeLocation(contract.value.hash, contract.value.updatecounter || 0)
+  buildSourceCodeLocation(contract.value.hash, contract.value.updatecounter || 0, manifestSourceUrl.value)
 );
 
 // Computed - manifest-derived data

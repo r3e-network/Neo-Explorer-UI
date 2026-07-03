@@ -123,7 +123,8 @@ import { formatNumber } from "@/utils/explorerFormat";
 import { nepBadgeClass } from "@/utils/nepBadges";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
-import { sanitizeEmailAddress, sanitizeHttpUrl } from "@/utils/urlSafety";
+import { sanitizeEmailAddress } from "@/utils/urlSafety";
+import { getManifestSourceUrl } from "@/utils/contractSource";
 
 const props = defineProps({
   contract: { type: Object, required: true },
@@ -142,9 +143,7 @@ const developerEmail = computed(() =>
   sanitizeEmailAddress(firstExtraValue(["Email", "email", "Mail", "mail", "DeveloperEmail", "developerEmail"])),
 );
 const contractDescription = computed(() => firstExtraValue(["Description", "description"]));
-const sourceCodeUrl = computed(() =>
-  sanitizeHttpUrl(firstExtraValue(["Sourcecode", "sourcecode", "SourceCode", "sourceCode", "Source", "source"])),
-);
+const sourceCodeUrl = computed(() => getManifestSourceUrl(props.manifest));
 const compilerName = computed(() =>
   firstExtraValue(["Compiler", "compiler", "CompilerVersion", "compilerVersion", "Build", "build"]),
 );

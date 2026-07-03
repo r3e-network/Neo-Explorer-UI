@@ -48,7 +48,10 @@ function mountCodeTab(props = {}) {
       plugins: [i18nPlugin],
       stubs: {
         RouterLink: { template: "<a><slot /></a>" },
-        ContractSourceCodePanel: true,
+        ContractSourceCodePanel: {
+          props: ["externalSourceUrl"],
+          template: '<section data-test="source-panel" :data-external-source-url="externalSourceUrl"></section>',
+        },
         CollapsibleSection: { template: "<section><h3>{{ title }}</h3><slot name='title-suffix' /><slot /></section>", props: ["title"] },
         ContractJsonView: true,
         CopyButton: { template: "<button data-test='copy-decompiled'>copy</button>", props: ["text", "size"] },
@@ -80,7 +83,7 @@ describe("ContractCodeTab decompiler", () => {
     expect(wrapper.text()).toContain("contractDetail.decompileWarnings");
   });
 
-  it("places decompiled code before the verified-source panel", async () => {
+  it("places manifest source before decompiled code and passes the source URL to the panel", async () => {
     mocks.decompileContractState.mockResolvedValueOnce({
       code: "contract NeoToken {\n    public static string Symbol() => \"NEO\";\n}",
       warnings: [],
@@ -89,14 +92,22 @@ describe("ContractCodeTab decompiler", () => {
       value: '<span class="hljs-keyword">contract</span> NeoToken',
     });
 
-    const wrapper = mountCodeTab();
+    const sourceUrl = "https://github.com/r3e-network/sample-contract/blob/main/Contract.cs";
+    const wrapper = mountCodeTab({
+      manifest: {
+        name: "NeoToken",
+        abi: { methods: [], events: [] },
+        extra: {
+          Source: sourceUrl,
+        },
+      },
+    });
     await flushPromises();
 
     const html = wrapper.html();
     expect(html.indexOf('data-test="decompiled-code"')).toBeGreaterThan(-1);
-    expect(html.indexOf("contract-source-code-panel-stub")).toBeGreaterThan(-1);
-    expect(html.indexOf('data-test="decompiled-code"')).toBeLessThan(
-      html.indexOf("contract-source-code-panel-stub"),
-    );
+    expect(html.indexOf('data-test="source-panel"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-test="source-panel"')).toBeLessThan(html.indexOf('data-test="decompiled-code"'));
+    expect(wrapper.get('[data-test="source-panel"]').attributes("data-external-source-url")).toBe(sourceUrl);
   });
 });

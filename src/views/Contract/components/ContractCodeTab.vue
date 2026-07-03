@@ -12,6 +12,15 @@
       </router-link>
     </div>
 
+    <ContractSourceCodePanel
+      :key="`source-${contractHash}-${updateCounter}-${manifestSourceUrl}`"
+      :contract-hash="contractHash"
+      :updatecounter="updateCounter"
+      :external-source-url="manifestSourceUrl"
+      :show-toolbar="true"
+      :compact="true"
+    />
+
     <section class="panel-muted overflow-hidden rounded-lg">
       <header class="soft-divider flex flex-col gap-3 border-b px-4 py-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -50,14 +59,6 @@
         </div>
       </div>
     </section>
-
-    <ContractSourceCodePanel
-      :key="`source-${contractHash}-${updateCounter}`"
-      :contract-hash="contractHash"
-      :updatecounter="updateCounter"
-      :show-toolbar="true"
-      :compact="true"
-    />
 
     <div v-if="!manifest" class="panel-muted text-mid px-4 py-5 text-sm">
       {{ $t("contractDetail.codeManifestUnavailable") }}
@@ -268,6 +269,7 @@ import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePan
 import ContractJsonView from "@/views/Contract/ContractJsonView.vue";
 import CopyButton from "@/components/common/CopyButton.vue";
 import { decompileContractState } from "@/utils/contractDecompiler";
+import { getManifestSourceUrl } from "@/utils/contractSource";
 import { nepBadgeClass, nepTooltip } from "@/utils/nepBadges";
 
 const props = defineProps({
@@ -287,6 +289,8 @@ const decompileLoading = ref(false);
 let decompileGeneration = 0;
 let highlighter = null;
 let highlighterPromise = null;
+
+const manifestSourceUrl = computed(() => getManifestSourceUrl(props.manifest));
 
 function escapeHtml(value = "") {
   return String(value)

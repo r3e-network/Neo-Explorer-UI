@@ -1,6 +1,7 @@
 /**
  * Detail page routing helpers: tab definitions and source code navigation.
  */
+import { sanitizeHttpUrl } from "@/utils/urlSafety";
 
 export function normalizeUpdateCounter(value) {
   const parsed = Number.parseInt(value, 10);
@@ -10,13 +11,18 @@ export function normalizeUpdateCounter(value) {
   return parsed;
 }
 
-export function buildSourceCodeLocation(contractHash, updatecounter = 0) {
+export function buildSourceCodeLocation(contractHash, updatecounter = 0, sourceUrl = "") {
+  const safeSourceUrl = sanitizeHttpUrl(sourceUrl);
+  const query = {
+    contractHash: contractHash || "",
+    updatecounter: String(normalizeUpdateCounter(updatecounter)),
+  };
+  if (safeSourceUrl) {
+    query.source = safeSourceUrl;
+  }
   return {
     path: "/source-code",
-    query: {
-      contractHash: contractHash || "",
-      updatecounter: String(normalizeUpdateCounter(updatecounter)),
-    },
+    query,
   };
 }
 

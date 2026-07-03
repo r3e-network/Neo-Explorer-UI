@@ -34,6 +34,7 @@
           <ContractSourceCodePanel
             :contract-hash="resolvedContractHash"
             :updatecounter="resolvedUpdateCounter"
+            :external-source-url="resolvedSourceUrl"
             :show-toolbar="true"
           />
         </div>
@@ -49,6 +50,7 @@ import Breadcrumb from "@/components/common/Breadcrumb.vue";
 import PageHero from "@/components/common/PageHero.vue";
 import ContractSourceCodePanel from "@/components/contract/ContractSourceCodePanel.vue";
 import { normalizeUpdateCounter } from "@/utils/detailRouting";
+import { sanitizeHttpUrl } from "@/utils/urlSafety";
 
 const route = useRoute();
 
@@ -69,5 +71,9 @@ const resolvedContractHash = computed(() => {
 
 const resolvedUpdateCounter = computed(() => {
   return normalizeUpdateCounter(props.updatecounter || route.query.updatecounter || 0);
+});
+
+const resolvedSourceUrl = computed(() => {
+  return sanitizeHttpUrl(route.query.source || "");
 });
 </script>
