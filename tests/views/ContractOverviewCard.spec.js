@@ -119,6 +119,63 @@ describe("ContractOverviewCard", () => {
     expect(sourceRow.attributes("href")).toBe("https://github.com/neo-project/non-native-contracts");
   });
 
+  it("shows manifest audit metadata from common source, compiler, permission, and trust keys", () => {
+    const wrapper = mount(ContractOverviewCard, {
+      props: {
+        contract: {
+          hash: "0x0123456789abcdef0123456789abcdef01234567",
+          name: "ContractFromIndex",
+          sender: "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp",
+          totalsccall: 12,
+          updatecounter: 1,
+        },
+        metadata: null,
+        manifest: {
+          name: "ManifestContractName",
+          permissions: [
+            {
+              contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+              methods: ["transfer", "balanceOf"],
+            },
+            { contract: "*", methods: "*" },
+          ],
+          trusts: ["0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "*"],
+          groups: [{ pubkey: "02abc", signature: "sig" }],
+          features: { storage: true, payable: false },
+          extra: {
+            Source: "https://github.com/r3e-network/sample-contract",
+            Compiler: "Neo.Compiler.CSharp 3.8.1",
+            Email: "security@r3e.network",
+          },
+        },
+        isVerified: true,
+        supportedStandards: [],
+        methodsCount: 4,
+        eventsCount: 2,
+      },
+      global: {
+        stubs: {
+          InfoRow: {
+            props: ["label", "value", "tooltip", "copyable", "copyValue"],
+            template: '<div :data-label="label"><slot>{{ value }}</slot></div>',
+          },
+          HashLink: true,
+        },
+      },
+    });
+
+    const sourceRow = wrapper.find('[data-label="contractDetail.rowSourceCode"] a');
+    expect(sourceRow.exists()).toBe(true);
+    expect(sourceRow.attributes("href")).toBe("https://github.com/r3e-network/sample-contract");
+    expect(wrapper.find('[data-label="contractDetail.rowCompiler"]').text()).toContain("Neo.Compiler.CSharp 3.8.1");
+    expect(wrapper.find('[data-label="contractDetail.rowDeveloperEmail"]').text()).toContain("security@r3e.network");
+    expect(wrapper.find('[data-label="contractDetail.rowPermissions"]').text()).toContain("transfer, balanceOf");
+    expect(wrapper.find('[data-label="contractDetail.rowPermissions"]').text()).toContain("*");
+    expect(wrapper.find('[data-label="contractDetail.rowTrusts"]').text()).toContain("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5");
+    expect(wrapper.find('[data-label="contractDetail.rowGroups"]').text()).toContain("1");
+    expect(wrapper.find('[data-label="contractDetail.rowFeatures"]').text()).toContain("storage");
+  });
+
   it("does not render unsafe manifest source code or email links", () => {
     const wrapper = mount(ContractOverviewCard, {
       props: {

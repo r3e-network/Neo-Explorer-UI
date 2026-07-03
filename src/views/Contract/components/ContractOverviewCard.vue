@@ -24,6 +24,42 @@
           {{ sourceCodeUrl }}
         </a>
       </InfoRow>
+      <InfoRow v-if="compilerName" :label="$t('contractDetail.rowCompiler')" :value="compilerName" />
+      <InfoRow v-if="permissionRows.length" :label="$t('contractDetail.rowPermissions')">
+        <div class="flex flex-col gap-1.5">
+          <div
+            v-for="(permission, index) in permissionRows"
+            :key="`permission-${index}`"
+            class="rounded-md bg-surface-muted px-2 py-1 text-xs break-words"
+          >
+            <span class="font-mono font-semibold text-high break-all">{{ permission.contract }}</span>
+            <span class="text-mid break-words">: {{ permission.methods }}</span>
+          </div>
+        </div>
+      </InfoRow>
+      <InfoRow v-if="trustRows.length" :label="$t('contractDetail.rowTrusts')">
+        <div class="flex flex-wrap gap-1.5">
+          <span
+            v-for="(trust, index) in trustRows"
+            :key="`trust-${index}`"
+            class="inline-flex max-w-full items-center rounded-md bg-surface-muted px-2 py-1 font-mono text-xs text-high break-all"
+          >
+            {{ trust }}
+          </span>
+        </div>
+      </InfoRow>
+      <InfoRow v-if="groupsCount" :label="$t('contractDetail.rowGroups')" :value="String(groupsCount)" />
+      <InfoRow v-if="featureRows.length" :label="$t('contractDetail.rowFeatures')">
+        <div class="flex flex-wrap gap-1.5">
+          <span
+            v-for="feature in featureRows"
+            :key="feature"
+            class="inline-flex max-w-full items-center rounded-md bg-surface-muted px-2 py-1 font-mono text-xs text-high break-all"
+          >
+            {{ feature }}
+          </span>
+        </div>
+      </InfoRow>
       <InfoRow :label="$t('contractDetail.rowCreator')" :tooltip="$t('contractDetail.rowCreatorTip')">
         <HashLink v-if="contract.sender" :hash="contract.sender" type="address" :truncated="false" :copyable="false" />
         <span v-else class="text-mid">-</span>
@@ -99,10 +135,73 @@ const props = defineProps({
   eventsCount: { type: Number, default: 0 },
 });
 
-const manifestExtra = computed(() => props.manifest?.extra || {});
+const manifestExtra = computed(() => normalizeManifestExtra(props.manifest?.extra));
 const displayName = computed(() => props.metadata?.name || props.manifest?.name || props.contract.name || '-');
-const developerName = computed(() => manifestExtra.value?.Author || manifestExtra.value?.author || '');
-const developerEmail = computed(() => sanitizeEmailAddress(manifestExtra.value?.Email || manifestExtra.value?.email || ''));
-const contractDescription = computed(() => manifestExtra.value?.Description || manifestExtra.value?.description || '');
-const sourceCodeUrl = computed(() => sanitizeHttpUrl(manifestExtra.value?.Sourcecode || manifestExtra.value?.sourcecode || ''));
+const developerName = computed(() => firstExtraValue(["Author", "author", "Developer", "developer"]));
+const developerEmail = computed(() =>
+  sanitizeEmailAddress(firstExtraValue(["Email", "email", "Mail", "mail", "DeveloperEmail", "developerEmail"])),
+);
+const contractDescription = computed(() => firstExtraValue(["Description", "description"]));
+const sourceCodeUrl = computed(() =>
+  sanitizeHttpUrl(firstExtraValue(["Sourcecode", "sourcecode", "SourceCode", "sourceCode", "Source", "source"])),
+);
+const compilerName = computed(() =>
+  firstExtraValue(["Compiler", "compiler", "CompilerVersion", "compilerVersion", "Build", "build"]),
+);
+const permissionRows = computed(() =>
+  normalizeArray(props.manifest?.permissions).map((permission) => ({
+    contract: formatManifestValue(permission?.contract || "*"),
+    methods: formatPermissionMethods(permission?.methods),
+  })),
+);
+const trustRows = computed(() => normalizeArray(props.manifest?.trusts).map(formatManifestValue).filter(Boolean));
+const groupsCount = computed(() => normalizeArray(props.manifest?.groups).length);
+const featureRows = computed(() =>
+  Object.entries(normalizeObject(props.manifest?.features))
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${key}: ${String(value)}`),
+);
+
+function normalizeManifestExtra(extra) {
+  if (extra && typeof extra === "object" && !Array.isArray(extra)) return extra;
+  if (typeof extra === "string" && extra.trim()) {
+    try {
+      const parsed = JSON.parse(extra);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function firstExtraValue(keys) {
+  for (const key of keys) {
+    const value = manifestExtra.value?.[key];
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function formatManifestValue(value) {
+  if (value === undefined || value === null || value === "") return "*";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
+function formatPermissionMethods(methods) {
+  if (Array.isArray(methods) && methods.length) return methods.map(formatManifestValue).join(", ");
+  return formatManifestValue(methods || "*");
+}
 </script>
