@@ -155,7 +155,7 @@
     <DashboardStatCard
       :label="$t('addressDetail.statNeoBalance')"
       :value="summaryLoading ? null : toTokenAmountNumber(neoBalance, 0)"
-      :decimals="2"
+      :decimals="0"
       suffix=" NEO"
       :subtitle="formatApproxUsd(neoUsdValue)"
       icon="<svg class='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>"

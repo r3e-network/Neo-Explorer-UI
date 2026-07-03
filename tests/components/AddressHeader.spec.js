@@ -38,6 +38,30 @@ vi.mock("@/composables/usePriceCache", () => ({
 }));
 
 describe("AddressHeader", () => {
+  it("formats NEO balance without fractional digits", () => {
+    const wrapper = mount(AddressHeader, {
+      props: {
+        address: "NQnG5fVqdmA7fP8i3h8awD7QK2TQzW7k34",
+        isContract: false,
+        showQr: false,
+        neoBalance: "3000000",
+        gasBalance: "0",
+        txCount: 0,
+        tokenCount: 0,
+        candidateData: null,
+      },
+      global: {
+        stubs: {
+          CopyButton: true,
+          QrcodeVue: true,
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain("3,000,000 NEO");
+    expect(wrapper.text()).not.toContain("3,000,000.00 NEO");
+  });
+
   it("formats GAS balance using 8-decimal token units", () => {
     const gasRaw = "1843121006287";
     const wrapper = mount(AddressHeader, {
