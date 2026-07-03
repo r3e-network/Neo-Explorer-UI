@@ -626,7 +626,19 @@ export const tokenService = createService(
       // Indexer first — same Mongo-to-Postgres pattern as #171/#172/#173.
       // The enrichment block below (manifest invokefunction for missing
       // decimals/symbol) still runs against the indexer row.
-      let item = await indexerReadService.getToken(hash, options).catch(() => null);
+      //
+      // Direct-first for NEP-11 too (#24fe): GetTokenOverview now returns 200
+      // for NEP-11 contracts, so the direct /tokens/{hash} endpoint resolves
+      // any NEP-11 token regardless of catalog position. Passing the
+      // `standard: "NEP11"` hint forces indexerReadService.getToken down the
+      // catalog-only path (tokens?standard=NEP11&limit=200), which silently
+      // drops any NEP-11 contract outside the first 200 rows. Strip the hint
+      // so getToken tries /tokens/{hash} first; it still falls back to the
+      // 200-row catalog scan internally when the direct call 404s (older
+      // backend). The NEP-17 path is unaffected — it already goes direct.
+      const directOptions = { ...(options || {}) };
+      delete directOptions.standard;
+      let item = await indexerReadService.getToken(hash, directOptions).catch(() => null);
       if (!item) {
         const chainState = await safeRpc("getcontractstate", [hash], null, options).catch(() => null);
         item = _tokenItemFromContractState(hash, chainState);

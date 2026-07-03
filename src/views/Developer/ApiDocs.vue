@@ -177,6 +177,13 @@
                 >
                   {{ method.type === "passthrough" ? $t('apiDocsPage.typeNative') : $t('apiDocsPage.typeIndexed') }}
                 </span>
+                <span
+                  v-if="isMainnetOnlyMethod(method)"
+                  class="rounded bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                  data-testid="rpc-mainnet-only-badge"
+                >
+                  {{ mainnetOnlyBadge }}
+                </span>
                 <h3 class="text-high font-mono text-sm font-semibold">
                   {{ method.name }}
                 </h3>
@@ -184,6 +191,20 @@
 
               <p class="text-mid mb-3 text-sm">
                 {{ $t(`apiDocsPage.methods.${method.name}`) }}
+              </p>
+
+              <p class="text-mid mb-2 text-xs">
+                <span class="text-low">{{ $t('apiDocsPage.endpointPrefix') }}</span>
+                <span class="text-high break-all font-mono" data-testid="rpc-method-endpoint"
+                  >POST {{ methodBasePath(method) }}</span
+                >
+              </p>
+              <p
+                v-if="isMainnetOnlyMethod(method)"
+                class="text-low mb-2 text-xs"
+                data-testid="rpc-mainnet-only-note"
+              >
+                {{ mainnetOnlyNote }}
               </p>
 
               <pre
@@ -205,7 +226,13 @@
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
-import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
+import {
+  API_DOCS_RPC_CATEGORIES,
+  API_DOCS_RPC_METHODS,
+  RPC_METHOD_BASE,
+  RPC_MAINNET_ONLY_BADGE,
+  RPC_MAINNET_ONLY_NOTE,
+} from "@/constants/rpcApiDocs.mjs";
 import { READ_API_CATEGORIES, READ_API_ENDPOINTS, READ_API_RESPONSE_HEADERS } from "@/constants/readApiDocs.mjs";
 import { getCurrentEnv, getNetworkLabel, getRpcApiBasePath } from "@/utils/env";
 
@@ -220,6 +247,30 @@ const responseHeaders = READ_API_RESPONSE_HEADERS;
 const activeCategory = ref(READ_API_CATEGORIES[0]?.key || "");
 const networkLabel = computed(() => getNetworkLabel(getCurrentEnv()));
 const rpcBasePath = computed(() => getRpcApiBasePath());
+
+// The legacy indexed Get* methods and the getvalidatedstateroot helper are
+// served ONLY by the /api/<network> edge-worker intercept, never by the bare
+// NEO-GO node behind /rpc (#18). Derive the /api sibling from the active /rpc
+// base by swapping the route segment so a copy-pasted example targets a URL
+// that can actually serve the method. These intercepts run on mainnet only.
+const apiInterceptBasePath = computed(() =>
+  String(rpcBasePath.value).replace(/\/rpc(\/|$)/, "/api$1")
+);
+
+// Resolve the POST endpoint for a documented RPC method: the /api intercept
+// base for indexed + getvalidatedstateroot, the /rpc origin-proxy otherwise.
+function methodBasePath(method) {
+  return method?.base === RPC_METHOD_BASE.api ? apiInterceptBasePath.value : rpcBasePath.value;
+}
+
+function isMainnetOnlyMethod(method) {
+  return Boolean(method?.mainnetOnly);
+}
+
+// Annotation strings sourced from the owned constants module (see #18) so the
+// mainnet-only note ships without editing i18n lang bundles.
+const mainnetOnlyBadge = RPC_MAINNET_ONLY_BADGE;
+const mainnetOnlyNote = RPC_MAINNET_ONLY_NOTE;
 
 // Reset the active category when switching modes.
 function setApiMode(mode) {

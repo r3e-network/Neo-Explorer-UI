@@ -171,11 +171,18 @@ export const contractService = createService(
           const txids = calls.map((c) => c.txid).filter(Boolean);
           const txidInFilter = inHashes(txids);
           if (txidInFilter) {
+            // Select the REAL emitted column `signer_index`. The read-api's
+            // REST-compat layer drops unknown fields (the old `position`
+            // select silently vanished) and IGNORES `order=`, so rows arrive
+            // in the fixed `indexed_at desc` primary sort. Neo semantics put
+            // the origin sender at signers[0] (the LOWEST signer index), so we
+            // pick the minimum `signer_index` per txid client-side — correct
+            // regardless of server ordering. If `signer_index` is missing
+            // (older backend), we degrade to the first row seen.
             const params = new URLSearchParams({
-              select: "txid,account,position",
+              select: "txid,account,signer_index",
               network: `eq.${network}`,
               txid: txidInFilter,
-              order: "position.asc",
             });
             const r = await fetch(`/rest/${network}/transaction_signers?${params}`, {
               headers: { Accept: "application/json" },
@@ -183,9 +190,24 @@ export const contractService = createService(
             if (r.ok) {
               const signerRows = await r.json();
               const senderByTxid = new Map();
+              const minIndexByTxid = new Map();
               for (const row of (Array.isArray(signerRows) ? signerRows : [])) {
-                if (row?.txid && !senderByTxid.has(row.txid)) {
+                if (!row?.txid) continue;
+                const rawIndex = Number(row.signer_index);
+                const hasIndex = Number.isFinite(rawIndex);
+                if (!senderByTxid.has(row.txid)) {
+                  // First row seen for this txid — provisional origin sender
+                  // (also the graceful degrade path when signer_index is absent).
                   senderByTxid.set(row.txid, row.account);
+                  if (hasIndex) minIndexByTxid.set(row.txid, rawIndex);
+                  continue;
+                }
+                if (hasIndex) {
+                  const currentMin = minIndexByTxid.get(row.txid);
+                  if (currentMin === undefined || rawIndex < currentMin) {
+                    minIndexByTxid.set(row.txid, rawIndex);
+                    senderByTxid.set(row.txid, row.account);
+                  }
                 }
               }
               for (const call of calls) {

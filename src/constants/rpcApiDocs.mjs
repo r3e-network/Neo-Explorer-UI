@@ -8,6 +8,36 @@ export const API_DOCS_RPC_CATEGORIES = [
   { key: "stats", label: "Stats & Traces" },
 ];
 
+// JSON-RPC base selector for a documented method. The two origins serve
+// different method sets (#18):
+//   - "rpc": the /rpc origin-proxy, a bare NEO-GO node. Serves only the
+//     standard NEO-GO RPC methods (invokefunction, getblockcount, ...).
+//   - "api": the /api/<network> edge-worker intercept. The ONLY origin that
+//     answers the legacy indexed Get* methods and the getvalidatedstateroot
+//     helper. These intercepts exist on mainnet only — testnet /api points at
+//     a plain node that rejects every indexed method — so they are annotated
+//     mainnet-only.
+export const RPC_METHOD_BASE = {
+  rpc: "rpc",
+  api: "api",
+};
+
+// UI annotation strings for the /api-only, mainnet-only indexed method group.
+// Sourced from this owned constants module (not the i18n lang files) so the
+// annotation ships without editing locale bundles.
+export const RPC_MAINNET_ONLY_BADGE = "Mainnet only";
+export const RPC_MAINNET_ONLY_NOTE =
+  "This method is served only by the /api/<network> intercept on mainnet. Testnet /api points at a plain NEO-GO node that rejects indexed methods.";
+
+// A method targets the /api intercept when it is an indexed Get* method OR the
+// getvalidatedstateroot helper (a passthrough-typed method that nonetheless
+// only exists as the /api intercept, never on the bare /rpc node).
+function resolveMethodBase(method) {
+  if (method.type === "indexed") return RPC_METHOD_BASE.api;
+  if (method.name === "getvalidatedstateroot") return RPC_METHOD_BASE.api;
+  return RPC_METHOD_BASE.rpc;
+}
+
 export const API_DOCS_RPC_METHODS = [
   {
     name: "GetBlockCount",
@@ -158,6 +188,23 @@ export const API_DOCS_RPC_METHODS = [
   },
 ];
 
+// Annotate each method with the origin base it must be sent to and whether it
+// is mainnet-only. Consumers (ApiDocs.vue) template `base` into the request's
+// endpoint path so a copy-pasted example targets a URL that actually serves
+// the method.
+for (const method of API_DOCS_RPC_METHODS) {
+  method.base = resolveMethodBase(method);
+  // Only the /api intercept group is mainnet-restricted; the standard NEO-GO
+  // /rpc methods work on both networks.
+  method.mainnetOnly = method.base === RPC_METHOD_BASE.api;
+}
+
 export const API_DOCS_RPC_PASSTHROUGH_METHODS = new Set(
   API_DOCS_RPC_METHODS.filter((method) => method.type === "passthrough").map((method) => method.name)
+);
+
+// Method names that must be sent to the /api/<network> edge-worker intercept
+// rather than the /rpc origin-proxy.
+export const API_DOCS_RPC_API_BASE_METHODS = new Set(
+  API_DOCS_RPC_METHODS.filter((method) => method.base === RPC_METHOD_BASE.api).map((method) => method.name)
 );

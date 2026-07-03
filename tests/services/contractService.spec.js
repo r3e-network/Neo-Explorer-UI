@@ -274,6 +274,86 @@ describe("contractService.getScCalls fallback chain", () => {
     vi.unstubAllGlobals();
   });
 
+  it("Source 3: attributes originSender to the minimum signer_index (signers[0]) for a multi-signer tx (#23fe)", async () => {
+    const TXID = "0x1111111111111111111111111111111111111111111111111111111111111111";
+    getContractOverviewMock.mockResolvedValue({ tx_count: 7 });
+    // transaction_signers rows arrive in the read-api's fixed indexed_at desc
+    // primary sort (order= is ignored), which can surface the HIGHEST signer
+    // index first. Neo semantics: the origin sender is signers[0] — the
+    // LOWEST signer_index. The service must pick min(signer_index) client-side.
+    let signerSelect = "";
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
+      if (url.includes("/transaction_signers")) {
+        signerSelect = new URL(url, "http://x").searchParams.get("select");
+        return {
+          ok: true,
+          json: async () => [
+            { txid: TXID, account: "Nsigner2", signer_index: 2 },
+            { txid: TXID, account: "Nsigner0", signer_index: 0 },
+            { txid: TXID, account: "Nsigner1", signer_index: 1 },
+          ],
+        };
+      }
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    getContractNotificationsMock.mockResolvedValueOnce({
+      data: [{ txid: TXID, block_index: 50, event_name: "Transfer" }],
+      paging: { total: 7 },
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
+
+    // Requests the REAL emitted column, not the nonexistent `position`.
+    expect(signerSelect).toBe("txid,account,signer_index");
+    const signerUrl = fetchMock.mock.calls
+      .map(([url]) => String(url))
+      .find((url) => url.includes("/transaction_signers"));
+    expect(signerUrl).not.toContain("order=");
+    expect(signerUrl).not.toContain("position");
+    // signers[0] (signer_index 0) wins despite arriving second in the payload.
+    expect(result.result).toEqual([
+      { txid: TXID, blockindex: 50, method: "Transfer", callFlags: "—", originSender: "Nsigner0" },
+    ]);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("Source 3: degrades to the first row when signer_index is absent (older backend) (#23fe)", async () => {
+    const TXID = "0x1111111111111111111111111111111111111111111111111111111111111111";
+    getContractOverviewMock.mockResolvedValue({ tx_count: 3 });
+    const fetchMock = vi.fn(async (url) => {
+      if (url.includes("/contract_calls")) return { ok: false, status: 404, json: async () => null };
+      if (url.includes("/transaction_signers")) {
+        // No signer_index field at all — mimic a pre-migration backend.
+        return {
+          ok: true,
+          json: async () => [
+            { txid: TXID, account: "NfirstRow" },
+            { txid: TXID, account: "NsecondRow" },
+          ],
+        };
+      }
+      return { ok: false };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    getContractNotificationsMock.mockResolvedValueOnce({
+      data: [{ txid: TXID, block_index: 50, event_name: "Transfer" }],
+      paging: { total: 3 },
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const result = await contractService.getScCalls(HASH, 20, 0, { enableContractCallsRest: true });
+
+    expect(result.result[0].originSender).toBe("NfirstRow");
+
+    vi.unstubAllGlobals();
+  });
+
   it("Source 3: returns empty when both Postgres paths are empty", async () => {
     const fetchMock = vi.fn(async (url) => {
       if (url.includes("/contract_calls")) return { ok: false, status: 404 };
