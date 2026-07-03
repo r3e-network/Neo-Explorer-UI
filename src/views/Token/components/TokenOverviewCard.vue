@@ -1,5 +1,5 @@
 <template>
-  <div class="etherscan-card mb-6">
+  <div class="etherscan-card mb-6 card-tilt gradient-border-card">
     <div class="card-header">
       <h2 class="text-base font-semibold text-high">{{ $t("tokenDetail.overviewTitle") }}</h2>
     </div>

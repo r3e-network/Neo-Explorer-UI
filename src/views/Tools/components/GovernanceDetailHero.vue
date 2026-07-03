@@ -1,7 +1,7 @@
 <template>
   <div
     data-testid="governance-hero"
-    class="etherscan-card overflow-hidden border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-xl shadow-amber-900/5 dark:border-amber-900/40 dark:from-amber-950/20 dark:via-slate-950 dark:to-slate-950"
+    class="etherscan-card overflow-hidden border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-xl shadow-amber-900/5 dark:border-amber-900/40 dark:from-amber-950/20 dark:via-slate-950 dark:to-slate-950 card-tilt gradient-border-card"
   >
     <div class="relative p-6 md:p-8">
       <div

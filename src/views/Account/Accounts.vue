@@ -1,26 +1,29 @@
 <template>
   <div class="accounts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.accounts') }]" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.accounts') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">{{ $t("accounts.title") }}</h1>
+            <p class="page-subtitle">{{ $t("accounts.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("accounts.title") }}</h1>
-          <p class="page-subtitle">{{ $t("accounts.subtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-1">
         <div class="card-header">
           <p class="text-mid text-sm">
             <span v-if="!loading && total > 0">{{ $t("accounts.moreThanFound", { count: formatNumber(total) }) }}</span>
@@ -161,6 +164,7 @@ import { getCache } from "@/services/cache";
 import { formatNumber, formatAge, formatBalance, formatGasBalance, toTokenAmountNumber } from "@/utils/explorerFormat";
 import { GAS_DECIMALS } from "@/constants";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

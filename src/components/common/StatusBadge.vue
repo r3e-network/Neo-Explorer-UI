@@ -1,9 +1,10 @@
 <template>
   <span
-    class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold"
+    class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-shadow duration-300"
+    :class="{ 'animate-status-glow': normalizedStatus === 'success' }"
     :style="badgeStyle"
   >
-    <span class="inline-block h-2 w-2 rounded-full" :style="{ background: statusColor }"></span>
+    <span class="inline-block h-2 w-2 rounded-full" :class="{ 'animate-pulse-status': normalizedStatus === 'pending' }" :style="{ background: statusColor }"></span>
     {{ label }}
   </span>
 </template>

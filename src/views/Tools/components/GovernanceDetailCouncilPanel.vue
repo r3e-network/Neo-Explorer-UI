@@ -1,5 +1,5 @@
 <template>
-  <div data-testid="council-status-panel" class="etherscan-card overflow-hidden">
+  <div data-testid="council-status-panel" class="etherscan-card overflow-hidden card-tilt gradient-border-card">
     <div class="border-b border-line-soft bg-surface/30 px-6 py-6">
       <div class="flex items-start justify-between gap-3">
         <div>

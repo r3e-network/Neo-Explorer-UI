@@ -1,7 +1,7 @@
 <template>
   <div class="treasury-page bg-surface-base">
     <!-- Hero Section -->
-    <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
+    <section class="hero-section relative border-b border-white/10 bg-header-bg/95 animate-page-enter">
       <div class="hero-overlay"></div>
       <div class="page-container relative z-30 py-10 md:py-14">
         <div class="mx-auto max-w-4xl">
@@ -9,7 +9,7 @@
             :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.treasury') }]"
             class="mb-6 !text-white/70"
           />
-          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl mb-4">
+          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl mb-4 neon-glow-text">
             {{ $t('treasuryPage.pageTitle') }}
           </h1>
           <p class="max-w-2xl text-base text-white/70">
@@ -19,7 +19,7 @@
       </div>
     </section>
 
-    <section class="page-container py-8 -mt-12 relative z-40">
+    <section class="page-container py-8 -mt-12 relative z-40 animate-page-enter animate-page-enter-delay-1">
       <!-- Data Source Notification -->
       <div
         class="mb-6 flex items-center gap-3 p-4 rounded-xl bg-primary-50/80 backdrop-blur-sm border border-primary-200 dark:bg-primary-900/30 dark:border-primary-800/50 text-primary-800 dark:text-primary-300 shadow-sm"

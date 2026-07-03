@@ -1,41 +1,46 @@
 <template>
   <div class="governance-page">
-    <section class="max-w-[1400px] mx-auto px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.governance') }]" />
+    <PageHero :particles="3">
+      <section class="max-w-[1400px] mx-auto px-4 py-6 md:py-8 animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.governance') }]" />
 
-      <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
-        <div class="flex items-center gap-3">
-          <div class="page-header-icon bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-300">
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
-              />
-            </svg>
+        <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
+          <div class="flex items-center gap-3">
+            <div class="page-header-icon bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-300">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 class="page-title neon-glow-text">{{ $t("nav.governance") || "Governance" }}</h1>
+              <p class="page-subtitle">{{ $t('governancePage.pageSubtitle') }}</p>
+            </div>
           </div>
-          <div>
-            <h1 class="page-title">{{ $t("nav.governance") || "Governance" }}</h1>
-            <p class="page-subtitle">{{ $t('governancePage.pageSubtitle') }}</p>
+
+          <div class="flex items-center gap-3">
+            <span
+              v-if="account"
+              class="text-sm font-medium text-high px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
+            >
+              {{ formatAccount(account) }}
+            </span>
+            <span
+              v-else
+              class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
+            >
+              {{ $t('governancePage.connectWalletPrompt') }}
+            </span>
           </div>
         </div>
+      </section>
+    </PageHero>
 
-        <div class="flex items-center gap-3">
-          <span
-            v-if="account"
-            class="text-sm font-medium text-high px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
-          >
-            {{ formatAccount(account) }}
-          </span>
-          <span
-            v-else
-            class="text-sm font-medium text-mid px-4 py-2 rounded-lg bg-surface-elevated border border-line-soft"
-          >
-            {{ $t('governancePage.connectWalletPrompt') }}
-          </span>
-        </div>
-      </div>
+    <section class="max-w-[1400px] mx-auto px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <!-- Voting Reward Calculator -->
       <div class="etherscan-card mb-6 overflow-hidden">
@@ -405,6 +410,7 @@ import { useNetworkChange } from "@/composables/useNetworkChange";
 import { getCommittee as fetchDoraCommittee, getLiveness as fetchDoraLiveness } from "@/services/doraService";
 import { connectedAccount, voteForCandidate, unvoteCandidate } from "@/utils/wallet";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import MobileListCard from "@/components/common/MobileListCard.vue";

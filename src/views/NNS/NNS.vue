@@ -1,7 +1,7 @@
 <template>
   <div class="nns-page bg-surface-base">
     <!-- Hero Section -->
-    <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
+    <section class="hero-section relative border-b border-white/10 bg-header-bg/95 animate-page-enter">
       <div class="hero-overlay"></div>
       <div class="page-container relative z-30 py-10 md:py-14">
         <div class="mx-auto max-w-4xl text-center">
@@ -9,7 +9,7 @@
             :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.nns') }]"
             class="mb-6 justify-center !text-white/70"
           />
-          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-5xl mb-4">
+          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-5xl mb-4 neon-glow-text">
             {{ $t('nnsPage.heroTitlePrefix') }}<span class="text-primary-400">.neo</span>{{ $t('nnsPage.heroTitleSuffix') }}
           </h1>
           <p class="max-w-2xl mx-auto text-base text-white/70 mb-8">
@@ -35,7 +35,7 @@
       </div>
     </section>
 
-    <section class="page-container py-8 -mt-12 relative z-40 max-w-3xl mx-auto">
+    <section class="page-container py-8 -mt-12 relative z-40 max-w-3xl mx-auto animate-page-enter animate-page-enter-delay-1">
       <div class="etherscan-card p-2 bg-surface/95 backdrop-blur-xl shadow-xl rounded-2xl">
         <div
           class="relative flex items-center bg-surface-muted rounded-xl border border-line-soft focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all p-1"

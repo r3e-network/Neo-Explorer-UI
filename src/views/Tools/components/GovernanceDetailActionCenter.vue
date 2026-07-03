@@ -1,5 +1,5 @@
 <template>
-  <div class="etherscan-card p-6 md:p-7">
+  <div class="etherscan-card p-6 md:p-7 card-tilt gradient-border-card">
     <div class="flex items-start gap-3">
       <div
         class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300"

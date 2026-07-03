@@ -1,26 +1,29 @@
 <template>
   <div class="candidates-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.candidates') }]" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.candidates') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-            />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">{{ $t("nav.consensusNodes") || $t("candidatesPage.pageTitle") }}</h1>
+            <p class="page-subtitle">{{ $t('candidatesPage.pageSubtitle') }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("nav.consensusNodes") || $t("candidatesPage.pageTitle") }}</h1>
-          <p class="page-subtitle">{{ $t('candidatesPage.pageSubtitle') }}</p>
-        </div>
-      </div>
+      </PageHero>
 
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-1">
         <div class="card-header">
           <p class="text-mid text-sm">{{ $t('candidatesPage.listTitle') }}</p>
           <p class="text-low text-sm">{{ $t('candidatesPage.pageOfTotal', { current: currentPage, total: totalPages }) }}</p>
@@ -211,6 +214,7 @@ import { candidateService } from "@/services/candidateService";
 import { getCacheKey } from "@/services/cache";
 import { usePagination } from "@/composables/usePagination";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

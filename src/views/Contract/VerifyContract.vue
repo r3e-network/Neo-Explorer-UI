@@ -24,28 +24,30 @@
       </div>
     </Transition>
 
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.contracts'), to: '/contracts/1' }, { label: $t('breadcrumb.verifyContract') }]"
       />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-            />
-          </svg>
+      <PageHero :particles="60">
+        <div class="flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("pages.verifyContract.title") }}</h1>
+            <p class="page-subtitle">{{ $t("pages.verifyContract.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("pages.verifyContract.title") }}</h1>
-          <p class="page-subtitle">{{ $t("pages.verifyContract.subtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
       <div class="etherscan-card">
         <!-- Form + Sidebar -->
@@ -201,6 +203,7 @@ import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import { contractService } from "@/services/contractService";
 import {
   COMPILER_VERSION_OPTIONS,

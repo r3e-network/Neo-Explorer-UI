@@ -1,5 +1,5 @@
 <template>
-  <div class="etherscan-card overflow-hidden">
+  <div class="etherscan-card overflow-hidden card-tilt gradient-border-card">
     <div class="border-b border-line-soft bg-surface/30 px-6 py-6 md:px-8">
       <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-page">
+  <div class="tool-page animate-page-enter">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[
@@ -22,7 +22,7 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">{{ $t("tools.multisig.title") }}</h1>
+            <h1 class="page-title neon-glow-text">{{ $t("tools.multisig.title") }}</h1>
             <p class="page-subtitle">{{ $t("tools.multisig.subtitle") }}</p>
           </div>
         </div>

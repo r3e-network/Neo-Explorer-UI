@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-page">
+  <div class="tool-page animate-page-enter">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb :items="[{ label: $t('nav.home'), to: '/homepage' }, { label: $t('tools.title') }]" />
 
@@ -21,7 +21,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="page-title">{{ $t("tools.title") }}</h1>
+          <h1 class="page-title neon-glow-text">{{ $t("tools.title") }}</h1>
           <p class="page-subtitle">{{ $t("tools.subtitle") }}</p>
         </div>
       </div>
@@ -31,7 +31,7 @@
           v-for="tool in tools"
           :key="tool.to"
           :to="tool.to"
-          class="etherscan-card group flex min-h-[11rem] flex-col items-start gap-4 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+          class="etherscan-card card-tilt gradient-border-card group flex min-h-[11rem] flex-col items-start gap-4 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           :aria-label="$t(tool.titleKey)"
         >
           <div :class="tool.iconClass">

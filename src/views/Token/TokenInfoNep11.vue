@@ -22,9 +22,9 @@
 
     <template v-else>
       <!-- Page Header -->
-      <div class="detail-hero">
+      <div class="detail-hero detail-hero-enhanced">
         <div class="flex items-start gap-3">
-          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
+          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 relative">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -37,7 +37,7 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <h1 class="page-title">{{ $t("tokenDetail.nep11Title") }}</h1>
+                <h1 class="page-title neon-glow-text">{{ $t("tokenDetail.nep11Title") }}</h1>
                 <span
                   v-if="updateCounter === -1"
                   class="badge-soft text-status-error"

@@ -6,6 +6,8 @@ import { NULL_TX_HASH } from "@/constants";
 import InfoRow from "@/components/common/InfoRow.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import { useCommittee } from "@/composables/useCommittee";
+import ConfirmationsRing from "@/components/charts/ConfirmationsRing.vue";
+import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
 
 const { resolvePrimaryIndex, getPrimaryNodeAddress } = useCommittee();
 
@@ -23,6 +25,7 @@ const props = defineProps({
   transactions: { type: Array, default: () => [] },
   reward: { type: [Number, String, null], default: null },
   showWitnesses: { type: Boolean, default: false },
+  confirmations: { type: Number, default: 0 },
 });
 
 const emit = defineEmits(["update:showWitnesses"]);
@@ -95,8 +98,44 @@ const feeTotals = computed(() => {
 </script>
 
 <template>
+  <!-- ====== Metrics Dashboard Row ====== -->
+  <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <DashboardStatCard
+      :label="$t('blockDetail.rowBlockHeight')"
+      :value="block.index"
+      animated
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 2L3 7v10l9 5 9-5V7l-9-5z'/></svg>"
+      glow-color="var(--link)"
+    />
+    <div class="flex items-center justify-center rounded-xl border border-line-soft bg-surface-elevated p-5 card-tilt gradient-border-card">
+      <ConfirmationsRing
+        :confirmed="confirmations"
+        :target="15"
+        :label="$t('blockDetail.rowConfirmationsLabel')"
+        :size="110"
+      />
+    </div>
+    <DashboardStatCard
+      :label="$t('blockDetail.rowTransactions')"
+      :value="blockTransactionCount"
+      animated
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 10V3L4 14h7v7l9-11h-7z'/></svg>"
+      glow-color="#3b82f6"
+      spark-color="#3b82f6"
+    />
+    <DashboardStatCard
+      :label="$t('blockDetail.rowSize')"
+      :value="Number(block.size || 0)"
+      suffix=" B"
+      :decimals="0"
+      animated
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z'/></svg>"
+      glow-color="#8b5cf6"
+    />
+  </div>
+
   <!-- Overview Card -->
-  <div class="etherscan-card overflow-hidden">
+  <div class="etherscan-card overflow-hidden card-tilt gradient-border-card">
     <div class="card-header">
       <h2 class="text-base font-semibold text-high">{{ $t("blockDetail.overviewTitle") }}</h2>
     </div>
@@ -124,7 +163,7 @@ const feeTotals = computed(() => {
       <InfoRow :label="$t('blockDetail.rowTransactions')">
         <span
           v-if="blockTransactionCount > 0"
-          class="inline-flex items-center rounded bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
+          class="inline-flex items-center rounded-md bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700 dark:bg-primary-900/30 dark:text-primary-400"
         >
           {{
             blockTransactionCount === 1
@@ -235,7 +274,7 @@ const feeTotals = computed(() => {
         <span class="font-mono">{{ formatGas(feeTotals.netfee) }} GAS</span>
       </InfoRow>
       <InfoRow v-if="reward !== null" :label="$t('blockDetail.rowGasReward')" :tooltip="$t('blockDetail.rowGasRewardTip')">
-        <span class="font-mono text-green-600 dark:text-green-400"> {{ formatGas(reward) }} GAS </span>
+        <span class="font-mono font-semibold text-status-success"> {{ formatGas(reward) }} GAS </span>
       </InfoRow>
     </div>
   </div>
@@ -299,7 +338,7 @@ const feeTotals = computed(() => {
       </InfoRow>
       <InfoRow :label="$t('blockDetail.rowFinality')">
         <span class="inline-flex items-center gap-1.5">
-          <span class="h-2 w-2 rounded-full bg-green-500"></span>
+          <span class="h-2 w-2 rounded-full bg-status-success"></span>
           {{ $t("blockDetail.rowFinalityValue") }}
         </span>
       </InfoRow>

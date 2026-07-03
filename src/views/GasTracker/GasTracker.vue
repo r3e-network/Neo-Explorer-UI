@@ -1,21 +1,26 @@
 <template>
   <div class="gas-tracker-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.gasTracker') }]" />
+    <PageHero :particles="3">
+      <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
+        <!-- Breadcrumb -->
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.gasTracker') }]" />
 
-      <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+        <!-- Page Header -->
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("gasTracker.pageTitle") }}</h1>
+            <p class="page-subtitle">{{ $t("gasTracker.pageSubtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("gasTracker.pageTitle") }}</h1>
-          <p class="page-subtitle">{{ $t("gasTracker.pageSubtitle") }}</p>
-        </div>
-      </div>
+      </section>
+    </PageHero>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <!-- Fee Estimate Cards -->
       <FeeEstimateCards :feeEstimates="feeEstimates" :loading="loading" />
@@ -64,6 +69,7 @@
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import FeeEstimateCards from "./components/FeeEstimateCards.vue";
 import FeeSummary from "./components/FeeSummary.vue";
 import FeeTrendChart from "./components/FeeTrendChart.vue";

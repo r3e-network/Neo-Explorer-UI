@@ -1,26 +1,31 @@
 <template>
   <div class="api-docs">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.apiDocs') }]" />
+    <PageHero :particles="3">
+      <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.apiDocs') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t('apiDocsPage.title') }}</h1>
+            <p class="page-subtitle">
+              {{ $t('apiDocsPage.subtitleBefore') }} <span class="font-medium">{{ networkLabel }}</span>
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t('apiDocsPage.title') }}</h1>
-          <p class="page-subtitle">
-            {{ $t('apiDocsPage.subtitleBefore') }} <span class="font-medium">{{ networkLabel }}</span>
-          </p>
-        </div>
-      </div>
+      </section>
+    </PageHero>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <div class="panel-muted mb-4 px-4 py-3 text-sm">
         <p v-if="apiMode === 'rpc'" class="text-mid">
@@ -226,6 +231,7 @@
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import {
   API_DOCS_RPC_CATEGORIES,
   API_DOCS_RPC_METHODS,

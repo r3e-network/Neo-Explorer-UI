@@ -1,5 +1,5 @@
 <template>
-  <div class="matrix-page bg-surface-base min-h-screen pb-12">
+  <div class="matrix-page bg-surface-base min-h-screen pb-12 animate-page-enter">
     <!-- Hero Section -->
     <section class="hero-section relative border-b border-line-soft bg-header-bg overflow-hidden">
       <div class="matrix-grid-bg absolute inset-0 opacity-20"></div>

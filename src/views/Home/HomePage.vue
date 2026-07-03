@@ -1,23 +1,26 @@
 <template>
   <div class="home-page">
     <!-- Hero Section -->
-    <section class="hero-section relative border-b border-white/10 bg-header-bg/95">
-      <div class="hero-overlay"></div>
-      <div class="page-container relative z-30 py-10 md:py-14">
-        <div class="mx-auto max-w-3xl text-center">
-          <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-            {{ $t("homePage.heroTitle") }}
-          </h1>
-          <p class="mt-2 text-sm text-white/70">{{ $t("homePage.heroSubtitle") }}</p>
-          <div class="relative z-30 mt-6">
-            <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
+    <PageHero :particles="3">
+      <section class="hero-section relative border-b border-white/10 bg-transparent animate-page-enter">
+        <div class="hero-overlay"></div>
+        <div class="page-container relative z-30 py-10 md:py-14">
+          <div class="mx-auto max-w-3xl text-center">
+            <h1 class="text-balance text-3xl font-extrabold tracking-tight text-white md:text-4xl neon-glow-text">
+              {{ $t("homePage.heroTitle") }}
+            </h1>
+            <p class="mt-2 text-sm text-white/70">{{ $t("homePage.heroSubtitle") }}</p>
+            <div class="relative z-30 mt-6">
+              <SearchBox mode="full" :loading="searchLoading" @search="handleSearch" />
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </PageHero>
 
     <!-- Stats Cards (overlapping hero) -->
     <HomeStats
+      class="animate-page-enter animate-page-enter-delay-1"
       :neo-price="neoPrice"
       :gas-price="gasPrice"
       :neo-price-change="neoPriceChange"
@@ -34,7 +37,7 @@
     />
 
     <!-- Latest Blocks + Latest Transactions -->
-    <section class="page-shell">
+    <section class="page-shell animate-page-enter animate-page-enter-delay-2">
       <div class="page-container py-1">
         <div class="grid items-start gap-4 lg:grid-cols-2">
           <LatestBlocks
@@ -52,7 +55,7 @@
             @retry="loadLatestData"
           />
         </div>
-        <div class="mt-4">
+        <div class="mt-4 animate-page-enter animate-page-enter-delay-3">
           <BlockTimeChart
             :blocks="blockTimeBlocks"
             :loading="blockTimeLoading"
@@ -70,6 +73,7 @@ defineOptions({ name: "HomePage" });
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import SearchBox from "@/components/common/SearchBox.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import HomeStats from "./components/HomeStats.vue";
 import LatestBlocks from "./components/LatestBlocks.vue";
 import LatestTransactions from "./components/LatestTransactions.vue";

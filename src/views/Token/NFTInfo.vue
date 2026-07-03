@@ -5,9 +5,9 @@
       <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.nftDetail') }]" />
 
       <!-- Page Header -->
-      <div class="detail-hero">
+      <div class="detail-hero detail-hero-enhanced">
         <div class="flex items-start gap-3">
-          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300">
+          <div class="page-header-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300 relative">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -18,7 +18,7 @@
             </svg>
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="page-title">{{ nftName || $t("tokenDetail.nftDetailTitle") }}</h1>
+            <h1 class="page-title neon-glow-text">{{ nftName || $t("tokenDetail.nftDetailTitle") }}</h1>
             <p class="page-subtitle">{{ $t("tokenDetail.nftDetailSubtitle") }}</p>
           </div>
         </div>
@@ -38,7 +38,7 @@
 
       <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-1">
-          <div class="etherscan-card p-4">
+          <div class="etherscan-card p-4 card-tilt gradient-border-card">
             <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
               <img
                 v-if="image"
@@ -62,7 +62,7 @@
         </div>
 
         <div class="space-y-6 lg:col-span-2">
-          <div class="etherscan-card overflow-hidden">
+          <div class="etherscan-card overflow-hidden card-tilt gradient-border-card">
             <div class="card-header">
               <h2 class="text-base font-semibold text-high">{{ $t("tokenDetail.nftDetailSection") }}</h2>
             </div>

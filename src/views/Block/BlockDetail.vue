@@ -39,7 +39,7 @@
       <ErrorState v-else-if="error" :title="$t('blockDetail.notFound')" :message="error" @retry="loadBlock(route.params.hash)" />
 
       <div v-else class="space-y-6">
-        <BlockOverview :block="block" :transactions="transactions" :reward="reward" v-model:show-witnesses="showWitnesses" />
+        <BlockOverview :block="block" :transactions="transactions" :reward="reward" :confirmations="confirmations" v-model:show-witnesses="showWitnesses" />
 
         <!-- Tab Navigation -->
         <div class="etherscan-card overflow-hidden">
@@ -53,39 +53,43 @@
           </div>
 
           <div class="p-0">
-            <!-- Transactions Tab -->
-            <section
-              v-if="activeTab === 'transactions'"
-              id="block-detail-transactions-panel"
-              role="tabpanel"
-              aria-labelledby="block-detail-transactions-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <BlockTransactionsInline
-                :transactions="transactions"
-                :tx-loading="txLoading"
-                :block-transaction-count="blockTransactionCount"
-                :empty-transactions-message="emptyTransactionsMessage"
-              />
-            </section>
+            <Transition name="tab-fade" mode="out-in">
+              <!-- Transactions Tab -->
+              <section
+                v-if="activeTab === 'transactions'"
+                key="transactions"
+                id="block-detail-transactions-panel"
+                role="tabpanel"
+                aria-labelledby="block-detail-transactions-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <BlockTransactionsInline
+                  :transactions="transactions"
+                  :tx-loading="txLoading"
+                  :block-transaction-count="blockTransactionCount"
+                  :empty-transactions-message="emptyTransactionsMessage"
+                />
+              </section>
 
-            <!-- Block Logs Tab -->
-            <section
-              v-else-if="activeTab === 'logs'"
-              id="block-detail-logs-panel"
-              role="tabpanel"
-              aria-labelledby="block-detail-logs-tab"
-              tabindex="0"
-              class="focus:outline-none"
-            >
-              <BlockLogsInline
-                :app-log="blockAppLog"
-                :app-log-loading="blockAppLogLoading"
-                :app-log-error="blockAppLogError"
-                :enriched-trace="blockEnrichedTrace"
-              />
-            </section>
+              <!-- Block Logs Tab -->
+              <section
+                v-else-if="activeTab === 'logs'"
+                key="logs"
+                id="block-detail-logs-panel"
+                role="tabpanel"
+                aria-labelledby="block-detail-logs-tab"
+                tabindex="0"
+                class="focus:outline-none"
+              >
+                <BlockLogsInline
+                  :app-log="blockAppLog"
+                  :app-log-loading="blockAppLogLoading"
+                  :app-log-error="blockAppLogError"
+                  :enriched-trace="blockEnrichedTrace"
+                />
+              </section>
+            </Transition>
           </div>
         </div>
       </div>
@@ -143,6 +147,12 @@ const blockTransactionCount = computed(() => {
   }
 
   return transactions.value.length;
+});
+
+const confirmations = computed(() => {
+  const idx = Number(block.value?.index);
+  if (!Number.isFinite(idx) || !Number.isFinite(latestBlockHeight.value)) return 0;
+  return Math.max(0, latestBlockHeight.value - idx + 1);
 });
 
 const blockLogNotificationCount = computed(() => {

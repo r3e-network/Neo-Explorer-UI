@@ -28,9 +28,8 @@ const variantClass = computed(() => {
 });
 
 const skeletonClass = computed(() => [
+  "skeleton-shimmer",
   "animate-pulse",
-  "bg-primary-500/20",
-  "dark:bg-primary-400/20",
   variantClass.value
 ]);
 

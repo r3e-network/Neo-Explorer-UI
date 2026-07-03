@@ -1,7 +1,7 @@
 <template>
   <div class="page-not-found">
     <section
-      class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8"
+      class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8 animate-page-enter"
     >
       <div class="w-full max-w-lg etherscan-card p-8 text-center">
         <!-- 404 SVG Icon -->

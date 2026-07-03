@@ -47,7 +47,7 @@
                 </svg>
               </div>
               <div class="min-w-0">
-                <h1 class="page-title">{{ $t("tools.governance.title") }}</h1>
+                <h1 class="page-title neon-glow-text">{{ $t("tools.governance.title") }}</h1>
                 <p class="page-subtitle max-w-3xl">
                   {{ $t("tools.governance.headerSubtitle") }}
                 </p>

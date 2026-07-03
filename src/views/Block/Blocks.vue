@@ -1,67 +1,51 @@
 <template>
   <div class="blocks-page">
     <section class="page-container py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.blocks') }]" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.blocks') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-        </div>
-        <div>
-          <h1 class="page-title">{{ $t("nav.blocks") || $t("blocks.title") }}</h1>
-          <p class="page-subtitle">{{ $t("blocks.subtitle") }}</p>
-        </div>
-      </div>
-
-      <!-- Stats Bar -->
-      <div class="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-2">
-        <div class="surface-panel flex items-center gap-3 p-4">
-          <div
-            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30"
-          >
-            <svg class="h-5 w-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-            </svg>
-          </div>
-          <div class="min-w-0">
-            <p class="text-mid text-xs">{{ $t("blocks.stats.totalBlocks") }}</p>
-            <p class="text-high truncate text-sm font-semibold">
-              {{ statsLoading ? "..." : formatNumber(totalBlocks) }}
-            </p>
-          </div>
-        </div>
-        <div class="surface-panel flex items-center gap-3 p-4">
-            <div
-            class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30"
-          >
-            <svg class="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
               />
             </svg>
           </div>
-          <div class="min-w-0">
-            <p class="text-mid text-xs">{{ $t("blocks.stats.latestBlock") }}</p>
-            <p class="text-high truncate text-sm font-semibold">
-              {{ statsLoading ? "..." : "#" + formatNumber(latestHeight) }}
-            </p>
+          <div>
+            <h1 class="page-title">{{ $t("nav.blocks") || $t("blocks.title") }}</h1>
+            <p class="page-subtitle">{{ $t("blocks.subtitle") }}</p>
           </div>
         </div>
+      </PageHero>
+
+      <!-- Stats Bar -->
+      <div class="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-2 animate-page-enter animate-page-enter-delay-1">
+        <DashboardStatCard
+          :label="$t('blocks.stats.totalBlocks')"
+          :value="totalBlocks"
+          :animated="!statsLoading"
+          :icon="totalBlocksIcon"
+          glow-color="#4f8fff"
+          subtitle=""
+        />
+        <DashboardStatCard
+          :label="$t('blocks.stats.latestBlock')"
+          :value="latestHeight"
+          :animated="!statsLoading"
+          :icon="latestBlockIcon"
+          glow-color="#00b377"
+          prefix="#"
+          subtitle=""
+        />
       </div>
 
       <!-- Block List Card -->
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-2">
         <div class="card-header">
           <p class="text-mid text-sm">
             {{ $t("blocks.range.label", { start: formatNumber(rangeStart), end: formatNumber(rangeEnd) }) }}
@@ -307,6 +291,8 @@ import { scriptHashToAddress } from "@/utils/neoHelpers";
 import { useCommittee, isFallbackValidatorName } from "@/composables/useCommittee";
 import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
+import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
@@ -374,6 +360,10 @@ function getValidatorDisplayName(block) {
   return address ? truncateHash(address, 8, 6) : "--";
 }
 const showAbsoluteTime = ref(false);
+
+// Icon SVGs for DashboardStatCard
+const totalBlocksIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L3 7v10l9 5 9-5V7l-9-5z"/></svg>`;
+const latestBlockIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>`;
 
 // Stats bar
 const statsLoading = ref(true);

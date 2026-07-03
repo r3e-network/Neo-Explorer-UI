@@ -1,5 +1,11 @@
 <template>
-  <div class="detail-hero">
+  <div class="detail-hero detail-hero-enhanced detail-hero-circuit">
+    <!-- Circuit particles -->
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+
     <div class="flex items-start gap-3">
       <!-- Icon logic: Show resolved identity logo first, else standard or special icon -->
       <div v-if="headerLogo" class="h-10 w-10 flex-shrink-0">
@@ -12,13 +18,14 @@
       </div>
       <div
         v-else-if="isNeoFoundation"
-        class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400"
+        class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400 relative"
       >
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
         </svg>
+        <span class="glow-dot absolute -right-0.5 -bottom-0.5"></span>
       </div>
-      <div v-else class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400">
+      <div v-else class="page-header-icon bg-orange-100 text-orange-500 dark:bg-orange-900/40 dark:text-orange-400 relative">
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path
             d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
@@ -40,7 +47,7 @@
             />
             {{ publicTag }}
           </span>
-          <h1 class="page-title">
+          <h1 class="page-title neon-glow-text">
             {{
               isNeoFoundation
                 ? $t("addressDetail.titleNeoFoundation")
@@ -145,54 +152,55 @@
 
   <!-- Balance overview cards -->
   <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-    <div class="stat-card">
-      <p class="stat-label">{{ $t("addressDetail.statNeoBalance") }}</p>
-      <p class="stat-value">
-        <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
-        <span v-else>{{ formatBalance(neoBalance, 8) }}</span>
-      </p>
-      <p v-if="!summaryLoading && neoUsdValue" class="text-mid mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-        ≈ {{ formatUsd(neoUsdValue) }}
-      </p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-label">{{ $t("addressDetail.statGasBalance") }}</p>
-      <p class="stat-value">
-        <Skeleton v-if="summaryLoading" width="80px" height="24px" class="inline-block" />
-        <span v-else>{{ formatTokenAmount(gasBalance, 8, 8) }}</span>
-      </p>
-      <p v-if="!summaryLoading && gasUsdValue" class="text-mid mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-        ≈ {{ formatUsd(gasUsdValue) }}
-      </p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-label">{{ $t("addressDetail.statTransactions") }}</p>
-      <p class="stat-value">
-        <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
-        <span v-else>{{ formatNumber(txCount) }}</span>
-      </p>
-    </div>
-    <div class="stat-card">
-      <p class="stat-label">{{ $t("addressDetail.statTokenHoldings") }}</p>
-      <p class="stat-value">
-        <Skeleton v-if="summaryLoading" width="60px" height="24px" class="inline-block" />
-        <span v-else>{{ formatNumber(tokenCount) }}</span>
-      </p>
-    </div>
-    <div v-if="totalUsdValue" class="stat-card">
-      <p class="stat-label">{{ $t("addressDetail.statTotalValue") }}</p>
-      <p class="stat-value text-emerald-600 dark:text-emerald-400">
-        {{ formatUsd(totalUsdValue) }}
-      </p>
-    </div>
+    <DashboardStatCard
+      :label="$t('addressDetail.statNeoBalance')"
+      :value="summaryLoading ? null : toTokenAmountNumber(neoBalance, 0)"
+      :decimals="2"
+      suffix=" NEO"
+      :subtitle="formatApproxUsd(neoUsdValue)"
+      icon="<svg class='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>"
+      glow-color="var(--link)"
+    />
+    <DashboardStatCard
+      :label="$t('addressDetail.statGasBalance')"
+      :value="summaryLoading ? null : toTokenAmountNumber(gasBalance, GAS_DECIMALS)"
+      :decimals="8"
+      suffix=" GAS"
+      :subtitle="formatApproxUsd(gasUsdValue)"
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 10V3L4 14h7v7l9-11h-7z'/></svg>"
+      glow-color="#f59e0b"
+    />
+    <DashboardStatCard
+      :label="$t('addressDetail.statTransactions')"
+      :value="txCount"
+      animated
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'/></svg>"
+      glow-color="#3b82f6"
+    />
+    <DashboardStatCard
+      :label="$t('addressDetail.statTokenHoldings')"
+      :value="tokenCount"
+      animated
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'/></svg>"
+      glow-color="#8b5cf6"
+    />
+    <DashboardStatCard
+      v-if="totalUsdValue"
+      :label="$t('addressDetail.statTotalValue')"
+      :value="totalUsdValue"
+      :decimals="2"
+      prefix="$"
+      icon="<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>"
+      glow-color="#10b981"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import QrcodeVue from "qrcode.vue";
-import Skeleton from "@/components/common/Skeleton.vue";
-import { formatNumber, formatBalance, formatTokenAmount, toTokenAmountNumber } from "@/utils/explorerFormat";
+import DashboardStatCard from "@/components/charts/DashboardStatCard.vue";
+import { formatNumber, toTokenAmountNumber } from "@/utils/explorerFormat";
 import { pickBestCandidateVotes } from "@/utils/addressDetail";
 import { supabaseService } from "@/services/supabaseService";
 import CopyButton from "@/components/common/CopyButton.vue";
@@ -240,6 +248,11 @@ function formatUsd(value) {
   const n = Number(value || 0);
   if (!n) return "";
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 1 ? 4 : 2 });
+}
+
+function formatApproxUsd(value) {
+  const formatted = formatUsd(value);
+  return formatted ? `≈ ${formatted}` : "";
 }
 
 const nnsName = ref("");

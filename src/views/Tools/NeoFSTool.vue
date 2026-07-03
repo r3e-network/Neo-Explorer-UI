@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-page">
+  <div class="tool-page animate-page-enter">
     <section class="page-container py-6 md:py-8">
       <Breadcrumb
         :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tools'), to: '/tools' }, { label: $t('breadcrumb.neofs') }]"
@@ -18,7 +18,7 @@
             </svg>
           </div>
           <div>
-            <h1 class="page-title">{{ $t('tools.neofs.title') }}</h1>
+            <h1 class="page-title neon-glow-text">{{ $t('tools.neofs.title') }}</h1>
             <p class="page-subtitle">{{ $t('tools.neofs.description') }}</p>
           </div>
         </div>

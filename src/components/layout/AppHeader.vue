@@ -19,7 +19,7 @@
     <nav class="main-nav relative border-b border-white/10 dark:border-neo-green/10 bg-white/70 dark:bg-[#0a0f1a]/70 shadow-lg backdrop-blur-xl transition-all duration-300">
       <div class="mx-auto flex h-[70px] max-w-[1400px] items-center px-4">
         <!-- Logo -->
-        <router-link to="/homepage" class="mr-8 flex items-center gap-2.5 no-underline group">
+        <router-link to="/homepage" class="mr-4 flex items-center gap-2.5 no-underline group xl:mr-8">
           <div
             class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 p-1.5 shadow-[0_0_15px_rgba(0,229,153,0.1)] transition-transform duration-300 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,229,153,0.3)]"
           >
@@ -34,7 +34,7 @@
         <DesktopNav :active-dropdown="activeDropdown" @open-dropdown="openDropdown" @close-dropdown="closeDropdown" />
 
         <!-- Header Search (compact mode) -->
-        <div class="ml-auto hidden w-full max-w-sm items-center lg:flex lg:ml-8">
+        <div class="ml-auto hidden w-full max-w-[17rem] items-center lg:flex lg:ml-4 xl:ml-8 xl:max-w-sm">
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
@@ -100,7 +100,7 @@
 
         <!-- Global Wallet Button (desktop) -->
         <button
-          class="ml-3 hidden shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all min-w-[10rem] lg:inline-flex shadow-sm active:scale-95"
+          class="ml-2 hidden w-32 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-all lg:inline-flex xl:ml-3 xl:px-4 2xl:w-auto 2xl:min-w-[10rem] shadow-sm active:scale-95"
           :class="connectedAccount ? 'bg-white border border-gray-200 text-gray-800 hover:border-emerald-500 hover:text-emerald-600 dark:bg-slate-800/80 dark:border-slate-700 dark:text-gray-100 dark:hover:border-emerald-500/50' : 'bg-emerald-500 border border-transparent text-white hover:bg-emerald-600 shadow-emerald-500/20'"
           :disabled="walletLoading"
           :aria-label="walletControlAriaLabel"
@@ -113,7 +113,7 @@
             class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
           ></span>
           <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          {{ walletLoading ? $t('header.connecting') : walletButtonLabel }}
+          <span class="min-w-0 truncate">{{ walletLoading ? $t('header.connecting') : walletButtonLabel }}</span>
         </button>
 
         <!-- Mobile Wallet -->

@@ -1,26 +1,28 @@
 <template>
   <div class="advanced-search-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
       <!-- Breadcrumb -->
       <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.advancedSearch') }]" />
 
       <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+      <PageHero :particles="50">
+        <div class="flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("pages.advancedSearch.title") }}</h1>
+            <p class="page-subtitle">{{ $t("pages.advancedSearch.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("pages.advancedSearch.title") }}</h1>
-          <p class="page-subtitle">{{ $t("pages.advancedSearch.subtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
       <!-- Search Form -->
       <div class="etherscan-card mb-6 p-5">
@@ -281,6 +283,7 @@ import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

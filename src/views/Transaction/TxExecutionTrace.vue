@@ -1,6 +1,6 @@
 <template>
   <div class="tx-execution-trace">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
       <!-- Breadcrumb -->
       <Breadcrumb
         :items="[
@@ -12,27 +12,29 @@
       />
 
       <!-- Page header -->
-      <div class="tx-trace-page-header mb-6 flex items-start gap-3 sm:items-center">
-        <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-        </div>
-        <div class="tx-trace-title-block min-w-0 flex-1">
-          <h1 class="page-title">{{ $t('executionTracePage.title') }}</h1>
-          <div class="tx-trace-hash-row flex min-w-0 flex-wrap items-center gap-2">
-            <span class="page-subtitle flex-shrink-0">{{ $t('executionTracePage.transactionLabel') }}</span>
-            <span class="min-w-0 max-w-full">
-              <HashLink :hash="txHash" type="tx" :truncated="false" />
-            </span>
+      <PageHero :particles="45">
+        <div class="tx-trace-page-header flex items-start gap-3 sm:items-center">
+          <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+          </div>
+          <div class="tx-trace-title-block min-w-0 flex-1">
+            <h1 class="page-title neon-glow-text">{{ $t('executionTracePage.title') }}</h1>
+            <div class="tx-trace-hash-row flex min-w-0 flex-wrap items-center gap-2">
+              <span class="page-subtitle flex-shrink-0">{{ $t('executionTracePage.transactionLabel') }}</span>
+              <span class="min-w-0 max-w-full">
+                <HashLink :hash="txHash" type="tx" :truncated="false" />
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </PageHero>
 
       <!-- State Change Summary -->
       <section class="mb-6">
@@ -93,6 +95,7 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { executionService } from "@/services/executionService";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import HashLink from "@/components/common/HashLink.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";

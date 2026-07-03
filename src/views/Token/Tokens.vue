@@ -1,28 +1,31 @@
 <template>
   <div class="tokens-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tokens') }]" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <!-- Breadcrumb -->
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.tokens') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">{{ $t("nav.tokens") || "Tokens" }}</h1>
+            <p class="page-subtitle">{{ $t("tokenDetail.pageSubtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("nav.tokens") || "Tokens" }}</h1>
-          <p class="page-subtitle">{{ $t("tokenDetail.pageSubtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
       <!-- Token List Card -->
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-1">
         <!-- Tabs -->
         <div class="card-header">
           <nav class="flex gap-1">
@@ -381,6 +384,7 @@ import { useDebounceFn } from "@/composables/useVueUtils";
 import { useNetworkChange } from "@/composables/useNetworkChange";
 import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

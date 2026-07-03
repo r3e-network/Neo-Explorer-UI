@@ -9,7 +9,12 @@
         ]"
       />
 
-      <div class="detail-hero">
+      <div class="detail-hero detail-hero-enhanced detail-hero-circuit">
+        <!-- Circuit particles -->
+        <span class="circuit-particle"></span>
+        <span class="circuit-particle"></span>
+        <span class="circuit-particle"></span>
+
         <div class="flex items-start gap-3">
           <img
             v-if="tokenMetadata?.logo_url"
@@ -28,13 +33,17 @@
           />
           <div
             v-else
-            class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400"
+            class="page-header-icon bg-primary-100 text-primary-500 dark:bg-primary-900/40 dark:text-primary-400 relative"
           >
             <span class="text-lg font-bold">{{ tokenMetadata?.symbol || tokenValue?.symbol?.charAt(0) || "?" }}</span>
+            <span
+              v-if="tokenMetadata?.is_verified"
+              class="glow-dot absolute -right-0.5 -bottom-0.5"
+            ></span>
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <h1 class="page-title">
+              <h1 class="page-title neon-glow-text">
                 {{ tokenMetadata?.name || tokenValue?.tokenname || $t("tokenDetail.tokenFallback") }} ({{
                   tokenMetadata?.symbol || tokenValue?.symbol || "-"
                 }})
@@ -73,19 +82,19 @@
 
       <template v-else>
         <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="stat-card">
+          <div class="stat-card card-tilt gradient-border-card">
             <p class="stat-label">{{ $t("tokenDetail.statTotalSupply") }}</p>
             <p class="stat-value">{{ formatSupply }}</p>
           </div>
-          <div class="stat-card">
+          <div class="stat-card card-tilt gradient-border-card">
             <p class="stat-label">{{ $t("tokenDetail.statHolders") }}</p>
             <p class="stat-value">{{ formatNumber(tokenValue?.holders) }}</p>
           </div>
-          <div class="stat-card">
+          <div class="stat-card card-tilt gradient-border-card">
             <p class="stat-label">{{ $t("tokenDetail.statType") }}</p>
             <p class="stat-value">{{ tokenValue?.type || "NEP-17" }}</p>
           </div>
-          <div class="stat-card">
+          <div class="stat-card card-tilt gradient-border-card">
             <p class="stat-label">{{ $t("tokenDetail.statDecimals") }}</p>
             <p class="stat-value">{{ tokenValue?.decimals || 0 }}</p>
           </div>

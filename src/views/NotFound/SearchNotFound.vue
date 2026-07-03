@@ -1,6 +1,6 @@
 <template>
   <div class="search-not-found">
-    <section class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8">
+    <section class="mx-auto flex min-h-[70vh] max-w-[1400px] items-center justify-center px-4 py-8 animate-page-enter">
       <div class="w-full max-w-xl etherscan-card p-8 text-center">
         <div class="bg-icon-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
           <svg class="text-mid h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

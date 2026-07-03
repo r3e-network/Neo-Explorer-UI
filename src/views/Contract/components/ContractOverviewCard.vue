@@ -1,5 +1,5 @@
 <template>
-  <div class="etherscan-card">
+  <div class="etherscan-card card-tilt gradient-border-card">
     <div class="card-header">
       <h2 class="text-high text-base font-bold">{{ $t("contractDetail.overviewTitle") }}</h2>
     </div>
@@ -50,7 +50,7 @@
         </span>
         <span
           v-else
-          class="badge-soft inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold"
+          class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-900/25 dark:text-amber-300"
         >
           {{ $t("contractDetail.rowNotVerified") }}
         </span>

@@ -1,5 +1,5 @@
 <template>
-  <div class="tool-page">
+  <div class="tool-page animate-page-enter">
     <section class="page-container py-6 md:py-8">
       <GovernanceHeaderCard
         :committee-multi-sig="committeeMultiSig"

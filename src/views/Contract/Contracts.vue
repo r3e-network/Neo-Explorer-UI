@@ -1,27 +1,30 @@
 <template>
   <div class="contracts-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.contracts') }]" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.contracts') }]" />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-            />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">{{ $t("nav.contracts") || "Contracts" }}</h1>
+            <p class="page-subtitle">{{ $t("contractsPage.pageSubtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("nav.contracts") || "Contracts" }}</h1>
-          <p class="page-subtitle">{{ $t("contractsPage.pageSubtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
       <!-- Search Bar -->
-      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-page-enter animate-page-enter-delay-1">
         <div class="relative max-w-md flex-1">
           <svg
             class="text-low absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
@@ -62,7 +65,7 @@
         </router-link>
       </div>
 
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-2">
         <div class="card-header">
           <p class="text-mid text-sm">
             {{ isSearchMode ? $t("contractsPage.headerSearchResults") : $t("contractsPage.headerRegistry") }}
@@ -257,6 +260,7 @@ import { getCache, getCacheKey } from "@/services/cache";
 import { DEFAULT_PAGE_SIZE, SEARCH_DEBOUNCE_MS } from "@/constants";
 import { truncateHash, formatUnixTime, formatNumber } from "@/utils/explorerFormat";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

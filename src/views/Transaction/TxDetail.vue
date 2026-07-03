@@ -85,7 +85,8 @@
           />
         </div>
 
-        <div class="p-4 pt-5 md:p-5">
+        <Transition name="tab-fade" mode="out-in">
+          <div :key="activeTab" class="p-4 pt-5 md:p-5">
           <!-- Overview -->
           <section
             v-if="activeTab === 'overview'"
@@ -191,6 +192,7 @@
             />
           </section>
         </div>
+        </Transition>
       </div>
     </div>
   </div>

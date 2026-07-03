@@ -1,31 +1,33 @@
 <template>
   <div class="transactions-page">
     <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbs" />
+      <!-- Page Hero -->
+      <PageHero :particles="3" class="animate-page-enter">
+        <Breadcrumb :items="breadcrumbs" />
 
-      <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-icon-primary">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-            />
-          </svg>
+        <!-- Page Header -->
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-icon-primary">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">{{ $t("nav.transactions") || "Transactions" }}</h1>
+            <p class="page-subtitle">{{ $t("transactionsPage.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("nav.transactions") || "Transactions" }}</h1>
-          <p class="page-subtitle">{{ $t("transactionsPage.subtitle") }}</p>
-        </div>
-      </div>
+      </PageHero>
 
       <!-- Stats Bar -->
       <div
         v-if="totalCount > 0"
-        class="soft-divider mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 bg-status-warning-bg"
+        class="soft-divider mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 bg-status-warning-bg animate-page-enter animate-page-enter-delay-1"
       >
         <svg class="h-4 w-4 flex-shrink-0 text-mid" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -41,7 +43,7 @@
       </div>
 
       <!-- Main Card -->
-      <div class="etherscan-card overflow-hidden">
+      <div class="etherscan-card overflow-hidden animate-page-enter animate-page-enter-delay-2">
         <!-- Card Header -->
         <div class="card-header flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-sm text-mid">
@@ -161,6 +163,7 @@ import { exportAllPagesToCsv } from "@/utils/pagedExport";
 import { extractVmStateFromAppLog } from "@/utils/txVmState";
 import { resolveNetworkName } from "@/utils/env";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import Skeleton from "@/components/common/Skeleton.vue";

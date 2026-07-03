@@ -1,18 +1,18 @@
 <template>
   <div class="page-shell">
     <div class="page-container py-8">
-      <div class="mb-6">
-        <h1 class="text-3xl font-black tracking-tight text-high">{{ $t('chat.title') }}</h1>
+      <div class="mb-6 animate-page-enter">
+        <h1 class="text-3xl font-black tracking-tight text-high neon-glow-text">{{ $t('chat.title') }}</h1>
         <p class="mt-2 max-w-3xl text-sm text-mid">
           {{ $t('chat.description') }}
         </p>
       </div>
 
-      <div v-if="!connectedAccount" class="rounded-2xl border border-line-soft bg-surface-base p-6 text-sm text-mid shadow-sm">
+      <div v-if="!connectedAccount" class="rounded-2xl border border-line-soft bg-surface-base p-6 text-sm text-mid shadow-sm animate-page-enter animate-page-enter-delay-1">
         {{ $t('chat.connectWallet') }}
       </div>
 
-      <div v-else-if="!chatSession" class="rounded-2xl border border-line-soft bg-surface-base p-6 shadow-sm">
+      <div v-else-if="!chatSession" class="rounded-2xl border border-line-soft bg-surface-base p-6 shadow-sm animate-page-enter animate-page-enter-delay-1">
         <h2 class="text-lg font-bold text-high">{{ $t('chat.authorize') }}</h2>
         <p class="mt-2 text-sm text-mid">
           {{ $t('chat.authorizeHint') }}
@@ -27,7 +27,7 @@
         <p v-if="authError" class="mt-3 text-sm text-red-500">{{ authError }}</p>
       </div>
 
-      <div v-else class="grid gap-4 lg:grid-cols-[320px,1fr]">
+      <div v-else class="grid gap-4 lg:grid-cols-[320px,1fr] animate-page-enter animate-page-enter-delay-1">
         <ChatSidebar
           :rooms="rooms"
           :selected-room-id="selectedRoomId"

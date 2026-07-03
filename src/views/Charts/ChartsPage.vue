@@ -1,26 +1,31 @@
 <template>
   <div class="daily-transaction-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.charts') }]" />
+    <PageHero :particles="3">
+      <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
+        <!-- Breadcrumb -->
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.charts') }]" />
 
-      <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
+        <!-- Page Header -->
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("pages.charts.title") }}</h1>
+            <p class="page-subtitle">{{ $t("pages.charts.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("pages.charts.title") }}</h1>
-          <p class="page-subtitle">{{ $t("pages.charts.subtitle") }}</p>
-        </div>
-      </div>
+      </section>
+    </PageHero>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <!-- Day Range Toggle -->
       <div class="mb-6 flex flex-wrap items-center gap-2">
@@ -159,6 +164,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services/statsService";

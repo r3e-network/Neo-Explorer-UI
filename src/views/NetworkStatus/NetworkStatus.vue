@@ -1,36 +1,41 @@
 <template>
   <div class="network-status-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <Breadcrumb
-        :items="[
-          { label: $t('breadcrumb.home'), to: '/homepage' },
-          { label: $t('nav.networkStatus') },
-        ]"
-      />
+    <PageHero :particles="3">
+      <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
+        <Breadcrumb
+          :items="[
+            { label: $t('breadcrumb.home'), to: '/homepage' },
+            { label: $t('nav.networkStatus') },
+          ]"
+        />
 
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M3 6h18M3 18h18" />
-          </svg>
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("pages.networkStatus.title") }}</h1>
+            <p class="page-subtitle">
+              {{ $t("pages.networkStatus.subtitle") }}
+              <span class="ml-2 text-low text-xs">
+                {{ $t("pages.networkStatus.sourceNote") }}
+                <a
+                  href="https://monitor.ngd.network/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="etherscan-link"
+                  >{{ $t("pages.networkStatus.sourceLink") }}</a
+                >
+              </span>
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("pages.networkStatus.title") }}</h1>
-          <p class="page-subtitle">
-            {{ $t("pages.networkStatus.subtitle") }}
-            <span class="ml-2 text-low text-xs">
-              {{ $t("pages.networkStatus.sourceNote") }}
-              <a
-                href="https://monitor.ngd.network/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="etherscan-link"
-                >{{ $t("pages.networkStatus.sourceLink") }}</a
-              >
-            </span>
-          </p>
-        </div>
-      </div>
+      </section>
+    </PageHero>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <!-- Summary tiles -->
       <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -256,6 +261,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 import BlockTimeChart from "@/components/common/BlockTimeChart.vue";

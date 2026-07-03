@@ -1,24 +1,31 @@
 <template>
-  <div class="detail-hero">
+  <div class="detail-hero detail-hero-enhanced detail-hero-circuit">
+    <!-- Circuit particles -->
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+
     <div class="flex items-start gap-3">
       <div
-        class="page-header-icon"
+        class="page-header-icon relative"
         :class="
           isSuccess === true
-            ? 'bg-green-100 dark:bg-green-900/40'
+            ? 'bg-status-success-bg'
             : isSuccess === false
-            ? 'bg-red-100 dark:bg-red-900/40'
-            : 'bg-gray-100 dark:bg-gray-700'
+            ? 'bg-status-error-bg'
+            : 'bg-gray-100 dark:bg-gray-800'
         "
       >
         <svg
           class="h-6 w-6"
           :class="
             isSuccess === true
-              ? 'text-green-500'
+              ? 'text-status-success'
               : isSuccess === false
-              ? 'text-red-500'
-              : 'text-gray-400 dark:text-gray-500'
+              ? 'text-status-error'
+              : 'text-mid'
           "
           fill="none"
           stroke="currentColor"
@@ -46,16 +53,21 @@
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
+        <span
+          v-if="isSuccess !== null"
+          class="glow-dot absolute -right-0.5 -bottom-0.5"
+          :style="{ background: isSuccess ? 'var(--status-success)' : 'var(--status-error)' }"
+        ></span>
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h1 class="page-title">{{ $t("txDetail.headerTitle") }}</h1>
+          <h1 class="page-title neon-glow-text">{{ $t("txDetail.headerTitle") }}</h1>
           <StatusBadge :status="txStatus" />
         </div>
         <p class="page-subtitle">{{ $t("txDetail.headerSubtitle") }}</p>
         <p
           v-if="isSuccess === false"
-          class="mt-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 break-all dark:border-red-700/70 dark:bg-red-950/35 dark:text-red-300"
+          class="mt-2 rounded-lg border border-red-300 border-status-error/30 bg-red-50 bg-status-error-bg px-3 py-2 text-xs text-red-700 text-status-error break-all dark:border-status-error/30 dark:bg-status-error-bg dark:text-red-300"
         >
           <span class="font-semibold">{{ $t("txDetail.headerFailurePrefix") }}</span>
           {{ failureReason || $t("txDetail.rowFailureReasonEmpty") }}

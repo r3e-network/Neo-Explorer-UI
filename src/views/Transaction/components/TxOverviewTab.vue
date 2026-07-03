@@ -20,8 +20,8 @@
       <InfoRow :label="$t('txDetail.rowVmState')" :tooltip="$t('txDetail.rowVmStateTip')">
         <span
           v-if="vmState"
-          class="badge-soft rounded px-2 py-0.5 text-xs font-semibold"
-          :class="vmState === 'HALT' ? 'text-status-success' : vmState === 'FAULT' ? 'text-status-error' : 'text-mid'"
+          class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
+          :class="vmState === 'HALT' ? 'bg-status-success-bg text-status-success' : vmState === 'FAULT' ? 'bg-status-error-bg text-status-error' : 'badge-soft'"
         >
           {{ vmState }}
         </span>
@@ -144,7 +144,7 @@
       <InfoRow :label="$t('txDetail.rowSysFee')">
         <span class="inline-flex items-center gap-1.5">
           <span>{{ formatGas(tx.sysfee) }} GAS</span>
-          <span class="text-red-600 dark:text-red-400 text-xs font-semibold uppercase tracking-wide">{{
+          <span class="text-red-600 text-status-error text-xs font-semibold uppercase tracking-wide">{{
             $t("txDetail.rowSysFeeBurned")
           }}</span>
         </span>

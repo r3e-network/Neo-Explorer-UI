@@ -1,5 +1,10 @@
 <template>
-  <div class="detail-hero">
+  <div class="detail-hero detail-hero-enhanced detail-hero-circuit">
+    <!-- Circuit particles -->
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+    <span class="circuit-particle"></span>
+
     <div class="flex items-start gap-3">
       <img
         v-if="contractLogo"
@@ -8,14 +13,18 @@
         :alt="$t('contractDetail.headerLogoAlt')"
         loading="lazy"
       />
-      <div v-else class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+      <div v-else class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300 relative">
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
         </svg>
+        <span
+          v-if="isVerified || metadata?.is_verified"
+          class="glow-dot absolute -right-0.5 -bottom-0.5"
+        ></span>
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <h1 class="page-title">
+          <h1 class="page-title neon-glow-text">
             {{ metadata?.name || contract.name || $t("contractDetail.headerUnknownContract") }}
           </h1>
           <span

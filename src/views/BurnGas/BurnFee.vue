@@ -1,26 +1,31 @@
 <template>
   <div class="burn-fee-page">
-    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.burnedGas') }]" />
+    <PageHero :particles="3">
+      <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter">
+        <!-- Breadcrumb -->
+        <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.burnedGas') }]" />
 
-      <!-- Page Header -->
-      <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
-            />
-          </svg>
+        <!-- Page Header -->
+        <div class="mb-6 flex items-center gap-3">
+          <div class="page-header-icon bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title neon-glow-text">{{ $t("pages.burnGas.title") }}</h1>
+            <p class="page-subtitle">{{ $t("pages.burnGas.subtitle") }}</p>
+          </div>
         </div>
-        <div>
-          <h1 class="page-title">{{ $t("pages.burnGas.title") }}</h1>
-          <p class="page-subtitle">{{ $t("pages.burnGas.subtitle") }}</p>
-        </div>
-      </div>
+      </section>
+    </PageHero>
+
+    <section class="mx-auto max-w-[1400px] px-4 py-6 md:py-8 animate-page-enter animate-page-enter-delay-1">
 
       <!-- Summary Cards -->
       <div v-if="loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -113,6 +118,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import Breadcrumb from "@/components/common/Breadcrumb.vue";
+import PageHero from "@/components/common/PageHero.vue";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import { statsService } from "@/services/statsService";
