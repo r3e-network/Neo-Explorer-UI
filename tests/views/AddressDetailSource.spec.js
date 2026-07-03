@@ -27,6 +27,9 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain('import("./components/AddressTokensTab.vue")');
     expect(source).toContain('import("./components/AddressNftsTab.vue")');
     expect(source).toContain('import("./components/AddressVotersTab.vue")');
+    expect(source).toContain('import("./components/AddressRadarTab.vue")');
+    expect(source).toContain("activeTab === 'assetRadar'");
+    expect(source).toContain(":fetch-transfers=\"fetchRadarTransfersForAddress\"");
   });
 
   it("routes address summary, holdings, and default transactions through shared freshness keys", () => {

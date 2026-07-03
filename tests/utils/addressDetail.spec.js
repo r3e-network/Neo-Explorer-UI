@@ -38,6 +38,7 @@ describe("addressDetail utils", () => {
   it("returns standard address detail tabs", () => {
     expect(getAddressDetailTabs()).toEqual([
       { key: "transactions", labelKey: "addressDetail.tabTransactions" },
+      { key: "assetRadar", labelKey: "addressDetail.tabAssetRadar" },
       { key: "tokenTransfers", labelKey: "addressDetail.tabTokenTransfers" },
       { key: "nftTransfers", labelKey: "addressDetail.tabNftTransfers" },
       { key: "tokens", labelKey: "addressDetail.tabTokens" },

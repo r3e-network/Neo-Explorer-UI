@@ -55,6 +55,17 @@
             @export-csv="exportCsv"
           />
 
+          <AddressRadarTab
+            v-else-if="activeTab === 'assetRadar'"
+            :address="address"
+            :nep17-transfers="radarNep17Transfers"
+            :nep11-transfers="radarNep11Transfers"
+            :loading="radarTransfersLoading"
+            :error="radarTransfersError"
+            :fetch-transfers="fetchRadarTransfersForAddress"
+            @retry="loadRadarTransfers({ forceRefresh: true })"
+          />
+
           <AddressTokenTransfersTab
             v-else-if="activeTab === 'tokenTransfers'"
             :address="address"
@@ -166,6 +177,7 @@ const AddressNftTransfersTab = defineAsyncComponent(() => import("./components/A
 const AddressTokensTab = defineAsyncComponent(() => import("./components/AddressTokensTab.vue"));
 const AddressNftsTab = defineAsyncComponent(() => import("./components/AddressNftsTab.vue"));
 const AddressVotersTab = defineAsyncComponent(() => import("./components/AddressVotersTab.vue"));
+const AddressRadarTab = defineAsyncComponent(() => import("./components/AddressRadarTab.vue"));
 
 const route = useRoute();
 const router = useRouter();
@@ -176,6 +188,8 @@ const MAX_CANDIDATE_LIST_LOOKUP = 1000;
 const MAX_VOTER_FALLBACK_PAGES = 10;
 const MAX_VOTER_FALLBACK_ENTRIES = 2000;
 const SUMMARY_LOAD_TIMEOUT_MS = 4500;
+const RADAR_DIRECT_TRANSFER_LIMIT = 80;
+const RADAR_PATH_TRANSFER_LIMIT = 30;
 const abortController = ref(null);
 const neoBalance = ref("0");
 const gasBalance = ref("0");
@@ -193,6 +207,10 @@ const fungibleAssets = ref([]);
 const nftAssets = ref([]);
 const assetsLoading = ref(false);
 const assetsError = ref("");
+const radarNep17Transfers = ref([]);
+const radarNep11Transfers = ref([]);
+const radarTransfersLoading = ref(false);
+const radarTransfersError = ref("");
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
 // Transactions pagination via composable
 const {
@@ -756,6 +774,67 @@ async function loadAssets(addr, { forceRefresh = false, network = null } = {}) {
   }
 }
 
+async function fetchRadarTransferBuckets(addr, { limit = RADAR_DIRECT_TRANSFER_LIMIT, forceRefresh = false, network = null } = {}) {
+  if (!addr) return { nep17Transfers: [], nep11Transfers: [] };
+  const requestNetwork = resolveNetworkName(network);
+  const [nep17Response, nep11Response] = await Promise.all([
+    accountService.getNep17Transfers(addr, limit, 0, { forceRefresh, network: requestNetwork }),
+    accountService.getNep11Transfers(addr, limit, 0, { forceRefresh, network: requestNetwork }),
+  ]);
+
+  return {
+    nep17Transfers: normalizeNep17Transfers(nep17Response?.result || []),
+    nep11Transfers: normalizeNep11Transfers(nep11Response?.result || []),
+  };
+}
+
+async function fetchRadarTransfersForAddress(addr, options = {}) {
+  const { nep17Transfers: nep17Rows, nep11Transfers: nep11Rows } = await fetchRadarTransferBuckets(addr, {
+    limit: options.limit || RADAR_PATH_TRANSFER_LIMIT,
+    forceRefresh: Boolean(options.forceRefresh),
+    network: options.network,
+  });
+  return [...nep17Rows, ...nep11Rows];
+}
+
+async function loadRadarTransfers({ forceRefresh = false, network = null } = {}) {
+  const currentRequestId = addressRequestId;
+  const addr = address.value;
+  if (!addr) return;
+  const requestNetwork = resolveNetworkName(network);
+  radarTransfersLoading.value = true;
+  radarTransfersError.value = "";
+
+  try {
+    const response = await fetchFreshQuery({
+      forceRefresh,
+      queryKey: createExplorerQueryKey("address.radarTransfers", {
+        address: addr,
+        limit: RADAR_DIRECT_TRANSFER_LIMIT,
+        network: requestNetwork,
+      }),
+      queryFn: ({ forceRefresh }) =>
+        fetchRadarTransferBuckets(addr, {
+          limit: RADAR_DIRECT_TRANSFER_LIMIT,
+          forceRefresh,
+          network: requestNetwork,
+        }),
+      source: "address.radarTransfers",
+    });
+    if (currentRequestId !== addressRequestId || requestNetwork !== resolveNetworkName()) return;
+    radarNep17Transfers.value = response?.nep17Transfers || [];
+    radarNep11Transfers.value = response?.nep11Transfers || [];
+  } catch (err) {
+    if (currentRequestId !== addressRequestId) return;
+    if (isAbortError(err)) return;
+    radarTransfersError.value = t("addressDetail.radarLoadError");
+  } finally {
+    if (currentRequestId === addressRequestId) {
+      radarTransfersLoading.value = false;
+    }
+  }
+}
+
 function exportCsv() {
   try {
     downloadTransactionsCsv(transactions.value, `txns-${address.value}.csv`);
@@ -782,16 +861,24 @@ async function initializeData(addr, { forceRefresh = false } = {}) {
   txCount.value = 0;
   tokenCount.value = 0;
   isContract.value = false;
+  radarNep17Transfers.value = [];
+  radarNep11Transfers.value = [];
+  radarTransfersError.value = "";
   if (activeTab.value === "voters") {
     activeTab.value = "transactions";
   }
 
   const txPagePromise = loadTxPage(1, { forceRefresh, network: requestNetwork });
-  const results = await Promise.allSettled([
+  const initialTasks = [
     loadAssets(addr, { forceRefresh, network: requestNetwork }),
     loadSummary(addr, { forceRefresh, network: requestNetwork }),
     txPagePromise,
-  ]);
+  ];
+  if (activeTab.value === "assetRadar") {
+    initialTasks.push(loadRadarTransfers({ forceRefresh, network: requestNetwork }));
+  }
+
+  const results = await Promise.allSettled(initialTasks);
   if (import.meta.env.DEV) {
     results.forEach((r, i) => {
       if (r.status === "rejected") console.warn(`initializeData task ${i} failed:`, r.reason);
@@ -861,6 +948,14 @@ watch(activeTab, (tab) => {
   }
   if (tab === "nftTransfers" && !nep11Transfers.value.length && !nep11Loading.value) {
     loadNep11Page(1);
+  }
+  if (
+    tab === "assetRadar" &&
+    !radarNep17Transfers.value.length &&
+    !radarNep11Transfers.value.length &&
+    !radarTransfersLoading.value
+  ) {
+    loadRadarTransfers();
   }
   if (tab === "voters" && !voters.value.length && !votersLoading.value && isCandidate.value) {
     loadVotersPage(1);

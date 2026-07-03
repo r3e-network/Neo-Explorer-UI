@@ -109,6 +109,7 @@ export function sumCandidateVoterBalances(voters = []) {
 export function getAddressDetailTabs(isCandidate = false) {
   const tabs = [
     { key: "transactions", labelKey: "addressDetail.tabTransactions" },
+    { key: "assetRadar", labelKey: "addressDetail.tabAssetRadar" },
     { key: "tokenTransfers", labelKey: "addressDetail.tabTokenTransfers" },
     { key: "nftTransfers", labelKey: "addressDetail.tabNftTransfers" },
     { key: "tokens", labelKey: "addressDetail.tabTokens" },
