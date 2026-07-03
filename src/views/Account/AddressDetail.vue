@@ -13,9 +13,9 @@
         :neo-balance="neoBalance"
         :gas-balance="gasBalance"
         :tx-count="txTotalCount"
-        :token-count="tokenCount"
+        :token-count="effectiveTokenCount"
         :candidate-data="candidateData"
-        :summary-loading="summaryLoading"
+        :summary-loading="balanceCardsLoading"
       />
 
       <div
@@ -416,6 +416,17 @@ const truncateAddr = computed(() => {
   return `${value.slice(0, 10)}...${value.slice(-8)}`;
 });
 
+const effectiveTokenCount = computed(() => {
+  return Math.max(Number(tokenCount.value || 0), Array.isArray(assets.value) ? assets.value.length : 0);
+});
+
+const balanceCardsLoading = computed(() => {
+  if (!summaryLoading.value) return false;
+  if (assets.value.length > 0) return false;
+  const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
+  return !hasBalance;
+});
+
 const showMainnetHint = computed(() => {
   if (networkHintDismissed.value) return false;
   if (getCurrentEnv() !== NET_ENV.TestT5) return false;
@@ -423,7 +434,7 @@ const showMainnetHint = computed(() => {
   if (assetsLoading.value || transactionsLoading.value) return false;
 
   const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
-  return !hasBalance && txTotalCount.value === 0 && tokenCount.value === 0 && assets.value.length === 0;
+  return !hasBalance && txTotalCount.value === 0 && effectiveTokenCount.value === 0 && assets.value.length === 0;
 });
 
 async function switchToMainnet() {

@@ -26,6 +26,11 @@ describe("CopyButton", () => {
     expect(wrapper.find("button").exists()).toBe(true);
   });
 
+  it("supports the compact xs size used in dense address metadata", () => {
+    const wrapper = mount(CopyButton, { props: { text: "0xabc", size: "xs" } });
+    expect(wrapper.find("button").classes().join(" ")).toContain("p-0.5");
+  });
+
   it("does nothing when text is empty", async () => {
     const wrapper = mount(CopyButton, { props: { text: "" } });
     await wrapper.find("button").trigger("click");

@@ -10,7 +10,7 @@ import { ref, watch, onBeforeUnmount } from "vue";
  * @param {string}                   [opts.easing='easeOut']  缓动类型: easeOut | linear | easeInOut
  * @param {boolean}                  [opts.startOnMount=true]  挂载时自动开始
  * @param {boolean}                  [opts.formatThousands=true] 是否格式化千分位
- * @param {boolean}                  [opts.triggerOnce=true]   只触发一次（再次变化不重新计数）
+ * @param {boolean}                  [opts.triggerOnce=false]  只触发一次（再次变化不重新计数）
  * @returns {{ display: import('vue').Ref<string>, animating: import('vue').Ref<boolean>, reset: () => void }}
  */
 export function useCountUp(targetRef, opts = {}) {
@@ -20,7 +20,7 @@ export function useCountUp(targetRef, opts = {}) {
     easing = "easeOut",
     startOnMount = true,
     formatThousands = true,
-    triggerOnce = true,
+    triggerOnce = false,
   } = opts;
 
   const display = ref("0");
@@ -46,6 +46,12 @@ export function useCountUp(targetRef, opts = {}) {
     const parts = fixed.split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return parts.join(".");
+  }
+
+  function parseDisplayValue(value) {
+    const normalized = String(value || "0").replace(/,/g, "");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   function animate(timestamp) {
@@ -74,7 +80,7 @@ export function useCountUp(targetRef, opts = {}) {
     }
 
     targetValue = val;
-    startValue = 0;
+    startValue = parseDisplayValue(display.value);
     startTime = 0;
     animating.value = true;
 

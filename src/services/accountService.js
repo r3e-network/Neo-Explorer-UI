@@ -578,7 +578,7 @@ export const accountService = createService(
         const nep17BalancesPromise = this._getNativeNep17Balances(normalizedAddress, options);
 
         const indexer = await fetchAddressTransfersFromIndexer(
-          resolveAccountNetwork(),
+          resolveAccountNetwork(options),
           "nep17_transfers",
           normalizedAddress,
           limit,
@@ -615,7 +615,7 @@ export const accountService = createService(
       const normalizedAddress = this._normalizeAddress(address);
       if (normalizedAddress) {
         const indexer = await fetchAddressTransfersFromIndexer(
-          resolveAccountNetwork(),
+          resolveAccountNetwork(options),
           "nep11_transfers",
           normalizedAddress,
           limit,

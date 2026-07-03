@@ -85,7 +85,7 @@ const props = defineProps({
   size: {
     type: String,
     default: "sm",
-    validator: (v) => ["sm", "md"].includes(v),
+    validator: (v) => ["xs", "sm", "md"].includes(v),
   },
 });
 
@@ -96,9 +96,15 @@ const successTooltipId = `copy-success-${tooltipSeed}`;
 const failTooltipId = `copy-fail-${tooltipSeed}`;
 let feedbackTimer = null;
 
-const sizeClass = computed(() => (props.size === "md" ? "p-1.5" : "p-1"));
+const sizeClass = computed(() => {
+  if (props.size === "xs") return "p-0.5";
+  return props.size === "md" ? "p-1.5" : "p-1";
+});
 
-const iconSize = computed(() => (props.size === "md" ? "w-5 h-5" : "w-3.5 h-3.5"));
+const iconSize = computed(() => {
+  if (props.size === "xs") return "w-3 h-3";
+  return props.size === "md" ? "w-5 h-5" : "w-3.5 h-3.5";
+});
 
 const iconStyle = computed(() => ({
   color: copied.value ? "var(--status-success)" : copyFailed.value ? "var(--status-error)" : "var(--text-low)",

@@ -341,39 +341,42 @@ export const transactionService = createService(
       try {
         const indexerRes = await indexerReadService.getAccountTransactions(address, limit, skip, requestOptions);
         if (Array.isArray(indexerRes?.data)) {
-          // Pagination total (#13fe): prefer the indexer's explicit
-          // `paging.total` when present; else (offset + count + 1) so Next
-          // stays enabled until we hit a short page. `is_capped` rides through
-          // so the header can render e.g. "10,000+" for a capped count.
-          const hasPagingTotal = Number.isFinite(Number(indexerRes?.paging?.total));
-          const fallbackTotal = indexerRes.data.length === limit
-            ? skip + indexerRes.data.length + 1
-            : skip + indexerRes.data.length;
-          const total = hasPagingTotal ? Number(indexerRes.paging.total) : fallbackTotal;
-          response = {
-            // #10fe: pass through `script` (so the Method label can decode the
-            // contract invocation instead of defaulting to "Transfer") and
-            // `vm_state` (surfaced as vmstate). block_index rides through as
-            // both blockindex/blockIndex so the Block column can link by
-            // height without an absent blockhash.
-            result: indexerRes.data.map((row) => ({
-              hash: row.txid,
-              txid: row.txid,
-              blockindex: row.block_index,
-              blockIndex: row.block_index,
-              blocktime: row.block_time_ms,
-              timestamp: row.block_time_ms,
-              sender: row.sender_address,
-              sender_address: row.sender_address,
-              sysfee: row.sys_fee,
-              netfee: row.net_fee,
-              script: row.script || "",
-              vmstate: row.vmstate || row.vm_state || "",
-              vm_state: row.vm_state || row.vmstate || "",
-            })),
-            totalCount: total,
-            isCapped: Boolean(indexerRes?.paging?.is_capped),
-          };
+          const rows = indexerRes.data;
+          if (rows.length > 0) {
+            // Pagination total (#13fe): prefer the indexer's explicit
+            // `paging.total` when present; else (offset + count + 1) so Next
+            // stays enabled until we hit a short page. `is_capped` rides through
+            // so the header can render e.g. "10,000+" for a capped count.
+            const hasPagingTotal = Number.isFinite(Number(indexerRes?.paging?.total));
+            const fallbackTotal = rows.length === limit
+              ? skip + rows.length + 1
+              : skip + rows.length;
+            const total = hasPagingTotal ? Number(indexerRes.paging.total) : fallbackTotal;
+            response = {
+              // #10fe: pass through `script` (so the Method label can decode the
+              // contract invocation instead of defaulting to "Transfer") and
+              // `vm_state` (surfaced as vmstate). block_index rides through as
+              // both blockindex/blockIndex so the Block column can link by
+              // height without an absent blockhash.
+              result: rows.map((row) => ({
+                hash: row.txid,
+                txid: row.txid,
+                blockindex: row.block_index,
+                blockIndex: row.block_index,
+                blocktime: row.block_time_ms,
+                timestamp: row.block_time_ms,
+                sender: row.sender_address,
+                sender_address: row.sender_address,
+                sysfee: row.sys_fee,
+                netfee: row.net_fee,
+                script: row.script || "",
+                vmstate: row.vmstate || row.vm_state || "",
+                vm_state: row.vm_state || row.vmstate || "",
+              })),
+              totalCount: total,
+              isCapped: Boolean(indexerRes?.paging?.is_capped),
+            };
+          }
         }
       } catch {
         // Indexer unavailable — fall through to RPC.

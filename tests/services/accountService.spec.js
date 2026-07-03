@@ -302,6 +302,23 @@ describe("accountService", () => {
   });
 
   describe("getNep17Transfers", () => {
+    it("uses the requested network for the indexer transfer lookup", async () => {
+      api.safeRpc.mockImplementation(async (method) => {
+        if (method === "getnep17balances") return { balance: [] };
+        if (method === "getnep17transfers") return { sent: [], received: [] };
+        return null;
+      });
+
+      await accountService.getNep17Transfers("NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp", 10, 0, {
+        network: "testnet",
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/rest/testnet/nep17_transfers?"),
+        expect.any(Object),
+      );
+    });
+
     it("uses native getnep17transfers first when indexer returns nothing (#182)", async () => {
       // fetch (indexer /rest/) returns ok: false in the default mock,
       // so fetchAddressTransfersFromIndexer returns null.

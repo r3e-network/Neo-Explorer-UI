@@ -303,17 +303,37 @@ describe("transactionService", () => {
       expect(result.totalCount).toBe(8);
     });
 
-    it("treats an empty indexer account transaction page as authoritative", async () => {
+    it("falls back to transfer txids when the account transaction endpoint returns an empty page", async () => {
       indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
         data: [],
         paging: { total: 0 },
       });
+      accountService.getNep17Transfers.mockResolvedValueOnce({
+        result: [{ txid: "0xtransfer", timestamp: 200 }],
+        totalCount: 1,
+      });
+      accountService.getNep11Transfers.mockResolvedValueOnce({ result: [], totalCount: 0 });
+
+      const result = await transactionService.getByAddress("NdzY4...", 10, 0);
+
+      expect(result.totalCount).toBe(1);
+      expect(result.result).toEqual([expect.objectContaining({ hash: "0xtransfer" })]);
+      expect(accountService.getNep17Transfers).toHaveBeenCalledTimes(1);
+      expect(accountService.getNep11Transfers).toHaveBeenCalledTimes(1);
+      expect(api.safeRpcList).not.toHaveBeenCalled();
+    });
+
+    it("keeps an empty account transaction page empty when no transfer fallback exists", async () => {
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [],
+        paging: { total: 0 },
+      });
+      accountService.getNep17Transfers.mockResolvedValueOnce({ result: [], totalCount: 0 });
+      accountService.getNep11Transfers.mockResolvedValueOnce({ result: [], totalCount: 0 });
 
       const result = await transactionService.getByAddress("NdzY4...", 10, 0);
 
       expect(result).toMatchObject({ result: [], totalCount: 0 });
-      expect(accountService.getNep17Transfers).not.toHaveBeenCalled();
-      expect(accountService.getNep11Transfers).not.toHaveBeenCalled();
       expect(api.safeRpcList).not.toHaveBeenCalled();
     });
 

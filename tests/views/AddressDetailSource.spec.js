@@ -39,6 +39,22 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain('createExplorerQueryKey("address.assets", { address: addr, network: requestNetwork })');
   });
 
+  it("displays token holdings from loaded assets even if a stale summary reports zero", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    expect(source).toContain("const effectiveTokenCount = computed(");
+    expect(source).toContain(":token-count=\"effectiveTokenCount\"");
+    expect(source).toContain("assets.value.length");
+  });
+
+  it("does not keep NEO/GAS balance cards loading after asset balances arrive", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    expect(source).toContain("const balanceCardsLoading = computed(");
+    expect(source).toContain(":summary-loading=\"balanceCardsLoading\"");
+    expect(source).toContain("assets.value.length > 0");
+  });
+
   it("seeds blockhash from the block height so the Block column links (#10fe)", () => {
     const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
 

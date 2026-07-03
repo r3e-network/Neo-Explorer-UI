@@ -1,12 +1,14 @@
 const net = require("node:net");
 const dns = require("node:dns").promises;
-const sharp = require("sharp");
 const { withApiTelemetry } = require("./lib/telemetry");
 
 const MAX_SOURCE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_REDIRECTS = 4;
 const FALLBACK_LOGO_REDIRECT = "/favicon.ico";
+let sharpModule = null;
+let sharpLoadAttempted = false;
+let sharpLoaderForTests = null;
 
 const clampInteger = (value, min, max, fallback) => {
   const numeric = Number.parseInt(value, 10);
@@ -73,6 +75,23 @@ const isSupportedSourceUrl = async (url) => {
   return !(await isDisallowedHostname(url.hostname));
 };
 
+function loadSharp() {
+  if (typeof sharpLoaderForTests === "function") {
+    return sharpLoaderForTests();
+  }
+
+  if (sharpLoadAttempted) return sharpModule;
+  sharpLoadAttempted = true;
+
+  try {
+    sharpModule = require("sharp");
+  } catch {
+    sharpModule = null;
+  }
+
+  return sharpModule;
+}
+
 async function fetchWithValidatedRedirects(sourceUrl, options, maxRedirects = MAX_REDIRECTS) {
   let currentUrl = sourceUrl;
 
@@ -110,8 +129,8 @@ async function handler(req, res) {
     return res.redirect(302, FALLBACK_LOGO_REDIRECT);
   };
 
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
+  if (!["GET", "HEAD"].includes(req.method)) {
+    res.setHeader("Allow", "GET, HEAD");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -174,6 +193,16 @@ async function handler(req, res) {
     return respondWithFallbackLogo();
   }
 
+  if (req.method === "HEAD") {
+    if (contentType) res.setHeader("Content-Type", contentType);
+    if (contentLength > 0) res.setHeader("Content-Length", String(contentLength));
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=3600, s-maxage=604800, stale-while-revalidate=2592000"
+    );
+    return res.status(200).end();
+  }
+
   let sourceBuffer;
   try {
     const data = await upstream.arrayBuffer();
@@ -188,6 +217,16 @@ async function handler(req, res) {
 
   if (sourceBuffer.length > MAX_SOURCE_BYTES) {
     return res.status(413).json({ error: "Source image too large" });
+  }
+
+  const sharp = loadSharp();
+  if (!sharp) {
+    if (contentType) res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=3600, s-maxage=604800, stale-while-revalidate=2592000"
+    );
+    return res.status(200).send(sourceBuffer);
   }
 
   try {
@@ -219,4 +258,17 @@ async function handler(req, res) {
   }
 }
 
-module.exports = withApiTelemetry("logo", handler);
+const wrappedHandler = withApiTelemetry("logo", handler);
+
+wrappedHandler._internal = {
+  setSharpLoaderForTests(loader) {
+    sharpLoaderForTests = typeof loader === "function" ? loader : null;
+  },
+  resetSharpLoaderForTests() {
+    sharpLoaderForTests = null;
+    sharpModule = null;
+    sharpLoadAttempted = false;
+  },
+};
+
+module.exports = wrappedHandler;
