@@ -108,6 +108,77 @@ describe("network alerts API", () => {
     expect(table.from).not.toHaveBeenCalled();
   });
 
+  it("lowercases a consensus_missed pubkey target before storage so it matches lowercase validator hex", async () => {
+    // Finding #15: getnextblockvalidators returns lowercase hex. If an
+    // uppercase/mixed-case pubkey were stored verbatim, the cron findIndex ===
+    // compare would always miss and the safety alert could never fire.
+    const upperPubKey =
+      "03B209FD4F53A7170EA4444E0CB0A6BB6A53C2BD016926989CF85F9B0FBA17A70C";
+    const table = createSupabaseInsertMock();
+    const mod = await import("../../api/network_alerts.js");
+    const handler = mod.default || mod;
+    handler._internal.setSupabaseClientForTests({ from: table.from });
+
+    const res = createMockRes();
+    await handler(
+      {
+        method: "POST",
+        headers: {},
+        socket: { remoteAddress: "203.0.113.22" },
+        body: {
+          network: "mainnet",
+          alert_type: "consensus_missed",
+          target: upperPubKey,
+          contact: "ops@example.com",
+        },
+      },
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(table.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        alert_type: "consensus_missed",
+        target: upperPubKey.toLowerCase(),
+      }),
+    ]);
+  });
+
+  it("stores an account_event base58 target verbatim (case-sensitive, NOT lowercased)", async () => {
+    // account_event targets are base58 NEO addresses; lowercasing would corrupt
+    // the checksum and change the address. This asserts the fix did not leak
+    // lowercasing into the address branch.
+    const address = "NeXFgXjVujK48v2pKCkvgQn3RSJ1Tn8GYW";
+    const table = createSupabaseInsertMock();
+    const mod = await import("../../api/network_alerts.js");
+    const handler = mod.default || mod;
+    handler._internal.setSupabaseClientForTests({ from: table.from });
+
+    const res = createMockRes();
+    await handler(
+      {
+        method: "POST",
+        headers: {},
+        socket: { remoteAddress: "203.0.113.23" },
+        body: {
+          network: "mainnet",
+          alert_type: "account_event",
+          target: address,
+          contact: "ops@example.com",
+        },
+      },
+      res,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(table.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        alert_type: "account_event",
+        target: address,
+      }),
+    ]);
+  });
+
   it("keeps browser service free of direct network_alerts table writes", () => {
     const source = fs.readFileSync(path.resolve(process.cwd(), "src/services/supabaseService.js"), "utf8");
     expect(source).not.toMatch(/\.from\(['"]network_alerts['"]\)\s*[\s\S]{0,80}\.insert/);

@@ -63,8 +63,17 @@ function normalizeTarget(alertType, value) {
     if (!PUBLIC_KEY_PATTERN.test(target)) {
       throw new Error("A valid compressed consensus public key is required.");
     }
-    return target;
+    // Store consensus pubkeys lowercase so they match the node's
+    // getnextblockvalidators output (which returns lowercase hex). Hex is
+    // case-insensitive, so lowercasing is lossless here; without it, an
+    // uppercase/mixed-case entry would register OK but never match the
+    // validator list in the cron (findIndex === would always miss), leaving
+    // the consensus_missed safety alert permanently unable to fire.
+    return target.toLowerCase();
   }
+  // account_event targets are base58 NEO addresses, which are
+  // case-SENSITIVE. Lowercasing them would corrupt the address, so this
+  // branch must NOT be lowercased.
   return normalizeAddress(target);
 }
 
@@ -143,6 +152,7 @@ async function handler(req, res) {
 module.exports = withApiTelemetry("network_alerts", handler);
 module.exports._internal = {
   normalizeAlertPayload,
+  normalizeTarget,
   setSupabaseClientForTests(client) {
     supabaseClient = client;
   },

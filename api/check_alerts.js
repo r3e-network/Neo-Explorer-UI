@@ -336,8 +336,15 @@ async function checkNetworkAlerts(network) {
           }
         }
         else if (alert.alert_type === 'consensus_missed') {
-          // Target is the public key of the consensus node
+          // Target is the public key of the consensus node.
+          // getnextblockvalidators returns lowercase hex pubkeys, so compare
+          // case-insensitively: registrations may store an uppercase/mixed-case
+          // pubkey (new writes are lowercased at ingest, but pre-fix rows are
+          // not migrated). Lowercasing BOTH sides makes those legacy rows match
+          // without a data migration. Keep targetPubKey (original case) for the
+          // human-readable alert email body below.
           const targetPubKey = alert.target;
+          const targetPubKeyLc = String(targetPubKey || '').toLowerCase();
 
           // block.primary is an index into the *active validator* list
           // (7 entries from getnextblockvalidators), NOT the committee
@@ -352,7 +359,10 @@ async function checkNetworkAlerts(network) {
           }
 
           // Find the index of our target node in the active validator set.
-          const nodeIndex = committee.findIndex(c => c === targetPubKey);
+          // Case-insensitive: validator hex is lowercase; stored target may not be.
+          const nodeIndex = committee.findIndex(
+            (c) => String(c || '').toLowerCase() === targetPubKeyLc,
+          );
 
           // Only evaluate if the node is currently in the active validator set.
           if (nodeIndex !== -1) {

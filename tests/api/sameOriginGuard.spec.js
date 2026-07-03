@@ -41,10 +41,59 @@ describe("same-origin guard", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("allows any *.vercel.app preview domain", async () => {
+  it("allows this project's own Vercel preview domain (neo-explorer-ui-<hash>-<team>.vercel.app)", async () => {
     const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
     const r = requireMutationFromExplorerOrigin(
-      mockReq({ origin: "https://neo-explorer-abc123-jimmys-projects.vercel.app" })
+      mockReq({ origin: "https://neo-explorer-ui-abc123-jimmys-team.vercel.app" })
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("allows the neo-explorer-ui.vercel.app production preview alias", async () => {
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(
+      mockReq({ origin: "https://neo-explorer-ui.vercel.app" })
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("REJECTS a foreign attacker.vercel.app host (CSRF fence no longer allowlists all of *.vercel.app)", async () => {
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(mockReq({ origin: "https://attacker.vercel.app" }));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/disallowed origin host/);
+  });
+
+  it("REJECTS a foreign someone-else-xyz.vercel.app host", async () => {
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(
+      mockReq({ origin: "https://someone-else-xyz.vercel.app" })
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it("REJECTS a host that only prefixes the project slug (neo-explorer-ui.evil.vercel.app)", async () => {
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(
+      mockReq({ origin: "https://neo-explorer-ui.evil.vercel.app" })
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it("allows the current deployment host injected via VERCEL_URL", async () => {
+    vi.stubEnv("VERCEL_URL", "neo-explorer-ui-deploy77-team.vercel.app");
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(
+      mockReq({ origin: "https://neo-explorer-ui-deploy77-team.vercel.app" })
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("allows the current deployment host injected via VERCEL_URL even with a scheme prefix", async () => {
+    vi.stubEnv("VERCEL_URL", "https://custom-alias.vercel.app");
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    const r = requireMutationFromExplorerOrigin(
+      mockReq({ origin: "https://custom-alias.vercel.app" })
     );
     expect(r.ok).toBe(true);
   });
@@ -91,6 +140,18 @@ describe("same-origin guard", () => {
     expect(requireMutationFromExplorerOrigin(mockReq({ origin: "https://custom.example.org" })).ok).toBe(true);
     // when the override is set, the default hosts are NOT in the allowlist
     expect(requireMutationFromExplorerOrigin(mockReq({ origin: "https://www.neo3scan.com" })).ok).toBe(false);
+    // an explicit override also disables the implicit project-preview matching:
+    // the operator gets exactly what they pinned, nothing wider.
+    expect(
+      requireMutationFromExplorerOrigin(
+        mockReq({ origin: "https://neo-explorer-ui-abc123-team.vercel.app" })
+      ).ok
+    ).toBe(false);
+  });
+
+  it("still rejects a plain non-vercel attacker host (evil.com)", async () => {
+    const { requireMutationFromExplorerOrigin } = await import("../../api/lib/sameOriginGuard.js");
+    expect(requireMutationFromExplorerOrigin(mockReq({ origin: "https://evil.com" })).ok).toBe(false);
   });
 
   it("enforceMutationSameOrigin writes 403 on cross-origin and returns false", async () => {

@@ -16,11 +16,19 @@
 //
 // This is deliberately a *host* (origin-less) comparison: it accepts any
 // scheme/port of an allowed host so it works across the production apex
-// (www.neo3scan.com), the apex (neo3scan.com), and Vercel preview domains,
-// while still blocking every third-party origin. Non-browser callers (curl,
-// server-to-server) are allowed through when no Origin/Referer is present and
-// `allowNoOrigin` is true, since those callers are already capable of any
-// request and the threat model here is browser CSRF, not API auth.
+// (www.neo3scan.com), the apex (neo3scan.com), and this project's own Vercel
+// preview domains, while still blocking every third-party origin. Non-browser
+// callers (curl, server-to-server) are allowed through when no Origin/Referer
+// is present and `allowNoOrigin` is true, since those callers are already
+// capable of any request and the threat model here is browser CSRF, not API
+// auth.
+//
+// Preview scoping (finding #19): previously ANY `*.vercel.app` host was
+// admitted, so an attacker who deploys anything to `attacker.vercel.app` could
+// bypass the CSRF fence. We now only admit THIS project's own preview domains,
+// which look like `neo-explorer-ui-<hash>-<team>.vercel.app`, plus the current
+// deployment's own host as reported by Vercel via VERCEL_URL /
+// VERCEL_BRANCH_URL. Every foreign vercel.app host is rejected.
 
 const DEFAULT_ALLOWED_HOSTS = [
   "www.neo3scan.com",
@@ -28,16 +36,55 @@ const DEFAULT_ALLOWED_HOSTS = [
   "neo-explorer-ui.vercel.app",
 ];
 
+// Project-scoped Vercel preview pattern. Vercel names preview deployments
+// `<project>-<hash>-<team>.vercel.app`; this project's slug is
+// `neo-explorer-ui`. Requiring the `neo-explorer-ui-` prefix means a foreign
+// deployment (attacker.vercel.app, someone-else-xyz.vercel.app) does NOT match.
+// The `neo-explorer-ui.vercel.app` production alias (no trailing hash segment)
+// is handled by DEFAULT_ALLOWED_HOSTS, not this pattern.
+const PROJECT_PREVIEW_HOST_PATTERN = /^neo-explorer-ui-[a-z0-9-]+\.vercel\.app$/i;
+
+// Strip an optional scheme (and any path) from a Vercel-injected host value.
+// Vercel usually injects VERCEL_URL as a bare host, but be defensive.
+function hostFromEnvValue(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return "";
+  // If it parses as an absolute URL, take the hostname; otherwise treat the
+  // leading token (up to the first slash) as the host.
+  try {
+    const u = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    return (u.hostname || "").toLowerCase();
+  } catch {
+    return raw.split("/")[0];
+  }
+}
+
+function getOwnDeploymentHosts() {
+  // Vercel injects these at runtime as the current deployment's own host.
+  // Admitting them lets same-origin mutations work on any preview URL this
+  // project is actually served from, without widening to foreign hosts.
+  return [
+    hostFromEnvValue(process.env.VERCEL_URL),
+    hostFromEnvValue(process.env.VERCEL_BRANCH_URL),
+  ].filter(Boolean);
+}
+
 function getConfiguredAllowedHosts() {
   const fromEnv = String(process.env.MULTISIG_ALLOWED_ORIGIN_HOSTS || "")
     .split(",")
     .map((part) => part.trim().toLowerCase())
     .filter(Boolean);
-  const base = fromEnv.length ? fromEnv : DEFAULT_ALLOWED_HOSTS;
-  // Vercel preview domains look like <project>-<hash>-<team>.vercel.app;
-  // always allow the whole *.vercel.app family so previews keep working
-  // without per-deploy config.
-  return { hosts: new Set(base), allowVercelPreview: true };
+  // An explicit override fully replaces the defaults AND disables the implicit
+  // project-preview matching: an operator who pins the allowlist gets exactly
+  // what they configured, nothing wider.
+  if (fromEnv.length) {
+    return { hosts: new Set(fromEnv), allowVercelPreview: false, ownHosts: new Set() };
+  }
+  return {
+    hosts: new Set(DEFAULT_ALLOWED_HOSTS),
+    allowVercelPreview: true,
+    ownHosts: new Set(getOwnDeploymentHosts()),
+  };
 }
 
 function getHeader(req, name) {
@@ -67,10 +114,15 @@ function originHostForRequest(req) {
   return extractHost(getHeader(req, "origin")) || extractHost(getHeader(req, "referer"));
 }
 
-function isHostAllowed(host, { hosts, allowVercelPreview }) {
+function isHostAllowed(host, { hosts, allowVercelPreview, ownHosts }) {
   if (!host) return false;
   if (hosts.has(host)) return true;
-  if (allowVercelPreview && /\.vercel\.app$/i.test(host)) return true;
+  if (!allowVercelPreview) return false;
+  // Only this project's own deployment host (from VERCEL_URL / VERCEL_BRANCH_URL)
+  // or a host matching this project's preview naming pattern is admitted.
+  // Foreign `*.vercel.app` hosts (attacker.vercel.app, etc.) are rejected.
+  if (ownHosts && ownHosts.has(host)) return true;
+  if (PROJECT_PREVIEW_HOST_PATTERN.test(host)) return true;
   return false;
 }
 
@@ -111,6 +163,7 @@ module.exports = {
   // exported for tests
   _internal: {
     DEFAULT_ALLOWED_HOSTS,
+    PROJECT_PREVIEW_HOST_PATTERN,
     getConfiguredAllowedHosts,
     extractHost,
     originHostForRequest,

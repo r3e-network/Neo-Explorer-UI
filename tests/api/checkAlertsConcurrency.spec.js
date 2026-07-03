@@ -307,4 +307,61 @@ describe("check_alerts bounded concurrency", () => {
     expect(updates).toHaveLength(3);
     expect(updates[2]).toEqual({ id: "acct-slow", payload: { last_seen_state: "tx-slow" } });
   });
+
+  it("matches an UPPERCASE-stored consensus_missed pubkey against the lowercase validator set (finding #15)", async () => {
+    // getnextblockvalidators returns lowercase compressed hex pubkeys.
+    // Real Neo N3-shaped 33-byte compressed pubkeys (02/03 prefix).
+    const lowerPubKeys = [
+      "02486fd15702c4490a26703112a5cc1d0923fd697a33406bd5a1c00e0013b09a70",
+      "024c7b7fb6c310fccf1ba33b082519d82964ea93868d676662d4a59ad548df0e7d",
+      "02aaec38470f6aad0042c6e877cfd8087d2676b0f516fddd362801b9bd3936399e",
+      "03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c",
+      "02ca0e27697b9c248f6f16e085fd0061e26f44da85b58ee835c110caa5ec3ba554",
+      "02df48f60e8f3e01c48ff40b9b7f1310d7a8b2a193188befe1c2e3df740e895093",
+      "03d281b42002647f0113f36c7b8efb30db66078dfaaa9ab3ff76d043a98d512fdc",
+    ];
+    const validators = lowerPubKeys.map((publickey) => ({ publickey }));
+
+    // latest block 10900513, 10900513 % 7 === 1 -> validator index 1 is the
+    // expected primary. blockPrimary 0 (actual) !== 1 (expected) -> our target
+    // MISSED its turn, so miss_count must increment. That only happens if
+    // nodeIndex was FOUND. A pre-fix uppercase row would yield nodeIndex === -1
+    // and the whole branch would be skipped (no updateData written).
+    const blockCount = 10900514;
+
+    // Stored target is UPPERCASE hex of validator index 1 — the exact bug
+    // scenario: registered before the ingest lowercasing fix.
+    const upperStoredTarget = lowerPubKeys[1].toUpperCase();
+    const alerts = [
+      {
+        id: "cons-upper",
+        network: "mainnet",
+        alert_type: "consensus_missed",
+        target: upperStoredTarget,
+        threshold: 5,
+        miss_count: 4,
+        last_seen_state: "10900512",
+        contact: "ops@example.com",
+        is_active: true,
+      },
+    ];
+    const { supabase, updates } = createSupabaseMock(alerts);
+
+    stubUpstreams({
+      blockCount,
+      blockPrimary: 0,
+      validators,
+      accountResponder: () => Promise.resolve(null),
+    });
+
+    const handler = await loadCheckAlerts(supabase);
+    await expect(handler._internal.checkNetworkAlerts("mainnet")).resolves.toBe(0);
+
+    // The alert branch was reached (nodeIndex !== -1): miss_count incremented
+    // from 4 to 5 and the block height was recorded. If the case-insensitive
+    // compare were missing, updates would be empty.
+    expect(updates).toEqual([
+      { id: "cons-upper", payload: { last_seen_state: "10900513", miss_count: 5 } },
+    ]);
+  });
 });
