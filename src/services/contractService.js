@@ -306,9 +306,12 @@ export const contractService = createService(
     async getByHashWithFallback(hash, options = {}) {
       // Fetch in parallel: on-chain state (canonical) and the indexer's
       // per-contract overview (authoritative tx_count).
+      const includeIndexerOverview = options.includeIndexerOverview !== false;
       const [chainState, indexerOverview] = await Promise.all([
         this.getChainStateByHash(hash, options),
-        indexerReadService.getContractOverview(hash, options).catch(() => null),
+        includeIndexerOverview
+          ? indexerReadService.getContractOverview(hash, options).catch(() => null)
+          : Promise.resolve(null),
       ]);
       // tx_count from /data/<network>/contracts/<hash> is the
       // authoritative invocation count; the legacy row's totalsccall

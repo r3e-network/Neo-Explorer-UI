@@ -50,6 +50,15 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain("assets.value.length");
   });
 
+  it("displays account activity from transfer totals when transaction summary is stale", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    expect(source).toContain("const effectiveTxCount = computed(");
+    expect(source).toContain(":tx-count=\"effectiveTxCount\"");
+    expect(source).toContain("nep17TotalCount.value");
+    expect(source).toContain("nep11TotalCount.value");
+  });
+
   it("does not keep NEO/GAS balance cards loading after asset balances arrive", () => {
     const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
 

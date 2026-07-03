@@ -12,7 +12,7 @@
         v-model:show-qr="showQr"
         :neo-balance="neoBalance"
         :gas-balance="gasBalance"
-        :tx-count="txTotalCount"
+        :tx-count="effectiveTxCount"
         :token-count="effectiveTokenCount"
         :candidate-data="candidateData"
         :summary-loading="balanceCardsLoading"
@@ -438,6 +438,19 @@ const effectiveTokenCount = computed(() => {
   return Math.max(Number(tokenCount.value || 0), Array.isArray(assets.value) ? assets.value.length : 0);
 });
 
+const effectiveTxCount = computed(() => {
+  const counts = [
+    txTotalCount.value,
+    Array.isArray(transactions.value) ? transactions.value.length : 0,
+    nep17TotalCount.value,
+    Array.isArray(nep17Transfers.value) ? nep17Transfers.value.length : 0,
+    nep11TotalCount.value,
+    Array.isArray(nep11Transfers.value) ? nep11Transfers.value.length : 0,
+  ].map((value) => Number(value || 0)).filter((value) => Number.isFinite(value) && value >= 0);
+
+  return counts.length ? Math.max(...counts) : 0;
+});
+
 const balanceCardsLoading = computed(() => {
   if (!summaryLoading.value) return false;
   if (assets.value.length > 0) return false;
@@ -452,7 +465,7 @@ const showMainnetHint = computed(() => {
   if (assetsLoading.value || transactionsLoading.value) return false;
 
   const hasBalance = Number(neoBalance.value || 0) > 0 || Number(gasBalance.value || 0) > 0;
-  return !hasBalance && txTotalCount.value === 0 && effectiveTokenCount.value === 0 && assets.value.length === 0;
+  return !hasBalance && effectiveTxCount.value === 0 && effectiveTokenCount.value === 0 && assets.value.length === 0;
 });
 
 async function switchToMainnet() {

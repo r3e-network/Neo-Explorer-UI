@@ -549,10 +549,16 @@ watch(
           }
         }
 
-        let contract = await contractService.getByHashWithFallback(hash, { network: lookupNetwork });
+        let contract = await contractService.getByHashWithFallback(hash, {
+          network: lookupNetwork,
+          includeIndexerOverview: false,
+        });
         if (isStale()) return;
         if (!contract || !contract.name) {
-          contract = await contractService.getByHashWithFallback(reversed, { network: lookupNetwork });
+          contract = await contractService.getByHashWithFallback(reversed, {
+            network: lookupNetwork,
+            includeIndexerOverview: false,
+          });
           if (isStale()) return;
         }
         if (contract && contract.name) {

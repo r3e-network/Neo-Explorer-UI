@@ -117,6 +117,33 @@ describe("contractService manifest fallback", () => {
       },
     });
   });
+
+  it("can skip indexer overview for display-only contract name resolution", async () => {
+    const hash = "0xf40f694362957d56801a8cef7e62a83f7f1b7b0f";
+    safeRpcMock.mockImplementation(async (method) => {
+      if (method === "getcontractstate") {
+        return {
+          hash,
+          manifest: {
+            name: "FlamingoConvert",
+            abi: { methods: [], events: [] },
+          },
+        };
+      }
+      return null;
+    });
+
+    const { contractService } = await import("../../src/services/contractService.js");
+    const contract = await contractService.getByHashWithFallback(hash, {
+      includeIndexerOverview: false,
+    });
+
+    expect(getContractOverviewMock).not.toHaveBeenCalled();
+    expect(contract).toMatchObject({
+      hash,
+      name: "FlamingoConvert",
+    });
+  });
 });
 
 // Read-api-first fallback chain (#168 + #169) for getScCalls.

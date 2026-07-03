@@ -192,6 +192,10 @@ describe("HashLink", () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain("MorpheusDataFeed");
+    expect(getByHashWithFallback).toHaveBeenCalledWith(contractHash, {
+      network: "mainnet",
+      includeIndexerOverview: false,
+    });
   });
 
   it("shows known address name when hash is a known script hash", async () => {

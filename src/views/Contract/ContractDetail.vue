@@ -51,8 +51,7 @@
           <TabsNav :tabs="tabs" v-model="activeTab" />
         </div>
 
-        <Transition name="tab-fade" mode="out-in">
-          <div :key="activeTab" :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
+        <div :key="activeTab" :id="'panel-' + activeTab" role="tabpanel" :aria-labelledby="'tab-' + activeTab" class="p-4 pt-5 md:p-5">
           <div v-if="!contract.hash" class="py-8 text-center text-mid">
             {{ $t("contractDetail.loadingDetails") }}
           </div>
@@ -115,7 +114,6 @@
             @estimate-gas="estimateGas"
           />
         </div>
-        </Transition>
       </div>
     </div>
   </div>
