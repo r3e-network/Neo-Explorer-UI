@@ -63,7 +63,7 @@
         :class="[
           'search-input min-w-0 flex-1 bg-transparent focus:outline-none focus:ring-0 focus:border-transparent font-medium',
           mode === 'full'
-            ? 'px-4 py-4 pr-28 text-base border-none text-white placeholder:text-white/55'
+            ? 'search-input-full px-4 py-4 pr-28 text-base border-none text-white placeholder:text-white/55'
             : 'px-3 py-2 pr-12 text-sm border-none text-high placeholder:text-mid',
         ]"
         @keyup.enter="handleEnter"
@@ -90,7 +90,7 @@
         :class="[
           'search-submit-btn absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5',
           mode === 'full'
-            ? 'btn-primary'
+            ? 'btn-primary search-submit-full'
             : 'btn-primary h-[32px] w-[32px] !px-0 rounded-lg',
         ]"
       >
@@ -98,7 +98,14 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <svg v-else-if="mode === 'compact'" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          v-else-if="mode === 'compact' || mode === 'full'"
+          class="h-4 w-4"
+          :class="mode === 'full' ? 'sm:hidden' : ''"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -106,7 +113,7 @@
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
-        <span v-if="mode === 'full'">{{ t("searchBox.submit") }}</span>
+        <span v-if="mode === 'full'" class="hidden sm:inline">{{ t("searchBox.submit") }}</span>
       </button>
     </div>
 
@@ -556,26 +563,34 @@ onBeforeUnmount(() => {
   color: var(--text-high);
 }
 
+@media (max-width: 640px) {
+  .search-input-full {
+    padding-right: 4rem;
+  }
+
+  .search-submit-full.btn-primary {
+    width: 3rem;
+    min-width: 3rem;
+    height: 3rem;
+    padding-left: 0;
+    padding-right: 0;
+    border-radius: 1rem;
+  }
+}
+
 @media (max-width: 480px) {
   .search-filter-select {
-    max-width: 8.5rem;
+    max-width: 7.5rem;
     padding-left: 1rem;
-    padding-right: 2rem;
+    padding-right: 1.75rem;
   }
 
   .search-icon-cell {
     padding-left: 0.75rem;
   }
 
-  .search-input {
+  .search-input-full {
     padding-left: 0.75rem;
-    padding-right: 5.75rem;
-  }
-
-  .search-submit-btn.btn-primary {
-    min-width: 5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
   }
 }
 
