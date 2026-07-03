@@ -262,3 +262,158 @@ describe("api/multisig/requests GET (?full=1 back-compat)", () => {
     expect(params).toEqual([]);
   });
 });
+
+// POST /api/multisig/requests committee scoping (audit finding #1).
+//
+// The server pins the canonical committee ONLY for official-council governance
+// requests (params.governance_mode === "official"): those must never trust a
+// caller-supplied committee. Custom-group multisig (params.pubkeys, no
+// governance_mode) and lab-mode governance (governance_mode === "lab") declare
+// their OWN signer set — that is the feature — so their declared set must be
+// preserved verbatim, otherwise verifyGovernanceWitness rejects every intended
+// signer with "not part of the committee".
+describe("api/multisig/requests POST (committee scoping)", () => {
+  let handler;
+  let fetchSpy;
+
+  function postReq(body) {
+    // No Origin/Referer -> same-origin guard's allowNoOrigin path lets the
+    // non-browser test caller through; the feature flag + rate limit still gate.
+    return { method: "POST", headers: {}, query: {}, socket: { remoteAddress: "203.0.113.7" }, body };
+  }
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv("ENABLE_FRONTEND_MULTISIG_MUTATIONS", "true");
+    const { resetSimpleRateLimitForTests } = await import("../../api/lib/simpleRateLimit.js");
+    resetSimpleRateLimitForTests();
+    // INSERT ... RETURNING * echoes back the row the handler built.
+    queryMock.mockImplementation(async (_sql, values) => {
+      const paramsJson = values.find((v) => typeof v === "string" && v.startsWith("{"));
+      return { rows: [{ id: 42, params: paramsJson ? JSON.parse(paramsJson) : null }] };
+    });
+    handler = await loadHandler();
+  });
+
+  afterEach(() => {
+    handler?._internal?.resetDepsForTests();
+    fetchSpy?.mockRestore();
+    fetchSpy = undefined;
+    vi.unstubAllEnvs();
+  });
+
+  function insertedParams() {
+    // The params column is JSON.stringify'd into the INSERT values array.
+    const call = queryMock.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO multisig_requests"));
+    expect(call).toBeTruthy();
+    const [, values] = call;
+    const paramsJson = values.find((v) => typeof v === "string" && v.startsWith("{"));
+    return paramsJson ? JSON.parse(paramsJson) : null;
+  }
+
+  it("preserves a custom-group multisig signer set (params.pubkeys) verbatim and never resolves the committee", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch");
+    const res = mockRes();
+    const pubkeys = ["02aa", "02bb", "02cc"];
+
+    await handler(
+      postReq({
+        network: "mainnet",
+        creator_address: "Ncreator",
+        method: "transfer",
+        signers_required: 2,
+        params: { unsigned_tx: "ff".repeat(32), hash: "0x1", scriptHash: "0xsh", pubkeys },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(201);
+    // Custom groups must NOT trigger a getcommittee RPC and must NOT be pinned.
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const stored = insertedParams();
+    expect(stored.pubkeys).toEqual(pubkeys);
+    expect(stored.committee_pubkeys).toBeUndefined();
+  });
+
+  it("preserves a lab-mode governance committee (governance_mode=lab) without pinning", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch");
+    const res = mockRes();
+    const labCommittee = ["03aa", "03bb", "03cc"];
+
+    await handler(
+      postReq({
+        network: "mainnet",
+        creator_address: "Ncreator",
+        method: "setGasPerBlock",
+        signers_required: 2,
+        params: {
+          unsigned_tx: "ee".repeat(32),
+          governance_mode: "lab",
+          lab_mode: true,
+          committee_pubkeys: labCommittee,
+        },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(201);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const stored = insertedParams();
+    // The caller's declared lab committee survives so the intended signers pass
+    // the downstream membership check.
+    expect(stored.committee_pubkeys).toEqual(labCommittee);
+  });
+
+  it("pins the server-resolved committee for OFFICIAL governance, overwriting caller-supplied pubkeys", async () => {
+    const canonical = ["02dead", "02beef"];
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: ["02DEAD", "02BEEF"] }),
+    });
+    const res = mockRes();
+
+    await handler(
+      postReq({
+        network: "mainnet",
+        creator_address: "Ncreator",
+        method: "setFeePerByte",
+        signers_required: 1,
+        params: {
+          unsigned_tx: "dd".repeat(32),
+          governance_mode: "official",
+          committee_pubkeys: ["02attacker"], // must be discarded
+          pubkeys: ["02attacker"],
+        },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(201);
+    expect(fetchSpy).toHaveBeenCalled();
+    const stored = insertedParams();
+    // Canonical (normalized lowercase) committee pinned; attacker aliases gone.
+    expect(stored.committee_pubkeys).toEqual(canonical);
+    expect(stored.pubkeys).toBeUndefined();
+    expect(stored.committee).toBeUndefined();
+  });
+
+  it("502s an official governance request when the committee cannot be resolved (custom groups are unaffected)", async () => {
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("node down"));
+    const res = mockRes();
+
+    await handler(
+      postReq({
+        network: "mainnet",
+        creator_address: "Ncreator",
+        method: "setFeePerByte",
+        signers_required: 1,
+        params: { unsigned_tx: "cc".repeat(32), governance_mode: "official", committee_pubkeys: ["02x"] },
+      }),
+      res,
+    );
+
+    expect(res.statusCode).toBe(502);
+    expect(String(res.payload?.error)).toMatch(/committee/i);
+  });
+});

@@ -409,6 +409,14 @@ async function executeSponsoredTx() {
 
     if (!sponsorInfoRes.ok) throw new Error(t("tools.sponsored.toasts.sponsorInfoFailed"));
     const sponsorInfo = await sponsorInfoRes.json();
+    // Fail fast on a misconfigured backend BEFORE prompting the wallet. Without
+    // the sponsor address, createAccount(undefined) derives a RANDOM account,
+    // so signer[0] would not be the sponsor and the relay always rejects with
+    // "First signer must be the sponsor account" — after the user has already
+    // signed. Refuse up-front instead of wasting a real wallet signature.
+    if (!sponsorInfo || !sponsorInfo.sponsorAddress) {
+      throw new Error(t("tools.sponsored.toasts.sponsorInfoFailed"));
+    }
     const sponsorScriptHash = (await createAccount(sponsorInfo.sponsorAddress)).scriptHash;
     const userScriptHash = (await createAccount(connectedAccount.value)).scriptHash;
 

@@ -765,14 +765,59 @@ const derivedMultisigAddress = computed(() => {
 
 const isCreating = ref(false);
 
+// The create POST persists params.pubkeys/params.hash but the top-level
+// eligible_signers / target_contract columns it sends are NOT part of the
+// insert whitelist (and are not defined in the deployed schema), so they never
+// round-trip back. The board template gates the Sign button on
+// req.eligible_signers and prints req.target_contract, so a UI-created request
+// would render inert (no Sign button, blank target). Derive both from the
+// params blob that DOES survive (mirroring GovernanceProposalDetail), only as a
+// fallback so any real persisted column still wins.
+function deriveEligibleSignersFromParams(request) {
+  const pubkeys = [
+    request?.params?.pubkeys,
+    request?.params?.committee_pubkeys,
+    request?.params?.committee,
+  ].find((value) => Array.isArray(value) && value.length > 0);
+  if (!pubkeys || !neonJs) return [];
+  const addresses = [];
+  for (const pubkey of pubkeys) {
+    try {
+      addresses.push(new neonJs.wallet.Account(pubkey).address);
+    } catch {
+      // Skip malformed pubkeys rather than aborting the whole derivation.
+    }
+  }
+  return addresses;
+}
+
+function hydrateRequestDisplayFields(request) {
+  if (!request || typeof request !== "object") return request;
+
+  const eligibleSigners =
+    Array.isArray(request.eligible_signers) && request.eligible_signers.length > 0
+      ? request.eligible_signers
+      : deriveEligibleSignersFromParams(request);
+
+  const targetContract =
+    request.target_contract ||
+    request.contract_hash ||
+    request?.params?.target_contract ||
+    "";
+
+  return { ...request, eligible_signers: eligibleSigners, target_contract: targetContract };
+}
+
 async function loadRequests() {
   try {
     const data = await supabaseService.getMultisigRequests();
     const activeNetwork = getCurrentEnv();
     requests.value = Array.isArray(data)
-      ? data.filter(
-          (request) => !isGovernanceRequest(request, NATIVE_CONTRACTS) && matchesRequestNetwork(request, activeNetwork),
-        )
+      ? data
+          .filter(
+            (request) => !isGovernanceRequest(request, NATIVE_CONTRACTS) && matchesRequestNetwork(request, activeNetwork),
+          )
+          .map(hydrateRequestDisplayFields)
       : [];
   } catch (e) {
     if (import.meta.env.DEV) console.error("Error loading requests", e);

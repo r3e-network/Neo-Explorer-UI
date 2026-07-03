@@ -186,4 +186,45 @@ describe("SponsoredTool wallet provider handling", () => {
     expect(toast.error).not.toHaveBeenCalledWith("NeoLine N3 wallet not found.");
     expect(invokeMock).toHaveBeenCalledTimes(1);
   });
+
+  // Audit finding #3: if the backend's action:info response omits sponsorAddress
+  // (misconfigured backend), the flow MUST fail fast BEFORE prompting the wallet.
+  // Otherwise createAccount(undefined) derives a random signer[0] and the relay
+  // rejects with "First signer must be the sponsor account" — after the user has
+  // already signed a real transaction.
+  it("throws a config error BEFORE the wallet prompt when sponsorAddress is absent", async () => {
+    global.fetch = vi.fn((url, options = {}) => {
+      if (url === "/api/sponsor") {
+        const body = options?.body ? JSON.parse(options.body) : {};
+        if (body.action === "info") {
+          // The pre-fix backend default: enabled but no address exposed.
+          return Promise.resolve({ ok: true, json: async () => ({ sponsorEnabled: true }) });
+        }
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    const SponsoredTool = (await import("@/views/Tools/SponsoredTool.vue")).default;
+    const wrapper = mount(SponsoredTool, {
+      global: {
+        stubs: { Breadcrumb: true, RouterLink: true },
+        mocks: {
+          $t: (key) => key,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    const executeButton = wrapper.findAll("button").find((btn) => btn.text().includes("tools.sponsored.executeButton"));
+    expect(executeButton).toBeTruthy();
+
+    await executeButton.trigger("click");
+    await flushPromises();
+
+    // Never prompted the wallet: no signature was wasted on a doomed relay.
+    expect(invokeMock).not.toHaveBeenCalled();
+    // Surfaced the config error to the user.
+    expect(toast.error).toHaveBeenCalled();
+  });
 });

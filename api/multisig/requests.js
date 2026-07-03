@@ -44,9 +44,22 @@ function normalizePubkeyHex(value) {
   return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
 }
 
-function paramsDeclareCommittee(params) {
+// Only OFFICIAL-council governance requests may pin the server-resolved
+// canonical committee. Custom-group multisig (MultiSigTool) and lab-mode
+// governance (GovernanceCreateModal, params.governance_mode === "lab") define
+// their OWN signer set — that is the whole feature — so their declared signer
+// set must be preserved, not overwritten with the live committee.
+//
+// The security invariant that must never weaken: an unauthenticated POST must
+// not be able to forge the OFFICIAL committee and have attacker pubkeys pass
+// the downstream membership check. That is enforced here by forcing the
+// canonical set (and stripping caller aliases) whenever governance_mode is
+// "official". Custom/lab requests are caller-defined by design; their signer
+// set only ever authorizes signatures on that same caller-defined request, so
+// trusting the declared set does not cross a trust boundary.
+function paramsRequestOfficialCommittee(params) {
   if (!params || typeof params !== "object") return false;
-  return COMMITTEE_PARAM_FIELDS.some((field) => params[field] !== undefined);
+  return String(params.governance_mode || "").trim().toLowerCase() === "official";
 }
 
 async function resolveCanonicalCommittee(network) {
@@ -219,36 +232,44 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      // Resolve the canonical committee server-side and overwrite any
-      // caller-supplied committee/allowlist fields in params. We never trust
-      // the committee set from the request body (it gates signature
-      // verification downstream). If the body declares a committee but we
-      // cannot resolve the canonical set, reject rather than store an
-      // unverifiable (caller-pinned) one.
+      // Committee handling is SCOPED by request kind:
+      //
+      //  * OFFICIAL-council governance (params.governance_mode === "official"):
+      //    resolve the canonical committee server-side and overwrite any
+      //    caller-supplied committee/allowlist fields. We never trust the
+      //    committee set from the request body here — it gates signature
+      //    verification downstream and could otherwise let an unauthenticated
+      //    POST pin an attacker committee. If we cannot resolve the canonical
+      //    set, reject rather than store an unverifiable (caller-pinned) one.
+      //
+      //  * Custom-group multisig / lab-mode governance (declares a signer set
+      //    but is NOT official): preserve the caller's declared signer set
+      //    verbatim. These flows are caller-defined by design (that is the
+      //    feature); the declared set only ever authorizes signatures on that
+      //    same caller-created request, so it does not cross a trust boundary.
+      //    Stripping it (the previous behavior) broke both features end-to-end.
       const requestNetwork = normalizeNetwork(body.network || body.network_mode);
       const incomingParams =
         body.params && typeof body.params === "object" && !Array.isArray(body.params)
           ? body.params
           : null;
 
-      let resolvedCommittee = null;
-      try {
-        resolvedCommittee = await resolveCanonicalCommittee(requestNetwork);
-      } catch (committeeErr) {
-        console.error("[api/multisig/requests] committee resolution failed:", committeeErr);
-        if (paramsDeclareCommittee(incomingParams)) {
+      let sanitizedParams = incomingParams;
+      if (paramsRequestOfficialCommittee(incomingParams)) {
+        let resolvedCommittee = null;
+        try {
+          resolvedCommittee = await resolveCanonicalCommittee(requestNetwork);
+        } catch (committeeErr) {
+          console.error("[api/multisig/requests] committee resolution failed:", committeeErr);
           return res.status(502).json({
             error: "Unable to resolve the canonical committee server-side; refusing to trust a caller-supplied committee.",
           });
         }
-      }
 
-      let sanitizedParams = incomingParams;
-      if (resolvedCommittee) {
         sanitizedParams = { ...(incomingParams || {}) };
         // Strip any caller-provided committee aliases, then pin the
         // server-resolved canonical set so downstream verification only ever
-        // trusts pubkeys derived here.
+        // trusts pubkeys derived here for official-council requests.
         for (const field of COMMITTEE_PARAM_FIELDS) {
           delete sanitizedParams[field];
         }
