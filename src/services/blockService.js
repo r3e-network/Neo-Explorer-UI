@@ -501,6 +501,13 @@ export const blockService = createService(
           // paging total separately rather than relying on the substituted
           // page.total.
           let pagingTotal = null;
+          // No blanket catch-to-empty here: fetchWithPolicy throws a typed
+          // SourceUnavailableError when every source is down (read-api 5xx or
+          // network failure). Letting it propagate is deliberate — the caller
+          // (usePagination / Blocks.vue) renders the ErrorState + retry UI
+          // instead of a misleading "0 blocks" empty state. A genuinely empty
+          // (not-found / 404) response resolves to emptyResult and is treated
+          // as "no data", not an outage.
           const page = await fetchWithPolicy({
             sources: [
               {
@@ -518,7 +525,7 @@ export const blockService = createService(
               },
             ],
             emptyResult: { items: [], total: 0 },
-          }).catch(() => ({ items: [], total: 0 }));
+          });
 
           const rows = Array.isArray(page?.items) ? page.items : [];
           if (rows.length === 0) return { result: [], totalCount: 0 };

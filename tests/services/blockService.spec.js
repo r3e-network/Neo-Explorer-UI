@@ -53,15 +53,30 @@ describe("blockService", () => {
   });
 
   describe("getList", () => {
-    it("returns empty without legacy RPC when indexer is unavailable", async () => {
-      const result = await blockService.getList(10, 5);
+    it("propagates the indexer outage instead of masking it as empty (#7)", async () => {
+      // A read-api outage must NOT be swallowed into an empty list — the
+      // page needs to render its ErrorState + retry UI, not claim the chain
+      // has zero blocks. blockService.getList lets the typed outage from
+      // fetchWithPolicy propagate; the legacy RPC path is not consulted.
+      await expect(blockService.getList(10, 5)).rejects.toThrow();
       expect(api.safeRpcList).not.toHaveBeenCalled();
-      expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
-    it("returns empty on error", async () => {
-      const result = await blockService.getList();
+    it("propagates the outage on the default page too (#7)", async () => {
+      await expect(blockService.getList()).rejects.toThrow();
+    });
+
+    it("returns empty (not an outage) when the indexer responds with no rows (#7)", async () => {
+      // A genuine empty page (e.g. 404 → null, or an empty data array) is
+      // "no data", not an outage — resolve to the empty state so the UI
+      // shows EmptyState, never the error banner.
+      indexerReadService.getBlocks.mockResolvedValueOnce({ data: [], paging: { total: 0 } });
+      indexerReadService.getSummary.mockResolvedValueOnce(null);
+
+      const result = await blockService.getList(10, 0);
+
       expect(result).toEqual({ result: [], totalCount: 0 });
+      expect(api.safeRpcList).not.toHaveBeenCalled();
     });
 
     it("does not fetch per-block details when list already includes fees and consensus", async () => {

@@ -1,7 +1,17 @@
 import { resolveNetworkName } from "@/utils/env";
 import { recordApiObservationFromResponse } from "@/telemetry/apiObservability";
+import { SourceUnavailableError } from "@/adapters/source";
 
+// Default per-request budget for singleton/detail reads. Paginated list
+// endpoints (blocks/transactions) override this via INDEXER_LIST_TIMEOUT_MS
+// because deep-offset queries run 4-7s cold on the read-api and the old 3s
+// abort raced the worker that had already produced (and cached) the 200.
 const INDEXER_TIMEOUT_MS = 3000;
+// Aligned budget for the paginated list endpoints. Matches the read-api's
+// ~6s query budget plus edge overhead so a slow-but-successful page is not
+// aborted client-side (which produced flaky empty pages on retry). A single
+// constant here also collapses the old mismatched 12s per-call overrides.
+const INDEXER_LIST_TIMEOUT_MS = 12000;
 const HOT_INDEXER_SELECTION_TTL_MS = Math.max(
   5_000,
   Number(import.meta.env.VITE_INDEXER_HOT_SELECTION_TTL_MS || 30_000),
@@ -73,11 +83,21 @@ export function getIndexerBaseUrls(network) {
   return DEFAULT_INDEXER_PROXY_BASE_PATHS[network] || DEFAULT_INDEXER_PROXY_BASE_PATHS.mainnet;
 }
 
+// Surfaces a typed outage (SourceUnavailableError) on 5xx AND network/timeout
+// errors so callers can distinguish "the read-api is down" from "not found".
+// A 404 (or any other non-5xx, non-ok status) deliberately resolves to null:
+// a missing resource must render an empty/not-found state, never an outage
+// banner. On success returns the parsed JSON body.
 async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRefresh = false, retryAbsolute = true } = {}) {
   if (typeof fetch !== "function") return null;
 
   const requestPath = withCacheBusting(path, forceRefresh);
   const attempts = isAbsoluteUrl(requestPath) && retryAbsolute ? 2 : 1;
+
+  // Tracks whether every attempt failed with an outage-class error (5xx or a
+  // network/timeout throw). A single non-outage outcome (e.g. 404) clears it
+  // so we return null rather than surfacing a false outage.
+  let outageError = null;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -101,28 +121,61 @@ async function fetchIndexerJson(path, { timeoutMs = INDEXER_TIMEOUT_MS, forceRef
         source: "indexer",
         durationMs: nowMs() - startedAt,
       });
-      if (!res.ok) continue;
-      return await res.json();
-    } catch {
-      // Retry transient network errors once for absolute indexer origins.
+      if (res.ok) return await res.json();
+      // 5xx → outage (upstream is failing). Retry once for absolute origins,
+      // then surface a typed outage below. Non-5xx (404, 4xx) → not an
+      // outage; return null so the caller renders an empty/not-found state.
+      if (res.status >= 500) {
+        outageError = new SourceUnavailableError(
+          `Indexer read failed with HTTP ${res.status} for ${requestPath}`,
+        );
+        continue;
+      }
+      return null;
+    } catch (err) {
+      // Network error / timeout (AbortError) → outage. Retry transient
+      // network errors once for absolute indexer origins.
+      outageError = err instanceof SourceUnavailableError
+        ? err
+        : new SourceUnavailableError(
+            `Indexer read failed for ${requestPath}: ${err?.message || String(err)}`,
+            { errors: [err instanceof Error ? err : new Error(String(err))] },
+          );
     } finally {
       if (timer) clearTimeout(timer);
     }
   }
 
+  if (outageError) throw outageError;
   return null;
 }
 
+// Tries each base path in order. A path that resolves null (404 / no data) is
+// skipped in favour of the next path. An outage (SourceUnavailableError from
+// fetchIndexerJson) is remembered but does not immediately abort the cascade —
+// a later path may still succeed. Only when EVERY path is exhausted without
+// data AND at least one raised an outage do we propagate the outage; if the
+// paths merely returned null (not-found), we resolve null.
 async function fetchIndexerJsonWithFallback(paths, options = {}) {
   const filteredPaths = paths.filter(Boolean);
+  let outageError = null;
   for (let index = 0; index < filteredPaths.length; index += 1) {
     const path = filteredPaths[index];
-    const payload = await fetchIndexerJson(path, {
-      ...options,
-      retryAbsolute: index === 0,
-    });
-    if (payload) return payload;
+    try {
+      const payload = await fetchIndexerJson(path, {
+        ...options,
+        retryAbsolute: index === 0,
+      });
+      if (payload) return payload;
+    } catch (err) {
+      if (err instanceof SourceUnavailableError) {
+        outageError = err;
+        continue;
+      }
+      throw err;
+    }
   }
+  if (outageError) throw outageError;
   return null;
 }
 
@@ -161,10 +214,13 @@ async function selectFreshestHotIndexerBase(network, { forceRefresh = false } = 
 
   const results = await Promise.all(
     candidates.map(async (baseUrl) => {
+      // Freshness probing is best-effort host selection, not a data read; an
+      // outage here must not abort selection (we just treat the host as
+      // unhealthy and fall through to the next candidate / first base).
       const payload = await fetchIndexerJson(`${baseUrl}/summary`, {
         forceRefresh,
         retryAbsolute: false,
-      });
+      }).catch(() => null);
       const data = payload?.data || payload || {};
       const lastIndexedBlock = Number(data?.last_indexed_block ?? data?.lastIndexedBlock ?? -1);
       const freshnessSeconds = Number(data?.freshness_seconds ?? data?.freshnessSeconds ?? Number.POSITIVE_INFINITY);
@@ -263,10 +319,17 @@ export const indexerReadService = {
     const params = new URLSearchParams({
       limit: String(limit),
     });
+    // The aggregate home endpoint is an optional fast-path; the home page
+    // falls back to per-resource reads (which DO surface outages) when it
+    // yields nothing. Swallow an outage here into the same back-off as an
+    // empty payload so the fallback reads own outage signalling.
     const payload = await fetchIndexerJsonWithFallback(
       buildIndexerFallbackPaths(network, `explorer/home?${params.toString()}`),
       options,
-    );
+    ).catch((err) => {
+      if (err instanceof SourceUnavailableError) return null;
+      throw err;
+    });
     const data = payload?.data || null;
     if (!data) {
       explorerHomeUnavailableUntilByNetwork.set(network, Date.now() + EXPLORER_HOME_UNAVAILABLE_RETRY_MS);
@@ -318,9 +381,13 @@ export const indexerReadService = {
     const hotPaths = shouldUseHotIndexerSelection({ pathType: "blocks", limit, offset, ...options })
       ? await buildHotIndexerPaths(network, `blocks?${params.toString()}`, options)
       : buildIndexerFallbackPaths(network, `blocks?${params.toString()}`);
+    // Deep-offset block pages run 4-7s cold on the read-api; give them the
+    // aligned list budget so a slow-but-successful page is not aborted (which
+    // produced flaky empty pages on immediate retry). Caller-supplied
+    // timeoutMs still wins if provided.
     return await fetchIndexerJsonWithFallback(
       hotPaths,
-      options,
+      { timeoutMs: INDEXER_LIST_TIMEOUT_MS, ...options },
     );
   },
 
@@ -333,9 +400,10 @@ export const indexerReadService = {
     const hotPaths = shouldUseHotIndexerSelection({ pathType: "transactions", limit, offset, ...options })
       ? await buildHotIndexerPaths(network, `transactions?${params.toString()}`, options)
       : buildIndexerFallbackPaths(network, `transactions?${params.toString()}`);
+    // Same deep-offset budget as getBlocks (see note there).
     return await fetchIndexerJsonWithFallback(
       hotPaths,
-      options,
+      { timeoutMs: INDEXER_LIST_TIMEOUT_MS, ...options },
     );
   },
 
@@ -453,9 +521,12 @@ export const indexerReadService = {
     if (String(search || "").trim()) {
       params.set("search", String(search).trim());
     }
+    // List endpoint — same deep-offset budget as blocks/transactions so cold
+    // paginated queries are not aborted client-side. Applied here (the shared
+    // read layer) so it covers contractService without editing that service.
     return await fetchIndexerJsonWithFallback(
       buildIndexerFallbackPaths(network, `contracts?${params.toString()}`),
-      options,
+      { timeoutMs: INDEXER_LIST_TIMEOUT_MS, ...options },
     );
   },
 
@@ -471,9 +542,10 @@ export const indexerReadService = {
     if (String(search || "").trim()) {
       params.set("search", String(search).trim());
     }
+    // List endpoint — same deep-offset budget (see getContracts note).
     return await fetchIndexerJsonWithFallback(
       buildIndexerFallbackPaths(network, `tokens?${params.toString()}`),
-      options,
+      { timeoutMs: INDEXER_LIST_TIMEOUT_MS, ...options },
     );
   },
 

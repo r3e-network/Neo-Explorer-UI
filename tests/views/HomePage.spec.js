@@ -878,4 +878,103 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-loading")).toBe("false");
     wrapper.unmount();
   });
+
+  // Stub that surfaces the headline stats HomePage binds so display-source /
+  // stale-retention / loading assertions can read them.
+  const StatsStub = defineComponent({
+    name: "HomeStats",
+    props: {
+      blockCount: { type: Number, default: 0 },
+      txCount: { type: Number, default: 0 },
+      loading: { type: Boolean, default: false },
+    },
+    emits: ["fetch-latest"],
+    template:
+      '<div data-testid="home-stats" :data-block-count="String(blockCount)" :data-tx-count="String(txCount)" :data-loading="String(loading)"><button data-testid="home-stats-fetch" @click="$emit(\'fetch-latest\')">refresh</button></div>',
+  });
+
+  const mountWithStatsStub = async () => {
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    return mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: StatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+  };
+
+  it("renders the internal indexed_tx_count for the headline, not the external total (#16)", async () => {
+    // Summary carries a large external chain-wide total_tx_count but a smaller
+    // internal indexed_tx_count. The headline must show the internal count so
+    // it agrees with the Transactions-page header and never shrinks/rebounds.
+    getIndexerHome.mockResolvedValue(null);
+    getIndexerSummary.mockResolvedValue({
+      network: "mainnet",
+      total_block_count: 13,
+      total_tx_count: 250_000_000,
+      indexed_tx_count: 3_000_000,
+      lag_blocks: 0,
+      freshness_seconds: 2,
+    });
+
+    const wrapper = await mountWithStatsStub();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-tx-count")).toBe("3000000");
+    wrapper.unmount();
+  });
+
+  it("binds a summary-pending loading flag to HomeStats and clears it once the summary settles (#22)", async () => {
+    let resolveSummary;
+    getIndexerHome.mockResolvedValue(null);
+    getIndexerSummary.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveSummary = resolve; }),
+    );
+
+    const wrapper = await mountWithStatsStub();
+    await flushPromises();
+
+    // Summary still in flight — HomeStats loading must be true so its skeletons
+    // are reachable instead of painting a premature 0.
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-loading")).toBe("true");
+
+    resolveSummary({
+      network: "mainnet",
+      total_block_count: 13,
+      total_tx_count: 999,
+      indexed_tx_count: 999,
+      lag_blocks: 0,
+      freshness_seconds: 2,
+    });
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
+
+  it("keeps a stale summary's tx count instead of rendering 0 indefinitely (#22)", async () => {
+    // Summary fails the freshness gate (large lag). Rather than discard it into
+    // a permanent 0, HomePage adopts its indexed count as a last-known value.
+    getIndexerHome.mockResolvedValue(null);
+    getIndexerSummary.mockResolvedValue({
+      network: "mainnet",
+      total_block_count: 13,
+      total_tx_count: 4_000_000,
+      indexed_tx_count: 3_500_000,
+      lag_blocks: 50,
+      freshness_seconds: 600,
+    });
+
+    const wrapper = await mountWithStatsStub();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-tx-count")).toBe("3500000");
+    expect(wrapper.get('[data-testid="home-stats"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
 });

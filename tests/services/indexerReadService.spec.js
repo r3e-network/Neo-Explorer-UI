@@ -533,3 +533,75 @@ describe("indexerReadService freshness controls", () => {
     expect(payload).toBeNull();
   });
 });
+
+describe("indexerReadService outage signalling (#7)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.doMock("../../src/utils/env.js", () => ({
+      getCurrentEnv: vi.fn(() => "Mainnet"),
+      resolveNetworkName: vi.fn(() => "mainnet"),
+    }));
+  });
+
+  it("throws a typed SourceUnavailableError on a 5xx read-api response", async () => {
+    // Two attempts are NOT expected for a same-origin (relative) path — only
+    // absolute origins retry — so a single 500 surfaces the outage.
+    const fetchMock = vi.fn().mockResolvedValue(new Response("boom", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const { SourceUnavailableError } = await import("../../src/adapters/source.js");
+
+    await expect(indexerReadService.getBlocks(1, 0)).rejects.toBeInstanceOf(SourceUnavailableError);
+    await expect(indexerReadService.getTransactions(1, 0)).rejects.toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it("throws a typed SourceUnavailableError on a network failure", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    const { SourceUnavailableError } = await import("../../src/adapters/source.js");
+
+    await expect(indexerReadService.getTransactions(1, 0)).rejects.toBeInstanceOf(SourceUnavailableError);
+  });
+
+  it("resolves null (NOT an outage) on a 404 so a missing resource never becomes an outage banner", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("not found", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+
+    await expect(indexerReadService.getBlocks(1, 0)).resolves.toBeNull();
+    await expect(indexerReadService.getTransactions(1, 0)).resolves.toBeNull();
+  });
+
+  it("applies the ~12s list timeout budget to paginated block/transaction reads (#20)", async () => {
+    // Confirms the AbortController is armed with the raised list budget, not
+    // the 3s default that raced deep-offset cold queries. We capture the
+    // timeout by spying on setTimeout's delay argument for the data fetch.
+    const timeoutDelays = [];
+    const realSetTimeout = globalThis.setTimeout;
+    const setTimeoutSpy = vi.fn((fn, delay, ...rest) => {
+      timeoutDelays.push(delay);
+      return realSetTimeout(fn, 0, ...rest);
+    });
+    vi.stubGlobal("setTimeout", setTimeoutSpy);
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ hash: "0x1" }], paging: { total: 1 } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { indexerReadService } = await import("../../src/services/indexerReadService.js");
+    await indexerReadService.getBlocks(20, 100);
+
+    vi.stubGlobal("setTimeout", realSetTimeout);
+    // The abort timer for the list read must use the raised budget (>= 10s),
+    // not the 3s singleton default.
+    expect(timeoutDelays.some((delay) => Number(delay) >= 10000)).toBe(true);
+  });
+});

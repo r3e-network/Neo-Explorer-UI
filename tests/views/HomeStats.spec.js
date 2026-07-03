@@ -191,3 +191,48 @@ describe("HomeStats countdown refresh behavior", () => {
     wrapper.unmount();
   });
 });
+
+describe("HomeStats loading skeletons (#22)", () => {
+  const mountStats = async (props) => {
+    const HomeStats = (await import("@/views/Home/components/HomeStats.vue")).default;
+    return mount(HomeStats, {
+      props,
+      global: {
+        plugins: [i18nPlugin],
+        stubs: { "router-link": { template: "<a><slot /></a>" } },
+      },
+    });
+  };
+
+  it("renders skeletons for zero-valued stats while loading", async () => {
+    // With loading=true and the metrics still at 0, the skeleton branches must
+    // be reachable (previously HomePage never bound :loading, so they were
+    // dead and the else branch painted a premature 0). Skeleton renders a
+    // .animate-pulse element per instance.
+    const wrapper = await mountStats({ loading: true, txCount: 0, blockCount: 0, neoPrice: 0, gasPrice: 0 });
+    expect(wrapper.findAll(".animate-pulse").length).toBeGreaterThanOrEqual(4);
+    wrapper.unmount();
+  });
+
+  it("does not render skeletons once values are present even while loading", async () => {
+    // A skeleton must not overwrite already-known data on a refresh tick —
+    // the branch is gated on `loading && !value`.
+    const wrapper = await mountStats({
+      loading: true,
+      txCount: 6_655_123,
+      blockCount: 9_627_999,
+      neoPrice: 12,
+      gasPrice: 4,
+    });
+    expect(wrapper.findAll(".animate-pulse").length).toBe(0);
+    expect(wrapper.text()).toContain("6,655,123");
+    expect(wrapper.text()).toContain("9,627,999");
+    wrapper.unmount();
+  });
+
+  it("renders values (no skeletons) when loading has settled", async () => {
+    const wrapper = await mountStats({ loading: false, txCount: 0, blockCount: 0 });
+    expect(wrapper.findAll(".animate-pulse").length).toBe(0);
+    wrapper.unmount();
+  });
+});

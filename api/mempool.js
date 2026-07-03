@@ -144,6 +144,61 @@ function normalizeLimit(value) {
   return Math.min(Math.max(Math.trunc(parsed), 1), 1000);
 }
 
+// Normalize a single-tx hash filter. Neo tx hashes are 0x-prefixed 32-byte
+// hex (66 chars). We lower-case and validate the shape so an invalid value is
+// rejected cleanly rather than reaching Supabase / the node. Returns "" when
+// no hash filter was supplied.
+function normalizeHash(value) {
+  if (value === undefined || value === null || value === "") return "";
+  const raw = String(value).trim().toLowerCase();
+  if (!/^0x[0-9a-f]{64}$/.test(raw)) {
+    throw new Error("hash must be a 0x-prefixed 32-byte hex string.");
+  }
+  return raw;
+}
+
+// Single-hash lookup. Replaces the old "download up to 1000 mempool rows and
+// Array.find() one hash" pattern the pending-tx poller used. Primary path is a
+// single-row Supabase `.eq('hash', ...)`; the getrawtransaction node fallback
+// is preserved for the unconfigured/empty-cache case. Returns the one pending
+// record, or null when the tx is not in the mempool.
+async function fetchMempoolByHash(network, hash) {
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("mempool_transactions")
+        .select("*")
+        .eq("network", network)
+        .eq("hash", hash)
+        .limit(1);
+
+      if (error) throw error;
+      if (Array.isArray(data) && data.length > 0) {
+        return data[0];
+      }
+      // Empty Supabase result: the cron may lag the node by a block, so fall
+      // through to the node before concluding the tx is absent.
+    } catch (error) {
+      console.error("[mempool] supabase hash lookup failed, falling back:", error?.message || error);
+    }
+  }
+
+  try {
+    const txData = await callWithRpcEndpointFallback(network, (url) =>
+      postRpc(url, "getrawtransaction", [hash, true]),
+    );
+    if (txData && !txData.__error) {
+      return buildPendingRecord(network, hash, txData);
+    }
+  } catch (error) {
+    // A node that returns an error for an unknown hash simply means the tx is
+    // not pending — treat as "not found", not a server error.
+    console.error("[mempool] node hash lookup failed:", error?.message || error);
+  }
+  return null;
+}
+
 async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -152,9 +207,11 @@ async function handler(req, res) {
 
   let network;
   let limit;
+  let hash;
   try {
     network = normalizeNetwork(req.query?.network);
     limit = normalizeLimit(req.query?.limit);
+    hash = normalizeHash(req.query?.hash);
   } catch (error) {
     return res.status(400).json({ error: error.message || "Invalid mempool request." });
   }
@@ -175,6 +232,15 @@ async function handler(req, res) {
   // sensible upper bound that keeps the view feeling live while letting
   // the CDN coalesce concurrent visitors.
   res.setHeader("Cache-Control", "public, max-age=2, s-maxage=2, stale-while-revalidate=10");
+
+  // Single-hash path (#25): the pending-tx poller asks for one hash every ~3s.
+  // Answer with a single-row lookup instead of downloading the whole mempool.
+  // `data` is the pending record or null (tx not pending). The bulk `limit`
+  // list path below is unchanged and still serves the mempool list view.
+  if (hash) {
+    const record = await fetchMempoolByHash(network, hash);
+    return res.status(200).json({ data: record });
+  }
 
   // Primary path: Supabase cache populated by the sync_mempool cron.
   const supabase = getSupabaseClient();
@@ -209,6 +275,7 @@ module.exports = withApiTelemetry("mempool", handler);
 module.exports._internal = {
   normalizeLimit,
   normalizeNetwork,
+  normalizeHash,
   setSupabaseClientForTests(client) {
     supabaseClient = client;
     supabaseConfigChecked = true;

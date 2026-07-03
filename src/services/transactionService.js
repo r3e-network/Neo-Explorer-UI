@@ -3,6 +3,7 @@ import { createService, getRealtimeListCacheOptions } from "./serviceFactory";
 import { safeRpc } from "./api";
 import { accountService } from "./accountService";
 import { indexerReadService } from "./indexerReadService";
+import { SourceUnavailableError } from "../adapters/source";
 
 /**
  * Transaction Service - Neo3 交易相关 API 调用
@@ -32,6 +33,28 @@ export const transactionService = createService(
         return "HALT";
       }
       return "";
+    },
+
+    // Single-hash mempool lookup via the edge `?hash=` filter (#25). Returns
+    // the one pending record for `hash`, or null when it is not in the
+    // mempool. Replaces the bulk getMempoolTransactions(network, 1000) +
+    // Array.find() the poller used to run every ~3s per pending tx.
+    async _fetchMempoolTxByHash(hash, options = {}) {
+      if (typeof fetch !== "function") return null;
+      const { resolveNetworkName } = await import("@/utils/env");
+      const network = resolveNetworkName(options.network);
+      const params = new URLSearchParams({
+        network,
+        hash: String(hash || "").trim(),
+      });
+      const res = await fetch(`/api/mempool?${params.toString()}`);
+      if (!res.ok) return null;
+      const payload = await res.json().catch(() => ({}));
+      const data = payload?.data;
+      // The `?hash=` path returns a single object (or null); guard against the
+      // bulk list shape just in case an old edge build answers with an array.
+      if (!data || Array.isArray(data)) return null;
+      return data;
     },
 
     async getByHash(hash, options = {}) {
@@ -78,14 +101,11 @@ export const transactionService = createService(
       }
 
       try {
-        // Final fallback: mempool — the tx may not be on chain yet.
-        const { resolveNetworkName } = await import("@/utils/env");
-        const { supabaseService } = await import("./supabaseService");
-        const network = resolveNetworkName(options.network);
-
-        const dbTxs = await supabaseService.getMempoolTransactions(network, 1000);
-        const found = dbTxs.find((t) => t.hash === hash);
-
+        // Final fallback: mempool — the tx may not be on chain yet. Ask the
+        // edge for THIS hash only (#25) instead of downloading up to 1000
+        // rows and Array.find()-ing one; the poller repeats this every ~3s
+        // while a tx is pending, so a single-row lookup matters.
+        const found = await this._fetchMempoolTxByHash(hash, options);
         if (found) {
           return {
             ...tx,
@@ -244,6 +264,11 @@ export const transactionService = createService(
         key,
         async () => {
           // Indexer first — same Mongo-to-Postgres pattern as #150/#152/#153/#168.
+          // A read-api outage (5xx / network failure) surfaces as a typed
+          // SourceUnavailableError from getTransactions; propagate it so the
+          // Transactions page renders the ErrorState + retry UI instead of a
+          // misleading empty list. Other (unexpected) errors still fall
+          // through to the empty state.
           try {
             const [indexerRes, summary] = await Promise.all([
               indexerReadService.getTransactions(limit, skip, cacheOpts),
@@ -260,7 +285,10 @@ export const transactionService = createService(
                 ),
               };
             }
-          } catch { /* fall through to empty state */ }
+          } catch (err) {
+            if (err instanceof SourceUnavailableError) throw err;
+            /* fall through to empty state */
+          }
           return { result: [], totalCount: 0 };
         },
         CACHE_TTL.chart,
@@ -313,14 +341,21 @@ export const transactionService = createService(
       try {
         const indexerRes = await indexerReadService.getAccountTransactions(address, limit, skip, requestOptions);
         if (Array.isArray(indexerRes?.data)) {
-          // Pagination total: prefer the indexer's explicit `paging.total`
-          // when present; else (offset + count + 1) so Next stays enabled
-          // until we hit a short page.
+          // Pagination total (#13fe): prefer the indexer's explicit
+          // `paging.total` when present; else (offset + count + 1) so Next
+          // stays enabled until we hit a short page. `is_capped` rides through
+          // so the header can render e.g. "10,000+" for a capped count.
+          const hasPagingTotal = Number.isFinite(Number(indexerRes?.paging?.total));
           const fallbackTotal = indexerRes.data.length === limit
             ? skip + indexerRes.data.length + 1
             : skip + indexerRes.data.length;
-          const total = Number(indexerRes?.paging?.total ?? fallbackTotal);
+          const total = hasPagingTotal ? Number(indexerRes.paging.total) : fallbackTotal;
           response = {
+            // #10fe: pass through `script` (so the Method label can decode the
+            // contract invocation instead of defaulting to "Transfer") and
+            // `vm_state` (surfaced as vmstate). block_index rides through as
+            // both blockindex/blockIndex so the Block column can link by
+            // height without an absent blockhash.
             result: indexerRes.data.map((row) => ({
               hash: row.txid,
               txid: row.txid,
@@ -332,9 +367,12 @@ export const transactionService = createService(
               sender_address: row.sender_address,
               sysfee: row.sys_fee,
               netfee: row.net_fee,
-              vmstate: row.vmstate || row.vm_state,
+              script: row.script || "",
+              vmstate: row.vmstate || row.vm_state || "",
+              vm_state: row.vm_state || row.vmstate || "",
             })),
             totalCount: total,
+            isCapped: Boolean(indexerRes?.paging?.is_capped),
           };
         }
       } catch {

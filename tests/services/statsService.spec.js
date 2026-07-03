@@ -97,17 +97,22 @@ describe("statsService.getGasTracker", () => {
   });
 });
 
-describe("statsService.getDashboardStats (#185)", () => {
+describe("statsService.getDashboardStats (#185/#26)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // #26: getDashboardStats no longer probes /transactions with a
+    // two-LATERAL count query — assert no such fetch fires anywhere below.
+    globalThis.fetch = vi.fn();
   });
 
-  it("reads all counts from indexer summary; no PascalCase Mongo POSTs fire", async () => {
+  it("returns only the block-height count Blocks.vue consumes; no Mongo POSTs, no tx-total probe (#26)", async () => {
+    // The summary carries counts the old shape dead-mapped, but the trimmed
+    // service returns just { blocks }. Note the mock no longer fabricates
+    // total_contract_count / total_candidate_count — NetworkSummary never
+    // emitted them, so keeping them in the mock masked the dead reads.
     indexerReadServiceGetSummaryMock.mockResolvedValue({
       total_block_count: 9_627_999,
       total_tx_count: 6_655_123,
-      total_contract_count: 8421,
-      total_candidate_count: 39,
       total_address_count: 184_000,
       total_asset_count: 240,
     });
@@ -115,22 +120,15 @@ describe("statsService.getDashboardStats (#185)", () => {
     const { statsService } = await import("@/services/statsService");
     const result = await statsService.getDashboardStats(true);
 
-    expect(result).toEqual({
-      blocks: 9_627_999,
-      txs: 6_655_123,
-      contracts: 8421,
-      candidates: 39,
-      addresses: 184_000,
-      tokens: 240,
-    });
-    // Crucial: no GetContractCount / GetCandidateCount / GetBlockCount /
-    // GetTransactionCount POSTs — that was the #185 regression.
+    expect(result).toEqual({ blocks: 9_627_999 });
+    // No PascalCase Mongo POSTs (the #185 regression) and no /transactions
+    // count probe (the #26 dead two-LATERAL query).
     expect(rpcMock).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("falls back to standard getblockcount only when summary lacks total_block_count", async () => {
     indexerReadServiceGetSummaryMock.mockResolvedValue({
-      total_tx_count: 100,
       total_block_count: 0,
     });
     rpcMock.mockResolvedValueOnce(9_628_000);
@@ -139,14 +137,11 @@ describe("statsService.getDashboardStats (#185)", () => {
     const result = await statsService.getDashboardStats(false);
 
     expect(rpcMock).toHaveBeenCalledWith("getblockcount", [], { network: "mainnet" });
-    expect(result.blocks).toBe(9_628_000);
-    // Other stats still come from summary.
-    expect(result.txs).toBe(100);
+    expect(result).toEqual({ blocks: 9_628_000 });
   });
 
   it("routes dashboard summary and block-count fallback through the requested network", async () => {
     indexerReadServiceGetSummaryMock.mockResolvedValue({
-      total_tx_count: 100,
       total_block_count: 0,
     });
     rpcMock.mockResolvedValueOnce(9_628_000);
@@ -158,23 +153,19 @@ describe("statsService.getDashboardStats (#185)", () => {
       expect.objectContaining({ forceRefresh: true, network: "testnet" }),
     );
     expect(rpcMock).toHaveBeenCalledWith("getblockcount", [], { network: "testnet" });
-    expect(result.blocks).toBe(9_628_000);
+    expect(result).toEqual({ blocks: 9_628_000 });
   });
 
-  it("returns zeros for missing summary fields without firing legacy POSTs", async () => {
+  it("returns blocks: 0 for a missing summary without firing legacy POSTs or the tx-total probe (#26)", async () => {
     indexerReadServiceGetSummaryMock.mockResolvedValue({
       total_block_count: 1,
-      // total_tx_count, total_contract_count, etc. all absent
     });
 
     const { statsService } = await import("@/services/statsService");
     const result = await statsService.getDashboardStats(false);
 
-    expect(result.blocks).toBe(1);
-    expect(result.contracts).toBe(0);
-    expect(result.candidates).toBe(0);
-    expect(result.addresses).toBe(0);
-    expect(result.tokens).toBe(0);
+    expect(result).toEqual({ blocks: 1 });
     expect(rpcMock).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

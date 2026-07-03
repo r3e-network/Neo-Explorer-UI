@@ -5,6 +5,7 @@ import { transactionService } from "../../src/services/transactionService.js";
 import * as api from "../../src/services/api.js";
 import { accountService } from "../../src/services/accountService.js";
 import { clearAllCache } from "../../src/services/cache.js";
+import { SourceUnavailableError } from "../../src/adapters/source.js";
 
 class MockRpcClient {
   getRawTransaction = vi.fn().mockRejectedValue(new Error("Mock network error"));
@@ -47,6 +48,7 @@ vi.mock("../../src/services/indexerReadService.js", () => ({
 }));
 
 import { indexerReadService } from "../../src/services/indexerReadService.js";
+import { supabaseService } from "../../src/services/supabaseService.js";
 
 describe("transactionService", () => {
   beforeEach(() => {
@@ -68,15 +70,32 @@ describe("transactionService", () => {
   });
 
   describe("getList", () => {
-    it("returns empty without legacy RPC when indexer is unavailable", async () => {
+    it("returns empty without legacy RPC on a non-outage indexer error", async () => {
       const result = await transactionService.getList(10, 5, { enrichMissingFields: true });
       expect(api.safeRpcList).not.toHaveBeenCalled();
       expect(result).toEqual({ result: [], totalCount: 0 });
     });
 
-    it("returns empty on error", async () => {
+    it("returns empty on a generic error", async () => {
       const result = await transactionService.getList();
       expect(result).toEqual({ result: [], totalCount: 0 });
+    });
+
+    it("propagates a typed read-api outage instead of masking it as empty (#7)", async () => {
+      // On a real outage (5xx / network failure) getTransactions throws a
+      // SourceUnavailableError. getList must re-throw it so the Transactions
+      // page renders its ErrorState + retry UI rather than a misleading
+      // empty list. Generic errors still fall through to the empty state
+      // (covered above).
+      indexerReadService.getTransactions.mockRejectedValueOnce(
+        new SourceUnavailableError("read-api down"),
+      );
+      indexerReadService.getSummary.mockResolvedValueOnce(null);
+
+      await expect(
+        transactionService.getList(20, 0),
+      ).rejects.toBeInstanceOf(SourceUnavailableError);
+      expect(api.safeRpcList).not.toHaveBeenCalled();
     });
 
     it("does not default missing enriched vmstate to HALT", async () => {
@@ -140,6 +159,61 @@ describe("transactionService", () => {
       expect(source).toContain('safeRpc("getrawtransaction"');
       expect(source).toContain('safeRpc("getblockheader"');
     });
+
+    it("routes the mempool fallback through the single-hash edge filter (#25)", async () => {
+      // Native RPC yields nothing on-chain, so getByHash falls back to the
+      // mempool. It must ask the edge for THIS hash only (?hash=) — a single
+      // row — instead of downloading up to 1000 rows and Array.find()-ing.
+      const hash = "0x" + "d".repeat(64);
+      api.safeRpc.mockResolvedValue(null);
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            hash,
+            sender: "NaddrPending",
+            size: 200,
+            netfee: 10,
+            sysfee: 20,
+            valid_until_block: 555,
+            timestamp: 1700000000,
+          },
+        }),
+      });
+      vi.stubGlobal("fetch", fetchSpy);
+
+      const result = await transactionService.getByHash(hash, { network: "mainnet" });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const requestedUrl = fetchSpy.mock.calls[0][0];
+      expect(requestedUrl).toContain("/api/mempool?");
+      expect(requestedUrl).toContain(`hash=${encodeURIComponent(hash)}`);
+      expect(requestedUrl).toContain("network=mainnet");
+      // Bulk mempool download must not be used for a single-hash lookup.
+      expect(supabaseService.getMempoolTransactions).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        hash,
+        sender: "NaddrPending",
+        status: "pending",
+        validuntilblock: 555,
+      });
+      vi.unstubAllGlobals();
+    });
+
+    it("returns null when the single-hash mempool lookup finds nothing (#25)", async () => {
+      const hash = "0x" + "e".repeat(64);
+      api.safeRpc.mockResolvedValue(null);
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: null }),
+      });
+      vi.stubGlobal("fetch", fetchSpy);
+
+      const result = await transactionService.getByHash(hash, { network: "mainnet" });
+
+      expect(result).toBeNull();
+      vi.unstubAllGlobals();
+    });
   });
 
   describe("getByAddress", () => {
@@ -153,6 +227,82 @@ describe("transactionService", () => {
       expect(result.result[0].vmstate).toBe("HALT");
     });
 
+    it("passes script + vm_state + block_index through the account-tx adapter (#10fe)", async () => {
+      // Backend now returns script + vm_state on account-tx rows. The adapter
+      // must surface both (script → contract-method decode; vm_state → status)
+      // plus block_index (so the Block column can link by height).
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [
+          {
+            txid: "0xWithScript",
+            block_index: 4242,
+            block_time_ms: 111,
+            sender_address: "Nsender",
+            sys_fee: "1",
+            net_fee: "2",
+            script: "0xdeadbeef",
+            vm_state: "HALT",
+          },
+        ],
+        paging: { total: 9000 },
+      });
+
+      const result = await transactionService.getByAddress("Naddr", 10, 0);
+
+      expect(result.result[0]).toMatchObject({
+        hash: "0xWithScript",
+        blockindex: 4242,
+        blockIndex: 4242,
+        script: "0xdeadbeef",
+        vmstate: "HALT",
+        vm_state: "HALT",
+      });
+    });
+
+    it("prefers the indexer paging.total over the synthetic skip+rows count (#13fe)", async () => {
+      // A full page previously synthesized skip+rows+1; now the real
+      // paging.total wins so the header shows the true count.
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [
+          { txid: "0x1", block_index: 1, block_time_ms: 1 },
+          { txid: "0x2", block_index: 2, block_time_ms: 2 },
+        ],
+        paging: { total: 12345, is_capped: false },
+      });
+
+      const result = await transactionService.getByAddress("Naddr", 2, 0);
+
+      expect(result.totalCount).toBe(12345);
+      expect(result.isCapped).toBe(false);
+    });
+
+    it("surfaces paging.is_capped so a capped count can be badged (#13fe)", async () => {
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [{ txid: "0x1", block_index: 1, block_time_ms: 1 }],
+        paging: { total: 10000, is_capped: true },
+      });
+
+      const result = await transactionService.getByAddress("Naddr", 1, 0);
+
+      expect(result.totalCount).toBe(10000);
+      expect(result.isCapped).toBe(true);
+    });
+
+    it("falls back to skip+rows+1 only when paging.total is absent (#13fe)", async () => {
+      indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
+        data: [
+          { txid: "0x1", block_index: 1, block_time_ms: 1 },
+          { txid: "0x2", block_index: 2, block_time_ms: 2 },
+        ],
+        // no paging.total
+      });
+
+      const result = await transactionService.getByAddress("Naddr", 2, 5);
+
+      // Full page (length === limit) → skip + length + 1 keeps Next enabled.
+      expect(result.totalCount).toBe(8);
+    });
+
     it("treats an empty indexer account transaction page as authoritative", async () => {
       indexerReadService.getAccountTransactions = vi.fn().mockResolvedValueOnce({
         data: [],
@@ -161,7 +311,7 @@ describe("transactionService", () => {
 
       const result = await transactionService.getByAddress("NdzY4...", 10, 0);
 
-      expect(result).toEqual({ result: [], totalCount: 0 });
+      expect(result).toMatchObject({ result: [], totalCount: 0 });
       expect(accountService.getNep17Transfers).not.toHaveBeenCalled();
       expect(accountService.getNep11Transfers).not.toHaveBeenCalled();
       expect(api.safeRpcList).not.toHaveBeenCalled();

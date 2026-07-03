@@ -13,7 +13,6 @@ import { resolveNetworkName } from "@/utils/env";
  */
 
 const NETWORK_FEE_RATIO = 0.08;
-const INDEXER_STATS_TIMEOUT_MS = 2500;
 
 const normalizeStatsOptions = (value = {}) => {
   if (typeof value === "boolean") return { forceRefresh: value };
@@ -23,39 +22,6 @@ const normalizeStatsOptions = (value = {}) => {
 const withNetworkOption = (options = {}) => {
   const network = options?.network ? resolveNetworkName(options.network) : null;
   return network ? { network } : undefined;
-};
-
-const resolveIndexerNetworkPath = (options = {}) => {
-  const explicitNetwork = typeof options === "string" ? options : options?.network;
-  return explicitNetwork ? resolveNetworkName(explicitNetwork) : resolveNetworkName();
-};
-
-const fetchIndexerTransactionTotal = async (options = {}) => {
-  if (typeof fetch !== "function") return 0;
-
-  const network = resolveIndexerNetworkPath(options);
-  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-  let timeoutId = null;
-
-  try {
-    if (controller) {
-      timeoutId = setTimeout(() => controller.abort(), INDEXER_STATS_TIMEOUT_MS);
-    }
-
-    const res = await fetch(`/indexer/${network}/transactions?limit=1&offset=0`, {
-      method: "GET",
-      signal: controller?.signal,
-    });
-
-    if (!res.ok) return 0;
-    const payload = await res.json();
-    const total = Number(payload?.paging?.total ?? payload?.total ?? 0);
-    return Number.isFinite(total) && total > 0 ? total : 0;
-  } catch (_err) {
-    return 0;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
 };
 
 /**
@@ -132,11 +98,14 @@ export const statsService = createService(
 
       const fetchFn = async () => {
         try {
-          // Indexer summary has total_*_count for everything we render.
-          // Previously fired 4 parallel PascalCase Mongo POSTs as
-          // "fallback" — all empty or redundant per #184. Standard
-          // getblockcount is the only chain-side fallback we keep
-          // (works against any Neo node, outlives Mongo cleanup).
+          // Blocks.vue is the only consumer and reads `stats.blocks` only, so
+          // this is trimmed to the block-height count. The summary's
+          // total_block_count answers directly; the standard getblockcount is
+          // the sole chain-side fallback (works against any Neo node, outlives
+          // Mongo cleanup). Removed here (#26): the two-LATERAL
+          // fetchIndexerTransactionTotal probe (the summary already carries
+          // total_tx_count) and the total_contract_count / total_candidate_count
+          // reads NetworkSummary never emits (they dead-mapped to 0 behind ||0).
           const summary = await indexerReadService.getSummary(cacheOpts).catch(() => null);
 
           let blocks = Number(summary?.total_block_count) || 0;
@@ -146,20 +115,7 @@ export const statsService = createService(
             blocks = Number(blockCountRes) || 0;
           }
 
-          const txsFromSummary = Number(summary?.total_tx_count) || 0;
-          const txsFromIndexerStats = Number(await fetchIndexerTransactionTotal(cacheOpts).catch(() => 0)) || 0;
-          const txs = Math.max(txsFromSummary, txsFromIndexerStats);
-
-          const result = {
-            blocks,
-            txs,
-            contracts: Number(summary?.total_contract_count) || 0,
-            candidates: Number(summary?.total_candidate_count) || 0,
-            addresses: Number(summary?.total_address_count) || 0,
-            tokens: Number(summary?.total_asset_count) || 0,
-          };
-
-          return result;
+          return { blocks };
         } catch (error) {
           if (import.meta.env.DEV) console.error("Failed to get dashboard stats:", error);
           throw error;

@@ -38,4 +38,26 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain('createExplorerQueryKey("address.summary", { address: addr, network: requestNetwork })');
     expect(source).toContain('createExplorerQueryKey("address.assets", { address: addr, network: requestNetwork })');
   });
+
+  it("seeds blockhash from the block height so the Block column links (#10fe)", () => {
+    const source = fs.readFileSync(new URL("../../src/views/Account/AddressDetail.vue", import.meta.url), "utf8");
+
+    // The fetcher must derive a linkable blockhash from block height when a
+    // real hash is absent (account-tx rows carry block_index, not blockhash).
+    expect(source).toMatch(/blockhash:\s*String\(tx\.blockIndex\)/);
+    expect(source).toContain("tx.blockIndex != null");
+  });
+
+  it("reads the indexer paging.total for the transaction header, not a synthetic count (#13fe)", () => {
+    const txSource = fs.readFileSync(
+      new URL("../../src/services/transactionService.js", import.meta.url),
+      "utf8",
+    );
+
+    // getByAddress must prefer paging.total (and pass script/vm_state through).
+    expect(txSource).toContain("indexerRes.paging.total");
+    expect(txSource).toContain("is_capped");
+    expect(txSource).toMatch(/script:\s*row\.script/);
+    expect(txSource).toMatch(/vm_state:\s*row\.vm_state/);
+  });
 });

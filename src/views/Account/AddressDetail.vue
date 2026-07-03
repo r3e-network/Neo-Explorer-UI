@@ -212,12 +212,24 @@ const {
     if (!addr) return { result: [], totalCount: 0 };
     const requestNetwork = resolveNetworkName(options.network);
     const response = await transactionService.getByAddress(addr, pageSize, skip, options);
-    const result = normalizeAddressTransactions(response?.result || []);
+    const result = normalizeAddressTransactions(response?.result || []).map((tx) => {
+      // #10fe: account-tx rows carry block_index but no blockhash, so the
+      // Block column (which links via tx.blockhash) rendered '-'. The
+      // /block-info/:hash route resolves a numeric param as a height, so seed
+      // blockhash from the block height when a real hash is absent — the
+      // column then links to /block-info/{index} and labels it by height.
+      if (!tx.blockhash && tx.blockIndex != null && Number.isFinite(Number(tx.blockIndex)) && Number(tx.blockIndex) >= 0) {
+        return { ...tx, blockhash: String(tx.blockIndex) };
+      }
+      return tx;
+    });
     if (resolveNetworkName() === requestNetwork) {
       enrichTransactions(result);
     }
     return {
       result,
+      // #13fe: totalCount is the indexer's paging.total (preferred over the
+      // old synthetic skip+rows+1) as resolved in transactionService.getByAddress.
       totalCount: Number(response?.totalCount || 0),
     };
   },

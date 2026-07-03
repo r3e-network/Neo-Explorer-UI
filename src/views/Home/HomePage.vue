@@ -29,6 +29,7 @@
       :latest-block-timestamp="latestBlocks[0]?.timestamp"
       :validated-state-root="validatedStateRoot"
       :tps="tps"
+      :loading="statsLoading"
       @fetch-latest="handleFetchLatest"
     />
 
@@ -76,6 +77,7 @@ import BlockTimeChart from "@/components/common/BlockTimeChart.vue";
 import { blockService } from "@/services/blockService";
 import { rpcToBlock, toHomeBlockView } from "@/adapters/blocks";
 import { transactionService } from "@/services/transactionService";
+import { SourceUnavailableError } from "@/adapters/source";
 import { searchService } from "@/services/searchService";
 import { indexerReadService } from "@/services/indexerReadService";
 import { getLatestBlocks as getNetworkLatestBlocks } from "@/services/networkMonitorService";
@@ -100,6 +102,12 @@ const { loadCommittee } = useCommittee();
 // State
 const blocksLoading = ref(true);
 const txsLoading = ref(true);
+// Summary/stats skeleton gate for HomeStats. Distinct from blocksLoading:
+// the headline stats (tx count, block height, price) ride the network
+// /summary payload, which can settle later than the block list. Bound to
+// HomeStats :loading so its skeleton branches are reachable and it never
+// paints a premature 0 while the summary is still in flight.
+const statsLoading = ref(true);
 const searchLoading = ref(false);
 const blocksError = ref(false);
 const txsError = ref(false);
@@ -168,6 +176,7 @@ function clearNetworkScopedHomeState() {
   txsError.value = false;
   blocksLoading.value = true;
   txsLoading.value = true;
+  statsLoading.value = true;
 }
 
 function isFreshHomepageSummary(summary) {
@@ -187,6 +196,21 @@ function isFreshHomepageSummary(summary) {
     Number.isFinite(freshnessSeconds) &&
     freshnessSeconds <= 30
   );
+}
+
+// Display source for the headline transaction count (#16). Prefer the
+// INTERNAL indexed count so the home headline agrees with the Transactions
+// page header (both read the internal count). total_tx_count is only a
+// fallback for when the indexed count is absent; never surface an external
+// chain-wide total for DISPLAY, or the headline shrinks/rebounds during
+// backfill lag. Note: paging math still uses total_tx_count elsewhere — this
+// is a display-source change only.
+function resolveDisplayTxCount(summary) {
+  if (!summary || typeof summary !== "object") return 0;
+  const indexed = Number(summary.indexed_tx_count ?? summary.indexedTxCount);
+  if (Number.isFinite(indexed) && indexed > 0) return indexed;
+  const total = Number(summary.total_tx_count ?? summary.totalTxCount);
+  return Number.isFinite(total) && total > 0 ? total : 0;
 }
 
 function getLatestKnownHeight() {
@@ -639,7 +663,16 @@ async function loadLatestData(forceRefresh = false) {
       .then((homePayload) => homePayload?.summary || fetchSummary().catch(() => null))
       .catch(() => fetchSummary().catch(() => null));
 
-    // Single server — fetch directly from indexer, one fallback to RPC.
+    // Single server. Fast path: the aggregate home payload. Fallback: the
+    // per-resource indexer read via blockService.getList (also indexer-first
+    // — there is no RPC fallback here). A read-api outage from either path
+    // surfaces as a SourceUnavailableError; we let it propagate so the
+    // blocksPromise catch below flips blocksError and the ErrorState/retry UI
+    // renders instead of a page claiming zero blocks.
+    // Only `.result` is consumed by the blocksPromise handler below; the
+    // headline block height comes from the block rows / summary, not a
+    // per-fetch totalCount. So this fetcher returns just the rows (#26 — the
+    // old totalCount plumbing here was dead).
     const fetchLatestBlocks = async () => {
       try {
         const homePayload = await fastHomePayloadPromise;
@@ -647,31 +680,27 @@ async function loadLatestData(forceRefresh = false) {
           ? homePayload.latest_blocks.map(normalizeBlockSummary).slice(0, HOMEPAGE_BLOCK_LIMIT)
           : [];
         if (homeRows.length > 0) {
-          return {
-            result: homeRows,
-            totalCount: Number(
-              homePayload?.paging?.blocks_total ??
-                homePayload?.summary?.total_block_count ??
-                homeRows.length,
-            ),
-          };
+          return { result: homeRows };
         }
 
         const indexerRes = await indexerReadService.getBlocks(HOMEPAGE_BLOCK_LIMIT, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeBlockSummary) : [];
         if (rows.length > 0) {
-          return {
-            result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
-          };
+          return { result: rows };
         }
-      } catch {
-        // single fallback to RPC
+      } catch (err) {
+        // A real outage must reach the blocksPromise catch → blocksError.
+        if (err instanceof SourceUnavailableError) throw err;
+        // Otherwise fall through to the per-resource read below.
       }
       return blockService.getList(HOMEPAGE_BLOCK_LIMIT, 0, { ...requestOptions, enrichMissingFields: true });
     };
 
-    // Single server — fetch directly from indexer, one fallback to RPC.
+    // Same pattern as fetchLatestBlocks: aggregate fast path, per-resource
+    // indexer fallback (no RPC fallback), and outage propagation so txsError
+    // fires instead of silently rendering an empty transaction list. Only
+    // `.result` is consumed downstream, so the dead totalCount plumbing is
+    // dropped here too (#26).
     const fetchLatestTransactions = async () => {
       try {
         const homePayload = await fastHomePayloadPromise;
@@ -679,37 +708,21 @@ async function loadLatestData(forceRefresh = false) {
           ? homePayload.latest_transactions.map(normalizeHomepageTransaction).slice(0, HOMEPAGE_TRANSACTION_LIMIT)
           : [];
         if (homeRows.length > 0) {
-          return {
-            result: homeRows,
-            totalCount: Number(
-              homePayload?.paging?.transactions_total ??
-                homePayload?.summary?.total_tx_count ??
-                homeRows.length,
-            ),
-          };
+          return { result: homeRows };
         }
 
         const indexerRes = await indexerReadService.getTransactions(HOMEPAGE_TRANSACTION_LIMIT, 0, requestOptions);
         const rows = Array.isArray(indexerRes?.data) ? indexerRes.data.map(normalizeHomepageTransaction) : [];
         if (rows.length > 0) {
-          return {
-            result: rows,
-            totalCount: Number(indexerRes?.paging?.total ?? rows.length),
-          };
+          return { result: rows };
         }
-      } catch {
-        // single fallback to RPC
+      } catch (err) {
+        if (err instanceof SourceUnavailableError) throw err;
+        // Otherwise fall through to the per-resource read below.
       }
-      try {
-        const txListRes = await transactionService.getList(HOMEPAGE_TRANSACTION_LIMIT, 0, requestOptions);
-        const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
-        return {
-          result: rows,
-          totalCount: Number(txListRes?.totalCount ?? rows.length),
-        };
-      } catch {
-        return { result: [], totalCount: 0 };
-      }
+      const txListRes = await transactionService.getList(HOMEPAGE_TRANSACTION_LIMIT, 0, requestOptions);
+      const rows = Array.isArray(txListRes?.result) ? txListRes.result : [];
+      return { result: rows };
     };
 
     const blocksPromise = fetchLatestBlocks()
@@ -749,10 +762,38 @@ async function loadLatestData(forceRefresh = false) {
     void summaryPromise.then((summary) => {
       if (!isCurrentLoadContext(context)) return;
       if (mySummaryGen !== summaryGeneration) return;
-      if (!summary || !isFreshHomepageSummary(summary)) return;
-      blockCount.value = resolveLiveBlockHeight(latestHeightFromSummary(summary));
-      txCount.value = Number(summary.total_tx_count || 0);
-    }).catch(() => {});
+      // The summary fetch has settled (fresh, stale, or empty); clear the
+      // stats skeleton so HomeStats stops showing skeletons/zeros forever.
+      statsLoading.value = false;
+      if (!summary) return;
+
+      // Display source (#16): render the INTERNAL indexed tx count on the
+      // home headline so it agrees with the Transactions-page header (which
+      // reads the same internal count). Falls back to total_tx_count only if
+      // the indexed count is absent, so a backfill-lagging or neotube-outage
+      // external total never makes the headline shrink/rebound.
+      const nextTxCount = resolveDisplayTxCount(summary);
+
+      if (isFreshHomepageSummary(summary)) {
+        blockCount.value = resolveLiveBlockHeight(latestHeightFromSummary(summary));
+        if (nextTxCount > 0) txCount.value = nextTxCount;
+        return;
+      }
+
+      // Stale summary (failed the freshness gate): don't discard it into a
+      // permanent 0. Keep last-known non-zero values, but adopt the stale
+      // value when we'd otherwise still be showing 0 (nothing better yet).
+      if (blockCount.value <= 0) {
+        blockCount.value = resolveLiveBlockHeight(latestHeightFromSummary(summary));
+      }
+      if (txCount.value <= 0 && nextTxCount > 0) {
+        txCount.value = nextTxCount;
+      }
+    }).catch(() => {
+      if (!isCurrentLoadContext(context)) return;
+      if (mySummaryGen !== summaryGeneration) return;
+      statsLoading.value = false;
+    });
 
     const fastTxsPromise = (async () => {
       const previousRows = Array.isArray(latestTxs.value) ? latestTxs.value : [];
