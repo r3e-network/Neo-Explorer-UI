@@ -54,7 +54,7 @@
         class="panel-muted flex items-start gap-3 px-4 py-3 mx-4"
       >
         <span
-          class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300"
+          class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-xs font-bold text-primary-700 dark:text-primary-300"
         >
           {{ ci + 1 }}
         </span>
@@ -299,7 +299,7 @@ const totalGas = computed(() => {
 function stepClass(opType) {
   const map = {
     transfer: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    deploy: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    deploy: "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300",
     vote: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     destroy: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
@@ -310,7 +310,7 @@ function opTypeBadge(opType) {
   const color = OPERATION_TYPES[opType]?.color ?? "gray";
   const map = {
     emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-    blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    blue: "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300",
     purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
     gray: "badge-soft",

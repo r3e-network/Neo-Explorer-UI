@@ -131,7 +131,7 @@
             class="etherscan-card p-6 border-t-4 border-t-blue-500 bg-gradient-to-b from-surface to-surface-muted/30"
           >
             <div
-              class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400"
+              class="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mb-4 text-primary-600 dark:text-primary-400"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

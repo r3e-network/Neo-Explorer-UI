@@ -170,7 +170,7 @@
                 class="panel-muted flex items-start gap-3 px-3 py-2"
               >
                 <span
-                  class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300"
+                  class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-xs font-bold text-primary-700 dark:text-primary-300"
                 >
                   {{ ci + 1 }}
                 </span>

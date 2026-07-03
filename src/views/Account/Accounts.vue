@@ -4,7 +4,7 @@
       <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.accounts') }]" />
 
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -49,7 +49,7 @@
           <div v-if="!isDesktop" class="soft-divider divide-y" data-testid="accounts-mobile-list">
             <MobileListCard v-for="(account, index) in accounts" :key="account.address || index" data-testid="account-mobile-card">
               <template #icon>
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                   Ad
                 </div>
               </template>

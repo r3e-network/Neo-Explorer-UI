@@ -108,7 +108,7 @@ function isExpandable(item) {
 
 function typeBadgeClass(type) {
   const map = {
-    Integer: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    Integer: "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300",
     Boolean: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     ByteString: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     Buffer: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",

@@ -24,7 +24,7 @@
         >
           <div class="flex items-center gap-2 mb-3">
             <div
-              class="h-6 w-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center dark:bg-blue-900/30 dark:text-blue-400"
+              class="h-6 w-6 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center dark:bg-primary-900/30 dark:text-primary-400"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -363,7 +363,7 @@
                 class="flex items-center justify-between border-b border-line-soft bg-surface-muted/70 px-4 py-2.5 dark:border-white/10 dark:bg-black/20"
               >
                 <div class="flex items-center gap-2">
-                  <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-3.5 h-3.5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
                       stroke-linejoin="round"

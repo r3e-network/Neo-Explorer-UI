@@ -86,7 +86,7 @@ const SEGMENT_COLORS = ["emerald", "blue", "purple", "amber", "rose", "cyan"];
 
 const barColors = {
   emerald: "bg-emerald-500",
-  blue: "bg-blue-500",
+  blue: "bg-primary-500",
   purple: "bg-purple-500",
   amber: "bg-amber-500",
   rose: "bg-rose-500",

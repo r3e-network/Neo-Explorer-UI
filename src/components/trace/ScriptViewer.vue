@@ -222,7 +222,7 @@ function formatOffset(offset) {
 
 function opcodeColor(opcode) {
   if (opcode === "SYSCALL") return "text-amber-600 dark:text-amber-400";
-  if (opcode.startsWith("PUSH")) return "text-blue-600 dark:text-blue-400";
+  if (opcode.startsWith("PUSH")) return "text-primary-600 dark:text-primary-400";
   if (
     opcode.startsWith("JMP") ||
     opcode === "CALL" ||
@@ -244,7 +244,7 @@ function operandClass(inst) {
     inst.operand.includes("Account:") ||
     inst.operand.includes("Native:")
   ) {
-    return "text-blue-600 dark:text-blue-400 font-semibold";
+    return "text-primary-600 dark:text-primary-400 font-semibold";
   }
   return "";
 }

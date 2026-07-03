@@ -16,7 +16,7 @@
     />
 
     <!-- Main Nav Bar -->
-    <nav class="main-nav relative border-b border-white/10 dark:border-neo-green/10 bg-white/70 dark:bg-[#071520]/70 shadow-lg backdrop-blur-xl transition-all duration-300">
+    <nav class="main-nav relative border-b border-white/10 dark:border-neo-green/10 bg-white/70 dark:bg-[#0a0f1a]/70 shadow-lg backdrop-blur-xl transition-all duration-300">
       <div class="mx-auto flex h-[70px] max-w-[1400px] items-center px-4">
         <!-- Logo -->
         <router-link to="/homepage" class="mr-8 flex items-center gap-2.5 no-underline group">

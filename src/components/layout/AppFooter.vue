@@ -122,7 +122,7 @@ function scrollTop() {
 
 <style scoped>
 .social-icon {
-  @apply flex h-8 w-8 items-center justify-center rounded-xl border transition;
+  @apply flex h-8 w-8 items-center justify-center rounded-lg border transition;
   border-color: var(--line-soft);
   background: var(--surface-elevated);
   color: var(--text-mid);

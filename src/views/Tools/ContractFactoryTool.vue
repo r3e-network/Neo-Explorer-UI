@@ -84,7 +84,7 @@
             </h2>
 
             <div
-              class="mb-6 p-3 rounded-lg bg-blue-50/80 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 text-sm flex gap-3"
+              class="mb-6 p-3 rounded-lg bg-primary-50/80 border border-primary-200 dark:bg-primary-900/20 dark:border-primary-800/50 text-primary-800 dark:text-primary-300 text-sm flex gap-3"
             >
               <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

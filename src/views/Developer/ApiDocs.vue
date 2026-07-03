@@ -4,7 +4,7 @@
       <Breadcrumb :items="[{ label: $t('breadcrumb.home'), to: '/homepage' }, { label: $t('breadcrumb.apiDocs') }]" />
 
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -38,7 +38,7 @@
         <button
           type="button"
           class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-          :class="apiMode === 'rest' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
+          :class="apiMode === 'rest' ? 'bg-primary-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
           @click="setApiMode('rest')"
         >
           {{ $t('apiDocsPage.modeRestRecommended') }}
@@ -46,7 +46,7 @@
         <button
           type="button"
           class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-          :class="apiMode === 'rpc' ? 'bg-blue-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
+          :class="apiMode === 'rpc' ? 'bg-primary-600 text-white' : 'bg-card text-mid hover:bg-card-hover'"
           @click="setApiMode('rpc')"
         >
           {{ $t('apiDocsPage.modeRpc') }}
@@ -74,7 +74,7 @@
             :aria-pressed="activeCategory === category.key"
             :class="
               activeCategory === category.key
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/20'
                 : 'bg-card text-mid hover:bg-card-hover hover:text-high'
             "
             @click="activeCategory = category.key"
@@ -127,7 +127,7 @@
             <article v-for="ep in filteredEndpoints" :key="ep.path" class="etherscan-card p-5">
               <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span
-                  class="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  class="rounded bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                   >{{ ep.method }}</span
                 >
                 <h3 class="text-high font-mono text-sm font-semibold break-all">{{ ep.path }}</h3>
@@ -172,7 +172,7 @@
                   :class="
                     method.type === 'passthrough'
                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
                   "
                 >
                   {{ method.type === "passthrough" ? $t('apiDocsPage.typeNative') : $t('apiDocsPage.typeIndexed') }}

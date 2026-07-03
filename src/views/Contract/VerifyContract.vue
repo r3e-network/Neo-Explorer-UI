@@ -31,7 +31,7 @@
       />
 
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

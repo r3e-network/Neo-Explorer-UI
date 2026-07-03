@@ -11,7 +11,7 @@
     --surface-glass: rgba(255, 255, 255, 0.68);
     --surface-hover: rgba(255, 255, 255, 0.9);
     --line-soft: rgba(116, 139, 166, 0.2);
-    --line-hover: rgba(20, 152, 221, 0.35);
+    --line-hover: rgba(0, 229, 153, 0.35);
     --text-high: #0d223d;
     --text-mid: #38455d;
     --text-low: #8797aa;
@@ -24,7 +24,7 @@
     --status-error-bg: rgba(214, 73, 73, 0.15);
     --status-warning: #c67a12;
     --status-warning-bg: rgba(198, 122, 18, 0.15);
-    --icon-bg-primary: rgba(20, 152, 221, 0.15);
+    --icon-bg-primary: rgba(0, 229, 153, 0.15);
     --icon-bg-green: rgba(15, 159, 114, 0.15);
     --icon-bg-orange: rgba(234, 138, 30, 0.15);
     --icon-bg-purple: rgba(139, 92, 246, 0.15);
@@ -57,7 +57,7 @@
 
   html {
     scroll-behavior: smooth;
-    font-size: 15px;
+    font-size: 16px;
   }
 
   body {
@@ -142,7 +142,7 @@
   .surface-panel {
     background: var(--surface-glass);
     border: 1px solid var(--line-soft);
-    @apply rounded-lg backdrop-blur-[10px] backdrop-saturate-[160%];
+    @apply rounded-xl backdrop-blur-[10px] backdrop-saturate-[160%];
     box-shadow: 0 8px 24px rgba(17, 35, 63, 0.07);
   }
 
@@ -175,7 +175,7 @@
   .etherscan-card {
     background: var(--surface-elevated);
     border: 1px solid var(--line-soft);
-    @apply rounded-lg backdrop-blur-[12px] backdrop-saturate-[160%];
+    @apply rounded-xl backdrop-blur-[12px] backdrop-saturate-[160%];
     box-shadow:
       0 14px 36px rgba(17, 35, 63, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.58);
@@ -307,7 +307,7 @@
   }
 
   .page-title {
-    @apply text-[1.7rem] font-extrabold;
+    @apply text-[2rem] font-extrabold;
     color: var(--text-high);
   }
 
@@ -385,7 +385,7 @@
   }
 
   .stat-value {
-    @apply mt-1 text-[1.35rem] font-extrabold;
+    @apply mt-1 text-[1.5rem] font-extrabold;
     color: var(--text-high);
   }
 

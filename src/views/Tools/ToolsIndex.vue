@@ -4,7 +4,7 @@
       <Breadcrumb :items="[{ label: $t('nav.home'), to: '/homepage' }, { label: $t('tools.title') }]" />
 
       <div class="mb-8 flex items-start gap-3">
-        <div class="page-header-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path
               stroke-linecap="round"
@@ -62,8 +62,8 @@ const baseIconClass =
 const iconThemes = {
   amber:
     "border-amber-100 bg-gradient-to-br from-amber-100 to-amber-50 text-amber-600 dark:border-amber-800/30 dark:from-amber-900/40 dark:to-amber-800/20 dark:text-amber-400",
-  blue:
-    "border-blue-100 bg-gradient-to-br from-blue-100 to-blue-50 text-blue-600 dark:border-blue-800/30 dark:from-blue-900/40 dark:to-blue-800/20 dark:text-blue-400",
+  primary:
+    "border-primary-100 bg-gradient-to-br from-primary-100 to-primary-50 text-primary-600 dark:border-primary-800/30 dark:from-primary-900/40 dark:to-primary-900/20 dark:text-primary-400",
   cyan:
     "border-cyan-100 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-600 dark:border-cyan-800/30 dark:from-cyan-900/40 dark:to-cyan-800/20 dark:text-cyan-400",
   emerald:
@@ -121,7 +121,7 @@ const tools = [
     to: "/tools/multisig",
     titleKey: "tools.multisig.title",
     descriptionKey: "tools.multisig.description",
-    color: "blue",
+    color: "primary",
     icon: "users",
   },
   {

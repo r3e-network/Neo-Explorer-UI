@@ -1083,9 +1083,9 @@ onBeforeUnmount(() => {});
 <style scoped>
 .hero-section {
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(74, 180, 238, 0.26), transparent 36%),
-    radial-gradient(circle at 78% 8%, rgba(0, 229, 153, 0.16), transparent 28%),
-    linear-gradient(180deg, #0f1f3d 0%, #162a4b 100%);
+    radial-gradient(circle at 15% 20%, rgba(0, 229, 153, 0.2), transparent 36%),
+    radial-gradient(circle at 85% 10%, rgba(0, 229, 153, 0.12), transparent 30%),
+    linear-gradient(180deg, #0a0f1a 0%, #0f1923 100%);
 }
 
 .hero-overlay {

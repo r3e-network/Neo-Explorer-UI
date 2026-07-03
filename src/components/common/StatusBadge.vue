@@ -3,7 +3,7 @@
     class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold"
     :style="badgeStyle"
   >
-    <span class="inline-block h-1.5 w-1.5 rounded-full" :style="{ background: statusColor }"></span>
+    <span class="inline-block h-2 w-2 rounded-full" :style="{ background: statusColor }"></span>
     {{ label }}
   </span>
 </template>

@@ -6,7 +6,7 @@
 
       <!-- Page Header -->
       <div class="mb-6 flex items-center gap-3">
-        <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+        <div class="page-header-icon bg-icon-primary">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -145,8 +145,8 @@
             <!-- Transaction Result -->
             <div v-else-if="result.type === 'transaction'" class="space-y-3">
               <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                  <svg class="h-5 w-5 text-primary-600 dark:text-primary-400" fill="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4z"
                     />
@@ -174,8 +174,8 @@
             <!-- Address Result -->
             <div v-else-if="result.type === 'address'" class="space-y-3">
               <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                  <svg class="h-5 w-5 text-primary-600 dark:text-primary-400" fill="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
                     />
@@ -326,8 +326,8 @@ const resultTypeLabel = computed(() => {
 const resultBadgeClass = computed(() => {
   const classes = {
     block: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-    transaction: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    address: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    transaction: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
+    address: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
     contract: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
   };
   return classes[result.value.type] || "";

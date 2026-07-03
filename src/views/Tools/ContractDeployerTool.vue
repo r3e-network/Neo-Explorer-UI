@@ -7,7 +7,7 @@
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
-          <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -61,7 +61,7 @@
                 class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="
                   nefFile
-                    ? 'border-blue-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
+                    ? 'border-primary-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
                     : 'border-line-soft hover:border-primary-400 bg-surface hover:bg-surface-muted'
                 "
                 @click="$refs.nefInput.click()"
@@ -88,10 +88,10 @@
                 </template>
                 <template v-else>
                   <div
-                    class="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-blue-200 dark:border-blue-800/30"
+                    class="h-12 w-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-primary-200 dark:border-primary-800/30"
                   >
                     <svg
-                      class="w-6 h-6 text-blue-600 dark:text-blue-400"
+                      class="w-6 h-6 text-primary-600 dark:text-primary-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -99,7 +99,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
-                  <p class="text-sm font-bold text-blue-700 dark:text-blue-400">{{ nefFile.name }}</p>
+                  <p class="text-sm font-bold text-primary-700 dark:text-primary-400">{{ nefFile.name }}</p>
                   <p class="text-xs text-mid mt-1">{{ formatBytes(nefFile.size) }}</p>
                   <button
                     @click.stop="clearNef"
@@ -121,7 +121,7 @@
                 class="border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 relative group focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="
                   manifestFile
-                    ? 'border-blue-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
+                    ? 'border-primary-500/50 bg-gradient-to-b from-blue-50/50 to-transparent dark:from-blue-900/10'
                     : 'border-line-soft hover:border-primary-400 bg-surface hover:bg-surface-muted'
                 "
                 @click="$refs.manifestInput.click()"
@@ -148,10 +148,10 @@
                 </template>
                 <template v-else>
                   <div
-                    class="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-blue-200 dark:border-blue-800/30"
+                    class="h-12 w-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-primary-200 dark:border-primary-800/30"
                   >
                     <svg
-                      class="w-6 h-6 text-blue-600 dark:text-blue-400"
+                      class="w-6 h-6 text-primary-600 dark:text-primary-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -159,7 +159,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
                   </div>
-                  <p class="text-sm font-bold text-blue-700 dark:text-blue-400">{{ manifestFile.name }}</p>
+                  <p class="text-sm font-bold text-primary-700 dark:text-primary-400">{{ manifestFile.name }}</p>
                   <p v-if="parsedManifestName" class="text-xs text-mid mt-1">
                     {{ $t("tools.contractDeployer.contractLabel") }} <span class="font-semibold text-high">{{ parsedManifestName }}</span>
                   </p>
@@ -177,7 +177,7 @@
               <button
                 @click="deployContract"
                 :disabled="!isReadyToDeploy || isDeploying"
-                class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-sm font-bold text-white hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-8 py-3 text-sm font-bold text-white hover:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md active:scale-95"
               >
                 <svg v-if="isDeploying" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

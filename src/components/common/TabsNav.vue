@@ -102,7 +102,7 @@ watch(
       </span>
       <span
         v-if="modelValue === tab.key"
-        class="absolute inset-x-2 bottom-0.5 h-0.5 rounded bg-primary-500"
+        class="absolute inset-x-2 bottom-1 h-[3px] rounded-full bg-primary-500"
       />
     </button>
   </div>

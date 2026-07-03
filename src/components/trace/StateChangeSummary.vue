@@ -9,8 +9,8 @@
     <div v-else-if="enrichedTrace" class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <!-- Contracts -->
       <div class="panel-muted flex items-center gap-3 px-4 py-3">
-        <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/40">
-          <svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/40">
+          <svg class="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

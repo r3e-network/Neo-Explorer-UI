@@ -11,7 +11,7 @@
 
       <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
-          <div class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <div class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -33,12 +33,12 @@
         <div class="lg:col-span-4 space-y-6">
           <!-- Docs Card -->
           <div
-            class="etherscan-card p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200/60 dark:border-blue-900/40"
+            class="etherscan-card p-5 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/10 dark:to-primary-900/20 border-primary-200/60 dark:border-primary-900/40"
           >
-            <div class="flex items-center gap-3 mb-4 border-b border-blue-200/60 dark:border-blue-800/60 pb-3">
-              <div class="p-2 bg-blue-100 dark:bg-blue-800/40 rounded-lg shrink-0">
+            <div class="flex items-center gap-3 mb-4 border-b border-primary-200/60 dark:border-primary-800/60 pb-3">
+              <div class="p-2 bg-primary-100 dark:bg-primary-900/40 rounded-lg shrink-0">
                 <svg
-                  class="h-5 w-5 text-blue-600 dark:text-blue-400"
+                  class="h-5 w-5 text-primary-600 dark:text-primary-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -95,13 +95,13 @@
                 role="button"
                 tabindex="0"
                 :aria-label="$t('tools.multisig.loadConfigAria', { name: cfg.name })"
-                class="p-3 border border-line-soft rounded-xl hover:border-blue-400 transition-colors cursor-pointer group bg-surface focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="p-3 border border-line-soft rounded-xl hover:border-primary-400 transition-colors cursor-pointer group bg-surface focus:outline-none focus:ring-2 focus:ring-primary-500"
                 @click="loadConfig(cfg)"
                 @keydown.enter.prevent="loadConfig(cfg)"
                 @keydown.space.prevent="loadConfig(cfg)"
               >
                 <div class="flex items-center justify-between mb-1">
-                  <span class="font-semibold text-sm text-high group-hover:text-blue-600">{{ cfg.name }}</span>
+                  <span class="font-semibold text-sm text-high group-hover:text-primary-600">{{ cfg.name }}</span>
                   <button
                     @click.stop="deleteConfig(idx)"
                     :aria-label="$t('tools.multisig.deleteConfigAria')"
@@ -137,7 +137,7 @@
                 class="pb-3 text-sm font-bold border-b-2 transition-colors"
                 :class="
                   activeTab === 'requests'
-                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
                     : 'border-transparent text-mid hover:text-high'
                 "
                 @click="activeTab = 'requests'"
@@ -148,7 +148,7 @@
                 class="pb-3 text-sm font-bold border-b-2 transition-colors"
                 :class="
                   activeTab === 'create'
-                    ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400'
+                    ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
                     : 'border-transparent text-mid hover:text-high'
                 "
                 @click="activeTab = 'create'"
@@ -172,7 +172,7 @@
                     }}</label>
                     <textarea
                       v-model="createForm.pubkeys"
-                      class="form-input w-full font-mono text-xs h-20 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                      class="form-input w-full font-mono text-xs h-20 rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                       :placeholder="$t('tools.multisig.pubkeysPlaceholder')"
                     ></textarea>
                   </div>
@@ -186,7 +186,7 @@
                         id="multisig-required-threshold"
                         v-model="createForm.threshold"
                         type="number"
-                        class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                        class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                         value="2"
                         min="1"
                       />
@@ -213,13 +213,13 @@
                   <transition name="fade">
                     <div
                       v-if="derivedMultisigAddress"
-                      class="p-4 rounded-xl bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/30 flex items-center justify-between gap-4 mt-2"
+                      class="p-4 rounded-xl bg-primary-50 border border-primary-200 dark:bg-primary-900/10 dark:border-primary-800/30 flex items-center justify-between gap-4 mt-2"
                     >
                       <div>
-                        <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-1">
+                        <p class="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-wider mb-1">
                           {{ $t("tools.multisig.derivedAddress") }}
                         </p>
-                        <p class="text-sm text-blue-900 dark:text-blue-300 font-mono font-bold">
+                        <p class="text-sm text-primary-900 dark:text-primary-300 font-mono font-bold">
                           {{ derivedMultisigAddress }}
                         </p>
                       </div>
@@ -241,7 +241,7 @@
                     <input
                       v-model="createForm.description"
                       type="text"
-                      class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                      class="form-input w-full rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                       :placeholder="$t('tools.multisig.descriptionPlaceholder')"
                     />
                   </div>
@@ -253,7 +253,7 @@
                     <input
                       v-model="createForm.targetContract"
                       type="text"
-                      class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                      class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                       :placeholder="$t('tools.multisig.contractHashPlaceholder')"
                       list="fast-contracts"
                     />
@@ -271,7 +271,7 @@
                       <input
                         v-model="createForm.method"
                         type="text"
-                        class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                        class="form-input w-full font-mono text-sm rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                         :placeholder="$t('tools.multisig.methodPlaceholder')"
                       />
                     </div>
@@ -283,7 +283,7 @@
                     }}</label>
                     <textarea
                       v-model="createForm.argsStr"
-                      class="form-input w-full font-mono text-xs h-24 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                      class="form-input w-full font-mono text-xs h-24 rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                       :placeholder="$t('tools.multisig.argsPlaceholder')"
                     ></textarea>
                   </div>
@@ -293,7 +293,7 @@
                   <button
                     @click="handleCreateRequest"
                     :disabled="!connectedAccount || isCreating || !derivedMultisigAddress"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-sm font-bold text-white hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md active:scale-95"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-8 py-3 text-sm font-bold text-white hover:bg-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md active:scale-95"
                   >
                     <svg v-if="isCreating" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -339,7 +339,7 @@
                   <button
                     v-if="connectedAccount"
                     @click="activeTab = 'create'"
-                    class="text-blue-600 font-semibold hover:underline"
+                    class="text-primary-600 font-semibold hover:underline"
                   >
                     {{ $t("tools.multisig.createNewRequest") }}
                   </button>
@@ -352,7 +352,7 @@
                   <div
                     v-for="req in requests"
                     :key="req.id"
-                    class="border border-line-soft bg-surface rounded-2xl p-5 hover:border-blue-300 dark:hover:border-blue-700 transition-colors shadow-sm"
+                    class="border border-line-soft bg-surface rounded-2xl p-5 hover:border-primary-300 dark:hover:border-primary-700 transition-colors shadow-sm"
                   >
                     <div class="flex flex-col sm:flex-row gap-4 items-start justify-between">
                       <div class="flex-1 min-w-0">
@@ -396,7 +396,7 @@
                           </div>
                           <button
                             @click="viewDetails(req)"
-                            class="text-blue-500 hover:text-blue-600 font-sans font-medium flex items-center gap-1"
+                            class="text-primary-500 hover:text-primary-600 font-sans font-medium flex items-center gap-1"
                           >
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path
@@ -422,7 +422,7 @@
                               :class="
                                 (req.signatures?.length || 0) >= req.signers_required
                                   ? 'text-emerald-500'
-                                  : 'text-blue-600 dark:text-blue-400'
+                                  : 'text-primary-600 dark:text-primary-400'
                               "
                               >{{ req.signatures?.length || 0 }}</span
                             >
@@ -444,7 +444,7 @@
                                 connectedAccount && req.eligible_signers?.includes(connectedAccount) && !hasSigned(req)
                               "
                               @click="openSignModal(req)"
-                              class="w-full py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                              class="w-full py-2 bg-primary-600 text-white text-sm font-bold rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                             >
                               {{ $t("tools.multisig.signPayload") }}
                             </button>
@@ -484,7 +484,7 @@
                         <div
                           class="h-1.5 rounded-full transition-all duration-500"
                           :class="
-                            (req.signatures?.length || 0) >= req.signers_required ? 'bg-emerald-500' : 'bg-blue-500'
+                            (req.signatures?.length || 0) >= req.signers_required ? 'bg-emerald-500' : 'bg-primary-500'
                           "
                           :style="requestProgressStyle(req)"
                         ></div>
@@ -542,7 +542,7 @@
         >
           <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
             <div class="flex items-center gap-3">
-              <div class="p-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl">
+              <div class="p-2 bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 rounded-xl">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -606,7 +606,7 @@
               <button
                 @click="autoSignTx"
                 :disabled="isSigning || signModalLoading || !signModalReq.params?.unsigned_tx"
-                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 hover:-translate-y-0.5 hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none shadow-md"
               >
                 <svg v-if="isSigning" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -644,7 +644,7 @@
               <input
                 v-model="manualSignature"
                 type="text"
-                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500/20 hover:border-blue-400 focus:border-blue-400 transition-all outline-none"
+                class="form-input w-full font-mono text-xs py-3 rounded-xl shadow-inner focus:ring-2 focus:ring-primary-500/20 hover:border-primary-400 focus:border-primary-400 transition-all outline-none"
                 :placeholder="$t('tools.multisig.manualSigPlaceholder')"
               />
               <button
@@ -675,7 +675,7 @@
         >
           <div class="px-6 py-5 border-b border-line-soft flex items-center justify-between bg-surface/50">
             <div class="flex items-center gap-3">
-              <div class="p-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-xl">
+              <div class="p-2 bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 rounded-xl">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"

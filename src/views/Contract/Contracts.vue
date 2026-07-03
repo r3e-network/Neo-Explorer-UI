@@ -305,7 +305,7 @@ function getStandards(contract) {
 function nepBadgeClass(std) {
   const upper = String(std || "").toUpperCase();
   if (upper.includes("NEP-17") || upper.includes("NEP17")) {
-    return "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
+    return "bg-primary-100 text-primary-700 border border-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:border-primary-800";
   }
   if (upper.includes("NEP-11") || upper.includes("NEP11")) {
     return "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";

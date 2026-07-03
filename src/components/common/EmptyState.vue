@@ -2,17 +2,17 @@
   <div class="py-12 px-4 text-center">
     <div
       v-once
-      class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg text-mid bg-surface-glass border border-line-soft"
+      class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-xl text-mid bg-surface-glass border border-line-soft"
     >
       <!-- Block icon -->
-      <svg v-if="icon === 'block'" aria-hidden="true" class="h-8 w-8 text-low" fill="currentColor" viewBox="0 0 24 24">
+      <svg v-if="icon === 'block'" aria-hidden="true" class="h-10 w-10 text-low" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
       </svg>
       <!-- Transaction icon -->
       <svg
         v-else-if="icon === 'tx'"
         aria-hidden="true"
-        class="h-8 w-8 text-low"
+        class="h-10 w-10 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -24,7 +24,7 @@
       <svg
         v-else-if="icon === 'token'"
         aria-hidden="true"
-        class="h-8 w-8 text-low"
+        class="h-10 w-10 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -34,7 +34,7 @@
       <svg
         v-else-if="icon === 'contract'"
         aria-hidden="true"
-        class="h-8 w-8 text-low"
+        class="h-10 w-10 text-low"
         fill="currentColor"
         viewBox="0 0 24 24"
       >
@@ -46,7 +46,7 @@
       <svg
         v-else-if="icon === 'search'"
         aria-hidden="true"
-        class="h-8 w-8 text-low"
+        class="h-10 w-10 text-low"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -59,7 +59,7 @@
         />
       </svg>
       <!-- Default inbox icon -->
-      <svg v-else aria-hidden="true" class="h-8 w-8 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg v-else aria-hidden="true" class="h-10 w-10 text-low" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"

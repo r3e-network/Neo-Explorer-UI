@@ -209,7 +209,7 @@
             </div>
             <div class="text-mid flex items-center gap-2 text-sm">
               <span
-                class="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center text-xs"
+                class="w-6 h-6 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-500 flex items-center justify-center text-xs"
                 >Tx</span
               >
               <i18n-t keypath="searchBox.tipTransactionHash" tag="span">

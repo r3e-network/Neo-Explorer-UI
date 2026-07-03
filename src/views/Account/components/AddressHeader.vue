@@ -12,7 +12,7 @@
       </div>
       <div
         v-else-if="isNeoFoundation"
-        class="page-header-icon bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
+        class="page-header-icon bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400"
       >
         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -78,7 +78,7 @@
           <span
             v-else-if="knownName"
             class="detail-chip font-bold"
-            :class="isNeoFoundation ? 'text-blue-600 dark:text-blue-400' : 'text-primary-600 dark:text-primary-400'"
+            :class="isNeoFoundation ? 'text-primary-600 dark:text-primary-400' : 'text-primary-600 dark:text-primary-400'"
           >
             {{ knownName }}
           </span>

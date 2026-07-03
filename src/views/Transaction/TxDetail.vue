@@ -12,9 +12,9 @@
       <!-- Action Summary Banner -->
       <div
         v-if="!loading && tx.hash && actionSummary"
-        class="mb-6 flex items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/80 p-4 backdrop-blur-sm dark:border-blue-800/70 dark:bg-blue-900/20"
+        class="mb-6 flex items-start gap-3 rounded-xl border border-primary-500/30 bg-primary-500/10 p-4 backdrop-blur-sm dark:border-primary-500/30 dark:bg-primary-500/10"
       >
-        <svg aria-hidden="true" class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
@@ -22,7 +22,7 @@
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <p class="text-sm text-blue-800 dark:text-blue-300">
+        <p class="text-sm text-primary-800 dark:text-primary-300">
           {{ actionSummary }}
         </p>
       </div>

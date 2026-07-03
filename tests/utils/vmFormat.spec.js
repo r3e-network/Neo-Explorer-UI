@@ -68,7 +68,7 @@ describe("getTypeIconClass", () => {
     expect(getTypeIconClass("transaction")).toContain("green");
     expect(getTypeIconClass("address")).toContain("orange");
     expect(getTypeIconClass("contract")).toContain("purple");
-    expect(getTypeIconClass("token")).toContain("blue");
+    expect(getTypeIconClass("token")).toContain("primary");
   });
 
   it("returns primary fallback for unknown types", () => {
@@ -83,7 +83,7 @@ describe("getTypeBadgeClass", () => {
     expect(getTypeBadgeClass("transaction")).toContain("green");
     expect(getTypeBadgeClass("address")).toContain("orange");
     expect(getTypeBadgeClass("contract")).toContain("purple");
-    expect(getTypeBadgeClass("token")).toContain("blue");
+    expect(getTypeBadgeClass("token")).toContain("primary");
   });
 
   it("returns gray fallback for unknown types", () => {
@@ -100,11 +100,11 @@ describe("opcodeColorClass", () => {
     expect(opcodeColorClass("NOP")).toContain("emerald");
   });
 
-  it("returns blue for call ops", () => {
-    expect(opcodeColorClass("SYSCALL")).toContain("blue");
-    expect(opcodeColorClass("CALL")).toContain("blue");
-    expect(opcodeColorClass("CALLT")).toContain("blue");
-    expect(opcodeColorClass("CALLA")).toContain("blue");
+  it("returns primary classes for call ops", () => {
+    expect(opcodeColorClass("SYSCALL")).toContain("primary");
+    expect(opcodeColorClass("CALL")).toContain("primary");
+    expect(opcodeColorClass("CALLT")).toContain("primary");
+    expect(opcodeColorClass("CALLA")).toContain("primary");
   });
 
   it("returns amber for jump/control ops", () => {
@@ -124,7 +124,7 @@ describe("opcodeColorClass", () => {
 
   it("is case-insensitive", () => {
     expect(opcodeColorClass("push1")).toContain("emerald");
-    expect(opcodeColorClass("syscall")).toContain("blue");
+    expect(opcodeColorClass("syscall")).toContain("primary");
   });
 
   it("returns gray for unknown opcodes", () => {

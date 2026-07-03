@@ -23,7 +23,7 @@ describe("getTypeIconClass", () => {
     expect(getTypeIconClass("transaction")).toContain("bg-green-100");
     expect(getTypeIconClass("address")).toContain("bg-orange-100");
     expect(getTypeIconClass("contract")).toContain("bg-purple-100");
-    expect(getTypeIconClass("token")).toContain("bg-blue-100");
+    expect(getTypeIconClass("token")).toContain("bg-primary-100");
   });
 
   it("falls back to primary classes for unknown type", () => {
@@ -38,7 +38,7 @@ describe("getTypeBadgeClass", () => {
     expect(getTypeBadgeClass("transaction")).toContain("text-green-600");
     expect(getTypeBadgeClass("address")).toContain("text-orange-600");
     expect(getTypeBadgeClass("contract")).toContain("text-purple-600");
-    expect(getTypeBadgeClass("token")).toContain("text-blue-600");
+    expect(getTypeBadgeClass("token")).toContain("text-primary-600");
   });
 
   it("falls back to gray classes for unknown type", () => {

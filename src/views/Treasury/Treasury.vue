@@ -22,7 +22,7 @@
     <section class="page-container py-8 -mt-12 relative z-40">
       <!-- Data Source Notification -->
       <div
-        class="mb-6 flex items-center gap-3 p-4 rounded-xl bg-blue-50/80 backdrop-blur-sm border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 shadow-sm"
+        class="mb-6 flex items-center gap-3 p-4 rounded-xl bg-primary-50/80 backdrop-blur-sm border border-primary-200 dark:bg-primary-900/30 dark:border-primary-800/50 text-primary-800 dark:text-primary-300 shadow-sm"
       >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -38,7 +38,7 @@
             href="https://neo-treasury.pages.dev/"
             target="_blank"
             rel="noopener noreferrer"
-            class="underline hover:text-blue-600 dark:hover:text-blue-200 font-bold decoration-2 underline-offset-2"
+            class="underline hover:text-primary-600 dark:hover:text-primary-200 font-bold decoration-2 underline-offset-2"
             >neo-treasury.pages.dev</a
           >{{ $t('treasuryPage.dataSourceSuffix') }}
         </div>
@@ -87,13 +87,13 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div
-              class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 to-transparent p-5 border border-green-500/20"
+              class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500/10 to-transparent p-5 border border-primary-500/20"
             >
-              <div class="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl"></div>
-              <p class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wide">
+              <div class="absolute -right-4 -top-4 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl"></div>
+              <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-2 uppercase tracking-wide">
                 {{ $t('treasuryPage.totalNeoLabel') }}
               </p>
-              <div v-if="loading" class="animate-pulse h-8 w-32 bg-green-500/20 rounded mt-1 mb-2"></div>
+              <div v-if="loading" class="animate-pulse h-8 w-32 bg-primary-500/20 rounded mt-1 mb-2"></div>
               <p v-else-if="!isTreasuryNetworkSupported" class="text-2xl font-extrabold text-high tracking-tight">
                 {{ $t('treasuryPage.mainnetOnlyShort') }}
               </p>
@@ -102,7 +102,7 @@
               </p>
               <p
                 v-if="isTreasuryNetworkSupported && neoPrice && !loading"
-                class="text-sm font-medium text-green-600 dark:text-green-400 mt-2"
+                class="text-sm font-medium text-primary-600 dark:text-primary-400 mt-2"
               >
                 ≈ ${{ formatLargeNumber(totalNeo * neoPrice) }}
               </p>
@@ -318,7 +318,7 @@ const totalNeo = computed(() => balances.value.reduce((sum, item) => sum + item.
 const totalGas = computed(() => balances.value.reduce((sum, item) => sum + item.gas, 0));
 
 const groups = computed(() => {
-  const da = { key: "daHongfei", name: t("treasuryPage.groupDaHongfei"), neo: 0, gas: 0, color: "bg-blue-500 ring-blue-500" };
+  const da = { key: "daHongfei", name: t("treasuryPage.groupDaHongfei"), neo: 0, gas: 0, color: "bg-primary-500 ring-primary-500" };
   const erik = { key: "erikZhang", name: t("treasuryPage.groupErikZhang"), neo: 0, gas: 0, color: "bg-purple-500 ring-purple-500" };
   const ops = { key: "opsAndOther", name: t("treasuryPage.groupOpsAndOther"), neo: 0, gas: 0, color: "bg-amber-500 ring-amber-500" };
 
@@ -343,7 +343,7 @@ function groupWidthStyle(group) {
 }
 
 function getGroupColor(name) {
-  if (name.includes("Da Hongfei")) return "bg-blue-500";
+  if (name.includes("Da Hongfei")) return "bg-primary-500";
   if (name.includes("Erik Zhang")) return "bg-purple-500";
   return "bg-amber-500";
 }
