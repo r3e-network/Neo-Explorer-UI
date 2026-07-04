@@ -3,7 +3,6 @@ import { base64ToBytes, hexToBytes, strip0x } from "@/utils/neoHelpers";
 
 const textEncoder = new TextEncoder();
 const MAX_COMPILER_BYTES = 64;
-const WEB_FALLBACK_WARNING = "neo-decompiler-web was unavailable; fell back to neo-decompiler-js.";
 
 let webDecompilerClientPromise = null;
 
@@ -134,19 +133,6 @@ async function decompileWithWebPackage(nefBytes, manifest = null) {
   };
 }
 
-async function decompileWithJsPackage(nefBytes, manifest = null, leadingWarnings = []) {
-  const decompiler = await import("neo-decompiler-js");
-  const options = { clean: true };
-  const result = manifest
-    ? decompiler.decompileHighLevelBytesWithManifest(nefBytes, manifest, options)
-    : decompiler.decompileHighLevelBytes(nefBytes, options);
-
-  return {
-    code: result.highLevel || result.groupedPseudocode || result.pseudocode || "",
-    warnings: [...leadingWarnings, ...(Array.isArray(result.warnings) ? result.warnings : [])],
-  };
-}
-
 export async function decompileContractState(contractState = {}, manifest = null) {
   const nefBytes = extractNefBytes(contractState);
   if (!nefBytes.length) {
@@ -155,8 +141,8 @@ export async function decompileContractState(contractState = {}, manifest = null
 
   try {
     return await decompileWithWebPackage(nefBytes, manifest);
-  } catch {
+  } catch (error) {
     webDecompilerClientPromise = null;
-    return decompileWithJsPackage(nefBytes, manifest, [WEB_FALLBACK_WARNING]);
+    throw new Error(error?.message || "neo-decompiler-web is unavailable.");
   }
 }

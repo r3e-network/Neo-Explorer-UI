@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import compression from "vite-plugin-compression";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
 // Direct node RPC plus read-api data plane.
@@ -231,8 +230,7 @@ export function getManualChunkName(id) {
     id.includes("highlight.js") ||
     id.includes("@highlightjs") ||
     id.includes("prismjs") ||
-    id.includes("neo-decompiler-web") ||
-    id.includes("neo-decompiler-js")
+    id.includes("neo-decompiler-web")
   ) {
     return "syntax";
   }
@@ -321,7 +319,7 @@ export function getManualChunkName(id) {
   if (id.includes("chart.js")) {
     return "chartjs";
   }
-  if (id.includes("core-js") || id.includes("vite-plugin-node-polyfills")) {
+  if (id.includes("core-js")) {
     return "polyfills";
   }
   if (id.includes("timeago.js")) {
@@ -347,15 +345,6 @@ export default defineConfig(({ mode }) => {
       vue(),
       createDevMultisigApiPlugin(),
       createDevPriceProxyPlugin(coingeckoProxyTarget),
-      nodePolyfills({
-        include: ["buffer", "crypto", "stream", "util", "events", "process"],
-        globals: {
-          Buffer: true,
-          global: true,
-          process: true,
-        },
-        protocolImports: true,
-      }),
       compression({
         algorithm: "gzip",
         ext: ".gz",
@@ -368,7 +357,7 @@ export default defineConfig(({ mode }) => {
       extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".vue"],
       alias: {
         "@": path.resolve(__dirname, "./src"),
-        "@web3auth/auth": path.resolve(__dirname, "./node_modules/@web3auth/auth/dist/auth.esm.js"),
+        "@web3auth/auth": path.resolve(__dirname, "./node_modules/@web3auth/auth/dist/lib.esm/index.js"),
         "vue-i18n": "vue-i18n/dist/vue-i18n.esm-bundler.js",
       },
     },

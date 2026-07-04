@@ -82,8 +82,8 @@ describe("endpoint defaults", () => {
     expect(viteConfig).toContain('id.includes("/react/") || id.includes("/react-dom/") || id.includes("react-i18next")');
     expect(viteConfig).toContain('return "web3auth";');
     expect(viteConfig).toContain('id.includes("react-qrcode-logo") || id.includes("qrcode-generator")');
-    expect(viteConfig).toContain('id.includes("neo-decompiler-web") ||');
-    expect(viteConfig).toContain('id.includes("neo-decompiler-js")');
+    expect(viteConfig).toContain('id.includes("neo-decompiler-web")');
+    expect(viteConfig).not.toContain('id.includes("neo-decompiler-js")');
     expect(viteConfig).toContain('return "syntax";');
   });
 

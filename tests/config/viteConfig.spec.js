@@ -41,7 +41,7 @@ describe("vite config warning and chunk helpers", () => {
 
   it("aliases Web3Auth auth to its direct ESM build for leaner bundling", () => {
     const viteConfig = fs.readFileSync(new URL("../../vite.config.js", import.meta.url), "utf8");
-    expect(viteConfig).toContain('"@web3auth/auth": path.resolve(__dirname, "./node_modules/@web3auth/auth/dist/auth.esm.js")');
+    expect(viteConfig).toContain('"@web3auth/auth": path.resolve(__dirname, "./node_modules/@web3auth/auth/dist/lib.esm/index.js")');
   });
 
   it("keeps the dev multisig proposal list readable when DATABASE_URL is absent", () => {

@@ -4,17 +4,10 @@ const mocks = vi.hoisted(() => ({
   webInit: vi.fn(),
   webDecompileReport: vi.fn(),
   webInitPanicHook: vi.fn(),
-  decompileHighLevelBytesWithManifest: vi.fn(),
-  decompileHighLevelBytes: vi.fn(),
 }));
 
 vi.mock("neo-decompiler-web", () => ({
   init: mocks.webInit,
-}));
-
-vi.mock("neo-decompiler-js", () => ({
-  decompileHighLevelBytes: mocks.decompileHighLevelBytes,
-  decompileHighLevelBytesWithManifest: mocks.decompileHighLevelBytesWithManifest,
 }));
 
 function bytesToBase64(bytes) {
@@ -71,16 +64,12 @@ describe("contractDecompiler", () => {
     expect(result.warnings).toEqual(["lifted"]);
   });
 
-  it("falls back to the JS decompiler when the web package cannot initialize", async () => {
+  it("reports a clear error when the web decompiler cannot initialize", async () => {
     mocks.webInit.mockRejectedValueOnce(new Error("missing wasm artifact"));
-    mocks.decompileHighLevelBytes.mockReturnValueOnce({ highLevel: "contract Raw {}", warnings: [] });
 
     const { decompileContractState } = await import("@/utils/contractDecompiler");
     const rawNef = bytesToBase64([0x4e, 0x45, 0x46, 0x33, 0x00]);
-    const result = await decompileContractState({ nef: rawNef }, null);
 
-    expect(mocks.decompileHighLevelBytes).toHaveBeenCalledWith(expect.any(Uint8Array), { clean: true });
-    expect(result.code).toBe("contract Raw {}");
-    expect(result.warnings).toEqual(["neo-decompiler-web was unavailable; fell back to neo-decompiler-js."]);
+    await expect(decompileContractState({ nef: rawNef }, null)).rejects.toThrow("missing wasm artifact");
   });
 });

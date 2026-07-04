@@ -1,4 +1,4 @@
-import { Auth, LOGIN_PROVIDER, THEME_MODES, UX_MODE } from "@web3auth/auth";
+import { AUTH_CONNECTION, Auth, THEME_MODES, UX_MODE } from "@web3auth/auth";
 
 let _web3auth = null;
 let _chainConfigKey = null;
@@ -61,7 +61,7 @@ export const web3authService = {
           appName: "Neo Explorer",
           defaultLanguage: w3aLang,
           // Web3Auth reads theme mode from whiteLabel, not the top-level Auth options.
-          mode: THEME_MODES.DARK,
+          mode: THEME_MODES.dark,
         },
       });
       await _web3auth.init();
@@ -75,11 +75,11 @@ export const web3authService = {
   /**
    * Connects via Web3Auth auth adapter and returns the Neo N3 Wallet Account
    */
-  async connect(loginProvider = LOGIN_PROVIDER.GOOGLE) {
+  async connect(authConnection = AUTH_CONNECTION.GOOGLE) {
     await this.init();
 
     if (!_web3auth.privKey) {
-      await _web3auth.login({ loginProvider });
+      await _web3auth.login({ authConnection });
     }
     return await this.getAccount();
   },

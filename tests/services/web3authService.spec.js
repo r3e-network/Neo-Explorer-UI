@@ -34,7 +34,7 @@ vi.mock("@web3auth/auth", () => ({
       return logoutMock();
     }
   },
-  LOGIN_PROVIDER: {
+  AUTH_CONNECTION: {
     GOOGLE: "google",
     EMAIL_PASSWORDLESS: "email_passwordless",
   },
@@ -42,13 +42,9 @@ vi.mock("@web3auth/auth", () => ({
     POPUP: "popup",
   },
   THEME_MODES: {
-    LIGHT: "light",
-    DARK: "dark",
+    light: "light",
+    dark: "dark",
   },
-}));
-
-vi.mock("@web3auth/base", () => ({
-  CHAIN_NAMESPACES: { OTHER: "OTHER" },
 }));
 
 vi.mock("@cityofzion/neon-js", () => {
@@ -134,6 +130,6 @@ describe("web3authService", () => {
 
     await web3authService.connect();
 
-    expect(loginMock).toHaveBeenCalledWith({ loginProvider: "google" });
+    expect(loginMock).toHaveBeenCalledWith({ authConnection: "google" });
   });
 });
