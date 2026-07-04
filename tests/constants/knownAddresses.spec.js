@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getKnownAddressEntries, getTreasuryKnownAddresses } from "@/constants/knownAddresses";
+import {
+  getKnownAddressEntries,
+  getKnownAddressLogo,
+  getKnownAddressName,
+  getTreasuryKnownAddresses,
+} from "@/constants/knownAddresses";
 
 describe("knownAddresses helpers", () => {
   it("returns structured known-address records with logos when available", () => {
@@ -20,6 +25,18 @@ describe("knownAddresses helpers", () => {
       address: "NfM3NJFuDtBwZchLh6DYpk1yPigRNmjcTQ",
       name: "Neo Bond",
       logo: null,
+    });
+  });
+
+  it("labels the R3E TEE address with the R3E logo", () => {
+    const address = "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh";
+
+    expect(getKnownAddressName(address)).toBe("R3E TEE");
+    expect(getKnownAddressLogo(address)).toBe("https://github.com/R3E-Network.png");
+    expect(getKnownAddressEntries()).toContainEqual({
+      address,
+      name: "R3E TEE",
+      logo: "https://github.com/R3E-Network.png",
     });
   });
 });

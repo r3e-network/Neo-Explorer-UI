@@ -1,5 +1,7 @@
 import { addressToScriptHash, scriptHashToAddress } from "@/utils/neoHelpers";
 
+const R3E_LOGO_URL = "https://github.com/R3E-Network.png";
+
 // Map kept module-private — consumers go through getKnownAddressName / getKnownAddressLogo.
 const KNOWN_ADDRESSES = {
   // Treasury: Neo Foundation (Da Hongfei)
@@ -54,6 +56,7 @@ const KNOWN_ADDRESSES = {
   "NfM3NJFuDtBwZchLh6DYpk1yPigRNmjcTQ": "Neo Bond",
   "Nfps2rFwD9VZ8kd6GRkgWix8LH8A5Y4S4a": "Migration Address",
   "NUBPtrsEzdoUYQ1kp8AWny6aUQXcK4jTuH": "NF Binance Deposit",
+  "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh": "R3E TEE",
 
   // Consensus Candidates & Specific Labels
   "Nj39M97Rk2e23JiULBBMQmvpcnKaRHqxFf": "The Neo Order",
@@ -96,6 +99,8 @@ const KNOWN_ADDRESS_LOGOS = {
   "NUqLhf1p1vQyP2KJjMcEwmdEBPnbCGouVp": "/img/known/binance.svg",
   "NcScdqRaoE6DVzvGDBAnias9GTivdWfrDf": "/img/known/binance.svg",
   "NZGbJEdb2hXvX8RJXQq7saVj7qvHmWYKmi": "/img/known/binance.svg",
+  "NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh": R3E_LOGO_URL,
+  "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK": R3E_LOGO_URL,
 
   // Committee members with working direct HTTP logos from Dora
   "NhUHywGfUYevMjtbpRDDgGBgkwzYiGD9W9": "https://flamingo.finance/img/flamingo-node.png",
