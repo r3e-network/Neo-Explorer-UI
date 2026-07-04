@@ -86,6 +86,24 @@ describe("useRealtimeHead", () => {
     rt.stop();
   });
 
+  it("keeps polling when EventSource opens but no head events arrive", () => {
+    vi.useFakeTimers();
+    const rt = useRealtimeHead(vi.fn());
+    rt.start();
+
+    const es = FakeEventSource.instances[0];
+    es.open();
+    pollStop.mockClear();
+
+    vi.advanceTimersByTime(8000);
+
+    expect(pollStop).not.toHaveBeenCalled();
+    expect(rt.isConnected.value).toBe(false);
+
+    rt.stop();
+    vi.useRealTimers();
+  });
+
   it("tears down the connection when the last subscriber stops", () => {
     const rt = useRealtimeHead(vi.fn());
     rt.start();

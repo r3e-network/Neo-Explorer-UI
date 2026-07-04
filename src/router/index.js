@@ -58,6 +58,7 @@ const ApiDocs = lazyLoad(() => import("../views/Developer/ApiDocs.vue"));
 // New placeholder pages
 const GasTracker = lazyLoad(() => import("../views/GasTracker/GasTracker.vue"));
 const NetworkStatus = lazyLoad(() => import("../views/NetworkStatus/NetworkStatus.vue"));
+const ConsensusStatus = lazyLoad(() => import("../views/ConsensusStatus/ConsensusStatus.vue"));
 const AdvancedSearch = lazyLoad(() => import("../views/Search/AdvancedSearch.vue"));
 const Governance = lazyLoad(() => import("../views/Governance/Governance.vue"));
 const ChatPage = lazyLoad(() => import("../views/Chat/ChatPage.vue"));
@@ -432,6 +433,12 @@ const routes = [
         name: "networkStatus",
         meta: { titleKey: "pageTitles.networkStatus" },
         component: NetworkStatus,
+      },
+      {
+        path: "/consensus-status",
+        name: "consensusStatus",
+        meta: { titleKey: "pageTitles.consensusStatus" },
+        component: ConsensusStatus,
       },
       {
         path: "/advanced-search",

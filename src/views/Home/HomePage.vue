@@ -469,6 +469,11 @@ function extractHeightFromBlocks(blocks = []) {
   return latestIndex;
 }
 
+function normalizeBlockIndex(block = {}) {
+  const index = Number(block.index ?? block.block_index ?? block.blockindex ?? block.height);
+  return Number.isFinite(index) && index >= 0 ? index : null;
+}
+
 function handleFetchLatest() {
   const now = Date.now();
   // Throttle aggressively when overdue, to prevent spamming the node
@@ -541,6 +546,28 @@ function mergeUniqueTransactions(primary = [], secondary = [], limit = 6) {
   return rows;
 }
 
+function mergeUniqueBlocks(primary = [], secondary = [], limit = 6) {
+  const rows = [];
+  const seen = new Set();
+
+  const append = (items = []) => {
+    for (const block of items) {
+      const height = normalizeBlockIndex(block);
+      const hash = String(block?.hash || "").trim();
+      const key = height !== null ? `h:${height}` : hash ? `x:${hash}` : "";
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(block);
+    }
+  };
+
+  append(primary);
+  append(secondary);
+  return rows
+    .sort((a, b) => (normalizeBlockIndex(b) ?? -1) - (normalizeBlockIndex(a) ?? -1))
+    .slice(0, limit);
+}
+
 // Route block summaries through the shared blocks anti-corruption layer so
 // the snake_case/camelCase/legacy coalescing lives in exactly one place. The
 // canonical model is mapped back to the same legacy view this page produced
@@ -563,6 +590,82 @@ function normalizeHomepageTransaction(tx = {}) {
     vmstate: tx.vmstate || tx.vm_state || "",
     status: tx.status || (String(tx.vmstate || tx.vm_state || "").toUpperCase() === "HALT" ? "success" : ""),
   };
+}
+
+function normalizeHomepageBlockTransaction(tx = {}, block = {}) {
+  const blocktime = block.timestamp ?? block.blocktime ?? block.time_ms ?? block.time ?? 0;
+  const blockIndex = normalizeBlockIndex(block);
+  return normalizeHomepageTransaction({
+    ...tx,
+    blockhash: tx.blockhash ?? tx.block_hash ?? block.hash,
+    block_index: tx.block_index ?? tx.blockindex ?? blockIndex,
+    blocktime: tx.blocktime ?? tx.timestamp ?? tx.block_time_ms ?? tx.time_ms ?? blocktime,
+    timestamp: tx.timestamp ?? tx.blocktime ?? tx.time_ms ?? blocktime,
+  });
+}
+
+function extractTransactionsFromBlocks(blocks = [], limit = 6) {
+  const rows = [];
+  for (const block of Array.isArray(blocks) ? blocks : []) {
+    const transactions = Array.isArray(block?.tx) ? block.tx : [];
+    for (const tx of transactions) {
+      const normalized = normalizeHomepageBlockTransaction(tx, block);
+      if (normalized?.hash) rows.push(normalized);
+      if (rows.length >= limit) return mergeUniqueTransactions(rows, [], limit);
+    }
+  }
+  return mergeUniqueTransactions(rows, [], limit);
+}
+
+async function reconcileBlocksWithRpcTip(baseBlocks = [], requestOptions = {}, forceRefresh = false) {
+  if (!forceRefresh) {
+    return { blocks: baseBlocks, transactions: [] };
+  }
+
+  try {
+    const totalBlocks = await blockService.getCount({
+      ...requestOptions,
+      forceRefresh: true,
+      preferRpc: true,
+    });
+    const rpcLatestHeight = latestHeightFromBlockCount(totalBlocks);
+    const indexedLatestHeight = extractHeightFromBlocks(baseBlocks);
+    if (rpcLatestHeight <= indexedLatestHeight) {
+      return { blocks: baseBlocks, transactions: [] };
+    }
+
+    const firstMissingHeight = Math.max(indexedLatestHeight + 1, rpcLatestHeight - HOMEPAGE_BLOCK_LIMIT + 1);
+    const heights = [];
+    for (let height = rpcLatestHeight; height >= firstMissingHeight; height -= 1) {
+      heights.push(height);
+    }
+
+    const liveBlocks = (await Promise.all(
+      heights.map(async (height) => {
+        try {
+          const block = await blockService.getByHeight(height, {
+            ...requestOptions,
+            forceRefresh: true,
+          });
+          return block ? normalizeBlockSummary(block) : null;
+        } catch {
+          return null;
+        }
+      }),
+    )).filter((block) => block?.hash && normalizeBlockIndex(block) !== null);
+
+    if (!liveBlocks.length) {
+      return { blocks: baseBlocks, transactions: [] };
+    }
+
+    return {
+      blocks: mergeUniqueBlocks(liveBlocks, baseBlocks, HOMEPAGE_BLOCK_LIMIT),
+      transactions: extractTransactionsFromBlocks(liveBlocks, HOMEPAGE_TRANSACTION_LIMIT),
+    };
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn("[HomePage] RPC tip reconciliation failed:", err);
+    return { blocks: baseBlocks, transactions: [] };
+  }
 }
 
 function computeBlockFeeTotals(block = {}) {
@@ -627,8 +730,11 @@ async function loadLatestData(forceRefresh = false) {
   try {
     blocksError.value = false;
     txsError.value = false;
-    blocksLoading.value = true;
-    txsLoading.value = true;
+    // Background/head-driven refreshes should reconcile data silently. If we
+    // flip loading on every 3s tick, Latest Blocks/Txs visibly fall back to
+    // skeletons and a slow request makes the live feed look stuck.
+    blocksLoading.value = latestBlocks.value.length === 0;
+    txsLoading.value = latestTxs.value.length === 0;
 
     const requestOptions = { forceRefresh, network: context.network };
     void loadValidatedStateRoot(forceRefresh, context);
@@ -729,15 +835,23 @@ async function loadLatestData(forceRefresh = false) {
       return { result: rows };
     };
 
-    const blocksPromise = fetchLatestBlocks()
+    const latestBlockSnapshotPromise = fetchLatestBlocks()
       .then(async (blocksRes) => {
         if (!isCurrentLoadContext(context)) return;
         if (!blocksRes) return;
-        const nextBlocks = (blocksRes?.result || []).map((rawBlock) => {
+        const baseBlocks = (blocksRes?.result || []).map((rawBlock) => {
           const block = normalizeBlockSummary(rawBlock);
           const cachedDetails = blockDetailsByHash.get(block.hash);
           return cachedDetails ? { ...block, ...cachedDetails } : block;
         });
+        return reconcileBlocksWithRpcTip(baseBlocks, requestOptions, forceRefresh);
+      });
+
+    const blocksPromise = latestBlockSnapshotPromise
+      .then(async (snapshot) => {
+        if (!isCurrentLoadContext(context)) return;
+        if (!snapshot) return;
+        const nextBlocks = Array.isArray(snapshot.blocks) ? snapshot.blocks : [];
         await validatorIdentityPromise;
         if (!isCurrentLoadContext(context)) return;
         if (!hasSameOrderedHashes(latestBlocks.value, nextBlocks)) {
@@ -803,24 +917,33 @@ async function loadLatestData(forceRefresh = false) {
       const previousRows = Array.isArray(latestTxs.value) ? latestTxs.value : [];
       const previousConfirmedRows = previousRows.filter((tx) => tx?.status !== "pending");
       let confirmedRows = [];
+      let txFetchError = null;
       try {
         const txsRes = await fetchLatestTransactions();
         if (!isCurrentLoadContext(context)) return;
         confirmedRows = Array.isArray(txsRes?.result) ? txsRes.result : [];
       } catch (err) {
         if (!isCurrentLoadContext(context)) return;
+        txFetchError = err;
+      }
+
+      const liveBlockSnapshot = await latestBlockSnapshotPromise.catch(() => null);
+      if (!isCurrentLoadContext(context)) return;
+      const liveRows = Array.isArray(liveBlockSnapshot?.transactions) ? liveBlockSnapshot.transactions : [];
+      if (txFetchError && !confirmedRows.length && !liveRows.length) {
         if (previousRows.length) {
           if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
             latestTxs.value = previousRows;
           }
           return;
         }
-        throw err;
+        throw txFetchError;
       }
 
       // Keep list continuity during transient sparse RPC responses.
       if (!isCurrentLoadContext(context)) return;
-      const initialRows = mergeUniqueTransactions(confirmedRows, previousConfirmedRows, HOMEPAGE_TRANSACTION_LIMIT);
+      const confirmedWithLiveRows = mergeUniqueTransactions(liveRows, confirmedRows, HOMEPAGE_TRANSACTION_LIMIT);
+      const initialRows = mergeUniqueTransactions(confirmedWithLiveRows, previousConfirmedRows, HOMEPAGE_TRANSACTION_LIMIT);
       if (!initialRows.length && previousRows.length) {
         if (!hasSameOrderedTransactions(latestTxs.value, previousRows)) {
           latestTxs.value = previousRows;

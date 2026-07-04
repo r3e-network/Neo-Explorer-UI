@@ -58,11 +58,13 @@
           <AddressRadarTab
             v-else-if="activeTab === 'assetRadar'"
             :address="address"
+            :graph="radarGraph"
+            :limits="radarLimits"
             :nep17-transfers="radarNep17Transfers"
             :nep11-transfers="radarNep11Transfers"
             :loading="radarTransfersLoading"
             :error="radarTransfersError"
-            :fetch-transfers="fetchRadarTransfersForAddress"
+            :fetch-path="fetchRadarPath"
             @retry="loadRadarTransfers({ forceRefresh: true })"
           />
 
@@ -137,6 +139,7 @@ import { ref, computed, watch, onBeforeUnmount, defineAsyncComponent } from "vue
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { accountService } from "@/services/accountService";
+import { addressRadarService } from "@/services/addressRadarService";
 import { transactionService } from "@/services/transactionService";
 import { contractService } from "@/services/contractService";
 import { candidateService } from "@/services/candidateService";
@@ -189,7 +192,6 @@ const MAX_VOTER_FALLBACK_PAGES = 10;
 const MAX_VOTER_FALLBACK_ENTRIES = 2000;
 const SUMMARY_LOAD_TIMEOUT_MS = 4500;
 const RADAR_DIRECT_TRANSFER_LIMIT = 80;
-const RADAR_PATH_TRANSFER_LIMIT = 30;
 const abortController = ref(null);
 const neoBalance = ref("0");
 const gasBalance = ref("0");
@@ -209,6 +211,8 @@ const assetsLoading = ref(false);
 const assetsError = ref("");
 const radarNep17Transfers = ref([]);
 const radarNep11Transfers = ref([]);
+const radarGraph = ref(null);
+const radarLimits = ref(null);
 const radarTransfersLoading = ref(false);
 const radarTransfersError = ref("");
 const { transferSummaryByHash, enrichTransactions } = useTransferSummary();
@@ -801,13 +805,50 @@ async function fetchRadarTransferBuckets(addr, { limit = RADAR_DIRECT_TRANSFER_L
   };
 }
 
-async function fetchRadarTransfersForAddress(addr, options = {}) {
-  const { nep17Transfers: nep17Rows, nep11Transfers: nep11Rows } = await fetchRadarTransferBuckets(addr, {
-    limit: options.limit || RADAR_PATH_TRANSFER_LIMIT,
-    forceRefresh: Boolean(options.forceRefresh),
-    network: options.network,
+function shouldFallbackToClientRadar(error) {
+  if (addressRadarService.isProtectiveError(error)) return false;
+  const status = Number(error?.status || 0);
+  return status === 0 || status === 200 || status === 404;
+}
+
+async function fetchRadarGraphPayload(addr, { forceRefresh = false, network = null } = {}) {
+  const requestNetwork = resolveNetworkName(network);
+  try {
+    const payload = await addressRadarService.getDirectGraph(addr, {
+      limit: RADAR_DIRECT_TRANSFER_LIMIT,
+      forceRefresh,
+      network: requestNetwork,
+      signal: abortController.value?.signal,
+    });
+    return {
+      graph: payload?.graph || null,
+      limits: payload?.limits || null,
+      nep17Transfers: [],
+      nep11Transfers: [],
+      source: "api",
+    };
+  } catch (error) {
+    if (!shouldFallbackToClientRadar(error)) throw error;
+    const fallback = await fetchRadarTransferBuckets(addr, {
+      limit: RADAR_DIRECT_TRANSFER_LIMIT,
+      forceRefresh,
+      network: requestNetwork,
+    });
+    return {
+      ...fallback,
+      graph: null,
+      limits: { transferLimit: RADAR_DIRECT_TRANSFER_LIMIT, source: "client-fallback" },
+      source: "client-fallback",
+    };
+  }
+}
+
+async function fetchRadarPath({ source, target, depth, signal } = {}) {
+  return addressRadarService.findPath(source, target, {
+    depth,
+    network: resolveNetworkName(),
+    signal,
   });
-  return [...nep17Rows, ...nep11Rows];
 }
 
 async function loadRadarTransfers({ forceRefresh = false, network = null } = {}) {
@@ -817,24 +858,28 @@ async function loadRadarTransfers({ forceRefresh = false, network = null } = {})
   const requestNetwork = resolveNetworkName(network);
   radarTransfersLoading.value = true;
   radarTransfersError.value = "";
+  radarGraph.value = null;
+  radarLimits.value = null;
 
   try {
     const response = await fetchFreshQuery({
       forceRefresh,
-      queryKey: createExplorerQueryKey("address.radarTransfers", {
+      queryKey: createExplorerQueryKey("address.radarGraph", {
         address: addr,
         limit: RADAR_DIRECT_TRANSFER_LIMIT,
         network: requestNetwork,
+        version: 2,
       }),
       queryFn: ({ forceRefresh }) =>
-        fetchRadarTransferBuckets(addr, {
-          limit: RADAR_DIRECT_TRANSFER_LIMIT,
+        fetchRadarGraphPayload(addr, {
           forceRefresh,
           network: requestNetwork,
         }),
-      source: "address.radarTransfers",
+      source: "address.radarGraph",
     });
     if (currentRequestId !== addressRequestId || requestNetwork !== resolveNetworkName()) return;
+    radarGraph.value = response?.graph || null;
+    radarLimits.value = response?.limits || null;
     radarNep17Transfers.value = response?.nep17Transfers || [];
     radarNep11Transfers.value = response?.nep11Transfers || [];
   } catch (err) {
@@ -876,6 +921,8 @@ async function initializeData(addr, { forceRefresh = false } = {}) {
   isContract.value = false;
   radarNep17Transfers.value = [];
   radarNep11Transfers.value = [];
+  radarGraph.value = null;
+  radarLimits.value = null;
   radarTransfersError.value = "";
   if (activeTab.value === "voters") {
     activeTab.value = "transactions";
@@ -964,6 +1011,7 @@ watch(activeTab, (tab) => {
   }
   if (
     tab === "assetRadar" &&
+    !radarGraph.value &&
     !radarNep17Transfers.value.length &&
     !radarNep11Transfers.value.length &&
     !radarTransfersLoading.value

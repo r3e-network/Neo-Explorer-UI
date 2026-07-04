@@ -34,7 +34,7 @@
         <DesktopNav :active-dropdown="activeDropdown" @open-dropdown="openDropdown" @close-dropdown="closeDropdown" />
 
         <!-- Header Search (compact mode) -->
-        <div class="ml-auto hidden w-full max-w-[17rem] items-center lg:flex lg:ml-4 xl:ml-8 xl:max-w-sm">
+        <div class="ml-auto hidden w-full max-w-[15rem] items-center lg:flex lg:ml-4 2xl:ml-8 2xl:max-w-sm">
           <SearchBox mode="compact" @search="handleSearch" />
         </div>
 
@@ -159,6 +159,7 @@
             <router-link to="/contracts/1" class="mobile-link" @click="closeMobile">{{ $t("nav.contracts") }}</router-link>
             <router-link to="/account/1" class="mobile-link" @click="closeMobile">{{ $t("nav.accounts") }}</router-link>
             <router-link to="/candidates/1" class="mobile-link" @click="closeMobile">{{ $t("nav.consensusNodes") }}</router-link>
+            <router-link to="/consensus-status" class="mobile-link" @click="closeMobile">{{ $t("nav.consensusStatus") }}</router-link>
             <router-link to="/governance" class="mobile-link" @click="closeMobile">{{ $t("nav.governance") }}</router-link>
             <router-link to="/nns" class="mobile-link" @click="closeMobile">{{ $t('header.nnsDomains') }}</router-link>
             <router-link to="/matrix" class="mobile-link" @click="closeMobile">{{ $t('header.matrixDomain') }}</router-link>

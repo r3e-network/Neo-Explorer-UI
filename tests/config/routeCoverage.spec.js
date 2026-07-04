@@ -53,6 +53,7 @@ const ROUTE_AUDIT_EVIDENCE = Object.freeze({
   nftDetail: ["tests/views/NFTInfoOwner.spec.js", "tests/views/NFTInfoNetworkChange.spec.js"],
   gasTracker: ["tests/views/GasTracker.spec.js", "browser-render-audit"],
   networkStatus: ["tests/services/networkMonitorService.spec.js", "browser-render-audit"],
+  consensusStatus: ["tests/services/consensusStatusService.spec.js", "tests/views/ConsensusStatusSource.spec.js", "browser-render-audit"],
   advancedSearch: ["tests/utils/searchRouting.spec.js", "browser-render-audit"],
   governance: ["tests/pages.test.js", "tests/views/Governance.spec.js", "browser-render-audit"],
   chat: ["tests/views/ChatPage.spec.js", "tests/services/chatService.spec.js", "browser-render-audit"],

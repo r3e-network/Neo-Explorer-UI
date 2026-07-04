@@ -11,4 +11,5 @@ export { searchService } from "./searchService";
 export { executionService } from "./executionService";
 export { indexerReadService } from "./indexerReadService";
 export { chatService } from "./chatService";
+export * from "./consensusStatusService";
 export * from "./cache";

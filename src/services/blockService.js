@@ -452,9 +452,19 @@ export const blockService = createService(
     async getCount(options = {}) {
       const cacheOpts = getRealtimeListCacheOptions(options);
       const key = getCacheKey("block_count", {}, cacheOpts.network);
+      const fetchRpcCount = async () => {
+        const res = await safeRpc("getblockcount", [], null, cacheOpts);
+        const count = typeof res === "number" ? res : this._extractCount(res);
+        return Number.isFinite(Number(count)) && Number(count) > 0 ? Number(count) : 0;
+      };
       return cachedRequest(
         key,
         async () => {
+          if (cacheOpts.forceRefresh || cacheOpts.preferRpc) {
+            const rpcCount = await fetchRpcCount().catch(() => 0);
+            if (rpcCount > 0) return rpcCount;
+          }
+
           // Indexer first — total_block_count tracks the chain tip and
           // outlives the legacy GetBlockCount handler. Same Mongo→Postgres
           // shift as #171.
@@ -467,9 +477,7 @@ export const blockService = createService(
           // outlives Mongo cleanup. Older Mongo `GetBlockCount` was
           // proxied here; switching to the lowercase canonical method
           // means the fallback also keeps working post-#184.
-          const res = await safeRpc("getblockcount", [], null, cacheOpts);
-          if (typeof res === "number") return res;
-          return this._extractCount(res);
+          return fetchRpcCount();
         },
         CACHE_TTL.stats,
         cacheOpts,

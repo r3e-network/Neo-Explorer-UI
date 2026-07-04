@@ -244,13 +244,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   buildAddressRadarGraph,
   buildAddressRadarPathGraph,
   findAddressTransferPath,
 } from "@/utils/addressRadar";
+import { isAbortError } from "@/utils/abortError";
 import Skeleton from "@/components/common/Skeleton.vue";
 import ErrorState from "@/components/common/ErrorState.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
@@ -258,10 +259,13 @@ import HashLink from "@/components/common/HashLink.vue";
 
 const props = defineProps({
   address: { type: String, default: "" },
+  graph: { type: Object, default: null },
+  limits: { type: Object, default: null },
   nep17Transfers: { type: Array, default: () => [] },
   nep11Transfers: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: "" },
+  fetchPath: { type: Function, default: null },
   fetchTransfers: { type: Function, default: null },
 });
 
@@ -269,7 +273,7 @@ defineEmits(["retry"]);
 
 const { t } = useI18n();
 const viewBox = { width: 920, height: 430 };
-const depthOptions = [1, 2, 3, 4];
+const depthOptions = [1, 2, 3];
 const mode = ref("direct");
 const selectedNodeId = ref("");
 const pathSource = ref(props.address);
@@ -280,14 +284,19 @@ const pathError = ref("");
 const pathStatus = ref("");
 const pathResult = ref(null);
 const pathGraph = ref(null);
+let pathSearchSeq = 0;
+let pathAbortController = null;
 
-const directGraph = computed(() =>
-  buildAddressRadarGraph({
+const directGraph = computed(() => {
+  const serverGraph = normalizeGraphPayload(props.graph);
+  if (serverGraph) return serverGraph;
+  return buildAddressRadarGraph({
     centerAddress: props.address,
     nep17Transfers: props.nep17Transfers,
     nep11Transfers: props.nep11Transfers,
-  }),
-);
+    maxCounterparties: Number(props.limits?.maxCounterparties || 24),
+  });
+});
 
 const activeGraph = computed(() => {
   if (mode.value === "path" && pathGraph.value) return pathGraph.value;
@@ -363,8 +372,15 @@ watch(
     pathError.value = "";
     pathGraph.value = null;
     pathResult.value = null;
+    pathAbortController?.abort();
   },
 );
+
+watch(mode, (next) => {
+  if (next === "direct") {
+    pathAbortController?.abort();
+  }
+});
 
 watch(
   activeGraph,
@@ -388,33 +404,73 @@ async function searchPath() {
   pathGraph.value = null;
   pathResult.value = null;
 
-  if (!source || !target || typeof props.fetchTransfers !== "function") {
+  if (!source || !target || (typeof props.fetchPath !== "function" && typeof props.fetchTransfers !== "function")) {
     pathError.value = t("addressDetail.radarPathInputError");
     return;
   }
 
+  pathAbortController?.abort();
+  pathAbortController = new AbortController();
+  pathSearchSeq += 1;
+  const currentSeq = pathSearchSeq;
   pathSearching.value = true;
   try {
-    const result = await findAddressTransferPath({
-      sourceAddress: source,
-      targetAddress: target,
-      fetchTransfers: props.fetchTransfers,
-      maxDepth: pathDepth.value,
-      maxVisited: 90,
-      perAddressLimit: 30,
-    });
+    const payload = typeof props.fetchPath === "function"
+      ? await props.fetchPath({
+          source,
+          target,
+          depth: pathDepth.value,
+          signal: pathAbortController.signal,
+        })
+      : {
+          result: await findAddressTransferPath({
+            sourceAddress: source,
+            targetAddress: target,
+            fetchTransfers: props.fetchTransfers,
+            maxDepth: pathDepth.value,
+            maxVisited: 36,
+            perAddressLimit: 18,
+            signal: pathAbortController.signal,
+          }),
+        };
+    if (currentSeq !== pathSearchSeq) return;
+
+    const result = payload?.result || payload;
     pathResult.value = result;
     if (result.found) {
-      pathGraph.value = buildAddressRadarPathGraph(result);
+      pathGraph.value = normalizeGraphPayload(payload?.graph) || buildAddressRadarPathGraph(result);
       pathStatus.value = "found";
     } else {
       pathStatus.value = "notFound";
     }
-  } catch {
+  } catch (error) {
+    if (isAbortError(error) || currentSeq !== pathSearchSeq) return;
     pathError.value = t("addressDetail.radarPathSearchError");
   } finally {
-    pathSearching.value = false;
+    if (currentSeq === pathSearchSeq) {
+      pathSearching.value = false;
+    }
   }
+}
+
+onBeforeUnmount(() => {
+  pathAbortController?.abort();
+});
+
+function normalizeGraphPayload(graph) {
+  if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
+  return {
+    nodes: graph.nodes.slice(0, 32),
+    edges: graph.edges.slice(0, 32),
+    summary: {
+      inboundAccounts: Number(graph.summary?.inboundAccounts || 0),
+      outboundAccounts: Number(graph.summary?.outboundAccounts || 0),
+      transferCount: Number(graph.summary?.transferCount || 0),
+      hiddenCounterparties: Number(graph.summary?.hiddenCounterparties || 0),
+      pathDepth: Number(graph.summary?.pathDepth || 0),
+      visitedCount: Number(graph.summary?.visitedCount || 0),
+    },
+  };
 }
 
 function layoutGraph(graph, currentMode) {

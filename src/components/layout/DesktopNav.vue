@@ -41,6 +41,7 @@
         <router-link to="/transactions/1" class="dropdown-link">{{ $t("nav.transactions") }}</router-link>
         <router-link to="/account/1" class="dropdown-link">{{ $t("nav.accounts") }}</router-link>
         <router-link to="/candidates/1" class="dropdown-link">{{ $t("nav.consensusNodes") }}</router-link>
+        <router-link to="/consensus-status" class="dropdown-link">{{ $t("nav.consensusStatus") }}</router-link>
         <router-link to="/governance" class="dropdown-link">{{ $t("nav.governance") }}</router-link>
       </div>
     </li>
@@ -187,7 +188,7 @@ function handleFocusOut(name) {
 
 <style scoped>
 .nav-link {
-  @apply inline-flex items-center rounded-xl px-4 py-2 text-sm font-bold text-gray-800 dark:text-gray-200 transition-all duration-300;
+  @apply inline-flex items-center rounded-xl px-3 py-2 text-sm font-bold text-gray-800 dark:text-gray-200 transition-all duration-300 2xl:px-4;
 }
 
 .nav-link:hover {

@@ -352,6 +352,22 @@ describe("blockService", () => {
       expect(api.safeRpc).not.toHaveBeenCalled();
     });
 
+    it("getCount uses standard RPC first during force refreshes", async () => {
+      indexerReadService.getSummary.mockResolvedValue({ total_block_count: 9999999 });
+      api.safeRpc.mockResolvedValueOnce(10000003);
+
+      const result = await blockService.getCount({ forceRefresh: true });
+
+      expect(result).toBe(10000003);
+      expect(api.safeRpc).toHaveBeenCalledWith(
+        "getblockcount",
+        [],
+        null,
+        expect.objectContaining({ forceRefresh: true }),
+      );
+      expect(indexerReadService.getSummary).not.toHaveBeenCalled();
+    });
+
     it("getCount falls back to standard getblockcount when indexer summary is empty", async () => {
       indexerReadService.getSummary.mockResolvedValue({ total_block_count: 0 });
       api.safeRpc.mockResolvedValueOnce({ "total counts": 42 });

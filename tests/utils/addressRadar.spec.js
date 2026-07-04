@@ -201,4 +201,39 @@ describe("addressRadar path finder", () => {
     expect(result.exhausted).toBe(true);
     expect(result.visitedCount).toBeLessThanOrEqual(2);
   });
+
+  it("clamps browser-side path search fanout as a defense-in-depth fallback", async () => {
+    const fetchTransfers = vi.fn(async () => [
+      { txHash: "0x-a", from: CENTER, to: ALICE },
+      { txHash: "0x-b", from: ALICE, to: TARGET },
+    ]);
+
+    await findAddressTransferPath({
+      sourceAddress: CENTER,
+      targetAddress: TARGET,
+      maxDepth: 99,
+      maxVisited: 999,
+      perAddressLimit: 999,
+      fetchTransfers,
+    });
+
+    expect(fetchTransfers).toHaveBeenCalledWith(CENTER, expect.objectContaining({
+      limit: 30,
+      depth: 0,
+    }));
+  });
+
+  it("aborts browser-side path search before doing fetch work", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fetchTransfers = vi.fn(async () => []);
+
+    await expect(findAddressTransferPath({
+      sourceAddress: CENTER,
+      targetAddress: TARGET,
+      fetchTransfers,
+      signal: controller.signal,
+    })).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetchTransfers).not.toHaveBeenCalled();
+  });
 });

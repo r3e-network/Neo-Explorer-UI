@@ -2,6 +2,7 @@ const DEFAULT_MAX_COUNTERPARTIES = 24;
 const DEFAULT_MAX_DEPTH = 3;
 const DEFAULT_MAX_VISITED = 80;
 const DEFAULT_PER_ADDRESS_LIMIT = 30;
+const DEFAULT_SEARCH_TIMEOUT_MS = 8000;
 
 function cleanAddress(value) {
   return String(value || "").trim();
@@ -284,6 +285,13 @@ function normalizeFetchResult(value) {
   return [];
 }
 
+function throwIfAborted(signal) {
+  if (!signal?.aborted) return;
+  const error = new Error("Address radar search aborted.");
+  error.name = "AbortError";
+  throw error;
+}
+
 function buildPathResult(sourceAddress, targetAddress, pathEdges, visitedCount) {
   const source = cleanAddress(sourceAddress);
   const target = cleanAddress(targetAddress);
@@ -318,6 +326,8 @@ export async function findAddressTransferPath({
   maxDepth = DEFAULT_MAX_DEPTH,
   maxVisited = DEFAULT_MAX_VISITED,
   perAddressLimit = DEFAULT_PER_ADDRESS_LIMIT,
+  timeoutMs = DEFAULT_SEARCH_TIMEOUT_MS,
+  signal,
 } = {}) {
   const source = cleanAddress(sourceAddress);
   const target = cleanAddress(targetAddress);
@@ -338,19 +348,23 @@ export async function findAddressTransferPath({
     };
   }
 
-  const safeMaxDepth = Math.max(1, Number(maxDepth) || DEFAULT_MAX_DEPTH);
-  const safeMaxVisited = Math.max(2, Number(maxVisited) || DEFAULT_MAX_VISITED);
-  const safePerAddressLimit = Math.max(1, Number(perAddressLimit) || DEFAULT_PER_ADDRESS_LIMIT);
+  const safeMaxDepth = Math.min(DEFAULT_MAX_DEPTH, Math.max(1, Number(maxDepth) || DEFAULT_MAX_DEPTH));
+  const safeMaxVisited = Math.min(DEFAULT_MAX_VISITED, Math.max(2, Number(maxVisited) || DEFAULT_MAX_VISITED));
+  const safePerAddressLimit = Math.min(DEFAULT_PER_ADDRESS_LIMIT, Math.max(1, Number(perAddressLimit) || DEFAULT_PER_ADDRESS_LIMIT));
+  const startedAt = Date.now();
   const visited = new Set([sourceKey]);
   const queue = [{ address: source, depth: 0, pathEdges: [] }];
 
   while (queue.length > 0 && visited.size <= safeMaxVisited) {
+    throwIfAborted(signal);
+    if (Date.now() - startedAt > timeoutMs) break;
     const current = queue.shift();
     if (!current || current.depth >= safeMaxDepth) continue;
 
     const rows = normalizeFetchResult(await fetchTransfers(current.address, {
       limit: safePerAddressLimit,
       depth: current.depth,
+      signal,
     }));
     const transfers = rows
       .map((row) => normalizeTransfer(row))

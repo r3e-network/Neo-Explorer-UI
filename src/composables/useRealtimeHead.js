@@ -21,6 +21,7 @@ import { useAutoRefresh } from "@/composables/useAutoRefresh";
 
 const WATCHDOG_INTERVAL_MS = 8_000;
 const REOPEN_THROTTLE_MS = 30_000;
+const HEAD_EVENT_STALE_MS = 12_000;
 
 // network -> shared hub
 const hubs = new Map();
@@ -33,6 +34,7 @@ function createHub(network) {
   const subscribers = new Set();
   let es = null;
   let lastOpenAttempt = 0;
+  let lastHeadAt = 0;
 
   function dispatch(payload) {
     subscribers.forEach((cb) => {
@@ -61,6 +63,7 @@ function createHub(network) {
       } catch {
         payload = null;
       }
+      lastHeadAt = nowMs();
       dispatch(payload);
     });
     source.addEventListener("error", () => {
@@ -88,6 +91,10 @@ function createHub(network) {
     return Boolean(es) && es.readyState === 1 /* OPEN */;
   }
 
+  function hasFreshHead(maxAgeMs = HEAD_EVENT_STALE_MS) {
+    return isConnected() && lastHeadAt > 0 && nowMs() - lastHeadAt <= maxAgeMs;
+  }
+
   // Reopen a closed stream on a throttle so a client that loaded while realtime
   // was disabled recovers once the server enables it, without a retry storm.
   function ensureOpen() {
@@ -111,6 +118,7 @@ function createHub(network) {
       };
     },
     isConnected,
+    hasFreshHead,
     ensureOpen,
   };
 }
@@ -150,9 +158,9 @@ export function useRealtimeHead(callback, options = {}) {
 
   function syncFallback() {
     const hub = currentNetwork ? hubs.get(currentNetwork) : null;
-    const connected = Boolean(hub && hub.isConnected());
-    isConnected.value = connected;
-    if (connected) {
+    const live = Boolean(hub && hub.hasFreshHead());
+    isConnected.value = live;
+    if (live) {
       pollFallback.stop();
     } else {
       if (hub) hub.ensureOpen();

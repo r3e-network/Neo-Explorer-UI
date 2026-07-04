@@ -28,10 +28,41 @@ describe("i18n source", () => {
       "apiDocsPage.responseHeaders.serverTiming.desc",
       "apiDocsPage.endpointCount",
       "apiDocsPage.methodCount",
+      "apiDocsPage.tryItHeading",
+      "apiDocsPage.tryItDescription",
+      "apiDocsPage.tryItRun",
+      "apiDocsPage.tryItRunning",
+      "apiDocsPage.tryItRequestUrl",
+      "apiDocsPage.tryItRequestBody",
+      "apiDocsPage.tryItHttpError",
+      "apiDocsPage.tryItTimeout",
+      "apiDocsPage.tryItFailed",
+      "apiDocsPage.tryItInvalidJson",
     ];
 
     for (const [locale, localeMessages] of Object.entries(messages)) {
       for (const key of requiredApiDocsKeys) {
+        expect(getMessage(localeMessages, key), `${locale}.${key}`).toBeTruthy();
+      }
+    }
+  });
+
+  it("defines the required consensus status messages in every locale", () => {
+    const requiredConsensusStatusKeys = [
+      "nav.consensusStatus",
+      "pageTitles.consensusStatus",
+      "pages.consensusStatus.title",
+      "pages.consensusStatus.subtitle",
+      "pages.consensusStatus.nodesTitle",
+      "pages.consensusStatus.legendOk",
+      "pages.consensusStatus.legendViewChange",
+      "pages.consensusStatus.statusHealthy",
+      "pages.consensusStatus.statusDegraded",
+      "pages.consensusStatus.slotTitle",
+    ];
+
+    for (const [locale, localeMessages] of Object.entries(messages)) {
+      for (const key of requiredConsensusStatusKeys) {
         expect(getMessage(localeMessages, key), `${locale}.${key}`).toBeTruthy();
       }
     }

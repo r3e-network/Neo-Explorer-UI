@@ -19,6 +19,7 @@ const i18nPlugin = {
 const getBlockList = vi.fn();
 const getBlockCount = vi.fn();
 const getBlockByHeight = vi.fn();
+const getBlockTransactionsByHeight = vi.fn();
 const getValidatedStateRoot = vi.fn();
 const getTxList = vi.fn();
 const getIndexerHome = vi.fn();
@@ -56,6 +57,7 @@ vi.mock("@/services/blockService", () => ({
     getList: getBlockList,
     getCount: getBlockCount,
     getByHeight: getBlockByHeight,
+    getTransactionsByHeight: getBlockTransactionsByHeight,
     getValidatedStateRoot,
   },
 }));
@@ -130,7 +132,7 @@ const LatestBlocksStub = defineComponent({
     validatedStateRoot: { type: Object, default: null },
   },
   template:
-    '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)" :data-first-txcount="String(blocks?.[0]?.txcount ?? \'undefined\')" :data-validated-root="String(validatedStateRoot?.validatedrootindex ?? validatedStateRoot?.index ?? \'\')"></div>',
+    '<div data-testid="latest-blocks" :data-loading="String(loading)" :data-count="String(blocks.length)" :data-first-hash="String(blocks?.[0]?.hash ?? \'\')" :data-first-index="String(blocks?.[0]?.index ?? \'\')" :data-first-txcount="String(blocks?.[0]?.txcount ?? \'undefined\')" :data-validated-root="String(validatedStateRoot?.validatedrootindex ?? validatedStateRoot?.index ?? \'\')"></div>',
 });
 
 const LatestTransactionsStub = defineComponent({
@@ -141,7 +143,7 @@ const LatestTransactionsStub = defineComponent({
     transferSummaryByHash: { type: Object, default: () => ({}) },
   },
   template:
-    '<div data-testid="latest-txs" :data-loading="String(loading)" :data-count="String(transactions.length)" :data-summary-size="String(Object.keys(transferSummaryByHash || {}).length)"></div>',
+    '<div data-testid="latest-txs" :data-loading="String(loading)" :data-count="String(transactions.length)" :data-first-hash="String(transactions?.[0]?.hash ?? \'\')" :data-summary-size="String(Object.keys(transferSummaryByHash || {}).length)"></div>',
 });
 
 const HomeStatsStub = defineComponent({
@@ -230,6 +232,8 @@ describe("HomePage initial loading", () => {
       totalCount: 1,
     });
     getBlockCount.mockResolvedValue(10);
+    getBlockByHeight.mockResolvedValue(null);
+    getBlockTransactionsByHeight.mockResolvedValue({ result: [], totalCount: 0 });
     getValidatedStateRoot.mockResolvedValue({
       index: 12,
       roothash: "0xstate",
@@ -737,6 +741,68 @@ describe("HomePage initial loading", () => {
     wrapper.unmount();
   });
 
+  it("reconciles realtime refreshes against the RPC tip when the indexer list is behind", async () => {
+    getIndexerHome.mockResolvedValue(null);
+    getIndexerSummary.mockResolvedValue(makeFreshSummary(13));
+    getIndexerBlocks.mockResolvedValue(makeIndexerBlocks(6, 12));
+    getIndexerTransactions.mockResolvedValue(makeIndexerTransactions());
+    getBlockCount.mockResolvedValue(16);
+    getBlockByHeight.mockImplementation(async (height) => ({
+      hash: `0xrpc-block-${height}`,
+      index: height,
+      timestamp: Date.now() - (15 - height) * 3000,
+      txcount: height === 15 ? 1 : 0,
+      transactioncount: height === 15 ? 1 : 0,
+      sysfee: height === 15 ? 0.1 : 0,
+      netfee: height === 15 ? 0.01 : 0,
+      primary: height % 7,
+      nextconsensus: "NXZSaAQyqS8aF9t9MPJSUffiK15f1eiwWc",
+      tx: height === 15
+        ? [{
+            hash: "0xrpc-tx-15",
+            vmstate: "HALT",
+            sysfee: 0.1,
+            netfee: 0.01,
+          }]
+        : [],
+    }));
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: HomeStatsStub,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-first-index")).toBe("12");
+
+    const realtimeCallback = useRealtimeHeadMock.mock.calls[0][0];
+    realtimeCallback({ index: 15, network: "mainnet" });
+    await flushPromises();
+    await flushPromises();
+
+    expect(getBlockCount).toHaveBeenCalledWith(expect.objectContaining({
+      forceRefresh: true,
+      preferRpc: true,
+      network: "mainnet",
+    }));
+    expect(getBlockByHeight).toHaveBeenCalledWith(
+      15,
+      expect.objectContaining({ forceRefresh: true, network: "mainnet" }),
+    );
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-first-index")).toBe("15");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-first-hash")).toBe("0xrpc-block-15");
+    expect(wrapper.get('[data-testid="latest-txs"]').attributes("data-first-hash")).toBe("0xrpc-tx-15");
+    wrapper.unmount();
+  });
+
   it("passes transfer summaries to LatestTransactions and enriches latest tx rows", async () => {
     const HomePage = (await import("@/views/Home/HomePage.vue")).default;
     const wrapper = mount(HomePage, {
@@ -846,6 +912,46 @@ describe("HomePage initial loading", () => {
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("true");
 
     resolveBlocks(makeIndexerBlocks());
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+    wrapper.unmount();
+  });
+
+  it("keeps latest blocks visible during a background realtime refresh", async () => {
+    getIndexerHome.mockResolvedValue(null);
+    let resolveSecondBlocks;
+    getIndexerBlocks
+      .mockResolvedValueOnce(makeIndexerBlocks(6, 12))
+      .mockImplementationOnce(
+        () => new Promise((resolve) => { resolveSecondBlocks = resolve; }),
+      );
+
+    const HomePage = (await import("@/views/Home/HomePage.vue")).default;
+    const wrapper = mount(HomePage, {
+      global: {
+        plugins: [i18nPlugin],
+        stubs: {
+          SearchBox: true,
+          HomeStats: true,
+          LatestBlocks: LatestBlocksStub,
+          LatestTransactions: LatestTransactionsStub,
+        },
+      },
+    });
+
+    await flushPromises();
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+
+    const realtimeCallback = useRealtimeHeadMock.mock.calls[0][0];
+    realtimeCallback({ index: 13, network: "mainnet" });
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-count")).toBe("6");
+    expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");
+
+    resolveSecondBlocks(makeIndexerBlocks(6, 13));
     await flushPromises();
 
     expect(wrapper.get('[data-testid="latest-blocks"]').attributes("data-loading")).toBe("false");

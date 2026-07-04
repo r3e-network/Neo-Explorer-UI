@@ -19,6 +19,7 @@ describe("AddressDetail source guards", () => {
     expect(source).not.toMatch(/from ["']@\/services["']/);
     expect(source).toContain('from "@/services/accountService"');
     expect(source).toContain('from "@/services/transactionService"');
+    expect(source).toContain('from "@/services/addressRadarService"');
     expect(source).toContain('from "@/services/contractService"');
     expect(source).toContain('from "@/services/candidateService"');
     expect(source).toContain('from "@/services/tokenService"');
@@ -29,7 +30,10 @@ describe("AddressDetail source guards", () => {
     expect(source).toContain('import("./components/AddressVotersTab.vue")');
     expect(source).toContain('import("./components/AddressRadarTab.vue")');
     expect(source).toContain("activeTab === 'assetRadar'");
-    expect(source).toContain(":fetch-transfers=\"fetchRadarTransfersForAddress\"");
+    expect(source).toContain(":fetch-path=\"fetchRadarPath\"");
+    expect(source).toContain("addressRadarService.getDirectGraph");
+    expect(source).toContain('createExplorerQueryKey("address.radarGraph"');
+    expect(source).toContain("version: 2");
   });
 
   it("routes address summary, holdings, and default transactions through shared freshness keys", () => {
