@@ -8,183 +8,101 @@ export const API_DOCS_RPC_CATEGORIES = [
   { key: "stats", label: "Stats & Traces" },
 ];
 
-// JSON-RPC base selector for a documented method. The two origins serve
-// different method sets (#18):
-//   - "rpc": the /rpc origin-proxy, a bare NEO-GO node. Serves only the
-//     standard NEO-GO RPC methods (invokefunction, getblockcount, ...).
-//   - "api": the /api/<network> edge-worker intercept. The ONLY origin that
-//     answers the legacy indexed Get* methods and the getvalidatedstateroot
-//     helper. These intercepts exist on mainnet only — testnet /api points at
-//     a plain node that rejects every indexed method — so they are annotated
-//     mainnet-only.
+// JSON-RPC base selector for documented methods. The interactive docs expose
+// standard Neo RPC calls that are served by the production RPC gateway.
 export const RPC_METHOD_BASE = {
   rpc: "rpc",
   api: "api",
 };
 
-// UI annotation strings for the /api-only, mainnet-only indexed method group.
+// UI annotation strings retained for any explicitly mainnet-only additions.
 // Sourced from this owned constants module (not the i18n lang files) so the
 // annotation ships without editing locale bundles.
 export const RPC_MAINNET_ONLY_BADGE = "Mainnet only";
 export const RPC_MAINNET_ONLY_NOTE =
-  "This method is served only by the /api/<network> intercept on mainnet. Testnet /api points at a plain NEO-GO node that rejects indexed methods.";
+  "This method is served only by the mainnet RPC surface.";
 
-// A method targets the /api intercept when it is an indexed Get* method OR the
-// getvalidatedstateroot helper (a passthrough-typed method that nonetheless
-// only exists as the /api intercept, never on the bare /rpc node).
 function resolveMethodBase(method) {
-  if (method.type === "indexed") return RPC_METHOD_BASE.api;
-  if (method.name === "getvalidatedstateroot") return RPC_METHOD_BASE.api;
-  return RPC_METHOD_BASE.rpc;
+  return method.base || RPC_METHOD_BASE.rpc;
 }
 
 export const API_DOCS_RPC_METHODS = [
   {
-    name: "GetBlockCount",
+    name: "getblockcount",
     desc: "Get the latest block height.",
     category: "blocks",
-    params: {},
-    type: "indexed",
+    params: [],
+    type: "passthrough",
   },
   {
-    name: "GetBlockInfoList",
-    desc: "Get paginated block summaries.",
+    name: "getblockhash",
+    desc: "Get a block hash by height.",
     category: "blocks",
-    params: { Limit: 20, Skip: 0 },
-    type: "indexed",
+    params: [1],
+    type: "passthrough",
   },
   {
-    name: "GetBlockByBlockHash",
-    desc: "Get a block by hash.",
+    name: "getblock",
+    desc: "Get a block by height or hash.",
     category: "blocks",
-    params: { BlockHash: "0x..." },
-    type: "indexed",
+    params: [1, 1],
+    type: "passthrough",
   },
   {
-    name: "GetTransactionCount",
-    desc: "Get total number of indexed transactions.",
+    name: "getrawtransaction",
+    desc: "Get transaction detail by transaction hash.",
     category: "transactions",
-    params: {},
-    type: "indexed",
+    params: ["0x534033004dddda93d975bb823a228e6f995a96526608f03d74cdba8e44fe46d5", 1],
+    type: "passthrough",
   },
   {
-    name: "GetTransactionList",
-    desc: "Get paginated transaction list.",
-    category: "transactions",
-    params: { Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetRawTransactionByTransactionHash",
-    desc: "Get transaction detail by tx hash.",
-    category: "transactions",
-    params: { TransactionHash: "0x..." },
-    type: "indexed",
-  },
-  {
-    name: "GetAddressByAddress",
-    desc: "Get address summary by wallet address.",
+    name: "getnep17balances",
+    desc: "Get NEP-17 balances for an address.",
     category: "addresses",
-    params: { Address: "N..." },
-    type: "indexed",
+    params: ["NN8tbpgAx8zm5BNJZEqvi71Rj2Z8LX2RHh"],
+    type: "passthrough",
   },
   {
-    name: "GetAssetsHeldByAddress",
-    desc: "Get assets currently held by address.",
-    category: "addresses",
-    params: { Address: "N..." },
-    type: "indexed",
-  },
-  {
-    name: "GetNep17TransferByAddress",
-    desc: "Get NEP-17 transfer history by address.",
-    category: "addresses",
-    params: { Address: "N...", Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetAssetInfos",
-    desc: "Get paginated token list.",
-    category: "tokens",
-    params: { Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetAssetInfoByContractHash",
-    desc: "Get token metadata by contract hash.",
-    category: "tokens",
-    params: { ContractHash: "0x..." },
-    type: "indexed",
-  },
-  {
-    name: "GetAssetHoldersByContractHash",
-    desc: "Get top holders for a token contract.",
-    category: "tokens",
-    params: { ContractHash: "0x...", Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetContractByContractHash",
-    desc: "Get contract detail and manifest.",
+    name: "getcontractstate",
+    desc: "Get contract metadata and manifest state.",
     category: "contracts",
-    params: { ContractHash: "0x..." },
-    type: "indexed",
-  },
-  {
-    name: "GetContractList",
-    desc: "Get paginated contract list.",
-    category: "contracts",
-    params: { Limit: 20, Skip: 0 },
-    type: "indexed",
+    params: ["0xd2a4cff31913016155e38e474a2c06d08be276cf"],
+    type: "passthrough",
   },
   {
     name: "invokefunction",
     desc: "Native Neo RPC call, forwarded by neo3fura when not handled by indexed API.",
     category: "contracts",
-    params: ["0xcontract", "methodName", []],
+    params: ["0xd2a4cff31913016155e38e474a2c06d08be276cf", "symbol", []],
     type: "passthrough",
   },
   {
-    name: "getvalidatedstateroot",
-    desc: "n3index helper that returns the newest StateValidator-covered StateService root.",
-    category: "stats",
-    params: { WithWitnesses: false },
-    type: "passthrough",
-  },
-  {
-    name: "GetCandidate",
+    name: "getcandidates",
     desc: "Get consensus candidates list.",
     category: "governance",
-    params: { Limit: 20, Skip: 0 },
-    type: "indexed",
+    params: [],
+    type: "passthrough",
   },
   {
-    name: "GetCandidateByAddress",
-    desc: "Get candidate detail by validator address.",
-    category: "governance",
-    params: { Address: "N..." },
-    type: "indexed",
-  },
-  {
-    name: "GetVotersByCandidateAddress",
-    desc: "Get voters for a candidate.",
-    category: "governance",
-    params: { Address: "N...", Limit: 20, Skip: 0 },
-    type: "indexed",
-  },
-  {
-    name: "GetApplicationLogByTransactionHash",
-    desc: "Get transaction execution log by tx hash.",
+    name: "getversion",
+    desc: "Get node and protocol version information.",
     category: "stats",
-    params: { TransactionHash: "0x..." },
-    type: "indexed",
+    params: [],
+    type: "passthrough",
   },
   {
-    name: "GetExecutionByTransactionHash",
-    desc: "Get indexed execution metadata by tx hash.",
+    name: "getconnectioncount",
+    desc: "Get the active peer connection count.",
     category: "stats",
-    params: { TransactionHash: "0x..." },
-    type: "indexed",
+    params: [],
+    type: "passthrough",
+  },
+  {
+    name: "getstateheight",
+    desc: "Get the local and validated state root heights.",
+    category: "stats",
+    params: [],
+    type: "passthrough",
   },
 ];
 
@@ -194,9 +112,7 @@ export const API_DOCS_RPC_METHODS = [
 // the method.
 for (const method of API_DOCS_RPC_METHODS) {
   method.base = resolveMethodBase(method);
-  // Only the /api intercept group is mainnet-restricted; the standard NEO-GO
-  // /rpc methods work on both networks.
-  method.mainnetOnly = method.base === RPC_METHOD_BASE.api;
+  method.mainnetOnly = Boolean(method.mainnetOnly);
 }
 
 export const API_DOCS_RPC_PASSTHROUGH_METHODS = new Set(

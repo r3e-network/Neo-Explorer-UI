@@ -40,23 +40,19 @@ describe("rpcApiDocs catalog", () => {
     expect(new Set(passthroughNames)).toEqual(API_DOCS_RPC_PASSTHROUGH_METHODS);
   });
 
-  // #18: the /rpc origin-proxy is now a bare NEO-GO node. The indexed Get*
-  // methods and the getvalidatedstateroot helper exist ONLY as the /api
-  // edge-worker intercept, so they must be flagged base=api (mainnet-only).
-  it("targets getvalidatedstateroot at the /api intercept base, mainnet-only", () => {
-    const method = findMethod("getvalidatedstateroot");
+  it("starts the blocks category with a production-runnable getblockcount example", () => {
+    const method = API_DOCS_RPC_METHODS.find((candidate) => candidate.category === "blocks");
     expect(method).toBeTruthy();
-    expect(method.base).toBe(RPC_METHOD_BASE.api);
-    expect(method.mainnetOnly).toBe(true);
-    expect(API_DOCS_RPC_API_BASE_METHODS.has("getvalidatedstateroot")).toBe(true);
+    expect(method.name).toBe("getblockcount");
+    expect(method.type).toBe("passthrough");
+    expect(method.base).toBe(RPC_METHOD_BASE.rpc);
+    expect(method.mainnetOnly).toBe(false);
   });
 
-  it("targets every indexed method at the /api intercept base, mainnet-only", () => {
-    for (const method of API_DOCS_RPC_METHODS.filter((m) => m.type === "indexed")) {
-      expect(method.base, method.name).toBe(RPC_METHOD_BASE.api);
-      expect(method.mainnetOnly, method.name).toBe(true);
-      expect(API_DOCS_RPC_API_BASE_METHODS.has(method.name)).toBe(true);
-    }
+  it("does not expose legacy indexed Get* methods as runnable JSON-RPC examples", () => {
+    expect(API_DOCS_RPC_METHODS.some((method) => method.type === "indexed")).toBe(false);
+    expect(API_DOCS_RPC_METHODS.some((method) => /^Get/.test(method.name))).toBe(false);
+    expect(API_DOCS_RPC_API_BASE_METHODS.size).toBe(0);
   });
 
   it("keeps the standard NEO-GO invokefunction on the /rpc origin-proxy", () => {
@@ -71,8 +67,6 @@ describe("rpcApiDocs catalog", () => {
     for (const method of API_DOCS_RPC_METHODS) {
       expect([RPC_METHOD_BASE.rpc, RPC_METHOD_BASE.api]).toContain(method.base);
       expect(typeof method.mainnetOnly).toBe("boolean");
-      // mainnetOnly is exactly the /api-base group.
-      expect(method.mainnetOnly).toBe(method.base === RPC_METHOD_BASE.api);
     }
   });
 });

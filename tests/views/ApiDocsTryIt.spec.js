@@ -91,18 +91,18 @@ describe("ApiDocs REST try-it console", () => {
     await switchToRpcMode(wrapper);
     const card = wrapper
       .findAll('[data-testid="api-docs-rpc-method"]')
-      .find((candidate) => candidate.text().includes("GetBlockCount"));
+      .find((candidate) => candidate.text().includes("getblockcount"));
 
     expect(card).toBeTruthy();
     await card.find('[data-testid="api-rpc-try-run"]').trigger("click");
     await flushPromises();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/mainnet"),
+      expect.stringContaining("/rpc/mainnet"),
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ "Content-Type": "application/json" }),
-        body: expect.stringContaining('"method":"GetBlockCount"'),
+        body: expect.stringContaining('"method":"getblockcount"'),
       }),
     );
     expect(card.find('[data-testid="api-rpc-try-result"]').text()).toContain('"result": 1122');

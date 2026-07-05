@@ -3,15 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "vue-i18n";
 
 import ApiDocs from "@/views/Developer/ApiDocs.vue";
-import {
-  API_DOCS_RPC_METHODS,
-  RPC_MAINNET_ONLY_BADGE,
-} from "@/constants/rpcApiDocs.mjs";
+import { API_DOCS_RPC_CATEGORIES, API_DOCS_RPC_METHODS } from "@/constants/rpcApiDocs.mjs";
 import { setCurrentEnv } from "@/utils/env";
 
-// #18: the ApiDocs JSON-RPC cards must send the indexed Get* methods and the
-// getvalidatedstateroot helper to the /api/<network> intercept base, while the
-// standard NEO-GO methods (invokefunction) stay on the /rpc origin-proxy.
+// Interactive JSON-RPC docs list production-runnable standard Neo RPC methods.
+// Indexed explorer data is documented in REST mode instead.
 
 const i18n = createI18n({
   legacy: false,
@@ -51,7 +47,7 @@ async function selectCategory(wrapper, categoryKey) {
   await wrapper.vm.$nextTick();
 }
 
-describe("ApiDocs JSON-RPC base routing (#18)", () => {
+describe("ApiDocs JSON-RPC base routing", () => {
   beforeEach(() => {
     setCurrentEnv("Mainnet");
   });
@@ -61,21 +57,17 @@ describe("ApiDocs JSON-RPC base routing (#18)", () => {
     setCurrentEnv("Mainnet");
   });
 
-  it("renders getvalidatedstateroot against the /api intercept base with a mainnet-only note", async () => {
+  it("renders stats methods against the /rpc origin-proxy without a mainnet-only note", async () => {
     const wrapper = mountApiDocs();
     await switchToRpcMode(wrapper);
-    // getvalidatedstateroot lives in the "stats" category.
     await selectCategory(wrapper, "stats");
 
     const endpoints = wrapper.findAll('[data-testid="rpc-method-endpoint"]').map((n) => n.text());
-    // At least one card in this category (getvalidatedstateroot) targets /api.
-    expect(endpoints.some((text) => text.includes("/api/mainnet"))).toBe(true);
-    expect(endpoints.every((text) => !text.includes("/rpc/mainnet"))).toBe(true);
-
-    // The mainnet-only annotation is present for the /api group.
-    const badges = wrapper.findAll('[data-testid="rpc-mainnet-only-badge"]').map((n) => n.text());
-    expect(badges).toContain(RPC_MAINNET_ONLY_BADGE);
-    expect(wrapper.find('[data-testid="rpc-mainnet-only-note"]').exists()).toBe(true);
+    expect(endpoints.length).toBeGreaterThan(0);
+    expect(endpoints.every((text) => text.includes("/rpc/mainnet"))).toBe(true);
+    expect(endpoints.some((text) => text.includes("/api/mainnet"))).toBe(false);
+    expect(wrapper.find('[data-testid="rpc-mainnet-only-badge"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="rpc-mainnet-only-note"]').exists()).toBe(false);
   });
 
   it("keeps standard NEO-GO methods (invokefunction) on the /rpc origin-proxy without a mainnet-only note", async () => {
@@ -97,24 +89,23 @@ describe("ApiDocs JSON-RPC base routing (#18)", () => {
     expect(invokeCard.find('[data-testid="rpc-mainnet-only-note"]').exists()).toBe(false);
   });
 
-  it("uses the /api base for every indexed method card in the rendered doc", async () => {
+  it("does not render legacy indexed methods as runnable JSON-RPC cards", async () => {
+    expect(API_DOCS_RPC_METHODS.some((method) => method.type === "indexed")).toBe(false);
+    expect(API_DOCS_RPC_METHODS.some((method) => /^Get/.test(method.name))).toBe(false);
+  });
+
+  it("uses the /rpc base for every rendered method card", async () => {
     const wrapper = mountApiDocs();
     await switchToRpcMode(wrapper);
 
-    const indexedByCategory = new Map();
-    for (const method of API_DOCS_RPC_METHODS.filter((m) => m.type === "indexed")) {
-      if (!indexedByCategory.has(method.category)) indexedByCategory.set(method.category, []);
-      indexedByCategory.get(method.category).push(method.name);
-    }
-
-    for (const [category, names] of indexedByCategory.entries()) {
-      await selectCategory(wrapper, category);
+    for (const { key } of API_DOCS_RPC_CATEGORIES) {
+      await selectCategory(wrapper, key);
       const cards = wrapper.findAll("article.etherscan-card");
-      for (const name of names) {
-        const card = cards.find((c) => c.find("h3").text() === name);
-        expect(card, `card for ${name}`).toBeTruthy();
+      for (const card of cards) {
+        const name = card.find("h3").text();
         const endpoint = card.find('[data-testid="rpc-method-endpoint"]').text();
-        expect(endpoint, name).toContain("/api/mainnet");
+        expect(endpoint, name).toContain("/rpc/mainnet");
+        expect(endpoint, name).not.toContain("/api/mainnet");
       }
     }
   });
