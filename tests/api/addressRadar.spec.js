@@ -70,7 +70,7 @@ describe("address radar API", () => {
 
   it("builds a capped direct graph server-side", async () => {
     const fetchMock = vi.fn(async (url) => {
-      if (String(url).includes("nep17_transfers")) {
+      if (String(url).includes("/accounts/")) {
         return jsonResponse([
           {
             txid: "0x-in",
@@ -101,7 +101,8 @@ describe("address radar API", () => {
     await handler(request({ mode: "direct", network: "mainnet", address: CENTER, limit: "9999" }), res);
 
     expect(res.statusCode).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(decodeURIComponent(String(fetchMock.mock.calls[0][0]))).toContain(`/networks/mainnet/accounts/${CENTER}/transfers`);
     expect(decodeURIComponent(String(fetchMock.mock.calls[0][0]))).toContain("limit=80");
     expect(res.payload.data.graph.nodes).toEqual(
       expect.arrayContaining([
@@ -147,7 +148,7 @@ describe("address radar API", () => {
     await handler(request({ mode: "direct", network: "mainnet", address: CENTER, limit: "80" }), res);
 
     expect(res.statusCode).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(res.payload.data.graph.summary).toMatchObject({
       inboundAccounts: 1,
       transferCount: 1,

@@ -16,6 +16,11 @@ const INDEXER_REST_BASE_URL = String(
     process.env.INDEXER_REST_BASE_URL ||
     "https://api.n3index.dev/rest/v1",
 ).replace(/\/+$/, "");
+const INDEXER_READ_API_BASE_URL = String(
+  process.env.ADDRESS_RADAR_READ_API_BASE_URL ||
+    process.env.INDEXER_READ_API_BASE_URL ||
+    "https://api.n3index.dev/v1",
+).replace(/\/+$/, "");
 
 const DIRECT_TRANSFER_LIMIT = 80;
 const DIRECT_MAX_COUNTERPARTIES = 24;
@@ -122,7 +127,9 @@ async function fetchJsonWithTimeout(url, { timeoutMs = UPSTREAM_TIMEOUT_MS } = {
       throw new Error(`Indexer responded ${response.status}`);
     }
     const payload = await response.json();
-    return Array.isArray(payload) ? payload : [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
   } finally {
     clearTimeout(timer);
   }
@@ -159,6 +166,14 @@ function buildAddressTransferUrl(network, table, address, limit) {
   });
   params.set("or", `(from_address.eq.${address},to_address.eq.${address})`);
   return `${INDEXER_REST_BASE_URL}/${table}?${params.toString()}`;
+}
+
+function buildReadApiAccountTransfersUrl(network, address, limit) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: "0",
+  });
+  return `${INDEXER_READ_API_BASE_URL}/networks/${encodeURIComponent(network)}/accounts/${encodeURIComponent(address)}/transfers?${params.toString()}`;
 }
 
 function buildAddressPairTransferUrl(network, table, fromAddress, toAddress, limit) {
@@ -209,6 +224,27 @@ async function fetchTransfersForAddress(network, address, limit, options = {}) {
   const safeLimit = clampInt(limit, { min: 1, max: DIRECT_TRANSFER_LIMIT, fallback: PATH_PER_ADDRESS_LIMIT });
   const timeoutMs = Number(options.timeoutMs || UPSTREAM_TIMEOUT_MS);
   const retryTimeoutMs = Number(options.retryTimeoutMs || 0);
+  const warnings = [];
+
+  try {
+    const readApiRows = await fetchJsonWithRetry(buildReadApiAccountTransfersUrl(network, address, safeLimit), {
+      timeoutMs,
+      retryTimeoutMs,
+    });
+    const readApiTransfers = readApiRows.map((row) => normalizeTransfer(row, row.standard || "NEP17"));
+    if (readApiTransfers.length > 0) {
+      return {
+        transfers: dedupeTransfers(readApiTransfers)
+          .filter((transfer) => keyAddress(transfer.from) && keyAddress(transfer.to) && keyAddress(transfer.from) !== keyAddress(transfer.to))
+          .sort(compareTransfersByRecency)
+          .slice(0, safeLimit),
+        warnings,
+      };
+    }
+  } catch (error) {
+    warnings.push(`read-api: ${error?.message || "unavailable"}`);
+  }
+
   const tables = [
     { name: "nep17_transfers", standard: "NEP17" },
     { name: "nep11_transfers", standard: "NEP11" },
@@ -222,7 +258,6 @@ async function fetchTransfersForAddress(network, address, limit, options = {}) {
   );
 
   const transfers = [];
-  const warnings = [];
   settled.forEach((result, index) => {
     if (result.status === "fulfilled") {
       transfers.push(...result.value);

@@ -2450,6 +2450,7 @@ const zh = {
     consensusTitle: "dBFT 2.0 共识",
     rowBlockHeight: "区块高度",
     rowTimestamp: "时间戳",
+    rowConfirmationsLabel: "确认数",
     rowTransactions: "交易",
     rowValidatedBy: "验证者",
     rowValidatedByTip: "提议此区块的共识节点",

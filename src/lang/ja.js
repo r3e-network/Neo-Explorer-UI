@@ -2450,6 +2450,7 @@ const ja = {
     consensusTitle: "dBFT 2.0 コンセンサス",
     rowBlockHeight: "ブロック高",
     rowTimestamp: "タイムスタンプ",
+    rowConfirmationsLabel: "確認数",
     rowTransactions: "トランザクション",
     rowValidatedBy: "検証者",
     rowValidatedByTip: "このブロックを提案したコンセンサスノード",

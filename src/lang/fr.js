@@ -2447,6 +2447,7 @@ const fr = {
     consensusTitle: "Consensus dBFT 2.0",
     rowBlockHeight: "Hauteur de bloc",
     rowTimestamp: "Horodatage",
+    rowConfirmationsLabel: "Confirmations",
     rowTransactions: "Transactions",
     rowValidatedBy: "Validé par",
     rowValidatedByTip: "Le nœud de consensus qui a proposé ce bloc",

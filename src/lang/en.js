@@ -2450,6 +2450,7 @@ const en = {
     consensusTitle: "dBFT 2.0 Consensus",
     rowBlockHeight: "Block Height",
     rowTimestamp: "Timestamp",
+    rowConfirmationsLabel: "Confirmations",
     rowTransactions: "Transactions",
     rowValidatedBy: "Validated By",
     rowValidatedByTip: "The consensus node that proposed this block",

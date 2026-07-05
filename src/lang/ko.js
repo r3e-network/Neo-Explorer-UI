@@ -2450,6 +2450,7 @@ const ko = {
     consensusTitle: "dBFT 2.0 컨센서스",
     rowBlockHeight: "블록 높이",
     rowTimestamp: "타임스탬프",
+    rowConfirmationsLabel: "확정 수",
     rowTransactions: "트랜잭션",
     rowValidatedBy: "검증자",
     rowValidatedByTip: "이 블록을 제안한 컨센서스 노드",
