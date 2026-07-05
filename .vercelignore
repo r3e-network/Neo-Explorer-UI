@@ -1,0 +1,5 @@
+.workbuddy/
+test-results/
+coverage/
+dist/
+*.log
