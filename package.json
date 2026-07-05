@@ -19,6 +19,7 @@
     "qa": "npm run lint && npm test && npm run build",
     "qa:full": "npm run lint && npm test && npm run validate:rpc && npm run build",
     "audit:render": "node tests/browser-render-audit.mjs",
+    "validate:postdeploy": "node scripts/post-deploy-cache-check.mjs && node tests/pages.test.js && CAPTURE_SCREENSHOTS=failures node tests/browser-render-audit.mjs",
     "sync:abstract-account-artifacts": "node scripts/sync-abstract-account-artifacts.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -15,7 +15,7 @@ const INDEXER_BLOCK_LOOKBACK = 140;
 
 const CACHE_TTL_MS = {
   seeds: 30 * 1000,
-  latest: 15 * 1000,
+  latest: 4 * 1000,
   history: 60 * 1000,
 };
 const cache = new Map();

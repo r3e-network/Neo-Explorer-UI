@@ -138,6 +138,21 @@ describe("networkMonitorService", () => {
       expect(result).toEqual(data);
     });
 
+    it("re-fetches latest blocks after the short realtime TTL expires", async () => {
+      const first = [{ height: 100, time: 1700000000, interval: 15, tx: 5 }];
+      const second = [{ height: 101, time: 1700000004, interval: 4, tx: 1 }];
+      global.fetch
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(first) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(second) });
+
+      expect(await getLatestBlocks("mainnet-latest-short-ttl")).toEqual(first);
+      const realNow = Date.now;
+      vi.spyOn(Date, "now").mockReturnValue(realNow() + 4_500);
+      expect(await getLatestBlocks("mainnet-latest-short-ttl")).toEqual(second);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      Date.now.mockRestore();
+    });
+
     it("enriches monitor block intervals with primary node data from the indexer", async () => {
       const data = [
         { height: 101, time: 1700000003, interval: 10, tx: 0 },
