@@ -80,6 +80,35 @@ describe("logo API", () => {
     expect(res.body).toEqual(imageBytes);
   });
 
+  it("sniffs streamed image bytes when the upstream content type is wrong", async () => {
+    const webpBytes = Buffer.concat([
+      Buffer.from("RIFF", "ascii"),
+      Buffer.from([0x10, 0x00, 0x00, 0x00]),
+      Buffer.from("WEBP", "ascii"),
+      Buffer.from("VP8 ", "ascii"),
+      Buffer.from([0x00, 0x00, 0x00, 0x00]),
+    ]);
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(webpBytes, {
+        status: 200,
+        headers: {
+          "content-type": "image/png",
+          "content-length": String(webpBytes.length),
+        },
+      });
+    });
+
+    const handler = loadHandler();
+    handler._internal.setSharpLoaderForTests(() => null);
+
+    const res = createResponse();
+    await handler({ method: "GET", query: { u: publicImageUrl, w: "64", q: "72" }, headers: {} }, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("image/webp");
+    expect(res.body).toEqual(webpBytes);
+  });
+
   it("supports HEAD probes without invoking the optimizer", async () => {
     globalThis.fetch = vi.fn(async () => {
       return new Response(null, {

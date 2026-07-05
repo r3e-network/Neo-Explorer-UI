@@ -92,6 +92,40 @@ function loadSharp() {
   return sharpModule;
 }
 
+function detectImageContentType(buffer, fallback = "") {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 4) {
+    return fallback;
+  }
+
+  if (
+    buffer.length >= 12 &&
+    buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
+    buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return "image/webp";
+  }
+
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return "image/png";
+  }
+
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return "image/jpeg";
+  }
+
+  const header = buffer.subarray(0, 6).toString("ascii");
+  if (header === "GIF87a" || header === "GIF89a") {
+    return "image/gif";
+  }
+
+  const prefix = buffer.subarray(0, Math.min(buffer.length, 256)).toString("utf8").trimStart().toLowerCase();
+  if (prefix.startsWith("<svg") || prefix.startsWith("<?xml")) {
+    return "image/svg+xml";
+  }
+
+  return fallback;
+}
+
 async function fetchWithValidatedRedirects(sourceUrl, options, maxRedirects = MAX_REDIRECTS) {
   let currentUrl = sourceUrl;
 
@@ -221,7 +255,8 @@ async function handler(req, res) {
 
   const sharp = loadSharp();
   if (!sharp) {
-    if (contentType) res.setHeader("Content-Type", contentType);
+    const detectedContentType = detectImageContentType(sourceBuffer, contentType);
+    if (detectedContentType) res.setHeader("Content-Type", detectedContentType);
     res.setHeader(
       "Cache-Control",
       "public, max-age=3600, s-maxage=604800, stale-while-revalidate=2592000"
@@ -261,6 +296,7 @@ async function handler(req, res) {
 const wrappedHandler = withApiTelemetry("logo", handler);
 
 wrappedHandler._internal = {
+  detectImageContentType,
   setSharpLoaderForTests(loader) {
     sharpLoaderForTests = typeof loader === "function" ? loader : null;
   },
