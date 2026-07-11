@@ -1,4 +1,8 @@
 const net = require('node:net');
+const {
+    createPostgresRateLimiter,
+    hasPostgresRateLimitConfig,
+} = require('./postgresRateLimit');
 
 const DEFAULT_POLICIES = Object.freeze({
     info: Object.freeze({ windowMs: 60_000, maxRequests: 60 }),
@@ -33,8 +37,8 @@ function isValidIpCandidate(value) {
     return net.isIP(ip) !== 0;
 }
 
-function isRunningOnVercel() {
-    return Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+function isRunningOnVercel(env = process.env) {
+    return Boolean(env?.VERCEL || env?.VERCEL_ENV);
 }
 
 // Default to trusting proxy headers when deployed on Vercel: there the platform
@@ -278,7 +282,8 @@ function createUpstashRateLimiter({
         if (now - lastLogAt < 60_000) return;
         lastLogAt = now;
         if (fallbackOnError) {
-            console.warn(`${logPrefix} shared limiter unavailable, falling back to in-memory limiter: ${error?.message || error}`);
+            const fallbackLabel = fallbackLimiter?.isShared ? 'secondary shared limiter' : 'in-memory limiter';
+            console.warn(`${logPrefix} shared limiter unavailable, falling back to ${fallbackLabel}: ${error?.message || error}`);
         } else {
             console.warn(`${logPrefix} shared limiter unavailable and fallback is disabled: ${error?.message || error}`);
         }
@@ -326,24 +331,47 @@ function createUpstashRateLimiter({
     };
 }
 
+function createUnavailableRateLimiter(reason) {
+    return {
+        isShared: false,
+        provider: 'unavailable',
+        async consume() {
+            throw new Error(reason);
+        },
+        getTrackedKeyCount() {
+            return 0;
+        },
+    };
+}
+
 function createDefaultRateLimiter({
     env = process.env,
     fetchImpl = globalThis.fetch,
+    postgresQueryImpl,
     disableEnvKey = 'RELAYER_RATE_LIMIT_DISABLE_SHARED',
     failOpenEnvKey = 'RELAYER_RATE_LIMIT_FAIL_OPEN',
 } = {}) {
     const sharedConfig = resolveUpstashConfig(env, { disableEnvKey });
+    const failOpen = String(env?.[failOpenEnvKey] || '').trim() === '1';
+    const postgresLimiter = hasPostgresRateLimitConfig(env)
+        ? createPostgresRateLimiter({ queryImpl: postgresQueryImpl })
+        : null;
+
     if (!sharedConfig) {
+        if (postgresLimiter) return postgresLimiter;
+        if (isRunningOnVercel(env) && !failOpen) {
+            return createUnavailableRateLimiter('no shared rate limiter is configured');
+        }
         return createInMemoryRateLimiter();
     }
 
-    const failOpen = String(env?.[failOpenEnvKey] || '').trim() === '1';
+    const fallbackLimiter = postgresLimiter || createInMemoryRateLimiter();
 
     return createUpstashRateLimiter({
         ...sharedConfig,
         fetchImpl,
-        fallbackLimiter: createInMemoryRateLimiter(),
-        fallbackOnError: failOpen,
+        fallbackLimiter,
+        fallbackOnError: Boolean(postgresLimiter || failOpen),
     });
 }
 
